@@ -283,6 +283,52 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub = null;
     _activeTypingSub = null;
     _activeRoomId = null;
+    _loadingOlder.clear();
+    _exhausted.clear();
+  }
+
+  // ───────────── pagination ─────────────
+
+  final Set<String> _loadingOlder = {};
+  final Set<String> _exhausted = {};
+
+  bool isLoadingOlder(String roomId) => _loadingOlder.contains(roomId);
+  bool hasMoreOlder(String roomId) => !_exhausted.contains(roomId);
+
+  /// Fetches a page of messages older than the earliest one we have. Returns
+  /// the number of newly-prepended messages. Idempotent if a page is already
+  /// loading; no-op when [hasMoreOlder] returns false.
+  Future<int> loadOlder(String roomId, {int pageSize = 40}) async {
+    if (_loadingOlder.contains(roomId)) return 0;
+    if (_exhausted.contains(roomId)) return 0;
+    final cur = _messages[roomId] ?? const [];
+    if (cur.isEmpty) return 0;
+    _loadingOlder.add(roomId);
+    notifyListeners();
+    try {
+      final earliest = cur.first.createdAt;
+      final older = await api.listBefore(
+        roomId: roomId,
+        before: earliest,
+        limit: pageSize,
+      );
+      if (older.isEmpty) {
+        _exhausted.add(roomId);
+        return 0;
+      }
+      // Dedupe by id in case backend page boundary overlaps.
+      final seen = {for (final m in cur) m.id};
+      final fresh = older.where((m) => !seen.contains(m.id)).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      _messages[roomId] = [...fresh, ...cur];
+      if (older.length < pageSize) _exhausted.add(roomId);
+      return fresh.length;
+    } catch (_) {
+      return 0;
+    } finally {
+      _loadingOlder.remove(roomId);
+      notifyListeners();
+    }
   }
 
   // ───────────── typing heartbeat ─────────────

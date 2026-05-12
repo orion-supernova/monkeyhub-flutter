@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/room_password_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'room_screen.dart';
 import 'search_screen.dart';
@@ -98,11 +99,24 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
                   room: r,
                   onTap: () async {
                     final nav = Navigator.of(context);
-                    await widget.repo.joinRoom(roomId: r.id);
-                    if (!mounted) return;
-                    nav.push(MaterialPageRoute(
-                        builder: (_) =>
-                            RoomScreen(roomId: r.id, repo: widget.repo, api: widget.api)));
+                    final messenger = ScaffoldMessenger.of(context);
+                    String? password;
+                    if (r.hasPassword) {
+                      password = await showRoomPasswordSheet(context, r);
+                      if (!mounted || password == null || password.isEmpty) return;
+                    }
+                    try {
+                      await widget.repo.joinRoom(roomId: r.id, password: password);
+                      if (!mounted) return;
+                      nav.push(MaterialPageRoute(
+                          builder: (_) =>
+                              RoomScreen(roomId: r.id, repo: widget.repo, api: widget.api)));
+                    } catch (e) {
+                      final msg = e.toString().contains('WRONG_PASSWORD')
+                          ? 'wrong password'
+                          : 'couldn\'t join — try again';
+                      messenger.showSnackBar(SnackBar(content: Text(msg)));
+                    }
                   },
                 ),
             ],

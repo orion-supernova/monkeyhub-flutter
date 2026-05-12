@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
@@ -137,6 +141,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickAndUploadAvatar() async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (api == null || repo?.userId == null) return;
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 88,
+    );
+    if (picked == null) return;
+    setState(() => _busy = true);
+    try {
+      final uploader = UploadService(api);
+      final storageId = await uploader.uploadXFile(
+        file: File(picked.path),
+        contentType: 'image/jpeg',
+      );
+      await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
+      await _refresh();
+    } catch (_) {/* silent — user can retry */} finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _removeFriend() async {
     final repo = widget.repo;
     if (repo == null) return;
@@ -198,7 +225,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    UserAvatar(user: _u, size: 96, api: widget.api),
+                    GestureDetector(
+                      onTap: _isMe && !_busy ? _pickAndUploadAvatar : null,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          UserAvatar(user: _u, size: 96, api: widget.api),
+                          if (_isMe)
+                            Positioned(
+                              right: -2,
+                              bottom: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: theme.accent,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: theme.background, width: 2),
+                                ),
+                                child: Icon(Icons.camera_alt_outlined,
+                                    size: 14, color: theme.accentInk),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Column(

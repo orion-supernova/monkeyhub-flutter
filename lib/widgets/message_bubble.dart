@@ -6,6 +6,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../screens/fullscreen_image_viewer.dart';
 import 'audio_message.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
@@ -217,13 +218,26 @@ Widget buildMessageContent({
           mainAxisSize: MainAxisSize.min,
           children: [
             if (id != null)
-              RemoteImage(
-                storageId: id,
-                api: api,
-                width: 240,
-                height: 240,
-                borderRadius: BorderRadius.zero,
-              )
+              Builder(builder: (ctx) {
+                return GestureDetector(
+                  onTap: () => FullscreenImageViewer.open(
+                    ctx,
+                    storageId: id,
+                    api: api,
+                    heroTag: 'msg-image-${message.id}',
+                  ),
+                  child: Hero(
+                    tag: 'msg-image-${message.id}',
+                    child: RemoteImage(
+                      storageId: id,
+                      api: api,
+                      width: 240,
+                      height: 240,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                  ),
+                );
+              })
             else
               Container(
                 width: 240,

@@ -7,6 +7,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/room_password_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
@@ -363,12 +364,22 @@ class _RoomRow extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         final nav = Navigator.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+        String? password;
+        if (room.hasPassword) {
+          password = await showRoomPasswordSheet(context, room);
+          if (password == null || password.isEmpty) return;
+        }
         try {
-          await repo.joinRoom(roomId: room.id);
-          if (!context.mounted) return;
+          await repo.joinRoom(roomId: room.id, password: password);
           nav.push(MaterialPageRoute(
               builder: (_) => RoomScreen(roomId: room.id, repo: repo, api: api)));
-        } catch (_) {}
+        } catch (e) {
+          final msg = e.toString().contains('WRONG_PASSWORD')
+              ? 'wrong password'
+              : 'couldn\'t join — try again';
+          messenger.showSnackBar(SnackBar(content: Text(msg)));
+        }
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

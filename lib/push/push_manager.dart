@@ -20,8 +20,14 @@ class PushManager {
   bool get _supported => Platform.isIOS || Platform.isAndroid;
 
   /// Call once at app startup. Safe to call multiple times.
+  /// Bind a new room-open handler (call after the navigator is mounted).
+  /// Safe to call any number of times — the latest wins.
+  void setOnOpenRoom(void Function(String roomId) handler) {
+    _onOpenRoom = handler;
+  }
+
   Future<void> initialize({void Function(String roomId)? onOpenRoom}) async {
-    _onOpenRoom = onOpenRoom;
+    if (onOpenRoom != null) _onOpenRoom = onOpenRoom;
     if (_initialized) return;
     if (!_supported) return;
     final appId = Env.oneSignalAppId;

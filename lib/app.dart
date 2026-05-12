@@ -6,9 +6,11 @@ import 'backend/convex_client.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
 import 'env.dart';
+import 'main.dart' show rootNavigatorKey;
 import 'push/badge_manager.dart';
 import 'push/push_manager.dart';
 import 'screens/home_shell.dart';
+import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_scope.dart';
@@ -35,7 +37,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
+    PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     _bootstrap();
+  }
+
+  void _openRoomFromPush(String roomId) {
+    // Ignore when no session — push could fire just before signOut clears auth.
+    if (_auth.session == null) return;
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    // Pop any nested route first so we always land cleanly on the room.
+    nav.popUntil((r) => r.isFirst);
+    nav.push(MaterialPageRoute(
+      builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
+    ));
   }
 
   @override
@@ -137,6 +152,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           final isLight = theme.mood == ThemeMood.riso;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorKey: rootNavigatorKey,
             title: 'MonkeyHub',
             theme: ThemeData(
               brightness: isLight ? Brightness.light : Brightness.dark,

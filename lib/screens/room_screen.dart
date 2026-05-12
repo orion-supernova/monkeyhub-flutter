@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
@@ -14,6 +15,7 @@ import '../widgets/attachment_menu.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/message_action_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'camera_screen.dart';
 import 'room_info_screen.dart';
@@ -41,6 +43,7 @@ class _RoomScreenState extends State<RoomScreen> {
   final ScrollController _scroll = ScrollController();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
   ChatRoom? _room;
+  bool _didInitialJump = false;
 
   @override
   void initState() {
@@ -51,6 +54,32 @@ class _RoomScreenState extends State<RoomScreen> {
     widget.repo.openRoom(widget.roomId);
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
+    _scroll.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scroll.hasClients) return;
+    // Trigger a page load when the user scrolls within 220px of the top.
+    // ListView is built bottom-anchored visually (newest at the bottom), but
+    // its scroll origin is the FIRST item (oldest) — so "near the top" means
+    // pixels close to 0.
+    if (_scroll.position.pixels <= 220 &&
+        widget.repo.hasMoreOlder(widget.roomId) &&
+        !widget.repo.isLoadingOlder(widget.roomId)) {
+      final extentBefore = _scroll.position.maxScrollExtent;
+      widget.repo.loadOlder(widget.roomId).then((added) {
+        if (!mounted || added == 0) return;
+        // Preserve visual position so the user doesn't get yanked downward
+        // by the newly-prepended items: jump by the difference in extent.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!_scroll.hasClients) return;
+          final delta = _scroll.position.maxScrollExtent - extentBefore;
+          if (delta > 0) {
+            _scroll.jumpTo(_scroll.position.pixels + delta);
+          }
+        });
+      });
+    }
   }
 
   Future<void> _loadMembers() async {
@@ -71,12 +100,21 @@ class _RoomScreenState extends State<RoomScreen> {
     setState(() {
       _room = widget.repo.roomById(widget.roomId);
     });
+    // Land at the newest message on the first time we have content.
+    if (!_didInitialJump && widget.repo.messagesFor(widget.roomId).isNotEmpty) {
+      _didInitialJump = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scroll.hasClients) return;
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      });
+    }
   }
 
   @override
   void dispose() {
     _ticker.cancel();
     _composer.dispose();
+    _scroll.removeListener(_onScroll);
     _scroll.dispose();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeRoom();
@@ -224,10 +262,31 @@ class _RoomScreenState extends State<RoomScreen> {
                       }
                       final m = messages[i - 1];
                       final author = _members[m.senderId];
-                      void onLongPress() async {
-                        final emoji = await showReactionPicker(context);
-                        if (emoji == null || emoji.isEmpty) return;
-                        await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                      final isMine = m.senderId == me;
+                      Future<void> onLongPress() async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final action = await showMessageActionSheet(
+                          context,
+                          isMine: isMine,
+                          canCopy: m.type == MessageType.text && m.content.isNotEmpty,
+                        );
+                        if (!mounted || action == null) return;
+                        switch (action) {
+                          case MessageAction.react:
+                            final emoji = await showReactionPicker(this.context);
+                            if (emoji == null || emoji.isEmpty) return;
+                            await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                            break;
+                          case MessageAction.copy:
+                            await Clipboard.setData(ClipboardData(text: m.content));
+                            messenger.showSnackBar(
+                              const SnackBar(content: Text('copied')),
+                            );
+                            break;
+                          case MessageAction.delete:
+                            await widget.repo.deleteMessage(m.id);
+                            break;
+                        }
                       }
                       void onReactionTap(String e) {
                         widget.repo.toggleReaction(messageId: m.id, emoji: e);
