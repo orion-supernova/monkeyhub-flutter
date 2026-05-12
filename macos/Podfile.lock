@@ -1,34 +1,53 @@
 PODS:
+  - audio_session (0.0.1):
+    - FlutterMacOS
   - convex_flutter (0.0.1):
     - FlutterMacOS
-  - flutter_secure_storage_macos (6.1.3):
+  - file_selector_macos (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - shared_preferences_foundation (0.0.1):
+  - just_audio (0.0.1):
+    - Flutter
+    - FlutterMacOS
+  - record_darwin (1.0.0):
+    - FlutterMacOS
+  - video_player_avfoundation (0.0.1):
     - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
+  - audio_session (from `Flutter/ephemeral/.symlinks/plugins/audio_session/macos`)
   - convex_flutter (from `Flutter/ephemeral/.symlinks/plugins/convex_flutter/macos`)
-  - flutter_secure_storage_macos (from `Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_macos/macos`)
+  - file_selector_macos (from `Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
+  - just_audio (from `Flutter/ephemeral/.symlinks/plugins/just_audio/darwin`)
+  - record_darwin (from `Flutter/ephemeral/.symlinks/plugins/record_darwin/macos`)
+  - video_player_avfoundation (from `Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin`)
 
 EXTERNAL SOURCES:
+  audio_session:
+    :path: Flutter/ephemeral/.symlinks/plugins/audio_session/macos
   convex_flutter:
     :path: Flutter/ephemeral/.symlinks/plugins/convex_flutter/macos
-  flutter_secure_storage_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/flutter_secure_storage_macos/macos
+  file_selector_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_selector_macos/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  shared_preferences_foundation:
-    :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
+  just_audio:
+    :path: Flutter/ephemeral/.symlinks/plugins/just_audio/darwin
+  record_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/record_darwin/macos
+  video_player_avfoundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/video_player_avfoundation/darwin
 
 SPEC CHECKSUMS:
+  audio_session: eaca2512cf2b39212d724f35d11f46180ad3a33e
   convex_flutter: a9d12846e80c8a2238282775fa9eb9c906efcea4
-  flutter_secure_storage_macos: 7f45e30f838cf2659862a4e4e3ee1c347c2b3b54
+  file_selector_macos: 9e9e068e90ebee155097d00e89ae91edb2374db7
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
+  just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
+  record_darwin: 30509266ae213af8afdb09a8ae7467cb64c1377e
+  video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 

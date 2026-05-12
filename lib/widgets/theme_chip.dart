@@ -8,60 +8,68 @@ class ThemeChip extends StatefulWidget {
   State<ThemeChip> createState() => _ThemeChipState();
 }
 
-class _ThemeChipState extends State<ThemeChip> with SingleTickerProviderStateMixin {
+class _ThemeChipState extends State<ThemeChip> {
+  final GlobalKey _anchorKey = GlobalKey();
   bool _expanded = false;
+  OverlayEntry? _overlay;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final controller = ThemeScope.controllerOf(context);
-    return AnimatedContainer(
-      duration: theme.motionMed,
-      curve: theme.motionCurve,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: theme.chipDecoration(filled: false),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  void dispose() {
+    _overlay?.remove();
+    super.dispose();
+  }
+
+  void _toggle() {
+    if (_expanded) {
+      _close();
+    } else {
+      _open();
+    }
+  }
+
+  void _close() {
+    _overlay?.remove();
+    _overlay = null;
+    if (mounted) setState(() => _expanded = false);
+  }
+
+  void _open() {
+    final box = _anchorKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final origin = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    final overlay = Overlay.of(context, rootOverlay: true);
+    _overlay = OverlayEntry(builder: (ctx) {
+      final theme = ThemeScope.of(context);
+      final controller = ThemeScope.controllerOf(context);
+      return Stack(
         children: [
-          GestureDetector(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SwatchDot(colors: theme.swatch, size: 14, active: true),
-                  const SizedBox(width: 8),
-                  Text('THEME', style: theme.monoTiny),
-                  const SizedBox(width: 4),
-                  AnimatedRotation(
-                    turns: _expanded ? 0.5 : 0.0,
-                    duration: theme.motionFast,
-                    child: Icon(Icons.expand_more, size: 14, color: theme.inkMuted),
-                  ),
-                ],
-              ),
-            ),
+          // Tap-outside dismiss layer.
+          Positioned.fill(
+            child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: _close),
           ),
-          ClipRect(
-            child: AnimatedAlign(
-              alignment: Alignment.centerLeft,
-              widthFactor: _expanded ? 1 : 0,
-              duration: theme.motionFast,
-              curve: Curves.easeOutCubic,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10),
+          Positioned(
+            top: origin.dy + size.height + 6,
+            right: MediaQuery.of(ctx).size.width - (origin.dx + size.width),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: theme.chipDecoration(filled: true),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     for (final t in ThemeController.all)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: GestureDetector(
-                          onTap: () => controller.theme = t,
+                          onTap: () {
+                            controller.theme = t;
+                            _close();
+                          },
                           child: _SwatchDot(
                             colors: t.swatch,
-                            size: 18,
+                            size: 20,
                             active: t.id == theme.id,
                             borderColor: theme.inkSoft,
                           ),
@@ -73,6 +81,37 @@ class _ThemeChipState extends State<ThemeChip> with SingleTickerProviderStateMix
             ),
           ),
         ],
+      );
+    });
+    overlay.insert(_overlay!);
+    setState(() => _expanded = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTap: _toggle,
+      child: AnimatedContainer(
+        key: _anchorKey,
+        duration: theme.motionMed,
+        curve: theme.motionCurve,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: theme.chipDecoration(filled: false),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SwatchDot(colors: theme.swatch, size: 14, active: true),
+            const SizedBox(width: 8),
+            Text('THEME', style: theme.monoTiny),
+            const SizedBox(width: 4),
+            AnimatedRotation(
+              turns: _expanded ? 0.5 : 0.0,
+              duration: theme.motionFast,
+              child: Icon(Icons.expand_more, size: 14, color: theme.inkMuted),
+            ),
+          ],
+        ),
       ),
     );
   }

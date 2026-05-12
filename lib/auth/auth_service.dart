@@ -58,6 +58,31 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resets the password using a recovery phrase. On success, signs the user
+  /// in immediately (mirrors the Convex `resetPasswordWithRecoveryKey` return
+  /// shape, which is identical to login).
+  Future<void> resetPasswordWithRecoveryKey({
+    required String username,
+    required String recoveryKey,
+    required String newPassword,
+  }) async {
+    final res = await _api.resetPassword(
+      username: username,
+      recoveryKey: recoveryKey,
+      newPassword: newPassword,
+    );
+    _session = Session(userId: res.userId, username: res.username, name: res.name);
+    await SessionStore.instance.saveSession(
+      userId: res.userId,
+      username: res.username,
+      name: res.name,
+    );
+    try {
+      await _api.updateStatus(userId: res.userId, status: 'online');
+    } catch (_) {}
+    notifyListeners();
+  }
+
   Future<void> signOut() async {
     final s = _session;
     if (s != null) {

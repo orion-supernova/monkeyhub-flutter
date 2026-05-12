@@ -165,7 +165,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
           SafeArea(
             child: Column(
               children: [
-                _Header(user: _otherUser, isIncoming: _isIncoming, roomType: _roomType, ttl: _ttl),
+                _Header(user: _otherUser, isIncoming: _isIncoming, roomType: _roomType, ttl: _ttl, api: widget.api),
                 if (!_isIncoming && _newRequestId == null) _ComposeConfig(
                   theme: theme,
                   roomType: _roomType,
@@ -189,7 +189,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
                           mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
                           children: [
                             if (!isMine) ...[
-                              UserAvatar(user: _otherUser, size: 28),
+                              UserAvatar(user: _otherUser, size: 28, api: widget.api),
                               const SizedBox(width: 8),
                             ],
                             Flexible(
@@ -223,11 +223,18 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.user, required this.isIncoming, required this.roomType, required this.ttl});
+  const _Header({
+    required this.user,
+    required this.isIncoming,
+    required this.roomType,
+    required this.ttl,
+    required this.api,
+  });
   final ChatUser user;
   final bool isIncoming;
   final RoomType roomType;
   final Duration ttl;
+  final ChatApi api;
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +251,7 @@ class _Header extends StatelessWidget {
             icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
           ),
           const SizedBox(width: 4),
-          UserAvatar(user: user, size: 36),
+          UserAvatar(user: user, size: 36, api: api),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

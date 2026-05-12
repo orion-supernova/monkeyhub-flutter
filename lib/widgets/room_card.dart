@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
+import 'remote_image.dart';
 import 'visibility_badge.dart';
 
 class RoomCard extends StatelessWidget {
@@ -8,11 +10,13 @@ class RoomCard extends StatelessWidget {
     super.key,
     required this.room,
     required this.onTap,
+    this.api,
     this.typingNames = const [],
   });
 
   final ChatRoom room;
   final VoidCallback onTap;
+  final ChatApi? api;
   final List<String> typingNames;
 
   String _ago(DateTime? then) {
@@ -62,7 +66,24 @@ class RoomCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(room.name, style: theme.displayMedium),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (room.avatarStorageId != null && api != null) ...[
+                  ClipOval(
+                    child: RemoteImage(
+                      storageId: room.avatarStorageId!,
+                      api: api!,
+                      width: 36,
+                      height: 36,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(child: Text(room.name, style: theme.displayMedium)),
+              ],
+            ),
             if (room.description != null && room.description!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(room.description!.toLowerCase(), style: theme.bodySoft),

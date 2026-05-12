@@ -1,15 +1,23 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../media/upload_service.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
-import '../backend/chat_api.dart';
+import '../models/enums.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/visibility_badge.dart';
-import '../widgets/user_avatar.dart';
+import '../widgets/attachment_menu.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/user_avatar.dart';
+import '../widgets/visibility_badge.dart';
+import 'camera_screen.dart';
+import 'room_info_screen.dart';
+import 'voice_recorder_screen.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({
@@ -91,6 +99,80 @@ class _RoomScreenState extends State<RoomScreen> {
     });
   }
 
+  Future<void> _onAttach() async {
+    final choice = await showAttachmentMenu(context);
+    if (choice == null || !mounted) return;
+    final nav = Navigator.of(context);
+    switch (choice) {
+      case AttachmentMenuChoice.gallery:
+        await _pickAndSendFromGallery();
+        break;
+      case AttachmentMenuChoice.video:
+        await _pickAndSendVideo();
+        break;
+      case AttachmentMenuChoice.camera:
+        final file = await nav.push<File>(
+          MaterialPageRoute(builder: (_) => const CameraScreen()),
+        );
+        if (file != null) {
+          await _uploadAndSend(file: file, type: MessageType.image, contentType: 'image/jpeg');
+        }
+        break;
+      case AttachmentMenuChoice.voice:
+        final file = await nav.push<File>(
+          MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
+        );
+        if (file != null) {
+          await _uploadAndSend(file: file, type: MessageType.audio, contentType: 'audio/m4a');
+        }
+        break;
+    }
+  }
+
+  Future<void> _pickAndSendFromGallery() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 88);
+    if (picked == null) return;
+    await _uploadAndSend(
+      file: File(picked.path),
+      type: MessageType.image,
+      contentType: 'image/jpeg',
+    );
+  }
+
+  Future<void> _pickAndSendVideo() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickVideo(source: ImageSource.gallery);
+    if (picked == null) return;
+    await _uploadAndSend(
+      file: File(picked.path),
+      type: MessageType.video,
+      contentType: 'video/mp4',
+    );
+  }
+
+  Future<void> _uploadAndSend({
+    required File file,
+    required MessageType type,
+    required String contentType,
+  }) async {
+    try {
+      final uploader = UploadService(widget.api);
+      final storageId = await uploader.uploadXFile(file: file, contentType: contentType);
+      await widget.repo.sendMedia(
+        roomId: widget.roomId,
+        storageId: storageId,
+        type: type,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scroll.hasClients) {
+          _scroll.animateTo(_scroll.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
+        }
+      });
+    } catch (_) {/* TODO surface as toast */}
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -115,6 +197,17 @@ class _RoomScreenState extends State<RoomScreen> {
                 _Header(
                   room: room,
                   typing: widget.repo.typingIn(room.id),
+                  onOpenInfo: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => RoomInfoScreen(
+                          roomId: room.id,
+                          repo: widget.repo,
+                          api: widget.api,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 Expanded(
                   child: ListView.builder(
@@ -122,7 +215,13 @@ class _RoomScreenState extends State<RoomScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                     itemCount: messages.length + 1,
                     itemBuilder: (context, i) {
-                      if (i == 0) return _RoomIntro(room: room, members: _members.values.toList());
+                      if (i == 0) {
+                        return _RoomIntro(
+                          room: room,
+                          members: _members.values.toList(),
+                          api: widget.api,
+                        );
+                      }
                       final m = messages[i - 1];
                       final author = _members[m.senderId];
                       void onLongPress() async {
@@ -142,6 +241,7 @@ class _RoomScreenState extends State<RoomScreen> {
                                 message: m,
                                 now: _now,
                                 currentUserId: me,
+                                api: widget.api,
                                 author: author,
                                 onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
                                 onReactionTap: onReactionTap,
@@ -151,6 +251,7 @@ class _RoomScreenState extends State<RoomScreen> {
                                 message: m,
                                 now: _now,
                                 currentUserId: me,
+                                api: widget.api,
                                 author: author,
                                 onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
                                 onReactionTap: onReactionTap,
@@ -165,6 +266,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   ttl: room.messageLifetime,
                   onSend: _send,
                   onChanged: (_) => widget.repo.noteTyping(),
+                  onAttach: _onAttach,
                 ),
               ],
             ),
@@ -176,9 +278,10 @@ class _RoomScreenState extends State<RoomScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.room, required this.typing});
+  const _Header({required this.room, required this.typing, required this.onOpenInfo});
   final ChatRoom room;
   final List<String> typing;
+  final VoidCallback onOpenInfo;
 
   String _typingLabel() {
     if (typing.isEmpty) return '';
@@ -243,7 +346,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: onOpenInfo,
             icon: Icon(Icons.more_horiz, color: theme.inkSoft, size: 18),
           ),
         ],
@@ -253,9 +356,10 @@ class _Header extends StatelessWidget {
 }
 
 class _RoomIntro extends StatelessWidget {
-  const _RoomIntro({required this.room, required this.members});
+  const _RoomIntro({required this.room, required this.members, required this.api});
   final ChatRoom room;
   final List<ChatUser> members;
+  final ChatApi api;
 
   static String _fmtTtl(Duration d) {
     if (d.inSeconds < 60) return '${d.inSeconds} seconds';
@@ -304,7 +408,7 @@ class _RoomIntro extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: theme.background, width: 1.5),
                       ),
-                      child: UserAvatar(user: members[i], size: 26),
+                      child: UserAvatar(user: members[i], size: 26, api: api),
                     ),
                   ),
               ],
@@ -366,12 +470,14 @@ class _Composer extends StatelessWidget {
     required this.ttl,
     required this.onSend,
     this.onChanged,
+    this.onAttach,
   });
   final TextEditingController controller;
   final bool ephemeral;
   final Duration? ttl;
   final VoidCallback onSend;
   final ValueChanged<String>? onChanged;
+  final VoidCallback? onAttach;
 
   static String _fmt(Duration d) {
     if (d.inSeconds < 60) return '${d.inSeconds}s';
@@ -406,6 +512,23 @@ class _Composer extends StatelessWidget {
             ),
           Row(
             children: [
+              if (onAttach != null) ...[
+                GestureDetector(
+                  onTap: onAttach,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.surfaceRaised,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.divider),
+                    ),
+                    child: Icon(Icons.add, color: theme.inkSoft, size: 18),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Container(
                   decoration: theme.inputDecoration(),

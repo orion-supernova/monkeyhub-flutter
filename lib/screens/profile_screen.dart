@@ -198,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    UserAvatar(user: _u, size: 96),
+                    UserAvatar(user: _u, size: 96, api: widget.api),
                     const SizedBox(width: 20),
                     Expanded(
                       child: Column(

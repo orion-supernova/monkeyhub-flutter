@@ -1,12 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'audio_message.dart';
 import 'reaction_bubble.dart';
+import 'remote_image.dart';
 import 'user_avatar.dart';
+import 'video_message.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -14,6 +18,7 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     required this.now,
     required this.currentUserId,
+    required this.api,
     this.author,
     this.onLongPress,
     this.onReactionTap,
@@ -22,6 +27,7 @@ class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final DateTime now;
   final String currentUserId;
+  final ChatApi api;
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
@@ -31,15 +37,6 @@ class MessageBubble extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
 
-    final bubble = Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: theme.messageBubbleDecoration(isMine: isMine, ephemeral: false),
-      child: Text(
-        message.content,
-        style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-      ),
-    );
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -47,7 +44,7 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMine && author != null) ...[
-            UserAvatar(user: author!, size: 28),
+            UserAvatar(user: author!, size: 28, api: api),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -58,7 +55,7 @@ class MessageBubble extends StatelessWidget {
                   onLongPress: onLongPress,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                    child: bubble,
+                    child: _bubbleContent(theme, isMine, ephemeral: false),
                   ),
                 ),
                 if (message.reactions.isNotEmpty && onReactionTap != null)
@@ -79,6 +76,16 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
+
+  Widget _bubbleContent(AppTheme theme, bool isMine, {required bool ephemeral}) {
+    return buildMessageContent(
+      theme: theme,
+      message: message,
+      isMine: isMine,
+      ephemeral: ephemeral,
+      api: api,
+    );
+  }
 }
 
 class EphemeralMessageBubble extends StatelessWidget {
@@ -87,6 +94,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     required this.message,
     required this.now,
     required this.currentUserId,
+    required this.api,
     this.author,
     this.onLongPress,
     this.onReactionTap,
@@ -94,6 +102,7 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ChatMessage message;
   final DateTime now;
   final String currentUserId;
+  final ChatApi api;
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
@@ -106,13 +115,12 @@ class EphemeralMessageBubble extends StatelessWidget {
     final dissolving = progress > 0.82;
     final dissolveT = dissolving ? ((progress - 0.82) / 0.18).clamp(0.0, 1.0) : 0.0;
 
-    final inner = Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      decoration: theme.messageBubbleDecoration(isMine: isMine, ephemeral: true),
-      child: Text(
-        message.content,
-        style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-      ),
+    final inner = buildMessageContent(
+      theme: theme,
+      message: message,
+      isMine: isMine,
+      ephemeral: true,
+      api: api,
     );
 
     final bubble = Stack(
@@ -141,7 +149,7 @@ class EphemeralMessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isMine && author != null) ...[
-              Opacity(opacity: 1 - dissolveT * 0.7, child: UserAvatar(user: author!, size: 28)),
+              Opacity(opacity: 1 - dissolveT * 0.7, child: UserAvatar(user: author!, size: 28, api: api)),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -184,6 +192,102 @@ class EphemeralMessageBubble extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Builds the inner "bubble body" widget for any message type, applying the
+/// theme's bubble decoration. Extracted so both the standard and ephemeral
+/// variants share the same renderer.
+Widget buildMessageContent({
+  required AppTheme theme,
+  required ChatMessage message,
+  required bool isMine,
+  required bool ephemeral,
+  required ChatApi api,
+}) {
+  final deco = theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+  switch (message.type) {
+    case MessageType.image:
+      final id = message.mediaStorageId;
+      return Container(
+        decoration: deco,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (id != null)
+              RemoteImage(
+                storageId: id,
+                api: api,
+                width: 240,
+                height: 240,
+                borderRadius: BorderRadius.zero,
+              )
+            else
+              Container(
+                width: 240,
+                height: 80,
+                color: theme.surfaceSunken,
+                alignment: Alignment.center,
+                child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
+              ),
+            if (message.content.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                child: Text(
+                  message.content,
+                  style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
+                ),
+              ),
+          ],
+        ),
+      );
+    case MessageType.audio:
+      return Container(
+        padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
+        decoration: deco,
+        child: AudioMessage(
+          api: api,
+          storageId: message.mediaStorageId,
+          isMine: isMine,
+        ),
+      );
+    case MessageType.video:
+      return Container(
+        decoration: deco,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            VideoMessage(
+              api: api,
+              storageId: message.mediaStorageId,
+              isMine: isMine,
+            ),
+            if (message.content.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                child: Text(
+                  message.content,
+                  style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
+                ),
+              ),
+          ],
+        ),
+      );
+    case MessageType.url:
+    case MessageType.system:
+    case MessageType.text:
+      return Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+        decoration: deco,
+        child: Text(
+          message.content,
+          style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
+        ),
+      );
   }
 }
 

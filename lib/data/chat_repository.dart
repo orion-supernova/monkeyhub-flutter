@@ -327,6 +327,29 @@ class ChatRepository extends ChangeNotifier {
   }
 
   Future<void> sendText(String roomId, String text) async {
+    return _send(roomId: roomId, content: text, type: MessageType.text);
+  }
+
+  Future<void> sendMedia({
+    required String roomId,
+    required String storageId,
+    required MessageType type,
+    String? caption,
+  }) async {
+    return _send(
+      roomId: roomId,
+      content: caption ?? '',
+      type: type,
+      mediaStorageId: storageId,
+    );
+  }
+
+  Future<void> _send({
+    required String roomId,
+    required String content,
+    required MessageType type,
+    String? mediaStorageId,
+  }) async {
     final id = _userId;
     if (id == null) return;
     final tempId = 'tmp_${DateTime.now().microsecondsSinceEpoch}';
@@ -335,17 +358,23 @@ class ChatRepository extends ChangeNotifier {
       roomId: roomId,
       senderId: id,
       senderName: '',
-      content: text,
+      content: content,
+      type: type,
+      mediaStorageId: mediaStorageId,
       createdAt: DateTime.now(),
       status: MessageStatus.pending,
     );
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
     notifyListeners();
     try {
-      await api.sendMessage(roomId: roomId, userId: id, content: text);
-      // The live subscription will deliver the server-side row; _reconcile
-      // removes the optimistic version when it sees a matching pair.
-    } catch (e) {
+      await api.sendMessage(
+        roomId: roomId,
+        userId: id,
+        content: content,
+        type: type,
+        mediaStorageId: mediaStorageId,
+      );
+    } catch (_) {
       optimistic.status = MessageStatus.error;
       notifyListeners();
     }

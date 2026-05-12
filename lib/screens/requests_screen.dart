@@ -91,7 +91,7 @@ class _RequestsPanelState extends State<RequestsPanel> {
       case 'incoming':
         return _IncomingList(repo: widget.repo, api: widget.api, requests: incoming);
       case 'outgoing':
-        return _OutgoingList(repo: widget.repo, requests: outgoing);
+        return _OutgoingList(repo: widget.repo, api: widget.api, requests: outgoing);
       case 'friends':
         return _FriendsList(repo: widget.repo, api: widget.api, friends: friends);
       default:
@@ -150,8 +150,9 @@ class _IncomingList extends StatelessWidget {
 }
 
 class _OutgoingList extends StatelessWidget {
-  const _OutgoingList({required this.repo, required this.requests});
+  const _OutgoingList({required this.repo, required this.api, required this.requests});
   final ChatRepository repo;
+  final ChatApi api;
   final List<FriendRequest> requests;
   @override
   Widget build(BuildContext context) {
@@ -162,7 +163,7 @@ class _OutgoingList extends StatelessWidget {
     return Column(
       children: [
         for (final r in requests)
-          _OutgoingCard(req: r, repo: repo),
+          _OutgoingCard(req: r, repo: repo, api: api),
       ],
     );
   }
@@ -267,7 +268,7 @@ class _IncomingCardState extends State<_IncomingCard> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                UserAvatar(user: req.user, size: 42),
+                UserAvatar(user: req.user, size: 42, api: widget.api),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -334,9 +335,10 @@ class _IncomingCardState extends State<_IncomingCard> {
 }
 
 class _OutgoingCard extends StatefulWidget {
-  const _OutgoingCard({required this.req, required this.repo});
+  const _OutgoingCard({required this.req, required this.repo, required this.api});
   final FriendRequest req;
   final ChatRepository repo;
+  final ChatApi api;
   @override
   State<_OutgoingCard> createState() => _OutgoingCardState();
 }
@@ -369,7 +371,7 @@ class _OutgoingCardState extends State<_OutgoingCard> {
         children: [
           Row(
             children: [
-              UserAvatar(user: req.user, size: 42),
+              UserAvatar(user: req.user, size: 42, api: widget.api),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -422,7 +424,7 @@ class _FriendRow extends StatelessWidget {
         decoration: theme.roomCardDecoration(ephemeral: false, active: false),
         child: Row(
           children: [
-            UserAvatar(user: user, size: 36),
+            UserAvatar(user: user, size: 36, api: api),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

@@ -33,6 +33,17 @@ dependencies:
   # without --dart-define-from-file. env.local is gitignored.
   flutter_dotenv: ^5.2.1
 
+  # Media: gallery picker, in-app camera, voice recorder, audio + video playback.
+  image_picker: ^1.1.2
+  camera: ^0.11.0
+  record: ^5.1.2
+  just_audio: ^0.9.42
+  video_player: ^2.9.2
+  http: ^1.2.2
+
+  # Push notifications (OneSignal v5 SDK).
+  onesignal_flutter: ^5.2.9
+
   # Auth / crypto
   crypto: ^3.0.3
   flutter_secure_storage: ^9.2.2
@@ -40,6 +51,11 @@ dependencies:
   # Storage / paths
   path_provider: ^2.1.4
   shared_preferences: ^2.3.2
+
+dependency_overrides:
+  # record 5.x ships with a stale record_linux that doesn't implement the
+  # newer platform-interface contract; pin to the fixed line.
+  record_linux: ^1.3.0
 
 dev_dependencies:
   flutter_test:

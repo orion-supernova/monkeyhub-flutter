@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/theme_chip.dart';
 import '../widgets/pill_nav.dart';
 import '../widgets/room_card.dart';
+import '../widgets/room_grid_tile.dart';
 import 'room_screen.dart';
 import 'create_room_sheet.dart';
 import 'requests_screen.dart';
@@ -175,7 +177,13 @@ class _Header extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(handle, style: theme.mono.copyWith(color: theme.inkMuted)),
+                    Flexible(
+                      child: Text(
+                        handle,
+                        style: theme.mono.copyWith(color: theme.inkMuted),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     const SizedBox(width: 6),
                     Container(
                       width: 6,
@@ -195,6 +203,7 @@ class _Header extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             color: theme.surfaceRaised,
+            padding: EdgeInsets.zero,
             onSelected: (v) {
               if (v == 'signout') onSignOut();
             },
@@ -295,6 +304,43 @@ class _RoomsPanel extends StatelessWidget {
         child: Center(child: Text('no rooms yet — create one', style: theme.bodySoft)),
       );
     }
+
+    final layout = SettingsStore.instance.roomLayout;
+
+    if (layout == RoomLayout.grid) {
+      final cols = MediaQuery.of(context).size.width > 700 ? 3 : 2;
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: cols,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.82,
+        ),
+        itemCount: rooms.length,
+        itemBuilder: (context, i) {
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: theme.motionMed + Duration(milliseconds: i * 40),
+            curve: theme.motionEntrance,
+            builder: (context, v, child) => Transform.translate(
+              offset: Offset(0, (1 - v) * 12),
+              child: Opacity(opacity: v.clamp(0, 1), child: child),
+            ),
+            child: RoomGridTile(
+              room: rooms[i],
+              api: api,
+              typingNames: repo.typingIn(rooms[i].id),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -309,6 +355,7 @@ class _RoomsPanel extends StatelessWidget {
             ),
             child: RoomCard(
               room: rooms[i],
+              api: api,
               typingNames: repo.typingIn(rooms[i].id),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),

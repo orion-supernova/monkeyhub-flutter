@@ -317,7 +317,7 @@ class _PersonRowState extends State<_PersonRow> {
         decoration: theme.roomCardDecoration(ephemeral: false, active: false),
         child: Row(
           children: [
-            UserAvatar(user: widget.user, size: 40),
+            UserAvatar(user: widget.user, size: 40, api: widget.api),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

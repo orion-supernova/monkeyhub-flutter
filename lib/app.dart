@@ -4,8 +4,11 @@ import 'auth/auth_service.dart';
 import 'backend/chat_api.dart';
 import 'backend/convex_client.dart';
 import 'data/chat_repository.dart';
+import 'data/settings_store.dart';
 import 'env.dart';
-import 'screens/home_screen.dart';
+import 'push/badge_manager.dart';
+import 'push/push_manager.dart';
+import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_scope.dart';
@@ -16,7 +19,7 @@ class MonkeyHubApp extends StatefulWidget {
   State<MonkeyHubApp> createState() => _MonkeyHubAppState();
 }
 
-class _MonkeyHubAppState extends State<MonkeyHubApp> {
+class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver {
   final ThemeController _themeController =
       ThemeController(ThemeController.all.first);
   final ConvexBackend _cv = ConvexBackend.instance;
@@ -30,8 +33,29 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
     _bootstrap();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final session = _auth.session;
+    if (session == null) return;
+    final next = switch (state) {
+      AppLifecycleState.resumed => 'online',
+      AppLifecycleState.inactive ||
+      AppLifecycleState.paused ||
+      AppLifecycleState.hidden =>
+        'away',
+      AppLifecycleState.detached => 'offline',
+    };
+    // Fire-and-forget — network may be unavailable; status reconciles next foreground.
+    _api.updateStatus(userId: session.userId, status: next).catchError((_) {});
+    if (state == AppLifecycleState.resumed) {
+      // Clear platform badge on foreground; OneSignal won't auto-clear on iOS.
+      BadgeManager.instance.clear();
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -44,6 +68,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> {
         });
       }
       return;
+    }
+    // Load persisted settings (theme/layout/nav) BEFORE rendering so the
+    // first frame already reflects the user's choice.
+    await SettingsStore.instance.load();
+    final savedThemeId = SettingsStore.instance.themeId;
+    if (savedThemeId != null) {
+      _themeController.theme = ThemeController.byId(savedThemeId);
     }
     final initErr = await _cv.initialize();
     if (initErr != null) {
@@ -64,6 +95,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> {
       if (s != null) {
         try {
           await _repo.attach(s.userId);
+          await PushManager.instance.login(s.userId);
+          BadgeManager.instance.bind(_repo);
         } catch (_) {/* offline boot — reconcile on reconnect */}
       }
     } catch (_) {/* secure storage may not be available in test harness */}
@@ -74,13 +107,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> {
     final s = _auth.session;
     if (s != null && _repo.userId != s.userId) {
       await _repo.attach(s.userId);
+      await PushManager.instance.login(s.userId);
+      // Mark online on first attach.
+      _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
+      BadgeManager.instance.bind(_repo);
     } else if (s == null) {
+      BadgeManager.instance.unbind();
       await _repo.detach();
+      await PushManager.instance.logout();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
     _repo.dispose();
     super.dispose();
@@ -126,7 +166,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> {
                           _bootstrap();
                         })
                       : (_auth.isSignedIn
-                          ? HomeScreen(
+                          ? HomeShell(
                               key: ValueKey('home_${theme.id}'),
                               repo: _repo,
                               api: _api,

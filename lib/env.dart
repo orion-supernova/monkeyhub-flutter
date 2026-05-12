@@ -7,8 +7,10 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 ///
 /// `env.local` is gitignored — copy `env.example` → `env.local` and fill in.
 class Env {
-  static String _get(String key) =>
-      dotenv.maybeGet(key, fallback: '') ?? '';
+  static String _get(String key) {
+    if (!dotenv.isInitialized) return '';
+    return dotenv.maybeGet(key, fallback: '') ?? '';
+  }
 
   static String get convexUrl => _get('CONVEX_URL');
   static String get oneSignalAppId => _get('ONESIGNAL_APP_ID');

@@ -163,6 +163,32 @@ class ChatApi {
     });
   }
 
+  /// Pass null/empty password to clear the password on a room. Owner only.
+  Future<void> updateRoomPassword({
+    required String roomId,
+    required String userId,
+    String? password,
+  }) async {
+    await _cv.mutation('rooms:updatePassword', {
+      'roomId': roomId,
+      'userId': userId,
+      if (password != null && password.isNotEmpty)
+        'passwordHash': sha256Hash(password),
+    });
+  }
+
+  Future<void> updateRoomAvatar({
+    required String roomId,
+    required String userId,
+    required String storageId,
+  }) async {
+    await _cv.mutation('rooms:updateRoomAvatar', {
+      'roomId': roomId,
+      'userId': userId,
+      'storageId': storageId,
+    });
+  }
+
   Future<List<ChatRoom>> listUserRooms(String userId) async {
     final res = await _cv.query('rooms:listUserRooms', {'userId': userId});
     return _decodeRooms(res);

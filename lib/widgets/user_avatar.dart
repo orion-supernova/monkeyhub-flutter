@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import 'remote_image.dart';
 
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
@@ -10,12 +12,17 @@ class UserAvatar extends StatelessWidget {
     this.size = 40,
     this.ringColor,
     this.ring = false,
+    this.api,
   });
 
   final ChatUser user;
   final double size;
   final Color? ringColor;
   final bool ring;
+
+  /// Pass `api` to fetch the storageId-backed avatar. When null (or no
+  /// `avatarStorageId`), we fall back to the gradient + initials.
+  final ChatApi? api;
 
   String get _initials => user.displayInitial;
 
@@ -35,6 +42,39 @@ class UserAvatar extends StatelessWidget {
     final angle = (_seed % 360) * math.pi / 180;
     final dx = math.cos(angle);
     final dy = math.sin(angle);
+    final hasRemote = api != null &&
+        user.avatarStorageId != null &&
+        user.avatarStorageId!.isNotEmpty;
+
+    final ringBorder =
+        ring ? Border.all(color: ringColor ?? theme.accent, width: 1.5) : null;
+
+    if (hasRemote) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: ringBorder,
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: 0.25),
+              blurRadius: size * 0.3,
+              spreadRadius: -size * 0.1,
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: RemoteImage(
+          storageId: user.avatarStorageId!,
+          api: api!,
+          width: size,
+          height: size,
+          borderRadius: BorderRadius.circular(size),
+        ),
+      );
+    }
+
     return Container(
       width: size,
       height: size,
@@ -45,7 +85,7 @@ class UserAvatar extends StatelessWidget {
           begin: Alignment(-dx, -dy),
           end: Alignment(dx, dy),
         ),
-        border: ring ? Border.all(color: ringColor ?? theme.accent, width: 1.5) : null,
+        border: ringBorder,
         boxShadow: [
           BoxShadow(
             color: gradient.first.withValues(alpha: 0.35),
