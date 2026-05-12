@@ -55,7 +55,6 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
   }
 
   Future<void> _patch({
-    FieldVisibility? bio,
     FieldVisibility? avatar,
     FieldVisibility? status,
     FieldVisibility? lastSeen,
@@ -67,7 +66,6 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     setState(() {
       _saving = true;
       _vis = _vis.copyWith(
-        bio: bio,
         avatar: avatar,
         status: status,
         lastSeen: lastSeen,
@@ -77,7 +75,6 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     try {
       await widget.api.updateVisibility(
         userId: me,
-        bio: bio,
         avatar: avatar,
         status: status,
         lastSeen: lastSeen,
@@ -121,14 +118,6 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'your profile picture',
                                 value: _vis.avatar,
                                 onChanged: (v) => _patch(avatar: v),
-                              ),
-                              const SizedBox(height: 16),
-                              _Row(
-                                theme: theme,
-                                label: 'BIO',
-                                desc: 'the text on your profile',
-                                value: _vis.bio,
-                                onChanged: (v) => _patch(bio: v),
                               ),
                               const SizedBox(height: 16),
                               _Row(

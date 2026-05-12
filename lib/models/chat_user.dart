@@ -21,21 +21,18 @@ extension FieldVisibilityWire on FieldVisibility {
 
 class ProfileVisibility {
   ProfileVisibility({
-    this.bio = FieldVisibility.public,
     this.avatar = FieldVisibility.public,
     this.status = FieldVisibility.public,
     this.lastSeen = FieldVisibility.public,
     this.friendRequests = FieldVisibility.public, // public | nobody only
   });
 
-  FieldVisibility bio;
   FieldVisibility avatar;
   FieldVisibility status;
   FieldVisibility lastSeen;
   FieldVisibility friendRequests;
 
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
-        bio: FieldVisibilityWire.parse(j['bio'] as String?),
         avatar: FieldVisibilityWire.parse(j['avatar'] as String?),
         status: FieldVisibilityWire.parse(j['status'] as String?),
         lastSeen: FieldVisibilityWire.parse(j['lastSeen'] as String?),
@@ -43,14 +40,12 @@ class ProfileVisibility {
       );
 
   ProfileVisibility copyWith({
-    FieldVisibility? bio,
     FieldVisibility? avatar,
     FieldVisibility? status,
     FieldVisibility? lastSeen,
     FieldVisibility? friendRequests,
   }) =>
       ProfileVisibility(
-        bio: bio ?? this.bio,
         avatar: avatar ?? this.avatar,
         status: status ?? this.status,
         lastSeen: lastSeen ?? this.lastSeen,
@@ -64,7 +59,6 @@ class ChatUser {
     required this.username,
     required this.name,
     this.email,
-    this.bio,
     this.avatarStorageId,
     this.status,
     this.lastSeen,
@@ -80,7 +74,6 @@ class ChatUser {
   final String username;
   String name;
   String? email;
-  String? bio;
   String? avatarStorageId;
   String? status; // "online" | "away" | "offline"
   DateTime? lastSeen;
@@ -116,7 +109,6 @@ class ChatUser {
       username: (j['username'] ?? '') as String,
       name: (j['name'] ?? '') as String,
       email: j['email'] as String?,
-      bio: j['bio'] as String?,
       avatarStorageId: j['avatarStorageId'] as String?,
       status: j['status'] as String?,
       lastSeen: ls is num ? DateTime.fromMillisecondsSinceEpoch(ls.toInt()) : null,
@@ -134,7 +126,6 @@ class ChatUser {
   ChatUser copyWith({
     String? name,
     String? email,
-    String? bio,
     String? avatarStorageId,
     String? status,
     FriendshipStatus? friendshipStatus,
@@ -148,7 +139,6 @@ class ChatUser {
         username: username,
         name: name ?? this.name,
         email: email ?? this.email,
-        bio: bio ?? this.bio,
         avatarStorageId: avatarStorageId ?? this.avatarStorageId,
         status: status ?? this.status,
         lastSeen: lastSeen,

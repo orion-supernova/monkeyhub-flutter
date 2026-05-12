@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../media/upload_service.dart';
@@ -11,9 +12,13 @@ import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/block_choice_sheet.dart';
+import '../widgets/capture_protection_toggle.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/user_avatar.dart';
+import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
+import 'login_screen.dart';
+import 'profile_visibility_screen.dart';
 import 'room_screen.dart';
 
 /// Profile screen.
@@ -22,10 +27,20 @@ import 'room_screen.dart';
 /// send/cancel friend requests, open DM). If both are null this renders a
 /// read-only view (used as a Phase-1 fallback).
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.user, this.repo, this.api});
+  const ProfileScreen({
+    super.key,
+    required this.user,
+    this.repo,
+    this.api,
+    this.auth,
+  });
   final ChatUser user;
   final ChatRepository? repo;
   final ChatApi? api;
+
+  /// When provided AND viewing one's own profile, an ACCOUNT section
+  /// (sign out / delete) is exposed at the bottom.
+  final AuthService? auth;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -34,12 +49,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   ChatUser? _user;
   bool _loading = false;
-  bool _editing = false;
   bool _busy = false;
-
-  final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _bio = TextEditingController();
+  bool _confirmDelete = false;
 
   bool get _isMe => widget.repo?.userId == widget.user.id;
   ChatUser get _u => _user ?? widget.user;
@@ -54,18 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       friendshipStatus: resolved.status,
       requestId: resolved.requestId,
     );
-    _name.text = widget.user.name;
-    _email.text = widget.user.email ?? '';
-    _bio.text = widget.user.bio ?? '';
     _refresh();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _email.dispose();
-    _bio.dispose();
-    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -89,9 +89,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           friendshipStatus: resolved.status,
           requestId: resolved.requestId,
         );
-        _name.text = fresh.name;
-        _email.text = fresh.email ?? '';
-        _bio.text = fresh.bio ?? '';
       });
     } catch (_) {} finally {
       if (mounted) setState(() => _loading = false);
@@ -121,7 +118,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return (status: FriendshipStatus.none, requestId: null);
   }
 
-  Future<void> _save() async {
+  Future<void> _updateName(String next) async {
     final api = widget.api;
     final repo = widget.repo;
     if (api == null || repo == null) return;
@@ -131,13 +128,208 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await api.updateProfile(
         userId: id,
-        name: _name.text.trim().isEmpty ? widget.user.username : _name.text.trim(),
-        email: _email.text.trim(),
-        bio: _bio.text.trim(),
+        name: next.trim().isEmpty ? widget.user.username : next.trim(),
+        email: _u.email ?? '',
       );
       await _refresh();
-      if (mounted) setState(() => _editing = false);
     } catch (_) {} finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _updateEmail(String next) async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (api == null || repo == null) return;
+    final id = repo.userId;
+    if (id == null) return;
+    setState(() => _busy = true);
+    try {
+      await api.updateProfile(
+        userId: id,
+        name: _u.name,
+        email: next.trim(),
+      );
+      await _refresh();
+    } catch (_) {} finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmAndEdit({
+    required String title,
+    required String currentValue,
+    required String hint,
+    required Future<void> Function(String) onSave,
+    TextInputType keyboardType = TextInputType.text,
+  }) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final theme = ThemeScope.of(ctx);
+        return Dialog(
+          backgroundColor: theme.surfaceRaised,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(title, style: theme.displaySmall),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: _Action(
+                      label: 'JUST TAPPED',
+                      filled: false,
+                      onTap: () => Navigator.of(ctx).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _Action(
+                      label: 'CHANGE',
+                      filled: true,
+                      onTap: () => Navigator.of(ctx).pop(true),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    await _editFieldSheet(
+      title: title,
+      currentValue: currentValue,
+      hint: hint,
+      onSave: onSave,
+      keyboardType: keyboardType,
+    );
+  }
+
+  Future<void> _editFieldSheet({
+    required String title,
+    required String currentValue,
+    required String hint,
+    required Future<void> Function(String) onSave,
+    required TextInputType keyboardType,
+  }) async {
+    final controller = TextEditingController(text: currentValue);
+    final next = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final theme = ThemeScope.of(ctx);
+        final bottom = MediaQuery.of(ctx).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(bottom: bottom),
+          child: Container(
+            decoration: theme.sheetDecoration(),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(title, style: theme.displaySmall),
+                const SizedBox(height: 14),
+                Container(
+                  decoration: theme.inputDecoration(),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    autofocus: true,
+                    style: theme.body.copyWith(color: theme.ink),
+                    cursorColor: theme.accent,
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: hint,
+                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                    child: _Action(
+                      label: 'CANCEL',
+                      filled: false,
+                      onTap: () => Navigator.of(ctx).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _Action(
+                      label: 'SAVE',
+                      filled: true,
+                      onTap: () => Navigator.of(ctx).pop(controller.text),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    controller.dispose();
+    if (next == null) return;
+    await onSave(next);
+  }
+
+  Future<void> _signOut() async {
+    final auth = widget.auth;
+    final repo = widget.repo;
+    if (auth == null || _busy) return;
+    setState(() => _busy = true);
+    final nav = Navigator.of(context);
+    try {
+      await auth.signOut();
+      await repo?.detach();
+      if (!mounted) return;
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => LoginScreen(auth: auth)),
+        (_) => false,
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final auth = widget.auth;
+    final repo = widget.repo;
+    if (auth == null || _busy) return;
+    setState(() => _busy = true);
+    final nav = Navigator.of(context);
+    try {
+      await auth.deleteAccount();
+      await repo?.detach();
+      if (!mounted) return;
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => LoginScreen(auth: auth)),
+        (_) => false,
+      );
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -352,15 +544,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
                   ),
                   const Spacer(),
-                  if (_isMe && !_editing)
-                    GestureDetector(
-                      onTap: () => setState(() => _editing = true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: theme.chipDecoration(),
-                        child: Text('EDIT', style: theme.label),
-                      ),
-                    ),
                 ]),
                 const SizedBox(height: 20),
                 Row(
@@ -395,9 +578,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_u.displayName, style: theme.displayLarge),
+                          GestureDetector(
+                            onTap: _isMe && widget.api != null && widget.repo != null
+                                ? () => _confirmAndEdit(
+                                      title: _u.name.trim().isNotEmpty
+                                          ? 'change name?'
+                                          : 'add name?',
+                                      currentValue: _u.name,
+                                      hint: 'how the room will read you',
+                                      onSave: _updateName,
+                                    )
+                                : null,
+                            behavior: HitTestBehavior.opaque,
+                            child: Text(_u.displayName, style: theme.displayLarge),
+                          ),
                           const SizedBox(height: 6),
-                          Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
+                          Text('@${_u.username}',
+                              style: theme.mono.copyWith(color: theme.inkMuted)),
+                          if (_isMe && widget.api != null && widget.repo != null) ...[
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () => _confirmAndEdit(
+                                title: (_u.email?.isNotEmpty ?? false)
+                                    ? 'change email?'
+                                    : 'add email?',
+                                currentValue: _u.email ?? '',
+                                hint: 'only for recovery, never shown',
+                                keyboardType: TextInputType.emailAddress,
+                                onSave: _updateEmail,
+                              ),
+                              behavior: HitTestBehavior.opaque,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.mail_outline,
+                                      size: 12, color: theme.inkMuted),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Text(
+                                      (_u.email?.isNotEmpty ?? false)
+                                          ? _u.email!
+                                          : 'add email',
+                                      style: theme.mono.copyWith(
+                                        color: (_u.email?.isNotEmpty ?? false)
+                                            ? theme.inkSoft
+                                            : theme.inkMuted,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           if (!_isMe) ...[
                             const SizedBox(height: 8),
                             _FriendshipChip(status: _u.friendshipStatus),
@@ -446,10 +679,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
                 const SizedBox(height: 24),
 
-                if (_editing && _isMe)
-                  _editForm(theme)
-                else
-                  _readView(theme),
+                if (_isMe) _meView(theme) else _readView(theme),
 
                 if (!_isMe && widget.repo != null) ...[
                   const SizedBox(height: 18),
@@ -521,89 +751,167 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_u.bio != null && _u.bio!.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ABOUT', style: theme.label),
-                const SizedBox(height: 8),
-                Text('"${_u.bio!}"', style: theme.bodyEmph),
-              ],
+        if (_u.email != null && _u.email!.isNotEmpty)
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: 70, child: Text('EMAIL', style: theme.label)),
+            Expanded(child: Text(_u.email!, style: theme.body)),
+          ]),
+      ],
+    );
+  }
+
+  Widget _meView(AppTheme theme) {
+    final repo = widget.repo;
+    final api = widget.api;
+    final canPrivacy = repo != null && api != null;
+    final canAccount = widget.auth != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (canPrivacy) ...[
+          _sectionHeader(theme, 'PRIVACY'),
+          const SizedBox(height: 12),
+          const CaptureProtectionToggle(),
+          const SizedBox(height: 8),
+          _RowLink(
+            label: 'PROFILE VISIBILITY',
+            icon: Icons.visibility_outlined,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ProfileVisibilityScreen(repo: repo, api: api),
+              ),
             ),
           ),
-        if (_u.email != null && _u.email!.isNotEmpty) ...[
-          const SizedBox(height: 14),
-          _kv(theme, 'EMAIL', _u.email!),
+          const SizedBox(height: 8),
+          _RowLink(
+            label: 'BLOCKED USERS',
+            icon: Icons.block,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => BlockedUsersScreen(repo: repo, api: api),
+              ),
+            ),
+          ),
+        ],
+        if (canAccount) ...[
+          const SizedBox(height: 28),
+          _sectionHeader(theme, 'ACCOUNT'),
+          const SizedBox(height: 10),
+          _RowActionTile(
+            label: 'SIGN OUT',
+            danger: false,
+            busy: _busy,
+            onTap: _signOut,
+          ),
+          const SizedBox(height: 8),
+          _RowActionTile(
+            label: _confirmDelete ? 'TAP AGAIN TO CONFIRM DELETE' : 'DELETE ACCOUNT',
+            danger: true,
+            busy: _busy,
+            onTap: () {
+              if (!_confirmDelete) {
+                setState(() => _confirmDelete = true);
+                Future.delayed(const Duration(seconds: 4), () {
+                  if (mounted) setState(() => _confirmDelete = false);
+                });
+              } else {
+                _deleteAccount();
+              }
+            },
+          ),
         ],
       ],
     );
   }
 
-  Widget _kv(AppTheme theme, String k, String v) {
-    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(width: 70, child: Text(k, style: theme.label)),
-      Expanded(child: Text(v, style: theme.body)),
-    ]);
-  }
+  Widget _sectionHeader(AppTheme theme, String t) => Row(children: [
+        Text(t, style: theme.label),
+        const SizedBox(width: 8),
+        Expanded(child: Container(height: 1, color: theme.divider)),
+      ]);
+}
 
-  Widget _editForm(AppTheme theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _label(theme, 'NAME'),
-        _input(theme, _name, 'how the room will read you'),
-        const SizedBox(height: 14),
-        _label(theme, 'EMAIL · OPTIONAL'),
-        _input(theme, _email, 'only for recovery, never shown'),
-        const SizedBox(height: 14),
-        _label(theme, 'BIO · OPTIONAL'),
-        _input(theme, _bio, 'one line that\'s true today', maxLines: 3),
-        const SizedBox(height: 18),
-        Row(children: [
-          Expanded(
-            child: _Action(label: _busy ? '…' : 'SAVE', filled: true, onTap: _busy ? null : _save),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _Action(
-              label: 'CANCEL',
-              filled: false,
-              onTap: _busy ? null : () => setState(() {
-                _editing = false;
-                _name.text = _u.name;
-                _email.text = _u.email ?? '';
-                _bio.text = _u.bio ?? '';
-              }),
-            ),
-          ),
-        ]),
-      ],
+class _RowLink extends StatelessWidget {
+  const _RowLink({required this.label, required this.icon, required this.onTap});
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border.all(color: theme.divider),
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: theme.inkSoft),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: theme.label)),
+            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _label(AppTheme theme, String t) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(t, style: theme.label),
-      );
+class _RowActionTile extends StatelessWidget {
+  const _RowActionTile({
+    required this.label,
+    required this.danger,
+    required this.busy,
+    required this.onTap,
+  });
+  final String label;
+  final bool danger;
+  final bool busy;
+  final VoidCallback onTap;
 
-  Widget _input(AppTheme theme, TextEditingController c, String hint, {int maxLines = 1}) {
-    return Container(
-      decoration: theme.inputDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: TextField(
-        controller: c,
-        maxLines: maxLines,
-        style: theme.body.copyWith(color: theme.ink),
-        cursorColor: theme.accent,
-        decoration: InputDecoration(
-          isCollapsed: true,
-          border: InputBorder.none,
-          hintText: hint,
-          hintStyle: theme.body.copyWith(color: theme.inkMuted),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTap: busy ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border.all(
+            color: danger ? theme.danger.withValues(alpha: 0.5) : theme.divider,
+          ),
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              danger ? Icons.delete_outline : Icons.logout,
+              size: 16,
+              color: danger ? theme.danger : theme.inkSoft,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.label.copyWith(
+                  color: danger ? theme.danger : theme.ink,
+                ),
+              ),
+            ),
+            if (busy)
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
+              ),
+          ],
         ),
       ),
     );

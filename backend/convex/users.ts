@@ -60,7 +60,6 @@ export const getProfile = query({
       name: user.name,
       // Self-only data — never expose to other viewers.
       email: isSelf ? user.email : undefined,
-      bio: canSee(vis.bio) ? user.bio : undefined,
       avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,
       status: canSee(vis.status) ? user.status : undefined,
       lastSeen: canSee(vis.lastSeen) ? user.lastSeen : undefined,
@@ -71,8 +70,7 @@ export const getProfile = query({
       // Hint to the viewer that fields were redacted, so the UI can show
       // a "limited view" pill instead of guessing.
       isRedacted: !isSelf &&
-        (!canSee(vis.bio) ||
-          !canSee(vis.avatar) ||
+        (!canSee(vis.avatar) ||
           !canSee(vis.status) ||
           !canSee(vis.lastSeen)),
       acceptsFriendRequests: (vis.friendRequests ?? "public") === "public",
@@ -83,13 +81,12 @@ export const getProfile = query({
 export const updateVisibility = mutation({
   args: {
     userId: v.id("users"),
-    bio: v.optional(v.string()),
     avatar: v.optional(v.string()),
     status: v.optional(v.string()),
     lastSeen: v.optional(v.string()),
     friendRequests: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, bio, avatar, status, lastSeen, friendRequests }) => {
+  handler: async (ctx, { userId, avatar, status, lastSeen, friendRequests }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     const valid = new Set(["public", "friends", "nobody"]);
@@ -98,9 +95,12 @@ export const updateVisibility = mutation({
       if (level === undefined) return undefined;
       return allowed.has(level) ? level : undefined;
     }
+    // Strip any legacy `bio` key from the stored visibility object before
+    // merging — old records may still carry it and the new schema rejects it.
+    const prev = { ...(user.visibility ?? {}) } as Record<string, unknown>;
+    delete prev.bio;
     const next = {
-      ...(user.visibility ?? {}),
-      ...(bio !== undefined ? { bio: pick(bio, valid) } : {}),
+      ...prev,
       ...(avatar !== undefined ? { avatar: pick(avatar, valid) } : {}),
       ...(status !== undefined ? { status: pick(status, valid) } : {}),
       ...(lastSeen !== undefined ? { lastSeen: pick(lastSeen, valid) } : {}),
@@ -117,15 +117,13 @@ export const updateProfile = mutation({
     userId: v.id("users"),
     name: v.string(),
     email: v.optional(v.string()),
-    bio: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, name, email, bio }) => {
+  handler: async (ctx, { userId, name, email }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     await ctx.db.patch(userId, {
       name: name.trim(),
       email: email && email.length > 0 ? email : undefined,
-      bio: bio && bio.length > 0 ? bio : undefined,
     });
   },
 });

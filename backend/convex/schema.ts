@@ -10,7 +10,6 @@ export default defineSchema({
     createdAt: v.number(),
     status: v.optional(v.string()), // "online" | "away" | "offline"
     lastSeen: v.optional(v.number()),
-    bio: v.optional(v.string()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
     deviceTokens: v.optional(v.array(v.string())), // legacy field — OneSignal manages tokens now
@@ -19,7 +18,6 @@ export default defineSchema({
     // always public since they're identity.
     visibility: v.optional(
       v.object({
-        bio: v.optional(v.string()),
         avatar: v.optional(v.string()),
         status: v.optional(v.string()),
         lastSeen: v.optional(v.string()),

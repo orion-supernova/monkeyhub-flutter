@@ -26,12 +26,12 @@ class FeedScreen extends StatelessWidget {
                 const SizedBox(height: 36),
                 RichText(
                   text: TextSpan(
-                    style: theme.displayHero,
+                    style: theme.displayLarge,
                     children: [
-                      TextSpan(text: 'soon.\n', style: theme.displayHero),
+                      TextSpan(text: 'soon.\n', style: theme.displayLarge),
                       TextSpan(
                           text: 'daily moments,\nshared with rooms.',
-                          style: theme.displayHero.copyWith(color: theme.inkMuted, fontSize: theme.displayHero.fontSize! * 0.6)),
+                          style: theme.displayLarge.copyWith(color: theme.inkMuted, fontSize: theme.displayLarge.fontSize! * 0.6)),
                     ],
                   ),
                 ),

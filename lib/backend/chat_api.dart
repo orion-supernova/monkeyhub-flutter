@@ -92,7 +92,6 @@ class ChatApi {
   /// pass exactly what you want to change.
   Future<void> updateVisibility({
     required String userId,
-    FieldVisibility? bio,
     FieldVisibility? avatar,
     FieldVisibility? status,
     FieldVisibility? lastSeen,
@@ -100,7 +99,6 @@ class ChatApi {
   }) async {
     await _cv.mutation('users:updateVisibility', {
       'userId': userId,
-      if (bio != null) 'bio': bio.wire,
       if (avatar != null) 'avatar': avatar.wire,
       if (status != null) 'status': status.wire,
       if (lastSeen != null) 'lastSeen': lastSeen.wire,
@@ -112,13 +110,11 @@ class ChatApi {
     required String userId,
     required String name,
     String? email,
-    String? bio,
   }) async {
     await _cv.mutation('users:updateProfile', {
       'userId': userId,
       'name': name,
       'email': ?email,
-      'bio': ?bio,
     });
   }
 

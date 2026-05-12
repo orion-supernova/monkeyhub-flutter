@@ -37,28 +37,38 @@ class RoomGridTile extends StatelessWidget {
           children: [
             Row(children: [
               if (dmUser != null)
-                UserAvatar(user: dmUser!, size: 22, api: api, showStatus: false)
+                UserAvatar(user: dmUser!, size: 40, api: api, showStatus: false)
               else if (room.avatarStorageId != null && api != null)
                 ClipOval(
                   child: RemoteImage(
                     storageId: room.avatarStorageId!,
                     api: api!,
-                    width: 22,
-                    height: 22,
-                    borderRadius: BorderRadius.circular(11),
+                    width: 40,
+                    height: 40,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 )
-              else if (room.isEphemeral)
-                theme.hourglassIcon(size: 14, color: theme.accent)
               else
-                Icon(Icons.tag, size: 14, color: theme.accent),
+                Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.surfaceSunken,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.divider),
+                  ),
+                  child: room.isEphemeral
+                      ? theme.hourglassIcon(size: 18, color: theme.accent)
+                      : Icon(Icons.tag, size: 18, color: theme.accent),
+                ),
               const Spacer(),
-              theme.visibilityIcon(isPublic: room.isPublic, size: 12),
+              theme.visibilityIcon(isPublic: room.isPublic, size: 14),
             ]),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               dmUser?.displayName ?? room.name,
-              style: theme.displaySmall.copyWith(fontSize: 17),
+              style: theme.displaySmall.copyWith(fontSize: 18),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

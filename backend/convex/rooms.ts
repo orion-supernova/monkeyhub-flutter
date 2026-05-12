@@ -239,7 +239,6 @@ export const getMembers = query({
           username: user.username,
           name: user.name,
           email: user.email,
-          bio: user.bio,
           avatarStorageId: user.avatarStorageId,
           status: user.status,
           role: m.role,

@@ -263,9 +263,9 @@ class _Hero extends StatelessWidget {
             ),
             child: RichText(
               text: TextSpan(
-                style: theme.displayHero,
+                style: theme.displayLarge,
                 children: [
-                  TextSpan(text: 'your ', style: theme.displayHero.copyWith(color: theme.inkMuted)),
+                  TextSpan(text: 'your ', style: theme.displayLarge.copyWith(color: theme.inkMuted)),
                   TextSpan(text: _word()),
                 ],
               ),
@@ -311,7 +311,7 @@ class _RoomsPanel extends StatelessWidget {
           crossAxisCount: cols,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 0.82,
+          childAspectRatio: 1.0,
         ),
         itemCount: rooms.length,
         itemBuilder: (context, i) {
