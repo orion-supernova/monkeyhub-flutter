@@ -29,7 +29,7 @@ class RoomGridTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        padding: const EdgeInsets.all(12),
         decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,14 +65,14 @@ class RoomGridTile extends StatelessWidget {
               const Spacer(),
               theme.visibilityIcon(isPublic: room.isPublic, size: 14),
             ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               dmUser?.displayName ?? room.name,
-              style: theme.displaySmall.copyWith(fontSize: 18),
-              maxLines: 2,
+              style: theme.displaySmall.copyWith(fontSize: 17),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             if (typingNames.isNotEmpty)
               Text(
                 typingNames.length == 1
@@ -86,12 +86,12 @@ class RoomGridTile extends StatelessWidget {
               Text(
                 room.lastMessage!,
                 style: theme.body.copyWith(fontSize: 12),
-                maxLines: 3,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               )
             else
               Text('quiet so far', style: theme.bodySoft.copyWith(fontSize: 12)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Row(children: [
               Text('${room.memberCount}', style: theme.monoLarge),
               const SizedBox(width: 4),

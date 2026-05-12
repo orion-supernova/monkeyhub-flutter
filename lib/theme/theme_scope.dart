@@ -19,17 +19,33 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 3 originals + 5 ports from v02 = 8 total.
-  static final List<AppTheme> all = [
-    VaultNoirTheme(),
-    RisographPopTheme(),
-    BioOrganicTheme(),
-    BasicTheme(),
-    CyberpunkTheme(),
-    RetroWaveTheme(),
-    NeonNightTheme(),
-    DeepOceanTheme(),
-  ];
+  /// 5 Basic variants + 2 Vault variants + 6 singles = 13 total.
+  /// Order matches the on-screen layout in `ThemeScreen` so the preview
+  /// carousel iterates in the same order the user sees in the list.
+  ///
+  /// Implemented as an uncached getter so Dart hot-reload picks up re-orderings
+  /// without a full restart — `static final` initializers run once per Isolate
+  /// and won't re-evaluate when the source list changes during development.
+  /// The theme objects themselves are lightweight (no per-frame allocations
+  /// elsewhere — `all` is read once per build).
+  static List<AppTheme> get all => [
+        // BASIC family
+        BasicTheme.midnight(),
+        BasicTheme.daylight(),
+        BasicTheme.graphite(),
+        BasicTheme.rose(),
+        BasicTheme.forest(),
+        // VAULT family
+        VaultNoirTheme.noir(),
+        VaultNoirTheme.ivory(),
+        // OTHERS (singles)
+        RisographPopTheme(),
+        BioOrganicTheme(),
+        CyberpunkTheme(),
+        RetroWaveTheme(),
+        NeonNightTheme(),
+        DeepOceanTheme(),
+      ];
 
   static AppTheme byId(String id) =>
       all.firstWhere((t) => t.id == id, orElse: () => all.first);

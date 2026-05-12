@@ -7,14 +7,69 @@ import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-class ThemeScreen extends StatelessWidget {
+class ThemeScreen extends StatefulWidget {
   const ThemeScreen({super.key});
+
+  @override
+  State<ThemeScreen> createState() => _ThemeScreenState();
+}
+
+/// Themes that share an identity (typography, decorations) but ship with
+/// multiple palettes are grouped into "families" in the picker. Anything not
+/// listed here renders as a standalone tile.
+const List<_ThemeFamily> _families = [
+  _ThemeFamily(
+    name: 'BASIC',
+    tagline: 'ios-inspired · 5 palettes',
+    ids: ['basic', 'basic_daylight', 'basic_graphite', 'basic_rose', 'basic_forest'],
+  ),
+  _ThemeFamily(
+    name: 'VAULT',
+    tagline: 'private dossier · noir + ivory',
+    ids: ['vault_noir', 'vault_ivory'],
+  ),
+  _ThemeFamily(
+    name: 'OTHERS',
+    tagline: 'singular moods',
+    ids: [
+      'risograph_pop',
+      'bio_organic',
+      'cyberpunk',
+      'retro_wave',
+      'neon_night',
+      'deep_ocean',
+    ],
+  ),
+];
+
+class _ThemeFamily {
+  const _ThemeFamily({required this.name, required this.tagline, required this.ids});
+  final String name;
+  final String tagline;
+  final List<String> ids;
+}
+
+class _ThemeScreenState extends State<ThemeScreen> {
+  /// Stable per-theme-id keys so the carousel can re-locate either a family
+  /// chip OR a standalone tile when computing the reverse transition's rect.
+  final Map<String, GlobalKey> _tileKeys = {};
+
+  GlobalKey _keyFor(String id) => _tileKeys.putIfAbsent(id, () => GlobalKey());
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final controller = ThemeScope.controllerOf(context);
     final themes = ThemeController.all;
+
+    void apply(AppTheme t) {
+      controller.theme = t;
+      SettingsStore.instance.setThemeId(t.id);
+      HapticFeedback.selectionClick();
+    }
+
+    int globalIndexOf(String id) => themes.indexWhere((t) => t.id == id);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -49,30 +104,33 @@ class ThemeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: GridView.builder(
+                  // SingleChildScrollView + Column (not ListView) so every
+                  // family card and tile is mounted from frame 1. Tile
+                  // GlobalKeys must be resolvable BEFORE the user applies a
+                  // theme — `Scrollable.ensureVisible` needs a mounted
+                  // context to scroll to.
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 0.78,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final f in _families) ...[
+                          _FamilyCard(
+                            family: f,
+                            themes: [
+                              for (final id in f.ids)
+                                themes.firstWhere((t) => t.id == id),
+                            ],
+                            activeId: theme.id,
+                            chipKey: _keyFor,
+                            onSelect: apply,
+                            onPreviewVariant: (id) => _openCarousel(
+                                context, globalIndexOf(id), themes, apply),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+                      ],
                     ),
-                    itemCount: themes.length,
-                    itemBuilder: (context, i) {
-                      final t = themes[i];
-                      final tileKey = GlobalKey();
-                      return _ThemeGridTile(
-                        key: tileKey,
-                        candidate: t,
-                        active: t.id == theme.id,
-                        onApply: () {
-                          controller.theme = t;
-                          SettingsStore.instance.setThemeId(t.id);
-                          HapticFeedback.selectionClick();
-                        },
-                        onPreview: () => _openCarousel(context, i, tileKey, t),
-                      );
-                    },
                   ),
                 ),
               ],
@@ -83,22 +141,28 @@ class ThemeScreen extends StatelessWidget {
     );
   }
 
+  Rect _rectForId(String id, Size media) {
+    final box = _tileKeys[id]?.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    return Rect.fromCenter(
+      center: Offset(media.width / 2, media.height / 2),
+      width: 1,
+      height: 1,
+    );
+  }
+
   void _openCarousel(
     BuildContext context,
     int initialIndex,
-    GlobalKey tileKey,
-    AppTheme sourceTheme,
+    List<AppTheme> themes,
+    void Function(AppTheme) apply,
   ) {
-    final box = tileKey.currentContext?.findRenderObject() as RenderBox?;
     final media = MediaQuery.of(context).size;
     final dst = Offset.zero & media;
-    final src = (box != null && box.hasSize)
-        ? box.localToGlobal(Offset.zero) & box.size
-        : Rect.fromCenter(
-            center: Offset(media.width / 2, media.height / 2),
-            width: 1,
-            height: 1,
-          );
+    final src = ValueNotifier<Rect>(_rectForId(themes[initialIndex].id, media));
+    final flashColor = ValueNotifier<Color>(themes[initialIndex].accent);
 
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -106,19 +170,46 @@ class ThemeScreen extends StatelessWidget {
         barrierColor: Colors.transparent,
         transitionDuration: const Duration(milliseconds: 520),
         reverseTransitionDuration: const Duration(milliseconds: 360),
-        pageBuilder: (_, _, _) =>
-            _ThemePreviewCarousel(initialIndex: initialIndex),
-        transitionsBuilder: (_, anim, _, child) {
+        pageBuilder: (ctx, anim, secondaryAnim) => _ThemePreviewCarousel(
+          initialIndex: initialIndex,
+          onPageSettle: (i) {
+            // Keep the source rect in sync with the currently-shown tile so
+            // the close transition retreats into THAT tile, not the original.
+            src.value = _rectForId(themes[i].id, media);
+            flashColor.value = themes[i].accent;
+          },
+          onApply: (t) async {
+            apply(t);
+            // Scroll the picker so the applied tile is in view before the
+            // reverse transition starts — otherwise the close-zoom retreats
+            // into a rect that's off-screen and looks jumpy.
+            final tileCtx = _tileKeys[t.id]?.currentContext;
+            if (tileCtx != null) {
+              await Scrollable.ensureVisible(
+                tileCtx,
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+                alignment: 0.3,
+              );
+            }
+            // Refresh source rect to the post-scroll tile position.
+            src.value = _rectForId(t.id, media);
+            flashColor.value = t.accent;
+          },
+        ),
+        transitionsBuilder: (ctx, anim, secondaryAnim, child) {
           final curved = CurvedAnimation(
             parent: anim,
             curve: Curves.easeInOutCubic,
             reverseCurve: Curves.easeInCubic,
           );
           return AnimatedBuilder(
-            animation: curved,
-            builder: (_, _) {
+            animation: Listenable.merge([curved, src, flashColor]),
+            builder: (ctx, _) {
               final t = curved.value.clamp(0.0, 1.0);
-              final rect = Rect.lerp(src, dst, t)!;
+              final srcRect = src.value;
+              final accent = flashColor.value;
+              final rect = Rect.lerp(srcRect, dst, t)!;
               final radius = ui.lerpDouble(28.0, 0.0, t)!;
               // Bell-curve wash: peaks mid-transition, fades at both ends.
               final wash = (t < 0.5 ? t * 2 : (1 - t) * 2) * 0.45;
@@ -132,13 +223,13 @@ class ThemeScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: RadialGradient(
                             center: Alignment(
-                              (src.center.dx / media.width) * 2 - 1,
-                              (src.center.dy / media.height) * 2 - 1,
+                              (srcRect.center.dx / media.width) * 2 - 1,
+                              (srcRect.center.dy / media.height) * 2 - 1,
                             ),
                             radius: 1.4,
                             colors: [
-                              sourceTheme.accent.withValues(alpha: 0.95),
-                              sourceTheme.accent.withValues(alpha: 0.0),
+                              accent.withValues(alpha: 0.95),
+                              accent.withValues(alpha: 0.0),
                             ],
                           ),
                         ),
@@ -173,6 +264,88 @@ class ThemeScreen extends StatelessWidget {
   }
 }
 
+class _FamilyCard extends StatelessWidget {
+  const _FamilyCard({
+    required this.family,
+    required this.themes,
+    required this.activeId,
+    required this.chipKey,
+    required this.onSelect,
+    required this.onPreviewVariant,
+  });
+  final _ThemeFamily family;
+  final List<AppTheme> themes;
+  final String activeId;
+
+  /// Hook so the parent state can stash a stable GlobalKey per variant id —
+  /// needed so the carousel's close transition can retreat into the exact
+  /// tile the user ended on.
+  final GlobalKey Function(String id) chipKey;
+  final ValueChanged<AppTheme> onSelect;
+
+  /// Opens the carousel anchored on a specific variant id.
+  final void Function(String id) onPreviewVariant;
+
+  @override
+  Widget build(BuildContext context) {
+    final outer = ThemeScope.of(context);
+    final activeFromFamily = family.ids.contains(activeId);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: outer.surface,
+        borderRadius: BorderRadius.circular(outer.radiusLg),
+        border: Border.all(
+          color: activeFromFamily ? outer.accent : outer.divider,
+          width: activeFromFamily ? 1.4 : 1,
+        ),
+        boxShadow: activeFromFamily
+            ? [BoxShadow(color: outer.accent.withValues(alpha: 0.22), blurRadius: 16)]
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(family.name,
+                    style: outer.label.copyWith(letterSpacing: 2.4)),
+                const SizedBox(height: 4),
+                Text(family.tagline, style: outer.monoTiny),
+              ],
+            ),
+          ),
+          // Same tile shape as the singles grid below — visual consistency.
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 0.82,
+            ),
+            itemCount: themes.length,
+            itemBuilder: (context, i) {
+              final t = themes[i];
+              return _ThemeGridTile(
+                key: chipKey(t.id),
+                candidate: t,
+                active: t.id == activeId,
+                onApply: () => onSelect(t),
+                onPreview: () => onPreviewVariant(t.id),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ThemeGridTile extends StatelessWidget {
   const _ThemeGridTile({
     super.key,
@@ -189,6 +362,7 @@ class _ThemeGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outer = ThemeScope.of(context);
+    final borderWidth = active ? 1.6 : 1.0;
     return GestureDetector(
       onTap: onApply,
       child: Container(
@@ -197,14 +371,20 @@ class _ThemeGridTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(outer.radiusLg),
           border: Border.all(
             color: active ? outer.accent : outer.divider,
-            width: active ? 1.6 : 1,
+            width: borderWidth,
           ),
           boxShadow: active
               ? [BoxShadow(color: outer.accent.withValues(alpha: 0.30), blurRadius: 18)]
               : null,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
+        // Clip the child *inside* the border line — anti-aliased clipping at
+        // the full corner radius was eating the top corners of the border.
+        // Shrinking by the border width gives the stroke a clean edge.
+        child: Padding(
+          padding: EdgeInsets.all(borderWidth),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(outer.radiusLg - borderWidth),
+            child: Stack(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,7 +475,9 @@ class _ThemeGridTile extends StatelessWidget {
                 ),
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -303,8 +485,19 @@ class _ThemeGridTile extends StatelessWidget {
 }
 
 class _ThemePreviewCarousel extends StatefulWidget {
-  const _ThemePreviewCarousel({required this.initialIndex});
+  const _ThemePreviewCarousel({
+    required this.initialIndex,
+    required this.onPageSettle,
+    required this.onApply,
+  });
   final int initialIndex;
+  final ValueChanged<int> onPageSettle;
+
+  /// Called when the user taps APPLY. Implementation applies the theme,
+  /// scrolls the picker so the tile is visible, and refreshes the close
+  /// transition's source rect — all *before* this returns. The carousel
+  /// then pops itself.
+  final Future<void> Function(AppTheme) onApply;
 
   @override
   State<_ThemePreviewCarousel> createState() => _ThemePreviewCarouselState();
@@ -327,17 +520,19 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
     super.dispose();
   }
 
-  void _apply(BuildContext context, AppTheme t) {
-    final controller = ThemeScope.controllerOf(context);
-    controller.theme = t;
-    SettingsStore.instance.setThemeId(t.id);
+  Future<void> _apply(BuildContext context, AppTheme t) async {
     HapticFeedback.mediumImpact();
-    Navigator.of(context).maybePop();
+    final nav = Navigator.of(context);
+    await widget.onApply(t);
+    if (mounted) nav.maybePop();
   }
 
   @override
   Widget build(BuildContext context) {
     final themes = ThemeController.all;
+    final activeId = ThemeScope.of(context).id;
+    final shown = themes[_index];
+    final isActive = shown.id == activeId;
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -348,6 +543,7 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
             onPageChanged: (i) {
               setState(() => _index = i);
               HapticFeedback.selectionClick();
+              widget.onPageSettle(i);
             },
             itemBuilder: (_, i) {
               final t = themes[i];
@@ -368,10 +564,10 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
                   children: [
                     IconButton(
                       onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.close, color: Colors.white, size: 22),
+                      icon: Icon(Icons.close, color: shown.ink, size: 22),
                     ),
                     const Spacer(),
-                    _Dots(count: themes.length, index: _index),
+                    _Dots(count: themes.length, index: _index, theme: shown),
                     const Spacer(),
                     const SizedBox(width: 48),
                   ],
@@ -386,28 +582,47 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
             child: SafeArea(
               top: false,
               child: GestureDetector(
-                onTap: () => _apply(context, themes[_index]),
+                onTap: isActive
+                    ? () => Navigator.of(context).maybePop()
+                    : () => _apply(context, shown),
                 child: Container(
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: themes[_index].accent,
+                    color: isActive ? Colors.transparent : shown.accent,
                     borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: themes[_index].accent.withValues(alpha: 0.40),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
+                    border: isActive
+                        ? Border.all(color: shown.accent, width: 1.5)
+                        : null,
+                    boxShadow: isActive
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: shown.accent.withValues(alpha: 0.40),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isActive) ...[
+                        Icon(Icons.check_circle, size: 16, color: shown.accent),
+                        const SizedBox(width: 8),
+                      ],
+                      Text(
+                        isActive
+                            ? 'ACTIVE — ${shown.name.toUpperCase()}'
+                            : 'APPLY ${shown.name.toUpperCase()}',
+                        style: TextStyle(
+                          color: isActive ? shown.accent : shown.accentInk,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
-                  ),
-                  child: Text(
-                    'APPLY ${themes[_index].name.toUpperCase()}',
-                    style: TextStyle(
-                      color: themes[_index].accentInk,
-                      letterSpacing: 2,
-                      fontWeight: FontWeight.w700,
-                    ),
                   ),
                 ),
               ),
@@ -420,9 +635,10 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
 }
 
 class _Dots extends StatelessWidget {
-  const _Dots({required this.count, required this.index});
+  const _Dots({required this.count, required this.index, required this.theme});
   final int count;
   final int index;
+  final AppTheme theme;
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -436,8 +652,8 @@ class _Dots extends StatelessWidget {
             height: 6,
             decoration: BoxDecoration(
               color: i == index
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.35),
+                  ? theme.ink
+                  : theme.inkMuted.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(999),
             ),
           ),

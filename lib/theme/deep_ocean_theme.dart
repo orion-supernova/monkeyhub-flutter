@@ -56,8 +56,10 @@ class DeepOceanTheme implements AppTheme {
         letterSpacing: -0.5,
         color: ink,
       );
+  // Labels use Inter (warm clean sans) instead of IBM Plex Mono so the
+  // calm Spectral display family isn't undercut by a code-y caption face.
   TextStyle _mono(double s, [FontWeight w = FontWeight.w500]) =>
-      GoogleFonts.ibmPlexMono(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
+      GoogleFonts.inter(fontSize: s, fontWeight: w, height: 1.2, color: inkSoft);
 
   @override
   TextStyle get displayHero => _disp(64, FontWeight.w300).copyWith(letterSpacing: -1.5, fontStyle: FontStyle.italic);
@@ -78,17 +80,17 @@ class DeepOceanTheme implements AppTheme {
       fontSize: 13, fontWeight: FontWeight.w400, height: 1.4, color: inkMuted);
   @override
   TextStyle get caption =>
-      _mono(11, FontWeight.w500).copyWith(letterSpacing: 1.2, color: inkMuted);
+      _mono(12, FontWeight.w500).copyWith(letterSpacing: 0.4, color: inkMuted);
   @override
-  TextStyle get mono => _mono(12, FontWeight.w400);
+  TextStyle get mono => _mono(13, FontWeight.w500);
   @override
-  TextStyle get monoLarge => _mono(16, FontWeight.w500).copyWith(color: accent);
+  TextStyle get monoLarge => _mono(17, FontWeight.w600).copyWith(color: accent);
   @override
   TextStyle get monoTiny =>
-      _mono(9, FontWeight.w600).copyWith(letterSpacing: 1.6, color: inkMuted);
+      _mono(10, FontWeight.w600).copyWith(letterSpacing: 0.8, color: inkMuted);
   @override
   TextStyle get label =>
-      _mono(10, FontWeight.w600).copyWith(letterSpacing: 1.8, color: accent);
+      _mono(11, FontWeight.w600).copyWith(letterSpacing: 0.6, color: accent);
 
   @override
   double get radiusSm => 6;
@@ -169,7 +171,7 @@ class DeepOceanTheme implements AppTheme {
 
   @override
   Widget backgroundLayer(BuildContext context) {
-    return const _OceanBackground();
+    return const _OceanStatic();
   }
 
   @override
@@ -237,72 +239,86 @@ class DeepOceanTheme implements AppTheme {
   }
 }
 
-class _OceanBackground extends StatefulWidget {
-  const _OceanBackground();
-  @override
-  State<_OceanBackground> createState() => _OceanBackgroundState();
-}
+/// Static ocean backdrop. Previously this was a `_OceanBackground` animated
+/// `CustomPaint` re-running every frame with three `MaskFilter.blur(radius: 80)`
+/// patches — that's the most expensive blur radius in the codebase and pinned
+/// the GPU. The look is preserved as a `LinearGradient` base plus three
+/// fullscreen `RadialGradient`s, all wrapped in a `RepaintBoundary` so it
+/// never reinvalidates the rest of the tree.
+class _OceanStatic extends StatelessWidget {
+  const _OceanStatic();
 
-class _OceanBackgroundState extends State<_OceanBackground>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl =
-      AnimationController(vsync: this, duration: const Duration(seconds: 26))..repeat();
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, _) => CustomPaint(painter: _OceanPainter(t: _ctrl.value), size: Size.infinite),
+    return const RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF0A192F),
+                  Color(0xFF0E2143),
+                  Color(0xFF050E1C),
+                ],
+              ),
+            ),
+          ),
+          _OceanGlow(
+            center: Alignment(-0.5, -0.4),
+            radius: 0.95,
+            color: Color(0xFF26D0CE), // cyan
+            peakAlpha: 0.26,
+          ),
+          _OceanGlow(
+            center: Alignment(0.55, 0.1),
+            radius: 1.05,
+            color: Color(0xFF1A2980), // navy
+            peakAlpha: 0.30,
+          ),
+          _OceanGlow(
+            center: Alignment(0.0, 0.7),
+            radius: 0.85,
+            color: Color(0xFF38BDF8), // sky blue
+            peakAlpha: 0.22,
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _OceanPainter extends CustomPainter {
-  _OceanPainter({required this.t});
-  final double t;
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Gradient base
-    final base = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: const [Color(0xFF0A192F), Color(0xFF0E2143), Color(0xFF050E1C)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, base);
-
-    // Soft glow patches
-    final phase = t * math.pi * 2;
-    final patches = [
-      _Patch(const Color(0xFF26D0CE), 0.8, 0.25, 0.30, 0.0),
-      _Patch(const Color(0xFF1A2980), 0.9, 0.75, 0.55, 1.2),
-      _Patch(const Color(0xFF38BDF8), 0.7, 0.5, 0.85, 2.0),
-    ];
-    for (final p in patches) {
-      final cx = (p.cx + 0.06 * math.cos(phase + p.phase)) * size.width;
-      final cy = (p.cy + 0.04 * math.sin(phase * 0.7 + p.phase)) * size.height;
-      final r = size.shortestSide * p.scale;
-      final paint = Paint()
-        ..shader = RadialGradient(colors: [p.color.withValues(alpha: 0.30), p.color.withValues(alpha: 0)])
-            .createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80);
-      canvas.drawCircle(Offset(cx, cy), r, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _OceanPainter oldDelegate) => true;
-}
-
-class _Patch {
-  _Patch(this.color, this.scale, this.cx, this.cy, this.phase);
+class _OceanGlow extends StatelessWidget {
+  const _OceanGlow({
+    required this.center,
+    required this.radius,
+    required this.color,
+    required this.peakAlpha,
+  });
+  final Alignment center;
+  final double radius;
   final Color color;
-  final double scale;
-  final double cx;
-  final double cy;
-  final double phase;
+  final double peakAlpha;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: center,
+            radius: radius,
+            colors: [
+              color.withValues(alpha: peakAlpha),
+              color.withValues(alpha: 0),
+            ],
+            stops: const [0.0, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
 }

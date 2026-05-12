@@ -18,21 +18,25 @@ class BioOrganicTheme implements AppTheme {
 
   @override
   Color get background => const Color(0xFF050714);
+  // Glass surfaces use a *dark* tint (not white) so the bottom pill nav and
+  // cards read as dark glass on the aurora — light text stays legible.
+  // Previously these were white-with-alpha, which created a near-white pill
+  // that swallowed unselected nav labels.
   @override
-  Color get surface => const Color(0xFFFFFFFF).withValues(alpha: 0.06);
+  Color get surface => const Color(0xFF101A33).withValues(alpha: 0.70);
   @override
-  Color get surfaceRaised => const Color(0xFFFFFFFF).withValues(alpha: 0.10);
+  Color get surfaceRaised => const Color(0xFF182446).withValues(alpha: 0.82);
   @override
-  Color get surfaceSunken => const Color(0xFF000000).withValues(alpha: 0.30);
+  Color get surfaceSunken => const Color(0xFF050714).withValues(alpha: 0.55);
   @override
-  Color get divider => const Color(0xFFFFFFFF).withValues(alpha: 0.10);
+  Color get divider => const Color(0xFFFFFFFF).withValues(alpha: 0.14);
 
   @override
   Color get ink => const Color(0xFFF1F6FF);
   @override
-  Color get inkSoft => const Color(0xFFD7E1F4);
+  Color get inkSoft => const Color(0xFFE2EAFA);
   @override
-  Color get inkMuted => const Color(0xFF7E8CB1);
+  Color get inkMuted => const Color(0xFFA6B0CC);
 
   @override
   Color get accent => const Color(0xFF22D3EE);
@@ -47,43 +51,49 @@ class BioOrganicTheme implements AppTheme {
 
   Color get magenta => const Color(0xFFD946EF);
 
+  // Instrument Serif's natural tracking is already tight — heavy negative
+  // letterSpacing crushes characters into each other. Hero gets a touch of
+  // negative for shape, everything else uses near-neutral tracking and a
+  // tiny positive value on body sizes for readability.
   @override
   TextStyle get displayHero => GoogleFonts.instrumentSerif(
-        fontSize: 70,
+        fontSize: 64,
         fontWeight: FontWeight.w400,
         fontStyle: FontStyle.italic,
-        height: 0.95,
-        letterSpacing: -2,
+        height: 1.0,
+        letterSpacing: -0.4,
         color: ink,
       );
   @override
   TextStyle get displayLarge => GoogleFonts.instrumentSerif(
-        fontSize: 36,
+        fontSize: 34,
         fontWeight: FontWeight.w400,
-        height: 1.0,
-        letterSpacing: -0.6,
+        height: 1.1,
+        letterSpacing: 0,
         color: ink,
       );
   @override
   TextStyle get displayMedium => GoogleFonts.instrumentSerif(
         fontSize: 26,
         fontWeight: FontWeight.w400,
-        height: 1.1,
-        letterSpacing: -0.4,
+        height: 1.15,
+        letterSpacing: 0.1,
         color: ink,
       );
   @override
   TextStyle get displaySmall => GoogleFonts.instrumentSerif(
         fontSize: 20,
         fontWeight: FontWeight.w400,
-        height: 1.15,
+        height: 1.2,
+        letterSpacing: 0.15,
         color: ink,
       );
   @override
   TextStyle get body => GoogleFonts.instrumentSerif(
         fontSize: 16,
         fontWeight: FontWeight.w400,
-        height: 1.45,
+        height: 1.5,
+        letterSpacing: 0.25,
         color: inkSoft,
       );
   @override
@@ -91,51 +101,55 @@ class BioOrganicTheme implements AppTheme {
         fontSize: 16,
         fontWeight: FontWeight.w400,
         fontStyle: FontStyle.italic,
-        height: 1.45,
+        height: 1.5,
+        letterSpacing: 0.25,
         color: ink,
       );
   @override
   TextStyle get bodySoft => GoogleFonts.instrumentSerif(
         fontSize: 14,
         fontWeight: FontWeight.w400,
-        height: 1.4,
+        height: 1.45,
+        letterSpacing: 0.2,
         color: inkMuted,
       );
+  // Labels switch from IBM Plex Mono → Inter for a warmer, less code-y feel
+  // that pairs with the Instrument Serif display + body.
   @override
-  TextStyle get caption => GoogleFonts.ibmPlexMono(
-        fontSize: 11,
+  TextStyle get caption => GoogleFonts.inter(
+        fontSize: 12,
         fontWeight: FontWeight.w500,
-        letterSpacing: 1.2,
+        letterSpacing: 0.4,
         height: 1.2,
         color: inkMuted,
       );
   @override
-  TextStyle get mono => GoogleFonts.ibmPlexMono(
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
+  TextStyle get mono => GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
         height: 1.2,
         color: inkSoft,
       );
   @override
-  TextStyle get monoLarge => GoogleFonts.ibmPlexMono(
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
+  TextStyle get monoLarge => GoogleFonts.inter(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
         height: 1.2,
         color: ink,
       );
   @override
-  TextStyle get monoTiny => GoogleFonts.ibmPlexMono(
-        fontSize: 9,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 1.6,
+  TextStyle get monoTiny => GoogleFonts.inter(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
         height: 1.2,
         color: inkMuted,
       );
   @override
-  TextStyle get label => GoogleFonts.ibmPlexMono(
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 1.8,
+  TextStyle get label => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
         height: 1.2,
         color: inkSoft,
       );
@@ -241,7 +255,7 @@ class BioOrganicTheme implements AppTheme {
 
   @override
   Widget backgroundLayer(BuildContext context) {
-    return const _AuroraMesh();
+    return const _AuroraStatic();
   }
 
   @override
@@ -295,85 +309,103 @@ class BioOrganicTheme implements AppTheme {
   }
 }
 
-class _AuroraMesh extends StatefulWidget {
-  const _AuroraMesh();
-  @override
-  State<_AuroraMesh> createState() => _AuroraMeshState();
-}
+/// Static "aurora" backdrop. Previously this was an animated CustomPaint with
+/// five `MaskFilter.blur(radius: 60)` blobs + an 80-star twinkle loop, which
+/// repainted every frame and pinned the GPU. The look is preserved here as
+/// three overlaid fullscreen `RadialGradient`s (cheap, one-shot shader) plus
+/// a tiny static star field — total cost is essentially zero after the first
+/// frame, and the whole thing sits inside a `RepaintBoundary` so it never
+/// invalidates the rest of the tree.
+class _AuroraStatic extends StatelessWidget {
+  const _AuroraStatic();
 
-class _AuroraMeshState extends State<_AuroraMesh> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 22))..repeat();
-  }
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) => CustomPaint(
-        painter: _AuroraPainter(t: _ctrl.value),
-        size: Size.infinite,
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: const [
+          ColoredBox(color: Color(0xFF050714)),
+          _AuroraBlob(
+            center: Alignment(-0.7, -0.8),
+            radius: 0.95,
+            color: Color(0xFF22D3EE), // cyan
+            peakAlpha: 0.38,
+          ),
+          _AuroraBlob(
+            center: Alignment(0.85, 0.75),
+            radius: 1.05,
+            color: Color(0xFFD946EF), // magenta
+            peakAlpha: 0.32,
+          ),
+          _AuroraBlob(
+            center: Alignment(-0.3, 0.6),
+            radius: 0.85,
+            color: Color(0xFF8B5CF6), // violet
+            peakAlpha: 0.26,
+          ),
+          IgnorePointer(
+            child: CustomPaint(
+              painter: _StarFieldPainter(),
+              size: Size.infinite,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _AuroraPainter extends CustomPainter {
-  _AuroraPainter({required this.t});
-  final double t;
+class _AuroraBlob extends StatelessWidget {
+  const _AuroraBlob({
+    required this.center,
+    required this.radius,
+    required this.color,
+    required this.peakAlpha,
+  });
+  final Alignment center;
+  final double radius;
+  final Color color;
+  final double peakAlpha;
 
   @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: center,
+            radius: radius,
+            colors: [
+              color.withValues(alpha: peakAlpha),
+              color.withValues(alpha: 0),
+            ],
+            stops: const [0.0, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StarFieldPainter extends CustomPainter {
+  const _StarFieldPainter();
+  @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF050714));
-    final phase = t * math.pi * 2;
-    final blobs = [
-      _Blob(const Color(0xFF3B82F6), 0.8, 0.15, 0.35, 0.0),
-      _Blob(const Color(0xFFD946EF), 0.9, 0.85, 0.65, 0.6),
-      _Blob(const Color(0xFF22D3EE), 0.7, 0.5, 0.2, 1.4),
-      _Blob(const Color(0xFF14B8A6), 0.6, 0.2, 0.85, 2.2),
-      _Blob(const Color(0xFF8B5CF6), 0.55, 0.7, 0.92, 3.0),
-    ];
-    for (final b in blobs) {
-      final cx = (b.cx + 0.08 * math.cos(phase + b.phase)) * size.width;
-      final cy = (b.cy + 0.06 * math.sin(phase * 0.8 + b.phase)) * size.height;
-      final r = (size.shortestSide * b.scale) * (0.9 + 0.1 * math.sin(phase * 1.3 + b.phase));
-      final paint = Paint()
-        ..shader = RadialGradient(
-          colors: [b.color.withValues(alpha: 0.42), b.color.withValues(alpha: 0)],
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60);
-      canvas.drawCircle(Offset(cx, cy), r, paint);
-    }
-    // Faint star field
     final rand = math.Random(99);
     final p = Paint();
-    for (var i = 0; i < 80; i++) {
-      final x = rand.nextDouble() * size.width;
-      final y = rand.nextDouble() * size.height;
-      final twinkle = 0.4 + 0.6 * math.sin(phase * 2 + i * 7);
-      p.color = Colors.white.withValues(alpha: 0.10 + 0.10 * twinkle.abs());
-      canvas.drawCircle(Offset(x, y), 0.6, p);
+    for (var i = 0; i < 32; i++) {
+      p.color = Colors.white.withValues(alpha: 0.08 + rand.nextDouble() * 0.16);
+      canvas.drawCircle(
+        Offset(rand.nextDouble() * size.width, rand.nextDouble() * size.height),
+        0.6,
+        p,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant _AuroraPainter oldDelegate) => true;
-}
-
-class _Blob {
-  _Blob(this.color, this.scale, this.cx, this.cy, this.phase);
-  final Color color;
-  final double scale;
-  final double cx;
-  final double cy;
-  final double phase;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _BioShimmerPainter extends CustomPainter {

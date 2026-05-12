@@ -3,47 +3,59 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_theme.dart';
 
+/// Palette-parameterized Vault theme — serif "private dossier" mood.
+/// Variants:
+///   - VaultNoirTheme.noir()  → dark, original (id 'vault_noir')
+///   - VaultNoirTheme.ivory() → light parchment       (id 'vault_ivory')
 class VaultNoirTheme implements AppTheme {
+  VaultNoirTheme._(this._p);
+
+  factory VaultNoirTheme() => VaultNoirTheme._(_noir);
+  factory VaultNoirTheme.noir() => VaultNoirTheme._(_noir);
+  factory VaultNoirTheme.ivory() => VaultNoirTheme._(_ivory);
+
+  final _VaultPalette _p;
+
   @override
-  String get id => 'vault_noir';
+  String get id => _p.id;
   @override
-  String get name => 'Vault Noir';
+  String get name => _p.name;
   @override
-  String get tagline => 'a private dossier';
+  String get tagline => _p.tagline;
   @override
   ThemeMood get mood => ThemeMood.vault;
 
   @override
-  List<Color> get swatch => const [Color(0xFF0A0A0B), Color(0xFFF4F1EA), Color(0xFFD63B2A)];
+  List<Color> get swatch => [_p.background, _p.ink, _p.accent];
 
   @override
-  Color get background => const Color(0xFF0A0A0B);
+  Color get background => _p.background;
   @override
-  Color get surface => const Color(0xFF131318);
+  Color get surface => _p.surface;
   @override
-  Color get surfaceRaised => const Color(0xFF1C1C22);
+  Color get surfaceRaised => _p.surfaceRaised;
   @override
-  Color get surfaceSunken => const Color(0xFF06060A);
+  Color get surfaceSunken => _p.surfaceSunken;
   @override
-  Color get divider => const Color(0xFFF4F1EA).withValues(alpha: 0.08);
+  Color get divider => _p.divider;
 
   @override
-  Color get ink => const Color(0xFFF4F1EA);
+  Color get ink => _p.ink;
   @override
-  Color get inkSoft => const Color(0xFFD9D4C5);
+  Color get inkSoft => _p.inkSoft;
   @override
-  Color get inkMuted => const Color(0xFF8A857A);
+  Color get inkMuted => _p.inkMuted;
 
   @override
-  Color get accent => const Color(0xFFD63B2A);
+  Color get accent => _p.accent;
   @override
-  Color get accentInk => const Color(0xFFF4F1EA);
+  Color get accentInk => _p.accentInk;
   @override
-  Color get accentSoft => const Color(0xFFD63B2A).withValues(alpha: 0.12);
+  Color get accentSoft => _p.accent.withValues(alpha: 0.12);
   @override
-  Color get danger => const Color(0xFFD63B2A);
+  Color get danger => _p.danger;
   @override
-  Color get success => const Color(0xFF7DA17A);
+  Color get success => _p.success;
 
   @override
   TextStyle get displayHero => GoogleFonts.cormorant(
@@ -168,7 +180,7 @@ class VaultNoirTheme implements AppTheme {
           : Border.all(color: divider, width: 1),
       boxShadow: [
         BoxShadow(
-          color: const Color(0xFF000000).withValues(alpha: 0.6),
+          color: _p.shadowColor,
           blurRadius: 24,
           offset: const Offset(0, 12),
           spreadRadius: -8,
@@ -198,8 +210,8 @@ class VaultNoirTheme implements AppTheme {
         color: surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(top: BorderSide(color: accent.withValues(alpha: 0.35), width: 2)),
-        boxShadow: const [
-          BoxShadow(color: Colors.black, blurRadius: 48, offset: Offset(0, -16)),
+        boxShadow: [
+          BoxShadow(color: _p.shadowColor, blurRadius: 48, offset: const Offset(0, -16)),
         ],
       );
 
@@ -237,7 +249,11 @@ class VaultNoirTheme implements AppTheme {
           ),
         ),
         // Procedural grain
-        IgnorePointer(child: CustomPaint(painter: _GrainPainter(seed: 7))),
+        IgnorePointer(
+          child: CustomPaint(
+            painter: _GrainPainter(seed: 7, color: _p.grainColor),
+          ),
+        ),
       ],
     );
   }
@@ -279,23 +295,118 @@ class VaultNoirTheme implements AppTheme {
   @override
   List<Color> avatarGradient(int seed) {
     final rand = math.Random(seed);
-    final tones = [
-      const Color(0xFFD63B2A),
-      const Color(0xFFE9B872),
-      const Color(0xFF6B8E5A),
-      const Color(0xFFA88B6E),
-      const Color(0xFF8A857A),
-      const Color(0xFFB0492D),
-    ];
+    final tones = _p.avatarPalette;
     final a = tones[rand.nextInt(tones.length)];
     final b = tones[rand.nextInt(tones.length)];
     return [a, b];
   }
 }
 
+/// Swappable colour tokens for a Vault variant. Typography, geometry,
+/// motion, and decorative painters (wax seal, hourglass, grain) are
+/// shared across all variants.
+class _VaultPalette {
+  const _VaultPalette({
+    required this.id,
+    required this.name,
+    required this.tagline,
+    required this.background,
+    required this.surface,
+    required this.surfaceRaised,
+    required this.surfaceSunken,
+    required this.divider,
+    required this.ink,
+    required this.inkSoft,
+    required this.inkMuted,
+    required this.accent,
+    required this.accentInk,
+    required this.danger,
+    required this.success,
+    required this.shadowColor,
+    required this.grainColor,
+    required this.avatarPalette,
+  });
+
+  final String id;
+  final String name;
+  final String tagline;
+  final Color background;
+  final Color surface;
+  final Color surfaceRaised;
+  final Color surfaceSunken;
+  final Color divider;
+  final Color ink;
+  final Color inkSoft;
+  final Color inkMuted;
+  final Color accent;
+  final Color accentInk;
+  final Color danger;
+  final Color success;
+  final Color shadowColor;
+  final Color grainColor;
+  final List<Color> avatarPalette;
+}
+
+const _noir = _VaultPalette(
+  id: 'vault_noir',
+  name: 'Vault Noir',
+  tagline: 'a private dossier',
+  background: Color(0xFF0A0A0B),
+  surface: Color(0xFF131318),
+  surfaceRaised: Color(0xFF1C1C22),
+  surfaceSunken: Color(0xFF06060A),
+  divider: Color(0x14F4F1EA), // ink @ 8%
+  ink: Color(0xFFF4F1EA),
+  inkSoft: Color(0xFFD9D4C5),
+  inkMuted: Color(0xFF8A857A),
+  accent: Color(0xFFD63B2A),
+  accentInk: Color(0xFFF4F1EA),
+  danger: Color(0xFFD63B2A),
+  success: Color(0xFF7DA17A),
+  shadowColor: Color(0x99000000),
+  grainColor: Color(0x0FF4F1EA), // bone @ ~6% for visible texture on dark
+  avatarPalette: [
+    Color(0xFFD63B2A),
+    Color(0xFFE9B872),
+    Color(0xFF6B8E5A),
+    Color(0xFFA88B6E),
+    Color(0xFF8A857A),
+    Color(0xFFB0492D),
+  ],
+);
+
+const _ivory = _VaultPalette(
+  id: 'vault_ivory',
+  name: 'Vault Ivory',
+  tagline: 'an open dossier',
+  background: Color(0xFFF7F1E6),
+  surface: Color(0xFFFFFAEF),
+  surfaceRaised: Color(0xFFFFFFFF),
+  surfaceSunken: Color(0xFFEDE5D2),
+  divider: Color(0x1A000000), // black @ 10%
+  ink: Color(0xFF1A1209),
+  inkSoft: Color(0xFF3F3328),
+  inkMuted: Color(0xFF7A6B5A),
+  accent: Color(0xFFD63B2A),
+  accentInk: Color(0xFFFFFAEF),
+  danger: Color(0xFFA1281A),
+  success: Color(0xFF5F8458),
+  shadowColor: Color(0x141A1209), // ink @ ~8%, subtle on parchment
+  grainColor: Color(0x0F1A1209), // dark coffee @ ~6% for texture on light
+  avatarPalette: [
+    Color(0xFFD63B2A),
+    Color(0xFFB0492D),
+    Color(0xFFA88B6E),
+    Color(0xFF6B8E5A),
+    Color(0xFF8A6E48),
+    Color(0xFFC58B4A),
+  ],
+);
+
 class _GrainPainter extends CustomPainter {
-  _GrainPainter({required this.seed});
+  _GrainPainter({required this.seed, required this.color});
   final int seed;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -305,14 +416,14 @@ class _GrainPainter extends CustomPainter {
     for (var i = 0; i < count; i++) {
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
-      final a = rand.nextDouble() * 0.06;
-      paint.color = const Color(0xFFF4F1EA).withValues(alpha: a);
+      paint.color = color.withValues(alpha: rand.nextDouble() * color.a);
       canvas.drawCircle(Offset(x, y), 0.5, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _GrainPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GrainPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.seed != seed;
 }
 
 class _SmokeStreakPainter extends CustomPainter {

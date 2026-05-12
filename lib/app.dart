@@ -25,8 +25,11 @@ class MonkeyHubApp extends StatefulWidget {
 }
 
 class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver {
-  final ThemeController _themeController =
-      ThemeController(ThemeController.all.first);
+  // Seed the controller from the already-loaded SettingsStore (preloaded in
+  // main.dart). Falls back to system-brightness-aware defaults on first
+  // launch. Doing this synchronously means the first paint already uses the
+  // user's saved theme — no Midnight flash on hot restart.
+  final ThemeController _themeController = ThemeController(_initialTheme());
   final ConvexBackend _cv = ConvexBackend.instance;
   late final ChatApi _api = ChatApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
@@ -89,11 +92,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     }
     // Load persisted settings (theme/layout/nav) BEFORE rendering so the
     // first frame already reflects the user's choice.
-    await SettingsStore.instance.load();
-    final savedThemeId = SettingsStore.instance.themeId;
-    if (savedThemeId != null) {
-      _themeController.theme = ThemeController.byId(savedThemeId);
-    }
+    // SettingsStore was preloaded in main.dart and the theme controller was
+    // seeded with the right starting theme synchronously (`_initialTheme()`
+    // below). Nothing left to reconcile here.
     // Apply screen-capture protection setting on boot: Android enables
     // FLAG_SECURE immediately; iOS just primes the event stream.
     await CaptureProtection.instance.setUserEnabled(SettingsStore.instance.captureProtection);
@@ -221,6 +222,22 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           );
         },
       ),
+    );
+  }
+
+  /// Resolves the starting theme synchronously from preloaded settings:
+  ///   1. If the user has a saved themeId, use that.
+  ///   2. Otherwise default by the device's current system brightness —
+  ///      Dark → Midnight, Light → Daylight.
+  /// `SettingsStore.load()` MUST have been awaited before `runApp` for this
+  /// to return the right value on first frame (see `main.dart`).
+  static AppTheme _initialTheme() {
+    final saved = SettingsStore.instance.themeId;
+    if (saved != null) return ThemeController.byId(saved);
+    final brightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    return ThemeController.byId(
+      brightness == Brightness.light ? 'basic_daylight' : 'basic',
     );
   }
 }
