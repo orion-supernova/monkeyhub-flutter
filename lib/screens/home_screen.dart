@@ -1,6 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import '../data/mock_store.dart';
+
+import '../auth/auth_service.dart';
+import '../backend/chat_api.dart';
+import '../data/chat_repository.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/theme_chip.dart';
 import '../widgets/pill_nav.dart';
@@ -10,9 +13,13 @@ import 'create_room_sheet.dart';
 import 'requests_screen.dart';
 import 'discover_screen.dart';
 import 'profile_screen.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.repo, required this.api, required this.auth});
+  final ChatRepository repo;
+  final ChatApi api;
+  final AuthService auth;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -20,120 +27,137 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _tab = 'rooms';
-  late final Timer _tick;
 
   @override
   void initState() {
     super.initState();
-    // Periodically prune expired ephemeral messages (the "server forgets" behavior)
-    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
-      MockStore.instance.purgeExpiredMessages();
-    });
+    widget.repo.addListener(_onRepoChange);
   }
 
   @override
   void dispose() {
-    _tick.cancel();
+    widget.repo.removeListener(_onRepoChange);
     super.dispose();
+  }
+
+  void _onRepoChange() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final store = MockStore.instance;
-    return AnimatedBuilder(
-      animation: store,
-      builder: (context, _) {
-        return Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Stack(
-            children: [
-              theme.backgroundLayer(context),
-              SafeArea(
-                child: Column(
-                  children: [
-                    _Header(onProfileTap: () => _openProfile(context)),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
-                        children: [
-                          _Hero(tab: _tab),
-                          const SizedBox(height: 18),
-                          Center(
-                            child: PillNav(
-                              activeId: _tab,
-                              onChange: (id) => setState(() => _tab = id),
-                              items: [
-                                const PillNavItem(id: 'rooms', label: 'ROOMS'),
-                                PillNavItem(
-                                  id: 'requests',
-                                  label: 'REQUESTS',
-                                  badge: store.friendRequests.isEmpty && store.roomInvites.isEmpty
-                                      ? null
-                                      : '${store.friendRequests.length + store.roomInvites.length}',
-                                ),
-                                const PillNavItem(id: 'discover', label: 'DISCOVER'),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 22),
-                          AnimatedSwitcher(
-                            duration: theme.motionMed,
-                            switchInCurve: theme.motionEntrance,
-                            child: KeyedSubtree(
-                              key: ValueKey('${_tab}_${theme.id}'),
-                              child: _panel(),
-                            ),
-                          ),
-                        ],
-                      ),
+    final session = widget.auth.session;
+    if (session == null) return const SizedBox.shrink();
+    final rooms = widget.repo.rooms;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          theme.backgroundLayer(context),
+          SafeArea(
+            child: Column(
+              children: [
+                _Header(
+                  greeting: session.name.split(' ').first.toLowerCase(),
+                  handle: '@${session.username}',
+                  onProfileTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(user: ChatUser(
+                        id: session.userId,
+                        username: session.username,
+                        name: session.name,
+                      )),
                     ),
-                  ],
+                  ),
+                  onSignOut: () async {
+                    final nav = Navigator.of(context);
+                    await widget.auth.signOut();
+                    await widget.repo.detach();
+                    if (!mounted) return;
+                    nav.pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => LoginScreen(auth: widget.auth)),
+                      (_) => false,
+                    );
+                  },
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                    children: [
+                      _Hero(tab: _tab, roomCount: rooms.length),
+                      const SizedBox(height: 18),
+                      Center(
+                        child: PillNav(
+                          activeId: _tab,
+                          onChange: (id) => setState(() => _tab = id),
+                          items: const [
+                            PillNavItem(id: 'rooms', label: 'ROOMS'),
+                            PillNavItem(id: 'requests', label: 'REQUESTS'),
+                            PillNavItem(id: 'discover', label: 'DISCOVER'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      AnimatedSwitcher(
+                        duration: theme.motionMed,
+                        switchInCurve: theme.motionEntrance,
+                        child: KeyedSubtree(
+                          key: ValueKey('${_tab}_${theme.id}'),
+                          child: _panel(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          floatingActionButton: _CreateRoomFab(onTap: () => _openCreate(context)),
-        );
-      },
+        ],
+      ),
+      floatingActionButton: _CreateRoomFab(onTap: _openCreate),
     );
   }
 
   Widget _panel() {
     switch (_tab) {
       case 'rooms':
-        return const _RoomsPanel();
+        return _RoomsPanel(repo: widget.repo, api: widget.api);
       case 'requests':
         return const RequestsPanel();
       case 'discover':
-        return const DiscoverPanel();
+        return DiscoverPanel(repo: widget.repo, api: widget.api);
       default:
-        return const _RoomsPanel();
+        return _RoomsPanel(repo: widget.repo, api: widget.api);
     }
   }
 
-  void _openProfile(BuildContext context) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfileScreen(user: MockStore.instance.me)));
-  }
-
-  void _openCreate(BuildContext context) {
+  void _openCreate() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => const CreateRoomSheet(),
+      builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
     );
   }
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onProfileTap});
+  const _Header({
+    required this.greeting,
+    required this.handle,
+    required this.onProfileTap,
+    required this.onSignOut,
+  });
+  final String greeting;
+  final String handle;
   final VoidCallback onProfileTap;
+  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final me = MockStore.instance.me;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
       child: Row(
@@ -147,7 +171,7 @@ class _Header extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(me.handle, style: theme.mono.copyWith(color: theme.inkMuted)),
+                    Text(handle, style: theme.mono.copyWith(color: theme.inkMuted)),
                     const SizedBox(width: 6),
                     Container(
                       width: 6,
@@ -161,9 +185,19 @@ class _Header extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text('hey, ${me.name.split(' ').first.toLowerCase()}.', style: theme.displayMedium),
+                Text('hey, $greeting.', style: theme.displayMedium),
               ],
             ),
+          ),
+          PopupMenuButton<String>(
+            color: theme.surfaceRaised,
+            onSelected: (v) {
+              if (v == 'signout') onSignOut();
+            },
+            icon: Icon(Icons.more_vert, color: theme.inkSoft, size: 18),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'signout', child: Text('Sign out', style: theme.body)),
+            ],
           ),
           const ThemeChip(),
         ],
@@ -173,8 +207,9 @@ class _Header extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({required this.tab});
+  const _Hero({required this.tab, required this.roomCount});
   final String tab;
+  final int roomCount;
 
   String _word() {
     switch (tab) {
@@ -190,16 +225,13 @@ class _Hero extends StatelessWidget {
   }
 
   String _caption() {
-    final s = MockStore.instance;
     switch (tab) {
       case 'rooms':
-        final eph = s.roomsForMe().where((r) => r.isEphemeral).length;
-        final std = s.roomsForMe().length - eph;
-        return '$std humming · $eph fading';
+        return '$roomCount in your hub';
       case 'requests':
-        return '${s.friendRequests.length} friend · ${s.roomInvites.length} invite';
+        return 'friend · invite · direct';
       case 'discover':
-        return 'public people · public rooms';
+        return 'public rooms · open profiles';
       default:
         return '';
     }
@@ -246,12 +278,13 @@ class _Hero extends StatelessWidget {
 }
 
 class _RoomsPanel extends StatelessWidget {
-  const _RoomsPanel();
+  const _RoomsPanel({required this.repo, required this.api});
+  final ChatRepository repo;
+  final ChatApi api;
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final store = MockStore.instance;
-    final rooms = store.roomsForMe();
+    final rooms = repo.rooms;
     if (rooms.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
@@ -273,7 +306,7 @@ class _RoomsPanel extends StatelessWidget {
             child: RoomCard(
               room: rooms[i],
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id)),
+                MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
               ),
             ),
           ),

@@ -1,42 +1,37 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../data/mock_store.dart';
-import '../models/message.dart';
+import '../models/chat_message.dart';
+import '../models/chat_user.dart';
+import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'user_avatar.dart';
 
 class MessageBubble extends StatelessWidget {
-  const MessageBubble({super.key, required this.message, required this.now});
-  final Message message;
+  const MessageBubble({
+    super.key,
+    required this.message,
+    required this.now,
+    required this.currentUserId,
+    this.author,
+  });
+
+  final ChatMessage message;
   final DateTime now;
+  final String currentUserId;
+  final ChatUser? author;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final store = MockStore.instance;
-    final author = store.userById(message.authorId);
-    final isMine = author.id == store.me.id;
+    final isMine = message.senderId == currentUserId;
 
     final bubble = Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: theme.messageBubbleDecoration(isMine: isMine, ephemeral: false),
       child: Text(
-        message.text,
+        message.content,
         style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-      ),
-    );
-
-    final metaRow = Padding(
-      padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!isMine)
-            Text(author.name.split(' ').first.toLowerCase(), style: theme.monoTiny.copyWith(color: theme.inkSoft)),
-          if (!isMine) const SizedBox(width: 6),
-          Text(_fmtTime(message.createdAt), style: theme.monoTiny),
-        ],
       ),
     );
 
@@ -46,8 +41,8 @@ class MessageBubble extends StatelessWidget {
         mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMine) ...[
-            UserAvatar(user: author, size: 28),
+          if (!isMine && author != null) ...[
+            UserAvatar(user: author!, size: 28),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -58,7 +53,7 @@ class MessageBubble extends StatelessWidget {
                   constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                   child: bubble,
                 ),
-                metaRow,
+                _MetaRow(message: message, isMine: isMine, author: author),
               ],
             ),
           ),
@@ -66,46 +61,44 @@ class MessageBubble extends StatelessWidget {
       ),
     );
   }
-
-  String _fmtTime(DateTime t) {
-    final h = t.hour.toString().padLeft(2, '0');
-    final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
 }
 
 class EphemeralMessageBubble extends StatelessWidget {
-  const EphemeralMessageBubble({super.key, required this.message, required this.now});
-  final Message message;
+  const EphemeralMessageBubble({
+    super.key,
+    required this.message,
+    required this.now,
+    required this.currentUserId,
+    this.author,
+  });
+  final ChatMessage message;
   final DateTime now;
+  final String currentUserId;
+  final ChatUser? author;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final store = MockStore.instance;
-    final author = store.userById(message.authorId);
-    final isMine = author.id == store.me.id;
+    final isMine = message.senderId == currentUserId;
     final progress = message.lifeProgress(now);
-    final left = message.timeLeft(now);
     final dissolving = progress > 0.82;
     final dissolveT = dissolving ? ((progress - 0.82) / 0.18).clamp(0.0, 1.0) : 0.0;
+
+    final inner = Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: theme.messageBubbleDecoration(isMine: isMine, ephemeral: true),
+      child: Text(
+        message.content,
+        style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
+      ),
+    );
 
     final bubble = Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-          decoration: theme.messageBubbleDecoration(isMine: isMine, ephemeral: true),
-          child: Text(
-            message.text,
-            style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-          ),
-        ),
-        // Theme-specific dissolve overlay only when message is close to expiring
+        inner,
         if (dissolveT > 0)
-          Positioned.fill(
-            child: theme.ephemeralSignature(progress: dissolveT),
-          ),
+          Positioned.fill(child: theme.ephemeralSignature(progress: dissolveT)),
       ],
     );
 
@@ -117,20 +110,6 @@ class EphemeralMessageBubble extends StatelessWidget {
       child: Opacity(opacity: 1 - dissolveT * 0.85, child: bubble),
     );
 
-    final metaRow = Padding(
-      padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!isMine) ...[
-            Text(author.name.split(' ').first.toLowerCase(), style: theme.monoTiny.copyWith(color: theme.inkSoft)),
-            const SizedBox(width: 6),
-          ],
-          _Countdown(left: left, theme: theme),
-        ],
-      ),
-    );
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Transform.translate(
@@ -139,8 +118,8 @@ class EphemeralMessageBubble extends StatelessWidget {
           mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isMine) ...[
-              Opacity(opacity: 1 - dissolveT * 0.7, child: UserAvatar(user: author, size: 28)),
+            if (!isMine && author != null) ...[
+              Opacity(opacity: 1 - dissolveT * 0.7, child: UserAvatar(user: author!, size: 28)),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -151,12 +130,70 @@ class EphemeralMessageBubble extends StatelessWidget {
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                     child: bubbleWithEffect,
                   ),
-                  Opacity(opacity: 1 - dissolveT, child: metaRow),
+                  Opacity(
+                    opacity: 1 - dissolveT,
+                    child: _MetaRow(
+                      message: message,
+                      isMine: isMine,
+                      author: author,
+                      countdown: message.timeLeft(now),
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.message,
+    required this.isMine,
+    this.author,
+    this.countdown,
+  });
+  final ChatMessage message;
+  final bool isMine;
+  final ChatUser? author;
+  final Duration? countdown;
+
+  String _fmtTime(DateTime t) {
+    final h = t.hour.toString().padLeft(2, '0');
+    final m = t.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isMine && author != null) ...[
+            Text(author!.displayName.toLowerCase(),
+                style: theme.monoTiny.copyWith(color: theme.inkSoft)),
+            const SizedBox(width: 6),
+          ],
+          Text(_fmtTime(message.createdAt), style: theme.monoTiny),
+          if (message.status == MessageStatus.pending) ...[
+            const SizedBox(width: 8),
+            Text('· SENDING', style: theme.monoTiny.copyWith(color: theme.inkMuted)),
+          ],
+          if (message.status == MessageStatus.error) ...[
+            const SizedBox(width: 8),
+            Text('· FAILED', style: theme.monoTiny.copyWith(color: theme.danger)),
+          ],
+          if (countdown != null) ...[
+            const SizedBox(width: 8),
+            _Countdown(left: countdown!, theme: theme),
+          ],
+        ],
       ),
     );
   }
@@ -190,10 +227,7 @@ class _Countdown extends StatelessWidget {
         children: [
           theme.hourglassIcon(size: 9, color: theme.accent),
           const SizedBox(width: 5),
-          Text(
-            _fmt(),
-            style: theme.monoTiny.copyWith(color: theme.accent),
-          ),
+          Text(_fmt(), style: theme.monoTiny.copyWith(color: theme.accent)),
         ],
       ),
     );

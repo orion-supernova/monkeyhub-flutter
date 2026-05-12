@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
-import '../data/mock_store.dart';
-import '../models/room.dart';
+
+import '../backend/chat_api.dart';
+import '../data/chat_repository.dart';
+import '../models/enums.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'room_screen.dart';
 
 class CreateRoomSheet extends StatefulWidget {
-  const CreateRoomSheet({super.key});
+  const CreateRoomSheet({super.key, required this.repo, required this.api});
+  final ChatRepository repo;
+  final ChatApi api;
   @override
   State<CreateRoomSheet> createState() => _CreateRoomSheetState();
 }
 
 class _CreateRoomSheetState extends State<CreateRoomSheet> {
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _topic = TextEditingController();
-  RoomVisibility _visibility = RoomVisibility.private;
-  RoomType _type = RoomType.standard;
+  final _name = TextEditingController();
+  final _desc = TextEditingController();
+  final _password = TextEditingController();
+  bool _isPrivate = true;
+  RoomType _type = RoomType.regular;
   Duration _ttl = const Duration(seconds: 30);
+  bool _busy = false;
+  String? _error;
 
   static const _ttls = [
     Duration(seconds: 10),
@@ -31,24 +39,43 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
     return '${d.inHours}h';
   }
 
-  void _create() {
+  Future<void> _create() async {
     final n = _name.text.trim();
-    if (n.isEmpty) return;
-    final r = MockStore.instance.createRoom(
-      name: n,
-      visibility: _visibility,
-      type: _type,
-      ttl: _type == RoomType.ephemeral ? _ttl : null,
-      description: _topic.text.trim().isEmpty ? null : _topic.text.trim(),
-    );
-    Navigator.of(context).pop();
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => RoomScreen(roomId: r.id)));
+    if (n.isEmpty) {
+      setState(() => _error = 'name is required');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final id = await widget.repo.createRoom(
+        name: n,
+        isPrivate: _isPrivate,
+        description: _desc.text.trim().isEmpty ? null : _desc.text.trim(),
+        password: _password.text.isEmpty ? null : _password.text,
+        type: _type,
+        messageLifetime: _type == RoomType.secret ? _ttl : null,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => RoomScreen(roomId: id, repo: widget.repo, api: widget.api)),
+      );
+    } catch (e) {
+      setState(() {
+        _busy = false;
+        _error = e.toString();
+      });
+    }
   }
 
   @override
   void dispose() {
     _name.dispose();
-    _topic.dispose();
+    _desc.dispose();
+    _password.dispose();
     super.dispose();
   }
 
@@ -86,24 +113,25 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
               Row(children: [
                 Container(width: 14, height: 1, color: theme.accent),
                 const SizedBox(width: 8),
-                Text(_type == RoomType.ephemeral ? 'NOTHING WILL BE KEPT' : 'A SPACE THAT STAYS', style: theme.caption.copyWith(color: theme.accent)),
+                Text(
+                  _type == RoomType.secret ? 'NOTHING WILL BE KEPT' : 'A SPACE THAT STAYS',
+                  style: theme.caption.copyWith(color: theme.accent),
+                ),
               ]),
               const SizedBox(height: 24),
-
-              _Label(text: 'NAME'),
-              _InputBox(controller: _name, hint: 'name it something honest…'),
+              _label(theme, 'NAME'),
+              _input(theme, _name, 'name it something honest…'),
               const SizedBox(height: 18),
-
-              _Label(text: 'TOPIC · OPTIONAL'),
-              _InputBox(controller: _topic, hint: 'one line about the room…'),
+              _label(theme, 'DESCRIPTION · OPTIONAL'),
+              _input(theme, _desc, 'one line about the room…'),
               const SizedBox(height: 22),
-
-              _Label(text: 'VISIBILITY'),
+              _label(theme, 'VISIBILITY'),
               Row(children: [
                 Expanded(
-                  child: _SegmentTile(
-                    active: _visibility == RoomVisibility.public,
-                    onTap: () => setState(() => _visibility = RoomVisibility.public),
+                  child: _seg(
+                    theme,
+                    active: !_isPrivate,
+                    onTap: () => setState(() => _isPrivate = false),
                     icon: theme.visibilityIcon(isPublic: true, size: 14),
                     title: 'public',
                     sub: 'anyone can find it',
@@ -111,9 +139,10 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _SegmentTile(
-                    active: _visibility == RoomVisibility.private,
-                    onTap: () => setState(() => _visibility = RoomVisibility.private),
+                  child: _seg(
+                    theme,
+                    active: _isPrivate,
+                    onTap: () => setState(() => _isPrivate = true),
                     icon: theme.visibilityIcon(isPublic: false, size: 14),
                     title: 'private',
                     sub: 'invite only',
@@ -121,13 +150,13 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                 ),
               ]),
               const SizedBox(height: 22),
-
-              _Label(text: 'TYPE'),
+              _label(theme, 'TYPE'),
               Row(children: [
                 Expanded(
-                  child: _SegmentTile(
-                    active: _type == RoomType.standard,
-                    onTap: () => setState(() => _type = RoomType.standard),
+                  child: _seg(
+                    theme,
+                    active: _type == RoomType.regular,
+                    onTap: () => setState(() => _type = RoomType.regular),
                     icon: Icon(Icons.tag, size: 14, color: theme.inkSoft),
                     title: 'standard',
                     sub: 'messages persist',
@@ -135,9 +164,10 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _SegmentTile(
-                    active: _type == RoomType.ephemeral,
-                    onTap: () => setState(() => _type = RoomType.ephemeral),
+                  child: _seg(
+                    theme,
+                    active: _type == RoomType.secret,
+                    onTap: () => setState(() => _type = RoomType.secret),
                     icon: theme.hourglassIcon(size: 14, color: theme.accent),
                     title: 'ephemeral',
                     sub: 'auto-deletes',
@@ -145,10 +175,9 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                   ),
                 ),
               ]),
-
               AnimatedCrossFade(
                 duration: theme.motionMed,
-                crossFadeState: _type == RoomType.ephemeral ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                crossFadeState: _type == RoomType.secret ? CrossFadeState.showSecond : CrossFadeState.showFirst,
                 firstChild: const SizedBox(height: 22),
                 secondChild: Padding(
                   padding: const EdgeInsets.only(top: 22),
@@ -156,25 +185,23 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(children: [
-                        _Label(text: 'MESSAGE LIFE'),
+                        _label(theme, 'MESSAGE LIFE'),
                         const Spacer(),
                         Text(_fmtTtl(_ttl), style: theme.monoLarge.copyWith(color: theme.accent)),
                       ]),
                       const SizedBox(height: 10),
-                      Row(
+                      Wrap(
+                        spacing: 8,
                         children: [
                           for (final t in _ttls)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: GestureDetector(
-                                onTap: () => setState(() => _ttl = t),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                                  decoration: theme.chipDecoration(filled: _ttl == t),
-                                  child: Text(
-                                    _fmtTtl(t),
-                                    style: theme.label.copyWith(color: _ttl == t ? theme.accentInk : theme.inkSoft),
-                                  ),
+                            GestureDetector(
+                              onTap: () => setState(() => _ttl = t),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                                decoration: theme.chipDecoration(filled: _ttl == t),
+                                child: Text(
+                                  _fmtTtl(t),
+                                  style: theme.label.copyWith(color: _ttl == t ? theme.accentInk : theme.inkSoft),
                                 ),
                               ),
                             ),
@@ -184,26 +211,35 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                   ),
                 ),
               ),
-
+              if (_isPrivate) ...[
+                const SizedBox(height: 22),
+                _label(theme, 'PASSWORD · OPTIONAL'),
+                _input(theme, _password, 'lock with a passphrase…', obscure: true),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 14),
+                Text(_error!, style: theme.body.copyWith(color: theme.danger)),
+              ],
               const SizedBox(height: 26),
               GestureDetector(
-                onTap: _create,
+                onTap: _busy ? null : _create,
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: theme.accent,
+                    color: _busy ? theme.accentSoft : theme.accent,
                     borderRadius: BorderRadius.circular(theme.radiusMd),
-                    boxShadow: [BoxShadow(color: theme.accent.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 6))],
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text('OPEN THE ROOM', style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.2)),
-                      const SizedBox(width: 10),
-                      Icon(Icons.north_east, size: 14, color: theme.accentInk),
-                    ],
-                  ),
+                  child: _busy
+                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('OPEN THE ROOM', style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.2)),
+                            const SizedBox(width: 10),
+                            Icon(Icons.north_east, size: 14, color: theme.accentInk),
+                          ],
+                        ),
                 ),
               ),
             ],
@@ -212,33 +248,19 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
       ),
     );
   }
-}
 
-class _Label extends StatelessWidget {
-  const _Label({required this.text});
-  final String text;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: theme.label),
-    );
-  }
-}
+  Widget _label(AppTheme theme, String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text, style: theme.label),
+      );
 
-class _InputBox extends StatelessWidget {
-  const _InputBox({required this.controller, required this.hint});
-  final TextEditingController controller;
-  final String hint;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
+  Widget _input(AppTheme theme, TextEditingController c, String hint, {bool obscure = false}) {
     return Container(
       decoration: theme.inputDecoration(),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: TextField(
-        controller: controller,
+        controller: c,
+        obscureText: obscure,
         style: theme.body.copyWith(color: theme.ink),
         cursorColor: theme.accent,
         decoration: InputDecoration(
@@ -251,28 +273,15 @@ class _InputBox extends StatelessWidget {
       ),
     );
   }
-}
 
-class _SegmentTile extends StatelessWidget {
-  const _SegmentTile({
-    required this.active,
-    required this.onTap,
-    required this.icon,
-    required this.title,
-    required this.sub,
-    this.highlight = false,
-  });
-
-  final bool active;
-  final VoidCallback onTap;
-  final Widget icon;
-  final String title;
-  final String sub;
-  final bool highlight;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
+  Widget _seg(AppTheme theme, {
+    required bool active,
+    required VoidCallback onTap,
+    required Widget icon,
+    required String title,
+    required String sub,
+    bool highlight = false,
+  }) {
     final ink = active ? theme.ink : theme.inkSoft;
     return GestureDetector(
       onTap: onTap,

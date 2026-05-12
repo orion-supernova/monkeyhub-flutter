@@ -6,8 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.monkeyhub"
-    compileSdk = flutter.compileSdkVersion
+    // Note: Android applicationId disallows '-' in package segments,
+    // so we drop the hyphen from v02's iOS bundle id (com.walhallaa.chatTest-20241220)
+    // while keeping the same vendor namespace.
+    namespace = "com.walhallaa.chattest20241220"
+    compileSdk = 34
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -20,14 +23,11 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.monkeyhub"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId = "com.walhallaa.chattest20241220"
+        minSdk = 23
+        targetSdk = 34
+        versionCode = 137001
+        versionName = "1.3.7"
     }
 
     buildTypes {

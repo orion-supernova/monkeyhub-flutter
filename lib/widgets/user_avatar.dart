@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../models/user.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 
 class UserAvatar extends StatelessWidget {
@@ -12,23 +12,27 @@ class UserAvatar extends StatelessWidget {
     this.ring = false,
   });
 
-  final User user;
+  final ChatUser user;
   final double size;
   final Color? ringColor;
   final bool ring;
 
-  String get _initials {
-    final parts = user.name.split(' ').where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
-    return (parts.first.characters.first + parts.last.characters.first).toUpperCase();
+  String get _initials => user.displayInitial;
+
+  int get _seed {
+    // Deterministic seed from user id so the gradient is stable.
+    int hash = 0;
+    for (final c in user.id.codeUnits) {
+      hash = (hash * 31 + c) & 0x7fffffff;
+    }
+    return hash;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final gradient = theme.avatarGradient(user.avatarSeed);
-    final angle = (user.avatarSeed % 360) * math.pi / 180;
+    final gradient = theme.avatarGradient(_seed);
+    final angle = (_seed % 360) * math.pi / 180;
     final dx = math.cos(angle);
     final dy = math.sin(angle);
     return Container(
