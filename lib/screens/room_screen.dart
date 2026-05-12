@@ -9,6 +9,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/visibility_badge.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/reaction_picker_sheet.dart';
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({
@@ -111,7 +112,10 @@ class _RoomScreenState extends State<RoomScreen> {
           SafeArea(
             child: Column(
               children: [
-                _Header(room: room),
+                _Header(
+                  room: room,
+                  typing: widget.repo.typingIn(room.id),
+                ),
                 Expanded(
                   child: ListView.builder(
                     controller: _scroll,
@@ -121,6 +125,14 @@ class _RoomScreenState extends State<RoomScreen> {
                       if (i == 0) return _RoomIntro(room: room, members: _members.values.toList());
                       final m = messages[i - 1];
                       final author = _members[m.senderId];
+                      void onLongPress() async {
+                        final emoji = await showReactionPicker(context);
+                        if (emoji == null || emoji.isEmpty) return;
+                        await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                      }
+                      void onReactionTap(String e) {
+                        widget.repo.toggleReaction(messageId: m.id, emoji: e);
+                      }
                       return AnimatedSwitcher(
                         duration: theme.motionMed,
                         switchInCurve: theme.motionEntrance,
@@ -131,6 +143,8 @@ class _RoomScreenState extends State<RoomScreen> {
                                 now: _now,
                                 currentUserId: me,
                                 author: author,
+                                onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                                onReactionTap: onReactionTap,
                               )
                             : MessageBubble(
                                 key: ValueKey('s_${m.id}'),
@@ -138,6 +152,8 @@ class _RoomScreenState extends State<RoomScreen> {
                                 now: _now,
                                 currentUserId: me,
                                 author: author,
+                                onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                                onReactionTap: onReactionTap,
                               ),
                       );
                     },
@@ -148,6 +164,7 @@ class _RoomScreenState extends State<RoomScreen> {
                   ephemeral: room.isEphemeral,
                   ttl: room.messageLifetime,
                   onSend: _send,
+                  onChanged: (_) => widget.repo.noteTyping(),
                 ),
               ],
             ),
@@ -159,8 +176,16 @@ class _RoomScreenState extends State<RoomScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.room});
+  const _Header({required this.room, required this.typing});
   final ChatRoom room;
+  final List<String> typing;
+
+  String _typingLabel() {
+    if (typing.isEmpty) return '';
+    if (typing.length == 1) return '${typing.first} is typing…';
+    if (typing.length == 2) return '${typing[0]} and ${typing[1]} are typing…';
+    return '${typing.first} and ${typing.length - 1} others are typing…';
+  }
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -197,6 +222,23 @@ class _Header extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (typing.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    SizedBox(
+                      width: 14, height: 14,
+                      child: _TypingDots(color: theme.accent),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        _typingLabel(),
+                        style: theme.monoTiny.copyWith(color: theme.accent),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ]),
+                ],
               ],
             ),
           ),
@@ -273,17 +315,63 @@ class _RoomIntro extends StatelessWidget {
   }
 }
 
+class _TypingDots extends StatefulWidget {
+  const _TypingDots({required this.color});
+  final Color color;
+  @override
+  State<_TypingDots> createState() => _TypingDotsState();
+}
+
+class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))..repeat();
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, _) {
+        final t = _ctrl.value;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (i) {
+            final phase = ((t * 3) - i).clamp(0.0, 1.0);
+            final a = (0.3 + 0.7 * (1 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0));
+            return Padding(
+              padding: EdgeInsets.only(right: i == 2 ? 0 : 2),
+              child: Container(
+                width: 3,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(alpha: a),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
     required this.ephemeral,
     required this.ttl,
     required this.onSend,
+    this.onChanged,
   });
   final TextEditingController controller;
   final bool ephemeral;
   final Duration? ttl;
   final VoidCallback onSend;
+  final ValueChanged<String>? onChanged;
 
   static String _fmt(Duration d) {
     if (d.inSeconds < 60) return '${d.inSeconds}s';
@@ -335,6 +423,7 @@ class _Composer extends StatelessWidget {
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
+                    onChanged: onChanged,
                     onSubmitted: (_) => onSend(),
                   ),
                 ),

@@ -8,10 +8,12 @@ class RoomCard extends StatelessWidget {
     super.key,
     required this.room,
     required this.onTap,
+    this.typingNames = const [],
   });
 
   final ChatRoom room;
   final VoidCallback onTap;
+  final List<String> typingNames;
 
   String _ago(DateTime? then) {
     if (then == null) return '';
@@ -66,7 +68,28 @@ class RoomCard extends StatelessWidget {
               Text(room.description!.toLowerCase(), style: theme.bodySoft),
             ],
             const SizedBox(height: 12),
-            if (room.lastMessage != null && room.lastMessage!.isNotEmpty)
+            if (typingNames.isNotEmpty)
+              Row(children: [
+                Container(
+                  width: 6, height: 6,
+                  decoration: BoxDecoration(
+                    color: theme.accent,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6)],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    typingNames.length == 1
+                        ? '${typingNames.first} is typing…'
+                        : '${typingNames.length} typing…',
+                    style: theme.body.copyWith(color: theme.accent, fontStyle: FontStyle.italic),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ])
+            else if (room.lastMessage != null && room.lastMessage!.isNotEmpty)
               Text(
                 room.lastMessage!,
                 style: theme.body,

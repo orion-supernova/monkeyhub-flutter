@@ -1,18 +1,21 @@
-/// Build-time environment values for MonkeyHub.
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+/// Runtime env values for MonkeyHub.
 ///
-/// Values are passed in via `--dart-define-from-file=env.local`. Nothing is
-/// hardcoded in source — running without an env file is a fatal startup error
-/// surfaced via [Env.missing].
+/// `env.local` is bundled as an asset (declared in pubspec.yaml) and loaded
+/// by `dotenv.load()` in main.dart before runApp. Values are read on demand.
 ///
-/// See `env.example` for the full key list.
+/// `env.local` is gitignored — copy `env.example` → `env.local` and fill in.
 class Env {
-  static const String convexUrl = String.fromEnvironment('CONVEX_URL');
-  static const String oneSignalAppId = String.fromEnvironment('ONESIGNAL_APP_ID');
+  static String _get(String key) =>
+      dotenv.maybeGet(key, fallback: '') ?? '';
+
+  static String get convexUrl => _get('CONVEX_URL');
+  static String get oneSignalAppId => _get('ONESIGNAL_APP_ID');
 
   static const String clientId = 'monkeyhub-flutter';
 
-  /// Returns the list of required keys missing at compile time, so the app
-  /// can show a clear "env not configured" error rather than fail downstream.
+  /// Returns missing required keys so the app can surface a clean error.
   static List<String> missing() {
     final m = <String>[];
     if (convexUrl.isEmpty) m.add('CONVEX_URL');
@@ -21,13 +24,11 @@ class Env {
   }
 }
 
-/// Thrown at boot when required env values aren't compiled in.
 class EnvMissingError extends Error {
   EnvMissingError(this.keys);
   final List<String> keys;
   @override
   String toString() =>
       'Missing required env keys: ${keys.join(', ')}.\n'
-      'Run with: flutter run --dart-define-from-file=env.local\n'
-      '(copy env.example → env.local and fill it in)';
+      'Copy env.example → env.local in the project root and fill it in.';
 }

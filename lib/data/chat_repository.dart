@@ -6,7 +6,9 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
+import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/friend_request.dart';
 
 /// Source of truth for chat data (rooms + open-room messages).
 ///
@@ -27,20 +29,58 @@ class ChatRepository extends ChangeNotifier {
   List<ChatRoom> _rooms = [];
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
+  List<ChatUser> _friends = [];
+  List<ChatUser> get friends => List.unmodifiable(_friends);
+
+  List<FriendRequest> _incomingRequests = [];
+  List<FriendRequest> get incomingRequests => List.unmodifiable(_incomingRequests);
+
+  List<FriendRequest> _outgoingRequests = [];
+  List<FriendRequest> get outgoingRequests => List.unmodifiable(_outgoingRequests);
+
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
   final Map<String, List<ChatMessage>> _pending = {}; // optimistic messages
 
+  // Map of roomId → list of typing-user display names (other users only).
+  final Map<String, List<String>> _typingByRoom = {};
+  List<String> typingIn(String roomId) =>
+      List.unmodifiable(_typingByRoom[roomId] ?? const []);
+
   Subscription? _roomsSub;
+  Subscription? _friendsSub;
+  Subscription? _incomingSub;
+  Subscription? _outgoingSub;
+  Subscription? _globalTypingSub;
   String? _activeRoomId;
   Subscription? _messagesSub;
+  Subscription? _activeTypingSub;
+  Timer? _typingHeartbeat;
+  bool _typingActive = false;
 
   // ───────────── lifecycle ─────────────
 
   Future<void> attach(String userId) async {
     _userId = userId;
-    _rooms = await api.listUserRooms(userId);
+    // Seed from a single API hit before subscriptions take over.
+    try {
+      _rooms = await api.listUserRooms(userId);
+    } catch (_) {/* leave empty; subscription will populate */}
+    try {
+      _friends = await api.listFriends(userId);
+    } catch (_) {}
+    try {
+      _incomingRequests = await api.listIncomingDirectRequests(userId);
+    } catch (_) {}
+    try {
+      _outgoingRequests = await api.listOutgoingDirectRequests(userId);
+    } catch (_) {}
     notifyListeners();
+
     _roomsSub?.cancel();
+    _friendsSub?.cancel();
+    _incomingSub?.cancel();
+    _outgoingSub?.cancel();
+
     _roomsSub = await cv.subscribe(
       'rooms:listUserRooms',
       {'userId': userId},
@@ -53,18 +93,92 @@ class ChatRepository extends ChangeNotifier {
       },
       onError: (err) => debugPrint('rooms sub error: $err'),
     );
+
+    _friendsSub = await cv.subscribe(
+      'friends:listFriends',
+      {'userId': userId},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _friends = list
+            .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('friends sub error: $err'),
+    );
+
+    _incomingSub = await cv.subscribe(
+      'friends:listIncomingDirectRequests',
+      {'userId': userId},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _incomingRequests = list
+            .map((e) => FriendRequest.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('incoming sub error: $err'),
+    );
+
+    _outgoingSub = await cv.subscribe(
+      'friends:listOutgoingDirectRequests',
+      {'userId': userId},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _outgoingRequests = list
+            .map((e) => FriendRequest.fromJson((e as Map).cast<String, dynamic>()))
+            .toList();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('outgoing sub error: $err'),
+    );
+
+    // Global typing — used to surface a thin indicator on room cards.
+    _globalTypingSub = await cv.subscribe(
+      'typing:getTypingForUser',
+      {'userId': userId},
+      onData: (data) {
+        _typingByRoom.clear();
+        if (data is Map) {
+          data.forEach((roomId, names) {
+            if (names is List) {
+              _typingByRoom[roomId.toString()] =
+                  names.map((e) => e.toString()).toList();
+            }
+          });
+        }
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('typing(global) sub error: $err'),
+    );
   }
 
   Future<void> detach() async {
     _roomsSub?.cancel();
+    _friendsSub?.cancel();
+    _incomingSub?.cancel();
+    _outgoingSub?.cancel();
+    _globalTypingSub?.cancel();
     _messagesSub?.cancel();
+    _activeTypingSub?.cancel();
+    _typingHeartbeat?.cancel();
     _roomsSub = null;
+    _friendsSub = null;
+    _incomingSub = null;
+    _outgoingSub = null;
+    _globalTypingSub = null;
     _messagesSub = null;
+    _activeTypingSub = null;
+    _typingHeartbeat = null;
     _activeRoomId = null;
     _userId = null;
     _rooms = [];
+    _friends = [];
+    _incomingRequests = [];
+    _outgoingRequests = [];
     _messages.clear();
     _pending.clear();
+    _typingByRoom.clear();
     notifyListeners();
   }
 
@@ -126,6 +240,7 @@ class ChatRepository extends ChangeNotifier {
     if (_activeRoomId == roomId) return;
     _activeRoomId = roomId;
     _messagesSub?.cancel();
+    _activeTypingSub?.cancel();
     _messages[roomId] = await api.listMessages(roomId: roomId);
     _pending[roomId] = [];
     notifyListeners();
@@ -143,12 +258,72 @@ class ChatRepository extends ChangeNotifier {
       },
       onError: (err) => debugPrint('messages sub error: $err'),
     );
+    final id = _userId;
+    if (id != null) {
+      _activeTypingSub = await cv.subscribe(
+        'typing:getTypingUsers',
+        {'roomId': roomId, 'currentUserId': id},
+        onData: (data) {
+          final list = (data as List?) ?? const [];
+          _typingByRoom[roomId] = list
+              .map((e) => ((e as Map)['name'] ?? '').toString())
+              .where((s) => s.isNotEmpty)
+              .toList();
+          notifyListeners();
+        },
+        onError: (err) => debugPrint('typing(room) sub error: $err'),
+      );
+    }
   }
 
   void closeRoom() {
+    _stopTyping();
     _messagesSub?.cancel();
+    _activeTypingSub?.cancel();
     _messagesSub = null;
+    _activeTypingSub = null;
     _activeRoomId = null;
+  }
+
+  // ───────────── typing heartbeat ─────────────
+
+  /// Call on each keystroke. Sends `typing:setTyping` immediately, then
+  /// re-pings every 2s while [keepAlive] keeps being called. Schedule a
+  /// final `clearTyping` 3s after the last call.
+  void noteTyping() {
+    final id = _userId;
+    final roomId = _activeRoomId;
+    if (id == null || roomId == null) return;
+    if (!_typingActive) {
+      _typingActive = true;
+      api.setTyping(roomId: roomId, userId: id).catchError((_) {});
+      _typingHeartbeat?.cancel();
+      _typingHeartbeat = Timer.periodic(const Duration(seconds: 2), (_) {
+        api.setTyping(roomId: roomId, userId: id).catchError((_) {});
+      });
+    }
+    // Reset the idle timer: stop typing 3s after the most recent keystroke.
+    _scheduleStopTyping();
+  }
+
+  Timer? _stopTypingTimer;
+  void _scheduleStopTyping() {
+    _stopTypingTimer?.cancel();
+    _stopTypingTimer = Timer(const Duration(seconds: 3), _stopTyping);
+  }
+
+  void _stopTyping() {
+    _stopTypingTimer?.cancel();
+    _typingHeartbeat?.cancel();
+    _stopTypingTimer = null;
+    _typingHeartbeat = null;
+    if (!_typingActive) return;
+    _typingActive = false;
+    final id = _userId;
+    final roomId = _activeRoomId;
+    if (id != null && roomId != null) {
+      api.clearTyping(roomId: roomId, userId: id).catchError((_) {});
+    }
   }
 
   Future<void> sendText(String roomId, String text) async {
@@ -180,6 +355,99 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.deleteMessage(messageId: messageId, userId: id);
+  }
+
+  // ───────────── reactions ─────────────
+
+  Future<void> toggleReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    // Determine current state from cached message.
+    bool mineExists = false;
+    for (final list in _messages.values) {
+      for (final m in list) {
+        if (m.id == messageId) {
+          mineExists = m.reactions.any((r) => r.userId == id && r.emoji == emoji);
+          break;
+        }
+      }
+    }
+    try {
+      if (mineExists) {
+        await api.removeReaction(messageId: messageId, userId: id, emoji: emoji);
+      } else {
+        await api.addReaction(messageId: messageId, userId: id, emoji: emoji);
+      }
+    } catch (_) {/* swallow — live subscription will reconcile */}
+  }
+
+  // ───────────── friends + direct requests ─────────────
+
+  Future<String> createDirectRequest({
+    required String friendId,
+    required RoomType roomType,
+    Duration? messageLifetime,
+    String? initialMessage,
+  }) async {
+    final id = _userId;
+    if (id == null) throw StateError('Not signed in');
+    return api.createDirectRequest(
+      userId: id,
+      friendId: friendId,
+      roomType: roomType,
+      messageLifetime: messageLifetime,
+      initialMessage: initialMessage,
+    );
+  }
+
+  Future<String?> approveDirectRequest(String requesterId) async {
+    final id = _userId;
+    if (id == null) return null;
+    return api.approveDirectRequest(userId: id, requesterId: requesterId);
+  }
+
+  Future<void> rejectDirectRequest(String requesterId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.rejectDirectRequest(userId: id, requesterId: requesterId);
+  }
+
+  Future<void> cancelDirectRequest(String friendId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.cancelDirectRequest(userId: id, friendId: friendId);
+  }
+
+  Future<void> removeFriend(String friendId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.removeFriend(userId: id, friendId: friendId);
+  }
+
+  Future<String> openDmWith(ChatUser friend, {
+    RoomType roomType = RoomType.regular,
+    Duration? messageLifetime,
+  }) async {
+    final id = _userId;
+    if (id == null) throw StateError('Not signed in');
+    return api.getOrCreateDM(
+      userId: id,
+      friendId: friend.id,
+      roomType: roomType,
+      messageLifetime: messageLifetime,
+    );
+  }
+
+  Future<void> appendDirectRequestMessage({
+    required String requestId,
+    required String content,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.appendDirectRequestMessage(requestId: requestId, userId: id, content: content);
   }
 
   /// Drop optimistic pending messages that the server now confirms exist.

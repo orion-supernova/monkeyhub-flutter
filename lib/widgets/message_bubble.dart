@@ -5,6 +5,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'reaction_bubble.dart';
 import 'user_avatar.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -14,12 +15,16 @@ class MessageBubble extends StatelessWidget {
     required this.now,
     required this.currentUserId,
     this.author,
+    this.onLongPress,
+    this.onReactionTap,
   });
 
   final ChatMessage message;
   final DateTime now;
   final String currentUserId;
   final ChatUser? author;
+  final VoidCallback? onLongPress;
+  final void Function(String emoji)? onReactionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -49,10 +54,23 @@ class MessageBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                  child: bubble,
+                GestureDetector(
+                  onLongPress: onLongPress,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                    child: bubble,
+                  ),
                 ),
+                if (message.reactions.isNotEmpty && onReactionTap != null)
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                    child: ReactionRow(
+                      reactions: message.reactions,
+                      currentUserId: currentUserId,
+                      onToggle: onReactionTap!,
+                      alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                    ),
+                  ),
                 _MetaRow(message: message, isMine: isMine, author: author),
               ],
             ),
@@ -70,11 +88,15 @@ class EphemeralMessageBubble extends StatelessWidget {
     required this.now,
     required this.currentUserId,
     this.author,
+    this.onLongPress,
+    this.onReactionTap,
   });
   final ChatMessage message;
   final DateTime now;
   final String currentUserId;
   final ChatUser? author;
+  final VoidCallback? onLongPress;
+  final void Function(String emoji)? onReactionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -126,10 +148,26 @@ class EphemeralMessageBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                    child: bubbleWithEffect,
+                  GestureDetector(
+                    onLongPress: onLongPress,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                      child: bubbleWithEffect,
+                    ),
                   ),
+                  if (message.reactions.isNotEmpty && onReactionTap != null)
+                    Opacity(
+                      opacity: 1 - dissolveT,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                        child: ReactionRow(
+                          reactions: message.reactions,
+                          currentUserId: currentUserId,
+                          onToggle: onReactionTap!,
+                          alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                        ),
+                      ),
+                    ),
                   Opacity(
                     opacity: 1 - dissolveT,
                     child: _MetaRow(

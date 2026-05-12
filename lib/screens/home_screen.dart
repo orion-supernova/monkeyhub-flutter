@@ -64,11 +64,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   handle: '@${session.username}',
                   onProfileTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => ProfileScreen(user: ChatUser(
-                        id: session.userId,
-                        username: session.username,
-                        name: session.name,
-                      )),
+                      builder: (_) => ProfileScreen(
+                        user: ChatUser(
+                          id: session.userId,
+                          username: session.username,
+                          name: session.name,
+                        ),
+                        repo: widget.repo,
+                        api: widget.api,
+                      ),
                     ),
                   ),
                   onSignOut: () async {
@@ -125,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'rooms':
         return _RoomsPanel(repo: widget.repo, api: widget.api);
       case 'requests':
-        return const RequestsPanel();
+        return RequestsPanel(repo: widget.repo, api: widget.api);
       case 'discover':
         return DiscoverPanel(repo: widget.repo, api: widget.api);
       default:
@@ -305,6 +309,7 @@ class _RoomsPanel extends StatelessWidget {
             ),
             child: RoomCard(
               room: rooms[i],
+              typingNames: repo.typingIn(rooms[i].id),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
               ),

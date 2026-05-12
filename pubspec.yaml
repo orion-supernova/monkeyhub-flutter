@@ -29,6 +29,10 @@ dependencies:
   # against — newer versions trigger a runtime mismatch error.
   flutter_rust_bridge: 2.11.1
 
+  # Reads env.local from the asset bundle at startup so `flutter run` works
+  # without --dart-define-from-file. env.local is gitignored.
+  flutter_dotenv: ^5.2.1
+
   # Auth / crypto
   crypto: ^3.0.3
   flutter_secure_storage: ^9.2.2
@@ -58,6 +62,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    # env.local is gitignored. Copy env.example → env.local before running.
+    - env.local
 
   # To add assets to your application, add an assets section, like this:
   # assets:
