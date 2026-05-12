@@ -41,12 +41,12 @@ class RadialMenuItem {
 
 class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     with SingleTickerProviderStateMixin {
-  // Geometry — matches v02 (BaseView.swift)
+  // Geometry — refined from v02 (BaseView.swift) for a lighter resting state.
   static const double _padding = 24;
-  static const double _orbSize = 56;
-  static const double _itemSize = 44;
-  static const double _radius = 90;
-  static const double _hoverMinDistance = 40;
+  static const double _orbSize = 40;
+  static const double _itemSize = 38;
+  static const double _radius = 96;
+  static const double _hoverMinDistance = 36;
 
   late final AnimationController _ctrl = AnimationController(
     vsync: this,
@@ -246,26 +246,25 @@ class _Orb extends StatelessWidget {
       turns: expanded ? 0.125 : 0, // 45°
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
         width: _RadialFloatingMenuState._orbSize,
         height: _RadialFloatingMenuState._orbSize,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [theme.accent, theme.accentSoft.withValues(alpha: 0.9)],
-          ),
+          color: theme.accent,
           shape: BoxShape.circle,
+          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
           boxShadow: [
             BoxShadow(
-              color: theme.accent.withValues(alpha: 0.45),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+              color: theme.accent.withValues(alpha: expanded ? 0.40 : 0.28),
+              blurRadius: expanded ? 20 : 14,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         alignment: Alignment.center,
-        child: Icon(Icons.add, color: theme.accentInk, size: 24),
+        child: Icon(Icons.unfold_more, color: theme.accentInk, size: 18),
       ),
     );
   }

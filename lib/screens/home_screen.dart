@@ -6,16 +6,15 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/theme_chip.dart';
 import '../widgets/pill_nav.dart';
 import '../widgets/room_card.dart';
 import '../widgets/room_grid_tile.dart';
+import '../widgets/user_avatar.dart';
 import 'room_screen.dart';
 import 'create_room_sheet.dart';
 import 'requests_screen.dart';
 import 'discover_screen.dart';
 import 'profile_screen.dart';
-import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.repo, required this.api, required this.auth});
@@ -29,11 +28,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _tab = 'rooms';
+  ChatUser? _me;
 
   @override
   void initState() {
     super.initState();
     widget.repo.addListener(_onRepoChange);
+    _loadMe();
   }
 
   @override
@@ -46,12 +47,24 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadMe() async {
+    final session = widget.auth.session;
+    if (session == null) return;
+    try {
+      final fresh = await widget.api.getProfile(session.userId, viewerUserId: session.userId);
+      if (!mounted || fresh == null) return;
+      setState(() => _me = fresh);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final session = widget.auth.session;
     if (session == null) return const SizedBox.shrink();
     final rooms = widget.repo.rooms;
+    final me = _me ??
+        ChatUser(id: session.userId, username: session.username, name: session.name);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -62,31 +75,19 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 _Header(
+                  me: me,
+                  api: widget.api,
                   greeting: session.name.split(' ').first.toLowerCase(),
-                  handle: '@${session.username}',
                   onProfileTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => ProfileScreen(
-                        user: ChatUser(
-                          id: session.userId,
-                          username: session.username,
-                          name: session.name,
-                        ),
+                        user: me,
                         repo: widget.repo,
                         api: widget.api,
                       ),
                     ),
                   ),
-                  onSignOut: () async {
-                    final nav = Navigator.of(context);
-                    await widget.auth.signOut();
-                    await widget.repo.detach();
-                    if (!mounted) return;
-                    nav.pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => LoginScreen(auth: widget.auth)),
-                      (_) => false,
-                    );
-                  },
+                  onCreateTap: _tab == 'rooms' ? _openCreate : null,
                 ),
                 Expanded(
                   child: ListView(
@@ -122,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _CreateRoomFab(onTap: _openCreate),
     );
   }
 
@@ -151,15 +151,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _Header extends StatelessWidget {
   const _Header({
+    required this.me,
+    required this.api,
     required this.greeting,
-    required this.handle,
     required this.onProfileTap,
-    required this.onSignOut,
+    this.onCreateTap,
   });
+  final ChatUser me;
+  final ChatApi api;
   final String greeting;
-  final String handle;
   final VoidCallback onProfileTap;
-  final VoidCallback onSignOut;
+  final VoidCallback? onCreateTap;
 
   @override
   Widget build(BuildContext context) {
@@ -169,50 +171,43 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(onTap: onProfileTap, child: theme.brandMark(size: 30)),
+          GestureDetector(
+            onTap: onProfileTap,
+            child: UserAvatar(user: me, size: 36, api: api, showStatus: false),
+          ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        handle,
-                        style: theme.mono.copyWith(color: theme.inkMuted),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: theme.success,
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: theme.success.withValues(alpha: 0.6), blurRadius: 8)],
-                      ),
+            child: Text(
+              'hey, $greeting.',
+              style: theme.displayMedium,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (onCreateTap != null) ...[
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: onCreateTap,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.accent,
+                  border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.accent.withValues(alpha: 0.32),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text('hey, $greeting.', style: theme.displayMedium),
-              ],
+                child: Icon(Icons.add, size: 18, color: theme.accentInk),
+              ),
             ),
-          ),
-          PopupMenuButton<String>(
-            color: theme.surfaceRaised,
-            padding: EdgeInsets.zero,
-            onSelected: (v) {
-              if (v == 'signout') onSignOut();
-            },
-            icon: Icon(Icons.more_vert, color: theme.inkSoft, size: 18),
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'signout', child: Text('Sign out', style: theme.body)),
-            ],
-          ),
-          const ThemeChip(),
+          ],
         ],
       ),
     );
@@ -369,34 +364,3 @@ class _RoomsPanel extends StatelessWidget {
   }
 }
 
-class _CreateRoomFab extends StatelessWidget {
-  const _CreateRoomFab({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-        decoration: BoxDecoration(
-          color: theme.accent,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: theme.ink.withValues(alpha: 0.2), width: 1),
-          boxShadow: [
-            BoxShadow(color: theme.accent.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8)),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 16, color: theme.accentInk),
-            const SizedBox(width: 8),
-            Text('NEW ROOM', style: theme.label.copyWith(color: theme.accentInk)),
-          ],
-        ),
-      ),
-    );
-  }
-}
