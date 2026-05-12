@@ -9,6 +9,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
+import 'cache_store.dart';
 
 /// Source of truth for chat data (rooms + open-room messages).
 ///
@@ -28,6 +29,26 @@ class ChatRepository extends ChangeNotifier {
 
   List<ChatRoom> _rooms = [];
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
+
+  /// Lookup a user by id from any cached source the repo currently knows
+  /// (friends list). Returns null when the user isn't cached — callers may
+  /// fall back to a placeholder.
+  ChatUser? userById(String id) {
+    for (final u in _friends) {
+      if (u.id == id) return u;
+    }
+    return null;
+  }
+
+  /// For a DM room, returns the other participant's user if cached.
+  ChatUser? otherUserFor(ChatRoom room) {
+    if (!room.isDm) return null;
+    final myId = _userId;
+    if (myId == null) return null;
+    final otherId = room.otherParticipantId(myId);
+    if (otherId == null) return null;
+    return userById(otherId);
+  }
 
   List<ChatUser> _friends = [];
   List<ChatUser> get friends => List.unmodifiable(_friends);
@@ -61,10 +82,22 @@ class ChatRepository extends ChangeNotifier {
 
   Future<void> attach(String userId) async {
     _userId = userId;
-    // Seed from a single API hit before subscriptions take over.
+    // 1) Hydrate from disk so the first frame already shows last-known state
+    //    even if we're cold-booting offline. This is cheap (~ms) and the
+    //    live subscriptions will overwrite as they connect.
+    try {
+      final cachedRooms = await CacheStore.instance.loadRooms(userId);
+      if (cachedRooms.isNotEmpty) {
+        _rooms = cachedRooms;
+        notifyListeners();
+      }
+    } catch (_) {}
+
+    // 2) Seed from a single API hit before subscriptions take over.
     try {
       _rooms = await api.listUserRooms(userId);
-    } catch (_) {/* leave empty; subscription will populate */}
+      CacheStore.instance.scheduleSaveRooms(userId, _rooms);
+    } catch (_) {/* network down; cached rooms remain visible */}
     try {
       _friends = await api.listFriends(userId);
     } catch (_) {}
@@ -89,6 +122,7 @@ class ChatRepository extends ChangeNotifier {
         _rooms = list
             .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        CacheStore.instance.scheduleSaveRooms(userId, _rooms);
         notifyListeners();
       },
       onError: (err) => debugPrint('rooms sub error: $err'),
@@ -241,8 +275,24 @@ class ChatRepository extends ChangeNotifier {
     _activeRoomId = roomId;
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
-    _messages[roomId] = await api.listMessages(roomId: roomId);
-    _pending[roomId] = [];
+    final me = _userId;
+    // Hydrate from disk first for an instant render.
+    if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
+      try {
+        final cached = await CacheStore.instance.loadMessages(me, roomId);
+        if (cached.isNotEmpty) {
+          _messages[roomId] = cached;
+          notifyListeners();
+        }
+      } catch (_) {}
+    }
+    try {
+      _messages[roomId] = await api.listMessages(roomId: roomId);
+      if (me != null) {
+        CacheStore.instance.scheduleSaveMessages(me, roomId, _messages[roomId]!);
+      }
+    } catch (_) {/* offline — cached messages remain */}
+    _pending[roomId] ??= [];
     notifyListeners();
     _messagesSub = await cv.subscribe(
       'messages:list',
@@ -254,6 +304,9 @@ class ChatRepository extends ChangeNotifier {
             .toList();
         _messages[roomId] = parsed;
         _reconcilePending(roomId);
+        if (me != null) {
+          CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
+        }
         notifyListeners();
       },
       onError: (err) => debugPrint('messages sub error: $err'),

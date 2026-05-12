@@ -17,6 +17,7 @@ import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/message_action_sheet.dart';
 import '../widgets/visibility_badge.dart';
+import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
@@ -149,11 +150,19 @@ class _RoomScreenState extends State<RoomScreen> {
         await _pickAndSendVideo();
         break;
       case AttachmentMenuChoice.camera:
-        final file = await nav.push<File>(
+        final captured = await nav.push<File>(
           MaterialPageRoute(builder: (_) => const CameraScreen()),
         );
-        if (file != null) {
-          await _uploadAndSend(file: file, type: MessageType.image, contentType: 'image/jpeg');
+        if (captured == null || !mounted) break;
+        final edited = await nav.push<File>(
+          MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)),
+        );
+        if (edited != null) {
+          await _uploadAndSend(
+            file: edited,
+            type: MessageType.image,
+            contentType: 'image/png',
+          );
         }
         break;
       case AttachmentMenuChoice.voice:
@@ -235,6 +244,8 @@ class _RoomScreenState extends State<RoomScreen> {
                 _Header(
                   room: room,
                   typing: widget.repo.typingIn(room.id),
+                  dmUser: widget.repo.otherUserFor(room),
+                  api: widget.api,
                   onOpenInfo: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -337,10 +348,18 @@ class _RoomScreenState extends State<RoomScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.room, required this.typing, required this.onOpenInfo});
+  const _Header({
+    required this.room,
+    required this.typing,
+    required this.onOpenInfo,
+    required this.api,
+    this.dmUser,
+  });
   final ChatRoom room;
   final List<String> typing;
   final VoidCallback onOpenInfo;
+  final ChatUser? dmUser;
+  final ChatApi api;
 
   String _typingLabel() {
     if (typing.isEmpty) return '';
@@ -364,24 +383,37 @@ class _Header extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
           const SizedBox(width: 4),
+          if (dmUser != null) ...[
+            UserAvatar(user: dmUser!, size: 32, api: api),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(room.name, style: theme.displayMedium),
+                Text(
+                  dmUser?.displayName ?? room.name,
+                  style: theme.displayMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    VisibilityBadge(isPublic: room.isPublic, dense: true),
+                    if (dmUser != null)
+                      Text('@${dmUser!.username}',
+                          style: theme.monoTiny.copyWith(color: theme.inkMuted))
+                    else ...[
+                      VisibilityBadge(isPublic: room.isPublic, dense: true),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        decoration: theme.chipDecoration(),
+                        child: Text('${room.memberCount} INSIDE', style: theme.monoTiny),
+                      ),
+                    ],
                     if (room.isEphemeral && room.messageLifetime != null)
                       EphemeralBadge(ttl: room.messageLifetime!, dense: true),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: theme.chipDecoration(),
-                      child: Text('${room.memberCount} INSIDE', style: theme.monoTiny),
-                    ),
                   ],
                 ),
                 if (typing.isNotEmpty) ...[

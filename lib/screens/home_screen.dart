@@ -331,6 +331,7 @@ class _RoomsPanel extends StatelessWidget {
             child: RoomGridTile(
               room: rooms[i],
               api: api,
+              dmUser: repo.otherUserFor(rooms[i]),
               typingNames: repo.typingIn(rooms[i].id),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
@@ -356,6 +357,7 @@ class _RoomsPanel extends StatelessWidget {
             child: RoomCard(
               room: rooms[i],
               api: api,
+              dmUser: repo.otherUserFor(rooms[i]),
               typingNames: repo.typingIn(rooms[i].id),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
+import '../data/cache_store.dart';
 import 'session_store.dart';
 
 /// AuthService = ConvexAuthService from v02. Wraps the Convex auth mutations
@@ -99,6 +100,8 @@ class AuthService extends ChangeNotifier {
     final s = _session;
     if (s != null) {
       await _api.deleteAccount(userId: s.userId);
+      // Account is gone — no reason to keep cached rooms/messages around.
+      await CacheStore.instance.clearFor(s.userId);
     }
     await SessionStore.instance.clearSession();
     _session = null;

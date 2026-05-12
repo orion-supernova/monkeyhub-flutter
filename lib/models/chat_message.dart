@@ -67,6 +67,20 @@ class ChatMessage {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+        '_id': id,
+        'roomId': roomId,
+        'userId': senderId,
+        'senderName': senderName,
+        'content': content,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'type': type.wire,
+        if (mediaStorageId != null) 'mediaStorageId': mediaStorageId,
+        if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
+        'edited': edited,
+        'reactions': reactions.map((r) => r.toJson()).toList(),
+      };
+
   ChatMessage copyWith({
     String? id,
     MessageStatus? status,

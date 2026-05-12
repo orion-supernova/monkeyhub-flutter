@@ -20,4 +20,12 @@ class MessageReaction {
         emoji: (j['emoji'] ?? '') as String,
         createdAt: DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt()),
       );
+
+  Map<String, dynamic> toJson() => {
+        '_id': id,
+        'messageId': messageId,
+        'userId': userId,
+        'emoji': emoji,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+      };
 }

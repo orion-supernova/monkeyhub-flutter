@@ -48,6 +48,23 @@ class ChatRoom {
     return null;
   }
 
+  Map<String, dynamic> toJson() => {
+        '_id': id,
+        'name': name,
+        if (description != null) 'description': description,
+        'createdBy': createdBy,
+        'createdAt': createdAt.millisecondsSinceEpoch,
+        'isPrivate': isPrivate,
+        'memberCount': memberCount,
+        if (lastMessage != null) 'lastMessage': lastMessage,
+        if (lastMessageTime != null) 'lastMessageTime': lastMessageTime!.millisecondsSinceEpoch,
+        'hasPassword': hasPassword,
+        'type': type.wire,
+        if (messageLifetime != null) 'messageLifetime': messageLifetime!.inSeconds,
+        if (avatarStorageId != null) 'avatarStorageId': avatarStorageId,
+        'participantIds': participantIds,
+      };
+
   factory ChatRoom.fromJson(Map<String, dynamic> j) {
     final ml = j['messageLifetime'];
     return ChatRoom(

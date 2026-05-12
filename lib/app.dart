@@ -14,6 +14,7 @@ import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_scope.dart';
+import 'widgets/connection_banner.dart';
 
 class MonkeyHubApp extends StatefulWidget {
   const MonkeyHubApp({super.key});
@@ -154,6 +155,23 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             debugShowCheckedModeBanner: false,
             navigatorKey: rootNavigatorKey,
             title: 'MonkeyHub',
+            builder: (context, child) {
+              // Overlay the reconnecting banner above every route once Convex
+              // is initialized. The banner subscribes to cv.connectionState,
+              // which throws if it's accessed before _cv.initialize().
+              return Stack(
+                children: [
+                  ?child,
+                  if (_bootstrapped && _bootError == null)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: ConnectionBanner(cv: _cv),
+                    ),
+                ],
+              );
+            },
             theme: ThemeData(
               brightness: isLight ? Brightness.light : Brightness.dark,
               scaffoldBackgroundColor: theme.background,

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
 /// Compact 2-column grid variant of the room card.
@@ -12,11 +14,13 @@ class RoomGridTile extends StatelessWidget {
     required this.room,
     required this.onTap,
     this.api,
+    this.dmUser,
     this.typingNames = const [],
   });
   final ChatRoom room;
   final VoidCallback onTap;
   final ChatApi? api;
+  final ChatUser? dmUser;
   final List<String> typingNames;
 
   @override
@@ -32,7 +36,9 @@ class RoomGridTile extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(children: [
-              if (room.avatarStorageId != null && api != null)
+              if (dmUser != null)
+                UserAvatar(user: dmUser!, size: 22, api: api, showStatus: false)
+              else if (room.avatarStorageId != null && api != null)
                 ClipOval(
                   child: RemoteImage(
                     storageId: room.avatarStorageId!,
@@ -51,7 +57,7 @@ class RoomGridTile extends StatelessWidget {
             ]),
             const SizedBox(height: 10),
             Text(
-              room.name,
+              dmUser?.displayName ?? room.name,
               style: theme.displaySmall.copyWith(fontSize: 17),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

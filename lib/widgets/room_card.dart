@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
 class RoomCard extends StatelessWidget {
@@ -11,12 +13,17 @@ class RoomCard extends StatelessWidget {
     required this.room,
     required this.onTap,
     this.api,
+    this.dmUser,
     this.typingNames = const [],
   });
 
   final ChatRoom room;
   final VoidCallback onTap;
   final ChatApi? api;
+
+  /// For DM rooms, the other participant — used to override the raw "dm:..."
+  /// room name with the friend's display name + avatar.
+  final ChatUser? dmUser;
   final List<String> typingNames;
 
   String _ago(DateTime? then) {
@@ -69,7 +76,10 @@ class RoomCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (room.avatarStorageId != null && api != null) ...[
+                if (dmUser != null) ...[
+                  UserAvatar(user: dmUser!, size: 36, api: api),
+                  const SizedBox(width: 12),
+                ] else if (room.avatarStorageId != null && api != null) ...[
                   ClipOval(
                     child: RemoteImage(
                       storageId: room.avatarStorageId!,
@@ -81,7 +91,12 @@ class RoomCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                 ],
-                Expanded(child: Text(room.name, style: theme.displayMedium)),
+                Expanded(
+                  child: Text(
+                    dmUser?.displayName ?? room.name,
+                    style: theme.displayMedium,
+                  ),
+                ),
               ],
             ),
             if (room.description != null && room.description!.isNotEmpty) ...[
