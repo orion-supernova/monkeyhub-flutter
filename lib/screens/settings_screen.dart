@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
@@ -218,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 32),
-              Text('MonkeyHub · v1.3.7+1', style: theme.monoTiny),
+              _VersionStamp(),
             ],
           ),
         ),
@@ -543,6 +544,33 @@ class _PushToggleState extends State<_PushToggle> {
         );
       },
     );
+  }
+}
+
+class _VersionStamp extends StatefulWidget {
+  @override
+  State<_VersionStamp> createState() => _VersionStampState();
+}
+
+class _VersionStampState extends State<_VersionStamp> {
+  String? _stamp;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() => _stamp = 'MonkeyHub · v${info.version}+${info.buildNumber}');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Text(_stamp ?? 'MonkeyHub', style: theme.monoTiny);
   }
 }
 

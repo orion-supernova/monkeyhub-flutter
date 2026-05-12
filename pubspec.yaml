@@ -52,6 +52,9 @@ dependencies:
   path_provider: ^2.1.4
   shared_preferences: ^2.3.2
 
+  # Reads pubspec.yaml at runtime so Settings can show "v$version".
+  package_info_plus: ^8.0.0
+
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
   # newer platform-interface contract; pin to the fixed line.
@@ -67,6 +70,40 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # Branding generators — run with:
+  #   dart run flutter_launcher_icons
+  #   dart run flutter_native_splash:create
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+
+flutter_launcher_icons:
+  image_path: "branding/logo.png"
+  android: "ic_launcher"
+  ios: true
+  remove_alpha_ios: true
+  # Adaptive icon for Android 8+: monkey on a dark backdrop matching the
+  # branding gradient.
+  adaptive_icon_background: "#0E0E10"
+  adaptive_icon_foreground: "branding/logo.png"
+  web:
+    generate: true
+    image_path: "branding/logo.png"
+    background_color: "#0E0E10"
+    theme_color: "#0E0E10"
+  macos:
+    generate: true
+    image_path: "branding/logo.png"
+
+flutter_native_splash:
+  color: "#0E0E10"
+  image: "branding/logo.png"
+  android_12:
+    image: "branding/logo.png"
+    color: "#0E0E10"
+  ios: true
+  android: true
+  web: false  # web splash isn't needed for a chat app
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

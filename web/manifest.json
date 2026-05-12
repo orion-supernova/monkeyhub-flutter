@@ -1,11 +1,11 @@
 {
-    "name": "monkeyhub",
-    "short_name": "monkeyhub",
+    "name": "MonkeyHub",
+    "short_name": "MonkeyHub",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0E0E10",
+    "theme_color": "#0E0E10",
+    "description": "MonkeyHub — rooms, friends, secrets that fade.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
