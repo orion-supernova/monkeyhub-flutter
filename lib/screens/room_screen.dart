@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../media/upload_service.dart';
+import '../privacy/capture_protection.dart';
+import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -16,9 +18,11 @@ import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/message_action_sheet.dart';
+import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
+import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
 
@@ -45,6 +49,9 @@ class _RoomScreenState extends State<RoomScreen> {
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
   ChatRoom? _room;
   bool _didInitialJump = false;
+  // True once we've pushed a CaptureProtection scope for this ephemeral
+  // room — so dispose can pop exactly one and we don't double-push.
+  bool _pushedCaptureScope = false;
 
   @override
   void initState() {
@@ -56,6 +63,52 @@ class _RoomScreenState extends State<RoomScreen> {
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
+    // If the room is already in the rooms cache from the subscription, we
+    // can push the capture scope immediately. Otherwise _onRepoChange will
+    // pick it up on the first notification.
+    _maybePushCaptureScope(widget.repo.roomById(widget.roomId));
+  }
+
+  void _maybePushCaptureScope(ChatRoom? room) {
+    if (_pushedCaptureScope) return;
+    if (room == null) return;
+    if (!room.isEphemeral) return;
+    _pushedCaptureScope = true;
+    // Fire-and-forget: native plumbing is debounced internally.
+    CaptureProtection.instance.pushScope();
+  }
+
+  /// Flatten the message list into intro / date-divider / message items.
+  /// A divider is inserted whenever consecutive messages cross a date
+  /// boundary in the user's local time.
+  List<_RoomItem> _buildItems(ChatRoom room, List<ChatMessage> messages) {
+    final out = <_RoomItem>[_IntroItem()];
+    DateTime? lastDay;
+    for (final m in messages) {
+      final d = DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
+      if (lastDay == null || d != lastDay) {
+        out.add(_DateDividerItem(_humanDay(d)));
+        lastDay = d;
+      }
+      out.add(_MessageItem(m));
+    }
+    return out;
+  }
+
+  String _humanDay(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (d == today) return 'TODAY';
+    if (d == yesterday) return 'YESTERDAY';
+    const months = [
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+    ];
+    final sameYear = d.year == now.year;
+    return sameYear
+        ? '${months[d.month - 1]} ${d.day}'
+        : '${months[d.month - 1]} ${d.day} · ${d.year}';
   }
 
   void _onScroll() {
@@ -98,9 +151,11 @@ class _RoomScreenState extends State<RoomScreen> {
 
   void _onRepoChange() {
     if (!mounted) return;
+    final room = widget.repo.roomById(widget.roomId);
     setState(() {
-      _room = widget.repo.roomById(widget.roomId);
+      _room = room;
     });
+    _maybePushCaptureScope(room);
     // Land at the newest message on the first time we have content.
     if (!_didInitialJump && widget.repo.messagesFor(widget.roomId).isNotEmpty) {
       _didInitialJump = true;
@@ -119,6 +174,9 @@ class _RoomScreenState extends State<RoomScreen> {
     _scroll.dispose();
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeRoom();
+    if (_pushedCaptureScope) {
+      CaptureProtection.instance.popScope();
+    }
     super.dispose();
   }
 
@@ -187,6 +245,14 @@ class _RoomScreenState extends State<RoomScreen> {
     );
   }
 
+  void _openProfile(ChatUser u) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(user: u, repo: widget.repo, api: widget.api),
+      ),
+    );
+  }
+
   Future<void> _pickAndSendVideo() async {
     final picker = ImagePicker();
     final picked = await picker.pickVideo(source: ImageSource.gallery);
@@ -232,6 +298,7 @@ class _RoomScreenState extends State<RoomScreen> {
     }
     final messages = widget.repo.messagesFor(widget.roomId);
     final me = widget.repo.userId ?? '';
+    final items = _buildItems(room, messages);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -246,6 +313,11 @@ class _RoomScreenState extends State<RoomScreen> {
                   typing: widget.repo.typingIn(room.id),
                   dmUser: widget.repo.otherUserFor(room),
                   api: widget.api,
+                  onTapDmUser: () {
+                    final u = widget.repo.otherUserFor(room);
+                    if (u == null) return;
+                    _openProfile(u);
+                  },
                   onOpenInfo: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -262,18 +334,26 @@ class _RoomScreenState extends State<RoomScreen> {
                   child: ListView.builder(
                     controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                    itemCount: messages.length + 1,
+                    itemCount: items.length,
                     itemBuilder: (context, i) {
-                      if (i == 0) {
+                      final item = items[i];
+                      if (item is _IntroItem) {
                         return _RoomIntro(
                           room: room,
                           members: _members.values.toList(),
                           api: widget.api,
                         );
                       }
-                      final m = messages[i - 1];
+                      if (item is _DateDividerItem) {
+                        return _DateDivider(label: item.label);
+                      }
+                      final m = (item as _MessageItem).message;
                       final author = _members[m.senderId];
                       final isMine = m.senderId == me;
+                      final othersRead = widget.repo.latestOthersReadAt;
+                      final seenByOthers = isMine &&
+                          othersRead != null &&
+                          !othersRead.isBefore(m.createdAt);
                       Future<void> onLongPress() async {
                         final messenger = ScaffoldMessenger.of(context);
                         final action = await showMessageActionSheet(
@@ -297,10 +377,35 @@ class _RoomScreenState extends State<RoomScreen> {
                           case MessageAction.delete:
                             await widget.repo.deleteMessage(m.id);
                             break;
+                          case MessageAction.viewProfile:
+                            if (author != null) _openProfile(author);
+                            break;
+                          case MessageAction.report:
+                            final reason = await showReportSheet(this.context);
+                            if (reason == null || reason.isEmpty) return;
+                            final myId = widget.repo.userId;
+                            if (myId == null) return;
+                            try {
+                              await widget.api.report(
+                                reporterId: myId,
+                                targetType: 'message',
+                                targetId: m.id,
+                                reason: reason,
+                              );
+                              if (!mounted) return;
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
+                              );
+                            } catch (_) {}
+                            break;
                         }
                       }
                       void onReactionTap(String e) {
                         widget.repo.toggleReaction(messageId: m.id, emoji: e);
+                      }
+                      void onAuthorTap() {
+                        if (author == null || isMine) return;
+                        _openProfile(author);
                       }
                       return AnimatedSwitcher(
                         duration: theme.motionMed,
@@ -315,6 +420,7 @@ class _RoomScreenState extends State<RoomScreen> {
                                 author: author,
                                 onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
                                 onReactionTap: onReactionTap,
+                                onAuthorTap: author != null && !isMine ? onAuthorTap : null,
                               )
                             : MessageBubble(
                                 key: ValueKey('s_${m.id}'),
@@ -325,6 +431,8 @@ class _RoomScreenState extends State<RoomScreen> {
                                 author: author,
                                 onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
                                 onReactionTap: onReactionTap,
+                                onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                                seenByOthers: seenByOthers,
                               ),
                       );
                     },
@@ -354,12 +462,14 @@ class _Header extends StatelessWidget {
     required this.onOpenInfo,
     required this.api,
     this.dmUser,
+    this.onTapDmUser,
   });
   final ChatRoom room;
   final List<String> typing;
   final VoidCallback onOpenInfo;
   final ChatUser? dmUser;
   final ChatApi api;
+  final VoidCallback? onTapDmUser;
 
   String _typingLabel() {
     if (typing.isEmpty) return '';
@@ -384,11 +494,17 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           if (dmUser != null) ...[
-            UserAvatar(user: dmUser!, size: 32, api: api),
+            GestureDetector(
+              onTap: onTapDmUser,
+              child: UserAvatar(user: dmUser!, size: 32, api: api),
+            ),
             const SizedBox(width: 10),
           ],
           Expanded(
-            child: Column(
+            child: GestureDetector(
+              onTap: dmUser != null ? onTapDmUser : null,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -434,6 +550,7 @@ class _Header extends StatelessWidget {
                   ]),
                 ],
               ],
+            ),
             ),
           ),
           IconButton(
@@ -660,6 +777,47 @@ class _Composer extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── list item model ─────────────────────────
+
+abstract class _RoomItem {}
+
+class _IntroItem extends _RoomItem {}
+
+class _DateDividerItem extends _RoomItem {
+  _DateDividerItem(this.label);
+  final String label;
+}
+
+class _MessageItem extends _RoomItem {
+  _MessageItem(this.message);
+  final ChatMessage message;
+}
+
+class _DateDivider extends StatelessWidget {
+  const _DateDivider({required this.label});
+  final String label;
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          Expanded(child: Container(height: 1, color: theme.divider)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              label,
+              style: theme.monoTiny.copyWith(letterSpacing: 1.8),
+            ),
+          ),
+          Expanded(child: Container(height: 1, color: theme.divider)),
         ],
       ),
     );

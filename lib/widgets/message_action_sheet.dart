@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/theme_scope.dart';
 
-enum MessageAction { react, copy, delete }
+enum MessageAction { react, copy, delete, report, viewProfile }
 
 Future<MessageAction?> showMessageActionSheet(
   BuildContext context, {
@@ -28,7 +28,9 @@ class _ActionSheet extends StatelessWidget {
     final items = <(MessageAction, IconData, String, String, bool)>[
       (MessageAction.react, Icons.add_reaction_outlined, 'REACT', 'send an emoji', false),
       if (canCopy) (MessageAction.copy, Icons.copy_outlined, 'COPY', 'copy text to clipboard', false),
+      if (!isMine) (MessageAction.viewProfile, Icons.person_outline, 'VIEW PROFILE', 'open sender\'s profile', false),
       if (isMine) (MessageAction.delete, Icons.delete_outline, 'DELETE', 'remove for everyone', true),
+      if (!isMine) (MessageAction.report, Icons.flag_outlined, 'REPORT', 'flag this message', true),
     ];
     return Container(
       decoration: theme.sheetDecoration(),

@@ -75,8 +75,24 @@ class ChatRepository extends ChangeNotifier {
   String? _activeRoomId;
   Subscription? _messagesSub;
   Subscription? _activeTypingSub;
+  Subscription? _readStateSub;
   Timer? _typingHeartbeat;
   bool _typingActive = false;
+
+  /// Read state for the currently-open room: userId → lastReadAt.
+  final Map<String, DateTime> _activeReadState = {};
+
+  /// The latest `lastReadAt` of any user other than me in the current room.
+  /// Used to render the "seen" indicator on my own messages.
+  DateTime? get latestOthersReadAt {
+    final me = _userId;
+    DateTime? best;
+    for (final entry in _activeReadState.entries) {
+      if (entry.key == me) continue;
+      if (best == null || entry.value.isAfter(best)) best = entry.value;
+    }
+    return best;
+  }
 
   // ───────────── lifecycle ─────────────
 
@@ -275,6 +291,8 @@ class ChatRepository extends ChangeNotifier {
     _activeRoomId = roomId;
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
+    _readStateSub?.cancel();
+    _activeReadState.clear();
     final me = _userId;
     // Hydrate from disk first for an instant render.
     if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
@@ -306,11 +324,35 @@ class ChatRepository extends ChangeNotifier {
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
+          // Mark room read whenever new messages arrive while user is in it.
+          api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
         }
         notifyListeners();
       },
       onError: (err) => debugPrint('messages sub error: $err'),
     );
+
+    _readStateSub = await cv.subscribe(
+      'messages:getReadState',
+      {'roomId': roomId},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _activeReadState.clear();
+        for (final e in list) {
+          final m = (e as Map).cast<String, dynamic>();
+          final uid = m['userId'].toString();
+          final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
+          _activeReadState[uid] = DateTime.fromMillisecondsSinceEpoch(ts);
+        }
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('readState sub error: $err'),
+    );
+
+    // Mark the room read on entry too.
+    if (me != null) {
+      api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+    }
     final id = _userId;
     if (id != null) {
       _activeTypingSub = await cv.subscribe(
@@ -333,9 +375,12 @@ class ChatRepository extends ChangeNotifier {
     _stopTyping();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
+    _readStateSub?.cancel();
     _messagesSub = null;
     _activeTypingSub = null;
+    _readStateSub = null;
     _activeRoomId = null;
+    _activeReadState.clear();
     _loadingOlder.clear();
     _exhausted.clear();
   }

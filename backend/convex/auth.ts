@@ -156,13 +156,6 @@ export const deleteAccount = mutation({
   },
 });
 
-export const getUser = query({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    return await ctx.db.get(userId);
-  },
-});
-
 export const updateStatus = mutation({
   args: { userId: v.id("users"), status: v.string() },
   handler: async (ctx, { userId, status }) => {

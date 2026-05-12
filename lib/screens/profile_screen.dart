@@ -10,6 +10,8 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/block_choice_sheet.dart';
+import '../widgets/report_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'friend_request_draft_screen.dart';
 import 'room_screen.dart';
@@ -45,7 +47,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _user = widget.user;
+    // Eagerly resolve friendship from the repo so the first frame is correct
+    // (chat-context entry points like getMembers don't compute it).
+    final resolved = _resolveFriendship(widget.user.id);
+    _user = widget.user.copyWith(
+      friendshipStatus: resolved.status,
+      requestId: resolved.requestId,
+    );
     _name.text = widget.user.name;
     _email.text = widget.user.email ?? '';
     _bio.text = widget.user.bio ?? '';
@@ -65,14 +73,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (api == null) return;
     setState(() => _loading = true);
     try {
-      final fresh = await api.getProfile(widget.user.id);
+      final fresh = await api.getProfile(
+        widget.user.id,
+        viewerUserId: widget.repo?.userId,
+      );
       if (!mounted || fresh == null) return;
-      // Preserve friendship status / requestId from the calling list since
-      // users.getProfile doesn't return those.
+      // users.getProfile doesn't include friendshipStatus. Resolve it from
+      // the repo's live caches (friends + pending requests) instead of
+      // trusting the passed-in widget.user — that value is stale when the
+      // profile is opened from a chat context (member list, message bubble,
+      // DM header) where getMembers didn't compute it.
+      final resolved = _resolveFriendship(widget.user.id);
       setState(() {
         _user = fresh.copyWith(
-          friendshipStatus: widget.user.friendshipStatus,
-          requestId: widget.user.requestId,
+          friendshipStatus: resolved.status,
+          requestId: resolved.requestId,
         );
         _name.text = fresh.name;
         _email.text = fresh.email ?? '';
@@ -81,6 +96,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {} finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  ({FriendshipStatus status, String? requestId}) _resolveFriendship(String userId) {
+    final repo = widget.repo;
+    if (repo == null) {
+      return (status: widget.user.friendshipStatus, requestId: widget.user.requestId);
+    }
+    if (repo.friends.any((f) => f.id == userId)) {
+      return (status: FriendshipStatus.friend, requestId: null);
+    }
+    final outgoing = repo.outgoingRequests
+        .where((r) => r.user.id == userId)
+        .firstOrNull;
+    if (outgoing != null) {
+      return (status: FriendshipStatus.outgoingPending, requestId: outgoing.id);
+    }
+    final incoming = repo.incomingRequests
+        .where((r) => r.user.id == userId)
+        .firstOrNull;
+    if (incoming != null) {
+      return (status: FriendshipStatus.incomingPending, requestId: incoming.id);
+    }
+    return (status: FriendshipStatus.none, requestId: null);
   }
 
   Future<void> _save() async {
@@ -109,6 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final api = widget.api;
     if (repo == null || api == null) return;
     final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
       switch (_u.friendshipStatus) {
@@ -136,9 +175,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api)));
           break;
       }
-    } catch (_) {} finally {
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(_humanizeAction(e))));
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Surfaces a friendly, privacy-preserving message for the actions on this
+  /// screen. Critically: never reveals that the *other* user has blocked us
+  /// (block stays under USER_NOT_FOUND). Not-accepting-requests IS its own
+  /// honest code — it's a global toggle, not a personal judgment, and the
+  /// SEND REQUEST button is already pre-disabled when we know about it.
+  String _humanizeAction(Object e) {
+    final s = e.toString();
+    if (s.contains('UNBLOCK_FIRST')) {
+      return 'you blocked this user — unblock them first.';
+    }
+    if (s.contains('NOT_ACCEPTING_REQUESTS')) {
+      return 'they\'re not accepting friend requests right now.';
+    }
+    if (s.contains('USER_NOT_FOUND')) return 'this isn\'t possible right now.';
+    if (s.contains('ALREADY_FRIENDS')) return 'you\'re already friends.';
+    if (s.contains('REQUEST_ALREADY_PENDING')) return 'request already sent.';
+    if (s.contains('REQUEST_ALREADY_RECEIVED')) {
+      return 'they already sent you a request — check requests.';
+    }
+    return 'couldn\'t complete that.';
   }
 
   Future<void> _pickAndUploadAvatar() async {
@@ -160,6 +223,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
       await _refresh();
     } catch (_) {/* silent — user can retry */} finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmBlock() async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (api == null || repo?.userId == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Fetch shared-room context so the confirm sheet can tailor copy.
+    setState(() => _busy = true);
+    SharedRoomsInfo info;
+    try {
+      info = await api.listSharedRooms(
+        userId: repo!.userId!,
+        otherUserId: _u.id,
+      );
+    } catch (_) {
+      info = SharedRoomsInfo(groupRooms: const [], hasDm: false);
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    final choice = await showBlockChoiceSheet(
+      context,
+      displayName: _u.displayName,
+      isFriend: _u.friendshipStatus == FriendshipStatus.friend,
+      sharedGroupRooms: info.groupRooms,
+      hasDm: info.hasDm,
+      api: api,
+    );
+    if (choice == BlockChoice.cancel || !mounted) return;
+    final myId = repo!.userId;
+    if (myId == null) return;
+    setState(() => _busy = true);
+    try {
+      await api.blockUser(
+        userId: myId,
+        targetUserId: _u.id,
+        deleteDm: choice == BlockChoice.blockAndDelete,
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            choice == BlockChoice.blockAndDelete
+                ? 'blocked & DM wiped. they won\'t be notified.'
+                : 'blocked. they won\'t be notified.',
+          ),
+        ),
+      );
+      Navigator.of(context).maybePop();
+    } catch (_) {} finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _confirmReport() async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (api == null || repo?.userId == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await showReportSheet(context);
+    if (reason == null || reason.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      await api.report(
+        reporterId: repo!.userId!,
+        targetType: 'user',
+        targetId: _u.id,
+        reason: reason,
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
+      );
+    } catch (_) {} finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -257,6 +398,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Text(_u.displayName, style: theme.displayLarge),
                           const SizedBox(height: 6),
                           Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
+                          if (!_isMe) ...[
+                            const SizedBox(height: 8),
+                            _FriendshipChip(status: _u.friendshipStatus),
+                          ],
                           if (_u.status != null) ...[
                             const SizedBox(height: 8),
                             Row(children: [
@@ -276,6 +421,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
+                if (!_isMe && _u.isRedacted) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    decoration: BoxDecoration(
+                      color: theme.surfaceSunken,
+                      border: Border(left: BorderSide(color: theme.accent, width: 2)),
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.visibility_off_outlined, size: 14, color: theme.accent),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _u.friendshipStatus == FriendshipStatus.friend
+                              ? 'some fields are hidden by their settings.'
+                              : 'limited view — they share more with friends.',
+                          style: theme.monoTiny.copyWith(color: theme.accent),
+                        ),
+                      ),
+                    ]),
+                  ),
+                ],
                 const SizedBox(height: 24),
 
                 if (_editing && _isMe)
@@ -289,9 +457,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Expanded(
                         child: _Action(
-                          label: _busy ? '…' : _actionLabel(),
+                          label: _busy
+                              ? '…'
+                              : (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests
+                                  ? 'NOT ACCEPTING REQUESTS'
+                                  : _actionLabel()),
                           filled: _u.friendshipStatus != FriendshipStatus.outgoingPending,
-                          onTap: _busy ? null : _friendshipAction,
+                          onTap: (_busy ||
+                                  (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
+                              ? null
+                              : _friendshipAction,
                         ),
                       ),
                       if (_u.friendshipStatus == FriendshipStatus.friend) ...[
@@ -304,6 +479,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                       ],
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Action(
+                          label: 'BLOCK',
+                          filled: false,
+                          onTap: _busy ? null : _confirmBlock,
+                          danger: true,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _Action(
+                          label: 'REPORT',
+                          filled: false,
+                          onTap: _busy ? null : _confirmReport,
+                          danger: true,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -414,13 +611,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({required this.label, required this.filled, required this.onTap});
+  const _Action({
+    required this.label,
+    required this.filled,
+    required this.onTap,
+    this.danger = false,
+  });
   final String label;
   final bool filled;
   final VoidCallback? onTap;
+  final bool danger;
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final accent = danger ? theme.danger : theme.accent;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -428,13 +632,54 @@ class _Action extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: filled
-              ? (onTap == null ? theme.accentSoft : theme.accent)
+              ? (onTap == null ? theme.accentSoft : accent)
               : Colors.transparent,
-          border: Border.all(color: filled ? theme.accent : theme.divider, width: 1.2),
+          border: Border.all(color: filled ? accent : (danger ? accent.withValues(alpha: 0.45) : theme.divider), width: 1.2),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
-        child: Text(label,
-            style: theme.label.copyWith(color: filled ? theme.accentInk : theme.ink)),
+        child: Text(
+          label,
+          style: theme.label.copyWith(
+            color: filled
+                ? (danger ? Colors.white : theme.accentInk)
+                : (danger ? accent : theme.ink),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FriendshipChip extends StatelessWidget {
+  const _FriendshipChip({required this.status});
+  final FriendshipStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final (label, icon, color) = switch (status) {
+      FriendshipStatus.friend => ('FRIENDS', Icons.check_circle_outline, theme.success),
+      FriendshipStatus.outgoingPending => ('REQUEST PENDING', Icons.schedule, theme.accent),
+      FriendshipStatus.incomingPending => ('INCOMING REQUEST', Icons.markunread_mailbox_outlined, theme.accent),
+      FriendshipStatus.none => ('NOT CONNECTED', Icons.person_outline, theme.inkMuted),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: theme.monoTiny.copyWith(color: color, letterSpacing: 1.4),
+          ),
+        ],
       ),
     );
   }

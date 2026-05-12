@@ -89,6 +89,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty || _busy) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     _composer.clear();
 
@@ -112,6 +113,15 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     } catch (e) {
       // Re-fill composer so user doesn't lose what they typed.
       _composer.text = text;
+      // Privacy-preserving error mapping. Block stays under generic
+      // "couldn't send" — it must never reveal it's a block.
+      final s = e.toString();
+      final msg = s.contains('UNBLOCK_FIRST')
+          ? 'you blocked this user — unblock first.'
+          : s.contains('NOT_ACCEPTING_REQUESTS')
+              ? 'they\'re not accepting friend requests right now.'
+              : 'couldn\'t send. try again.';
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

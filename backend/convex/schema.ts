@@ -14,6 +14,18 @@ export default defineSchema({
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
     deviceTokens: v.optional(v.array(v.string())), // legacy field — OneSignal manages tokens now
+    // Per-field visibility — each value is "public" | "friends" | "nobody".
+    // Missing keys default to "public" (current behavior). username + name are
+    // always public since they're identity.
+    visibility: v.optional(
+      v.object({
+        bio: v.optional(v.string()),
+        avatar: v.optional(v.string()),
+        status: v.optional(v.string()),
+        lastSeen: v.optional(v.string()),
+        friendRequests: v.optional(v.string()), // "public" | "nobody"
+      })
+    ),
   }).index("by_username", ["username"]),
 
   friendships: defineTable({
@@ -54,10 +66,33 @@ export default defineSchema({
     userId: v.id("users"),
     joinedAt: v.number(),
     role: v.string(), // "owner" | "member"
+    // ms since epoch — last time this user "read" the room. Used to compute
+    // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
+    lastReadAt: v.optional(v.number()),
   })
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])
     .index("by_room_user", ["roomId", "userId"]),
+
+  blocks: defineTable({
+    userId: v.id("users"),         // who is doing the blocking
+    blockedUserId: v.id("users"),  // who is blocked
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_pair", ["userId", "blockedUserId"]),
+
+  reports: defineTable({
+    reporterId: v.id("users"),
+    targetType: v.string(),  // "user" | "message" | "room"
+    targetId: v.string(),    // string-encoded id; resolved by targetType
+    reason: v.string(),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+    status: v.optional(v.string()), // "open" | "resolved" | "rejected"
+  })
+    .index("by_reporter", ["reporterId"])
+    .index("by_target", ["targetType", "targetId"]),
 
   messages: defineTable({
     roomId: v.id("rooms"),

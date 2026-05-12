@@ -7,6 +7,7 @@ import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'privacy/capture_protection.dart';
 import 'push/badge_manager.dart';
 import 'push/push_manager.dart';
 import 'screens/home_shell.dart';
@@ -14,6 +15,7 @@ import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_scope.dart';
+import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
 
 class MonkeyHubApp extends StatefulWidget {
@@ -92,6 +94,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     if (savedThemeId != null) {
       _themeController.theme = ThemeController.byId(savedThemeId);
     }
+    // Apply screen-capture protection setting on boot: Android enables
+    // FLAG_SECURE immediately; iOS just primes the event stream.
+    await CaptureProtection.instance.setUserEnabled(SettingsStore.instance.captureProtection);
+    await CaptureProtection.instance.ensureListening();
     final initErr = await _cv.initialize();
     if (initErr != null) {
       // Convex couldn't initialize. Surface to the UI so the user sees
@@ -112,6 +118,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         try {
           await _repo.attach(s.userId);
           await PushManager.instance.login(s.userId);
+          // Respect the user's last notification preference.
+          if (!SettingsStore.instance.pushEnabled) {
+            await PushManager.instance.optOut();
+          }
           BadgeManager.instance.bind(_repo);
         } catch (_) {/* offline boot — reconcile on reconnect */}
       }
@@ -156,9 +166,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             navigatorKey: rootNavigatorKey,
             title: 'MonkeyHub',
             builder: (context, child) {
-              // Overlay the reconnecting banner above every route once Convex
-              // is initialized. The banner subscribes to cv.connectionState,
-              // which throws if it's accessed before _cv.initialize().
               return Stack(
                 children: [
                   ?child,
@@ -169,6 +176,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                       right: 0,
                       child: ConnectionBanner(cv: _cv),
                     ),
+                  // Sits above every other layer so it covers banners +
+                  // overlays during a screen recording.
+                  const CaptureShield(),
                 ],
               );
             },

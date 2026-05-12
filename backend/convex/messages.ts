@@ -28,8 +28,41 @@ export const send = mutation({
       resolvedSenderName = user?.name ?? user?.username ?? "Unknown";
     }
 
-    // Check if the room has a message lifetime (Chamber of Secrets)
     const room = await ctx.db.get(roomId);
+
+    // DM block enforcement.
+    //
+    // Group rooms allow blocks to be one-way (the blocker hides the blockee
+    // client-side). For DMs we hard-stop sends in either direction so the
+    // block is absolute. The error is intentionally generic — never reveal
+    // to the sender that they're the one being blocked.
+    if (room?.name?.startsWith("dm:")) {
+      const otherMember = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect();
+      const otherId = otherMember.find(
+        (m) => m.userId.toString() !== userId.toString()
+      )?.userId;
+      if (otherId) {
+        const iBlockedThem = await ctx.db
+          .query("blocks")
+          .withIndex("by_pair", (q) =>
+            q.eq("userId", userId).eq("blockedUserId", otherId)
+          )
+          .first();
+        const theyBlockedMe = await ctx.db
+          .query("blocks")
+          .withIndex("by_pair", (q) =>
+            q.eq("userId", otherId).eq("blockedUserId", userId)
+          )
+          .first();
+        if (iBlockedThem) throw new Error("UNBLOCK_FIRST");
+        if (theyBlockedMe) throw new Error("MESSAGE_FAILED");
+      }
+    }
+
+    // Check if the room has a message lifetime (Chamber of Secrets)
     const expiresAt = room?.messageLifetime
       ? Date.now() + room.messageLifetime * 1000
       : undefined;
@@ -139,36 +172,6 @@ export const list = query({
   },
 });
 
-export const listSince = query({
-  args: { roomId: v.id("rooms"), since: v.number() },
-  handler: async (ctx, { roomId, since }) => {
-    const msgs = await ctx.db
-      .query("messages")
-      .withIndex("by_room_time", (q) =>
-        q.eq("roomId", roomId).gt("createdAt", since)
-      )
-      .order("asc")
-      .collect();
-
-    const enriched = await Promise.all(
-      msgs.map(async (msg) => {
-        const user = await ctx.db.get(msg.userId);
-        const reactions = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-          .collect();
-        return {
-          ...msg,
-          username: user?.username ?? "unknown",
-          name: user?.name ?? user?.username ?? "unknown",
-          reactions,
-        };
-      })
-    );
-    return enriched;
-  },
-});
-
 export const listBefore = query({
   args: {
     roomId: v.id("rooms"),
@@ -224,5 +227,46 @@ export const expireMessage = internalMutation({
     }
 
     await ctx.db.delete(messageId);
+  },
+});
+
+// ─────────────────────────────── Read receipts ───────────────────────────────
+
+/**
+ * Mark a room as "read up to now" for the given user. Persisted on the
+ * roomMembers row so the relationship is O(rooms × members) rather than
+ * O(messages × members).
+ *
+ * Idempotent — calling repeatedly only updates the timestamp.
+ */
+export const markRoomRead = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const membership = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId)
+      )
+      .first();
+    if (!membership) return; // not a member, silently no-op
+    await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
+  },
+});
+
+/**
+ * Returns each member's lastReadAt timestamp for a room. The client uses
+ * this to render a "seen" indicator on its own messages.
+ */
+export const getReadState = query({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const members = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    return members.map((m) => ({
+      userId: m.userId,
+      lastReadAt: m.lastReadAt ?? 0,
+    }));
   },
 });

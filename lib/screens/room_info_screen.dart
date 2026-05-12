@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
+import 'profile_screen.dart';
 
 class RoomInfoScreen extends StatefulWidget {
   const RoomInfoScreen({
@@ -557,31 +558,50 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (aOwner != bOwner) return aOwner - bOwner;
       return a.displayName.compareTo(b.displayName);
     });
+    final me = widget.repo.userId;
     return Column(
       children: [
         for (final m in ordered)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                UserAvatar(user: m, size: 32, api: widget.api),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(m.displayName, style: theme.body),
-                      Text('@${m.username}', style: theme.monoTiny),
-                    ],
+          GestureDetector(
+            onTap: m.id == me
+                ? null
+                : () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(
+                          user: m,
+                          repo: widget.repo,
+                          api: widget.api,
+                        ),
+                      ),
+                    ),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  UserAvatar(user: m, size: 32, api: widget.api),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(m.displayName, style: theme.body),
+                        Text('@${m.username}', style: theme.monoTiny),
+                      ],
+                    ),
                   ),
-                ),
-                if (m.id == r.createdBy)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                    decoration: theme.chipDecoration(filled: true),
-                    child: Text('OWNER', style: theme.monoTiny.copyWith(color: theme.accentInk)),
-                  ),
-              ],
+                  if (m.id == r.createdBy)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      decoration: theme.chipDecoration(filled: true),
+                      child: Text('OWNER', style: theme.monoTiny.copyWith(color: theme.accentInk)),
+                    ),
+                  if (m.id != me) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+                  ],
+                ],
+              ),
             ),
           ),
       ],

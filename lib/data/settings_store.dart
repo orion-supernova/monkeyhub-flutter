@@ -13,6 +13,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kLayout = 'mh.roomLayout';
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
+  static const _kPushEnabled = 'mh.pushEnabled';
+  static const _kCaptureProtection = 'mh.captureProtection';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -23,11 +25,15 @@ class SettingsStore extends ChangeNotifier {
   RoomLayout _roomLayout = RoomLayout.list;
   NavStyle _navStyle = NavStyle.radial;
   HomeSection _section = HomeSection.chat;
+  bool _pushEnabled = true;
+  bool _captureProtection = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
   NavStyle get navStyle => _navStyle;
   HomeSection get section => _section;
+  bool get pushEnabled => _pushEnabled;
+  bool get captureProtection => _captureProtection;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -42,6 +48,10 @@ class SettingsStore extends ChangeNotifier {
       _navStyle = nav == 'pill' ? NavStyle.pill : NavStyle.radial;
       final sec = await _storage.read(key: _kSection);
       _section = HomeSection.parse(sec);
+      final push = await _storage.read(key: _kPushEnabled);
+      _pushEnabled = push != 'false'; // default true
+      final cap = await _storage.read(key: _kCaptureProtection);
+      _captureProtection = cap == 'true'; // default false
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -73,6 +83,20 @@ class SettingsStore extends ChangeNotifier {
     _section = s;
     notifyListeners();
     await _storage.write(key: _kSection, value: s.name);
+  }
+
+  Future<void> setPushEnabled(bool v) async {
+    if (_pushEnabled == v) return;
+    _pushEnabled = v;
+    notifyListeners();
+    await _storage.write(key: _kPushEnabled, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setCaptureProtection(bool v) async {
+    if (_captureProtection == v) return;
+    _captureProtection = v;
+    notifyListeners();
+    await _storage.write(key: _kCaptureProtection, value: v ? 'true' : 'false');
   }
 }
 

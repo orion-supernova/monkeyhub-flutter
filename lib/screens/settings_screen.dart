@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -5,10 +7,14 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../models/chat_user.dart';
+import '../privacy/capture_protection.dart';
+import '../push/push_manager.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
+import 'blocked_users_screen.dart';
 import 'profile_screen.dart';
+import 'profile_visibility_screen.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -155,6 +161,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 value: SettingsStore.instance.navStyle,
                 onChanged: SettingsStore.instance.setNavStyle,
+              ),
+
+              const SizedBox(height: 28),
+              _section(theme, 'NOTIFICATIONS'),
+              const SizedBox(height: 12),
+              _PushToggle(),
+
+              const SizedBox(height: 28),
+              _section(theme, 'PRIVACY'),
+              const SizedBox(height: 12),
+              _CaptureProtectionToggle(),
+              const SizedBox(height: 8),
+              _RowLink(
+                label: 'PROFILE VISIBILITY',
+                icon: Icons.visibility_outlined,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfileVisibilityScreen(
+                      repo: widget.repo,
+                      api: widget.api,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _RowLink(
+                label: 'BLOCKED USERS',
+                icon: Icons.block,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BlockedUsersScreen(repo: widget.repo, api: widget.api),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -332,6 +371,177 @@ class _SegmentRow<T> extends StatelessWidget {
           if (i < options.length - 1) const SizedBox(width: 10),
         ],
       ],
+    );
+  }
+}
+
+class _CaptureProtectionToggle extends StatefulWidget {
+  @override
+  State<_CaptureProtectionToggle> createState() => _CaptureProtectionToggleState();
+}
+
+class _CaptureProtectionToggleState extends State<_CaptureProtectionToggle> {
+  Future<void> _toggle(bool v) async {
+    await SettingsStore.instance.setCaptureProtection(v);
+    await CaptureProtection.instance.setUserEnabled(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final on = SettingsStore.instance.captureProtection;
+        return GestureDetector(
+          onTap: () => _toggle(!on),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(color: theme.divider),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  on ? Icons.shield_outlined : Icons.shield_moon_outlined,
+                  size: 16,
+                  color: on ? theme.accent : theme.inkMuted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('SCREEN CAPTURE PROTECTION', style: theme.label),
+                      const SizedBox(height: 2),
+                      Text(
+                        on
+                            ? Platform.isAndroid
+                                ? 'screenshots + screen recording show as black to the system.'
+                                : 'screen recording + mirroring drops a privacy shield over the app.'
+                            : 'screenshots and recordings work normally outside ephemeral rooms.',
+                        style: theme.monoTiny,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'ephemeral (chamber of secrets) rooms always force this on regardless.',
+                        style: theme.monoTiny.copyWith(color: theme.accent),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch.adaptive(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: theme.accent,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RowLink extends StatelessWidget {
+  const _RowLink({required this.label, required this.icon, required this.onTap});
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          border: Border.all(color: theme.divider),
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: theme.inkSoft),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: theme.label)),
+            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PushToggle extends StatefulWidget {
+  @override
+  State<_PushToggle> createState() => _PushToggleState();
+}
+
+class _PushToggleState extends State<_PushToggle> {
+  Future<void> _toggle(bool v) async {
+    await SettingsStore.instance.setPushEnabled(v);
+    if (v) {
+      await PushManager.instance.optIn();
+    } else {
+      await PushManager.instance.optOut();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final on = SettingsStore.instance.pushEnabled;
+        return GestureDetector(
+          onTap: () => _toggle(!on),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(color: theme.divider),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  on ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
+                  size: 16,
+                  color: on ? theme.accent : theme.inkMuted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('PUSH NOTIFICATIONS', style: theme.label),
+                      const SizedBox(height: 2),
+                      Text(
+                        on
+                            ? 'pings for new messages + requests'
+                            : 'silent — you\'ll only see things when you open the app',
+                        style: theme.monoTiny,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch.adaptive(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: theme.accent,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

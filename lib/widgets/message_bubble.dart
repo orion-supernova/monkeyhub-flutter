@@ -23,6 +23,8 @@ class MessageBubble extends StatelessWidget {
     this.author,
     this.onLongPress,
     this.onReactionTap,
+    this.onAuthorTap,
+    this.seenByOthers = false,
   });
 
   final ChatMessage message;
@@ -32,6 +34,8 @@ class MessageBubble extends StatelessWidget {
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
+  final VoidCallback? onAuthorTap;
+  final bool seenByOthers;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +49,10 @@ class MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMine && author != null) ...[
-            UserAvatar(user: author!, size: 28, api: api),
+            GestureDetector(
+              onTap: onAuthorTap,
+              child: UserAvatar(user: author!, size: 28, api: api),
+            ),
             const SizedBox(width: 8),
           ],
           Flexible(
@@ -69,7 +76,12 @@ class MessageBubble extends StatelessWidget {
                       alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
                     ),
                   ),
-                _MetaRow(message: message, isMine: isMine, author: author),
+                _MetaRow(
+                  message: message,
+                  isMine: isMine,
+                  author: author,
+                  seenByOthers: seenByOthers,
+                ),
               ],
             ),
           ),
@@ -99,6 +111,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.author,
     this.onLongPress,
     this.onReactionTap,
+    this.onAuthorTap,
   });
   final ChatMessage message;
   final DateTime now;
@@ -107,6 +120,7 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ChatUser? author;
   final VoidCallback? onLongPress;
   final void Function(String emoji)? onReactionTap;
+  final VoidCallback? onAuthorTap;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +164,13 @@ class EphemeralMessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (!isMine && author != null) ...[
-              Opacity(opacity: 1 - dissolveT * 0.7, child: UserAvatar(user: author!, size: 28, api: api)),
+              GestureDetector(
+                onTap: onAuthorTap,
+                child: Opacity(
+                  opacity: 1 - dissolveT * 0.7,
+                  child: UserAvatar(user: author!, size: 28, api: api),
+                ),
+              ),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -311,11 +331,13 @@ class _MetaRow extends StatelessWidget {
     required this.isMine,
     this.author,
     this.countdown,
+    this.seenByOthers = false,
   });
   final ChatMessage message;
   final bool isMine;
   final ChatUser? author;
   final Duration? countdown;
+  final bool seenByOthers;
 
   String _fmtTime(DateTime t) {
     final h = t.hour.toString().padLeft(2, '0');
@@ -348,6 +370,12 @@ class _MetaRow extends StatelessWidget {
           if (countdown != null) ...[
             const SizedBox(width: 8),
             _Countdown(left: countdown!, theme: theme),
+          ],
+          if (isMine && seenByOthers && message.status == MessageStatus.sent) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.done_all, size: 12, color: theme.accent),
+            const SizedBox(width: 3),
+            Text('SEEN', style: theme.monoTiny.copyWith(color: theme.accent)),
           ],
         ],
       ),

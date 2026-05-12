@@ -68,6 +68,28 @@ class PushManager {
     }
   }
 
+  /// Opt this device IN to receiving pushes. Call when user toggles
+  /// notifications ON in settings.
+  Future<void> optIn() async {
+    if (!_supported || !_initialized) return;
+    try {
+      OneSignal.User.pushSubscription.optIn();
+    } catch (e) {
+      debugPrint('OneSignal optIn failed: $e');
+    }
+  }
+
+  /// Opt this device OUT of receiving pushes — does NOT delete the alias, so
+  /// re-enabling later restores immediately.
+  Future<void> optOut() async {
+    if (!_supported || !_initialized) return;
+    try {
+      OneSignal.User.pushSubscription.optOut();
+    } catch (e) {
+      debugPrint('OneSignal optOut failed: $e');
+    }
+  }
+
   Future<void> setBadge(int count) async {
     if (!_supported || !_initialized) return;
     try {

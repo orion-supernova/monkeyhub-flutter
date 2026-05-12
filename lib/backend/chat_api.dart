@@ -76,10 +76,36 @@ class ChatApi {
   // Users
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<ChatUser?> getProfile(String userId) async {
-    final res = await _cv.query('users:getProfile', {'userId': userId});
+  /// Fetch a user's profile. Pass [viewerUserId] so the backend can apply
+  /// per-field visibility for the viewer (friends-only / nobody fields are
+  /// stripped from the response).
+  Future<ChatUser?> getProfile(String userId, {String? viewerUserId}) async {
+    final res = await _cv.query('users:getProfile', {
+      'userId': userId,
+      'viewerUserId': ?viewerUserId,
+    });
     if (res == null) return null;
     return ChatUser.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Updates per-field profile visibility. Only non-null fields are touched;
+  /// pass exactly what you want to change.
+  Future<void> updateVisibility({
+    required String userId,
+    FieldVisibility? bio,
+    FieldVisibility? avatar,
+    FieldVisibility? status,
+    FieldVisibility? lastSeen,
+    FieldVisibility? friendRequests,
+  }) async {
+    await _cv.mutation('users:updateVisibility', {
+      'userId': userId,
+      if (bio != null) 'bio': bio.wire,
+      if (avatar != null) 'avatar': avatar.wire,
+      if (status != null) 'status': status.wire,
+      if (lastSeen != null) 'lastSeen': lastSeen.wire,
+      if (friendRequests != null) 'friendRequests': friendRequests.wire,
+    });
   }
 
   Future<void> updateProfile({
@@ -259,6 +285,24 @@ class ChatApi {
     return _decodeMessages(res);
   }
 
+  Future<void> markRoomRead({required String roomId, required String userId}) async {
+    await _cv.mutation('messages:markRoomRead', {'roomId': roomId, 'userId': userId});
+  }
+
+  /// Returns `[{userId, lastReadAt(ms)}]` for every member of the room.
+  /// Subscribe to this for live read receipts.
+  Future<List<({String userId, DateTime lastReadAt})>> getReadState(String roomId) async {
+    final res = await _cv.query('messages:getReadState', {'roomId': roomId});
+    return ((res as List?) ?? const []).map((e) {
+      final m = (e as Map).cast<String, dynamic>();
+      final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
+      return (
+        userId: (m['userId']).toString(),
+        lastReadAt: DateTime.fromMillisecondsSinceEpoch(ts),
+      );
+    }).toList();
+  }
+
   Future<List<ChatMessage>> listBefore({
     required String roomId,
     required DateTime before,
@@ -393,6 +437,86 @@ class ChatApi {
     await _cv.mutation('friends:removeFriend', {'userId': userId, 'friendId': friendId});
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Blocking + reporting
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Block a user. When [deleteDm] is true, the shared DM room (if any) is
+  /// wiped completely on the backend — every message, reaction, media file,
+  /// and both memberships go. Group rooms are not touched.
+  Future<void> blockUser({
+    required String userId,
+    required String targetUserId,
+    bool deleteDm = false,
+  }) async {
+    await _cv.mutation('users:blockUser', {
+      'userId': userId,
+      'targetUserId': targetUserId,
+      if (deleteDm) 'deleteDm': true,
+    });
+  }
+
+  Future<void> unblockUser({required String userId, required String targetUserId}) async {
+    await _cv.mutation('users:unblockUser', {
+      'userId': userId,
+      'targetUserId': targetUserId,
+    });
+  }
+
+  Future<List<ChatUser>> listBlocked(String userId) async {
+    final res = await _cv.query('users:listBlocked', {'userId': userId});
+    return ((res as List?) ?? const [])
+        .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Returns rooms BOTH users belong to, split into group rooms and a
+  /// DM-present flag. Used by the block confirm sheet.
+  Future<SharedRoomsInfo> listSharedRooms({
+    required String userId,
+    required String otherUserId,
+  }) async {
+    final res = await _cv.query('rooms:listShared', {
+      'userId': userId,
+      'otherUserId': otherUserId,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    final list = (map['groupRooms'] as List?) ?? const [];
+    final rooms = list
+        .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+    return SharedRoomsInfo(
+      groupRooms: rooms,
+      hasDm: (map['hasDm'] as bool?) ?? false,
+    );
+  }
+
+  Future<bool> isBlocked({required String userId, required String otherUserId}) async {
+    final res = await _cv.query('users:isBlocked', {
+      'userId': userId,
+      'otherUserId': otherUserId,
+    });
+    return (res as bool?) ?? false;
+  }
+
+  /// Submit a report against a user / message / room.
+  /// `targetType` ∈ {"user", "message", "room"}.
+  Future<void> report({
+    required String reporterId,
+    required String targetType,
+    required String targetId,
+    required String reason,
+    String? note,
+  }) async {
+    await _cv.mutation('users:report', {
+      'reporterId': reporterId,
+      'targetType': targetType,
+      'targetId': targetId,
+      'reason': reason,
+      if (note != null && note.isNotEmpty) 'note': note,
+    });
+  }
+
   Future<List<ChatUser>> searchUsers({required String query, required String currentUserId}) async {
     final res = await _cv.query('users:searchUsers', {
       'query': query,
@@ -436,6 +560,12 @@ class ChatApi {
         .map((e) => ChatMessage.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
   }
+}
+
+class SharedRoomsInfo {
+  SharedRoomsInfo({required this.groupRooms, required this.hasDm});
+  final List<ChatRoom> groupRooms;
+  final bool hasDm;
 }
 
 class AuthResult {
