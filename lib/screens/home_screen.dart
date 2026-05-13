@@ -311,7 +311,7 @@ class _RoomsPanel extends StatelessWidget {
           crossAxisCount: cols,
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 1.0,
+          childAspectRatio: 1.1,
         ),
         itemCount: rooms.length,
         itemBuilder: (context, i) {
