@@ -61,77 +61,118 @@ class BasicTheme implements AppTheme {
   @override
   Color get success => _p.success;
 
-  // Single source of truth for the iOS-feel type stack. On iOS,
-  // CupertinoSystemDisplay / CupertinoSystemText resolve to SF Pro Display
-  // / SF Pro Text at runtime — no bundled font, no license issue. On
-  // Android the families are unresolvable and Flutter falls through to
-  // the fallback list, landing on Roboto (the native Android system
-  // font). Result: basic themes render in each platform's own system font.
-  TextStyle _ios({
-    required double size,
-    required FontWeight weight,
-    double tracking = 0,
-    double height = 1.2,
-    Color? color,
-  }) {
-    final isDisplay = size >= 20;
-    return TextStyle(
-      fontFamily: isDisplay ? 'CupertinoSystemDisplay' : 'CupertinoSystemText',
-      fontFamilyFallback: const [
-        '.SF UI Display',
-        '.SF UI Text',
-        'Helvetica Neue',
-        'Roboto',
-      ],
-      fontSize: size,
-      fontWeight: weight,
-      letterSpacing: tracking,
-      height: height,
-      color: color ?? ink,
-    );
-  }
+  // Values mirror Flutter's framework-blessed CupertinoTextThemeData
+  // defaults — `CupertinoSystemText`/`CupertinoSystemDisplay` font
+  // families, framework tracking conventions (-0.41 for text sizes,
+  // +0.38 for display sizes). We construct fresh TextStyles instead of
+  // delegating to CupertinoTextThemeData because its styles ship with
+  // `inherit: false`, which Material widgets like TextField reject.
+  static const String _kText = 'CupertinoSystemText';
+  static const String _kDisplay = 'CupertinoSystemDisplay';
 
   @override
-  TextStyle get displayHero =>
-      _ios(size: 44, weight: FontWeight.w700, tracking: -0.8, height: 1.08, color: ink);
+  TextStyle get displayHero => TextStyle(
+        fontFamily: _kDisplay,
+        fontSize: 44,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.38,
+        color: ink,
+      );
   @override
-  TextStyle get displayLarge =>
-      _ios(size: 34, weight: FontWeight.w700, tracking: -0.5, height: 1.10, color: ink);
+  TextStyle get displayLarge => TextStyle(
+        fontFamily: _kDisplay,
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.38,
+        color: ink,
+      );
   @override
-  TextStyle get displayMedium =>
-      _ios(size: 28, weight: FontWeight.w700, tracking: -0.4, height: 1.14, color: ink);
+  TextStyle get displayMedium => TextStyle(
+        fontFamily: _kDisplay,
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.38,
+        color: ink,
+      );
   @override
-  TextStyle get displaySmall =>
-      _ios(size: 20, weight: FontWeight.w600, tracking: -0.2, height: 1.20, color: ink);
+  TextStyle get displaySmall => TextStyle(
+        fontFamily: _kDisplay,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.38,
+        color: ink,
+      );
   @override
-  TextStyle get body =>
-      _ios(size: 17, weight: FontWeight.w400, tracking: -0.2, height: 1.41, color: inkSoft);
+  TextStyle get body => TextStyle(
+        fontFamily: _kText,
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.41,
+        color: inkSoft,
+      );
   @override
-  TextStyle get bodyEmph =>
-      _ios(size: 17, weight: FontWeight.w600, tracking: -0.2, height: 1.41, color: ink);
+  TextStyle get bodyEmph => TextStyle(
+        fontFamily: _kText,
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.41,
+        color: ink,
+      );
   @override
-  TextStyle get bodySoft =>
-      _ios(size: 15, weight: FontWeight.w400, tracking: -0.1, height: 1.40, color: inkMuted);
+  TextStyle get bodySoft => TextStyle(
+        fontFamily: _kText,
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.41,
+        color: inkMuted,
+      );
   @override
-  TextStyle get caption =>
-      _ios(size: 13, weight: FontWeight.w400, tracking: 0, height: 1.35, color: inkMuted);
+  TextStyle get caption => TextStyle(
+        fontFamily: _kText,
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.41,
+        color: inkMuted,
+      );
+  // `label` and `monoTiny` are all-caps section headers ("BASIC",
+  // "CONVERSATION", "ACTIVE") — wide positive tracking is a design
+  // intent, kept on purpose.
   @override
-  TextStyle get label =>
-      _ios(size: 12, weight: FontWeight.w600, tracking: 0.6, height: 1.20, color: inkSoft);
+  TextStyle get label => TextStyle(
+        fontFamily: _kText,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.6,
+        color: inkSoft,
+      );
   @override
-  TextStyle get monoTiny =>
-      _ios(size: 11, weight: FontWeight.w600, tracking: 0.8, height: 1.20, color: inkMuted);
+  TextStyle get monoTiny => TextStyle(
+        fontFamily: _kText,
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.8,
+        color: inkMuted,
+      );
   // "mono" slots stay on the proportional system face with tabular figures
-  // — that's what iOS uses for tickers/timers in Messages and FaceTime,
-  // not SF Mono.
+  // — iOS uses tabular SF for tickers/timers, not SF Mono.
   @override
-  TextStyle get mono =>
-      _ios(size: 13, weight: FontWeight.w500, tracking: 0, height: 1.20, color: inkSoft)
-          .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+  TextStyle get mono => TextStyle(
+        fontFamily: _kText,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        letterSpacing: -0.41,
+        color: inkSoft,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
   @override
-  TextStyle get monoLarge =>
-      _ios(size: 20, weight: FontWeight.w600, tracking: -0.2, height: 1.20, color: ink)
-          .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+  TextStyle get monoLarge => TextStyle(
+        fontFamily: _kDisplay,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.38,
+        color: ink,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
 
   @override
   double get radiusSm => 6;
@@ -282,10 +323,11 @@ class BasicTheme implements AppTheme {
       alignment: Alignment.center,
       child: Text(
         'M',
-        style: _ios(
-          size: size * 0.55,
-          weight: FontWeight.w700,
-          tracking: -0.5,
+        style: TextStyle(
+          fontFamily: _kDisplay,
+          fontSize: size * 0.55,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
           height: 1.0,
           color: accentInk,
         ),
