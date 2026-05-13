@@ -1,8 +1,12 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
+
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
 /// Gesture-driven radial pie menu for major-section switching.
@@ -43,14 +47,20 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     with SingleTickerProviderStateMixin {
   // Geometry — refined from v02 (BaseView.swift) for a lighter resting state.
   static const double _padding = 24;
-  static const double _orbSize = 40;
-  static const double _itemSize = 38;
+  static const double _orbSize = 52;
+  static const double _itemSize = 44;
   static const double _radius = 96;
   static const double _hoverMinDistance = 36;
+  static const Duration _expandDuration = Duration(milliseconds: 260);
+  static const Duration _collapseDuration = Duration(milliseconds: 200);
+  // Per-item stagger when fanning out. Item i starts at t = _stagger * i of
+  // the master controller and runs through its own easeOutCubic to t = 1.0.
+  static const double _stagger = 0.18;
 
   late final AnimationController _ctrl = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 340),
+    duration: _expandDuration,
+    reverseDuration: _collapseDuration,
   );
 
   bool _expanded = false;
@@ -66,6 +76,20 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
   /// `-π/2.2 + (π/4.5) * i`. Positive y is DOWN in screen coords, so these
   /// negative angles point up and to the right.
   double _slotAngle(int i) => -math.pi / 2.2 + (math.pi / 4.5) * i;
+
+  /// Cupertino glyph used by the orb when the user is on a given section.
+  /// Matches the icons passed in via `RadialMenuItem` so the orb visually
+  /// echoes the active item.
+  IconData _iconForSection(HomeSection s) {
+    switch (s) {
+      case HomeSection.chat:
+        return CupertinoIcons.bubble_left;
+      case HomeSection.feed:
+        return CupertinoIcons.sparkles;
+      case HomeSection.settings:
+        return CupertinoIcons.gear;
+    }
+  }
 
   int _indexForDrag(Offset translation) {
     final dist = translation.distance;
@@ -147,14 +171,13 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
             child: AnimatedBuilder(
               animation: _ctrl,
               builder: (context, _) {
-                final t = Curves.easeOutBack.transform(_ctrl.value.clamp(0.0, 1.0));
                 return Stack(
                   alignment: Alignment.bottomLeft,
                   clipBehavior: Clip.none,
                   children: [
                     // Items
                     for (var i = 0; i < widget.items.length; i++)
-                      _buildItem(i, t, theme),
+                      _buildItem(i, theme),
                     // Orb (anchored at the bottom-left of the surface)
                     _OrbGesture(
                       onDown: _onPanDown,
@@ -162,7 +185,11 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
                       onUpdate: _onPanUpdate,
                       onEnd: _onPanEnd,
                       onCancel: _onPanCancel,
-                      child: _Orb(theme: theme, expanded: _expanded, activeSection: widget.active),
+                      child: _Orb(
+                        theme: theme,
+                        expanded: _expanded,
+                        icon: _iconForSection(widget.active),
+                      ),
                     ),
                   ],
                 );
@@ -174,21 +201,22 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     );
   }
 
-  Widget _buildItem(int i, double t, theme) {
+  Widget _buildItem(int i, AppTheme theme) {
+    // Per-item progress: item i starts at t = _stagger * i and runs its own
+    // easeOutCubic to t = 1.0. This makes items fan out sequentially rather
+    // than all at once.
+    final tItem = Interval(_stagger * i, 1.0, curve: Curves.easeOutCubic)
+        .transform(_ctrl.value.clamp(0.0, 1.0));
     final angle = _slotAngle(i);
-    final dx = math.cos(angle) * _radius * t;
-    final dy = math.sin(angle) * _radius * t;
-    // Anchor each item's center at the orb's center: shift item by half its
-    // size to align centers, then offset by (dx, dy).
+    final dx = math.cos(angle) * _radius * tItem;
+    final dy = math.sin(angle) * _radius * tItem;
     return Positioned(
       left: (_orbSize - _itemSize) / 2 + dx,
-      // We're in a stack aligned bottom-left, so we use `bottom` and subtract
-      // the upward dy (dy is negative for items above the orb).
       bottom: (_orbSize - _itemSize) / 2 - dy,
       child: IgnorePointer(
-        ignoring: t < 0.05,
+        ignoring: tItem < 0.05,
         child: Opacity(
-          opacity: t.clamp(0.0, 1.0),
+          opacity: tItem.clamp(0.0, 1.0),
           child: _Slice(
             theme: theme,
             item: widget.items[i],
@@ -235,16 +263,16 @@ class _OrbGesture extends StatelessWidget {
 }
 
 class _Orb extends StatelessWidget {
-  const _Orb({required this.theme, required this.expanded, required this.activeSection});
-  final dynamic theme;
+  const _Orb({required this.theme, required this.expanded, required this.icon});
+  final AppTheme theme;
   final bool expanded;
-  final HomeSection activeSection;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedRotation(
-      turns: expanded ? 0.125 : 0, // 45°
-      duration: const Duration(milliseconds: 320),
+    return AnimatedScale(
+      scale: expanded ? 1.05 : 1.0,
+      duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
@@ -254,17 +282,17 @@ class _Orb extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.accent,
           shape: BoxShape.circle,
-          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
+          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 0.5),
           boxShadow: [
             BoxShadow(
-              color: theme.accent.withValues(alpha: expanded ? 0.40 : 0.28),
-              blurRadius: expanded ? 20 : 14,
-              offset: const Offset(0, 5),
+              color: theme.accent.withValues(alpha: expanded ? 0.30 : 0.22),
+              blurRadius: expanded ? 16 : 12,
+              offset: Offset(0, expanded ? 6 : 4),
             ),
           ],
         ),
         alignment: Alignment.center,
-        child: Icon(Icons.unfold_more, color: theme.accentInk, size: 18),
+        child: Icon(icon, color: theme.accentInk, size: 22),
       ),
     );
   }
@@ -272,44 +300,79 @@ class _Orb extends StatelessWidget {
 
 class _Slice extends StatelessWidget {
   const _Slice({required this.theme, required this.item, required this.active, required this.hovered});
-  final dynamic theme;
+  final AppTheme theme;
   final RadialMenuItem item;
   final bool active;
   final bool hovered;
 
   @override
   Widget build(BuildContext context) {
-    final scale = hovered ? 1.30 : (active ? 1.10 : 1.0);
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      width: _RadialFloatingMenuState._itemSize,
-      height: _RadialFloatingMenuState._itemSize,
-      transform: Matrix4.identity()..scaleByDouble(scale, scale, scale, 1),
-      transformAlignment: Alignment.center,
-      decoration: BoxDecoration(
-        gradient: (hovered || active)
-            ? LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [theme.accent, theme.accent.withValues(alpha: 0.7)],
-              )
-            : null,
-        color: (hovered || active) ? null : theme.surfaceRaised,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: theme.accent.withValues(alpha: hovered ? 0.45 : (active ? 0.25 : 0.15)),
-            blurRadius: hovered ? 14 : 8,
-            offset: const Offset(0, 3),
+    // State precedence: hovered > active > idle.
+    final Color fill;
+    final Color? borderColor;
+    final double borderWidth;
+    final Color iconColor;
+    final List<BoxShadow> shadow;
+    final double scale;
+    if (hovered) {
+      fill = theme.accent;
+      borderColor = null;
+      borderWidth = 0;
+      iconColor = theme.accentInk;
+      shadow = [
+        BoxShadow(
+          color: theme.accent.withValues(alpha: 0.32),
+          blurRadius: 14,
+          offset: const Offset(0, 4),
+        ),
+      ];
+      scale = 1.10;
+    } else if (active) {
+      fill = theme.accentSoft;
+      borderColor = theme.accent;
+      borderWidth = 1;
+      iconColor = theme.accent;
+      shadow = [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ];
+      scale = 1.0;
+    } else {
+      fill = theme.surface.withValues(alpha: 0.85);
+      borderColor = theme.divider;
+      borderWidth = 0.5;
+      iconColor = theme.inkSoft;
+      shadow = [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ];
+      scale = 1.0;
+    }
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          width: _RadialFloatingMenuState._itemSize,
+          height: _RadialFloatingMenuState._itemSize,
+          transform: Matrix4.identity()..scaleByDouble(scale, scale, scale, 1),
+          transformAlignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: fill,
+            shape: BoxShape.circle,
+            border: borderColor == null ? null : Border.all(color: borderColor, width: borderWidth),
+            boxShadow: shadow,
           ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        item.icon,
-        color: (hovered || active) ? theme.accentInk : theme.inkSoft,
-        size: 18,
+          alignment: Alignment.center,
+          child: Icon(item.icon, color: iconColor, size: 20),
+        ),
       ),
     );
   }

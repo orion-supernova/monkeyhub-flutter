@@ -1,3 +1,6 @@
+import 'dart:ui' show ImageFilter;
+
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -81,9 +84,9 @@ class _HomeShellState extends State<HomeShell> {
                 active: settings.section,
                 onSelect: _select,
                 items: const [
-                  RadialMenuItem(section: HomeSection.chat, icon: Icons.chat_bubble_outline, label: 'CHAT'),
-                  RadialMenuItem(section: HomeSection.feed, icon: Icons.auto_awesome_outlined, label: 'FEED'),
-                  RadialMenuItem(section: HomeSection.settings, icon: Icons.tune, label: 'SET'),
+                  RadialMenuItem(section: HomeSection.chat, icon: CupertinoIcons.bubble_left, label: 'CHAT'),
+                  RadialMenuItem(section: HomeSection.feed, icon: CupertinoIcons.sparkles, label: 'FEED'),
+                  RadialMenuItem(section: HomeSection.settings, icon: CupertinoIcons.gear, label: 'SET'),
                 ],
               ),
             )
@@ -110,22 +113,32 @@ class _PillBottomNav extends StatelessWidget {
       right: 20,
       bottom: 16,
       child: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: theme.surface.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: theme.divider),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 8)),
-            ],
-          ),
-          child: Row(
-            children: [
-              _btn(theme, Icons.chat_bubble_outline, 'CHAT', HomeSection.chat),
-              _btn(theme, Icons.auto_awesome_outlined, 'FEED', HomeSection.feed),
-              _btn(theme, Icons.tune, 'SETTINGS', HomeSection.settings),
-            ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: theme.surface.withValues(alpha: 0.72),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: theme.divider, width: 0.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat),
+                  _btn(theme, CupertinoIcons.sparkles, 'Feed', HomeSection.feed),
+                  _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -134,25 +147,29 @@ class _PillBottomNav extends StatelessWidget {
 
   Widget _btn(AppTheme theme, IconData icon, String label, HomeSection s) {
     final isActive = s == active;
+    final color = isActive ? theme.accent : theme.inkSoft;
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelect(s),
         behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? theme.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          alignment: Alignment.center,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 16, color: isActive ? theme.accentInk : theme.inkSoft),
-              const SizedBox(width: 8),
-              Text(label,
-                  style: theme.label.copyWith(color: isActive ? theme.accentInk : theme.inkSoft)),
+              Icon(icon, size: 20, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'CupertinoSystemText',
+                  fontSize: 11,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                  letterSpacing: -0.08,
+                  color: color,
+                ),
+              ),
             ],
           ),
         ),
