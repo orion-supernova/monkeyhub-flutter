@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_theme.dart';
 
-/// Palette-parameterized "Basic" theme — iOS-inspired typography (Inter)
-/// with swappable color palettes (Midnight, Daylight, Graphite, Rose,
-/// Forest). Each variant is its own entry in the theme picker; pick via
-/// the named factory constructors.
+/// Palette-parameterized "Basic" theme — iOS-native typography (SF Pro on
+/// Apple platforms via Flutter's Cupertino system-font families, Roboto on
+/// Android) with swappable color palettes (Midnight, Daylight, Graphite,
+/// Rose, Forest). Each variant is its own entry in the theme picker; pick
+/// via the named factory constructors.
 class BasicTheme implements AppTheme {
   BasicTheme._(this._p);
 
@@ -61,50 +61,77 @@ class BasicTheme implements AppTheme {
   @override
   Color get success => _p.success;
 
-  // Type scale modeled on iOS / SF Pro Text + Display.
-  // Inter is the closest free analogue and reads as native on Apple devices.
-  TextStyle _disp(double s, FontWeight w, double tracking) => GoogleFonts.inter(
-        fontSize: s,
-        fontWeight: w,
-        height: 1.12,
-        letterSpacing: tracking,
-        color: ink,
-      );
+  // Single source of truth for the iOS-feel type stack. On iOS,
+  // CupertinoSystemDisplay / CupertinoSystemText resolve to SF Pro Display
+  // / SF Pro Text at runtime — no bundled font, no license issue. On
+  // Android the families are unresolvable and Flutter falls through to
+  // the fallback list, landing on Roboto (the native Android system
+  // font). Result: basic themes render in each platform's own system font.
+  TextStyle _ios({
+    required double size,
+    required FontWeight weight,
+    double tracking = 0,
+    double height = 1.2,
+    Color? color,
+  }) {
+    final isDisplay = size >= 20;
+    return TextStyle(
+      fontFamily: isDisplay ? 'CupertinoSystemDisplay' : 'CupertinoSystemText',
+      fontFamilyFallback: const [
+        '.SF UI Display',
+        '.SF UI Text',
+        'Helvetica Neue',
+        'Roboto',
+      ],
+      fontSize: size,
+      fontWeight: weight,
+      letterSpacing: tracking,
+      height: height,
+      color: color ?? ink,
+    );
+  }
 
   @override
-  TextStyle get displayHero => _disp(56, FontWeight.w700, -1.0);
+  TextStyle get displayHero =>
+      _ios(size: 44, weight: FontWeight.w700, tracking: -0.8, height: 1.08, color: ink);
   @override
-  TextStyle get displayLarge => _disp(34, FontWeight.w700, -0.8);
+  TextStyle get displayLarge =>
+      _ios(size: 34, weight: FontWeight.w700, tracking: -0.5, height: 1.10, color: ink);
   @override
-  TextStyle get displayMedium => _disp(24, FontWeight.w600, -0.4);
+  TextStyle get displayMedium =>
+      _ios(size: 28, weight: FontWeight.w700, tracking: -0.4, height: 1.14, color: ink);
   @override
-  TextStyle get displaySmall => _disp(19, FontWeight.w600, -0.2);
+  TextStyle get displaySmall =>
+      _ios(size: 20, weight: FontWeight.w600, tracking: -0.2, height: 1.20, color: ink);
   @override
-  TextStyle get body => GoogleFonts.inter(
-      fontSize: 16, fontWeight: FontWeight.w400, height: 1.45, color: inkSoft);
+  TextStyle get body =>
+      _ios(size: 17, weight: FontWeight.w400, tracking: -0.2, height: 1.41, color: inkSoft);
   @override
-  TextStyle get bodyEmph => GoogleFonts.inter(
-      fontSize: 16, fontWeight: FontWeight.w600, height: 1.45, color: ink);
+  TextStyle get bodyEmph =>
+      _ios(size: 17, weight: FontWeight.w600, tracking: -0.2, height: 1.41, color: ink);
   @override
-  TextStyle get bodySoft => GoogleFonts.inter(
-      fontSize: 14, fontWeight: FontWeight.w400, height: 1.45, color: inkMuted);
-  // "mono" slots are kept for API compatibility but render as tracked Inter —
-  // iOS apps don't use a monospace face for labels / navbars.
+  TextStyle get bodySoft =>
+      _ios(size: 15, weight: FontWeight.w400, tracking: -0.1, height: 1.40, color: inkMuted);
   @override
-  TextStyle get caption => GoogleFonts.inter(
-      fontSize: 12, fontWeight: FontWeight.w500, height: 1.2, letterSpacing: 0.2, color: inkMuted);
+  TextStyle get caption =>
+      _ios(size: 13, weight: FontWeight.w400, tracking: 0, height: 1.35, color: inkMuted);
   @override
-  TextStyle get mono => GoogleFonts.inter(
-      fontSize: 13, fontWeight: FontWeight.w500, height: 1.2, color: inkSoft);
+  TextStyle get label =>
+      _ios(size: 12, weight: FontWeight.w600, tracking: 0.6, height: 1.20, color: inkSoft);
   @override
-  TextStyle get monoLarge => GoogleFonts.inter(
-      fontSize: 17, fontWeight: FontWeight.w600, height: 1.2, color: ink);
+  TextStyle get monoTiny =>
+      _ios(size: 11, weight: FontWeight.w600, tracking: 0.8, height: 1.20, color: inkMuted);
+  // "mono" slots stay on the proportional system face with tabular figures
+  // — that's what iOS uses for tickers/timers in Messages and FaceTime,
+  // not SF Mono.
   @override
-  TextStyle get monoTiny => GoogleFonts.inter(
-      fontSize: 10, fontWeight: FontWeight.w600, height: 1.2, letterSpacing: 0.8, color: inkMuted);
+  TextStyle get mono =>
+      _ios(size: 13, weight: FontWeight.w500, tracking: 0, height: 1.20, color: inkSoft)
+          .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
   @override
-  TextStyle get label => GoogleFonts.inter(
-      fontSize: 11, fontWeight: FontWeight.w600, height: 1.2, letterSpacing: 0.6, color: inkSoft);
+  TextStyle get monoLarge =>
+      _ios(size: 20, weight: FontWeight.w600, tracking: -0.2, height: 1.20, color: ink)
+          .copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
 
   @override
   double get radiusSm => 6;
@@ -130,8 +157,18 @@ class BasicTheme implements AppTheme {
   BoxDecoration roomCardDecoration({required bool ephemeral, required bool active}) =>
       BoxDecoration(
         color: active ? surfaceRaised : surface,
-        borderRadius: BorderRadius.circular(radiusLg),
-        border: Border.all(color: ephemeral ? accent.withValues(alpha: 0.5) : divider, width: 1),
+        borderRadius: BorderRadius.circular(radiusXl),
+        border: Border.all(
+          color: ephemeral ? accent.withValues(alpha: 0.5) : divider,
+          width: ephemeral ? 1 : 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       );
 
   @override
@@ -139,12 +176,27 @@ class BasicTheme implements AppTheme {
       BoxDecoration(
         color: isMine ? accent : surfaceRaised,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(radiusLg),
-          topRight: Radius.circular(radiusLg),
-          bottomLeft: Radius.circular(isMine ? radiusLg : radiusSm),
-          bottomRight: Radius.circular(isMine ? radiusSm : radiusLg),
+          topLeft: const Radius.circular(20),
+          topRight: const Radius.circular(20),
+          bottomLeft: Radius.circular(isMine ? 20 : 6),
+          bottomRight: Radius.circular(isMine ? 6 : 20),
         ),
         border: ephemeral ? Border.all(color: accent.withValues(alpha: 0.4)) : null,
+        boxShadow: isMine
+            ? [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       );
 
   @override
@@ -218,16 +270,26 @@ class BasicTheme implements AppTheme {
       height: size,
       decoration: BoxDecoration(
         color: accent,
-        borderRadius: BorderRadius.circular(size * 0.28),
+        borderRadius: BorderRadius.circular(size * 0.225),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.30),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       alignment: Alignment.center,
-      child: Text('M',
-          style: GoogleFonts.inter(
-            color: accentInk,
-            fontSize: size * 0.55,
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5,
-          )),
+      child: Text(
+        'M',
+        style: _ios(
+          size: size * 0.55,
+          weight: FontWeight.w700,
+          tracking: -0.5,
+          height: 1.0,
+          color: accentInk,
+        ),
+      ),
     );
   }
 
