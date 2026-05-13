@@ -50,6 +50,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   bool _deleting = false;
   String? _error;
   List<ChatUser> _members = const [];
+  ChatRoom? _lastObservedRoom;
 
   ChatRoom? get _room => widget.repo.roomById(widget.roomId);
   bool get _isOwner =>
@@ -64,7 +65,31 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   void _onRepo() {
     if (!mounted) return;
+    final r = _room;
+    // Repo fires for typing/messages/read-receipts which don't affect this
+    // screen — naïvely rebuilding on every notify caused scroll stutter
+    // because each frame during a drag triggered a full settings rebuild.
+    // Only setState when fields actually rendered here change.
+    if (_isSameRelevantFields(r, _lastObservedRoom)) {
+      _lastObservedRoom = r;
+      return;
+    }
+    _lastObservedRoom = r;
     setState(() {});
+  }
+
+  bool _isSameRelevantFields(ChatRoom? a, ChatRoom? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    return a.id == b.id &&
+        a.name == b.name &&
+        a.description == b.description &&
+        a.avatarStorageId == b.avatarStorageId &&
+        a.isPrivate == b.isPrivate &&
+        a.hasPassword == b.hasPassword &&
+        a.messageLifetime == b.messageLifetime &&
+        a.createdBy == b.createdBy &&
+        a.memberCount == b.memberCount;
   }
 
   void _hydrate() {
@@ -692,18 +717,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     required String title,
     required String sub,
   }) {
-    final ink = active ? theme.ink : theme.inkSoft;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: theme.motionFast,
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         decoration: BoxDecoration(
-          color: active ? theme.surfaceRaised : theme.surfaceSunken,
+          // Active uses the accent color across border + faint fill so the
+          // selected state reads clearly on every theme, independent of
+          // surfaceRaised/surfaceSunken contrast.
+          color: active ? theme.accent.withValues(alpha: 0.12) : theme.surfaceSunken,
           borderRadius: BorderRadius.circular(theme.radiusMd),
+          // Constant border width — switching width between states caused a
+          // 0.8px layout shift on toggle.
           border: Border.all(
-            color: active ? theme.ink.withValues(alpha: 0.35) : theme.divider,
-            width: active ? 1.4 : 1,
+            color: active ? theme.accent : theme.divider,
+            width: 1.4,
           ),
         ),
         child: Row(
@@ -714,7 +743,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.displaySmall.copyWith(color: ink, fontSize: 16)),
+                  Text(
+                    title,
+                    style: theme.displaySmall.copyWith(
+                      color: active ? theme.accent : theme.inkSoft,
+                      fontSize: 16,
+                    ),
+                  ),
                   Text(sub, style: theme.monoTiny),
                 ],
               ),

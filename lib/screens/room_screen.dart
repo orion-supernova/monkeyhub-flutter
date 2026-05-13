@@ -48,7 +48,6 @@ class _RoomScreenState extends State<RoomScreen> {
   final ScrollController _scroll = ScrollController();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
   ChatRoom? _room;
-  bool _didInitialJump = false;
   // True once we've pushed a CaptureProtection scope for this ephemeral
   // room — so dispose can pop exactly one and we don't double-push.
   bool _pushedCaptureScope = false;
@@ -113,26 +112,17 @@ class _RoomScreenState extends State<RoomScreen> {
 
   void _onScroll() {
     if (!_scroll.hasClients) return;
-    // Trigger a page load when the user scrolls within 220px of the top.
-    // ListView is built bottom-anchored visually (newest at the bottom), but
-    // its scroll origin is the FIRST item (oldest) — so "near the top" means
-    // pixels close to 0.
-    if (_scroll.position.pixels <= 220 &&
+    // The list is rendered with reverse:true — items[0] (newest) sits at the
+    // bottom, pixels=0 is the bottom, maxScrollExtent is the top. Trigger an
+    // older-page load when the user scrolls within 220px of the top.
+    // Position preservation is automatic in reverse mode: older messages are
+    // appended to the END of the items list, so the user's pixel offset
+    // (anchored from the bottom) is unaffected.
+    final pos = _scroll.position;
+    if (pos.pixels >= pos.maxScrollExtent - 220 &&
         widget.repo.hasMoreOlder(widget.roomId) &&
         !widget.repo.isLoadingOlder(widget.roomId)) {
-      final extentBefore = _scroll.position.maxScrollExtent;
-      widget.repo.loadOlder(widget.roomId).then((added) {
-        if (!mounted || added == 0) return;
-        // Preserve visual position so the user doesn't get yanked downward
-        // by the newly-prepended items: jump by the difference in extent.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!_scroll.hasClients) return;
-          final delta = _scroll.position.maxScrollExtent - extentBefore;
-          if (delta > 0) {
-            _scroll.jumpTo(_scroll.position.pixels + delta);
-          }
-        });
-      });
+      widget.repo.loadOlder(widget.roomId);
     }
   }
 
@@ -156,14 +146,8 @@ class _RoomScreenState extends State<RoomScreen> {
       _room = room;
     });
     _maybePushCaptureScope(room);
-    // Land at the newest message on the first time we have content.
-    if (!_didInitialJump && widget.repo.messagesFor(widget.roomId).isNotEmpty) {
-      _didInitialJump = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scroll.hasClients) return;
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
-      });
-    }
+    // With reverse:true the viewport naturally starts at the bottom (newest
+    // message). No initial jumpTo needed.
   }
 
   @override
@@ -185,15 +169,19 @@ class _RoomScreenState extends State<RoomScreen> {
     if (text.isEmpty) return;
     _composer.clear();
     await widget.repo.sendText(widget.roomId, text);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    });
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    if (!_scroll.hasClients) return;
+    // reverse:true → 0 is the bottom. Layout for the new bubble may not be
+    // settled yet, but the bottom target is constant so the animation lands
+    // cleanly regardless.
+    _scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<void> _onAttach() async {
@@ -277,12 +265,7 @@ class _RoomScreenState extends State<RoomScreen> {
         storageId: storageId,
         type: type,
       );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.animateTo(_scroll.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 320), curve: Curves.easeOutCubic);
-        }
-      });
+      _scrollToBottom();
     } catch (_) {/* TODO surface as toast */}
   }
 
@@ -298,7 +281,12 @@ class _RoomScreenState extends State<RoomScreen> {
     }
     final messages = widget.repo.messagesFor(widget.roomId);
     final me = widget.repo.userId ?? '';
-    final items = _buildItems(room, messages);
+    // ListView is rendered with reverse:true so the viewport naturally
+    // anchors to the newest message at the bottom. The items list is built
+    // chronologically (intro → divider → messages) and reversed here so
+    // items[0] is the newest message (visually at the bottom) and the intro
+    // ends up at items[last] (visually at the top).
+    final items = _buildItems(room, messages).reversed.toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -333,6 +321,7 @@ class _RoomScreenState extends State<RoomScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _scroll,
+                    reverse: true,
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
                     itemCount: items.length,
                     itemBuilder: (context, i) {

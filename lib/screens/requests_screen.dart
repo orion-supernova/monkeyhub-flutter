@@ -21,7 +21,19 @@ class RequestsPanel extends StatefulWidget {
 }
 
 class _RequestsPanelState extends State<RequestsPanel> {
+  static const List<String> _order = ['incoming', 'outgoing', 'friends'];
   String _tab = 'incoming';
+  int _direction = 1;
+
+  void _setTab(String next) {
+    if (next == _tab) return;
+    final oldIdx = _order.indexOf(_tab);
+    final newIdx = _order.indexOf(next);
+    setState(() {
+      _direction = newIdx >= oldIdx ? 1 : -1;
+      _tab = next;
+    });
+  }
 
   @override
   void initState() {
@@ -50,32 +62,61 @@ class _RequestsPanelState extends State<RequestsPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _SubTab(
               label: 'incoming · ${incoming.length}',
               active: _tab == 'incoming',
-              onTap: () => setState(() => _tab = 'incoming'),
+              onTap: () => _setTab('incoming'),
             ),
             const SizedBox(width: 18),
             _SubTab(
               label: 'outgoing · ${outgoing.length}',
               active: _tab == 'outgoing',
-              onTap: () => setState(() => _tab = 'outgoing'),
+              onTap: () => _setTab('outgoing'),
             ),
             const SizedBox(width: 18),
             _SubTab(
               label: 'friends · ${friends.length}',
               active: _tab == 'friends',
-              onTap: () => setState(() => _tab = 'friends'),
+              onTap: () => _setTab('friends'),
             ),
           ],
         ),
         const SizedBox(height: 18),
-        AnimatedSwitcher(
-          duration: theme.motionFast,
-          child: KeyedSubtree(
-            key: ValueKey(_tab),
-            child: _panel(incoming, outgoing, friends),
+        AnimatedSize(
+          duration: theme.motionMed,
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: AnimatedSwitcher(
+            duration: theme.motionMed,
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, anim) {
+              final isExiting = anim.status == AnimationStatus.reverse ||
+                  anim.status == AnimationStatus.dismissed;
+              final dx = (isExiting ? -1.0 : 1.0) * _direction * 0.08;
+              return FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween(begin: Offset(dx, 0), end: Offset.zero).animate(
+                    CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                  ),
+                  child: child,
+                ),
+              );
+            },
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.topLeft,
+              children: [
+                ...previousChildren,
+                ?currentChild,
+              ],
+            ),
+            child: KeyedSubtree(
+              key: ValueKey(_tab),
+              child: _panel(incoming, outgoing, friends),
+            ),
           ),
         ),
       ],

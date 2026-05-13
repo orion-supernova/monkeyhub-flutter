@@ -27,8 +27,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const List<String> _tabOrder = ['rooms', 'requests', 'discover'];
   String _tab = 'rooms';
+  int _direction = 1;
   ChatUser? _me;
+
+  void _setTab(String next) {
+    if (next == _tab) return;
+    final oldIdx = _tabOrder.indexOf(_tab);
+    final newIdx = _tabOrder.indexOf(next);
+    setState(() {
+      _direction = newIdx >= oldIdx ? 1 : -1;
+      _tab = next;
+    });
+  }
 
   @override
   void initState() {
@@ -98,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Center(
                         child: PillNav(
                           activeId: _tab,
-                          onChange: (id) => setState(() => _tab = id),
+                          onChange: _setTab,
                           items: const [
                             PillNavItem(id: 'rooms', label: 'ROOMS'),
                             PillNavItem(id: 'requests', label: 'REQUESTS'),
@@ -107,12 +119,39 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 22),
-                      AnimatedSwitcher(
+                      AnimatedSize(
                         duration: theme.motionMed,
-                        switchInCurve: theme.motionEntrance,
-                        child: KeyedSubtree(
-                          key: ValueKey('${_tab}_${theme.id}'),
-                          child: _panel(),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: AnimatedSwitcher(
+                          duration: theme.motionMed,
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, anim) {
+                            final isExiting = anim.status == AnimationStatus.reverse ||
+                                anim.status == AnimationStatus.dismissed;
+                            final dx = (isExiting ? -1.0 : 1.0) * _direction * 0.08;
+                            return FadeTransition(
+                              opacity: anim,
+                              child: SlideTransition(
+                                position: Tween(begin: Offset(dx, 0), end: Offset.zero).animate(
+                                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+                                ),
+                                child: child,
+                              ),
+                            );
+                          },
+                          layoutBuilder: (currentChild, previousChildren) => Stack(
+                            alignment: Alignment.topLeft,
+                            children: [
+                              ...previousChildren,
+                              ?currentChild,
+                            ],
+                          ),
+                          child: KeyedSubtree(
+                            key: ValueKey('${_tab}_${theme.id}'),
+                            child: _panel(),
+                          ),
                         ),
                       ),
                     ],
@@ -183,31 +222,43 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (onCreateTap != null) ...[
-            const SizedBox(width: 10),
-            GestureDetector(
-              onTap: onCreateTap,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: theme.accent,
-                  border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.accent.withValues(alpha: 0.32),
-                      blurRadius: 14,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Icon(Icons.add, size: 18, color: theme.accentInk),
-              ),
+          AnimatedSwitcher(
+            duration: theme.motionFast,
+            switchInCurve: Curves.easeOutBack,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
             ),
-          ],
+            child: onCreateTap != null
+                ? Padding(
+                    key: const ValueKey('plus_visible'),
+                    padding: const EdgeInsets.only(left: 10),
+                    child: GestureDetector(
+                      onTap: onCreateTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.accent,
+                          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.accent.withValues(alpha: 0.32),
+                              blurRadius: 14,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Icon(Icons.add, size: 18, color: theme.accentInk),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('plus_hidden')),
+          ),
         ],
       ),
     );
@@ -261,23 +312,67 @@ class _Hero extends StatelessWidget {
               offset: Offset(0, (1 - v) * 24),
               child: Opacity(opacity: ((v - 0.92) / 0.08).clamp(0.0, 1.0), child: child),
             ),
-            child: RichText(
-              text: TextSpan(
-                style: theme.displayLarge,
+            child: AnimatedSwitcher(
+              duration: theme.motionMed,
+              switchInCurve: theme.motionEntrance,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: anim.drive(
+                    Tween(begin: const Offset(0, 0.18), end: Offset.zero)
+                        .chain(CurveTween(curve: theme.motionEntrance)),
+                  ),
+                  child: child,
+                ),
+              ),
+              layoutBuilder: (currentChild, previousChildren) => Stack(
+                alignment: Alignment.centerLeft,
                 children: [
-                  TextSpan(text: 'your ', style: theme.displayLarge.copyWith(color: theme.inkMuted)),
-                  TextSpan(text: _word()),
+                  ...previousChildren,
+                  ?currentChild,
                 ],
+              ),
+              child: RichText(
+                key: ValueKey('hero_word_$tab'),
+                text: TextSpan(
+                  style: theme.displayLarge,
+                  children: [
+                    TextSpan(text: 'your ', style: theme.displayLarge.copyWith(color: theme.inkMuted)),
+                    TextSpan(text: _word()),
+                  ],
+                ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Container(width: 18, height: 1, color: theme.accent),
-              const SizedBox(width: 8),
-              Text(_caption(), style: theme.caption),
-            ],
+          AnimatedSwitcher(
+            duration: theme.motionMed,
+            switchInCurve: theme.motionEntrance,
+            transitionBuilder: (child, anim) => FadeTransition(
+              opacity: anim,
+              child: SlideTransition(
+                position: anim.drive(
+                  Tween(begin: const Offset(0, 0.18), end: Offset.zero)
+                      .chain(CurveTween(curve: theme.motionEntrance)),
+                ),
+                child: child,
+              ),
+            ),
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                ...previousChildren,
+                ?currentChild,
+              ],
+            ),
+            child: Row(
+              key: ValueKey('hero_cap_$tab'),
+              children: [
+                Container(width: 18, height: 1, color: theme.accent),
+                const SizedBox(width: 8),
+                Text(_caption(), style: theme.caption),
+              ],
+            ),
           ),
         ],
       ),
