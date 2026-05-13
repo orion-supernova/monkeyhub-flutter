@@ -17,7 +17,6 @@ import '../widgets/report_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
-import 'login_screen.dart';
 import 'profile_visibility_screen.dart';
 import 'room_screen.dart';
 
@@ -298,18 +297,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _signOut() async {
     final auth = widget.auth;
-    final repo = widget.repo;
     if (auth == null || _busy) return;
     setState(() => _busy = true);
     final nav = Navigator.of(context);
     try {
       await auth.signOut();
-      await repo?.detach();
       if (!mounted) return;
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => LoginScreen(auth: auth)),
-        (_) => false,
-      );
+      // Pop everything stacked above the home route. The home route is the
+      // auth-reactive `_AppHome` in app.dart — once `auth.signOut()` flips
+      // `isSignedIn` to false, that home rebuilds to `LoginScreen` on its
+      // own. Pushing a fresh `LoginScreen` here would stack a second copy
+      // on top of `_AppHome`, so the next `signIn` swap (which happens
+      // inside `_AppHome`) would be hidden under that stacked route.
+      nav.popUntil((r) => r.isFirst);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -317,18 +317,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _deleteAccount() async {
     final auth = widget.auth;
-    final repo = widget.repo;
     if (auth == null || _busy) return;
     setState(() => _busy = true);
     final nav = Navigator.of(context);
     try {
       await auth.deleteAccount();
-      await repo?.detach();
       if (!mounted) return;
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => LoginScreen(auth: auth)),
-        (_) => false,
-      );
+      nav.popUntil((r) => r.isFirst);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

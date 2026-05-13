@@ -34,6 +34,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   late final ChatApi _api = ChatApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
+  // Cached merged listenable. Created exactly once so AnimatedBuilder's
+  // listener subscription on _auth / _themeController is never re-bound
+  // across parent rebuilds (each fresh Listenable.merge call would force
+  // AnimatedBuilder.didUpdateWidget into a remove-then-add cycle, which has
+  // been observed to drop the subscription after a sign-out → sign-in
+  // toggle and leave the LoginScreen → HomeShell swap stranded).
+  late final Listenable _appListenable =
+      Listenable.merge([_themeController, _auth]);
 
   bool _bootstrapped = false;
   Object? _bootError;
@@ -43,6 +51,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
+    _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     _bootstrap();
   }
@@ -132,16 +141,26 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 
   void _onAuthChange() async {
     final s = _auth.session;
-    if (s != null && _repo.userId != s.userId) {
-      await _repo.attach(s.userId);
-      await PushManager.instance.login(s.userId);
-      // Mark online on first attach.
-      _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
-      BadgeManager.instance.bind(_repo);
-    } else if (s == null) {
-      BadgeManager.instance.unbind();
-      await _repo.detach();
-      await PushManager.instance.logout();
+    try {
+      if (s != null && _repo.userId != s.userId) {
+        await _repo.attach(s.userId);
+        await PushManager.instance.login(s.userId);
+        // Mark online on first attach.
+        _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
+        BadgeManager.instance.bind(_repo);
+      } else if (s == null) {
+        BadgeManager.instance.unbind();
+        await _repo.detach();
+        await PushManager.instance.logout();
+        // Reset landing tab so the next sign-in starts on Chat instead of
+        // wherever the previous session left off (e.g. Settings, which is
+        // where Sign Out is reached from).
+        await SettingsStore.instance.setSection(HomeSection.chat);
+      }
+    } catch (_) {
+      // Swallow: post-auth attach failures shouldn't crash the listener
+      // pipeline. The UI (AnimatedBuilder) is on a separate listener slot
+      // and must stay reactive even if repo/push setup throws.
     }
   }
 
@@ -158,8 +177,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     return ThemeScope(
       controller: _themeController,
       child: AnimatedBuilder(
-        animation: Listenable.merge([_themeController, _auth]),
+        animation: _appListenable,
         builder: (context, _) {
+          debugPrint('[app] AnimatedBuilder rebuild, isSignedIn=${_auth.isSignedIn}, bootstrapped=$_bootstrapped, bootError=${_bootError != null}');
           final theme = _themeController.theme;
           final isLight = theme.mood == ThemeMood.riso;
           return MaterialApp(
@@ -196,28 +216,33 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                 onSurface: theme.ink,
               ),
             ),
-            home: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 600),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              child: !_bootstrapped
-                  ? const _Splash(key: ValueKey('splash'))
-                  : (_bootError != null
-                      ? _BootError(key: const ValueKey('boot_error'), error: _bootError!, onRetry: () {
-                          setState(() {
-                            _bootError = null;
-                            _bootstrapped = false;
-                          });
-                          _bootstrap();
-                        })
-                      : (_auth.isSignedIn
-                          ? HomeShell(
-                              key: ValueKey('home_${theme.id}'),
-                              repo: _repo,
-                              api: _api,
-                              auth: _auth,
-                            )
-                          : LoginScreen(key: ValueKey('login_${theme.id}'), auth: _auth))),
+            // MaterialApp.home is a stable widget (_AppHome). Its identity
+            // never changes across rebuilds, so the Navigator's initial route
+            // content is fixed and reconciliation works normally. _AppHome
+            // listens to AuthService internally and swaps its child between
+            // _Splash / _BootError / LoginScreen / HomeShell via setState —
+            // a normal subtree rebuild that Flutter mounts/unmounts correctly.
+            //
+            // Previously this slot was an AnimatedSwitcher rebuilt on every
+            // AnimatedBuilder pass, which meant MaterialApp.home was a new
+            // widget instance each time. The Navigator did not propagate
+            // those home changes into the existing route content, so the
+            // LoginScreen → HomeShell swap never happened in-session (the
+            // home widget was effectively frozen on the first mount).
+            home: _AppHome(
+              auth: _auth,
+              repo: _repo,
+              api: _api,
+              themeController: _themeController,
+              bootstrapped: _bootstrapped,
+              bootError: _bootError,
+              onRetryBoot: () {
+                setState(() {
+                  _bootError = null;
+                  _bootstrapped = false;
+                });
+                _bootstrap();
+              },
             ),
           );
         },
@@ -243,7 +268,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 }
 
 class _Splash extends StatelessWidget {
-  const _Splash({super.key});
+  const _Splash();
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -269,7 +294,7 @@ class _Splash extends StatelessWidget {
 }
 
 class _BootError extends StatelessWidget {
-  const _BootError({super.key, required this.error, required this.onRetry});
+  const _BootError({required this.error, required this.onRetry});
   final Object error;
   final VoidCallback onRetry;
   @override
@@ -324,5 +349,82 @@ class _BootError extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Stable child of MaterialApp.home. Listens to AuthService internally so the
+/// LoginScreen → HomeShell swap happens via setState on a subtree we own,
+/// rather than by replacing MaterialApp.home (which the Navigator caches).
+class _AppHome extends StatefulWidget {
+  const _AppHome({
+    required this.auth,
+    required this.repo,
+    required this.api,
+    required this.themeController,
+    required this.bootstrapped,
+    required this.bootError,
+    required this.onRetryBoot,
+  });
+
+  final AuthService auth;
+  final ChatRepository repo;
+  final ChatApi api;
+  final ThemeController themeController;
+  final bool bootstrapped;
+  final Object? bootError;
+  final VoidCallback onRetryBoot;
+
+  @override
+  State<_AppHome> createState() => _AppHomeState();
+}
+
+class _AppHomeState extends State<_AppHome> {
+  @override
+  void initState() {
+    super.initState();
+    widget.auth.addListener(_onAuth);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AppHome oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.auth != widget.auth) {
+      oldWidget.auth.removeListener(_onAuth);
+      widget.auth.addListener(_onAuth);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.auth.removeListener(_onAuth);
+    super.dispose();
+  }
+
+  void _onAuth() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    debugPrint('[app_home] build, isSignedIn=${widget.auth.isSignedIn}, bootstrapped=${widget.bootstrapped}, bootError=${widget.bootError != null}');
+    if (!widget.bootstrapped) return const _Splash();
+    if (widget.bootError != null) {
+      return _BootError(error: widget.bootError!, onRetry: widget.onRetryBoot);
+    }
+    final theme = widget.themeController.theme;
+    final signedIn = widget.auth.isSignedIn;
+    debugPrint('[app_home] selecting child: ${signedIn ? "HomeShell" : "LoginScreen"}');
+    return signedIn
+        ? HomeShell(
+            key: ValueKey('home_${theme.id}'),
+            repo: widget.repo,
+            api: widget.api,
+            auth: widget.auth,
+          )
+        : LoginScreen(
+            key: ValueKey('login_${theme.id}'),
+            auth: widget.auth,
+          );
   }
 }

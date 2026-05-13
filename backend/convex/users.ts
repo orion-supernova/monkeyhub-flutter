@@ -78,6 +78,33 @@ export const getProfile = query({
   },
 });
 
+/**
+ * Sets the user's presence status. Called from the Flutter client whenever the
+ * app's lifecycle changes (resume → "online", pause/inactive → "away",
+ * detach → "offline"). Also stamps `lastSeen` so other clients can render
+ * "last seen N minutes ago" based on the most recent transition.
+ *
+ * Note: this writes the top-level `status` field (the presence indicator),
+ * not `visibility.status` (which controls whether other users can SEE this
+ * field). Those are two separate concepts that happen to share a name.
+ */
+export const updateStatus = mutation({
+  args: {
+    userId: v.id("users"),
+    status: v.string(),
+  },
+  handler: async (ctx, { userId, status }) => {
+    const allowed = new Set(["online", "away", "offline"]);
+    if (!allowed.has(status)) return; // ignore unknown values silently
+    const user = await ctx.db.get(userId);
+    if (!user) return; // user gone — nothing to update
+    await ctx.db.patch(userId, {
+      status,
+      lastSeen: Date.now(),
+    });
+  },
+});
+
 export const updateVisibility = mutation({
   args: {
     userId: v.id("users"),

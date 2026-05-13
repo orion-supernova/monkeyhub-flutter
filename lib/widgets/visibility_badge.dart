@@ -57,7 +57,10 @@ class EphemeralBadge extends StatelessWidget {
         children: [
           theme.hourglassIcon(size: dense ? 10 : 12, color: theme.accent),
           SizedBox(width: dense ? 4 : 6),
-          Text('EPHEMERAL · ${_fmt()}', style: theme.monoTiny.copyWith(color: theme.accent)),
+          Text(
+            dense ? _fmt() : 'EPHEMERAL · ${_fmt()}',
+            style: theme.monoTiny.copyWith(color: theme.accent),
+          ),
         ],
       ),
     );

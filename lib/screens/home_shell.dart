@@ -58,6 +58,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[home_shell] build');
     final theme = ThemeScope.of(context);
     final settings = SettingsStore.instance;
     final radial = settings.navStyle == NavStyle.radial;

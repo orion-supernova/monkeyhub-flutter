@@ -34,29 +34,35 @@ class AuthService extends ChangeNotifier {
       recoveryKey: recoveryKey,
     );
     _session = Session(userId: res.userId, username: res.username, name: res.name);
-    await SessionStore.instance.saveSession(
-      userId: res.userId,
-      username: res.username,
-      name: res.name,
-    );
-    try {
-      await _api.updateStatus(userId: res.userId, status: 'online');
-    } catch (_) {}
+    // Update the UI first. Persisting to flutter_secure_storage occasionally
+    // stalls (first-use after install, keychain accessibility quirks, etc.)
+    // and we don't want that to keep the LoginScreen → HomeShell swap from
+    // happening. If persistence fails the user is still signed in for this
+    // session; they'll just need to sign in again next launch.
     notifyListeners();
+    _persistSession(res);
   }
 
   Future<void> signIn({required String username, required String password}) async {
+    debugPrint('[auth] signIn: calling _api.login');
     final res = await _api.login(username: username, password: password);
+    debugPrint('[auth] signIn: login returned, userId=${res.userId}');
     _session = Session(userId: res.userId, username: res.username, name: res.name);
-    await SessionStore.instance.saveSession(
-      userId: res.userId,
-      username: res.username,
-      name: res.name,
-    );
-    try {
-      await _api.updateStatus(userId: res.userId, status: 'online');
-    } catch (_) {}
+    debugPrint('[auth] signIn: about to notifyListeners (hasListeners=$hasListeners, isSignedIn=$isSignedIn)');
     notifyListeners();
+    debugPrint('[auth] signIn: notifyListeners returned');
+    _persistSession(res);
+    debugPrint('[auth] signIn: _persistSession scheduled, returning');
+  }
+
+  void _persistSession(AuthResult res) {
+    SessionStore.instance
+        .saveSession(
+          userId: res.userId,
+          username: res.username,
+          name: res.name,
+        )
+        .catchError((_) {/* see signIn docs */});
   }
 
   /// Resets the password using a recovery phrase. On success, signs the user
@@ -73,15 +79,8 @@ class AuthService extends ChangeNotifier {
       newPassword: newPassword,
     );
     _session = Session(userId: res.userId, username: res.username, name: res.name);
-    await SessionStore.instance.saveSession(
-      userId: res.userId,
-      username: res.username,
-      name: res.name,
-    );
-    try {
-      await _api.updateStatus(userId: res.userId, status: 'online');
-    } catch (_) {}
     notifyListeners();
+    _persistSession(res);
   }
 
   Future<void> signOut() async {

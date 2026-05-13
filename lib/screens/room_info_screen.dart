@@ -446,20 +446,59 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             _label(theme, 'PASSWORD'),
                             const Spacer(),
                             if (r.hasPassword)
-                              GestureDetector(
-                                onTap: busy ? null : _clearPassword,
-                                child: Text(
-                                  'CLEAR',
-                                  style: theme.monoTiny.copyWith(color: theme.danger),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: theme.accent.withValues(alpha: 0.12),
+                                  border: Border.all(color: theme.accent, width: 1),
+                                  borderRadius: BorderRadius.circular(999),
                                 ),
-                              ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.lock_outline, size: 10, color: theme.accent),
+                                    const SizedBox(width: 5),
+                                    Text('LOCKED', style: theme.monoTiny.copyWith(color: theme.accent)),
+                                  ],
+                                ),
+                              )
+                            else
+                              Text('NONE', style: theme.monoTiny.copyWith(color: theme.inkMuted)),
                           ]),
+                          if (r.hasPassword) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              'this room is protected. the existing passphrase isn\'t shown for security — enter a new one to replace it.',
+                              style: theme.bodySoft.copyWith(fontSize: 12),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
                           _input(
                             theme,
                             _newPassword,
-                            r.hasPassword ? 'set a new passphrase…' : 'lock with a passphrase…',
+                            r.hasPassword ? 'replace passphrase…' : 'lock with a passphrase…',
                             obscure: true,
                           ),
+                          if (r.hasPassword) ...[
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: busy ? null : _clearPassword,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: theme.danger.withValues(alpha: 0.55), width: 1),
+                                    borderRadius: BorderRadius.circular(theme.radiusMd),
+                                  ),
+                                  child: Text(
+                                    'REMOVE PASSWORD',
+                                    style: theme.monoTiny.copyWith(color: theme.danger, letterSpacing: 1.4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                         const SizedBox(height: 28),
                         _label(theme, 'MEMBERS · ${_members.length}'),

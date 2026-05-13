@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 
 /// Wraps the native side of screen-capture protection.
 ///
@@ -55,7 +57,7 @@ class CaptureProtection extends ChangeNotifier {
         final next = event == true;
         if (next == _isBeingCaptured) return;
         _isBeingCaptured = next;
-        notifyListeners();
+        _notifyDeferred();
       },
       onError: (e) => debugPrint('capture stream error: $e'),
     );
@@ -66,7 +68,7 @@ class CaptureProtection extends ChangeNotifier {
   Future<void> setUserEnabled(bool v) async {
     if (_userEnabled == v) return;
     _userEnabled = v;
-    notifyListeners();
+    _notifyDeferred();
     await _reconcileNative();
   }
 
@@ -75,15 +77,28 @@ class CaptureProtection extends ChangeNotifier {
   /// by a pop. Safe to nest.
   Future<void> pushScope() async {
     _scopeCount++;
-    notifyListeners();
+    _notifyDeferred();
     await _reconcileNative();
   }
 
   Future<void> popScope() async {
     if (_scopeCount == 0) return;
     _scopeCount--;
-    notifyListeners();
+    _notifyDeferred();
     await _reconcileNative();
+  }
+
+  /// Schedule a listener notification for after the current build/dispose
+  /// phase. Callers can fire push/pop from initState, dispose, or other
+  /// locked contexts without tripping the "tree locked" assertion that
+  /// AnimatedBuilder listeners (see CaptureShield) would otherwise raise.
+  void _notifyDeferred() {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == SchedulerPhase.idle || phase == SchedulerPhase.postFrameCallbacks) {
+      notifyListeners();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
+    }
   }
 
   Future<void> _reconcileNative() async {
