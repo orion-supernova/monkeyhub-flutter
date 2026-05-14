@@ -79,7 +79,6 @@ class MessageBubble extends StatelessWidget {
                 _MetaRow(
                   message: message,
                   isMine: isMine,
-                  author: author,
                   seenByOthers: seenByOthers,
                 ),
               ],
@@ -202,7 +201,6 @@ class EphemeralMessageBubble extends StatelessWidget {
                     child: _MetaRow(
                       message: message,
                       isMine: isMine,
-                      author: author,
                       countdown: message.timeLeft(now),
                     ),
                   ),
@@ -329,13 +327,11 @@ class _MetaRow extends StatelessWidget {
   const _MetaRow({
     required this.message,
     required this.isMine,
-    this.author,
     this.countdown,
     this.seenByOthers = false,
   });
   final ChatMessage message;
   final bool isMine;
-  final ChatUser? author;
   final Duration? countdown;
   final bool seenByOthers;
 
@@ -353,11 +349,6 @@ class _MetaRow extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!isMine && author != null) ...[
-            Text(author!.displayName.toLowerCase(),
-                style: theme.monoTiny.copyWith(color: theme.inkSoft)),
-            const SizedBox(width: 6),
-          ],
           Text(_fmtTime(message.createdAt), style: theme.monoTiny),
           if (message.status == MessageStatus.pending) ...[
             const SizedBox(width: 8),
