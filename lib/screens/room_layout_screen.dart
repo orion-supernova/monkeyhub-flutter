@@ -59,7 +59,7 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
                 ]),
                 const SizedBox(height: 28),
                 _LayoutCard(
-                  label: 'SCROLL LIST',
+                  label: 'ROW LAYOUT',
                   sub: 'one column, full bleed. easy to read at a glance.',
                   active: current == RoomLayout.list,
                   preview: const _ListPreview(),
@@ -67,7 +67,7 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
                 ),
                 const SizedBox(height: 14),
                 _LayoutCard(
-                  label: 'GRID SHEET',
+                  label: 'GRID LAYOUT',
                   sub: 'two columns, compact. more rooms in one look.',
                   active: current == RoomLayout.grid,
                   preview: const _GridPreview(),

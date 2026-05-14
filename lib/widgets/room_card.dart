@@ -43,8 +43,8 @@ class RoomCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,55 +72,54 @@ class RoomCard extends StatelessWidget {
                 Text(_ago(room.lastMessageTime), style: theme.monoTiny),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 if (dmUser != null) ...[
-                  UserAvatar(user: dmUser!, size: 36, api: api),
-                  const SizedBox(width: 12),
+                  UserAvatar(user: dmUser!, size: 32, api: api),
+                  const SizedBox(width: 10),
                 ] else if (room.avatarStorageId != null && api != null) ...[
                   ClipOval(
                     child: RemoteImage(
                       storageId: room.avatarStorageId!,
                       api: api!,
-                      width: 36,
-                      height: 36,
-                      borderRadius: BorderRadius.circular(18),
+                      width: 32,
+                      height: 32,
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                 ],
                 Expanded(
                   child: Text(
                     dmUser?.displayName ?? room.name,
-                    style: theme.displayMedium,
+                    style: theme.displaySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            if (room.description != null && room.description!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(room.description!.toLowerCase(), style: theme.bodySoft),
-            ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             if (typingNames.isNotEmpty)
               Row(children: [
                 Container(
-                  width: 6, height: 6,
+                  width: 5, height: 5,
                   decoration: BoxDecoration(
                     color: theme.accent,
                     shape: BoxShape.circle,
                     boxShadow: [BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6)],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Flexible(
                   child: Text(
                     typingNames.length == 1
                         ? '${typingNames.first} is typing…'
                         : '${typingNames.length} typing…',
-                    style: theme.body.copyWith(color: theme.accent, fontStyle: FontStyle.italic),
+                    style: theme.bodySoft.copyWith(color: theme.accent, fontStyle: FontStyle.italic),
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -128,11 +127,11 @@ class RoomCard extends StatelessWidget {
             else if (room.lastMessage != null && room.lastMessage!.isNotEmpty)
               Text(
                 room.lastMessage!,
-                style: theme.body,
-                maxLines: 2,
+                style: theme.bodySoft,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Text('${room.memberCount} inside', style: theme.caption),
