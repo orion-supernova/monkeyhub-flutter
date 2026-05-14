@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
@@ -236,7 +238,7 @@ class _ManualGrid extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final themes = ThemeController.all;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.surfaceSunken,
         borderRadius: BorderRadius.circular(theme.radiusMd),
@@ -246,58 +248,116 @@ class _ManualGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _GridSectionHeader(label: 'MONKEY COLLECTION'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 12,
-            children: [
+          const SizedBox(height: 12),
+          _SymmetricTileGrid(
+            tiles: [
               // Canonical MonkeyHub is the "default" of the collection — picks
               // here clear any alternate icon, returning iOS to the primary
               // AppIcon (which is the same monkey on the same dark backdrop).
-              _LogoTile(
+              _TileSpec(
                 label: 'MonkeyHub',
                 background: const Color(0xFF0E0E10),
                 borderColor: theme.divider,
                 selected: selectedId == canonicalLogoId,
                 onTap: () => onPick(canonicalLogoId),
-                child: const CanonicalIconCanvas(
-                  backdrop: Color(0xFF0E0E10),
-                  size: 72,
+                builder: (size) => CanonicalIconCanvas(
+                  backdrop: const Color(0xFF0E0E10),
+                  size: size,
                 ),
               ),
               for (final v in monkeyCollection)
-                _LogoTile(
+                _TileSpec(
                   label: v.displayName,
-                  // The illustration is full-bleed and opaque so the tile
-                  // background is invisible behind it — keep it neutral.
+                  // Illustration is full-bleed; tile background is hidden — keep neutral.
                   background: theme.surface,
                   borderColor: theme.divider,
                   selected: v.id == selectedId,
                   onTap: () => onPick(v.id),
-                  child: MonkeyIconCanvas(variant: v, size: 72),
+                  builder: (size) => MonkeyIconCanvas(variant: v, size: size),
                 ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           _GridSectionHeader(label: 'THEMES'),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 12,
-            children: [
+          const SizedBox(height: 12),
+          _SymmetricTileGrid(
+            tiles: [
               for (final t in themes)
-                _LogoTile(
+                _TileSpec(
                   label: t.name,
                   background: t.surface,
                   borderColor: t.divider,
                   selected: t.id == selectedId,
                   onTap: () => onPick(t.id),
-                  child: BrandIconCanvas(theme: t, size: 72),
+                  builder: (size) => BrandIconCanvas(theme: t, size: size),
                 ),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TileSpec {
+  const _TileSpec({
+    required this.label,
+    required this.background,
+    required this.borderColor,
+    required this.selected,
+    required this.onTap,
+    required this.builder,
+  });
+  final String label;
+  final Color background;
+  final Color borderColor;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget Function(double size) builder;
+}
+
+/// Lays out fixed-look tiles in a grid with mathematically equal gutters on
+/// both sides, regardless of available width — the cell width is computed from
+/// the parent constraints so leftover space is never dumped onto the trailing
+/// edge (which is what `Wrap` does and is why the old layout drifted left).
+class _SymmetricTileGrid extends StatelessWidget {
+  const _SymmetricTileGrid({required this.tiles});
+  final List<_TileSpec> tiles;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 12.0;
+        const targetTile = 78.0;
+        const labelGutter = 24.0; // monoTiny line + 6px gap
+        final cols = math.max(
+          3,
+          ((constraints.maxWidth + spacing) ~/ (targetTile + spacing)),
+        );
+        final cellW =
+            (constraints.maxWidth - (cols - 1) * spacing) / cols;
+        return GridView.count(
+          crossAxisCount: cols,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: 16,
+          childAspectRatio: cellW / (cellW + labelGutter),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: [
+            for (final t in tiles)
+              _LogoTile(
+                label: t.label,
+                background: t.background,
+                borderColor: t.borderColor,
+                selected: t.selected,
+                onTap: t.onTap,
+                child: t.builder(cellW),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -314,25 +374,25 @@ class _GridSectionHeader extends StatelessWidget {
       children: [
         Container(
           width: 3,
-          height: 12,
+          height: 14,
           decoration: BoxDecoration(
             color: theme.accent,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
         Text(
           label,
-          style: theme.label.copyWith(letterSpacing: 2.4, color: theme.accent),
+          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(child: Container(height: 1, color: theme.divider)),
       ],
     );
   }
 }
 
-class _LogoTile extends StatelessWidget {
+class _LogoTile extends StatefulWidget {
   const _LogoTile({
     required this.label,
     required this.background,
@@ -349,49 +409,113 @@ class _LogoTile extends StatelessWidget {
   final Widget child;
 
   @override
+  State<_LogoTile> createState() => _LogoTileState();
+}
+
+class _LogoTileState extends State<_LogoTile> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 78,
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: theme.motionFast,
+        curve: Curves.easeOut,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedContainer(
-              duration: theme.motionFast,
-              width: 72,
-              height: 72,
-              // Clip the edge-to-edge BrandIconCanvas child to the tile's
-              // rounded corners — otherwise the square canvas overdraws them.
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-                border: Border.all(
-                  color: selected ? theme.accent : borderColor,
-                  width: selected ? 1.6 : 1,
-                ),
-                boxShadow: selected
-                    ? [BoxShadow(color: theme.accent.withValues(alpha: 0.30), blurRadius: 14)]
-                    : null,
+            AspectRatio(
+              aspectRatio: 1,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: AnimatedContainer(
+                      duration: theme.motionFast,
+                      // Clip the edge-to-edge canvas child to the tile's
+                      // rounded corners — otherwise the square overdraws them.
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: widget.background,
+                        borderRadius: BorderRadius.circular(theme.radiusMd),
+                        border: Border.all(
+                          color: widget.selected ? theme.accent : widget.borderColor,
+                          width: widget.selected ? 1.6 : 1,
+                        ),
+                        boxShadow: widget.selected
+                            ? [
+                                BoxShadow(
+                                  color: theme.accent.withValues(alpha: 0.30),
+                                  blurRadius: 14,
+                                ),
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: widget.child,
+                    ),
+                  ),
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: AnimatedScale(
+                      scale: widget.selected ? 1.0 : 0.0,
+                      duration: theme.motionFast,
+                      curve: Curves.easeOutBack,
+                      child: AnimatedOpacity(
+                        opacity: widget.selected ? 1.0 : 0.0,
+                        duration: theme.motionFast,
+                        child: _SelectedBadge(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              alignment: Alignment.center,
-              child: child,
             ),
             const SizedBox(height: 6),
             Text(
-              label,
+              widget.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: theme.monoTiny.copyWith(
-                color: selected ? theme.accent : theme.inkSoft,
+                color: widget.selected ? theme.accent : theme.inkSoft,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SelectedBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: theme.accent,
+        shape: BoxShape.circle,
+        border: Border.all(color: theme.surface, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: theme.accent.withValues(alpha: 0.45),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(Icons.check, size: 9, color: theme.accentInk),
     );
   }
 }
