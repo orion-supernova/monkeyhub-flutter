@@ -10,6 +10,7 @@ import '../push/push_manager.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
+import 'chat_style_screen.dart';
 import 'navigation_screen.dart';
 import 'profile_screen.dart';
 import 'room_layout_screen.dart';
@@ -47,6 +48,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String get _navLabel =>
       SettingsStore.instance.navStyle == NavStyle.radial ? 'Radial orb' : 'Bottom pill';
+
+  String get _chatStyleLabel =>
+      SettingsStore.instance.chatStyle == ChatStyle.classic ? 'Classic' : 'Compact';
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +133,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const NavigationScreen()),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: 'CHAT STYLE',
+                value: _chatStyleLabel,
+                leading: Icon(Icons.bubble_chart_outlined, size: 16, color: theme.inkSoft),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ChatStyleScreen()),
                 ),
               ),
 

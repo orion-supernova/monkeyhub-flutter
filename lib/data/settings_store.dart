@@ -15,6 +15,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kSection = 'mh.section';
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kCaptureProtection = 'mh.captureProtection';
+  static const _kChatStyle = 'mh.chatStyle';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -27,6 +28,7 @@ class SettingsStore extends ChangeNotifier {
   HomeSection _section = HomeSection.chat;
   bool _pushEnabled = true;
   bool _captureProtection = false;
+  ChatStyle _chatStyle = ChatStyle.compact;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -34,6 +36,7 @@ class SettingsStore extends ChangeNotifier {
   HomeSection get section => _section;
   bool get pushEnabled => _pushEnabled;
   bool get captureProtection => _captureProtection;
+  ChatStyle get chatStyle => _chatStyle;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -52,6 +55,10 @@ class SettingsStore extends ChangeNotifier {
       _pushEnabled = push != 'false'; // default true
       final cap = await _storage.read(key: _kCaptureProtection);
       _captureProtection = cap == 'true'; // default false
+      final cs = await _storage.read(key: _kChatStyle);
+      // 'liquid' was the legacy name for compact — preserve the choice for
+      // anyone who had selected it before the rename.
+      _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -98,11 +105,20 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kCaptureProtection, value: v ? 'true' : 'false');
   }
+
+  Future<void> setChatStyle(ChatStyle s) async {
+    if (_chatStyle == s) return;
+    _chatStyle = s;
+    notifyListeners();
+    await _storage.write(key: _kChatStyle, value: s.name);
+  }
 }
 
 enum RoomLayout { list, grid }
 
 enum NavStyle { radial, pill }
+
+enum ChatStyle { classic, compact }
 
 enum HomeSection {
   chat,

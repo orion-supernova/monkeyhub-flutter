@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../media/upload_service.dart';
 import '../privacy/capture_protection.dart';
 import '../models/chat_message.dart';
@@ -16,6 +17,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/attachment_menu.dart';
+import '../widgets/liquid_glass.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/user_avatar.dart';
@@ -48,6 +50,7 @@ class _RoomScreenState extends State<RoomScreen> {
   // True once we've pushed a CaptureProtection scope for this ephemeral
   // room — so dispose can pop exactly one and we don't double-push.
   bool _pushedCaptureScope = false;
+  ChatStyle _lastChatStyle = SettingsStore.instance.chatStyle;
 
   @override
   void initState() {
@@ -59,10 +62,18 @@ class _RoomScreenState extends State<RoomScreen> {
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
+    SettingsStore.instance.addListener(_onSettings);
     // If the room is already in the rooms cache from the subscription, we
     // can push the capture scope immediately. Otherwise _onRepoChange will
     // pick it up on the first notification.
     _maybePushCaptureScope(widget.repo.roomById(widget.roomId));
+  }
+
+  void _onSettings() {
+    final cs = SettingsStore.instance.chatStyle;
+    if (cs == _lastChatStyle) return;
+    _lastChatStyle = cs;
+    if (mounted) setState(() {});
   }
 
   void _maybePushCaptureScope(ChatRoom? room) {
@@ -152,6 +163,7 @@ class _RoomScreenState extends State<RoomScreen> {
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     widget.repo.removeListener(_onRepoChange);
+    SettingsStore.instance.removeListener(_onSettings);
     widget.repo.closeRoom();
     if (_pushedCaptureScope) {
       CaptureProtection.instance.popScope();
@@ -254,158 +266,246 @@ class _RoomScreenState extends State<RoomScreen> {
     // items[0] is the newest message (visually at the bottom) and the intro
     // ends up at items[last] (visually at the top).
     final items = messages.isEmpty ? const <_RoomItem>[] : _buildItems(room, messages).reversed.toList();
+    final chatStyle = SettingsStore.instance.chatStyle;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           theme.backgroundLayer(context),
-          SafeArea(
-            child: Column(
-              children: [
-                _Header(
-                  room: room,
-                  typing: widget.repo.typingIn(room.id),
-                  dmUser: widget.repo.otherUserFor(room),
-                  api: widget.api,
-                  onTapDmUser: () {
-                    final u = widget.repo.otherUserFor(room);
-                    if (u == null) return;
-                    _openProfile(u);
-                  },
-                  onOpenInfo: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => RoomInfoScreen(roomId: room.id, repo: widget.repo, api: widget.api),
-                      ),
-                    );
-                  },
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-                    child: messages.isEmpty
-                        ? (room.isEphemeral
-                              ? _SecretSpaceWelcome(ttl: room.messageLifetime)
-                              : const _NoMessagesPlaceholder())
-                        : ListView.builder(
-                            controller: _scroll,
-                            reverse: true,
-                            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                            itemCount: items.length,
-                            itemBuilder: (context, i) {
-                            final item = items[i];
-                            if (item is _IntroItem) {
-                              return _RoomIntro(room: room, members: _members.values.toList(), api: widget.api);
-                            }
-                            if (item is _DateDividerItem) {
-                              return _DateDivider(label: item.label);
-                            }
-                            final m = (item as _MessageItem).message;
-                            final author = _members[m.senderId];
-                            final isMine = m.senderId == me;
-                            final othersRead = widget.repo.latestOthersReadAt;
-                            final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
-                            Future<void> onLongPress() async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              final action = await showMessageActionSheet(
-                                context,
-                                isMine: isMine,
-                                canCopy: m.type == MessageType.text && m.content.isNotEmpty,
-                              );
-                              if (!mounted || action == null) return;
-                              switch (action) {
-                                case MessageAction.react:
-                                  final emoji = await showReactionPicker(this.context);
-                                  if (emoji == null || emoji.isEmpty) return;
-                                  await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
-                                  break;
-                                case MessageAction.copy:
-                                  await Clipboard.setData(ClipboardData(text: m.content));
-                                  messenger.showSnackBar(const SnackBar(content: Text('copied')));
-                                  break;
-                                case MessageAction.delete:
-                                  await widget.repo.deleteMessage(m.id);
-                                  break;
-                                case MessageAction.viewProfile:
-                                  if (author != null) _openProfile(author);
-                                  break;
-                                case MessageAction.report:
-                                  final reason = await showReportSheet(this.context);
-                                  if (reason == null || reason.isEmpty) return;
-                                  final myId = widget.repo.userId;
-                                  if (myId == null) return;
-                                  try {
-                                    await widget.api.report(
-                                      reporterId: myId,
-                                      targetType: 'message',
-                                      targetId: m.id,
-                                      reason: reason,
-                                    );
-                                    if (!mounted) return;
-                                    messenger.showSnackBar(
-                                      const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
-                                    );
-                                  } catch (_) {}
-                                  break;
-                              }
-                            }
+          if (chatStyle == ChatStyle.classic)
+            _buildClassic(context, room, messages, items, me)
+          else
+            _buildLiquid(context, room, messages, items, me),
+        ],
+      ),
+    );
+  }
 
-                            void onReactionTap(String e) {
-                              widget.repo.toggleReaction(messageId: m.id, emoji: e);
-                            }
+  Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<_RoomItem> items, String me) {
+    return SafeArea(
+      child: Column(
+        children: [
+          _Header(
+            room: room,
+            typing: widget.repo.typingIn(room.id),
+            dmUser: widget.repo.otherUserFor(room),
+            api: widget.api,
+            onTapDmUser: () {
+              final u = widget.repo.otherUserFor(room);
+              if (u == null) return;
+              _openProfile(u);
+            },
+            onOpenInfo: () => _openRoomInfo(room),
+          ),
+          Expanded(
+            child: _messageBody(
+              context,
+              room,
+              messages,
+              items,
+              me,
+              listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            ),
+          ),
+          _Composer(
+            controller: _composer,
+            ephemeral: room.isEphemeral,
+            onSend: _send,
+            onChanged: (_) => widget.repo.noteTyping(),
+            onAttach: _onAttach,
+          ),
+        ],
+      ),
+    );
+  }
 
-                            void onAuthorTap() {
-                              if (author == null || isMine) return;
-                              _openProfile(author);
-                            }
-
-                            return AnimatedSwitcher(
-                              duration: theme.motionMed,
-                              switchInCurve: theme.motionEntrance,
-                              child: m.isEphemeral
-                                  ? EphemeralMessageBubble(
-                                      key: ValueKey('e_${m.id}'),
-                                      message: m,
-                                      now: _now,
-                                      currentUserId: me,
-                                      api: widget.api,
-                                      author: author,
-                                      onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                                      onReactionTap: onReactionTap,
-                                      onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                                    )
-                                  : MessageBubble(
-                                      key: ValueKey('s_${m.id}'),
-                                      message: m,
-                                      now: _now,
-                                      currentUserId: me,
-                                      api: widget.api,
-                                      author: author,
-                                      onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                                      onReactionTap: onReactionTap,
-                                      onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                                      seenByOthers: seenByOthers,
-                                    ),
-                            );
-                          },
-                        ),
-                  ),
-                ),
-                _Composer(
-                  controller: _composer,
-                  ephemeral: room.isEphemeral,
-                  onSend: _send,
-                  onChanged: (_) => widget.repo.noteTyping(),
-                  onAttach: _onAttach,
-                ),
-              ],
+  Widget _buildLiquid(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<_RoomItem> items, String me) {
+    final topSafe = MediaQuery.paddingOf(context).top;
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    // Header: 8pt top + 44pt button + 8pt bottom = 60pt; composer: same.
+    // Scaffold's default resizeToAvoidBottomInset shrinks the body when the
+    // keyboard appears, so we DO NOT add viewInsets manually — that would
+    // double-count and leave a massive gap.
+    const chromeH = 60.0;
+    final listPadding = EdgeInsets.fromLTRB(
+      20,
+      topSafe + chromeH + 12,
+      20,
+      chromeH + 16 + bottomSafe,
+    );
+    // BackdropGroup batches the six BackdropFilters in the chrome (header
+    // pill + 2 buttons + composer attach + field + send) into a single
+    // rasterization pass — see lib/widgets/liquid_glass.dart for details.
+    return BackdropGroup(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: _messageBody(context, room, messages, items, me, listPadding: listPadding),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: _LiquidHeader(
+                room: room,
+                dmUser: widget.repo.otherUserFor(room),
+                api: widget.api,
+                onTapDmUser: () {
+                  final u = widget.repo.otherUserFor(room);
+                  if (u == null) return;
+                  _openProfile(u);
+                },
+                onOpenInfo: () => _openRoomInfo(room),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _LiquidComposer(
+              controller: _composer,
+              ephemeral: room.isEphemeral,
+              onSend: _send,
+              onChanged: (_) => widget.repo.noteTyping(),
+              onAttach: _onAttach,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _openRoomInfo(ChatRoom room) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RoomInfoScreen(roomId: room.id, repo: widget.repo, api: widget.api),
+      ),
+    );
+  }
+
+  Widget _messageBody(
+    BuildContext context,
+    ChatRoom room,
+    List<ChatMessage> messages,
+    List<_RoomItem> items,
+    String me, {
+    required EdgeInsets listPadding,
+  }) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: messages.isEmpty
+          ? (room.isEphemeral
+                ? _SecretSpaceWelcome(ttl: room.messageLifetime)
+                : const _NoMessagesPlaceholder())
+          : ListView.builder(
+              controller: _scroll,
+              reverse: true,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: listPadding,
+              itemCount: items.length,
+              itemBuilder: (context, i) {
+                final item = items[i];
+                if (item is _IntroItem) {
+                  return _RoomIntro(room: room, members: _members.values.toList(), api: widget.api);
+                }
+                if (item is _DateDividerItem) {
+                  return _DateDivider(label: item.label);
+                }
+                final m = (item as _MessageItem).message;
+                final author = _members[m.senderId];
+                final isMine = m.senderId == me;
+                final othersRead = widget.repo.latestOthersReadAt;
+                final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
+                Future<void> onLongPress() async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final action = await showMessageActionSheet(
+                    context,
+                    isMine: isMine,
+                    canCopy: m.type == MessageType.text && m.content.isNotEmpty,
+                  );
+                  if (!mounted || action == null) return;
+                  switch (action) {
+                    case MessageAction.react:
+                      final emoji = await showReactionPicker(this.context);
+                      if (emoji == null || emoji.isEmpty) return;
+                      await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                      break;
+                    case MessageAction.copy:
+                      await Clipboard.setData(ClipboardData(text: m.content));
+                      messenger.showSnackBar(const SnackBar(content: Text('copied')));
+                      break;
+                    case MessageAction.delete:
+                      await widget.repo.deleteMessage(m.id);
+                      break;
+                    case MessageAction.viewProfile:
+                      if (author != null) _openProfile(author);
+                      break;
+                    case MessageAction.report:
+                      final reason = await showReportSheet(this.context);
+                      if (reason == null || reason.isEmpty) return;
+                      final myId = widget.repo.userId;
+                      if (myId == null) return;
+                      try {
+                        await widget.api.report(
+                          reporterId: myId,
+                          targetType: 'message',
+                          targetId: m.id,
+                          reason: reason,
+                        );
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
+                        );
+                      } catch (_) {}
+                      break;
+                  }
+                }
+
+                void onReactionTap(String e) {
+                  widget.repo.toggleReaction(messageId: m.id, emoji: e);
+                }
+
+                void onAuthorTap() {
+                  if (author == null || isMine) return;
+                  _openProfile(author);
+                }
+
+                return AnimatedSwitcher(
+                  duration: theme.motionMed,
+                  switchInCurve: theme.motionEntrance,
+                  child: m.isEphemeral
+                      ? EphemeralMessageBubble(
+                          key: ValueKey('e_${m.id}'),
+                          message: m,
+                          now: _now,
+                          currentUserId: me,
+                          api: widget.api,
+                          author: author,
+                          onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                          onReactionTap: onReactionTap,
+                          onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                        )
+                      : MessageBubble(
+                          key: ValueKey('s_${m.id}'),
+                          message: m,
+                          now: _now,
+                          currentUserId: me,
+                          api: widget.api,
+                          author: author,
+                          onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                          onReactionTap: onReactionTap,
+                          onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                          seenByOthers: seenByOthers,
+                        ),
+                );
+              },
+            ),
     );
   }
 }
@@ -944,3 +1044,183 @@ class _NoMessagesPlaceholder extends StatelessWidget {
     );
   }
 }
+
+// ───────────────────────── liquid variant chrome ─────────────────────────
+
+class _LiquidHeader extends StatefulWidget {
+  const _LiquidHeader({
+    required this.room,
+    required this.api,
+    required this.onOpenInfo,
+    this.dmUser,
+    this.onTapDmUser,
+  });
+  final ChatRoom room;
+  final ChatApi api;
+  final VoidCallback onOpenInfo;
+  final ChatUser? dmUser;
+  final VoidCallback? onTapDmUser;
+
+  @override
+  State<_LiquidHeader> createState() => _LiquidHeaderState();
+}
+
+class _LiquidHeaderState extends State<_LiquidHeader> {
+  bool _expanded = false;
+  Timer? _collapseTimer;
+
+  void _expandTitle() {
+    setState(() => _expanded = true);
+    _collapseTimer?.cancel();
+    _collapseTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _expanded = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _collapseTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final title = widget.dmUser?.displayName ?? widget.room.name;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          LiquidGlass(
+            shape: LiquidGlassShape.circle,
+            size: const Size(44, 44),
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Icon(Icons.arrow_back, size: 18, color: theme.accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: LiquidGlass(
+              shape: LiquidGlassShape.capsule,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              onTap: _expandTitle,
+              child: AnimatedSize(
+                duration: theme.motionMed,
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    if (widget.dmUser != null)
+                      UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
+                    else
+                      Container(
+                        width: 32,
+                        height: 32,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.accent.withValues(alpha: 0.10),
+                        ),
+                        child: Icon(Icons.group_outlined, size: 18, color: theme.accent),
+                      ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
+                        overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
+                        softWrap: _expanded,
+                        maxLines: _expanded ? 3 : 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          LiquidGlass(
+            shape: LiquidGlassShape.circle,
+            size: const Size(44, 44),
+            onTap: widget.onOpenInfo,
+            child: Icon(Icons.info_outline, size: 18, color: theme.accent),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiquidComposer extends StatelessWidget {
+  const _LiquidComposer({
+    required this.controller,
+    required this.ephemeral,
+    required this.onSend,
+    this.onChanged,
+    this.onAttach,
+  });
+  final TextEditingController controller;
+  final bool ephemeral;
+  final VoidCallback onSend;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onAttach;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    // Scaffold handles the keyboard via resizeToAvoidBottomInset — the body
+    // shrinks and `bottomSafe` is already reduced to 0 when the keyboard
+    // covers the home indicator. Adding viewInsets here would double-count.
+    final pad = EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe);
+    return Padding(
+      padding: pad,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (onAttach != null) ...[
+            LiquidGlass(
+              shape: LiquidGlassShape.circle,
+              size: const Size(44, 44),
+              onTap: onAttach,
+              child: Icon(Icons.add, size: 18, color: theme.accent),
+            ),
+            const SizedBox(width: 12),
+          ],
+          Expanded(
+            child: LiquidGlass(
+              shape: LiquidGlassShape.rounded,
+              radius: 22,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: TextField(
+                controller: controller,
+                style: theme.body.copyWith(color: theme.ink, fontSize: 16),
+                cursorColor: theme.accent,
+                minLines: 1,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  isCollapsed: true,
+                  border: InputBorder.none,
+                  hintText: ephemeral ? 'whisper something the server will forget…' : 'Message',
+                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                ),
+                onChanged: onChanged,
+                onSubmitted: (_) => onSend(),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          LiquidGlass(
+            shape: LiquidGlassShape.circle,
+            size: const Size(44, 44),
+            tinted: true,
+            onTap: onSend,
+            child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -106,6 +106,19 @@ class _PillBottomNav extends StatelessWidget {
   const _PillBottomNav({required this.active, required this.onSelect});
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
+
+  static const _sections = [
+    HomeSection.chat,
+    HomeSection.feed,
+    HomeSection.settings,
+  ];
+
+  Alignment _alignmentFor(HomeSection s) {
+    // 3 segments → -1, 0, +1 on the x axis.
+    final i = _sections.indexOf(s);
+    return Alignment(-1 + i * 1.0, 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -132,11 +145,37 @@ class _PillBottomNav extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
+              child: Stack(
                 children: [
-                  _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat),
-                  _btn(theme, CupertinoIcons.sparkles, 'Feed', HomeSection.feed),
-                  _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings),
+                  // Sliding accent indicator behind the active segment.
+                  Positioned.fill(
+                    child: AnimatedAlign(
+                      duration: theme.motionMed,
+                      curve: Curves.easeOutCubic,
+                      alignment: _alignmentFor(active),
+                      child: FractionallySizedBox(
+                        widthFactor: 1 / _sections.length,
+                        heightFactor: 1,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.accent.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: theme.accent.withValues(alpha: 0.32),
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat),
+                      _btn(theme, CupertinoIcons.sparkles, 'Feed', HomeSection.feed),
+                      _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -148,7 +187,6 @@ class _PillBottomNav extends StatelessWidget {
 
   Widget _btn(AppTheme theme, IconData icon, String label, HomeSection s) {
     final isActive = s == active;
-    final color = isActive ? theme.accent : theme.inkSoft;
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelect(s),
@@ -159,17 +197,29 @@ class _PillBottomNav extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 20, color: color),
+              AnimatedDefaultTextStyle(
+                duration: theme.motionMed,
+                style: TextStyle(color: isActive ? theme.accent : theme.inkSoft),
+                child: Builder(
+                  builder: (ctx) => Icon(
+                    icon,
+                    size: 20,
+                    color: DefaultTextStyle.of(ctx).style.color,
+                  ),
+                ),
+              ),
               const SizedBox(width: 6),
-              Text(
-                label,
+              AnimatedDefaultTextStyle(
+                duration: theme.motionMed,
+                curve: Curves.easeOutCubic,
                 style: TextStyle(
                   fontFamily: 'CupertinoSystemText',
                   fontSize: 11,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                   letterSpacing: -0.08,
-                  color: color,
+                  color: isActive ? theme.accent : theme.inkSoft,
                 ),
+                child: Text(label),
               ),
             ],
           ),
