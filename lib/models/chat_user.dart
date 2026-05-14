@@ -2,40 +2,49 @@ import 'package:flutter/widgets.dart';
 import 'enums.dart';
 
 /// Per-field visibility for a user's profile. Matches backend's
-/// `users.visibility` shape. Missing fields default to `public`.
+/// `users.visibility` shape. New users default to `nobody` across the board;
+/// existing server-stored values are returned verbatim.
 enum FieldVisibility { public, friends, nobody }
 
 extension FieldVisibilityWire on FieldVisibility {
   String get wire => name;
   static FieldVisibility parse(String? s) {
     switch (s) {
+      case 'public':
+        return FieldVisibility.public;
       case 'friends':
         return FieldVisibility.friends;
       case 'nobody':
         return FieldVisibility.nobody;
       default:
-        return FieldVisibility.public;
+        return FieldVisibility.nobody;
     }
   }
 }
 
 class ProfileVisibility {
   ProfileVisibility({
-    this.avatar = FieldVisibility.public,
-    this.status = FieldVisibility.public,
-    this.lastSeen = FieldVisibility.public,
-    this.friendRequests = FieldVisibility.public, // public | nobody only
+    this.avatar = FieldVisibility.nobody,
+    this.status = FieldVisibility.nobody,
+    this.lastSeen = FieldVisibility.nobody,
+    this.seen = FieldVisibility.nobody,
+    this.friendRequests = FieldVisibility.nobody, // public | nobody only
   });
 
   FieldVisibility avatar;
   FieldVisibility status;
   FieldVisibility lastSeen;
+
+  /// Controls whether your read receipts ("SEEN" indicator) are surfaced
+  /// to people whose messages you've read. Nobody by default — opt-in only.
+  FieldVisibility seen;
   FieldVisibility friendRequests;
 
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
         avatar: FieldVisibilityWire.parse(j['avatar'] as String?),
         status: FieldVisibilityWire.parse(j['status'] as String?),
         lastSeen: FieldVisibilityWire.parse(j['lastSeen'] as String?),
+        seen: FieldVisibilityWire.parse(j['seen'] as String?),
         friendRequests: FieldVisibilityWire.parse(j['friendRequests'] as String?),
       );
 
@@ -43,12 +52,14 @@ class ProfileVisibility {
     FieldVisibility? avatar,
     FieldVisibility? status,
     FieldVisibility? lastSeen,
+    FieldVisibility? seen,
     FieldVisibility? friendRequests,
   }) =>
       ProfileVisibility(
         avatar: avatar ?? this.avatar,
         status: status ?? this.status,
         lastSeen: lastSeen ?? this.lastSeen,
+        seen: seen ?? this.seen,
         friendRequests: friendRequests ?? this.friendRequests,
       );
 }

@@ -27,7 +27,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const List<String> _tabOrder = ['rooms', 'requests', 'discover'];
+  static const List<String> _tabOrder = ['rooms', 'discover', 'requests'];
   String _tab = 'rooms';
   int _direction = 1;
   ChatUser? _me;
@@ -113,8 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           onChange: _setTab,
                           items: const [
                             PillNavItem(id: 'rooms', label: 'ROOMS'),
-                            PillNavItem(id: 'requests', label: 'REQUESTS'),
                             PillNavItem(id: 'discover', label: 'DISCOVER'),
+                            PillNavItem(id: 'requests', label: 'REQUESTS'),
                           ],
                         ),
                       ),

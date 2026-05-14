@@ -27,6 +27,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  ChatUser? _me;
+
   void _onSettings() {
     if (mounted) setState(() {});
   }
@@ -35,12 +37,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     SettingsStore.instance.addListener(_onSettings);
+    _loadMe();
   }
 
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
     super.dispose();
+  }
+
+  Future<void> _loadMe() async {
+    final s = widget.auth.session;
+    if (s == null) return;
+    try {
+      final fresh = await widget.api.getProfile(s.userId, viewerUserId: s.userId);
+      if (!mounted || fresh == null) return;
+      setState(() => _me = fresh);
+    } catch (_) {/* keep the bootstrap ChatUser; avatar stays generic */}
   }
 
   String get _layoutLabel =>
@@ -72,41 +85,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 28),
               Text('look. feel. you.', style: theme.displayLarge),
               const SizedBox(height: 28),
-              if (s != null)
-                GestureDetector(
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => ProfileScreen(
-                      user: ChatUser(id: s.userId, username: s.username, name: s.name),
-                      repo: widget.repo,
-                      api: widget.api,
-                      auth: widget.auth,
-                    ),
-                  )),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: theme.roomCardDecoration(ephemeral: false, active: false),
-                    child: Row(
-                      children: [
-                        UserAvatar(
-                          user: ChatUser(id: s.userId, username: s.username, name: s.name),
-                          size: 48,
-                          api: widget.api,
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(s.name, style: theme.displaySmall),
-                              Text('@${s.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
-                            ],
+              if (s != null) ...[
+                () {
+                  final me = _me ??
+                      ChatUser(id: s.userId, username: s.username, name: s.name);
+                  return GestureDetector(
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ProfileScreen(
+                        user: me,
+                        repo: widget.repo,
+                        api: widget.api,
+                        auth: widget.auth,
+                      ),
+                    )),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+                      child: Row(
+                        children: [
+                          UserAvatar(user: me, size: 48, api: widget.api),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(me.displayName, style: theme.displaySmall),
+                                Text('@${me.username}',
+                                    style: theme.mono.copyWith(color: theme.inkMuted)),
+                              ],
+                            ),
                           ),
-                        ),
-                        Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
-                      ],
+                          Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }(),
+              ],
               const SizedBox(height: 24),
 
               _DisclosureRow(

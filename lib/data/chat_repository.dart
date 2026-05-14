@@ -10,6 +10,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
 import 'cache_store.dart';
+import 'settings_store.dart';
 
 /// Source of truth for chat data (rooms + open-room messages).
 ///
@@ -83,8 +84,11 @@ class ChatRepository extends ChangeNotifier {
   final Map<String, DateTime> _activeReadState = {};
 
   /// The latest `lastReadAt` of any user other than me in the current room.
-  /// Used to render the "seen" indicator on my own messages.
+  /// Used to render the "SEEN" indicator on my own messages. Returns null
+  /// when the local "view read receipts" preference is off, suppressing the
+  /// indicator regardless of what the server delivers.
   DateTime? get latestOthersReadAt {
+    if (!SettingsStore.instance.viewReadReceipts) return null;
     final me = _userId;
     DateTime? best;
     for (final entry in _activeReadState.entries) {
@@ -96,8 +100,19 @@ class ChatRepository extends ChangeNotifier {
 
   // ───────────── lifecycle ─────────────
 
+  void _onSettingsChanged() {
+    // Only the view-read-receipts flag affects this repo's outputs. A bool
+    // flip changes what [latestOthersReadAt] returns even though the cached
+    // [_activeReadState] hasn't moved, so we have to nudge listeners.
+    notifyListeners();
+  }
+
   Future<void> attach(String userId) async {
     _userId = userId;
+    // Re-emit when the local "view read receipts" pref flips so any open
+    // chat screen rebuilds and the SEEN indicator appears/disappears live.
+    SettingsStore.instance.removeListener(_onSettingsChanged);
+    SettingsStore.instance.addListener(_onSettingsChanged);
     // 1) Hydrate from disk so the first frame already shows last-known state
     //    even if we're cold-booting offline. This is cheap (~ms) and the
     //    live subscriptions will overwrite as they connect.
@@ -204,6 +219,7 @@ class ChatRepository extends ChangeNotifier {
   }
 
   Future<void> detach() async {
+    SettingsStore.instance.removeListener(_onSettingsChanged);
     _roomsSub?.cancel();
     _friendsSub?.cancel();
     _incomingSub?.cancel();
@@ -332,22 +348,24 @@ class ChatRepository extends ChangeNotifier {
       onError: (err) => debugPrint('messages sub error: $err'),
     );
 
-    _readStateSub = await cv.subscribe(
-      'messages:getReadState',
-      {'roomId': roomId},
-      onData: (data) {
-        final list = (data as List?) ?? const [];
-        _activeReadState.clear();
-        for (final e in list) {
-          final m = (e as Map).cast<String, dynamic>();
-          final uid = m['userId'].toString();
-          final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
-          _activeReadState[uid] = DateTime.fromMillisecondsSinceEpoch(ts);
-        }
-        notifyListeners();
-      },
-      onError: (err) => debugPrint('readState sub error: $err'),
-    );
+    if (me != null) {
+      _readStateSub = await cv.subscribe(
+        'messages:getReadState',
+        {'roomId': roomId, 'viewerUserId': me},
+        onData: (data) {
+          final list = (data as List?) ?? const [];
+          _activeReadState.clear();
+          for (final e in list) {
+            final m = (e as Map).cast<String, dynamic>();
+            final uid = m['userId'].toString();
+            final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
+            _activeReadState[uid] = DateTime.fromMillisecondsSinceEpoch(ts);
+          }
+          notifyListeners();
+        },
+        onError: (err) => debugPrint('readState sub error: $err'),
+      );
+    }
 
     // Mark the room read on entry too.
     if (me != null) {

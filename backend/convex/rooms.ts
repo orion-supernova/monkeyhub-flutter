@@ -241,6 +241,10 @@ export const getMembers = query({
           email: user.email,
           avatarStorageId: user.avatarStorageId,
           status: user.status,
+          // Needed by the client's status dot — the 5-minute "fresh away"
+          // gate in user_avatar.dart reads this and demotes amber → gray
+          // once the user's been idle long enough.
+          lastSeen: user.lastSeen,
           role: m.role,
         };
       })

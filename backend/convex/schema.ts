@@ -14,13 +14,18 @@ export default defineSchema({
     avatarStorageId: v.optional(v.id("_storage")),
     deviceTokens: v.optional(v.array(v.string())), // legacy field — OneSignal manages tokens now
     // Per-field visibility — each value is "public" | "friends" | "nobody".
-    // Missing keys default to "public" (current behavior). username + name are
-    // always public since they're identity.
+    // username + name are always public since they're identity. New accounts
+    // and missing keys default to "nobody" on the client; this object stores
+    // exactly what the user has set, verbatim.
     visibility: v.optional(
       v.object({
         avatar: v.optional(v.string()),
         status: v.optional(v.string()),
         lastSeen: v.optional(v.string()),
+        // Whether this user's read receipts ("SEEN" indicator) are surfaced
+        // to message senders. Reader-side control: when "nobody", the server
+        // omits this user's lastReadAt from getReadState responses.
+        seen: v.optional(v.string()),
         friendRequests: v.optional(v.string()), // "public" | "nobody"
       })
     ),

@@ -16,6 +16,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
+  static const _kViewReadReceipts = 'mh.viewReadReceipts';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -29,6 +30,7 @@ class SettingsStore extends ChangeNotifier {
   bool _pushEnabled = true;
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
+  bool _viewReadReceipts = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -37,6 +39,12 @@ class SettingsStore extends ChangeNotifier {
   bool get pushEnabled => _pushEnabled;
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
+
+  /// When false (default), the "SEEN" indicator on the user's own messages is
+  /// suppressed even if read-state data flows in. Off by default — opt-in.
+  /// Even when on, only contributors whose `seen` visibility allows it will
+  /// surface; see [profile_visibility_screen] for the inbound warning.
+  bool get viewReadReceipts => _viewReadReceipts;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -59,6 +67,8 @@ class SettingsStore extends ChangeNotifier {
       // 'liquid' was the legacy name for compact — preserve the choice for
       // anyone who had selected it before the rename.
       _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
+      final vrr = await _storage.read(key: _kViewReadReceipts);
+      _viewReadReceipts = vrr == 'true'; // default false
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -111,6 +121,13 @@ class SettingsStore extends ChangeNotifier {
     _chatStyle = s;
     notifyListeners();
     await _storage.write(key: _kChatStyle, value: s.name);
+  }
+
+  Future<void> setViewReadReceipts(bool v) async {
+    if (_viewReadReceipts == v) return;
+    _viewReadReceipts = v;
+    notifyListeners();
+    await _storage.write(key: _kViewReadReceipts, value: v ? 'true' : 'false');
   }
 }
 

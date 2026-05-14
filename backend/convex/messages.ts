@@ -254,19 +254,68 @@ export const markRoomRead = mutation({
 });
 
 /**
- * Returns each member's lastReadAt timestamp for a room. The client uses
- * this to render a "seen" indicator on its own messages.
+ * Returns each member's lastReadAt timestamp for a room, filtered by each
+ * reader's `seen` visibility relative to the requesting viewer:
+ *
+ *   reader.visibility.seen = "public"  → row visible to anyone
+ *   reader.visibility.seen = "friends" → row visible only to the reader's friends
+ *   reader.visibility.seen = "nobody"  → row hidden (default for missing/unset)
+ *
+ * The viewer's own row is always returned. Rows whose reader has hidden their
+ * `seen` are simply omitted (rather than returned as 0) so the client can
+ * compute "latest other read" without a separate filter.
+ *
+ * The client uses this stream to render the "SEEN" indicator on its own
+ * messages. A reader who hasn't opted in to send-read-receipts contributes
+ * nothing here — so message senders see no SEEN unless the reader explicitly
+ * shares.
  */
 export const getReadState = query({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId }) => {
+  args: {
+    roomId: v.id("rooms"),
+    viewerUserId: v.id("users"),
+  },
+  handler: async (ctx, { roomId, viewerUserId }) => {
     const members = await ctx.db
       .query("roomMembers")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
-    return members.map((m) => ({
-      userId: m.userId,
-      lastReadAt: m.lastReadAt ?? 0,
-    }));
+
+    const viewerKey = viewerUserId.toString();
+    const out: Array<{ userId: any; lastReadAt: number }> = [];
+    for (const m of members) {
+      const isSelf = m.userId.toString() === viewerKey;
+      if (isSelf) {
+        out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
+        continue;
+      }
+      const reader = await ctx.db.get(m.userId);
+      const level = reader?.visibility?.seen;
+      // Privacy-first default: missing/unknown ⇒ "nobody".
+      const allowed =
+        level === "public" ||
+        (level === "friends" &&
+          (await _areFriends(ctx, m.userId, viewerUserId)));
+      if (!allowed) continue;
+      out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
+    }
+    return out;
   },
 });
+
+async function _areFriends(
+  ctx: any,
+  a: any,
+  b: any,
+): Promise<boolean> {
+  const fwd = await ctx.db
+    .query("friendships")
+    .withIndex("by_pair", (q: any) => q.eq("userId", a).eq("friendId", b))
+    .first();
+  if (fwd?.status === "accepted") return true;
+  const rev = await ctx.db
+    .query("friendships")
+    .withIndex("by_pair", (q: any) => q.eq("userId", b).eq("friendId", a))
+    .first();
+  return rev?.status === "accepted";
+}

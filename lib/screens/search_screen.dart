@@ -24,7 +24,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _q = TextEditingController();
-  String _mode = 'people';
+  String _mode = 'rooms';
   String _query = '';
   Timer? _debounce;
 
@@ -46,9 +46,18 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onChanged(String v) {
-    setState(() => _query = v);
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), _refresh);
+    final hasQuery = v.isNotEmpty;
+    setState(() {
+      _query = v;
+      _loading = hasQuery;
+      if (!hasQuery) _users = const [];
+    });
+    if (hasQuery) {
+      _debounce = Timer(const Duration(milliseconds: 250), _refresh);
+    } else if (_mode == 'rooms') {
+      _refresh();
+    }
   }
 
   Future<void> _refresh() async {
@@ -88,22 +97,49 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                  child: Row(children: [
-                    _ModeChip(
-                        label: 'PEOPLE',
-                        active: _mode == 'people',
-                        onTap: () { setState(() => _mode = 'people'); _refresh(); }),
-                    const SizedBox(width: 8),
-                    _ModeChip(
-                        label: 'ROOMS',
-                        active: _mode == 'rooms',
-                        onTap: () { setState(() => _mode = 'rooms'); _refresh(); }),
-                  ]),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _ModeChip(
+                          label: 'ROOMS',
+                          active: _mode == 'rooms',
+                          onTap: () { setState(() => _mode = 'rooms'); _refresh(); }),
+                      const SizedBox(width: 8),
+                      _ModeChip(
+                          label: 'PEOPLE',
+                          active: _mode == 'people',
+                          onTap: () { setState(() => _mode = 'people'); _refresh(); }),
+                    ],
+                  ),
                 ),
                 Expanded(
-                  child: _loading
-                      ? Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2))
-                      : (_mode == 'people' ? _peopleBody() : _roomsBody()),
+                  child: AnimatedSwitcher(
+                    duration: theme.motionMed,
+                    switchInCurve: theme.motionEntrance,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, anim) => FadeTransition(
+                      opacity: anim,
+                      child: SlideTransition(
+                        position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
+                            .chain(CurveTween(curve: theme.motionEntrance))
+                            .animate(anim),
+                        child: child,
+                      ),
+                    ),
+                    layoutBuilder: (currentChild, previousChildren) => Stack(
+                      alignment: Alignment.topCenter,
+                      children: [
+                        ...previousChildren,
+                        ?currentChild,
+                      ],
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey(_mode),
+                      child: _loading
+                          ? Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2))
+                          : (_mode == 'people' ? _peopleBody() : _roomsBody()),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -118,7 +154,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_query.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: Text('type a handle or a name', style: theme.bodySoft)),
+        child: Center(child: Text('search by handle or name', style: theme.bodySoft)),
       );
     }
     if (_users.isEmpty) {
@@ -142,9 +178,10 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _roomsBody() {
     final theme = ThemeScope.of(context);
     if (_rooms.isEmpty) {
+      final msg = _query.isEmpty ? 'no public rooms yet' : 'no public rooms match';
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: Text('no public rooms found', style: theme.bodySoft)),
+        child: Center(child: Text(msg, style: theme.bodySoft)),
       );
     }
     return ListView.builder(
@@ -172,29 +209,35 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              decoration: theme.inputDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(children: [
-                Icon(Icons.search, color: theme.inkMuted, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: q,
-                    autofocus: true,
-                    style: theme.body.copyWith(color: theme.ink),
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: 'search…',
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            child: Hero(
+              tag: 'discover-search-bar',
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  decoration: theme.inputDecoration(),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(children: [
+                    Icon(Icons.search, color: theme.inkMuted, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: q,
+                        autofocus: true,
+                        style: theme.body.copyWith(color: theme.ink),
+                        cursorColor: theme.accent,
+                        decoration: InputDecoration(
+                          isCollapsed: true,
+                          border: InputBorder.none,
+                          hintText: 'search…',
+                          hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onChanged: onChanged,
+                      ),
                     ),
-                    onChanged: onChanged,
-                  ),
+                  ]),
                 ),
-              ]),
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -221,11 +264,18 @@ class _ModeChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: theme.motionFast,
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: theme.chipDecoration(filled: active),
-        child: Text(label,
-            style: theme.label.copyWith(color: active ? theme.accentInk : theme.inkSoft)),
+        child: AnimatedDefaultTextStyle(
+          duration: theme.motionFast,
+          curve: Curves.easeOutCubic,
+          style: theme.label.copyWith(color: active ? theme.accentInk : theme.inkSoft),
+          child: Text(label),
+        ),
       ),
     );
   }

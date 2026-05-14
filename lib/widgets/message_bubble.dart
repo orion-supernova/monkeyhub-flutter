@@ -51,7 +51,7 @@ class MessageBubble extends StatelessWidget {
           if (!isMine && author != null) ...[
             GestureDetector(
               onTap: onAuthorTap,
-              child: UserAvatar(user: author!, size: 28, api: api),
+              child: UserAvatar(user: author!, size: 28, api: api, showStatus: false),
             ),
             const SizedBox(width: 8),
           ],
@@ -168,7 +168,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                 onTap: onAuthorTap,
                 child: Opacity(
                   opacity: 1 - dissolveT * 0.7,
-                  child: UserAvatar(user: author!, size: 28, api: api),
+                  child: UserAvatar(user: author!, size: 28, api: api, showStatus: false),
                 ),
               ),
               const SizedBox(width: 8),

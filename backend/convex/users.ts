@@ -111,9 +111,13 @@ export const updateVisibility = mutation({
     avatar: v.optional(v.string()),
     status: v.optional(v.string()),
     lastSeen: v.optional(v.string()),
+    seen: v.optional(v.string()),
     friendRequests: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, avatar, status, lastSeen, friendRequests }) => {
+  handler: async (
+    ctx,
+    { userId, avatar, status, lastSeen, seen, friendRequests }
+  ) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
     const valid = new Set(["public", "friends", "nobody"]);
@@ -131,6 +135,7 @@ export const updateVisibility = mutation({
       ...(avatar !== undefined ? { avatar: pick(avatar, valid) } : {}),
       ...(status !== undefined ? { status: pick(status, valid) } : {}),
       ...(lastSeen !== undefined ? { lastSeen: pick(lastSeen, valid) } : {}),
+      ...(seen !== undefined ? { seen: pick(seen, valid) } : {}),
       ...(friendRequests !== undefined
         ? { friendRequests: pick(friendRequests, reqValid) }
         : {}),

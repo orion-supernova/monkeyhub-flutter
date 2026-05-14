@@ -41,12 +41,25 @@ class UserAvatar extends StatelessWidget {
     return hash;
   }
 
+  static const _amber = Color(0xFFE0A33C);
+  static const _awayFreshWindow = Duration(minutes: 5);
+
   Color? _statusColor(AppTheme theme) {
     switch (user.status) {
       case 'online':
         return theme.success;
       case 'away':
-        return const Color(0xFFE0A33C); // amber — theme-neutral
+        // If we know when they were last seen, only stay amber while still
+        // recently active; otherwise demote to gray so a stale "away" doesn't
+        // misrepresent presence. Without a lastSeen (hidden or unavailable),
+        // fall back to amber — that's all we know.
+        final ls = user.lastSeen;
+        if (ls != null) {
+          return DateTime.now().difference(ls) <= _awayFreshWindow
+              ? _amber
+              : theme.inkMuted;
+        }
+        return _amber;
       case 'offline':
         return theme.inkMuted;
       default:

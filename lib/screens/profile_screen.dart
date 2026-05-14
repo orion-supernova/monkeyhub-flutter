@@ -770,7 +770,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const CaptureProtectionToggle(),
           const SizedBox(height: 8),
           _RowLink(
-            label: 'PROFILE VISIBILITY',
+            label: 'VISIBILITY PREFERENCES',
             icon: Icons.visibility_outlined,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
 import '../media/upload_service.dart';
 import '../models/chat_room.dart';
@@ -50,6 +51,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   bool _deleting = false;
   String? _error;
   List<ChatUser> _members = const [];
+  Subscription? _membersSub;
+  String _membersSig = '';
   ChatRoom? _lastObservedRoom;
 
   ChatRoom? get _room => widget.repo.roomById(widget.roomId);
@@ -104,15 +107,51 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   }
 
   Future<void> _loadMembers() async {
+    // Live subscription so presence (status/lastSeen) and any member-list
+    // changes propagate without needing the screen to be re-opened.
+    //
+    // Convex re-fires this whenever any roomMembers row in the room is
+    // written — including read-receipts (`markRoomRead` patches lastReadAt),
+    // which can fire often during active chat. We don't render lastReadAt
+    // here, so a content-signature dedup avoids gratuitous rebuilds. Without
+    // it, rebuilds during overscroll fight the bounce physics and the
+    // scroll view visibly jitters at top/bottom edges.
     try {
-      final ms = await widget.api.getMembers(widget.roomId);
-      if (!mounted) return;
-      setState(() => _members = ms);
+      _membersSub?.cancel();
+      _membersSub = await widget.repo.cv.subscribe(
+        'rooms:getMembers',
+        {'roomId': widget.roomId},
+        onData: (data) {
+          if (!mounted) return;
+          final list = (data as List?) ?? const [];
+          final fresh = list
+              .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+              .toList();
+          final sig = _signatureFor(fresh);
+          if (sig == _membersSig) return;
+          _membersSig = sig;
+          setState(() => _members = fresh);
+        },
+        onError: (err) => debugPrint('members sub error: $err'),
+      );
     } catch (_) {/* offline — leave empty */}
+  }
+
+  /// Stable string fingerprint over the fields this screen actually renders.
+  /// Order-insensitive so reorders from the server don't trigger a rebuild
+  /// (the screen sorts members locally for display).
+  String _signatureFor(List<ChatUser> users) {
+    final parts = users
+        .map((u) =>
+            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
+        .toList()
+      ..sort();
+    return parts.join(';');
   }
 
   @override
   void dispose() {
+    _membersSub?.cancel();
     widget.repo.removeListener(_onRepo);
     _name.dispose();
     _desc.dispose();

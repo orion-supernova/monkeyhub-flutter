@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../media/upload_service.dart';
@@ -20,6 +21,7 @@ import '../widgets/attachment_menu.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/message_action_sheet.dart';
 import '../widgets/report_sheet.dart';
@@ -46,6 +48,8 @@ class _RoomScreenState extends State<RoomScreen> {
   final TextEditingController _composer = TextEditingController();
   final ScrollController _scroll = ScrollController();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
+  Subscription? _membersSub;
+  String _membersSig = '';
   ChatRoom? _room;
   // True once we've pushed a CaptureProtection scope for this ephemeral
   // room — so dispose can pop exactly one and we don't double-push.
@@ -131,18 +135,50 @@ class _RoomScreenState extends State<RoomScreen> {
   }
 
   Future<void> _loadMembers() async {
+    // Live subscription so each member's presence (status/lastSeen) and
+    // any add/remove flows through without needing to re-enter the room.
+    //
+    // Convex re-fires whenever any roomMembers row is written — including
+    // read-receipts from `markRoomRead`, which happen on every incoming
+    // message while someone is in the room. We don't render lastReadAt
+    // here, so we dedup on the fields we actually use and skip the rebuild
+    // when nothing material has changed. Without this, rebuilds during an
+    // active chat scroll can jitter the bouncing physics at edges.
     try {
-      final ms = await widget.api.getMembers(widget.roomId);
-      if (!mounted) return;
-      setState(() {
-        _members.clear();
-        for (final u in ms) {
-          _members[u.id] = u;
-        }
-      });
+      _membersSub?.cancel();
+      _membersSub = await widget.repo.cv.subscribe(
+        'rooms:getMembers',
+        {'roomId': widget.roomId},
+        onData: (data) {
+          if (!mounted) return;
+          final list = (data as List?) ?? const [];
+          final fresh = list
+              .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+              .toList();
+          final sig = _signatureFor(fresh);
+          if (sig == _membersSig) return;
+          _membersSig = sig;
+          setState(() {
+            _members.clear();
+            for (final u in fresh) {
+              _members[u.id] = u;
+            }
+          });
+        },
+        onError: (err) => debugPrint('members sub error: $err'),
+      );
     } catch (_) {
       /* ignore — initial fetch may fail offline */
     }
+  }
+
+  String _signatureFor(List<ChatUser> users) {
+    final parts = users
+        .map((u) =>
+            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
+        .toList()
+      ..sort();
+    return parts.join(';');
   }
 
   void _onRepoChange() {
@@ -162,6 +198,7 @@ class _RoomScreenState extends State<RoomScreen> {
     _composer.dispose();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _membersSub?.cancel();
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
     widget.repo.closeRoom();
@@ -554,6 +591,9 @@ class _Header extends StatelessWidget {
               onTap: onTapDmUser,
               child: UserAvatar(user: dmUser!, size: 32, api: api),
             ),
+            const SizedBox(width: 10),
+          ] else ...[
+            _RoomAvatar(room: room, api: api, size: 32),
             const SizedBox(width: 10),
           ],
           Expanded(
@@ -1100,41 +1140,42 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: LiquidGlass(
-              shape: LiquidGlassShape.capsule,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              onTap: _expandTitle,
-              child: AnimatedSize(
-                duration: theme.motionMed,
-                curve: Curves.easeOutCubic,
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    if (widget.dmUser != null)
-                      UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
-                    else
-                      Container(
-                        width: 32,
-                        height: 32,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: theme.accent.withValues(alpha: 0.10),
+            child: Center(
+              // IntrinsicWidth makes LiquidGlass shrink-wrap its content
+              // (LiquidGlass's internal Center would otherwise expand to fill
+              // whatever bounded width it gets, which is why a short title
+              // still produced a full-width capsule). When the title is long
+              // IntrinsicWidth clamps to the parent's max, so the inner
+              // Flexible(Text) ellipsizes inside the capsule's max width.
+              child: IntrinsicWidth(
+                child: LiquidGlass(
+                  shape: LiquidGlassShape.capsule,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  onTap: _expandTitle,
+                  child: AnimatedSize(
+                    duration: theme.motionMed,
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.dmUser != null)
+                          UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
+                        else
+                          _RoomAvatar(room: widget.room, api: widget.api, size: 32),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
+                            overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
+                            softWrap: _expanded,
+                            maxLines: _expanded ? 3 : 1,
+                          ),
                         ),
-                        child: Icon(Icons.group_outlined, size: 18, color: theme.accent),
-                      ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
-                        overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
-                        softWrap: _expanded,
-                        maxLines: _expanded ? 3 : 1,
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1220,6 +1261,44 @@ class _LiquidComposer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RoomAvatar extends StatelessWidget {
+  const _RoomAvatar({required this.room, required this.api, this.size = 32});
+  final ChatRoom room;
+  final ChatApi? api;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final hasRemote = api != null &&
+        room.avatarStorageId != null &&
+        room.avatarStorageId!.isNotEmpty;
+    if (hasRemote) {
+      return ClipOval(
+        child: RemoteImage(
+          storageId: room.avatarStorageId!,
+          api: api!,
+          width: size,
+          height: size,
+          borderRadius: BorderRadius.circular(size / 2),
+        ),
+      );
+    }
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: theme.accent.withValues(alpha: 0.10),
+      ),
+      child: room.isEphemeral
+          ? theme.hourglassIcon(size: size * 0.56, color: theme.accent)
+          : Icon(Icons.tag, size: size * 0.56, color: theme.accent),
     );
   }
 }

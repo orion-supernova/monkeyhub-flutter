@@ -47,25 +47,44 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
       children: [
         GestureDetector(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => SearchScreen(repo: widget.repo, api: widget.api),
+            PageRouteBuilder(
+              transitionDuration: theme.motionMed,
+              reverseTransitionDuration: theme.motionMed,
+              pageBuilder: (_, _, _) =>
+                  SearchScreen(repo: widget.repo, api: widget.api),
+              transitionsBuilder: (_, anim, _, child) {
+                final curved = CurvedAnimation(parent: anim, curve: theme.motionEntrance);
+                return FadeTransition(
+                  opacity: curved,
+                  child: SlideTransition(
+                    position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
+                        .animate(curved),
+                    child: child,
+                  ),
+                );
+              },
             ),
           ),
-          child: Container(
-            decoration: theme.inputDecoration(),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            child: Row(
-              children: [
-                Icon(Icons.search, color: theme.inkMuted, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'search people · rooms…',
-                    style: theme.body.copyWith(color: theme.inkMuted),
-                  ),
+          child: Hero(
+            tag: 'discover-search-bar',
+            child: Material(
+              type: MaterialType.transparency,
+              child: Container(
+                decoration: theme.inputDecoration(),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: theme.inkMuted, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'search rooms · people…',
+                        style: theme.body.copyWith(color: theme.inkMuted),
+                      ),
+                    ),
+                  ],
                 ),
-                Icon(Icons.arrow_outward, color: theme.inkMuted, size: 14),
-              ],
+              ),
             ),
           ),
         ),

@@ -95,6 +95,7 @@ class ChatApi {
     FieldVisibility? avatar,
     FieldVisibility? status,
     FieldVisibility? lastSeen,
+    FieldVisibility? seen,
     FieldVisibility? friendRequests,
   }) async {
     await _cv.mutation('users:updateVisibility', {
@@ -102,6 +103,7 @@ class ChatApi {
       if (avatar != null) 'avatar': avatar.wire,
       if (status != null) 'status': status.wire,
       if (lastSeen != null) 'lastSeen': lastSeen.wire,
+      if (seen != null) 'seen': seen.wire,
       if (friendRequests != null) 'friendRequests': friendRequests.wire,
     });
   }
@@ -285,10 +287,17 @@ class ChatApi {
     await _cv.mutation('messages:markRoomRead', {'roomId': roomId, 'userId': userId});
   }
 
-  /// Returns `[{userId, lastReadAt(ms)}]` for every member of the room.
-  /// Subscribe to this for live read receipts.
-  Future<List<({String userId, DateTime lastReadAt})>> getReadState(String roomId) async {
-    final res = await _cv.query('messages:getReadState', {'roomId': roomId});
+  /// Returns `[{userId, lastReadAt(ms)}]` for every member of the room whose
+  /// `seen` visibility allows the viewer to see it. The viewer's own row is
+  /// always present. Subscribe via the repo for live read receipts.
+  Future<List<({String userId, DateTime lastReadAt})>> getReadState({
+    required String roomId,
+    required String viewerUserId,
+  }) async {
+    final res = await _cv.query(
+      'messages:getReadState',
+      {'roomId': roomId, 'viewerUserId': viewerUserId},
+    );
     return ((res as List?) ?? const []).map((e) {
       final m = (e as Map).cast<String, dynamic>();
       final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
