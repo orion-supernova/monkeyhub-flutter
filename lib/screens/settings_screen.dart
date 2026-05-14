@@ -319,7 +319,7 @@ class _VersionStampState extends State<_VersionStamp> {
   Future<void> _load() async {
     final info = await PackageInfo.fromPlatform();
     if (!mounted) return;
-    setState(() => _stamp = 'MonkeyHub · v${info.version}+${info.buildNumber}');
+    setState(() => _stamp = 'MonkeyHub · v${info.version}');
   }
 
   @override
