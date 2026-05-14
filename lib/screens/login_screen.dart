@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_brand_mark.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -104,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(children: [
-                        theme.brandMark(size: 34),
+                        const AppBrandMark(size: 34),
                         const SizedBox(width: 12),
                         Text('MONKEYHUB', style: theme.label.copyWith(letterSpacing: 3)),
                       ]),

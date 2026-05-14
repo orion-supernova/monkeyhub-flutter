@@ -292,6 +292,11 @@ class BioOrganicTheme implements AppTheme {
     );
   }
 
+  // BrandIconCanvas's surface backdrop fills the corners where the blob has
+  // transparent edges. See AppTheme.iconMark.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final palette = [

@@ -71,6 +71,18 @@ abstract class AppTheme {
   Widget hourglassIcon({double size = 16, Color? color});
   Widget brandMark({double size = 28});
 
+  /// Same identity as [brandMark] but optimised for app-icon rendering: the
+  /// drawing must fill the [size]×[size] square edge-to-edge with opaque
+  /// pixels (no internal `borderRadius`, no shadow that depends on
+  /// surrounding space). Used by `BrandIconCanvas` for the launcher PNG and
+  /// the picker tile so both surfaces show identical content; the platform
+  /// (iOS squircle mask, Android adaptive icon mask) applies the rounding.
+  ///
+  /// Default: forward to [brandMark]. Themes whose [brandMark] inset their
+  /// content (e.g. a rounded button inside a square) should override this to
+  /// return an edge-to-edge variant.
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   // Avatar gradient seeds (theme controls palette of generated avatars)
   List<Color> avatarGradient(int seed);
 }

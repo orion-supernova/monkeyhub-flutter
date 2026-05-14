@@ -266,6 +266,11 @@ class RisographPopTheme implements AppTheme {
     );
   }
 
+  // See AppTheme.iconMark — starburst paints with transparent edges; the
+  // BrandIconCanvas backdrop fills the corners.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final palette = [
@@ -427,7 +432,13 @@ class _StarBurstPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2 - 1.5;
+    // Each of the legacy magic numbers (1.5 inset, 1.2 overprint offset,
+    // 1.6 stroke width) now floors a `size.width * <ratio>` term — at header
+    // sizes the legacy value wins (look unchanged); at icon sizes the
+    // ratio wins so the riso overprint and outline remain visible.
+    final inset = math.max(1.5, size.width * 0.01);
+    final r = size.width / 2 - inset;
+    final overprint = math.max(1.2, size.width * 0.012);
     // 8-point burst
     final path = Path();
     const points = 8;
@@ -446,7 +457,7 @@ class _StarBurstPainter extends CustomPainter {
     path.close();
     // Secondary offset for overprint
     canvas.save();
-    canvas.translate(1.2, 1.2);
+    canvas.translate(overprint, overprint);
     canvas.drawPath(path, Paint()..color = secondary.withValues(alpha: 0.85));
     canvas.restore();
     canvas.drawPath(path, Paint()..color = fill);
@@ -454,7 +465,7 @@ class _StarBurstPainter extends CustomPainter {
       path,
       Paint()
         ..color = stroke
-        ..strokeWidth = 1.6
+        ..strokeWidth = math.max(1.6, size.width * 0.005)
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round,
     );

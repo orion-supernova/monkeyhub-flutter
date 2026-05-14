@@ -336,11 +336,86 @@ class BasicTheme implements AppTheme {
   }
 
   @override
+  Widget iconMark({double size = 28}) {
+    // Edge-to-edge launcher-icon variant. Three things going on:
+    //
+    // 1. No internal `borderRadius`/`boxShadow` — the bg colour fills every
+    //    pixel of the [size]×[size] square so iOS/Android can apply their
+    //    own corner masks (squircle / adaptive icon) without revealing a
+    //    surface-coloured "frame" inside the platform mask.
+    //
+    // 2. The 'M' glyph is drawn as a geometric path instead of `Text`.
+    //    The brandMark uses `fontFamily: 'CupertinoSystemDisplay'`, which
+    //    iOS maps to SF Pro Display at runtime but `flutter_test` (the
+    //    launcher-PNG generator) doesn't know — it falls back to "Ahem",
+    //    which renders every glyph as a solid square. Painting the M makes
+    //    launcher PNG and in-app preview identical.
+    //
+    // 3. Light-surface palettes (Daylight, Rose) use `surface` as the icon
+    //    bg and `accent` as the M colour; dark-surface palettes use
+    //    `accent` as bg and `accentInk` as the M colour. Without this,
+    //    midnight and daylight produce identical PNGs (same accent + same
+    //    accentInk) — switching between them changes nothing visible on the
+    //    home screen. The luminance branch keeps each variant distinct AND
+    //    keeps each one high-contrast.
+    final lightTheme = _p.surface.computeLuminance() > 0.5;
+    final bg = lightTheme ? _p.surface : _p.accent;
+    final fg = lightTheme ? _p.accent : _p.accentInk;
+    return Container(
+      width: size,
+      height: size,
+      color: bg,
+      child: CustomPaint(painter: _BasicMonogramPainter(color: fg)),
+    );
+  }
+
+  @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
     final palette = _p.avatarPalette;
     return [palette[r.nextInt(palette.length)], palette[r.nextInt(palette.length)]];
   }
+}
+
+/// Draws a chunky uppercase 'M' as a stroked path so the icon doesn't depend
+/// on a font being available at render time (the launcher-icon generator runs
+/// under flutter_test where unknown font families fall back to Ahem — solid
+/// squares). The geometry mirrors the proportions of the SF Pro Display 'M'
+/// the in-app brandMark uses at small sizes.
+class _BasicMonogramPainter extends CustomPainter {
+  _BasicMonogramPainter({required this.color});
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+    final c = Offset(size.width / 2, size.height / 2);
+    // Place the M in the central 56% of the icon — leaves comfortable
+    // breathing room inside the iOS squircle mask.
+    final halfW = s * 0.28;
+    final halfH = s * 0.28;
+    final dip = s * 0.10;
+
+    final path = Path()
+      ..moveTo(c.dx - halfW, c.dy + halfH)
+      ..lineTo(c.dx - halfW, c.dy - halfH)
+      ..lineTo(c.dx, c.dy + dip)
+      ..lineTo(c.dx + halfW, c.dy - halfH)
+      ..lineTo(c.dx + halfW, c.dy + halfH);
+
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.14
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BasicMonogramPainter old) => old.color != color;
 }
 
 /// All swappable colour tokens for a Basic variant. Typography, geometry,

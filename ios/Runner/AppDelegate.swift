@@ -59,6 +59,58 @@ import UserNotifications
       captureEvents.setStreamHandler(_CaptureStreamHandler(appDelegate: self))
     }
 
+    // monkeyhub/launcher_icon — swap the home-screen launcher icon at runtime.
+    // Backs LauncherIconService in Dart. We talk to UIApplication directly
+    // here because flutter_dynamic_icon_plus's Swift wrapper (SwiftTryCatch)
+    // collides with Swift's reserved `try` keyword under modern compilers.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubLauncherIconPlugin") {
+      let channel = FlutterMethodChannel(
+        name: "monkeyhub/launcher_icon",
+        binaryMessenger: registrar.messenger()
+      )
+      channel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "supportsAlternateIcons":
+          if #available(iOS 10.3, *) {
+            result(UIApplication.shared.supportsAlternateIcons)
+          } else {
+            result(false)
+          }
+        case "getAlternateIconName":
+          if #available(iOS 10.3, *) {
+            result(UIApplication.shared.alternateIconName)
+          } else {
+            result(nil)
+          }
+        case "setAlternateIconName":
+          guard #available(iOS 10.3, *) else {
+            result(nil)
+            return
+          }
+          let args = call.arguments as? [String: Any] ?? [:]
+          let iconName = args["iconName"] as? String  // nil → primary icon
+          DispatchQueue.main.async {
+            NSLog("[launcher_icon] setAlternateIconName(\(iconName ?? "<nil/primary>")) — supportsAlternateIcons=\(UIApplication.shared.supportsAlternateIcons)")
+            UIApplication.shared.setAlternateIconName(iconName) { error in
+              if let error = error as NSError? {
+                NSLog("[launcher_icon] FAIL name=\(iconName ?? "<nil>") domain=\(error.domain) code=\(error.code) msg=\(error.localizedDescription) userInfo=\(error.userInfo)")
+                result(FlutterError(
+                  code: "set_failed",
+                  message: "\(error.domain)#\(error.code): \(error.localizedDescription)",
+                  details: ["userInfo": "\(error.userInfo)"]
+                ))
+              } else {
+                NSLog("[launcher_icon] OK name=\(iconName ?? "<nil/primary>")")
+                result(nil)
+              }
+            }
+          }
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
     // monkeyhub/badge — set or clear the app icon badge count.
     // Register the channel via a plugin registrar so we get a binaryMessenger
     // without depending on the rootViewController being a FlutterViewController.

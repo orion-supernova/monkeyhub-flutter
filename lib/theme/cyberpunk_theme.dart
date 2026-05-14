@@ -246,6 +246,11 @@ class CyberpunkTheme implements AppTheme {
     );
   }
 
+  // Default delegate — see AppTheme.iconMark. Cyberpunk's brandMark already
+  // fills its size box opaquely (background + accent border).
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);

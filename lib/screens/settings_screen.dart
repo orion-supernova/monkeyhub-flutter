@@ -7,10 +7,12 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../models/chat_user.dart';
 import '../push/push_manager.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_brand_mark.dart';
+import '../widgets/monkey_collection.dart';
 import '../widgets/user_avatar.dart';
 import 'chat_style_screen.dart';
+import 'logo_screen.dart';
 import 'navigation_screen.dart';
 import 'profile_screen.dart';
 import 'room_layout_screen.dart';
@@ -65,6 +67,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String get _chatStyleLabel =>
       SettingsStore.instance.chatStyle == ChatStyle.classic ? 'Classic' : 'Compact';
 
+  String get _logoLabel {
+    final s = SettingsStore.instance;
+    switch (s.logoMode) {
+      case LogoMode.auto:
+        return 'Auto';
+      case LogoMode.alwaysDefault:
+        return 'MonkeyHub';
+      case LogoMode.manual:
+        final id = s.manualLogoThemeId;
+        if (id == null) return 'Manual';
+        if (id == canonicalLogoId) return 'MonkeyHub';
+        final monkey = monkeyVariantById(id);
+        if (monkey != null) return monkey.displayName;
+        return ThemeController.byId(id).name;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -78,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
             children: [
               Row(children: [
-                theme.brandMark(size: 30),
+                const AppBrandMark(size: 30),
                 const SizedBox(width: 10),
                 Text('SETTINGS', style: theme.label.copyWith(letterSpacing: 3)),
               ]),
@@ -124,6 +143,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
               const SizedBox(height: 24),
 
+              _SectionHeader(label: 'APPEARANCE'),
+              const SizedBox(height: 12),
               _DisclosureRow(
                 label: 'THEME',
                 value: activeTheme.name,
@@ -133,6 +154,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
+              _DisclosureRow(
+                label: 'APP LOGO',
+                value: _logoLabel,
+                leading: Icon(Icons.workspaces_outline, size: 16, color: theme.inkSoft),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LogoScreen()),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+              _SectionHeader(label: 'LAYOUT'),
+              const SizedBox(height: 12),
               _DisclosureRow(
                 label: 'ROOM LAYOUT',
                 value: _layoutLabel,
@@ -161,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
-              _section(theme, 'NOTIFICATIONS'),
+              _SectionHeader(label: 'NOTIFICATIONS'),
               const SizedBox(height: 12),
               _PushToggle(),
 
@@ -174,11 +207,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _section(AppTheme theme, String t) => Row(children: [
-        Text(t, style: theme.label),
-        const SizedBox(width: 8),
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 3,
+          height: 14,
+          decoration: BoxDecoration(
+            color: theme.accent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
+        ),
+        const SizedBox(width: 12),
         Expanded(child: Container(height: 1, color: theme.divider)),
-      ]);
+      ],
+    );
+  }
 }
 
 class _DisclosureRow extends StatelessWidget {

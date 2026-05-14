@@ -276,6 +276,10 @@ class RetroWaveTheme implements AppTheme {
     );
   }
 
+  // See AppTheme.iconMark — retro_wave's brandMark fills with a 3-color gradient.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);

@@ -15,6 +15,7 @@ import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_scope.dart';
+import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
 
@@ -281,7 +282,7 @@ class _Splash extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                theme.brandMark(size: 56),
+                const AppBrandMark(size: 56),
                 const SizedBox(height: 18),
                 Text('MONKEYHUB', style: theme.label.copyWith(letterSpacing: 4)),
               ],

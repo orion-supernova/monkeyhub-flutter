@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/app_brand_mark.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
@@ -19,7 +20,7 @@ class FeedScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  theme.brandMark(size: 30),
+                  const AppBrandMark(size: 30),
                   const SizedBox(width: 10),
                   Text('FEED', style: theme.label.copyWith(letterSpacing: 3)),
                 ]),

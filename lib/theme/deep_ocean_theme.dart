@@ -224,6 +224,11 @@ class DeepOceanTheme implements AppTheme {
     );
   }
 
+  // See AppTheme.iconMark — deep_ocean's brandMark fills opaquely (gradient
+  // circle). BrandIconCanvas's surface backdrop covers the corners.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);

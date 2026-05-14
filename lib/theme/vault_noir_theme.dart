@@ -292,6 +292,11 @@ class VaultNoirTheme implements AppTheme {
     );
   }
 
+  // See AppTheme.iconMark — wax seal's notched outline has subtle transparent
+  // gaps at the corners; BrandIconCanvas's surface backdrop fills them.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final rand = math.Random(seed);
@@ -529,14 +534,18 @@ class _WaxSealPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2 - 1;
-    // Wax circle with notched edges
+    // Inset, notch depth, and outline stroke each have a fixed legacy floor
+    // (the values originally tuned for 28-56px header marks) AND a fraction
+    // of `size.width` so they remain visible at icon scale (180-1024px).
+    final inset = math.max(1.0, size.width * 0.008);
+    final r = size.width / 2 - inset;
+    final notch = math.max(1.2, size.width * 0.012);
     final path = Path();
     const segs = 16;
     for (var i = 0; i < segs; i++) {
       final t = i / segs;
       final angle = t * math.pi * 2;
-      final wave = (i.isEven ? 0.0 : -1.2);
+      final wave = (i.isEven ? 0.0 : -notch);
       final radius = r + wave;
       final x = c.dx + math.cos(angle) * radius;
       final y = c.dy + math.sin(angle) * radius;
@@ -551,7 +560,7 @@ class _WaxSealPainter extends CustomPainter {
     canvas.drawPath(path, Paint()
       ..color = ink.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5);
+      ..strokeWidth = math.max(0.5, size.width * 0.004));
     // Letter M monogram (simple geometric)
     final mPaint = Paint()
       ..color = ink.withValues(alpha: 0.9)

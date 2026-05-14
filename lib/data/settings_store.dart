@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../services/launcher_icon_service.dart';
+import '../theme/theme_scope.dart';
+
 /// User-selectable preferences persisted across launches.
 ///
 /// All values live in the platform secure store so they survive reinstall —
@@ -17,6 +20,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
   static const _kViewReadReceipts = 'mh.viewReadReceipts';
+  static const _kLogoMode = 'mh.logoMode';
+  static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -31,6 +36,8 @@ class SettingsStore extends ChangeNotifier {
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
   bool _viewReadReceipts = false;
+  LogoMode _logoMode = LogoMode.auto;
+  String? _manualLogoThemeId;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -39,6 +46,8 @@ class SettingsStore extends ChangeNotifier {
   bool get pushEnabled => _pushEnabled;
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
+  LogoMode get logoMode => _logoMode;
+  String? get manualLogoThemeId => _manualLogoThemeId;
 
   /// When false (default), the "SEEN" indicator on the user's own messages is
   /// suppressed even if read-state data flows in. Off by default — opt-in.
@@ -69,6 +78,18 @@ class SettingsStore extends ChangeNotifier {
       _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
       final vrr = await _storage.read(key: _kViewReadReceipts);
       _viewReadReceipts = vrr == 'true'; // default false
+      final lm = await _storage.read(key: _kLogoMode);
+      switch (lm) {
+        case 'manual':
+          _logoMode = LogoMode.manual;
+          break;
+        case 'alwaysDefault':
+          _logoMode = LogoMode.alwaysDefault;
+          break;
+        default:
+          _logoMode = LogoMode.auto;
+      }
+      _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -79,6 +100,7 @@ class SettingsStore extends ChangeNotifier {
     _themeId = id;
     notifyListeners();
     await _storage.write(key: _kTheme, value: id);
+    _applyLauncherIcon();
   }
 
   Future<void> setRoomLayout(RoomLayout l) async {
@@ -129,6 +151,30 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kViewReadReceipts, value: v ? 'true' : 'false');
   }
+
+  Future<void> setLogoMode(LogoMode m) async {
+    if (_logoMode == m) return;
+    _logoMode = m;
+    notifyListeners();
+    await _storage.write(key: _kLogoMode, value: m.name);
+    _applyLauncherIcon();
+  }
+
+  Future<void> setManualLogoThemeId(String id) async {
+    if (_manualLogoThemeId == id) return;
+    _manualLogoThemeId = id;
+    notifyListeners();
+    await _storage.write(key: _kManualLogoThemeId, value: id);
+    _applyLauncherIcon();
+  }
+
+  /// Fire-and-forget native launcher-icon swap. Reads the resolved icon name
+  /// from the current store state; safe to call from any setter. Awaiting
+  /// would block the UI on a non-essential side effect.
+  void _applyLauncherIcon() {
+    final active = ThemeController.byId(_themeId ?? ThemeController.all.first.id);
+    LauncherIconService.applyFromSettings(active);
+  }
 }
 
 enum RoomLayout { list, grid }
@@ -136,6 +182,8 @@ enum RoomLayout { list, grid }
 enum NavStyle { radial, pill }
 
 enum ChatStyle { classic, compact }
+
+enum LogoMode { auto, manual, alwaysDefault }
 
 enum HomeSection {
   chat,

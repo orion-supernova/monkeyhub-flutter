@@ -251,6 +251,10 @@ class NeonNightTheme implements AppTheme {
     );
   }
 
+  // See AppTheme.iconMark — neon_night's brandMark fills with a gradient.
+  @override
+  Widget iconMark({double size = 28}) => brandMark(size: size);
+
   @override
   List<Color> avatarGradient(int seed) {
     final r = math.Random(seed);
