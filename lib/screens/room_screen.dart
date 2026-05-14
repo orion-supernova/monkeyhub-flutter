@@ -433,13 +433,21 @@ class _RoomScreenState extends State<RoomScreen> {
     required EdgeInsets listPadding,
   }) {
     final theme = ThemeScope.of(context);
+    final initialLoaded = widget.repo.hasLoadedInitial(widget.roomId);
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: messages.isEmpty
-          ? (room.isEphemeral
-                ? _SecretSpaceWelcome(ttl: room.messageLifetime)
-                : const _NoMessagesPlaceholder())
+          ? (!initialLoaded
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: theme.accent,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : (room.isEphemeral
+                      ? _SecretSpaceWelcome(ttl: room.messageLifetime)
+                      : const _NoMessagesPlaceholder()))
           : ListView.builder(
               controller: _scroll,
               reverse: true,

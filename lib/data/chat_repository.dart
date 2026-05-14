@@ -309,6 +309,7 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
     _activeReadState.clear();
+    _initialLoaded.remove(roomId);
     final me = _userId;
     // Hydrate from disk first for an instant render.
     if (me != null && (_messages[roomId] == null || _messages[roomId]!.isEmpty)) {
@@ -316,6 +317,7 @@ class ChatRepository extends ChangeNotifier {
         final cached = await CacheStore.instance.loadMessages(me, roomId);
         if (cached.isNotEmpty) {
           _messages[roomId] = cached;
+          _initialLoaded.add(roomId);
           notifyListeners();
         }
       } catch (_) {}
@@ -327,6 +329,7 @@ class ChatRepository extends ChangeNotifier {
       }
     } catch (_) {/* offline — cached messages remain */}
     _pending[roomId] ??= [];
+    _initialLoaded.add(roomId);
     notifyListeners();
     _messagesSub = await cv.subscribe(
       'messages:list',
@@ -402,6 +405,13 @@ class ChatRepository extends ChangeNotifier {
     _loadingOlder.clear();
     _exhausted.clear();
   }
+
+  /// Whether the first batch of messages (cache or server) has landed for
+  /// [roomId]. Lets the UI show a loading state instead of the empty-state
+  /// placeholder during the initial fetch.
+  bool hasLoadedInitial(String roomId) => _initialLoaded.contains(roomId);
+
+  final Set<String> _initialLoaded = {};
 
   // ───────────── pagination ─────────────
 
