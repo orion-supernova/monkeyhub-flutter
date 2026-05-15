@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
@@ -10,6 +11,7 @@ import '../screens/fullscreen_image_viewer.dart';
 import 'audio_message.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
+import 'reply_indicator.dart';
 import 'user_avatar.dart';
 import 'video_message.dart';
 
@@ -25,6 +27,13 @@ class MessageBubble extends StatelessWidget {
     this.onDoubleTap,
     this.onReactionTap,
     this.onAuthorTap,
+    this.onReplyIndicatorTap,
+    this.onViewThread,
+    this.parentAuthor,
+    this.distanceLabel,
+    this.highlightT = 0,
+    this.useHero = true,
+    this.showReplyIndicator = true,
     this.seenByOthers = false,
   });
 
@@ -37,12 +46,82 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
   final VoidCallback? onAuthorTap;
+
+  /// Invoked when the user taps the inline reply indicator. Receives the
+  /// parent message id so the screen can scroll-and-highlight it.
+  final void Function(String parentId)? onReplyIndicatorTap;
+
+  /// Invoked when the user taps the branch icon on the inline reply
+  /// indicator. The screen opens the cinematic thread overlay.
+  final VoidCallback? onViewThread;
+
+  /// Optional cached parent author — when provided, the inline indicator
+  /// renders the parent's avatar circle, making the reply visually richer.
+  final ChatUser? parentAuthor;
+
+  /// Optional formatted distance hint shown on the reply indicator's header.
+  final String? distanceLabel;
+
+  /// 0..1 driving a one-shot accent halo pulse around the bubble (used by the
+  /// scroll-to-parent flow). 0 = no pulse.
+  final double highlightT;
+
+  /// When false, image bubbles render without their Hero wrapper so they can
+  /// be displayed inside an overlay without colliding with the in-list Hero.
+  final bool useHero;
+
+  /// When false, the inline reply indicator is suppressed and the leading-
+  /// top corner stays full radius. Used inside the thread overlay where the
+  /// chain is already visualized — showing each card's inline tether on top
+  /// of the depth stack would be redundant clutter.
+  final bool showReplyIndicator;
+
   final bool seenByOthers;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
+    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+
+    // The main bubble with halo wrapper. The reply indicator (when present)
+    // sits in a sibling Column ABOVE this — outside the bubble — so it can
+    // adopt its own visual identity (phantom / sticky / comic) without
+    // distorting the bubble's natural radius or background.
+    final bubble = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: _HighlightPulse(
+        t: highlightT,
+        isMine: isMine,
+        child: _bubbleContent(theme, isMine, ephemeral: false),
+      ),
+    );
+
+    final Widget bubbleArea;
+    if (message.isReply && showReplyIndicator) {
+      bubbleArea = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          ReplyIndicator(
+            preview: message.replyToPreview!,
+            isMine: isMine,
+            distanceLabel: distanceLabel,
+            api: api,
+            parentAuthor: parentAuthor,
+            onTap: () {
+              final id = message.replyToId;
+              if (id != null) onReplyIndicatorTap?.call(id);
+            },
+            onViewThread: onViewThread,
+          ),
+          bubble,
+        ],
+      );
+    } else {
+      bubbleArea = bubble;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -64,14 +143,11 @@ class MessageBubble extends StatelessWidget {
                 GestureDetector(
                   onLongPress: onLongPress,
                   onDoubleTap: onDoubleTap,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                    child: _bubbleContent(theme, isMine, ephemeral: false),
-                  ),
+                  child: bubbleArea,
                 ),
                 if (message.reactions.isNotEmpty && onReactionTap != null)
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                    constraints: BoxConstraints(maxWidth: maxWidth),
                     child: ReactionRow(
                       reactions: message.reactions,
                       currentUserId: currentUserId,
@@ -99,6 +175,7 @@ class MessageBubble extends StatelessWidget {
       isMine: isMine,
       ephemeral: ephemeral,
       api: api,
+      useHero: useHero,
     );
   }
 }
@@ -115,6 +192,13 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onDoubleTap,
     this.onReactionTap,
     this.onAuthorTap,
+    this.onReplyIndicatorTap,
+    this.onViewThread,
+    this.parentAuthor,
+    this.distanceLabel,
+    this.highlightT = 0,
+    this.useHero = true,
+    this.showReplyIndicator = true,
   });
   final ChatMessage message;
   final DateTime now;
@@ -125,6 +209,13 @@ class EphemeralMessageBubble extends StatelessWidget {
   final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
   final VoidCallback? onAuthorTap;
+  final void Function(String parentId)? onReplyIndicatorTap;
+  final VoidCallback? onViewThread;
+  final ChatUser? parentAuthor;
+  final String? distanceLabel;
+  final double highlightT;
+  final bool useHero;
+  final bool showReplyIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +231,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       isMine: isMine,
       ephemeral: true,
       api: api,
+      useHero: useHero,
     );
 
     final bubble = Stack(
@@ -158,6 +250,45 @@ class EphemeralMessageBubble extends StatelessWidget {
       ),
       child: Opacity(opacity: 1 - dissolveT * 0.85, child: bubble),
     );
+
+    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+
+    final innerBubble = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: _HighlightPulse(
+        t: highlightT,
+        isMine: isMine,
+        child: bubbleWithEffect,
+      ),
+    );
+
+    final Widget bubbleArea;
+    if (message.isReply && showReplyIndicator) {
+      bubbleArea = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // Indicator sits OUTSIDE the dissolve effect — its own identity,
+          // its own fade if we add one later.
+          ReplyIndicator(
+            preview: message.replyToPreview!,
+            isMine: isMine,
+            distanceLabel: distanceLabel,
+            api: api,
+            parentAuthor: parentAuthor,
+            onTap: () {
+              final id = message.replyToId;
+              if (id != null) onReplyIndicatorTap?.call(id);
+            },
+            onViewThread: onViewThread,
+          ),
+          innerBubble,
+        ],
+      );
+    } else {
+      bubbleArea = innerBubble;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -184,10 +315,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                   GestureDetector(
                     onLongPress: onLongPress,
                     onDoubleTap: onDoubleTap,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                      child: bubbleWithEffect,
-                    ),
+                    child: bubbleArea,
                   ),
                   if (message.reactions.isNotEmpty && onReactionTap != null)
                     Opacity(
@@ -222,15 +350,21 @@ class EphemeralMessageBubble extends StatelessWidget {
 
 /// Builds the inner "bubble body" widget for any message type, applying the
 /// theme's bubble decoration. Extracted so both the standard and ephemeral
-/// variants share the same renderer.
+/// variants share the same renderer. The inline reply indicator is NO
+/// LONGER rendered inside the bubble — it lives as a sibling above the
+/// bubble in the caller's Column, so the bubble's natural radius is
+/// preserved.
 Widget buildMessageContent({
   required AppTheme theme,
   required ChatMessage message,
   required bool isMine,
   required bool ephemeral,
   required ChatApi api,
+  bool useHero = true,
 }) {
-  final deco = theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+  final deco =
+      theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+
   switch (message.type) {
     case MessageType.image:
       final id = message.mediaStorageId;
@@ -243,23 +377,23 @@ Widget buildMessageContent({
           children: [
             if (id != null)
               Builder(builder: (ctx) {
+                final imageChild = RemoteImage(
+                  storageId: id,
+                  api: api,
+                  width: 240,
+                  height: 240,
+                  borderRadius: BorderRadius.zero,
+                );
                 return GestureDetector(
                   onTap: () => FullscreenImageViewer.open(
                     ctx,
                     storageId: id,
                     api: api,
-                    heroTag: 'msg-image-${message.id}',
+                    heroTag: useHero ? 'msg-image-${message.id}' : null,
                   ),
-                  child: Hero(
-                    tag: 'msg-image-${message.id}',
-                    child: RemoteImage(
-                      storageId: id,
-                      api: api,
-                      width: 240,
-                      height: 240,
-                      borderRadius: BorderRadius.zero,
-                    ),
-                  ),
+                  child: useHero
+                      ? Hero(tag: 'msg-image-${message.id}', child: imageChild)
+                      : imageChild,
                 );
               })
             else
@@ -326,6 +460,65 @@ Widget buildMessageContent({
           style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
         ),
       );
+  }
+}
+
+/// One-shot accent halo pulse around a bubble. Drives off a 0..1 progress
+/// value (typically a controller in 0..1 over ~1s) and maps it through
+/// `sin(t*pi)` so the pulse blooms then settles in a single rise-fall arc.
+class _HighlightPulse extends StatelessWidget {
+  const _HighlightPulse({
+    required this.t,
+    required this.isMine,
+    required this.child,
+  });
+  final double t;
+  final bool isMine;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (t <= 0) return child;
+    final theme = ThemeScope.of(context);
+    final tCurve = math.sin(t * math.pi).clamp(0.0, 1.0);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Accent glow halo sitting behind the bubble.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.accent.withValues(alpha: 0.55 * tCurve),
+                    blurRadius: 28 * tCurve,
+                    spreadRadius: 4 * tCurve,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child,
+        // Accent border pulse on top so the highlight reads even when the
+        // halo is occluded by overlapping bubbles below in the stack.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: theme.accent.withValues(alpha: 0.55 * tCurve),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

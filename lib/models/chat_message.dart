@@ -1,6 +1,44 @@
 import 'enums.dart';
 import 'message_reaction.dart';
 
+/// Denormalized snapshot of the parent message a reply was made against.
+/// Stored alongside the child message at send time so the inline tether
+/// keeps rendering even when the parent is later deleted or expires (the
+/// server replaces [contentPreview] with the literal `__DELETED__`).
+class ReplyPreview {
+  const ReplyPreview({
+    required this.senderId,
+    required this.senderName,
+    required this.contentPreview,
+    required this.type,
+    this.mediaStorageId,
+  });
+
+  final String senderId;
+  final String senderName;
+  final String contentPreview;
+  final MessageType type;
+  final String? mediaStorageId;
+
+  bool get isDeleted => contentPreview == '__DELETED__';
+
+  factory ReplyPreview.fromJson(Map<String, dynamic> j) => ReplyPreview(
+        senderId: (j['senderId']).toString(),
+        senderName: (j['senderName'] ?? '') as String,
+        contentPreview: (j['contentPreview'] ?? '') as String,
+        type: MessageTypeWire.parse(j['type'] as String?),
+        mediaStorageId: j['mediaStorageId'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'senderId': senderId,
+        'senderName': senderName,
+        'contentPreview': contentPreview,
+        'type': type.wire,
+        if (mediaStorageId != null) 'mediaStorageId': mediaStorageId,
+      };
+}
+
 class ChatMessage {
   ChatMessage({
     required this.id,
@@ -15,6 +53,8 @@ class ChatMessage {
     this.status = MessageStatus.sent,
     this.edited = false,
     List<MessageReaction>? reactions,
+    this.replyToId,
+    this.replyToPreview,
   }) : reactions = reactions ?? [];
 
   final String id;
@@ -29,10 +69,13 @@ class ChatMessage {
   MessageStatus status;
   bool edited;
   List<MessageReaction> reactions;
+  final String? replyToId;
+  final ReplyPreview? replyToPreview;
 
   bool get isEphemeral => expiresAt != null;
   bool get isMedia =>
       type == MessageType.image || type == MessageType.video || type == MessageType.audio;
+  bool get isReply => replyToId != null && replyToPreview != null;
 
   Duration timeLeft(DateTime now) {
     if (expiresAt == null) return Duration.zero;
@@ -49,6 +92,7 @@ class ChatMessage {
 
   factory ChatMessage.fromJson(Map<String, dynamic> j) {
     final ex = j['expiresAt'];
+    final rp = j['replyToPreview'];
     return ChatMessage(
       id: (j['_id'] ?? j['id']).toString(),
       roomId: (j['roomId']).toString(),
@@ -64,6 +108,10 @@ class ChatMessage {
               ?.map((r) => MessageReaction.fromJson(r as Map<String, dynamic>))
               .toList() ??
           [],
+      replyToId: j['replyToId']?.toString(),
+      replyToPreview: rp is Map
+          ? ReplyPreview.fromJson(rp.cast<String, dynamic>())
+          : null,
     );
   }
 
@@ -79,6 +127,8 @@ class ChatMessage {
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
         'edited': edited,
         'reactions': reactions.map((r) => r.toJson()).toList(),
+        if (replyToId != null) 'replyToId': replyToId,
+        if (replyToPreview != null) 'replyToPreview': replyToPreview!.toJson(),
       };
 
   ChatMessage copyWith({
@@ -86,6 +136,8 @@ class ChatMessage {
     MessageStatus? status,
     String? content,
     List<MessageReaction>? reactions,
+    String? replyToId,
+    ReplyPreview? replyToPreview,
   }) => ChatMessage(
         id: id ?? this.id,
         roomId: roomId,
@@ -99,5 +151,7 @@ class ChatMessage {
         status: status ?? this.status,
         edited: edited,
         reactions: reactions ?? this.reactions,
+        replyToId: replyToId ?? this.replyToId,
+        replyToPreview: replyToPreview ?? this.replyToPreview,
       );
 }

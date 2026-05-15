@@ -12,6 +12,7 @@ import '../widgets/app_brand_mark.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/user_avatar.dart';
 import 'chat_style_screen.dart';
+import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
 import 'profile_screen.dart';
@@ -66,6 +67,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String get _chatStyleLabel =>
       SettingsStore.instance.chatStyle == ChatStyle.classic ? 'Classic' : 'Compact';
+
+  String get _replyStyleLabel {
+    switch (SettingsStore.instance.replyStyle) {
+      case ReplyStyle.phantomEcho:
+        return 'Phantom Echo';
+      case ReplyStyle.stickyNote:
+        return 'Sticky Note';
+      case ReplyStyle.comicTail:
+        return 'Comic Tail';
+      case ReplyStyle.classic:
+        return 'Classic';
+    }
+  }
 
   String get _logoLabel {
     final s = SettingsStore.instance;
@@ -190,6 +204,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 leading: Icon(Icons.bubble_chart_outlined, size: 16, color: theme.inkSoft),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ChatStyleScreen()),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: 'REPLY STYLE',
+                value: _replyStyleLabel,
+                leading: Icon(Icons.reply_outlined, size: 16, color: theme.inkSoft),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ReplyStyleScreen(api: widget.api),
+                  ),
                 ),
               ),
 

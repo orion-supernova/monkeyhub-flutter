@@ -20,9 +20,12 @@ import '../models/enums.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/liquid_glass.dart';
+import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/swipe_to_reply.dart';
+import '../widgets/thread_overlay.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/message_action_menu.dart';
 import '../widgets/report_sheet.dart';
@@ -43,7 +46,8 @@ class RoomScreen extends StatefulWidget {
   State<RoomScreen> createState() => _RoomScreenState();
 }
 
-class _RoomScreenState extends State<RoomScreen> {
+class _RoomScreenState extends State<RoomScreen>
+    with TickerProviderStateMixin {
   late Timer _ticker;
   DateTime _now = DateTime.now();
   final TextEditingController _composer = TextEditingController();
@@ -75,12 +79,44 @@ class _RoomScreenState extends State<RoomScreen> {
   // chip "lives" so it can compute overlap with divider RenderBoxes.
   double _chipRestingY = 16;
 
+  // ──── reply state ────
+  // The message the composer is currently replying to. Cleared on cancel or
+  // after a successful send. Set by the swipe gesture or the action menu.
+  ChatMessage? _replyingTo;
+
+  // The message currently pulsing under the scroll-to-parent highlight. The
+  // pulse drives a 0→1→0 accent halo via [_highlightCtrl] over ~1s and then
+  // clears itself. Multiple taps in flight cancel the previous pulse.
+  String? _highlightedMessageId;
+  late final AnimationController _highlightCtrl;
+
+  // Lookup populated each build: messageId → its index in the (reversed)
+  // items list. Lets us compute the "N MESSAGES ABOVE" hint on reply
+  // indicators in O(1) without re-scanning the list per bubble.
+  Map<String, int> _messageIndex = const {};
+
   @override
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
+    _highlightCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )
+      ..addListener(() {
+        // Drive a per-frame rebuild only while a pulse is active; the
+        // listener is cheap and runs for ~1s per user-initiated tap.
+        if (_highlightedMessageId != null && mounted) setState(() {});
+      })
+      ..addStatusListener((s) {
+        if (s == AnimationStatus.completed) {
+          if (!mounted) return;
+          setState(() => _highlightedMessageId = null);
+          _highlightCtrl.reset();
+        }
+      });
     widget.repo.openRoom(widget.roomId);
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
@@ -303,6 +339,7 @@ class _RoomScreenState extends State<RoomScreen> {
   void dispose() {
     _ticker.cancel();
     _composer.dispose();
+    _highlightCtrl.dispose();
     _hideTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
@@ -319,9 +356,74 @@ class _RoomScreenState extends State<RoomScreen> {
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
+    // Snapshot reply-target BEFORE the async send. The card itself does NOT
+    // auto-close on send — the user explicitly dismisses with the X. This
+    // lets them fire off multiple replies to the same parent without re-
+    // arming, which is the common pattern for back-and-forth in threads.
+    final replyId = _replyingTo?.id;
     _composer.clear();
-    await widget.repo.sendText(widget.roomId, text);
+    await widget.repo.sendText(widget.roomId, text, replyToId: replyId);
     _scrollToBottom();
+  }
+
+  /// Arm a reply against [m]: a strong haptic + state change so the
+  /// composer card slides into view. Idempotent — re-arming against the
+  /// same message just replaces the target.
+  void _armReply(ChatMessage m) {
+    HapticFeedback.heavyImpact();
+    setState(() => _replyingTo = m);
+  }
+
+  /// Compute a short hint like "2 MESSAGES ABOVE" / "EARLIER" for a reply's
+  /// parent, based on the current items layout. Returns null when the
+  /// parent isn't loaded — the reply indicator hides the suffix in that
+  /// case rather than showing a stale number.
+  String? _distanceLabelFor(ChatMessage child) {
+    final parentId = child.replyToId;
+    if (parentId == null) return null;
+    final childIdx = _messageIndex[child.id];
+    final parentIdx = _messageIndex[parentId];
+    if (childIdx == null || parentIdx == null) return 'EARLIER';
+    // items is reversed (newest at idx 0). Parent is older → larger index.
+    final gap = parentIdx - childIdx - 1;
+    if (gap <= 0) return 'ABOVE';
+    if (gap == 1) return '1 MESSAGE ABOVE';
+    if (gap <= 20) return '$gap MESSAGES ABOVE';
+    return 'EARLIER';
+  }
+
+  /// Smoothly scroll to the parent message identified by [messageId], then
+  /// fire a one-shot accent halo pulse on it. If the parent isn't currently
+  /// in the items list, attempts up to 3 older-page loads before giving up.
+  Future<void> _scrollToMessageAndHighlight(String messageId) async {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    for (var attempt = 0; attempt < 4; attempt++) {
+      if (!mounted) return;
+      final track = _dateTracks['m_$messageId'];
+      final ctx = track?.key.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+          alignment: 0.3,
+        );
+        if (!mounted) return;
+        setState(() => _highlightedMessageId = messageId);
+        _highlightCtrl.forward(from: 0);
+        return;
+      }
+      // Parent not currently rendered — try paging older history.
+      if (!widget.repo.hasMoreOlder(widget.roomId)) break;
+      final got = await widget.repo.loadOlder(widget.roomId);
+      if (got == 0) break;
+      // Give the list one frame to mount the newly-prepended items.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    if (!mounted) return;
+    messenger?.showSnackBar(
+      const SnackBar(content: Text("original message not loaded")),
+    );
   }
 
   void _scrollToBottom() {
@@ -384,9 +486,16 @@ class _RoomScreenState extends State<RoomScreen> {
 
   Future<void> _uploadAndSend({required File file, required MessageType type, required String contentType}) async {
     try {
+      // The reply card stays open across sends — see _send for the rationale.
+      final replyId = _replyingTo?.id;
       final uploader = UploadService(widget.api);
       final storageId = await uploader.uploadXFile(file: file, contentType: contentType);
-      await widget.repo.sendMedia(roomId: widget.roomId, storageId: storageId, type: type);
+      await widget.repo.sendMedia(
+        roomId: widget.roomId,
+        storageId: storageId,
+        type: type,
+        replyToId: replyId,
+      );
       _scrollToBottom();
     } catch (_) {
       /* TODO surface as toast */
@@ -411,6 +520,14 @@ class _RoomScreenState extends State<RoomScreen> {
     // items[0] is the newest message (visually at the bottom) and the intro
     // ends up at items[last] (visually at the top).
     final items = messages.isEmpty ? const <_RoomItem>[] : _buildItems(room, messages).reversed.toList();
+    // Precompute id → index lookup for O(1) distance-hint computation in
+    // the reply indicator. Re-derived per build (items rebuilds anyway).
+    final idx = <String, int>{};
+    for (var i = 0; i < items.length; i++) {
+      final it = items[i];
+      if (it is _MessageItem) idx[it.message.id] = i;
+    }
+    _messageIndex = idx;
     final chatStyle = SettingsStore.instance.chatStyle;
 
     return Scaffold(
@@ -453,6 +570,12 @@ class _RoomScreenState extends State<RoomScreen> {
               listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             ),
           ),
+          if (_replyingTo != null)
+            ComposerReplyCard(
+              parent: _replyingTo!,
+              api: widget.api,
+              onCancel: () => setState(() => _replyingTo = null),
+            ),
           _Composer(
             controller: _composer,
             ephemeral: room.isEphemeral,
@@ -511,12 +634,23 @@ class _RoomScreenState extends State<RoomScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: _LiquidComposer(
-              controller: _composer,
-              ephemeral: room.isEphemeral,
-              onSend: _send,
-              onChanged: (_) => widget.repo.noteTyping(),
-              onAttach: _onAttach,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_replyingTo != null)
+                  ComposerReplyCard(
+                    parent: _replyingTo!,
+                    api: widget.api,
+                    onCancel: () => setState(() => _replyingTo = null),
+                  ),
+                _LiquidComposer(
+                  controller: _composer,
+                  ephemeral: room.isEphemeral,
+                  onSend: _send,
+                  onChanged: (_) => widget.repo.noteTyping(),
+                  onAttach: _onAttach,
+                ),
+              ],
             ),
           ),
         ],
@@ -586,6 +720,15 @@ class _RoomScreenState extends State<RoomScreen> {
                 final isMine = m.senderId == me;
                 final othersRead = widget.repo.latestOthersReadAt;
                 final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
+                final isPending = m.id.startsWith('tmp_');
+                final canReply = !isPending &&
+                    m.status == MessageStatus.sent &&
+                    m.type != MessageType.system;
+                final hasParent = m.isReply;
+                final distanceLabel = _distanceLabelFor(m);
+                final highlightT = (_highlightedMessageId == m.id)
+                    ? _highlightCtrl.value
+                    : 0.0;
                 Future<void> onLongPress() async {
                   HapticFeedback.mediumImpact();
                   FocusManager.instance.primaryFocus?.unfocus();
@@ -597,22 +740,33 @@ class _RoomScreenState extends State<RoomScreen> {
                     anchorKey: anchor,
                     isMine: isMine,
                     canCopy: m.type == MessageType.text && m.content.isNotEmpty,
-                    bubbleBuilder: (_) => m.isEphemeral
-                        ? EphemeralMessageBubble(
-                            message: m,
-                            now: _now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                          )
-                        : MessageBubble(
-                            message: m,
-                            now: _now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                            seenByOthers: seenByOthers,
-                          ),
+                    canReply: canReply,
+                    hasParent: hasParent,
+                    bubbleBuilder: (_) {
+                      final parentAuthor = m.isReply
+                          ? _members[m.replyToPreview?.senderId]
+                          : null;
+                      return m.isEphemeral
+                          ? EphemeralMessageBubble(
+                              message: m,
+                              now: _now,
+                              currentUserId: me,
+                              api: widget.api,
+                              author: author,
+                              parentAuthor: parentAuthor,
+                              distanceLabel: distanceLabel,
+                            )
+                          : MessageBubble(
+                              message: m,
+                              now: _now,
+                              currentUserId: me,
+                              api: widget.api,
+                              author: author,
+                              parentAuthor: parentAuthor,
+                              distanceLabel: distanceLabel,
+                              seenByOthers: seenByOthers,
+                            );
+                    },
                   );
                   if (!mounted || result == null) return;
                   if (result.emoji != null) {
@@ -626,6 +780,19 @@ class _RoomScreenState extends State<RoomScreen> {
                     return;
                   }
                   switch (result.action!) {
+                    case MessageAction.reply:
+                      _armReply(m);
+                      break;
+                    case MessageAction.viewThread:
+                      await showThreadOverlay(
+                        context: this.context,
+                        api: widget.api,
+                        repo: widget.repo,
+                        roomId: widget.roomId,
+                        currentMessageId: m.id,
+                        onReply: _armReply,
+                      );
+                      break;
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
                       messenger.showSnackBar(const SnackBar(content: Text('copied')));
@@ -666,6 +833,53 @@ class _RoomScreenState extends State<RoomScreen> {
                   _openProfile(author);
                 }
 
+                final parentAuthor = m.isReply
+                    ? _members[m.replyToPreview?.senderId]
+                    : null;
+                Future<void> onViewThread() => showThreadOverlay(
+                      context: this.context,
+                      api: widget.api,
+                      repo: widget.repo,
+                      roomId: widget.roomId,
+                      currentMessageId: m.id,
+                      onReply: _armReply,
+                    );
+                final bubble = m.isEphemeral
+                    ? EphemeralMessageBubble(
+                        key: ValueKey('e_${m.id}'),
+                        message: m,
+                        now: _now,
+                        currentUserId: me,
+                        api: widget.api,
+                        author: author,
+                        onLongPress: isPending ? null : onLongPress,
+                        onDoubleTap: isPending ? null : onLongPress,
+                        onReactionTap: onReactionTap,
+                        onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                        onReplyIndicatorTap: _scrollToMessageAndHighlight,
+                        onViewThread: m.isReply ? onViewThread : null,
+                        parentAuthor: parentAuthor,
+                        distanceLabel: distanceLabel,
+                        highlightT: highlightT,
+                      )
+                    : MessageBubble(
+                        key: ValueKey('s_${m.id}'),
+                        message: m,
+                        now: _now,
+                        currentUserId: me,
+                        api: widget.api,
+                        author: author,
+                        onLongPress: isPending ? null : onLongPress,
+                        onDoubleTap: isPending ? null : onLongPress,
+                        onReactionTap: onReactionTap,
+                        onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                        onReplyIndicatorTap: _scrollToMessageAndHighlight,
+                        onViewThread: m.isReply ? onViewThread : null,
+                        parentAuthor: parentAuthor,
+                        distanceLabel: distanceLabel,
+                        highlightT: highlightT,
+                        seenByOthers: seenByOthers,
+                      );
                 return _trackedDate(
                   stableId: 'm_${m.id}',
                   label: _humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
@@ -673,32 +887,12 @@ class _RoomScreenState extends State<RoomScreen> {
                   child: AnimatedSwitcher(
                     duration: theme.motionMed,
                     switchInCurve: theme.motionEntrance,
-                    child: m.isEphemeral
-                        ? EphemeralMessageBubble(
-                            key: ValueKey('e_${m.id}'),
-                            message: m,
-                            now: _now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                            onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                            onDoubleTap: m.id.startsWith('tmp_') ? null : onLongPress,
-                            onReactionTap: onReactionTap,
-                            onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                          )
-                        : MessageBubble(
-                            key: ValueKey('s_${m.id}'),
-                            message: m,
-                            now: _now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                            onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                            onDoubleTap: m.id.startsWith('tmp_') ? null : onLongPress,
-                            onReactionTap: onReactionTap,
-                            onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                            seenByOthers: seenByOthers,
-                          ),
+                    child: SwipeToReply(
+                      key: ValueKey('sw_${m.id}'),
+                      enabled: canReply,
+                      onReplyTriggered: () => _armReply(m),
+                      child: bubble,
+                    ),
                   ),
                 );
               },

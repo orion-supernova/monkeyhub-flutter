@@ -498,8 +498,13 @@ class ChatRepository extends ChangeNotifier {
     }
   }
 
-  Future<void> sendText(String roomId, String text) async {
-    return _send(roomId: roomId, content: text, type: MessageType.text);
+  Future<void> sendText(String roomId, String text, {String? replyToId}) async {
+    return _send(
+      roomId: roomId,
+      content: text,
+      type: MessageType.text,
+      replyToId: replyToId,
+    );
   }
 
   Future<void> sendMedia({
@@ -507,23 +512,68 @@ class ChatRepository extends ChangeNotifier {
     required String storageId,
     required MessageType type,
     String? caption,
+    String? replyToId,
   }) async {
     return _send(
       roomId: roomId,
       content: caption ?? '',
       type: type,
       mediaStorageId: storageId,
+      replyToId: replyToId,
     );
   }
+
+  /// Locate a message by id within a room's live and pending caches.
+  /// Used by the UI to (a) build a local [ReplyPreview] for optimistic
+  /// sends and (b) resolve the parent when the user taps a reply tether.
+  ChatMessage? findMessageInRoom(String roomId, String id) {
+    for (final m in _messages[roomId] ?? const <ChatMessage>[]) {
+      if (m.id == id) return m;
+    }
+    for (final m in _pending[roomId] ?? const <ChatMessage>[]) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
+
+  Future<List<ChatMessage>> fetchThread(
+    String messageId, {
+    int maxTotal = 50,
+  }) =>
+      api.getThread(messageId: messageId, maxTotal: maxTotal);
 
   Future<void> _send({
     required String roomId,
     required String content,
     required MessageType type,
     String? mediaStorageId,
+    String? replyToId,
   }) async {
     final id = _userId;
     if (id == null) return;
+
+    // Build a local [ReplyPreview] from the cached parent so the inline
+    // tether is visible on the pending bubble before the server confirms
+    // the send. If the parent isn't cached (rare — to swipe-reply you have
+    // to see the bubble), we drop the replyToId on the optimistic message
+    // but still attempt the send with it (the server resolves the parent).
+    ReplyPreview? optimisticPreview;
+    if (replyToId != null) {
+      final parent = findMessageInRoom(roomId, replyToId);
+      if (parent != null) {
+        final preview = parent.content.length > 140
+            ? parent.content.substring(0, 140)
+            : parent.content;
+        optimisticPreview = ReplyPreview(
+          senderId: parent.senderId,
+          senderName: parent.senderName,
+          contentPreview: preview,
+          type: parent.type,
+          mediaStorageId: parent.mediaStorageId,
+        );
+      }
+    }
+
     final tempId = 'tmp_${DateTime.now().microsecondsSinceEpoch}';
     final optimistic = ChatMessage(
       id: tempId,
@@ -535,6 +585,8 @@ class ChatRepository extends ChangeNotifier {
       mediaStorageId: mediaStorageId,
       createdAt: DateTime.now(),
       status: MessageStatus.pending,
+      replyToId: optimisticPreview != null ? replyToId : null,
+      replyToPreview: optimisticPreview,
     );
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
     notifyListeners();
@@ -545,6 +597,7 @@ class ChatRepository extends ChangeNotifier {
         content: content,
         type: type,
         mediaStorageId: mediaStorageId,
+        replyToId: replyToId,
       );
     } catch (_) {
       optimistic.status = MessageStatus.error;

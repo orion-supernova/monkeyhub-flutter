@@ -108,9 +108,24 @@ export default defineSchema({
     mediaStorageId: v.optional(v.id("_storage")),
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
+    // Reply support. `replyToId` points at the parent message; `replyToPreview`
+    // is a denormalized snapshot of that parent taken at send time so the
+    // inline tether keeps rendering even after the parent is deleted/expired
+    // (sentinel: contentPreview === "__DELETED__").
+    replyToId: v.optional(v.id("messages")),
+    replyToPreview: v.optional(
+      v.object({
+        senderId: v.id("users"),
+        senderName: v.string(),
+        contentPreview: v.string(),
+        type: v.string(),
+        mediaStorageId: v.optional(v.id("_storage")),
+      })
+    ),
   })
     .index("by_room", ["roomId"])
-    .index("by_room_time", ["roomId", "createdAt"]),
+    .index("by_room_time", ["roomId", "createdAt"])
+    .index("by_replyTo", ["replyToId"]),
 
   reactions: defineTable({
     messageId: v.id("messages"),

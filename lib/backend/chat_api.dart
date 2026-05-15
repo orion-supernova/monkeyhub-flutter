@@ -262,6 +262,7 @@ class ChatApi {
     MessageType type = MessageType.text,
     String? mediaStorageId,
     String? senderName,
+    String? replyToId,
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
@@ -270,8 +271,24 @@ class ChatApi {
       'type': type.wire,
       'mediaStorageId': ?mediaStorageId,
       'senderName': ?senderName,
+      'replyToId': ?replyToId,
     });
     return res.toString();
+  }
+
+  /// Fetch the entire conversational thread containing [messageId] — walks
+  /// up to the root via the parent chain, then BFS down through all
+  /// descendants. Result is chronological (oldest first), capped at
+  /// [maxTotal] messages.
+  Future<List<ChatMessage>> getThread({
+    required String messageId,
+    int maxTotal = 50,
+  }) async {
+    final res = await _cv.query('messages:getThread', {
+      'messageId': messageId,
+      'maxTotal': maxTotal,
+    });
+    return _decodeMessages(res);
   }
 
   Future<void> deleteMessage({required String messageId, required String userId}) async {

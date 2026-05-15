@@ -10,7 +10,7 @@ import '../theme/theme_scope.dart';
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
 /// separately via [MessageActionResult.emoji] / `.fullPicker`).
-enum MessageAction { copy, delete, report, viewProfile }
+enum MessageAction { reply, viewThread, copy, delete, report, viewProfile }
 
 /// Resolved choice from [showMessageActionMenu]. Exactly one of the three
 /// shapes is filled in:
@@ -47,6 +47,8 @@ Future<MessageActionResult?> showMessageActionMenu({
   required WidgetBuilder bubbleBuilder,
   required bool isMine,
   required bool canCopy,
+  bool canReply = false,
+  bool hasParent = false,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -67,6 +69,8 @@ Future<MessageActionResult?> showMessageActionMenu({
       bubbleBuilder: bubbleBuilder,
       isMine: isMine,
       canCopy: canCopy,
+      canReply: canReply,
+      hasParent: hasParent,
       screenSize: screenSize,
       safeInsets: safeInsets,
       onResolve: (result) {
@@ -89,6 +93,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.bubbleBuilder,
     required this.isMine,
     required this.canCopy,
+    required this.canReply,
+    required this.hasParent,
     required this.screenSize,
     required this.safeInsets,
     required this.onResolve,
@@ -98,6 +104,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final WidgetBuilder bubbleBuilder;
   final bool isMine;
   final bool canCopy;
+  final bool canReply;
+  final bool hasParent;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final ValueChanged<MessageActionResult?> onResolve;
@@ -138,6 +146,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
 
   int _actionCount() {
     var n = 0;
+    if (widget.canReply) n++;
+    if (widget.hasParent) n++; // view thread
     if (widget.canCopy) n++;
     if (!widget.isMine) n++; // view profile
     if (widget.isMine) n++; // delete
@@ -235,6 +245,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             child: _ActionList(
               isMine: widget.isMine,
               canCopy: widget.canCopy,
+              canReply: widget.canReply,
+              hasParent: widget.hasParent,
               onAction: (a) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.action(a));
@@ -482,9 +494,17 @@ class _PillMoreState extends State<_PillMore> {
 // ───────────────────────── action list ─────────────────────────
 
 class _ActionList extends StatelessWidget {
-  const _ActionList({required this.isMine, required this.canCopy, required this.onAction});
+  const _ActionList({
+    required this.isMine,
+    required this.canCopy,
+    required this.canReply,
+    required this.hasParent,
+    required this.onAction,
+  });
   final bool isMine;
   final bool canCopy;
+  final bool canReply;
+  final bool hasParent;
   final ValueChanged<MessageAction> onAction;
 
   @override
@@ -498,6 +518,22 @@ class _ActionList extends StatelessWidget {
       rows.add(_ActionRow(spec: spec, onTap: () => onAction(spec.action)));
     }
 
+    if (canReply) {
+      add(const _ActionRowSpec(
+        action: MessageAction.reply,
+        icon: CupertinoIcons.arrowshape_turn_up_left,
+        label: 'REPLY',
+        destructive: false,
+      ));
+    }
+    if (hasParent) {
+      add(const _ActionRowSpec(
+        action: MessageAction.viewThread,
+        icon: CupertinoIcons.arrow_branch,
+        label: 'VIEW THREAD',
+        destructive: false,
+      ));
+    }
     if (canCopy) {
       add(const _ActionRowSpec(
         action: MessageAction.copy,

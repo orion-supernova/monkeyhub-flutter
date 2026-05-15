@@ -19,6 +19,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kPushEnabled = 'mh.pushEnabled';
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
+  static const _kReplyStyle = 'mh.replyStyle';
   static const _kViewReadReceipts = 'mh.viewReadReceipts';
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
@@ -35,6 +36,7 @@ class SettingsStore extends ChangeNotifier {
   bool _pushEnabled = true;
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
+  ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
   bool _viewReadReceipts = false;
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
@@ -46,6 +48,7 @@ class SettingsStore extends ChangeNotifier {
   bool get pushEnabled => _pushEnabled;
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
+  ReplyStyle get replyStyle => _replyStyle;
   LogoMode get logoMode => _logoMode;
   String? get manualLogoThemeId => _manualLogoThemeId;
 
@@ -76,6 +79,20 @@ class SettingsStore extends ChangeNotifier {
       // 'liquid' was the legacy name for compact — preserve the choice for
       // anyone who had selected it before the rename.
       _chatStyle = cs == 'classic' ? ChatStyle.classic : ChatStyle.compact;
+      final rs = await _storage.read(key: _kReplyStyle);
+      switch (rs) {
+        case 'stickyNote':
+          _replyStyle = ReplyStyle.stickyNote;
+          break;
+        case 'comicTail':
+          _replyStyle = ReplyStyle.comicTail;
+          break;
+        case 'classic':
+          _replyStyle = ReplyStyle.classic;
+          break;
+        default:
+          _replyStyle = ReplyStyle.phantomEcho;
+      }
       final vrr = await _storage.read(key: _kViewReadReceipts);
       _viewReadReceipts = vrr == 'true'; // default false
       final lm = await _storage.read(key: _kLogoMode);
@@ -145,6 +162,13 @@ class SettingsStore extends ChangeNotifier {
     await _storage.write(key: _kChatStyle, value: s.name);
   }
 
+  Future<void> setReplyStyle(ReplyStyle s) async {
+    if (_replyStyle == s) return;
+    _replyStyle = s;
+    notifyListeners();
+    await _storage.write(key: _kReplyStyle, value: s.name);
+  }
+
   Future<void> setViewReadReceipts(bool v) async {
     if (_viewReadReceipts == v) return;
     _viewReadReceipts = v;
@@ -182,6 +206,17 @@ enum RoomLayout { list, grid }
 enum NavStyle { radial, pill }
 
 enum ChatStyle { classic, compact }
+
+/// Visual style for the inline reply indicator. User-selectable via settings.
+///
+/// * `phantomEcho` (default) — ghost-bubble above with a curved connector
+///   and a branch icon at the join point.
+/// * `stickyNote` — rotated polaroid clipped to the bubble corner.
+/// * `comicTail` — mini parent bubble with a downward-pointing comic-book
+///   triangle tail.
+/// * `classic` — accent-tinted inset row with tether bar, avatar, mono-caps
+///   header, and content snippet. The original quote-pill look.
+enum ReplyStyle { phantomEcho, stickyNote, comicTail, classic }
 
 enum LogoMode { auto, manual, alwaysDefault }
 
