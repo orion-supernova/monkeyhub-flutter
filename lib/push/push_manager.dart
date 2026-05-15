@@ -1,8 +1,11 @@
 import 'dart:io' show Platform;
 
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
+import '../backend/chat_api.dart';
 import '../env.dart';
 
 /// Wraps OneSignal init and login/logout. Mirrors v02 PushNotificationManager.
@@ -17,6 +20,13 @@ class PushManager {
   bool _initialized = false;
   void Function(String roomId)? _onOpenRoom;
 
+  // iOS PushKit channel — installed in ios/Runner/AppDelegate.swift. Dart
+  // calls `getToken` after login; the channel also pushes `onTokenUpdated`
+  // when iOS rotates the token.
+  static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
+  ChatApi? _api;
+  String? _userId;
+
   bool get _supported => Platform.isIOS || Platform.isAndroid;
 
   /// Call once at app startup. Safe to call multiple times.
@@ -26,8 +36,18 @@ class PushManager {
     _onOpenRoom = handler;
   }
 
-  Future<void> initialize({void Function(String roomId)? onOpenRoom}) async {
+  /// Wire the backend API so [login] can upload VoIP / FCM tokens. Called
+  /// from app.dart once `ChatApi` is constructed.
+  void attachApi(ChatApi api) {
+    _api = api;
+  }
+
+  Future<void> initialize({
+    void Function(String roomId)? onOpenRoom,
+    ChatApi? api,
+  }) async {
     if (onOpenRoom != null) _onOpenRoom = onOpenRoom;
+    if (api != null) _api = api;
     if (_initialized) return;
     if (!_supported) return;
     final appId = Env.oneSignalAppId;
@@ -39,6 +59,16 @@ class PushManager {
       // when the user hasn't yet signed in. Settings screen can offer a
       // dedicated trigger later; for now request after login.
       OneSignal.Notifications.addClickListener(_onClick);
+      // Watch for iOS PushKit token rotation. Forward the new token to the
+      // backend if a user is currently logged in.
+      _voipChannel.setMethodCallHandler((call) async {
+        if (call.method == 'onTokenUpdated') {
+          final args = (call.arguments as Map?) ?? const {};
+          final token = args['token'] as String?;
+          await _uploadVoipToken(token);
+        }
+        return null;
+      });
       _initialized = true;
     } catch (e) {
       debugPrint('OneSignal init failed: $e');
@@ -50,6 +80,7 @@ class PushManager {
   /// is the link the server needs.
   Future<void> login(String userId) async {
     if (!_supported || !_initialized) return;
+    _userId = userId;
     try {
       await OneSignal.login(userId);
       // Now is a good time to prompt for permission (user has actively signed in).
@@ -57,10 +88,52 @@ class PushManager {
     } catch (e) {
       debugPrint('OneSignal login failed: $e');
     }
+    // Upload native call tokens (PushKit on iOS, FCM on Android) for the
+    // server-side direct VoIP push path. Failures here are non-fatal — the
+    // OneSignal push remains as a fallback.
+    if (Platform.isIOS) {
+      try {
+        final token = await _voipChannel.invokeMethod<String>('getToken');
+        await _uploadVoipToken(token);
+      } catch (e) {
+        debugPrint('PushManager.login: VoIP token fetch failed: $e');
+      }
+    } else if (Platform.isAndroid) {
+      try {
+        final token = await FirebaseMessaging.instance.getToken();
+        await _uploadFcmToken(token);
+        FirebaseMessaging.instance.onTokenRefresh.listen(_uploadFcmToken);
+      } catch (e) {
+        debugPrint('PushManager.login: FCM token fetch failed: $e');
+      }
+    }
+  }
+
+  Future<void> _uploadVoipToken(String? token) async {
+    final userId = _userId;
+    final api = _api;
+    if (userId == null || api == null || token == null || token.isEmpty) return;
+    try {
+      await api.setVoipToken(userId: userId, token: token);
+    } catch (e) {
+      debugPrint('PushManager: setVoipToken failed: $e');
+    }
+  }
+
+  Future<void> _uploadFcmToken(String? token) async {
+    final userId = _userId;
+    final api = _api;
+    if (userId == null || api == null || token == null || token.isEmpty) return;
+    try {
+      await api.setFcmToken(userId: userId, token: token);
+    } catch (e) {
+      debugPrint('PushManager: setFcmToken failed: $e');
+    }
   }
 
   Future<void> logout() async {
     if (!_supported || !_initialized) return;
+    _userId = null;
     try {
       await OneSignal.logout();
     } catch (e) {

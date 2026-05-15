@@ -1,11 +1,21 @@
 import Flutter
 import UIKit
 import UserNotifications
+import PushKit
+import CallKit
+import flutter_callkit_incoming
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, PKPushRegistryDelegate, CXProviderDelegate {
   // Event sink for screen-capture state changes pushed to Dart.
   fileprivate var captureEventSink: FlutterEventSink?
+
+  // PushKit registry — must be retained by the app delegate for the whole
+  // lifetime, otherwise iOS never delivers VoIP pushes. Token is read by Dart
+  // via the `monkeyhub/voip` method channel after registration completes.
+  private var voipRegistry: PKPushRegistry?
+  private var cachedVoipToken: String?
+  private var voipChannel: FlutterMethodChannel?
 
   fileprivate func setCaptureEventSink(_ sink: FlutterEventSink?) {
     captureEventSink = sink
@@ -21,7 +31,150 @@ import UserNotifications
       name: UIScreen.capturedDidChangeNotification,
       object: nil
     )
+
+    // Register for VoIP pushes. The callback flow:
+    //   PKPushRegistry → didUpdate pushCredentials → Dart picks up token via
+    //   `monkeyhub/voip#getToken` → Convex stores it on the user record.
+    // When a push arrives:
+    //   didReceiveIncomingPushWith → flutter_callkit_incoming shows the
+    //   system call UI; Dart-side listeners hook accept/decline.
+    let registry = PKPushRegistry(queue: DispatchQueue.main)
+    registry.delegate = self
+    registry.desiredPushTypes = [.voIP]
+    voipRegistry = registry
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // MARK: - PKPushRegistryDelegate
+
+  func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
+    guard type == .voIP else { return }
+    let token = pushCredentials.token.map { String(format: "%02x", $0) }.joined()
+    cachedVoipToken = token
+    NSLog("[voip] PushKit token: \(token)")
+    voipChannel?.invokeMethod("onTokenUpdated", arguments: ["token": token])
+  }
+
+  func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
+    guard type == .voIP else { return }
+    cachedVoipToken = nil
+    voipChannel?.invokeMethod("onTokenUpdated", arguments: ["token": NSNull()])
+  }
+
+  func pushRegistry(
+    _ registry: PKPushRegistry,
+    didReceiveIncomingPushWith payload: PKPushPayload,
+    for type: PKPushType,
+    completion: @escaping () -> Void
+  ) {
+    guard type == .voIP else { completion(); return }
+
+    // Required on iOS 13+: we MUST report an incoming call to CallKit before
+    // returning from this method, or the system kills the app. Hand off to
+    // flutter_callkit_incoming, which talks to CXProvider and exposes the
+    // accept/decline events back to Dart.
+    let dict = payload.dictionaryPayload
+    // Convex callIds are NOT RFC-4122 UUIDs. flutter_callkit_incoming
+    // force-unwraps `UUID(uuidString:)` on `data.uuid` at line 286 of
+    // SwiftFlutterCallkitIncomingPlugin.swift, so passing our callId
+    // crashes the app. Mint a proper UUID for CallKit and preserve the
+    // Convex callId in `extra` for Dart-side diagnostics.
+    let convexCallId = (dict["callId"] as? String) ?? ""
+    let callUuid = UUID().uuidString
+    let callerName = (dict["callerName"] as? String) ?? "Incoming call"
+    let callerHandle = (dict["callerHandle"] as? String) ?? callerName
+    let callType = ((dict["callType"] as? String) == "video") ? 1 : 0
+
+    // iOS 13+ requires that every VoIP push report an incoming call to
+    // CallKit within ~5s, or the system kills the app and may revoke the
+    // PushKit token. We have two paths:
+    //   - App in background/killed → show the full CallKit ringer.
+    //   - App in foreground → the Convex realtime signal subscription is
+    //     already routing the in-app IncomingCallScreen; stacking CallKit
+    //     on top produces a jarring dual-UI. Use the "report and
+    //     immediately end" escape hatch so we satisfy the API contract
+    //     without UI.
+    let isForeground = UIApplication.shared.applicationState == .active
+    if isForeground {
+      NSLog("[voip] foreground push — report-and-end (no CallKit UI)")
+      reportAndEndCall(callerName: callerName)
+      completion()
+      return
+    }
+
+    // Use the fully-qualified module path so Swift doesn't pick Foundation.Data.
+    let callData = flutter_callkit_incoming.Data(
+      id: callUuid,
+      nameCaller: callerName,
+      handle: callerHandle,
+      type: callType
+    )
+    callData.extra = [
+      "callId": convexCallId,
+      "callerName": callerName,
+      "callType": callType,
+      "rawPayload": dict,
+    ] as NSDictionary
+
+    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(
+      callData,
+      fromPushKit: true
+    )
+    completion()
+  }
+
+  // PushKit contract escape hatch: when we don't want to show CallKit
+  // (e.g., app is already foregrounded and showing its own UI), we MUST
+  // still report a call to a CXProvider and then immediately end it,
+  // otherwise iOS terminates the process and can revoke the VoIP token.
+  //
+  // A single long-lived provider with a delegate set is what Apple's
+  // CallKit programming guide requires. We previously used short-lived
+  // providers with no delegate, which Apple appears to count as invalid
+  // reports — after a handful of foreground pushes Apple revokes the
+  // token and silently drops future VoIP pushes.
+  private lazy var foregroundReportProvider: CXProvider = {
+    let config = CXProviderConfiguration(localizedName: "Monkeyhub")
+    // .answeredElsewhere needs a one-shot provider; everything else
+    // (icon, ringtone, supportsVideo) is irrelevant since we never
+    // show its UI.
+    let provider = CXProvider(configuration: config)
+    provider.setDelegate(self, queue: nil)
+    return provider
+  }()
+
+  private func reportAndEndCall(callerName: String) {
+    let uuid = UUID()
+    let update = CXCallUpdate()
+    update.remoteHandle = CXHandle(type: .generic, value: callerName)
+    foregroundReportProvider.reportNewIncomingCall(with: uuid, update: update) { [weak self] error in
+      if let error = error {
+        NSLog("[voip] reportAndEndCall: report failed: \(error.localizedDescription)")
+      }
+      // Mark answered-elsewhere with a real timestamp so iOS classifies
+      // this as a successfully-handled VoIP push and won't surface a
+      // missed-call notification.
+      self?.foregroundReportProvider.reportCall(
+        with: uuid,
+        endedAt: Date(),
+        reason: .answeredElsewhere
+      )
+    }
+  }
+
+  // MARK: - CXProviderDelegate
+  // Apple requires a delegate on every CXProvider, even one we only use
+  // for report-and-end. We don't expose CallKit interaction through this
+  // provider (the flutter_callkit_incoming plugin owns the user-facing
+  // provider), so every action just gets failed/fulfilled minimally.
+
+  func providerDidReset(_ provider: CXProvider) {
+    // No persistent state to clear — this provider is fire-and-forget.
+  }
+
+  func provider(_ provider: CXProvider, perform action: CXAction) {
+    action.fulfill()
   }
 
   @objc private func _capturedDidChange() {
@@ -105,6 +258,26 @@ import UserNotifications
               }
             }
           }
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
+    // monkeyhub/voip — exposes the PushKit VoIP token to Dart. Dart calls
+    // `getToken` after PushManager.login(userId) and uploads the result to
+    // Convex's setVoipToken mutation. We also push token updates over the
+    // same channel via `onTokenUpdated` so token rotation propagates.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubVoipPlugin") {
+      let channel = FlutterMethodChannel(
+        name: "monkeyhub/voip",
+        binaryMessenger: registrar.messenger()
+      )
+      voipChannel = channel
+      channel.setMethodCallHandler { [weak self] call, result in
+        switch call.method {
+        case "getToken":
+          result(self?.cachedVoipToken)
         default:
           result(FlutterMethodNotImplemented)
         }

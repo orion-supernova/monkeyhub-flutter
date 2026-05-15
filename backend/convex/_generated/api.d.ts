@@ -19,6 +19,8 @@ import type * as reactions from "../reactions.js";
 import type * as rooms from "../rooms.js";
 import type * as typing from "../typing.js";
 import type * as users from "../users.js";
+import type * as voipPush from "../voipPush.js";
+import type * as voipTokens from "../voipTokens.js";
 
 import type {
   ApiFromModules,
@@ -38,6 +40,8 @@ declare const fullApi: ApiFromModules<{
   rooms: typeof rooms;
   typing: typeof typing;
   users: typeof users;
+  voipPush: typeof voipPush;
+  voipTokens: typeof voipTokens;
 }>;
 
 /**

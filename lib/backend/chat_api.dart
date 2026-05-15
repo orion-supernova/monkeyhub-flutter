@@ -128,6 +128,18 @@ class ChatApi {
     await _cv.mutation('users:updateStatus', {'userId': userId, 'status': status});
   }
 
+  /// Persist the PushKit (iOS) VoIP token so the backend can wake this device
+  /// into CallKit even when the app is killed.
+  Future<void> setVoipToken({required String userId, required String token}) async {
+    await _cv.mutation('voipTokens:setVoipToken', {'userId': userId, 'token': token});
+  }
+
+  /// Persist the FCM (Android) token for high-priority data pushes that wake
+  /// a killed app into the native ConnectionService ringer.
+  Future<void> setFcmToken({required String userId, required String token}) async {
+    await _cv.mutation('voipTokens:setFcmToken', {'userId': userId, 'token': token});
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Rooms
   // ─────────────────────────────────────────────────────────────────────────

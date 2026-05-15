@@ -149,6 +149,19 @@ export const initiate = mutation({
       roomId,
     });
 
+    // Direct VoIP push (APNs PushKit + FCM data-only). This is what wakes a
+    // *killed* app into the native CallKit / ConnectionService UI. Runs in
+    // parallel with the OneSignal push; either path can carry the wake-up,
+    // and the OneSignal path is a fallback if tokens are missing.
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoip, {
+      callId,
+      calleeId,
+      callerId,
+      callerName,
+      type,
+      roomId,
+    });
+
     // Auto-mark as "missed" if still ringing after the timeout.
     await ctx.scheduler.runAfter(
       CALL_RING_TIMEOUT_MS,
@@ -483,7 +496,7 @@ export const sendCallPush = internalAction({
       headings: { en: callerName },
       contents: { en: `${verb} from ${callerName}` },
       priority: 10,
-      ios_interruption_level: "time-sensitive",
+      ios_interruption_level: "time_sensitive",
       data: {
         type: "call_invite",
         callId: callId.toString(),

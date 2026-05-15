@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
 import 'call_models.dart';
+import 'native_call_handler.dart';
 
 /// Single-call peer-to-peer WebRTC manager.
 ///
@@ -57,6 +58,23 @@ class CallService extends ChangeNotifier {
   /// check alone misses the video and the remote renderer stays black.
   int _remoteStreamTick = 0;
   int get remoteStreamTick => _remoteStreamTick;
+
+  /// Set when the user accepted the incoming call via the native CallKit /
+  /// ConnectionService UI. Consumed in two places:
+  ///   - `_CallOverlay` skips pushing `IncomingCallScreen` and routes
+  ///     directly to `CallScreen` so the user doesn't see the in-app
+  ///     ringer flash when foregrounding after a CallKit accept.
+  ///   - `_onRemoteOffer` auto-fires `acceptIncoming()` if the offer
+  ///     arrives AFTER the CallKit tap (rare race: user accepts CallKit
+  ///     while the realtime signal is still in flight).
+  /// Reset by `_teardown` along with the rest of the session state.
+  bool _acceptedNatively = false;
+  bool get acceptedNatively => _acceptedNatively;
+  void markAcceptedNatively() {
+    if (_acceptedNatively) return;
+    _acceptedNatively = true;
+    notifyListeners();
+  }
 
   /// ICE candidates received before [_pc.setRemoteDescription] has resolved.
   /// We queue them up and replay once the remote description is set.
@@ -142,6 +160,14 @@ class CallService extends ChangeNotifier {
         localVideoOff: kind == CallMediaKind.audio,
       );
       notifyListeners();
+      // Surface the native "outgoing call" affordance (green pill on iOS,
+      // Recents entry, Bluetooth routing). Fire-and-forget — failure here
+      // doesn't block the WebRTC handshake.
+      unawaited(NativeCallHandler.instance.showOutgoing(
+        callId: callId,
+        peerName: peerName,
+        kind: kind,
+      ));
       // Flush any candidates buffered before the session existed (no-op in
       // the happy path because PC isn't created yet, but harmless).
       await _flushPendingLocalIce();
@@ -412,6 +438,13 @@ class CallService extends ChangeNotifier {
       notifyListeners();
       await _flushPendingLocalIce();
       incomingTick.value = incomingTick.value + 1;
+      // Race recovery: if the user tapped Accept on CallKit BEFORE the
+      // offer arrived (acceptIncoming would have early-returned because
+      // there was no session yet), auto-fire it now. Fire-and-forget —
+      // acceptIncoming notifies its own state transitions.
+      if (_acceptedNatively) {
+        unawaited(acceptIncoming());
+      }
     } catch (e, st) {
       debugPrint('CallService._onRemoteOffer failed: $e\n$st');
       await _disposePc();
@@ -591,6 +624,7 @@ class CallService extends ChangeNotifier {
           connectedAt: DateTime.now(),
         );
         notifyListeners();
+        unawaited(NativeCallHandler.instance.markConnected(s.callId));
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
       } else if (state ==
@@ -681,6 +715,7 @@ class CallService extends ChangeNotifier {
     if (s != null) {
       _session = s.copyWith(status: terminal, errorMessage: errorMessage);
       notifyListeners();
+      unawaited(NativeCallHandler.instance.endNative(s.callId));
     }
     await _disposePc();
     // Hold the terminal state for a moment so the UI can render "ended" /
@@ -689,6 +724,7 @@ class CallService extends ChangeNotifier {
       _session = null;
       _remoteStream = null;
       _remoteStreamTick = 0;
+      _acceptedNatively = false;
       notifyListeners();
     });
   }

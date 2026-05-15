@@ -176,7 +176,6 @@
 				9B83AB1061EFA301FCB2E10E /* Pods-RunnerTests.release.xcconfig */,
 				CE0F27F8940050D8381D39B8 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -275,7 +274,6 @@
 				985863383B8D8B7840D5B50D /* mh_monkey_hmm@2x.png */,
 				6FA7A196C960706CEE22A1B8 /* mh_monkey_hmm@3x.png */,
 			);
-			name = AlternateIcons;
 			path = AlternateIcons;
 			sourceTree = "<group>";
 		};
@@ -313,6 +311,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				FA0AC2C27AB44A2EF4A7B3B4 /* [CP] Embed Pods Frameworks */,
+				0C0647F752A97C1CBD9A0430 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -418,6 +417,23 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		0C0647F752A97C1CBD9A0430 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;

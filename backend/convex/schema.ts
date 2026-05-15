@@ -13,6 +13,12 @@ export default defineSchema({
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
     deviceTokens: v.optional(v.array(v.string())), // legacy field — OneSignal manages tokens now
+    // PushKit VoIP token (iOS) — separate from the regular APNs/OneSignal
+    // token. Used to wake the app for CallKit ringing when killed.
+    voipToken: v.optional(v.string()),
+    // FCM token (Android) — used to send data-only high-priority pushes that
+    // wake a killed app for the native ConnectionService ringer.
+    fcmToken: v.optional(v.string()),
     // Per-field visibility — each value is "public" | "friends" | "nobody".
     // username + name are always public since they're identity. New accounts
     // and missing keys default to "nobody" on the client; this object stores

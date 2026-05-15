@@ -28,6 +28,11 @@ class _CallScreenState extends State<CallScreen> {
   // because audio + video tracks arrive as separate onTrack events on the
   // same MediaStream and the renderer otherwise won't pick up the video.
   int _boundRemoteTick = -1;
+  // CallService._teardown fires notifyListeners twice during shutdown
+  // (status → ended, then session → null 400ms later). Without this guard
+  // each notify would schedule its own delayed pop and the second would
+  // dismiss the chatroom beneath this screen.
+  bool _popScheduled = false;
 
   @override
   void initState() {
@@ -69,12 +74,15 @@ class _CallScreenState extends State<CallScreen> {
     if (s == null ||
         s.status == CallStatus.ended ||
         s.status == CallStatus.failed) {
-      // Show the terminal state briefly, then pop.
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted && Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
-      });
+      // Show the terminal state briefly, then pop — but only once.
+      if (!_popScheduled) {
+        _popScheduled = true;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+      }
     }
     setState(() {});
   }

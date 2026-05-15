@@ -15,9 +15,19 @@ class IncomingCallScreen extends StatefulWidget {
   State<IncomingCallScreen> createState() => _IncomingCallScreenState();
 }
 
+enum _RingAction { none, accept, reject }
+
 class _IncomingCallScreenState extends State<IncomingCallScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse;
+  // Once the user has tapped accept/reject we lock both buttons until the
+  // screen disposes. The session transitions through `connecting` (accept)
+  // or terminal (reject) within a few hundred ms — locking is enough.
+  _RingAction _pending = _RingAction.none;
+  // CallService._teardown notifies twice (status → ended, then session →
+  // null 400ms later). Without this guard both notifies would call pop()
+  // and the second pop would dismiss the chatroom underneath.
+  bool _popScheduled = false;
 
   @override
   void initState() {
@@ -35,6 +45,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     if (s == null ||
         s.status == CallStatus.ended ||
         s.status == CallStatus.failed) {
+      if (_popScheduled) return;
+      _popScheduled = true;
       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
       return;
     }
@@ -55,10 +67,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   Future<void> _accept() async {
+    if (_pending != _RingAction.none) return;
+    setState(() => _pending = _RingAction.accept);
     await widget.service.acceptIncoming();
   }
 
   Future<void> _reject() async {
+    if (_pending != _RingAction.none) return;
+    setState(() => _pending = _RingAction.reject);
     await widget.service.reject();
   }
 
@@ -138,13 +154,19 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       _RingButton(
                         icon: Icons.call_end,
                         background: theme.danger,
-                        label: 'decline',
+                        label: _pending == _RingAction.reject
+                            ? 'declining…'
+                            : 'decline',
+                        enabled: _pending == _RingAction.none,
                         onTap: _reject,
                       ),
                       _RingButton(
                         icon: Icons.call,
                         background: theme.success,
-                        label: 'accept',
+                        label: _pending == _RingAction.accept
+                            ? 'connecting…'
+                            : 'accept',
+                        enabled: _pending == _RingAction.none,
                         onTap: _accept,
                       ),
                     ],
@@ -165,27 +187,34 @@ class _RingButton extends StatelessWidget {
     required this.background,
     required this.label,
     required this.onTap,
+    this.enabled = true,
   });
   final IconData icon;
   final Color background;
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final bg = enabled ? background : background.withValues(alpha: 0.4);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Material(
-          color: background,
+          color: bg,
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
-            onTap: onTap,
+            onTap: enabled ? onTap : null,
             child: SizedBox(
               width: 76,
               height: 76,
-              child: Icon(icon, color: Colors.white, size: 32),
+              child: Icon(
+                icon,
+                color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.6),
+                size: 32,
+              ),
             ),
           ),
         ),

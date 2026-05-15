@@ -62,6 +62,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _auth.addListener(_onAuthChange);
     _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
+    PushManager.instance.attachApi(_api);
     _bootstrap();
   }
 
@@ -330,7 +331,14 @@ class _CallOverlayState extends State<_CallOverlay> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
-      if (s.isCaller) {
+      // Three routes from here:
+      //   - Outgoing caller → CallScreen (the live in-call UI).
+      //   - Callee, accepted via native CallKit → skip IncomingCallScreen
+      //     and go straight to CallScreen. Without this branch the user
+      //     sees a 1–3s flash of the in-app ringer between foregrounding
+      //     and the service transitioning to `connecting`.
+      //   - Callee, not yet accepted → IncomingCallScreen.
+      if (s.isCaller || widget.service.acceptedNatively) {
         nav.push(MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => CallScreen(service: widget.service),
