@@ -39,6 +39,21 @@ async function assertCallParticipant(ctx: any, callId: any, userId: any) {
   return call;
 }
 
+// Cascade delete every signal for [callId] except [keep] (the terminal
+// bye/reject/cancel signal we just inserted, which the peer's subscription
+// still needs to see). Called after every terminal-state transition so
+// late-arriving ICE candidates can't race into a re-entered session.
+async function purgeCallSignals(ctx: any, callId: any, keep?: any) {
+  const rows = await ctx.db
+    .query("callSignals")
+    .withIndex("by_call", (q: any) => q.eq("callId", callId))
+    .collect();
+  for (const r of rows) {
+    if (keep && r._id.toString() === keep.toString()) continue;
+    await ctx.db.delete(r._id);
+  }
+}
+
 // ────────────────────────── initiate / lifecycle ──────────────────────────
 
 export const initiate = mutation({
@@ -173,7 +188,7 @@ export const reject = mutation({
       endedAt: Date.now(),
     });
     // Drop a terminal signal so the caller sees the rejection promptly.
-    await ctx.db.insert("callSignals", {
+    const sigId = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: userId,
       toUserId: call.callerId,
@@ -182,6 +197,7 @@ export const reject = mutation({
       createdAt: Date.now(),
       consumed: false,
     });
+    await purgeCallSignals(ctx, callId, sigId);
   },
 });
 
@@ -197,7 +213,7 @@ export const cancel = mutation({
       status: "cancelled",
       endedAt: Date.now(),
     });
-    await ctx.db.insert("callSignals", {
+    const sigId = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: userId,
       toUserId: call.calleeId,
@@ -206,6 +222,7 @@ export const cancel = mutation({
       createdAt: Date.now(),
       consumed: false,
     });
+    await purgeCallSignals(ctx, callId, sigId);
   },
 });
 
@@ -222,7 +239,7 @@ export const end = mutation({
       call.callerId.toString() === userId.toString()
         ? call.calleeId
         : call.callerId;
-    await ctx.db.insert("callSignals", {
+    const sigId = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: userId,
       toUserId: peer,
@@ -231,6 +248,7 @@ export const end = mutation({
       createdAt: Date.now(),
       consumed: false,
     });
+    await purgeCallSignals(ctx, callId, sigId);
   },
 });
 
@@ -244,8 +262,9 @@ export const expireRingingCall = internalMutation({
       status: "missed",
       endedAt: Date.now(),
     });
-    // Notify both sides so their UI can transition out of ringing.
-    await ctx.db.insert("callSignals", {
+    // Notify both sides so their UI can transition out of ringing. Both
+    // signals are kept by [purgeCallSignals] so each peer sees its own.
+    const sigToCallee = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: call.callerId,
       toUserId: call.calleeId,
@@ -254,7 +273,7 @@ export const expireRingingCall = internalMutation({
       createdAt: Date.now(),
       consumed: false,
     });
-    await ctx.db.insert("callSignals", {
+    const sigToCaller = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: call.calleeId,
       toUserId: call.callerId,
@@ -263,6 +282,20 @@ export const expireRingingCall = internalMutation({
       createdAt: Date.now(),
       consumed: false,
     });
+    // Sweep everything except those two terminal notifications.
+    const rows = await ctx.db
+      .query("callSignals")
+      .withIndex("by_call", (q: any) => q.eq("callId", callId))
+      .collect();
+    for (const r of rows) {
+      if (
+        r._id.toString() === sigToCallee.toString() ||
+        r._id.toString() === sigToCaller.toString()
+      ) {
+        continue;
+      }
+      await ctx.db.delete(r._id);
+    }
   },
 });
 
@@ -288,6 +321,12 @@ export const sendSignal = mutation({
         : call.callerId.toString();
     if (toUserId.toString() !== expectedPeer) {
       throw new Error("WRONG_PEER");
+    }
+    // Refuse signals for terminal calls. Late-arriving ICE candidates from a
+    // slow network could otherwise repopulate rows after [purgeCallSignals]
+    // already ran, and resurrect a dead call in the peer's subscription.
+    if (call.status !== "ringing" && call.status !== "active") {
+      return; // idempotent silent drop
     }
     await ctx.db.insert("callSignals", {
       callId,
@@ -468,6 +507,120 @@ export const sendCallPush = internalAction({
       console.error(`sendCallPush: OneSignal HTTP ${response.status} ${text}`);
     } else {
       console.log(`sendCallPush: dispatched — ${text}`);
+    }
+  },
+});
+
+// ────────────────────────── GC sweeps ──────────────────────────
+// These run on a schedule from crons.ts. Each one bounds its work with
+// `.take(200)` so a single tick can't run away — if more is pending, the
+// next tick picks it up.
+
+const CONSUMED_SIGNAL_RETENTION_MS = 60 * 1000;      // 1 min
+const TERMINAL_CALL_RETENTION_MS = 24 * 60 * 60 * 1000; // 1 day
+const STUCK_RINGING_MS = 90 * 1000;                  // 90s safety net
+
+// Delete callSignals where consumed=true and createdAt is older than 1 min.
+export const gcConsumedSignals = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - CONSUMED_SIGNAL_RETENTION_MS;
+    // Convex doesn't expose a single index on (consumed, createdAt), but
+    // `by_to_unconsumed` lets us hit the consumed=true partition quickly
+    // by iterating all users' rows — for early-stage volumes that's fine.
+    // We collect old consumed rows by scanning callSignals filtered by
+    // consumed=true and createdAt < cutoff. Cap each run at 200 deletes.
+    const rows = await ctx.db
+      .query("callSignals")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("consumed"), true),
+          q.lt(q.field("createdAt"), cutoff),
+        ),
+      )
+      .take(200);
+    for (const r of rows) {
+      await ctx.db.delete(r._id);
+    }
+    if (rows.length > 0) {
+      console.log(`gcConsumedSignals: deleted ${rows.length} row(s)`);
+    }
+  },
+});
+
+// Delete terminal-status calls older than 1 day, plus any of their lingering
+// signals (defense in depth — purgeCallSignals should have already cleaned
+// them at terminal time).
+export const gcTerminalCalls = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - TERMINAL_CALL_RETENTION_MS;
+    const terminal = ["ended", "rejected", "cancelled", "missed", "failed"];
+    let totalDeleted = 0;
+    for (const status of terminal) {
+      const rows = await ctx.db
+        .query("calls")
+        .withIndex("by_status_started", (q) =>
+          q.eq("status", status).lt("startedAt", cutoff),
+        )
+        .take(50);
+      for (const call of rows) {
+        // Cascade — sweep any signals that survived purge-on-terminal.
+        const sigs = await ctx.db
+          .query("callSignals")
+          .withIndex("by_call", (q: any) => q.eq("callId", call._id))
+          .collect();
+        for (const sig of sigs) await ctx.db.delete(sig._id);
+        await ctx.db.delete(call._id);
+        totalDeleted++;
+      }
+    }
+    if (totalDeleted > 0) {
+      console.log(`gcTerminalCalls: deleted ${totalDeleted} call(s)`);
+    }
+  },
+});
+
+// Safety net for `ringing` calls older than 90s. The per-call scheduled
+// `expireRingingCall` should have fired at 30s; this catches the edge case
+// where a backend restart or scheduler failure left a call ringing forever.
+export const gcStuckRinging = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - STUCK_RINGING_MS;
+    const rows = await ctx.db
+      .query("calls")
+      .withIndex("by_status_started", (q) =>
+        q.eq("status", "ringing").lt("startedAt", cutoff),
+      )
+      .take(50);
+    for (const call of rows) {
+      await ctx.db.patch(call._id, {
+        status: "missed",
+        endedAt: Date.now(),
+      });
+      // Drop terminal signals so each side's UI clears.
+      await ctx.db.insert("callSignals", {
+        callId: call._id,
+        fromUserId: call.callerId,
+        toUserId: call.calleeId,
+        kind: "cancel",
+        payload: '{"reason":"stuck"}',
+        createdAt: Date.now(),
+        consumed: false,
+      });
+      await ctx.db.insert("callSignals", {
+        callId: call._id,
+        fromUserId: call.calleeId,
+        toUserId: call.callerId,
+        kind: "reject",
+        payload: '{"reason":"stuck"}',
+        createdAt: Date.now(),
+        consumed: false,
+      });
+    }
+    if (rows.length > 0) {
+      console.log(`gcStuckRinging: rescued ${rows.length} call(s)`);
     }
   },
 });

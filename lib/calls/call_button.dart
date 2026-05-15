@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
+import 'call_picker.dart';
 import 'call_service.dart';
 
 enum CallButtonVariant { classic, liquid }
 
 /// Header entry-point for starting a 1:1 call. Renders as a small icon next
-/// to the room-info button; tapping reveals a popup with "Voice call" /
-/// "Video call". DM-only — callers gate visibility on `room.isDm`.
+/// to the room-info button; tapping reveals a frosted popover with
+/// "Voice call" / "Video call". DM-only — callers gate visibility on
+/// `room.isDm`.
 class CallButton extends StatelessWidget {
   const CallButton({
     super.key,
@@ -51,124 +53,79 @@ class CallButton extends StatelessWidget {
     return 'could not start call';
   }
 
-  void _showMenuAt(
-    BuildContext context,
-    RelativeRect position,
-  ) async {
-    final theme = ThemeScope.of(context);
-    final selected = await showMenu<CallMediaKind>(
-      context: context,
-      position: position,
-      color: theme.surfaceRaised,
-      items: [
-        PopupMenuItem(
-          value: CallMediaKind.audio,
-          child: Row(
-            children: [
-              Icon(Icons.call, size: 16, color: theme.ink),
-              const SizedBox(width: 10),
-              Text('voice call', style: theme.body),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: CallMediaKind.video,
-          child: Row(
-            children: [
-              Icon(Icons.videocam, size: 16, color: theme.ink),
-              const SizedBox(width: 10),
-              Text('video call', style: theme.body),
-            ],
-          ),
-        ),
-      ],
-    );
-    if (selected != null && context.mounted) {
-      await _start(context, selected);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     switch (variant) {
       case CallButtonVariant.classic:
         return _ClassicCallButton(onPick: (k) => _start(context, k));
       case CallButtonVariant.liquid:
-        return _LiquidCallButton(onTrigger: (pos) => _showMenuAt(context, pos));
+        return _LiquidCallButton(onPick: (k) => _start(context, k));
     }
   }
 }
 
-class _ClassicCallButton extends StatelessWidget {
+class _ClassicCallButton extends StatefulWidget {
   const _ClassicCallButton({required this.onPick});
   final ValueChanged<CallMediaKind> onPick;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return PopupMenuButton<CallMediaKind>(
-      tooltip: 'call',
-      padding: EdgeInsets.zero,
-      iconSize: 18,
-      color: theme.surfaceRaised,
-      icon: Icon(Icons.call_outlined, color: theme.inkSoft, size: 18),
-      onSelected: onPick,
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: CallMediaKind.audio,
-          child: Row(
-            children: [
-              Icon(Icons.call, size: 16, color: theme.ink),
-              const SizedBox(width: 10),
-              Text('voice call', style: theme.body),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: CallMediaKind.video,
-          child: Row(
-            children: [
-              Icon(Icons.videocam, size: 16, color: theme.ink),
-              const SizedBox(width: 10),
-              Text('video call', style: theme.body),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+  State<_ClassicCallButton> createState() => _ClassicCallButtonState();
 }
 
-class _LiquidCallButton extends StatelessWidget {
-  const _LiquidCallButton({required this.onTrigger});
-  final ValueChanged<RelativeRect> onTrigger;
+class _ClassicCallButtonState extends State<_ClassicCallButton> {
+  // Stable across rebuilds — the room screen rebuilds frequently. A
+  // GlobalKey constructed inside build() would make Flutter treat the
+  // anchor as a new widget every frame, breaking gesture recognition
+  // and the picker's RenderBox lookup.
+  final GlobalKey _anchorKey = GlobalKey();
+
+  Future<void> _handleTap() async {
+    final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
+    if (picked != null) widget.onPick(picked);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final key = GlobalKey();
+    return IconButton(
+      key: _anchorKey,
+      tooltip: 'call',
+      padding: EdgeInsets.zero,
+      iconSize: 18,
+      icon: Icon(Icons.call_outlined, color: theme.inkSoft, size: 18),
+      onPressed: _handleTap,
+    );
+  }
+}
+
+class _LiquidCallButton extends StatefulWidget {
+  const _LiquidCallButton({required this.onPick});
+  final ValueChanged<CallMediaKind> onPick;
+
+  @override
+  State<_LiquidCallButton> createState() => _LiquidCallButtonState();
+}
+
+class _LiquidCallButtonState extends State<_LiquidCallButton> {
+  // Stable across rebuilds — the room screen rebuilds frequently (stream
+  // updates, typing, scroll tracking); a GlobalKey constructed inside build()
+  // would make Flutter treat the LiquidGlass as a new widget every frame,
+  // unmounting it mid-tap and breaking gesture recognition.
+  final GlobalKey _anchorKey = GlobalKey();
+
+  Future<void> _handleTap() async {
+    final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
+    if (picked != null) widget.onPick(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     return LiquidGlass(
-      key: key,
+      key: _anchorKey,
       shape: LiquidGlassShape.circle,
       size: const Size(44, 44),
-      onTap: () {
-        final ctx = key.currentContext;
-        if (ctx == null) return;
-        final box = ctx.findRenderObject() as RenderBox?;
-        if (box == null) return;
-        final overlay =
-            Overlay.of(ctx).context.findRenderObject() as RenderBox?;
-        if (overlay == null) return;
-        final origin = box.localToGlobal(Offset.zero, ancestor: overlay);
-        final size = box.size;
-        final pos = RelativeRect.fromLTRB(
-          origin.dx,
-          origin.dy + size.height + 4,
-          overlay.size.width - origin.dx - size.width,
-          0,
-        );
-        onTrigger(pos);
-      },
+      onTap: _handleTap,
       child: Icon(Icons.call_outlined, size: 18, color: theme.accent),
     );
   }

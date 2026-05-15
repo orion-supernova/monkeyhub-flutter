@@ -35,6 +35,10 @@ class CallService extends ChangeNotifier {
     // displayName is reserved for future use (eg sending it as part of the
     // call invite payload). Not consumed yet — the backend resolves names
     // server-side when pushing the call notification.
+
+    // Warm the ICE config so the first call doesn't pay the action cold-start.
+    // TURN creds are valid for 1 hour and we re-fetch at 50 min.
+    unawaited(_iceServers());
   }
 
   // ───────── active call state ─────────
@@ -47,10 +51,51 @@ class CallService extends ChangeNotifier {
   MediaStream? get localStream => _localStream;
   MediaStream? get remoteStream => _remoteStream;
 
+  /// Increments every time a remote track is delivered. Consumers use this to
+  /// detect "same stream reference, new track inside it" — the audio track
+  /// usually arrives one tick before the video track, so a reference-equality
+  /// check alone misses the video and the remote renderer stays black.
+  int _remoteStreamTick = 0;
+  int get remoteStreamTick => _remoteStreamTick;
+
   /// ICE candidates received before [_pc.setRemoteDescription] has resolved.
   /// We queue them up and replay once the remote description is set.
   final List<RTCIceCandidate> _pendingRemoteIce = [];
   bool _remoteDescSet = false;
+
+  /// Local ICE candidates the PC produced before the [_session] was set up.
+  /// They're flushed onto the wire as soon as the session is ready.
+  final List<RTCIceCandidate> _pendingLocalIce = [];
+
+  /// Cached `getIceConfig` response — TURN creds expire in 60min so we
+  /// refresh after 50min. Cached across calls (within one session).
+  List<Map<String, dynamic>>? _cachedIceServers;
+  DateTime? _cachedIceServersAt;
+
+  Future<List<Map<String, dynamic>>> _iceServers() async {
+    final cached = _cachedIceServers;
+    final at = _cachedIceServersAt;
+    if (cached != null &&
+        at != null &&
+        DateTime.now().difference(at) < const Duration(minutes: 50)) {
+      return cached;
+    }
+    final me = _userId;
+    if (me == null) return const [];
+    try {
+      final fresh = await api.getIceConfig(me);
+      _cachedIceServers = fresh;
+      _cachedIceServersAt = DateTime.now();
+      return fresh;
+    } catch (e) {
+      debugPrint('CallService._iceServers fetch failed: $e');
+      // Last-resort fallback so the call still has a chance via STUN.
+      return const [
+        {'urls': 'stun:stun.l.google.com:19302'},
+        {'urls': 'stun:stun1.l.google.com:19302'},
+      ];
+    }
+  }
 
   /// Stream-event callback for the UI: pushed whenever an incoming call
   /// arrives. The overlay listens to this to navigate to the IncomingCallScreen.
@@ -75,22 +120,16 @@ class CallService extends ChangeNotifier {
     if (inCall) throw StateError('Already in a call');
 
     try {
-      _pc = await _createPeerConnection();
-      await _attachLocalMedia(kind);
-
-      final offer = await _pc!.createOffer({
-        'offerToReceiveAudio': true,
-        'offerToReceiveVideo': kind == CallMediaKind.video,
-      });
-      await _pc!.setLocalDescription(offer);
-
+      // 1. Reserve the call row first so we have a callId for every signal
+      //    that follows. ICE starts gathering the moment setLocalDescription
+      //    resolves, and onIceCandidate needs the callId to route — so the
+      //    session must be alive before any of that fires.
       final callId = await api.initiateCall(
         callerId: me,
         calleeId: peerUserId,
         roomId: roomId,
         type: kind.wire,
       );
-
       _session = CallSession(
         callId: callId,
         roomId: roomId,
@@ -103,7 +142,28 @@ class CallService extends ChangeNotifier {
         localVideoOff: kind == CallMediaKind.audio,
       );
       notifyListeners();
+      // Flush any candidates buffered before the session existed (no-op in
+      // the happy path because PC isn't created yet, but harmless).
+      await _flushPendingLocalIce();
 
+      // 2. Now create the PC + media. Any ICE candidates produced here will
+      //    see [_session] populated and ship via signaling immediately.
+      _pc = await _createPeerConnection();
+      await _attachLocalMedia(kind);
+
+      final offer = await _pc!.createOffer({
+        'offerToReceiveAudio': true,
+        'offerToReceiveVideo': kind == CallMediaKind.video,
+      });
+      await _pc!.setLocalDescription(offer);
+      debugPrint(
+        'CallService.initiate: offer sent kind=${kind.wire} '
+        'sdpLen=${offer.sdp?.length ?? 0}',
+      );
+
+      // 3. Hand the offer to the callee. ICE candidates already in flight
+      //    arrive in createdAt order, so the offer wins the race even though
+      //    it's sent last here.
       await api.sendCallSignal(
         callId: callId,
         fromUserId: me,
@@ -112,6 +172,12 @@ class CallService extends ChangeNotifier {
         payload: jsonEncode({
           'sdp': offer.sdp,
           'type': offer.type,
+          // The callee's media kind must match the caller's exactly — if it
+          // doesn't, the callee skips getUserMedia for video and the call
+          // silently collapses to voice. Sniffing m=video from the SDP isn't
+          // reliable under unified-plan (recvonly/inactive sections still
+          // contain that token), so we carry the kind in-band.
+          'mediaKind': kind.wire,
         }),
       );
     } catch (e, st) {
@@ -130,13 +196,24 @@ class CallService extends ChangeNotifier {
     if (me == null || s == null) return;
     if (s.status != CallStatus.incomingRinging) return;
 
+    // The PC was prepared in [_onRemoteOffer] (already has remote desc set).
+    // Re-creating it here would discard that setup → createAnswer would fail
+    // because the fresh PC has no remote description.
+    final pc = _pc;
+    if (pc == null) {
+      await endCall(errorMessage: 'Lost the offer — try again');
+      return;
+    }
+
     try {
-      _pc = await _createPeerConnection();
       await _attachLocalMedia(s.mediaKind);
 
-      // Remote description (offer) is already set by [handleRemoteSignal].
-      final answer = await _pc!.createAnswer({});
-      await _pc!.setLocalDescription(answer);
+      final answer = await pc.createAnswer({});
+      await pc.setLocalDescription(answer);
+      debugPrint(
+        'CallService.acceptIncoming: answer sent kind=${s.mediaKind.wire} '
+        'sdpLen=${answer.sdp?.length ?? 0}',
+      );
 
       await api.acceptCall(callId: s.callId, userId: me);
       await api.sendCallSignal(
@@ -305,22 +382,35 @@ class CallService extends ChangeNotifier {
       _remoteDescSet = true;
       _drainPendingIce();
 
-      // We don't yet know the call's room/media-kind locally — pull it from
-      // the offer's SDP. m= lines with "video" indicate a video call.
-      final isVideo = sdp.contains('m=video');
+      // Trust the caller's explicit kind in the payload. Fall back to an SDP
+      // sniff only for offers from older clients that don't carry it — the
+      // sniff catches the common case but mis-fires on unified-plan offers
+      // that include an inactive/recvonly m=video section.
+      final kindHint = parsed['mediaKind'] as String?;
+      final mediaKind = kindHint != null
+          ? CallMediaKindWire.parse(kindHint)
+          : (sdp.contains('m=video')
+              ? CallMediaKind.video
+              : CallMediaKind.audio);
+      final isVideo = mediaKind == CallMediaKind.video;
+      debugPrint(
+        'CallService._onRemoteOffer: applied kindHint=${kindHint ?? "(none)"} '
+        'resolved=${mediaKind.wire} sdpLen=${sdp.length}',
+      );
 
       _session = CallSession(
         callId: callId,
         roomId: '', // not strictly needed for callee UI
         peerUserId: fromUserId,
         peerName: 'Calling…', // overwritten by IncomingCallScreen via profile lookup
-        mediaKind: isVideo ? CallMediaKind.video : CallMediaKind.audio,
+        mediaKind: mediaKind,
         isCaller: false,
         status: CallStatus.incomingRinging,
         startedAt: DateTime.now(),
         localVideoOff: !isVideo,
       );
       notifyListeners();
+      await _flushPendingLocalIce();
       incomingTick.value = incomingTick.value + 1;
     } catch (e, st) {
       debugPrint('CallService._onRemoteOffer failed: $e\n$st');
@@ -341,6 +431,10 @@ class CallService extends ChangeNotifier {
       await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
       _remoteDescSet = true;
       _drainPendingIce();
+      debugPrint(
+        'CallService._onRemoteAnswer: applied signalingState=${pc.signalingState} '
+        'sdpLen=${sdp.length}',
+      );
       final s = _session;
       if (s != null && s.status == CallStatus.outgoingRinging) {
         _session = s.copyWith(status: CallStatus.connecting);
@@ -389,6 +483,35 @@ class CallService extends ChangeNotifier {
     _pendingRemoteIce.clear();
   }
 
+  Future<void> _sendLocalIce(CallSession s, RTCIceCandidate cand) async {
+    try {
+      await api.sendCallSignal(
+        callId: s.callId,
+        fromUserId: _userId!,
+        toUserId: s.peerUserId,
+        kind: 'ice',
+        payload: jsonEncode({
+          'candidate': cand.candidate,
+          'sdpMid': cand.sdpMid,
+          'sdpMLineIndex': cand.sdpMLineIndex,
+        }),
+      );
+    } catch (e) {
+      debugPrint('onIceCandidate send failed: $e');
+    }
+  }
+
+  Future<void> _flushPendingLocalIce() async {
+    if (_pendingLocalIce.isEmpty) return;
+    final s = _session;
+    if (s == null) return;
+    final pending = List<RTCIceCandidate>.of(_pendingLocalIce);
+    _pendingLocalIce.clear();
+    for (final c in pending) {
+      await _sendLocalIce(s, c);
+    }
+  }
+
   // ───────── helpers ─────────
 
   /// Updates [peerName] on the active incoming session — used by the
@@ -417,8 +540,7 @@ class CallService extends ChangeNotifier {
   }
 
   Future<RTCPeerConnection> _createPeerConnection() async {
-    final me = _userId!;
-    final servers = await api.getIceConfig(me);
+    final servers = await _iceServers();
     final config = {
       'iceServers': servers,
       'sdpSemantics': 'unified-plan',
@@ -426,30 +548,37 @@ class CallService extends ChangeNotifier {
     final pc = await createPeerConnection(config, {});
 
     pc.onIceCandidate = (cand) async {
+      if (cand.candidate == null) return;
       final s = _session;
-      if (s == null || cand.candidate == null) return;
-      try {
-        await api.sendCallSignal(
-          callId: s.callId,
-          fromUserId: _userId!,
-          toUserId: s.peerUserId,
-          kind: 'ice',
-          payload: jsonEncode({
-            'candidate': cand.candidate,
-            'sdpMid': cand.sdpMid,
-            'sdpMLineIndex': cand.sdpMLineIndex,
-          }),
-        );
-      } catch (e) {
-        debugPrint('onIceCandidate send failed: $e');
+      final typ = _candidateType(cand.candidate);
+      // Defensive buffer: if a candidate fires before _session is set
+      // (shouldn't happen with current ordering, but guards future regressions),
+      // park it and flush when the session arrives.
+      if (s == null) {
+        debugPrint('CallService.onIceCandidate: buffered ($typ) — no session yet');
+        _pendingLocalIce.add(cand);
+        return;
       }
+      debugPrint('CallService.onIceCandidate: sending ($typ)');
+      await _sendLocalIce(s, cand);
     };
 
+    // NOTE: iOS Simulator's RTCMTLVideoView does not paint received video
+    // frames (flutter-webrtc#1420 / #1535). Tracks arrive, connection reaches
+    // Connected, but the remote view stays black. This is a plugin/renderer
+    // limitation — test video on two physical devices, not the simulator.
     pc.onTrack = (event) {
+      final kind = event.track.kind;
+      final streamIds = event.streams.map((s) => s.id).join(',');
+      debugPrint('CallService.onTrack: kind=$kind streams=[$streamIds]');
+      // Only advance the tick when we got a real stream to bind. If streams
+      // is empty (no msid on the track) the renderer would otherwise rebind
+      // to null and stay black.
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams.first;
-        notifyListeners();
+        _remoteStreamTick++;
       }
+      notifyListeners();
     };
 
     pc.onConnectionState = (state) async {
@@ -501,6 +630,12 @@ class CallService extends ChangeNotifier {
         'video': false,
     };
     _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    final localKinds =
+        _localStream!.getTracks().map((t) => t.kind).join(',');
+    debugPrint(
+      'CallService._attachLocalMedia: requested=${kind.wire} '
+      'got=[$localKinds]',
+    );
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
     }
@@ -511,6 +646,16 @@ class CallService extends ChangeNotifier {
         await Helper.setSpeakerphoneOn(true);
       } catch (_) {}
     }
+  }
+
+  /// Pulls the `typ` token out of an ICE candidate SDP line:
+  /// `candidate:… 1 udp 2122260223 192.168.x.x 54321 typ host …`
+  /// Returns `host` / `srflx` / `prflx` / `relay` (or `?` if missing).
+  /// Used only for log readability.
+  String _candidateType(String? candidate) {
+    if (candidate == null) return '?';
+    final m = RegExp(r'\btyp\s+(\w+)').firstMatch(candidate);
+    return m?.group(1) ?? '?';
   }
 
   Future<void> _sendState() async {
@@ -543,6 +688,7 @@ class CallService extends ChangeNotifier {
     Future.delayed(const Duration(milliseconds: 400), () {
       _session = null;
       _remoteStream = null;
+      _remoteStreamTick = 0;
       notifyListeners();
     });
   }
@@ -550,6 +696,7 @@ class CallService extends ChangeNotifier {
   Future<void> _disposePc() async {
     _remoteDescSet = false;
     _pendingRemoteIce.clear();
+    _pendingLocalIce.clear();
     try {
       final ls = _localStream;
       if (ls != null) {

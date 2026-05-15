@@ -62,6 +62,11 @@ class ChatRepository extends ChangeNotifier {
 
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
   final Map<String, List<ChatMessage>> _pending = {}; // optimistic messages
+  // Newest message id we've seen per room. Used to dedup [markRoomRead]
+  // when the `messages:list` subscription refires for non-message reasons
+  // (e.g. a reaction add/remove) so we don't trip a roomMembers patch →
+  // four-subscription cascade.
+  final Map<String, String?> _lastSeenNewestMsgId = {};
 
   // Map of roomId → list of typing-user display names (other users only).
   final Map<String, List<String>> _typingByRoom = {};
@@ -244,6 +249,7 @@ class ChatRepository extends ChangeNotifier {
     _outgoingRequests = [];
     _messages.clear();
     _pending.clear();
+    _lastSeenNewestMsgId.clear();
     _typingByRoom.clear();
     notifyListeners();
   }
@@ -330,6 +336,12 @@ class ChatRepository extends ChangeNotifier {
     } catch (_) {/* offline — cached messages remain */}
     _pending[roomId] ??= [];
     _initialLoaded.add(roomId);
+    // Prime the dedup baseline with the newest message we already loaded, so
+    // the first onData fire (which echoes the same set) doesn't fire a
+    // redundant markRoomRead.
+    _lastSeenNewestMsgId[roomId] = _messages[roomId]?.isNotEmpty == true
+        ? _messages[roomId]!.last.id
+        : null;
     notifyListeners();
     _messagesSub = await cv.subscribe(
       'messages:list',
@@ -343,8 +355,15 @@ class ChatRepository extends ChangeNotifier {
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
-          // Mark room read whenever new messages arrive while user is in it.
-          api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+          // Only mark-read when a NEW message has actually arrived since the
+          // last fire. `messages:list` also refires on reaction add/remove
+          // and (legacy) any user-doc change — those shouldn't trigger a
+          // mutation that cascades into roomMembers and four other queries.
+          final newestId = parsed.isNotEmpty ? parsed.last.id : null;
+          if (newestId != null && newestId != _lastSeenNewestMsgId[roomId]) {
+            _lastSeenNewestMsgId[roomId] = newestId;
+            api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+          }
         }
         notifyListeners();
       },

@@ -22,6 +22,12 @@ class _CallScreenState extends State<CallScreen> {
   final _localRenderer = RTCVideoRenderer();
   final _remoteRenderer = RTCVideoRenderer();
   Timer? _elapsedTicker;
+  bool _renderersReady = false;
+  // Mirrors CallService.remoteStreamTick — we re-bind the remote renderer
+  // whenever the tick advances, even if the stream reference is unchanged,
+  // because audio + video tracks arrive as separate onTrack events on the
+  // same MediaStream and the renderer otherwise won't pick up the video.
+  int _boundRemoteTick = -1;
 
   @override
   void initState() {
@@ -37,20 +43,29 @@ class _CallScreenState extends State<CallScreen> {
   Future<void> _setupRenderers() async {
     await _localRenderer.initialize();
     await _remoteRenderer.initialize();
-    _localRenderer.srcObject = widget.service.localStream;
-    _remoteRenderer.srcObject = widget.service.remoteStream;
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    _renderersReady = true;
+    _syncStreams();
+    setState(() {});
+  }
+
+  void _syncStreams() {
+    if (!_renderersReady) return;
+    final svc = widget.service;
+    if (_localRenderer.srcObject != svc.localStream) {
+      _localRenderer.srcObject = svc.localStream;
+    }
+    if (_remoteRenderer.srcObject != svc.remoteStream ||
+        _boundRemoteTick != svc.remoteStreamTick) {
+      _remoteRenderer.srcObject = svc.remoteStream;
+      _boundRemoteTick = svc.remoteStreamTick;
+    }
   }
 
   void _onChanged() {
     if (!mounted) return;
     final s = widget.service.session;
-    if (_localRenderer.srcObject != widget.service.localStream) {
-      _localRenderer.srcObject = widget.service.localStream;
-    }
-    if (_remoteRenderer.srcObject != widget.service.remoteStream) {
-      _remoteRenderer.srcObject = widget.service.remoteStream;
-    }
+    _syncStreams();
     if (s == null ||
         s.status == CallStatus.ended ||
         s.status == CallStatus.failed) {

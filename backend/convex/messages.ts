@@ -197,19 +197,20 @@ export const list = query({
       .order("desc")
       .take(limit ?? 100);
 
+    // Do NOT read `users` here. Convex reactivity tracks every doc read, so
+    // including `ctx.db.get(msg.userId)` made this subscription re-fire on
+    // every user.status flip (online/away/offline) for any author in the
+    // list — which then triggered markRoomRead, which patched roomMembers,
+    // which refired four other subscriptions. The denormalized
+    // `msg.senderName` is set at write time in `messages:send` so the
+    // client already has the display name.
     const enriched = await Promise.all(
       msgs.map(async (msg) => {
-        const user = await ctx.db.get(msg.userId);
         const reactions = await ctx.db
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return {
-          ...msg,
-          username: user?.username ?? "unknown",
-          name: user?.name ?? user?.username ?? "unknown",
-          reactions,
-        };
+        return { ...msg, reactions };
       })
     );
     return enriched.reverse();
@@ -231,19 +232,15 @@ export const listBefore = query({
       .order("desc")
       .take(limit ?? 30);
 
+    // Mirrors the no-user-doc-read pattern from `list` above — see comment
+    // there for why we never enrich with users in a reactive query.
     const enriched = await Promise.all(
       msgs.map(async (msg) => {
-        const user = await ctx.db.get(msg.userId);
         const reactions = await ctx.db
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return {
-          ...msg,
-          username: user?.username ?? "unknown",
-          name: user?.name ?? user?.username ?? "unknown",
-          reactions,
-        };
+        return { ...msg, reactions };
       })
     );
     return enriched.reverse(); // chronological order

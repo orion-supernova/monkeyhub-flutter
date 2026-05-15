@@ -1658,7 +1658,7 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
               roomId: widget.room.id,
               variant: CallButtonVariant.liquid,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
           ],
           LiquidGlass(
             shape: LiquidGlassShape.circle,

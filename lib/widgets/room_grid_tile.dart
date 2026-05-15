@@ -67,7 +67,7 @@ class RoomGridTile extends StatelessWidget {
                 Expanded(
                   child: Wrap(
                     spacing: 4,
-                    runSpacing: 4,
+                    runSpacing: 2,
                     alignment: WrapAlignment.end,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
@@ -85,54 +85,58 @@ class RoomGridTile extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              dmUser?.displayName ?? room.name,
-              style: theme.displaySmall.copyWith(fontSize: 16),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            if (typingNames.isNotEmpty)
-              Row(children: [
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    typingNames.length == 1
-                        ? '${typingNames.first} is typing…'
-                        : '${typingNames.length} typing…',
-                    style: theme.body.copyWith(color: theme.accent, fontStyle: FontStyle.italic, fontSize: 12),
+            const SizedBox(height: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dmUser?.displayName ?? room.name,
+                    style: theme.displaySmall.copyWith(fontSize: 16),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ])
-            else if (room.lastMessage != null && room.lastMessage!.isNotEmpty)
-              Text(
-                room.lastMessage!,
-                style: theme.body.copyWith(fontSize: 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )
-            else
-              Text(
-                'quiet so far',
-                style: theme.bodySoft.copyWith(fontSize: 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 2),
+                  Flexible(
+                    child: typingNames.isNotEmpty
+                        ? Row(children: [
+                            Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: theme.accent,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                typingNames.length == 1
+                                    ? '${typingNames.first} is typing…'
+                                    : '${typingNames.length} typing…',
+                                style: theme.body.copyWith(color: theme.accent, fontStyle: FontStyle.italic, fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ])
+                        : Text(
+                            (room.lastMessage != null && room.lastMessage!.isNotEmpty)
+                                ? room.lastMessage!
+                                : 'quiet so far',
+                            style: (room.lastMessage != null && room.lastMessage!.isNotEmpty)
+                                ? theme.body.copyWith(fontSize: 12)
+                                : theme.bodySoft.copyWith(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  ),
+                ],
               ),
-            const Spacer(),
+            ),
             Row(children: [
               Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
               const SizedBox(width: 4),

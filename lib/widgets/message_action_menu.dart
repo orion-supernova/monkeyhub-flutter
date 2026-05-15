@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'glass_surface.dart';
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
 /// separately via [MessageActionResult.emoji] / `.fullPicker`).
@@ -402,7 +403,7 @@ class _ReactionPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return _GlassSurface(
+    return GlassSurface(
       radius: 999,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       child: Row(
@@ -569,7 +570,7 @@ class _ActionList extends StatelessWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 200, maxWidth: 240),
-      child: _GlassSurface(
+      child: GlassSurface(
         radius: theme.radiusLg + 6,
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Column(
@@ -642,56 +643,3 @@ class _ActionRowState extends State<_ActionRow> {
   }
 }
 
-// ───────────────────────── glass surface helper ─────────────────────────
-
-/// Frosted blurred surface tailored for menus. We don't reuse [LiquidGlass]
-/// here because that widget centers its child and is sized to its parent —
-/// menus need intrinsic sizing.
-class _GlassSurface extends StatelessWidget {
-  const _GlassSurface({
-    required this.radius,
-    required this.padding,
-    required this.child,
-  });
-  final double radius;
-  final EdgeInsets padding;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final isLight = MediaQuery.platformBrightnessOf(context) == Brightness.light;
-    final frostAlpha = isLight ? 0.62 : 0.42;
-    final radii = BorderRadius.circular(radius);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: radii,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: radii,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.surface.withValues(alpha: frostAlpha),
-              borderRadius: radii,
-              border: Border.all(
-                color: theme.accent.withValues(alpha: 0.22),
-                width: 1,
-              ),
-            ),
-            padding: padding,
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-}
