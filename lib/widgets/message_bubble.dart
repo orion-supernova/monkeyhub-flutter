@@ -22,6 +22,7 @@ class MessageBubble extends StatelessWidget {
     required this.api,
     this.author,
     this.onLongPress,
+    this.onDoubleTap,
     this.onReactionTap,
     this.onAuthorTap,
     this.seenByOthers = false,
@@ -33,6 +34,7 @@ class MessageBubble extends StatelessWidget {
   final ChatApi api;
   final ChatUser? author;
   final VoidCallback? onLongPress;
+  final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
   final VoidCallback? onAuthorTap;
   final bool seenByOthers;
@@ -61,6 +63,7 @@ class MessageBubble extends StatelessWidget {
               children: [
                 GestureDetector(
                   onLongPress: onLongPress,
+                  onDoubleTap: onDoubleTap,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                     child: _bubbleContent(theme, isMine, ephemeral: false),
@@ -109,6 +112,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     required this.api,
     this.author,
     this.onLongPress,
+    this.onDoubleTap,
     this.onReactionTap,
     this.onAuthorTap,
   });
@@ -118,6 +122,7 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ChatApi api;
   final ChatUser? author;
   final VoidCallback? onLongPress;
+  final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
   final VoidCallback? onAuthorTap;
 
@@ -178,6 +183,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onLongPress: onLongPress,
+                    onDoubleTap: onDoubleTap,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
                       child: bubbleWithEffect,

@@ -24,7 +24,7 @@ import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
-import '../widgets/message_action_sheet.dart';
+import '../widgets/message_action_menu.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'camera_editor_screen.dart';
@@ -587,19 +587,45 @@ class _RoomScreenState extends State<RoomScreen> {
                 final othersRead = widget.repo.latestOthersReadAt;
                 final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
                 Future<void> onLongPress() async {
+                  HapticFeedback.mediumImpact();
+                  FocusManager.instance.primaryFocus?.unfocus();
                   final messenger = ScaffoldMessenger.of(context);
-                  final action = await showMessageActionSheet(
-                    context,
+                  final anchor = _dateTracks['m_${m.id}']?.key;
+                  if (anchor == null) return;
+                  final result = await showMessageActionMenu(
+                    context: context,
+                    anchorKey: anchor,
                     isMine: isMine,
                     canCopy: m.type == MessageType.text && m.content.isNotEmpty,
+                    bubbleBuilder: (_) => m.isEphemeral
+                        ? EphemeralMessageBubble(
+                            message: m,
+                            now: _now,
+                            currentUserId: me,
+                            api: widget.api,
+                            author: author,
+                          )
+                        : MessageBubble(
+                            message: m,
+                            now: _now,
+                            currentUserId: me,
+                            api: widget.api,
+                            author: author,
+                            seenByOthers: seenByOthers,
+                          ),
                   );
-                  if (!mounted || action == null) return;
-                  switch (action) {
-                    case MessageAction.react:
-                      final emoji = await showReactionPicker(this.context);
-                      if (emoji == null || emoji.isEmpty) return;
-                      await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
-                      break;
+                  if (!mounted || result == null) return;
+                  if (result.emoji != null) {
+                    await widget.repo.toggleReaction(messageId: m.id, emoji: result.emoji!);
+                    return;
+                  }
+                  if (result.openFullReactionPicker) {
+                    final emoji = await showReactionPicker(this.context);
+                    if (emoji == null || emoji.isEmpty) return;
+                    await widget.repo.toggleReaction(messageId: m.id, emoji: emoji);
+                    return;
+                  }
+                  switch (result.action!) {
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
                       messenger.showSnackBar(const SnackBar(content: Text('copied')));
@@ -656,6 +682,7 @@ class _RoomScreenState extends State<RoomScreen> {
                             api: widget.api,
                             author: author,
                             onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                            onDoubleTap: m.id.startsWith('tmp_') ? null : onLongPress,
                             onReactionTap: onReactionTap,
                             onAuthorTap: author != null && !isMine ? onAuthorTap : null,
                           )
@@ -667,6 +694,7 @@ class _RoomScreenState extends State<RoomScreen> {
                             api: widget.api,
                             author: author,
                             onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                            onDoubleTap: m.id.startsWith('tmp_') ? null : onLongPress,
                             onReactionTap: onReactionTap,
                             onAuthorTap: author != null && !isMine ? onAuthorTap : null,
                             seenByOthers: seenByOthers,

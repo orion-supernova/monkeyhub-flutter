@@ -1,41 +1,33 @@
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
 import '../theme/theme_scope.dart';
 
-class ReactionPickerSheet extends StatefulWidget {
+/// Reached via the `+` on the floating reaction pill. WhatsApp-style:
+/// a categorized sheet of every emoji, with skin tones and search. No
+/// freeform text entry — picking an emoji is the only way out.
+class ReactionPickerSheet extends StatelessWidget {
   const ReactionPickerSheet({super.key});
-  @override
-  State<ReactionPickerSheet> createState() => _ReactionPickerSheetState();
-}
-
-class _ReactionPickerSheetState extends State<ReactionPickerSheet> {
-  final _q = TextEditingController();
-  String _query = '';
-
-  // Curated set matching v02's ReactionPickerView.
-  static const _common = [
-    '❤️', '🔥', '😂', '😮', '😢', '👍', '👎', '🙏',
-    '🎉', '👀', '💀', '✨', '💯', '🤔', '😍', '😎',
-    '🥲', '🫠', '🫡', '🤝', '☕', '🌙', '🌊', '🥀',
-  ];
-
-  @override
-  void dispose() {
-    _q.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final visible = _query.isEmpty
-        ? _common
-        : _common.where((e) => true).toList(); // emoji search is non-trivial — kept simple
-
+    final screenH = MediaQuery.sizeOf(context).height;
+    final pickerH = (screenH * 0.5).clamp(320.0, 460.0);
+    // viewInsets.bottom = soft keyboard (pushes the WHOLE sheet up).
+    // paddingOf().bottom = home indicator / gesture bar — folded INTO the
+    // picker's height + grid padding so the emoji grid itself extends all
+    // the way to the screen edge (no visible blank strip), while the last
+    // row of emojis still clears the indicator.
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+    final totalPickerH = pickerH + bottomSafe;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
         decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
+        padding: const EdgeInsets.only(top: 14),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,55 +35,67 @@ class _ReactionPickerSheetState extends State<ReactionPickerSheet> {
             Center(
               child: Container(
                 margin: const EdgeInsets.only(bottom: 14),
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
-                    color: theme.inkMuted.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Text('REACT', style: theme.label.copyWith(letterSpacing: 2.4)),
-            const SizedBox(height: 14),
-            Container(
-              decoration: theme.inputDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: TextField(
-                controller: _q,
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: 'or paste an emoji…',
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  color: theme.inkMuted.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                onChanged: (v) => setState(() => _query = v),
-                onSubmitted: (v) {
-                  final t = v.trim();
-                  if (t.isNotEmpty) Navigator.of(context).pop(t);
-                },
               ),
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                for (final e in visible)
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pop(e),
-                    child: Container(
-                      width: 46, height: 46,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: theme.surfaceRaised,
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
-                        border: Border.all(color: theme.divider),
+            Text(
+              'REACT',
+              textAlign: TextAlign.center,
+              style: theme.label.copyWith(letterSpacing: 2.4),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: totalPickerH,
+              child: EmojiPicker(
+                onEmojiSelected: (_, emoji) {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop(emoji.emoji);
+                },
+                config: Config(
+                  height: totalPickerH,
+                  checkPlatformCompatibility: true,
+                  emojiTextStyle: TextStyle(color: theme.ink, fontSize: 24),
+                  emojiViewConfig: EmojiViewConfig(
+                    columns: 8,
+                    emojiSizeMax: 28,
+                    backgroundColor: Colors.transparent,
+                    verticalSpacing: 2,
+                    horizontalSpacing: 2,
+                    gridPadding: EdgeInsets.fromLTRB(8, 4, 8, 4 + bottomSafe),
+                    recentsLimit: 28,
+                    noRecents: Center(
+                      child: Text(
+                        'no recents yet',
+                        style: theme.monoTiny,
                       ),
-                      child: Text(e, style: const TextStyle(fontSize: 22)),
                     ),
+                    buttonMode: ButtonMode.CUPERTINO,
                   ),
-              ],
+                  categoryViewConfig: CategoryViewConfig(
+                    backgroundColor: Colors.transparent,
+                    indicatorColor: theme.accent,
+                    iconColor: theme.inkMuted,
+                    iconColorSelected: theme.accent,
+                    backspaceColor: theme.accent,
+                    dividerColor: theme.divider,
+                    tabBarHeight: 40,
+                    initCategory: Category.SMILEYS,
+                  ),
+                  bottomActionBarConfig: const BottomActionBarConfig(
+                    enabled: false,
+                  ),
+                  skinToneConfig: SkinToneConfig(
+                    enabled: true,
+                    dialogBackgroundColor: theme.surface,
+                    indicatorColor: theme.accent,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
