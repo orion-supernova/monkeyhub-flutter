@@ -1,7 +1,3 @@
-import 'dart:io' show Platform;
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
@@ -23,16 +19,6 @@ Future<void> main() async {
   // briefly default to Midnight before bootstrap's async read replaces it —
   // visible as a flicker on hot restart.
   await SettingsStore.instance.load();
-  // Firebase is only needed for FCM on Android. iOS uses PushKit directly,
-  // so we skip the Firebase init there to avoid pulling in an unused plist
-  // dependency on Apple platforms.
-  if (Platform.isAndroid) {
-    try {
-      await Firebase.initializeApp();
-    } catch (e) {
-      debugPrint('Firebase.initializeApp failed: $e');
-    }
-  }
   // Initialize OneSignal early so notification taps can route into the app.
   // The onOpenRoom callback is resolved later by app.dart, which holds the
   // repo + api; PushManager just stashes the callback until then.

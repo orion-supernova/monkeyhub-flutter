@@ -3,6 +3,7 @@ package com.example.monkeyhub
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.view.WindowManager
+import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -66,6 +67,30 @@ class MainActivity : FlutterActivity() {
                         val target = call.argument<String>("iconName")  // nil → primary
                         applyAlternateIcon(target)
                         result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // monkeyhub/fcm — mirrors the iOS monkeyhub/voip channel (PushKit).
+        // Dart calls `getToken` after login; backend uses it to send FCM
+        // data-only pushes that wake the app for incoming calls.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/fcm")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getToken" -> {
+                        FirebaseMessaging.getInstance().token
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    result.success(task.result)
+                                } else {
+                                    result.error(
+                                        "FCM_TOKEN_FAILED",
+                                        task.exception?.message,
+                                        null,
+                                    )
+                                }
+                            }
                     }
                     else -> result.notImplemented()
                 }

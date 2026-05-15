@@ -51,10 +51,10 @@ dependencies:
   # backgrounded or killed (when paired with a VoIP push wake-up).
   flutter_callkit_incoming: ^2.5.0
 
-  # FCM for Android VoIP-style data pushes. iOS uses APNs PushKit directly
-  # (registered in AppDelegate.swift), so this is Android-side only.
-  firebase_core: ^3.6.0
-  firebase_messaging: ^15.1.3
+  # FCM for Android VoIP-style data pushes is wired natively in MainActivity.kt
+  # via the `monkeyhub/fcm` method channel — no Flutter Firebase plugin needed
+  # (keeps iOS bundle free of unused FirebaseCore/Installations frameworks).
+  # The native Android Firebase SDK is pulled in by android/app/build.gradle.kts.
 
   # WebRTC for 1:1 voice/video calls. Signaling rides on Convex; STUN is
   # Google's public servers, optional TURN is self-hosted coturn.

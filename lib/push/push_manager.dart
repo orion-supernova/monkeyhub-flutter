@@ -1,6 +1,5 @@
 import 'dart:io' show Platform;
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -24,6 +23,10 @@ class PushManager {
   // calls `getToken` after login; the channel also pushes `onTokenUpdated`
   // when iOS rotates the token.
   static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
+  // Android FCM channel — installed in MainActivity.kt. Mirrors the iOS
+  // PushKit channel; Dart calls `getToken` after login. No rotation
+  // callback — the next login picks up a refreshed token.
+  static const MethodChannel _fcmChannel = MethodChannel('monkeyhub/fcm');
   ChatApi? _api;
   String? _userId;
 
@@ -100,9 +103,8 @@ class PushManager {
       }
     } else if (Platform.isAndroid) {
       try {
-        final token = await FirebaseMessaging.instance.getToken();
+        final token = await _fcmChannel.invokeMethod<String>('getToken');
         await _uploadFcmToken(token);
-        FirebaseMessaging.instance.onTokenRefresh.listen(_uploadFcmToken);
       } catch (e) {
         debugPrint('PushManager.login: FCM token fetch failed: $e');
       }
