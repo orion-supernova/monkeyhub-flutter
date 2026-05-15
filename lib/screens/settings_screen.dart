@@ -219,6 +219,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
+              _SectionHeader(label: 'LINKS'),
+              const SizedBox(height: 12),
+              _ShowLinkUrlsToggle(),
+
+              const SizedBox(height: 28),
               _SectionHeader(label: 'NOTIFICATIONS'),
               const SizedBox(height: 12),
               _PushToggle(),
@@ -380,6 +385,63 @@ class _PushToggleState extends State<_PushToggle> {
                         on
                             ? 'pings for new messages + requests'
                             : 'silent — you\'ll only see things when you open the app',
+                        style: theme.bodySoft,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch.adaptive(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: theme.accent,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShowLinkUrlsToggle extends StatelessWidget {
+  Future<void> _toggle(bool v) => SettingsStore.instance.setShowLinkUrls(v);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final on = SettingsStore.instance.showLinkUrls;
+        return GestureDetector(
+          onTap: () => _toggle(!on),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(color: theme.divider),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  on ? Icons.link_rounded : Icons.link_off_rounded,
+                  size: 16,
+                  color: on ? theme.accent : theme.inkMuted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('SHOW LINK URLS', style: theme.label),
+                      const SizedBox(height: 2),
+                      Text(
+                        on
+                            ? 'raw URLs appear alongside the preview card'
+                            : 'preview only — cleaner bubbles, tap to open',
                         style: theme.bodySoft,
                       ),
                     ],

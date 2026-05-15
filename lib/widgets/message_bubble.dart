@@ -5,10 +5,15 @@ import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../data/settings_store.dart';
+import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
+import '../screens/in_app_browser_screen.dart';
 import 'audio_message.dart';
+import 'link_preview_card.dart';
+import 'linkified_text.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'reply_indicator.dart';
@@ -129,10 +134,16 @@ class MessageBubble extends StatelessWidget {
         mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMine && author != null) ...[
-            GestureDetector(
+          if (!isMine) ...[
+            // Reserve the avatar slot unconditionally — when `author`
+            // arrives async (cold room entry, scroll-into-view, etc.),
+            // popping a 28+8 px chunk into the row would visibly nudge
+            // the bubble rightward by 36 px. Holding the space keeps the
+            // left edge stable.
+            _AvatarSlot(
+              author: author,
+              api: api,
               onTap: onAuthorTap,
-              child: UserAvatar(user: author!, size: 28, api: api, showStatus: false),
             ),
             const SizedBox(width: 8),
           ],
@@ -298,12 +309,13 @@ class EphemeralMessageBubble extends StatelessWidget {
           mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isMine && author != null) ...[
-              GestureDetector(
-                onTap: onAuthorTap,
-                child: Opacity(
-                  opacity: 1 - dissolveT * 0.7,
-                  child: UserAvatar(user: author!, size: 28, api: api, showStatus: false),
+            if (!isMine) ...[
+              Opacity(
+                opacity: 1 - dissolveT * 0.7,
+                child: _AvatarSlot(
+                  author: author,
+                  api: api,
+                  onTap: onAuthorTap,
                 ),
               ),
               const SizedBox(width: 8),
@@ -365,55 +377,71 @@ Widget buildMessageContent({
   final deco =
       theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
 
+  final hasCaption = message.content.isNotEmpty;
+  // Media messages render as a rounded media tile WITHOUT a surrounding
+  // bubble — alignment in the parent row conveys mine/theirs the way
+  // iMessage's photo bubbles do. A bubble frame around a photograph reads
+  // as visual noise and clashes with whatever the photo's content is.
+  final mediaRadius = BorderRadius.circular(theme.radiusLg);
+
   switch (message.type) {
     case MessageType.image:
       final id = message.mediaStorageId;
-      return Container(
-        decoration: deco,
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (id != null)
-              Builder(builder: (ctx) {
-                final imageChild = RemoteImage(
-                  storageId: id,
-                  api: api,
-                  width: 240,
-                  height: 240,
-                  borderRadius: BorderRadius.zero,
-                );
-                return GestureDetector(
-                  onTap: () => FullscreenImageViewer.open(
-                    ctx,
-                    storageId: id,
-                    api: api,
-                    heroTag: useHero ? 'msg-image-${message.id}' : null,
-                  ),
-                  child: useHero
-                      ? Hero(tag: 'msg-image-${message.id}', child: imageChild)
-                      : imageChild,
-                );
-              })
-            else
-              Container(
-                width: 240,
-                height: 80,
-                color: theme.surfaceSunken,
-                alignment: Alignment.center,
-                child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
-              ),
-            if (message.content.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                child: Text(
-                  message.content,
-                  style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-                ),
-              ),
-          ],
-        ),
+      Widget imageTile;
+      if (id != null) {
+        final imageChild = Builder(builder: (ctx) {
+          final remote = RemoteImage(
+            storageId: id,
+            api: api,
+            width: 240,
+            height: 240,
+            borderRadius: mediaRadius,
+          );
+          return GestureDetector(
+            onTap: () => FullscreenImageViewer.open(
+              ctx,
+              storageId: id,
+              api: api,
+              heroTag: useHero ? 'msg-image-${message.id}' : null,
+            ),
+            child: useHero
+                ? Hero(tag: 'msg-image-${message.id}', child: remote)
+                : remote,
+          );
+        });
+        imageTile = imageChild;
+      } else {
+        imageTile = Container(
+          width: 240,
+          height: 80,
+          decoration: BoxDecoration(
+            color: theme.surfaceSunken,
+            borderRadius: mediaRadius,
+          ),
+          alignment: Alignment.center,
+          child: Icon(Icons.image_not_supported_outlined, color: theme.inkMuted),
+        );
+      }
+      if (!hasCaption) return imageTile;
+      // With a caption: image on top, caption rendered as its own
+      // small bubble underneath — same alignment as the row above it.
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          imageTile,
+          const SizedBox(height: 4),
+          Container(
+            decoration: deco,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Text(
+              message.content,
+              style: theme.body
+                  .copyWith(color: isMine ? theme.accentInk : theme.ink),
+            ),
+          ),
+        ],
       );
     case MessageType.audio:
       return Container(
@@ -426,32 +454,34 @@ Widget buildMessageContent({
         ),
       );
     case MessageType.video:
-      return Container(
-        decoration: deco,
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            VideoMessage(
-              api: api,
-              storageId: message.mediaStorageId,
-              isMine: isMine,
-            ),
-            if (message.content.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                child: Text(
-                  message.content,
-                  style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-                ),
-              ),
-          ],
+      final videoTile = ClipRRect(
+        borderRadius: mediaRadius,
+        child: VideoMessage(
+          api: api,
+          storageId: message.mediaStorageId,
+          isMine: isMine,
         ),
       );
-    case MessageType.url:
+      if (!hasCaption) return videoTile;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          videoTile,
+          const SizedBox(height: 4),
+          Container(
+            decoration: deco,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Text(
+              message.content,
+              style: theme.body
+                  .copyWith(color: isMine ? theme.accentInk : theme.ink),
+            ),
+          ),
+        ],
+      );
     case MessageType.system:
-    case MessageType.text:
       return Container(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         decoration: deco,
@@ -460,6 +490,190 @@ Widget buildMessageContent({
           style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
         ),
       );
+    case MessageType.url:
+    case MessageType.text:
+      return _LinkAwareBubble(
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        decoration: deco,
+      );
+  }
+}
+
+/// Reserves a fixed 28×28 hit area for the sender avatar so the message
+/// row's left edge stays put while `author` resolves asynchronously.
+/// Renders the real avatar when the user is known; otherwise an empty
+/// box of the same size keeps the geometry stable.
+class _AvatarSlot extends StatelessWidget {
+  const _AvatarSlot({
+    required this.author,
+    required this.api,
+    required this.onTap,
+  });
+
+  final ChatUser? author;
+  final ChatApi api;
+  final VoidCallback? onTap;
+
+  static const double _size = 28;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = author;
+    if (user == null) {
+      return const SizedBox(width: _size, height: _size);
+    }
+    return GestureDetector(
+      onTap: onTap,
+      child: UserAvatar(user: user, size: _size, api: api, showStatus: false),
+    );
+  }
+}
+
+/// Bubble body for text/url messages.
+///
+/// Two visual modes, picked by message content + the user's
+/// [SettingsStore.showLinkUrls] preference:
+///
+///  * **Standalone card** — when the message contains URL(s) but no other
+///    text *and* the user keeps URLs hidden (the default). The preview
+///    card itself becomes the bubble — no surrounding decoration, no
+///    inline URL string. Iconic Apple/iMessage rich-link feel.
+///  * **Text + inline previews** — when the message has body copy alongside
+///    its URLs, or the user has opted into seeing raw URLs. The text
+///    bubble renders normally (with inline links underlined when shown),
+///    and previews stack below inside the same bubble shape.
+class _LinkAwareBubble extends StatelessWidget {
+  const _LinkAwareBubble({
+    required this.theme,
+    required this.message,
+    required this.isMine,
+    required this.decoration,
+  });
+
+  final AppTheme theme;
+  final ChatMessage message;
+  final bool isMine;
+  final BoxDecoration decoration;
+
+  static const int _maxPreviews = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final showUrls = SettingsStore.instance.showLinkUrls;
+        final urls = UrlDetector.extract(message.content);
+        final hasUrls = urls.isNotEmpty;
+
+        // What text do we actually render? When the user has kept URLs
+        // hidden, strip them out of the inline body — otherwise mixed
+        // messages read with awkward gaps where the URL used to be.
+        final displayText = showUrls
+            ? message.content
+            : _stripUrls(message.content);
+        final hasText = displayText.trim().isNotEmpty;
+
+        if (hasUrls && !hasText) {
+          // URL-only message, URLs hidden → the preview *is* the bubble.
+          // No outer bubble decoration; alignment in the parent row
+          // already conveys ownership the way iMessage rich links do.
+          //
+          // Using a fixed `SizedBox` width (clamped by the outer bubble
+          // constraint) keeps the card's width stable while its internal
+          // layout swaps between skeleton / hero / compact / bare —
+          // otherwise the column would shrink to the narrower bare/compact
+          // intrinsic width once the fetch lands, visibly pulling the
+          // message left or right depending on alignment.
+          return SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final url in urls.take(_maxPreviews))
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: url == urls.first ? 0 : 8,
+                    ),
+                    child: LinkPreviewCard(
+                      url: url,
+                      isMine: isMine,
+                      insideBubble: false,
+                      onTap: (u) => InAppBrowserScreen.open(context, u),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        // Mixed (text + maybe URLs) — normal bubble with optional inline
+        // previews stacked beneath the text.
+        final inkColor = isMine ? theme.accentInk : theme.ink;
+        final linkAccent = isMine
+            ? theme.accentInk
+            : (theme.accent.computeLuminance() < 0.2
+                ? theme.accent
+                : theme.ink);
+
+        return Container(
+          decoration: decoration,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasText)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10),
+                  child: LinkifiedText(
+                    text: displayText,
+                    style: theme.body.copyWith(color: inkColor),
+                    linkStyle: theme.body.copyWith(
+                      color: linkAccent,
+                      decoration: TextDecoration.underline,
+                      decorationColor: linkAccent.withValues(alpha: 0.7),
+                    ),
+                    onLinkTap: (url) =>
+                        InAppBrowserScreen.open(context, url),
+                  ),
+                ),
+              if (hasUrls)
+                for (final url in urls.take(_maxPreviews))
+                  LinkPreviewCard(
+                    url: url,
+                    isMine: isMine,
+                    insideBubble: true,
+                    onTap: (u) => InAppBrowserScreen.open(context, u),
+                  ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Removes every URL match from [text] and tidies up the whitespace
+  /// left in its wake (collapsing runs of spaces, trimming spaces around
+  /// surviving newlines).
+  static String _stripUrls(String text) {
+    final matches = UrlDetector.matches(text);
+    if (matches.isEmpty) return text;
+    final buf = StringBuffer();
+    var cursor = 0;
+    for (final m in matches) {
+      if (m.start > cursor) buf.write(text.substring(cursor, m.start));
+      cursor = m.end;
+    }
+    if (cursor < text.length) buf.write(text.substring(cursor));
+    return buf
+        .toString()
+        .replaceAll(RegExp(r'[ \t]+'), ' ')
+        .replaceAll(RegExp(r' *\n *'), '\n')
+        .trim();
   }
 }
 

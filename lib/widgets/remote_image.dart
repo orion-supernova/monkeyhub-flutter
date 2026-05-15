@@ -165,6 +165,18 @@ class _ShimmerBoxState extends State<_ShimmerBox>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Midtone base that splits the difference between the two bubble
+    // surface tones, so the placeholder doesn't read as a stark "dark
+    // box" inside a lighter bubble silhouette (which made any rounded-
+    // corner antialias imperfection visible as a hard "cut off" edge).
+    final base = Color.alphaBlend(
+      theme.surfaceSunken.withValues(alpha: 0.55),
+      theme.surfaceRaised,
+    );
+    final highlight = Color.alphaBlend(
+      theme.surfaceRaised.withValues(alpha: 0.85),
+      base,
+    );
     return ClipRRect(
       borderRadius: widget.borderRadius,
       child: AnimatedBuilder(
@@ -173,24 +185,20 @@ class _ShimmerBoxState extends State<_ShimmerBox>
           // Sweep the gradient from fully off-screen-left (t=0) through the
           // box (t=0.5) to fully off-screen-right (t=1). At both endpoints
           // the gradient is outside [-1,1] so the visible content is uniform
-          // surfaceSunken — the loop wraps invisibly with no flicker.
+          // base — the loop wraps invisibly with no flicker.
           final t = _ctrl.value;
           return ShaderMask(
             blendMode: BlendMode.srcATop,
             shaderCallback: (bounds) => LinearGradient(
               begin: Alignment(-3 + 4 * t, 0),
               end: Alignment(-1 + 4 * t, 0),
-              colors: [
-                theme.surfaceSunken,
-                theme.surfaceRaised,
-                theme.surfaceSunken,
-              ],
+              colors: [base, highlight, base],
               stops: const [0.0, 0.5, 1.0],
             ).createShader(bounds),
             child: Container(
               width: widget.width,
               height: widget.height,
-              color: theme.surfaceSunken,
+              color: base,
             ),
           );
         },

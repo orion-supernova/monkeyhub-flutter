@@ -49,11 +49,9 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
     if (m.type == MessageType.text || m.type == MessageType.url) {
       return m.content.isEmpty ? '…' : m.content;
     }
-    if (m.type == MessageType.image) {
-      return m.content.isEmpty ? 'photo' : m.content;
-    }
-    if (m.type == MessageType.video) {
-      return m.content.isEmpty ? 'video' : m.content;
+    if (m.type == MessageType.image || m.type == MessageType.video) {
+      // The thumbnail says it — no need for a redundant "photo" label.
+      return m.content;
     }
     if (m.type == MessageType.audio) return 'voice message';
     return m.content;

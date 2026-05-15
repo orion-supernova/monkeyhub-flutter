@@ -207,21 +207,29 @@ class _SwipeToReplyState extends State<SwipeToReply>
 /// started with a small jitter.
 class _HorizontalRightDragRecognizer extends HorizontalDragGestureRecognizer {
   double _accum = 0;
+  bool _bailed = false;
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
     _accum = 0;
+    _bailed = false;
     super.addAllowedPointer(event);
   }
 
   @override
   void handleEvent(PointerEvent event) {
+    if (_bailed) return;
     if (event is PointerMoveEvent) {
       _accum += event.delta.dx;
       if (_accum < -8) {
         // Net-leftward motion — bail out so vertical scroll / other
-        // gestures can claim the arena cleanly.
+        // gestures can claim the arena cleanly. `resolve(rejected)` resets
+        // the underlying drag state to `ready`, so any follow-up event
+        // would assert in `DragGestureRecognizer.handleEvent` — short-circuit
+        // here to prevent that.
+        _bailed = true;
         resolve(GestureDisposition.rejected);
+        return;
       }
     }
     super.handleEvent(event);

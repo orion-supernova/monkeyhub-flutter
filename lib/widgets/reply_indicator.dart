@@ -106,10 +106,12 @@ String _previewLabel(ReplyPreview preview) {
   if (preview.contentPreview.isNotEmpty) return preview.contentPreview;
   switch (preview.type) {
     case MessageType.image:
-      return 'photo';
     case MessageType.video:
-      return 'video';
+      // The thumbnail already says "this is media" — a "photo" / "video"
+      // text fallback was redundant and obvious.
+      return '';
     case MessageType.audio:
+      // Voice notes have no thumbnail, so the label IS the only signal.
       return 'voice message';
     default:
       return '…';
@@ -174,24 +176,10 @@ Widget _mediaThumb({
       ),
     );
   }
-  return Container(
-    width: size,
-    height: size,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: theme.surfaceSunken,
-      borderRadius: BorderRadius.circular(4),
-    ),
-    child: Icon(
-      preview.type == MessageType.image
-          ? CupertinoIcons.photo
-          : preview.type == MessageType.video
-              ? CupertinoIcons.play_rectangle
-              : CupertinoIcons.waveform,
-      size: 10,
-      color: mutedInk,
-    ),
-  );
+  // No thumbnail available — drop the slot entirely rather than falling
+  // back to a "photo / video" glyph here. Those glyphs belong on the
+  // chat-list "last message" row, not on the in-room reply indicator.
+  return const SizedBox.shrink();
 }
 
 /// Branch-icon button reused by all four designs. Frosted accent circle

@@ -23,6 +23,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kViewReadReceipts = 'mh.viewReadReceipts';
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
+  static const _kShowLinkUrls = 'mh.showLinkUrls';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -40,6 +41,7 @@ class SettingsStore extends ChangeNotifier {
   bool _viewReadReceipts = false;
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
+  bool _showLinkUrls = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -51,6 +53,11 @@ class SettingsStore extends ChangeNotifier {
   ReplyStyle get replyStyle => _replyStyle;
   LogoMode get logoMode => _logoMode;
   String? get manualLogoThemeId => _manualLogoThemeId;
+
+  /// When `true`, raw URL text remains visible inline alongside the link
+  /// preview card. Default `false` — the preview alone communicates the
+  /// link, and keeping the URL text out makes mixed messages read clean.
+  bool get showLinkUrls => _showLinkUrls;
 
   /// When false (default), the "SEEN" indicator on the user's own messages is
   /// suppressed even if read-state data flows in. Off by default — opt-in.
@@ -107,6 +114,8 @@ class SettingsStore extends ChangeNotifier {
           _logoMode = LogoMode.auto;
       }
       _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
+      final slu = await _storage.read(key: _kShowLinkUrls);
+      _showLinkUrls = slu == 'true'; // default false
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -182,6 +191,13 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kLogoMode, value: m.name);
     _applyLauncherIcon();
+  }
+
+  Future<void> setShowLinkUrls(bool v) async {
+    if (_showLinkUrls == v) return;
+    _showLinkUrls = v;
+    notifyListeners();
+    await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
   }
 
   Future<void> setManualLogoThemeId(String id) async {
