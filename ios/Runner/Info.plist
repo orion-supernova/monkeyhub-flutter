@@ -221,6 +221,9 @@
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>
+			<!-- Keeps the WebRTC audio session alive when the user briefly
+			     backgrounds the app during an active call. -->
+			<string>audio</string>
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>

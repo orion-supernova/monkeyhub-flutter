@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'auth/auth_service.dart';
 import 'backend/chat_api.dart';
 import 'backend/convex_client.dart';
+import 'calls/call_models.dart';
+import 'calls/call_screen.dart';
+import 'calls/call_service.dart';
+import 'calls/incoming_call_screen.dart';
+import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
 import 'env.dart';
@@ -35,6 +40,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   late final ChatApi _api = ChatApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
+  late final CallService _callService = CallService.ensure(_api);
+  late final SignalingSubscriber _signaling =
+      SignalingSubscriber(api: _api, service: _callService);
   // Cached merged listenable. Created exactly once so AnimatedBuilder's
   // listener subscription on _auth / _themeController is never re-bound
   // across parent rebuilds (each fresh Listenable.merge call would force
@@ -134,6 +142,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             await PushManager.instance.optOut();
           }
           BadgeManager.instance.bind(_repo);
+          _callService.attach(
+            userId: s.userId,
+            displayName: s.name,
+          );
+          await _signaling.start(s.userId);
         } catch (_) {/* offline boot — reconcile on reconnect */}
       }
     } catch (_) {/* secure storage may not be available in test harness */}
@@ -149,10 +162,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         // Mark online on first attach.
         _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
         BadgeManager.instance.bind(_repo);
+        _callService.attach(userId: s.userId, displayName: s.name);
+        await _signaling.start(s.userId);
       } else if (s == null) {
         BadgeManager.instance.unbind();
         await _repo.detach();
         await PushManager.instance.logout();
+        await _signaling.stop();
+        await _callService.endCall();
         // Reset landing tab so the next sign-in starts on Chat instead of
         // wherever the previous session left off (e.g. Settings, which is
         // where Sign Out is reached from).
@@ -169,6 +186,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
+    _signaling.stop();
     _repo.dispose();
     super.dispose();
   }
@@ -198,6 +216,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                       right: 0,
                       child: ConnectionBanner(cv: _cv),
                     ),
+                  // Pushes call screens onto the root navigator the moment the
+                  // call service transitions to a non-idle state. Invisible.
+                  _CallOverlay(service: _callService),
                   // Sits above every other layer so it covers banners +
                   // overlays during a screen recording.
                   const CaptureShield(),
@@ -266,6 +287,65 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       brightness == Brightness.light ? 'basic_daylight' : 'basic',
     );
   }
+}
+
+/// Watches [CallService] and pushes the right call screen onto the root
+/// navigator whenever a fresh non-idle call session appears. Renders nothing
+/// itself. A single _CallOverlay lives inside the MaterialApp.builder so it
+/// can navigate above whatever screen the user is currently on.
+class _CallOverlay extends StatefulWidget {
+  const _CallOverlay({required this.service});
+  final CallService service;
+  @override
+  State<_CallOverlay> createState() => _CallOverlayState();
+}
+
+class _CallOverlayState extends State<_CallOverlay> {
+  String? _activeCallId;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.service.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.service.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final s = widget.service.session;
+    if (s == null) {
+      _activeCallId = null;
+      return;
+    }
+    if (_activeCallId == s.callId) return; // already showing
+    final terminal =
+        s.status == CallStatus.ended || s.status == CallStatus.failed;
+    if (terminal) return;
+    _activeCallId = s.callId;
+    // Defer to the next frame so we don't navigate during a build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final nav = rootNavigatorKey.currentState;
+      if (nav == null) return;
+      if (s.isCaller) {
+        nav.push(MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => CallScreen(service: widget.service),
+        ));
+      } else {
+        nav.push(MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => IncomingCallScreen(service: widget.service),
+        ));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
 }
 
 class _Splash extends StatelessWidget {

@@ -1,0 +1,51 @@
+# coturn config for MonkeyHub WebRTC TURN relay.
+# Replace <VM_PUBLIC_IP> and <SHARED_SECRET> before deploying.
+
+listening-port=3478
+tls-listening-port=5349
+
+# The VM's public IP. coturn binds to all interfaces and advertises this
+# address in TURN allocation responses.
+external-ip=<VM_PUBLIC_IP>
+
+# UDP port range for relayed media. Keep this open in the firewall too.
+min-port=49152
+max-port=65535
+
+# REST API auth: clients send a username = "<expiry>:<userId>" and a
+# credential = base64(HMAC-SHA1(static-auth-secret, username)). The Convex
+# action calls:getIceConfig generates these on the fly. No static users.
+use-auth-secret
+static-auth-secret=<SHARED_SECRET>
+realm=monkeyhub
+
+# Refuse to allocate relays toward private networks — closes a classic
+# TURN-as-open-proxy vector.
+no-multicast-peers
+denied-peer-ip=0.0.0.0-0.255.255.255
+denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=100.64.0.0-100.127.255.255
+denied-peer-ip=127.0.0.0-127.255.255.255
+denied-peer-ip=169.254.0.0-169.254.255.255
+denied-peer-ip=172.16.0.0-172.31.255.255
+denied-peer-ip=192.0.0.0-192.0.0.255
+denied-peer-ip=192.0.2.0-192.0.2.255
+denied-peer-ip=192.88.99.0-192.88.99.255
+denied-peer-ip=192.168.0.0-192.168.255.255
+denied-peer-ip=198.18.0.0-198.19.255.255
+denied-peer-ip=198.51.100.0-198.51.100.255
+denied-peer-ip=203.0.113.0-203.0.113.255
+denied-peer-ip=240.0.0.0-255.255.255.255
+
+# CLI port — set a non-default password if you keep it on, or comment out.
+no-cli
+
+# Quiet down logs; coturn is chatty by default.
+no-loopback-peers
+fingerprint
+no-tlsv1
+no-tlsv1_1
+
+# Uncomment after Let's Encrypt is set up:
+# cert=/etc/letsencrypt/live/turn.your-domain.example/fullchain.pem
+# pkey=/etc/letsencrypt/live/turn.your-domain.example/privkey.pem

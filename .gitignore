@@ -53,3 +53,5 @@ app.*.map.json
 /.env.local
 /backend/.env.local
 /backend/.env*.local
+
+android/.kotlin/sessions/

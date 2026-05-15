@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
+import '../calls/call_button.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../media/upload_service.dart';
@@ -1050,6 +1051,13 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
+          if (room.isDm && dmUser != null)
+            CallButton(
+              peerUserId: dmUser!.id,
+              peerName: dmUser!.displayName,
+              roomId: room.id,
+              variant: CallButtonVariant.classic,
+            ),
           IconButton(
             onPressed: onOpenInfo,
             icon: Icon(Icons.more_horiz, color: theme.inkSoft, size: 18),
@@ -1643,6 +1651,15 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
             ),
           ),
           const SizedBox(width: 12),
+          if (widget.room.isDm && widget.dmUser != null) ...[
+            CallButton(
+              peerUserId: widget.dmUser!.id,
+              peerName: widget.dmUser!.displayName,
+              roomId: widget.room.id,
+              variant: CallButtonVariant.liquid,
+            ),
+            const SizedBox(width: 8),
+          ],
           LiquidGlass(
             shape: LiquidGlassShape.circle,
             size: const Size(44, 44),

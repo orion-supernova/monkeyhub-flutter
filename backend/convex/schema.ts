@@ -152,4 +152,34 @@ export default defineSchema({
   })
     .index("by_request", ["requestId"])
     .index("by_user", ["userId"]),
+
+  // 1:1 voice/video calls. Peer-to-peer WebRTC; this table only tracks the
+  // call session lifecycle. The actual SDP/ICE signaling rides on callSignals.
+  calls: defineTable({
+    callerId: v.id("users"),
+    calleeId: v.id("users"),
+    roomId: v.id("rooms"),
+    type: v.string(),            // "audio" | "video"
+    status: v.string(),          // "ringing" | "active" | "ended" | "rejected" | "missed" | "cancelled" | "failed"
+    startedAt: v.number(),
+    acceptedAt: v.optional(v.number()),
+    endedAt: v.optional(v.number()),
+  })
+    .index("by_callee_status", ["calleeId", "status"])
+    .index("by_caller_status", ["callerId", "status"])
+    .index("by_status_started", ["status", "startedAt"]),
+
+  // Signaling messages between the two peers. Client subscribes by toUserId
+  // and marks each delivered signal `consumed: true`. A cron cleans old rows.
+  callSignals: defineTable({
+    callId: v.id("calls"),
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    kind: v.string(),            // "offer" | "answer" | "ice" | "state" | "bye" | "reject" | "cancel"
+    payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
+    createdAt: v.number(),
+    consumed: v.boolean(),
+  })
+    .index("by_to_unconsumed", ["toUserId", "consumed", "createdAt"])
+    .index("by_call", ["callId"]),
 });

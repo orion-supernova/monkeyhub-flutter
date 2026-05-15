@@ -568,6 +568,103 @@ class ChatApi {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Calls (WebRTC 1:1)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<String> initiateCall({
+    required String callerId,
+    required String calleeId,
+    required String roomId,
+    required String type, // "audio" | "video"
+  }) async {
+    final res = await _cv.mutation('calls:initiate', {
+      'callerId': callerId,
+      'calleeId': calleeId,
+      'roomId': roomId,
+      'type': type,
+    });
+    return res.toString();
+  }
+
+  Future<void> acceptCall({required String callId, required String userId}) async {
+    await _cv.mutation('calls:accept', {'callId': callId, 'userId': userId});
+  }
+
+  Future<void> rejectCall({required String callId, required String userId}) async {
+    await _cv.mutation('calls:reject', {'callId': callId, 'userId': userId});
+  }
+
+  Future<void> cancelCall({required String callId, required String userId}) async {
+    await _cv.mutation('calls:cancel', {'callId': callId, 'userId': userId});
+  }
+
+  Future<void> endCall({required String callId, required String userId}) async {
+    await _cv.mutation('calls:end', {'callId': callId, 'userId': userId});
+  }
+
+  Future<void> sendCallSignal({
+    required String callId,
+    required String fromUserId,
+    required String toUserId,
+    required String kind, // "offer"|"answer"|"ice"|"state"|"bye"|"reject"|"cancel"
+    required String payload,
+  }) async {
+    await _cv.mutation('calls:sendSignal', {
+      'callId': callId,
+      'fromUserId': fromUserId,
+      'toUserId': toUserId,
+      'kind': kind,
+      'payload': payload,
+    });
+  }
+
+  Future<void> consumeCallSignal({
+    required String signalId,
+    required String userId,
+  }) async {
+    await _cv.mutation('calls:consumeSignal', {
+      'signalId': signalId,
+      'userId': userId,
+    });
+  }
+
+  Future<Map<String, dynamic>?> activeCallForUser(String userId) async {
+    final res = await _cv.query('calls:activeCallForUser', {'userId': userId});
+    if (res == null) return null;
+    return (res as Map).cast<String, dynamic>();
+  }
+
+  /// Returns `{ iceServers: [{urls, username?, credential?}, …] }`.
+  Future<List<Map<String, dynamic>>> getIceConfig(String userId) async {
+    final res = await _cv.action('calls:getIceConfig', {'userId': userId});
+    final list = ((res as Map?)?['iceServers'] as List?) ?? const [];
+    return list
+        .map((e) => (e as Map).cast<String, dynamic>())
+        .toList(growable: false);
+  }
+
+  /// Live subscription to my unconsumed inbound signals. The caller is
+  /// responsible for calling [consumeCallSignal] for each signal it processes.
+  Future<Subscription> subscribeCallSignals({
+    required String userId,
+    required void Function(List<Map<String, dynamic>> signals) onSignals,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'calls:signalsForUser',
+      {'userId': userId},
+      onData: (raw) {
+        final list = (raw as List?) ?? const [];
+        final out = list
+            .map((e) => (e as Map).cast<String, dynamic>())
+            .toList(growable: false);
+        onSignals(out);
+      },
+      onError: onError,
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────────────────────────────────
 

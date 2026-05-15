@@ -10,7 +10,9 @@ android {
     // so we drop the hyphen from v02's iOS bundle id (com.walhallaa.chatTest-20241220)
     // while keeping the same vendor namespace.
     namespace = "com.walhallaa.chattest20241220"
-    compileSdk = 34
+    // flutter_webrtc transitively pulls androidx.camera 1.5.x + androidx.core
+    // 1.18.x, both of which need compileSdk >= 36.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -24,7 +26,7 @@ android {
 
     defaultConfig {
         applicationId = "com.walhallaa.chattest20241220"
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = 137001
         versionName = "1.3.7"
