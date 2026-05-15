@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +56,24 @@ class _RoomScreenState extends State<RoomScreen> {
   // room — so dispose can pop exactly one and we don't double-push.
   bool _pushedCaptureScope = false;
   ChatStyle _lastChatStyle = SettingsStore.instance.chatStyle;
+
+  // ──── floating date chip (visible while scrolling) ────
+  // Renders the date of the topmost visible message as an overlay pill so
+  // the user keeps date context when a single day's messages exceed the
+  // viewport and the inline _DateDivider has scrolled off-screen. When a
+  // real _DateDivider drifts through the chip's resting position, the chip
+  // yields (fades/slides/shrinks) so the divider takes over momentarily —
+  // see _recomputePositionState.
+  final GlobalKey _listViewportKey = GlobalKey();
+  final Map<String, _DateTrack> _dateTracks = {};
+  String? _floatingLabel;
+  bool _isActivelyScrolling = false;
+  Timer? _hideTimer;
+  // 0..1 — how much a real divider currently overlaps the chip's rect.
+  double _dividerOverlap = 0;
+  // Set during build; used by _recomputePositionState to know where the
+  // chip "lives" so it can compute overlap with divider RenderBoxes.
+  double _chipRestingY = 16;
 
   @override
   void initState() {
@@ -132,6 +151,94 @@ class _RoomScreenState extends State<RoomScreen> {
         !widget.repo.isLoadingOlder(widget.roomId)) {
       widget.repo.loadOlder(widget.roomId);
     }
+
+    // Floating date chip: show while scrolling, fade out 800ms after the
+    // last scroll event. Hidden when at the newest end (pixels < 8) since
+    // the user already sees "TODAY" in the bottom-most divider there.
+    final shouldShow = pos.pixels >= 8;
+    _recomputePositionState();
+    _hideTimer?.cancel();
+    if (shouldShow) {
+      if (!_isActivelyScrolling) {
+        if (mounted) setState(() => _isActivelyScrolling = true);
+      }
+      _hideTimer = Timer(const Duration(milliseconds: 800), () {
+        if (!mounted) return;
+        setState(() => _isActivelyScrolling = false);
+      });
+    } else if (_isActivelyScrolling) {
+      if (mounted) setState(() => _isActivelyScrolling = false);
+    }
+  }
+
+  /// Single pass over every tracked item — picks the topmost date label
+  /// AND measures how much the closest divider overlaps the chip's rect
+  /// (0..1) so the chip can yield to a passing real divider.
+  void _recomputePositionState() {
+    final viewportCtx = _listViewportKey.currentContext;
+    if (viewportCtx == null) return;
+    final viewportBox = viewportCtx.findRenderObject() as RenderBox?;
+    if (viewportBox == null || !viewportBox.attached) return;
+
+    const chipHeight = 28.0;
+    final chipTop = _chipRestingY;
+    final chipBottom = chipTop + chipHeight;
+
+    String? best;
+    double bestDy = double.infinity;
+    String? fallback;
+    double fallbackDy = double.negativeInfinity;
+    double maxOverlap = 0;
+
+    for (final track in _dateTracks.values) {
+      final ctx = track.key.currentContext;
+      if (ctx == null) continue;
+      final rb = ctx.findRenderObject() as RenderBox?;
+      if (rb == null || !rb.attached) continue;
+      final dy = rb.localToGlobal(Offset.zero, ancestor: viewportBox).dy;
+      final h = rb.size.height;
+      final itemBottom = dy + h;
+
+      // An item qualifies when its BOTTOM edge has reached the chip's
+      // bottom edge. This places the date-flip moment exactly when the
+      // divider's top crosses chipBottom — i.e., the divider has fully
+      // exited the chip rect — so the message above it (which extends
+      // down to the divider's top, now ≥ chipBottom) instantly takes
+      // over as the new "topmost the user is reading." Picking by `dy
+      // >= chipTop` alone left a ~one-message-height window where the
+      // chip still showed the old date after a divider drifted past.
+      if (itemBottom >= chipBottom) {
+        if (dy < bestDy) {
+          bestDy = dy;
+          best = track.label;
+        }
+      } else if (dy > fallbackDy) {
+        fallbackDy = dy;
+        fallback = track.label;
+      }
+
+      if (track.isDivider) {
+        final overlapPx =
+            math.max(0.0, math.min(itemBottom, chipBottom) - math.max(dy, chipTop));
+        final maxPossible = math.min(h, chipHeight);
+        if (maxPossible > 0) {
+          final pct = (overlapPx / maxPossible).clamp(0.0, 1.0);
+          if (pct > maxOverlap) maxOverlap = pct;
+        }
+      }
+    }
+
+    final nextLabel = best ?? fallback;
+    final labelChanged = nextLabel != null && nextLabel != _floatingLabel;
+    final overlapChanged = (maxOverlap - _dividerOverlap).abs() > 0.01;
+    if (labelChanged || overlapChanged) {
+      if (mounted) {
+        setState(() {
+          if (labelChanged) _floatingLabel = nextLabel;
+          _dividerOverlap = maxOverlap;
+        });
+      }
+    }
   }
 
   Future<void> _loadMembers() async {
@@ -196,6 +303,7 @@ class _RoomScreenState extends State<RoomScreen> {
   void dispose() {
     _ticker.cancel();
     _composer.dispose();
+    _hideTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
     _membersSub?.cancel();
@@ -434,6 +542,9 @@ class _RoomScreenState extends State<RoomScreen> {
   }) {
     final theme = ThemeScope.of(context);
     final initialLoaded = widget.repo.hasLoadedInitial(widget.roomId);
+    // Recorded for _recomputePositionState — must match the Positioned.top
+    // applied to the chip below so the overlap math reflects the real rect.
+    _chipRestingY = listPadding.top + 4;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -448,21 +559,29 @@ class _RoomScreenState extends State<RoomScreen> {
                 : (room.isEphemeral
                       ? _SecretSpaceWelcome(ttl: room.messageLifetime)
                       : const _NoMessagesPlaceholder()))
-          : ListView.builder(
-              controller: _scroll,
-              reverse: true,
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: listPadding,
-              itemCount: items.length,
-              itemBuilder: (context, i) {
-                final item = items[i];
-                if (item is _IntroItem) {
-                  return _RoomIntro(room: room, members: _members.values.toList(), api: widget.api);
-                }
-                if (item is _DateDividerItem) {
-                  return _DateDivider(label: item.label);
-                }
-                final m = (item as _MessageItem).message;
+          : Stack(
+              children: [
+                ListView.builder(
+                  key: _listViewportKey,
+                  controller: _scroll,
+                  reverse: true,
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: listPadding,
+                  itemCount: items.length,
+                  itemBuilder: (context, i) {
+                    final item = items[i];
+                    if (item is _IntroItem) {
+                      return _RoomIntro(room: room, members: _members.values.toList(), api: widget.api);
+                    }
+                    if (item is _DateDividerItem) {
+                      return _trackedDate(
+                        stableId: 'd_${item.label}',
+                        label: item.label,
+                        isDivider: true,
+                        child: _DateDivider(label: item.label),
+                      );
+                    }
+                    final m = (item as _MessageItem).message;
                 final author = _members[m.senderId];
                 final isMine = m.senderId == me;
                 final othersRead = widget.repo.latestOthersReadAt;
@@ -521,37 +640,95 @@ class _RoomScreenState extends State<RoomScreen> {
                   _openProfile(author);
                 }
 
-                return AnimatedSwitcher(
-                  duration: theme.motionMed,
-                  switchInCurve: theme.motionEntrance,
-                  child: m.isEphemeral
-                      ? EphemeralMessageBubble(
-                          key: ValueKey('e_${m.id}'),
-                          message: m,
-                          now: _now,
-                          currentUserId: me,
-                          api: widget.api,
-                          author: author,
-                          onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                          onReactionTap: onReactionTap,
-                          onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                        )
-                      : MessageBubble(
-                          key: ValueKey('s_${m.id}'),
-                          message: m,
-                          now: _now,
-                          currentUserId: me,
-                          api: widget.api,
-                          author: author,
-                          onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
-                          onReactionTap: onReactionTap,
-                          onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                          seenByOthers: seenByOthers,
-                        ),
+                return _trackedDate(
+                  stableId: 'm_${m.id}',
+                  label: _humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
+                  isDivider: false,
+                  child: AnimatedSwitcher(
+                    duration: theme.motionMed,
+                    switchInCurve: theme.motionEntrance,
+                    child: m.isEphemeral
+                        ? EphemeralMessageBubble(
+                            key: ValueKey('e_${m.id}'),
+                            message: m,
+                            now: _now,
+                            currentUserId: me,
+                            api: widget.api,
+                            author: author,
+                            onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                            onReactionTap: onReactionTap,
+                            onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                          )
+                        : MessageBubble(
+                            key: ValueKey('s_${m.id}'),
+                            message: m,
+                            now: _now,
+                            currentUserId: me,
+                            api: widget.api,
+                            author: author,
+                            onLongPress: m.id.startsWith('tmp_') ? null : onLongPress,
+                            onReactionTap: onReactionTap,
+                            onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                            seenByOthers: seenByOthers,
+                          ),
+                  ),
                 );
               },
+                ),
+                Positioned(
+                  // Anchor below the list's own top padding so the chip
+                  // clears the classic Column header (top: 12) AND the
+                  // liquid floating header (top: topSafe + chromeH + 12).
+                  top: listPadding.top + 4,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Center(
+                      // AnimatedOpacity drives show/hide on scroll start /
+                      // 800ms-idle. The inner Opacity + translate + scale
+                      // follow `_dividerOverlap` in real time so the chip
+                      // yields as a real _DateDivider crosses its rect.
+                      child: AnimatedOpacity(
+                        opacity: (_isActivelyScrolling && _floatingLabel != null) ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        child: Transform.translate(
+                          offset: Offset(0, 14 * _dividerOverlap),
+                          child: Transform.scale(
+                            scale: 1 - 0.08 * _dividerOverlap,
+                            child: Opacity(
+                              opacity: (1 - _dividerOverlap).clamp(0.0, 1.0),
+                              child: _FloatingDateChip(label: _floatingLabel ?? ''),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
     );
+  }
+
+  /// Wrap a list item with a stable GlobalKey so _recomputePositionState
+  /// can read its on-screen position. The stableId persists across rebuilds
+  /// (m.id for messages, label for dividers) so child widget state (video,
+  /// audio playback inside MessageBubble) survives pagination and sends.
+  Widget _trackedDate({
+    required String stableId,
+    required String label,
+    required bool isDivider,
+    required Widget child,
+  }) {
+    var track = _dateTracks[stableId];
+    if (track == null) {
+      track = _DateTrack(GlobalKey(debugLabel: stableId), label, isDivider);
+      _dateTracks[stableId] = track;
+    } else {
+      track.label = label;
+    }
+    return KeyedSubtree(key: track.key, child: child);
   }
 }
 
@@ -893,6 +1070,61 @@ class _DateDivider extends StatelessWidget {
           ),
           Expanded(child: Container(height: 1, color: theme.divider)),
         ],
+      ),
+    );
+  }
+}
+
+/// Tracks a list item's on-screen position via GlobalKey so the floating
+/// date chip can read the topmost visible date. `label` is mutated in
+/// place when day-rollover (midnight) flips "TODAY" → "YESTERDAY".
+/// `isDivider` lets the recompute step apply the yield effect only when a
+/// real _DateDivider overlaps the chip — message bubbles never cause yield.
+class _DateTrack {
+  _DateTrack(this.key, this.label, this.isDivider);
+  final GlobalKey key;
+  String label;
+  final bool isDivider;
+}
+
+/// Floating date pill shown over the message list while the user scrolls.
+/// Mirrors the inline _DateDivider's typography so the date string reads
+/// the same whether it's inline or hovering — only the surface differs:
+/// a blurred, accent-tinted pill that lifts off the messages.
+class _FloatingDateChip extends StatelessWidget {
+  const _FloatingDateChip({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: theme.accentSoft,
+            border: Border.all(color: theme.divider, width: 1),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(CupertinoIcons.calendar, size: 11, color: theme.accent),
+              const SizedBox(width: 6),
+              Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
+            ],
+          ),
+        ),
       ),
     );
   }

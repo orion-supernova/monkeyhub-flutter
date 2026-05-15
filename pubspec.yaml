@@ -40,6 +40,8 @@ dependencies:
   just_audio: ^0.9.42
   video_player: ^2.9.2
   http: ^1.2.2
+  # Saves images to the system Photos/Gallery (used by avatar "download").
+  gal: ^2.3.0
 
   # Push notifications (OneSignal v5 SDK).
   onesignal_flutter: ^5.2.9

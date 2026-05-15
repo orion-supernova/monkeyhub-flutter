@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../auth/auth_service.dart';
@@ -26,13 +28,7 @@ import 'room_screen.dart';
 /// send/cancel friend requests, open DM). If both are null this renders a
 /// read-only view (used as a Phase-1 fallback).
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({
-    super.key,
-    required this.user,
-    this.repo,
-    this.api,
-    this.auth,
-  });
+  const ProfileScreen({super.key, required this.user, this.repo, this.api, this.auth});
   final ChatUser user;
   final ChatRepository? repo;
   final ChatApi? api;
@@ -49,6 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ChatUser? _user;
   bool _loading = false;
   bool _busy = false;
+  bool _changingAvatar = false;
+  bool _signingOut = false;
+  bool _deletingAccount = false;
   bool _confirmDelete = false;
 
   bool get _isMe => widget.repo?.userId == widget.user.id;
@@ -60,10 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Eagerly resolve friendship from the repo so the first frame is correct
     // (chat-context entry points like getMembers don't compute it).
     final resolved = _resolveFriendship(widget.user.id);
-    _user = widget.user.copyWith(
-      friendshipStatus: resolved.status,
-      requestId: resolved.requestId,
-    );
+    _user = widget.user.copyWith(friendshipStatus: resolved.status, requestId: resolved.requestId);
     _refresh();
   }
 
@@ -72,10 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (api == null) return;
     setState(() => _loading = true);
     try {
-      final fresh = await api.getProfile(
-        widget.user.id,
-        viewerUserId: widget.repo?.userId,
-      );
+      final fresh = await api.getProfile(widget.user.id, viewerUserId: widget.repo?.userId);
       if (!mounted || fresh == null) return;
       // users.getProfile doesn't include friendshipStatus. Resolve it from
       // the repo's live caches (friends + pending requests) instead of
@@ -84,12 +77,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // DM header) where getMembers didn't compute it.
       final resolved = _resolveFriendship(widget.user.id);
       setState(() {
-        _user = fresh.copyWith(
-          friendshipStatus: resolved.status,
-          requestId: resolved.requestId,
-        );
+        _user = fresh.copyWith(friendshipStatus: resolved.status, requestId: resolved.requestId);
       });
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -102,15 +93,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (repo.friends.any((f) => f.id == userId)) {
       return (status: FriendshipStatus.friend, requestId: null);
     }
-    final outgoing = repo.outgoingRequests
-        .where((r) => r.user.id == userId)
-        .firstOrNull;
+    final outgoing = repo.outgoingRequests.where((r) => r.user.id == userId).firstOrNull;
     if (outgoing != null) {
       return (status: FriendshipStatus.outgoingPending, requestId: outgoing.id);
     }
-    final incoming = repo.incomingRequests
-        .where((r) => r.user.id == userId)
-        .firstOrNull;
+    final incoming = repo.incomingRequests.where((r) => r.user.id == userId).firstOrNull;
     if (incoming != null) {
       return (status: FriendshipStatus.incomingPending, requestId: incoming.id);
     }
@@ -131,7 +118,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         email: _u.email ?? '',
       );
       await _refresh();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -144,13 +132,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (id == null) return;
     setState(() => _busy = true);
     try {
-      await api.updateProfile(
-        userId: id,
-        name: _u.name,
-        email: next.trim(),
-      );
+      await api.updateProfile(userId: id, name: _u.name, email: next.trim());
       await _refresh();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -169,9 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Dialog(
           backgroundColor: theme.surfaceRaised,
           insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusLg)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
             child: Column(
@@ -180,23 +163,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(title, style: theme.displaySmall),
                 const SizedBox(height: 20),
-                Row(children: [
-                  Expanded(
-                    child: _Action(
-                      label: 'JUST TAPPED',
-                      filled: false,
-                      onTap: () => Navigator.of(ctx).pop(false),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Action(label: 'JUST TAPPED', filled: false, onTap: () => Navigator.of(ctx).pop(false)),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Action(
-                      label: 'CHANGE',
-                      filled: true,
-                      onTap: () => Navigator.of(ctx).pop(true),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _Action(label: 'CHANGE', filled: true, onTap: () => Navigator.of(ctx).pop(true)),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
               ],
             ),
           ),
@@ -241,10 +218,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: 36,
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.divider,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+                  decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
                 ),
                 Text(title, style: theme.displaySmall),
                 const SizedBox(height: 14),
@@ -267,23 +241,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                    child: _Action(
-                      label: 'CANCEL',
-                      filled: false,
-                      onTap: () => Navigator.of(ctx).pop(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _Action(label: 'CANCEL', filled: false, onTap: () => Navigator.of(ctx).pop()),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _Action(
-                      label: 'SAVE',
-                      filled: true,
-                      onTap: () => Navigator.of(ctx).pop(controller.text),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _Action(label: 'SAVE', filled: true, onTap: () => Navigator.of(ctx).pop(controller.text)),
                     ),
-                  ),
-                ]),
+                  ],
+                ),
               ],
             ),
           ),
@@ -298,7 +266,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     final auth = widget.auth;
     if (auth == null || _busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _signingOut = true;
+    });
     final nav = Navigator.of(context);
     try {
       await auth.signOut();
@@ -311,21 +282,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // inside `_AppHome`) would be hidden under that stacked route.
       nav.popUntil((r) => r.isFirst);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _signingOut = false;
+        });
+      }
     }
   }
 
   Future<void> _deleteAccount() async {
     final auth = widget.auth;
     if (auth == null || _busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _deletingAccount = true;
+    });
     final nav = Navigator.of(context);
     try {
       await auth.deleteAccount();
       if (!mounted) return;
       nav.popUntil((r) => r.isFirst);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _deletingAccount = false;
+        });
+      }
     }
   }
 
@@ -340,9 +324,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       switch (_u.friendshipStatus) {
         case FriendshipStatus.none:
           if (!mounted) return;
-          nav.push(MaterialPageRoute(
-            builder: (_) => FriendRequestDraftScreen(repo: repo, api: api, target: _u),
-          ));
+          nav.push(
+            MaterialPageRoute(
+              builder: (_) => FriendRequestDraftScreen(repo: repo, api: api, target: _u),
+            ),
+          );
           break;
         case FriendshipStatus.outgoingPending:
           await repo.cancelDirectRequest(_u.id);
@@ -351,15 +337,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final roomId = await repo.approveDirectRequest(_u.id);
           if (!mounted) return;
           if (roomId != null) {
-            nav.push(MaterialPageRoute(
-                builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api)));
+            nav.push(
+              MaterialPageRoute(
+                builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
+              ),
+            );
           }
           break;
         case FriendshipStatus.friend:
           final roomId = await repo.openDmWith(_u);
           if (!mounted) return;
-          nav.push(MaterialPageRoute(
-              builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api)));
+          nav.push(
+            MaterialPageRoute(
+              builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
+            ),
+          );
           break;
       }
     } catch (e) {
@@ -391,25 +383,100 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return 'couldn\'t complete that.';
   }
 
-  Future<void> _pickAndUploadAvatar() async {
+  Future<void> _openAvatarSheet() async {
+    final action = await showAvatarActionSheet(
+      context,
+      hasAvatar: _u.avatarStorageId != null && _u.avatarStorageId!.isNotEmpty,
+    );
+    if (action == null || !mounted) return;
+    switch (action) {
+      case AvatarAction.download:
+        await _downloadAvatar();
+        break;
+      case AvatarAction.capture:
+        await _pickAndUploadAvatarFrom(
+          source: ImageSource.camera,
+          preferredCameraDevice: CameraDevice.front,
+        );
+        break;
+      case AvatarAction.library:
+        await _pickAndUploadAvatarFrom(source: ImageSource.gallery);
+        break;
+    }
+  }
+
+  Future<void> _pickAndUploadAvatarFrom({
+    required ImageSource source,
+    CameraDevice preferredCameraDevice = CameraDevice.rear,
+  }) async {
     final api = widget.api;
     final repo = widget.repo;
     if (api == null || repo?.userId == null) return;
+    // Spinner covers BOTH phases: picker/camera spin-up (the native UI can
+    // take a beat to appear on cold launch) and the upload itself. Clear it
+    // on cancel so the avatar returns to normal immediately.
+    setState(() {
+      _busy = true;
+      _changingAvatar = true;
+    });
     final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 88,
+      preferredCameraDevice: preferredCameraDevice,
     );
-    if (picked == null) return;
-    setState(() => _busy = true);
+    if (picked == null) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _changingAvatar = false;
+        });
+      }
+      return;
+    }
     try {
       final uploader = UploadService(api);
-      final storageId = await uploader.uploadXFile(
-        file: File(picked.path),
-        contentType: 'image/jpeg',
-      );
+      final storageId = await uploader.uploadXFile(file: File(picked.path), contentType: 'image/jpeg');
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
       await _refresh();
-    } catch (_) {/* silent — user can retry */} finally {
+    } catch (_) {
+      /* silent — user can retry */
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _changingAvatar = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _downloadAvatar() async {
+    final api = widget.api;
+    final storageId = _u.avatarStorageId;
+    if (api == null || storageId == null || storageId.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _busy = true);
+    try {
+      final hasAccess = await Gal.hasAccess(toAlbum: false);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: false);
+        if (!granted) {
+          messenger.showSnackBar(const SnackBar(content: Text('photo permission denied.')));
+          return;
+        }
+      }
+      final url = await api.getFileUrl(storageId);
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode != 200) {
+        throw HttpException('status ${resp.statusCode}');
+      }
+      await Gal.putImageBytes(resp.bodyBytes, name: 'avatar-${DateTime.now().millisecondsSinceEpoch}');
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('saved to photos.')));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('couldn\'t save image.')));
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -424,10 +491,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _busy = true);
     SharedRoomsInfo info;
     try {
-      info = await api.listSharedRooms(
-        userId: repo!.userId!,
-        otherUserId: _u.id,
-      );
+      info = await api.listSharedRooms(userId: repo!.userId!, otherUserId: _u.id);
     } catch (_) {
       info = SharedRoomsInfo(groupRooms: const [], hasDm: false);
     }
@@ -447,11 +511,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (myId == null) return;
     setState(() => _busy = true);
     try {
-      await api.blockUser(
-        userId: myId,
-        targetUserId: _u.id,
-        deleteDm: choice == BlockChoice.blockAndDelete,
-      );
+      await api.blockUser(userId: myId, targetUserId: _u.id, deleteDm: choice == BlockChoice.blockAndDelete);
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
@@ -463,7 +523,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
       Navigator.of(context).maybePop();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -477,17 +538,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (reason == null || reason.isEmpty) return;
     setState(() => _busy = true);
     try {
-      await api.report(
-        reporterId: repo!.userId!,
-        targetType: 'user',
-        targetId: _u.id,
-        reason: reason,
-      );
+      await api.report(reporterId: repo!.userId!, targetType: 'user', targetId: _u.id, reason: reason);
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
-      );
-    } catch (_) {} finally {
+      messenger.showSnackBar(const SnackBar(content: Text('report sent privately. they won\'t be notified.')));
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -503,7 +558,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _user = _u.copyWith(friendshipStatus: FriendshipStatus.none);
         });
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -533,23 +589,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
               children: [
-                Row(children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
-                  ),
-                  const Spacer(),
-                ]),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
+                    ),
+                    const Spacer(),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: _isMe && !_busy ? _pickAndUploadAvatar : null,
+                      onTap: _isMe && !_busy ? _openAvatarSheet : null,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
                           UserAvatar(user: _u, size: 96, api: widget.api),
+                          if (_changingAvatar)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                ),
+                                alignment: Alignment.center,
+                                child: SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.4,
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (_isMe)
                             Positioned(
                               right: -2,
@@ -561,8 +637,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(color: theme.background, width: 2),
                                 ),
-                                child: Icon(Icons.camera_alt_outlined,
-                                    size: 14, color: theme.accentInk),
+                                child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
                               ),
                             ),
                         ],
@@ -576,27 +651,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           GestureDetector(
                             onTap: _isMe && widget.api != null && widget.repo != null
                                 ? () => _confirmAndEdit(
-                                      title: _u.name.trim().isNotEmpty
-                                          ? 'change name?'
-                                          : 'add name?',
-                                      currentValue: _u.name,
-                                      hint: 'how the room will read you',
-                                      onSave: _updateName,
-                                    )
+                                    title: _u.name.trim().isNotEmpty ? 'change name?' : 'add name?',
+                                    currentValue: _u.name,
+                                    hint: 'how the room will read you',
+                                    onSave: _updateName,
+                                  )
                                 : null,
                             behavior: HitTestBehavior.opaque,
                             child: Text(_u.displayName, style: theme.displayLarge),
                           ),
                           const SizedBox(height: 6),
-                          Text('@${_u.username}',
-                              style: theme.mono.copyWith(color: theme.inkMuted)),
+                          Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
                           if (_isMe && widget.api != null && widget.repo != null) ...[
                             const SizedBox(height: 6),
                             GestureDetector(
                               onTap: () => _confirmAndEdit(
-                                title: (_u.email?.isNotEmpty ?? false)
-                                    ? 'change email?'
-                                    : 'add email?',
+                                title: (_u.email?.isNotEmpty ?? false) ? 'change email?' : 'add email?',
                                 currentValue: _u.email ?? '',
                                 hint: 'only for recovery, never shown',
                                 keyboardType: TextInputType.emailAddress,
@@ -606,18 +676,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.mail_outline,
-                                      size: 12, color: theme.inkMuted),
+                                  Icon(Icons.mail_outline, size: 12, color: theme.inkMuted),
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
-                                      (_u.email?.isNotEmpty ?? false)
-                                          ? _u.email!
-                                          : 'add email',
+                                      (_u.email?.isNotEmpty ?? false) ? _u.email! : 'add email',
                                       style: theme.mono.copyWith(
-                                        color: (_u.email?.isNotEmpty ?? false)
-                                            ? theme.inkSoft
-                                            : theme.inkMuted,
+                                        color: (_u.email?.isNotEmpty ?? false) ? theme.inkSoft : theme.inkMuted,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -626,23 +691,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                             ),
                           ],
-                          if (!_isMe) ...[
-                            const SizedBox(height: 8),
-                            _FriendshipChip(status: _u.friendshipStatus),
-                          ],
+                          if (!_isMe) ...[const SizedBox(height: 8), _FriendshipChip(status: _u.friendshipStatus)],
                           if (_u.status != null) ...[
                             const SizedBox(height: 8),
-                            Row(children: [
-                              Container(
-                                width: 6, height: 6,
-                                decoration: BoxDecoration(
-                                  color: _u.status == 'online' ? theme.success : theme.inkMuted,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(_u.status!.toUpperCase(), style: theme.monoTiny),
-                            ]),
+                            Row(children: [Text(_u.status!.toUpperCase(), style: theme.monoTiny)]),
                           ],
                         ],
                       ),
@@ -658,18 +710,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       border: Border(left: BorderSide(color: theme.accent, width: 2)),
                       borderRadius: BorderRadius.circular(theme.radiusMd),
                     ),
-                    child: Row(children: [
-                      Icon(Icons.visibility_off_outlined, size: 14, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _u.friendshipStatus == FriendshipStatus.friend
-                              ? 'some fields are hidden by their settings.'
-                              : 'limited view — they share more with friends.',
-                          style: theme.monoTiny.copyWith(color: theme.accent),
+                    child: Row(
+                      children: [
+                        Icon(Icons.visibility_off_outlined, size: 14, color: theme.accent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _u.friendshipStatus == FriendshipStatus.friend
+                                ? 'some fields are hidden by their settings.'
+                                : 'limited view — they share more with friends.',
+                            style: theme.monoTiny.copyWith(color: theme.accent),
+                          ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -685,11 +739,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: _busy
                               ? '…'
                               : (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests
-                                  ? 'NOT ACCEPTING REQUESTS'
-                                  : _actionLabel()),
+                                    ? 'NOT ACCEPTING REQUESTS'
+                                    : _actionLabel()),
                           filled: _u.friendshipStatus != FriendshipStatus.outgoingPending,
-                          onTap: (_busy ||
-                                  (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
+                          onTap: (_busy || (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
                               ? null
                               : _friendshipAction,
                         ),
@@ -697,11 +750,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (_u.friendshipStatus == FriendshipStatus.friend) ...[
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _Action(
-                            label: 'UNFRIEND',
-                            filled: false,
-                            onTap: _busy ? null : _removeFriend,
-                          ),
+                          child: _Action(label: 'UNFRIEND', filled: false, onTap: _busy ? null : _removeFriend),
                         ),
                       ],
                     ],
@@ -747,10 +796,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_u.email != null && _u.email!.isNotEmpty)
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(width: 70, child: Text('EMAIL', style: theme.label)),
-            Expanded(child: Text(_u.email!, style: theme.body)),
-          ]),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 70, child: Text('EMAIL', style: theme.label)),
+              Expanded(child: Text(_u.email!, style: theme.body)),
+            ],
+          ),
       ],
     );
   }
@@ -767,8 +819,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (canPrivacy) ...[
           _sectionHeader(theme, 'PRIVACY'),
           const SizedBox(height: 12),
-          const CaptureProtectionToggle(),
-          const SizedBox(height: 8),
           _RowLink(
             label: 'VISIBILITY PREFERENCES',
             icon: Icons.visibility_outlined,
@@ -788,22 +838,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 8),
+          const CaptureProtectionToggle(),
         ],
         if (canAccount) ...[
           const SizedBox(height: 28),
           _sectionHeader(theme, 'ACCOUNT'),
           const SizedBox(height: 10),
-          _RowActionTile(
-            label: 'SIGN OUT',
-            danger: false,
-            busy: _busy,
-            onTap: _signOut,
-          ),
+          _RowActionTile(label: 'SIGN OUT', danger: false, busy: _signingOut, onTap: _signOut),
           const SizedBox(height: 8),
           _RowActionTile(
             label: _confirmDelete ? 'TAP AGAIN TO CONFIRM DELETE' : 'DELETE ACCOUNT',
             danger: true,
-            busy: _busy,
+            busy: _deletingAccount,
             onTap: () {
               if (!_confirmDelete) {
                 setState(() => _confirmDelete = true);
@@ -820,11 +867,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _sectionHeader(AppTheme theme, String t) => Row(children: [
-        Text(t, style: theme.label),
-        const SizedBox(width: 8),
-        Expanded(child: Container(height: 1, color: theme.divider)),
-      ]);
+  Widget _sectionHeader(AppTheme theme, String t) => Row(
+    children: [
+      Text(t, style: theme.label),
+      const SizedBox(width: 8),
+      Expanded(child: Container(height: 1, color: theme.divider)),
+    ],
+  );
 }
 
 class _RowLink extends StatelessWidget {
@@ -859,12 +908,7 @@ class _RowLink extends StatelessWidget {
 }
 
 class _RowActionTile extends StatelessWidget {
-  const _RowActionTile({
-    required this.label,
-    required this.danger,
-    required this.busy,
-    required this.onTap,
-  });
+  const _RowActionTile({required this.label, required this.danger, required this.busy, required this.onTap});
   final String label;
   final bool danger;
   final bool busy;
@@ -879,33 +923,18 @@ class _RowActionTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
           color: theme.surface,
-          border: Border.all(
-            color: danger ? theme.danger.withValues(alpha: 0.5) : theme.divider,
-          ),
+          border: Border.all(color: danger ? theme.danger.withValues(alpha: 0.5) : theme.divider),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
         child: Row(
           children: [
-            Icon(
-              danger ? Icons.delete_outline : Icons.logout,
-              size: 16,
-              color: danger ? theme.danger : theme.inkSoft,
-            ),
+            Icon(danger ? Icons.delete_outline : Icons.logout, size: 16, color: danger ? theme.danger : theme.inkSoft),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: theme.label.copyWith(
-                  color: danger ? theme.danger : theme.ink,
-                ),
-              ),
+              child: Text(label, style: theme.label.copyWith(color: danger ? theme.danger : theme.ink)),
             ),
             if (busy)
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent),
-              ),
+              SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: theme.accent)),
           ],
         ),
       ),
@@ -914,12 +943,7 @@ class _RowActionTile extends StatelessWidget {
 }
 
 class _Action extends StatelessWidget {
-  const _Action({
-    required this.label,
-    required this.filled,
-    required this.onTap,
-    this.danger = false,
-  });
+  const _Action({required this.label, required this.filled, required this.onTap, this.danger = false});
   final String label;
   final bool filled;
   final VoidCallback? onTap;
@@ -934,18 +958,17 @@ class _Action extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: filled
-              ? (onTap == null ? theme.accentSoft : accent)
-              : Colors.transparent,
-          border: Border.all(color: filled ? accent : (danger ? accent.withValues(alpha: 0.45) : theme.divider), width: 1.2),
+          color: filled ? (onTap == null ? theme.accentSoft : accent) : Colors.transparent,
+          border: Border.all(
+            color: filled ? accent : (danger ? accent.withValues(alpha: 0.45) : theme.divider),
+            width: 1.2,
+          ),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
         child: Text(
           label,
           style: theme.label.copyWith(
-            color: filled
-                ? (danger ? Colors.white : theme.accentInk)
-                : (danger ? accent : theme.ink),
+            color: filled ? (danger ? Colors.white : theme.accentInk) : (danger ? accent : theme.ink),
           ),
         ),
       ),
@@ -978,11 +1001,127 @@ class _FriendshipChip extends StatelessWidget {
         children: [
           Icon(icon, size: 11, color: color),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: theme.monoTiny.copyWith(color: color, letterSpacing: 1.4),
-          ),
+          Text(label, style: theme.monoTiny.copyWith(color: color, letterSpacing: 1.4)),
         ],
+      ),
+    );
+  }
+}
+
+enum AvatarAction { download, capture, library }
+
+Future<AvatarAction?> showAvatarActionSheet(
+  BuildContext context, {
+  required bool hasAvatar,
+}) {
+  return showModalBottomSheet<AvatarAction>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      final theme = ThemeScope.of(ctx);
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Container(
+            decoration: theme.sheetDecoration(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text('PROFILE PICTURE', style: theme.label),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    border: Border.all(color: theme.divider),
+                    borderRadius: BorderRadius.circular(theme.radiusMd),
+                  ),
+                  child: Column(
+                    children: [
+                      if (hasAvatar) ...[
+                        _AvatarSheetTile(
+                          icon: Icons.download_outlined,
+                          label: 'SAVE TO PHOTOS',
+                          onTap: () => Navigator.of(ctx).pop(AvatarAction.download),
+                        ),
+                        Divider(height: 1, color: theme.divider),
+                      ],
+                      _AvatarSheetTile(
+                        icon: Icons.camera_alt_outlined,
+                        label: 'TAKE A SELFIE',
+                        onTap: () => Navigator.of(ctx).pop(AvatarAction.capture),
+                      ),
+                      Divider(height: 1, color: theme.divider),
+                      _AvatarSheetTile(
+                        icon: Icons.photo_library_outlined,
+                        label: 'CHOOSE FROM LIBRARY',
+                        onTap: () => Navigator.of(ctx).pop(AvatarAction.library),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                GestureDetector(
+                  onTap: () => Navigator.of(ctx).pop(),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      border: Border.all(color: theme.divider),
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                    ),
+                    child: Text('CANCEL', style: theme.label.copyWith(color: theme.inkSoft)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _AvatarSheetTile extends StatelessWidget {
+  const _AvatarSheetTile({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: theme.accent),
+            const SizedBox(width: 14),
+            Expanded(child: Text(label, style: theme.label.copyWith(color: theme.ink))),
+            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+          ],
+        ),
       ),
     );
   }
