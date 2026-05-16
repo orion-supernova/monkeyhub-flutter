@@ -39,17 +39,28 @@ async function assertCallParticipant(ctx: any, callId: any, userId: any) {
   return call;
 }
 
-// Cascade delete every signal for [callId] except [keep] (the terminal
-// bye/reject/cancel signal we just inserted, which the peer's subscription
-// still needs to see). Called after every terminal-state transition so
-// late-arriving ICE candidates can't race into a re-entered session.
-async function purgeCallSignals(ctx: any, callId: any, keep?: any) {
+// Cascade delete every signal for [callId] except any id in [keep] (the
+// terminal bye/reject/cancel/taken signals we just inserted, which a
+// subscriber still needs to see). Called after every terminal-state
+// transition so late-arriving ICE candidates can't race into a re-entered
+// session.
+async function purgeCallSignals(
+  ctx: any,
+  callId: any,
+  keep?: any | any[],
+) {
+  const keepIds = new Set<string>();
+  if (Array.isArray(keep)) {
+    for (const k of keep) if (k) keepIds.add(k.toString());
+  } else if (keep) {
+    keepIds.add(keep.toString());
+  }
   const rows = await ctx.db
     .query("callSignals")
     .withIndex("by_call", (q: any) => q.eq("callId", callId))
     .collect();
   for (const r of rows) {
-    if (keep && r._id.toString() === keep.toString()) continue;
+    if (keepIds.has(r._id.toString())) continue;
     await ctx.db.delete(r._id);
   }
 }
@@ -139,6 +150,26 @@ export const initiate = mutation({
       startedAt: Date.now(),
     });
 
+    // Surface an "invite" signal IMMEDIATELY. Every callee device with an
+    // active `signalsForUser` subscription receives it within ~50–150ms,
+    // which lets the in-app IncomingCallScreen open before the caller has
+    // finished getUserMedia/createOffer (otherwise the screen waits for
+    // the `offer` signal — adds 500ms+ on first call). The eventual offer
+    // hydrates the same session (see CallService._onRemoteOffer).
+    await ctx.db.insert("callSignals", {
+      callId,
+      fromUserId: callerId,
+      toUserId: calleeId,
+      kind: "invite",
+      payload: JSON.stringify({
+        callerName,
+        type,
+        roomId: roomId.toString(),
+      }),
+      createdAt: Date.now(),
+      consumed: false,
+    });
+
     // Fire push so the callee's app wakes if backgrounded.
     await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
       callId,
@@ -174,8 +205,12 @@ export const initiate = mutation({
 });
 
 export const accept = mutation({
-  args: { callId: v.id("calls"), userId: v.id("users") },
-  handler: async (ctx, { callId, userId }) => {
+  args: {
+    callId: v.id("calls"),
+    userId: v.id("users"),
+    acceptingDeviceId: v.optional(v.string()),
+  },
+  handler: async (ctx, { callId, userId, acceptingDeviceId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.calleeId.toString() !== userId.toString()) {
       throw new Error("ONLY_CALLEE_CAN_ACCEPT");
@@ -185,12 +220,40 @@ export const accept = mutation({
       status: "active",
       acceptedAt: Date.now(),
     });
+    // Tell every other device of the callee to dismiss its ringer. All
+    // callee devices share the `toUserId == calleeId` subscription; the
+    // accepting device filters its own echo via `byDeviceId`.
+    await ctx.db.insert("callSignals", {
+      callId,
+      fromUserId: userId,
+      toUserId: call.calleeId,
+      kind: "taken",
+      payload: JSON.stringify({
+        reason: "accepted",
+        byDeviceId: acceptingDeviceId ?? null,
+      }),
+      createdAt: Date.now(),
+      consumed: false,
+    });
+    // For killed-iOS siblings (subscription not alive), fan a PushKit
+    // payload with kind="taken" so CallKit can dismiss with
+    // .answeredElsewhere. The accepting device is excluded.
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      calleeId: call.calleeId,
+      excludeDeviceId: acceptingDeviceId ?? null,
+      reason: "accepted",
+    });
   },
 });
 
 export const reject = mutation({
-  args: { callId: v.id("calls"), userId: v.id("users") },
-  handler: async (ctx, { callId, userId }) => {
+  args: {
+    callId: v.id("calls"),
+    userId: v.id("users"),
+    acceptingDeviceId: v.optional(v.string()),
+  },
+  handler: async (ctx, { callId, userId, acceptingDeviceId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.calleeId.toString() !== userId.toString()) {
       throw new Error("ONLY_CALLEE_CAN_REJECT");
@@ -201,7 +264,7 @@ export const reject = mutation({
       endedAt: Date.now(),
     });
     // Drop a terminal signal so the caller sees the rejection promptly.
-    const sigId = await ctx.db.insert("callSignals", {
+    const sigToCaller = await ctx.db.insert("callSignals", {
       callId,
       fromUserId: userId,
       toUserId: call.callerId,
@@ -210,7 +273,26 @@ export const reject = mutation({
       createdAt: Date.now(),
       consumed: false,
     });
-    await purgeCallSignals(ctx, callId, sigId);
+    // And tell sibling callee devices to dismiss their ringer.
+    const sigToCallee = await ctx.db.insert("callSignals", {
+      callId,
+      fromUserId: userId,
+      toUserId: call.calleeId,
+      kind: "taken",
+      payload: JSON.stringify({
+        reason: "rejected",
+        byDeviceId: acceptingDeviceId ?? null,
+      }),
+      createdAt: Date.now(),
+      consumed: false,
+    });
+    await purgeCallSignals(ctx, callId, [sigToCaller, sigToCallee]);
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      calleeId: call.calleeId,
+      excludeDeviceId: acceptingDeviceId ?? null,
+      reason: "rejected",
+    });
   },
 });
 

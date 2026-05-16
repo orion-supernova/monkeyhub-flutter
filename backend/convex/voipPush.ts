@@ -1,6 +1,7 @@
 import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 // Direct VoIP push delivery — wakes a *killed* app for CallKit (iOS) or
 // ConnectionService (Android). Runs alongside the OneSignal push in
@@ -18,12 +19,44 @@ import { v } from "convex/values";
 // Any missing piece on a given platform → that platform's branch logs and
 // skips (the other can still deliver). Never throws back to the caller.
 
-export const _loadUserTokens = internalQuery({
+// Returns every push-eligible device row for [userId]. If the registry is
+// empty (older client that hasn't relogged since the migration), synthesizes
+// a single fallback row from the legacy `users.voipToken`/`fcmToken` so
+// pushes keep flowing until the next login refreshes the per-device record.
+//
+// Each row carries its own `_id` so the dead-token cleanup path can target
+// the specific device — `deviceRowId: null` marks the legacy fallback (we
+// clear the user-level field instead).
+export const _loadUserDevices = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
+    const rows = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    if (rows.length > 0) {
+      return rows.map((r) => ({
+        deviceRowId: r._id,
+        legacy: false as const,
+        deviceId: r.deviceId,
+        platform: r.platform,
+        voipToken: r.voipToken,
+        fcmToken: r.fcmToken,
+      }));
+    }
     const u = await ctx.db.get(userId);
-    if (!u) return null;
-    return { voipToken: u.voipToken, fcmToken: u.fcmToken };
+    if (!u) return [];
+    if (!u.voipToken && !u.fcmToken) return [];
+    return [
+      {
+        deviceRowId: null,
+        legacy: true as const,
+        deviceId: "_legacy",
+        platform: u.voipToken ? "ios" : "android",
+        voipToken: u.voipToken,
+        fcmToken: u.fcmToken,
+      },
+    ];
   },
 });
 
@@ -37,14 +70,15 @@ export const sendVoip = internalAction({
     roomId: v.id("rooms"),
   },
   handler: async (ctx, args) => {
-    const tokens = await ctx.runQuery(internal.voipPush._loadUserTokens, {
+    const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
       userId: args.calleeId,
     });
-    if (!tokens) {
-      console.warn("sendVoip: callee not found");
+    if (devices.length === 0) {
+      console.log("sendVoip: no devices for callee — OneSignal-only path");
       return;
     }
     const payload = {
+      kind: "invite",
       callId: args.callId.toString(),
       callerId: args.callerId.toString(),
       callerName: args.callerName,
@@ -52,55 +86,129 @@ export const sendVoip = internalAction({
       callType: args.type,
       roomId: args.roomId.toString(),
     };
-    if (!tokens.voipToken && !tokens.fcmToken) {
-      console.log("sendVoip: no native tokens for callee — OneSignal-only path");
-      return;
-    }
-    if (tokens.voipToken) {
-      try {
-        await sendApnsVoip(tokens.voipToken, payload);
-        console.log("sendVoip: APNs OK");
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error(`sendVoip: APNs failed: ${msg}`);
-        // Apple replies 410 (Unregistered) or 400 (BadDeviceToken) when
-        // the token has been revoked — usually after we miss the iOS 13+
-        // 5-second `reportNewIncomingCall` deadline once too often.
-        // Clear the field so we don't keep pushing into a black hole.
-        // PushManager.login on the next app launch re-registers a fresh
-        // token automatically.
-        if (msg.startsWith("APNS_BAD_TOKEN")) {
-          await ctx.runMutation(internal.voipTokens.clearVoipTokenInternal, {
-            userId: args.calleeId,
-          });
-          console.warn(
-            `sendVoip: cleared voipToken for ${args.calleeId} after ${msg}`,
-          );
-        }
-      }
-    }
-    if (tokens.fcmToken) {
-      try {
-        await sendFcmData(tokens.fcmToken, payload);
-        console.log("sendVoip: FCM OK");
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error(`sendVoip: FCM failed: ${msg}`);
-        // FCM returns UNREGISTERED / INVALID_ARGUMENT when the token is
-        // dead; treat the same as APNs and clear so a fresh launch can
-        // re-upload.
-        if (msg.startsWith("FCM_BAD_TOKEN")) {
-          await ctx.runMutation(internal.voipTokens.clearFcmTokenInternal, {
-            userId: args.calleeId,
-          });
-          console.warn(
-            `sendVoip: cleared fcmToken for ${args.calleeId} after ${msg}`,
-          );
-        }
-      }
-    }
+    // Fan out in parallel — one slow APNs round-trip shouldn't block the
+    // sibling devices. allSettled because we never want one failure to
+    // suppress logging for the others.
+    await Promise.allSettled(
+      devices.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
+    );
   },
 });
+
+// Sent to every sibling iOS device when one device accepts or rejects a
+// ringing call, so CallKit can dismiss with `.answeredElsewhere` even on a
+// killed app where the in-app `taken` signal can't be delivered in time.
+// The accepting device is excluded via `excludeDeviceId`.
+export const sendVoipTaken = internalAction({
+  args: {
+    callId: v.id("calls"),
+    calleeId: v.id("users"),
+    excludeDeviceId: v.optional(v.union(v.string(), v.null())),
+    reason: v.string(), // "accepted" | "rejected"
+  },
+  handler: async (ctx, args) => {
+    const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
+      userId: args.calleeId,
+    });
+    const targets = devices.filter(
+      (d) =>
+        d.voipToken &&
+        d.platform !== "ios-simulator" &&
+        d.deviceId !== args.excludeDeviceId,
+    );
+    if (targets.length === 0) return;
+    const payload = {
+      kind: "taken",
+      callId: args.callId.toString(),
+      reason: args.reason,
+    };
+    await Promise.allSettled(
+      targets.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
+    );
+  },
+});
+
+type DeviceRow =
+  | {
+      deviceRowId: Id<"userDevices">;
+      legacy: false;
+      deviceId: string;
+      platform: string;
+      voipToken?: string;
+      fcmToken?: string;
+    }
+  | {
+      deviceRowId: null;
+      legacy: true;
+      deviceId: string;
+      platform: string;
+      voipToken?: string;
+      fcmToken?: string;
+    };
+
+async function pushToDevice(
+  ctx: any,
+  userId: Id<"users">,
+  d: DeviceRow,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  // Skip simulator rows for APNs (PushKit doesn't reach simulators); the
+  // realtime subscription path covers them.
+  if (d.voipToken && d.platform !== "ios-simulator") {
+    try {
+      await sendApnsVoip(d.voipToken, payload);
+      console.log(`sendVoip: APNs OK device=${d.deviceId}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`sendVoip: APNs failed device=${d.deviceId}: ${msg}`);
+      // Apple replies 410 (Unregistered) or 400 (BadDeviceToken) when
+      // the token has been revoked — usually after we miss the iOS 13+
+      // 5-second `reportNewIncomingCall` deadline once too often.
+      // Clear just this device's token; siblings keep theirs.
+      if (msg.startsWith("APNS_BAD_TOKEN")) {
+        if (!d.legacy) {
+          await ctx.runMutation(
+            internal.voipTokens.clearVoipTokenForDeviceInternal,
+            { deviceRowId: d.deviceRowId },
+          );
+        } else {
+          await ctx.runMutation(
+            internal.voipTokens.clearLegacyVoipTokenInternal,
+            { userId },
+          );
+        }
+        console.warn(
+          `sendVoip: cleared voipToken device=${d.deviceId} after ${msg}`,
+        );
+      }
+    }
+  }
+  if (d.fcmToken) {
+    try {
+      await sendFcmData(d.fcmToken, payload);
+      console.log(`sendVoip: FCM OK device=${d.deviceId}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`sendVoip: FCM failed device=${d.deviceId}: ${msg}`);
+      if (msg.startsWith("FCM_BAD_TOKEN")) {
+        if (!d.legacy) {
+          await ctx.runMutation(
+            internal.voipTokens.clearFcmTokenForDeviceInternal,
+            { deviceRowId: d.deviceRowId },
+          );
+        } else {
+          await ctx.runMutation(
+            internal.voipTokens.clearLegacyFcmTokenInternal,
+            { userId },
+          );
+        }
+        console.warn(
+          `sendVoip: cleared fcmToken device=${d.deviceId} after ${msg}`,
+        );
+      }
+    }
+  }
+}
 
 // ────────────────────────── APNs (iOS PushKit) ──────────────────────────
 

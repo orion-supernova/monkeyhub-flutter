@@ -37,6 +37,25 @@ export default defineSchema({
     ),
   }).index("by_username", ["username"]),
 
+  // Per-device push registration. One row per (userId, deviceId) — every
+  // logged-in device gets its own entry so a sibling device login doesn't
+  // overwrite this device's wake-up token. Replaces the single-string
+  // voipToken/fcmToken fields on `users` (those remain as a read-only
+  // fallback for clients that haven't relogged since the migration).
+  // `voipPush.sendVoip` fans out across all rows for a user; on dead-token
+  // errors we clear just the affected row, not the user's other devices.
+  userDevices: defineTable({
+    userId: v.id("users"),
+    deviceId: v.string(),                    // client-persisted UUIDv4
+    platform: v.string(),                    // "ios" | "ios-simulator" | "android"
+    voipToken: v.optional(v.string()),       // iOS PushKit
+    fcmToken: v.optional(v.string()),        // Android FCM
+    lastSeenAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_device", ["userId", "deviceId"]),
+
   friendships: defineTable({
     userId: v.id("users"),
     friendId: v.id("users"),

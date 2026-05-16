@@ -6,6 +6,7 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import '../backend/chat_api.dart';
 import '../env.dart';
+import 'device_identity.dart';
 
 /// Wraps OneSignal init and login/logout. Mirrors v02 PushNotificationManager.
 ///
@@ -30,8 +31,14 @@ class PushManager {
   static const MethodChannel _fcmChannel = MethodChannel('monkeyhub/fcm');
   ChatApi? _api;
   String? _userId;
+  String? _deviceId;
 
   bool get _supported => Platform.isIOS || Platform.isAndroid;
+
+  /// Exposed so [CallService] can stamp the deviceId on accept/reject
+  /// so the backend's `taken` signal includes a `byDeviceId` field —
+  /// which lets the accepting device filter its own echo.
+  String? get deviceId => _deviceId;
 
   /// Call once at app startup. Safe to call multiple times.
   /// Bind a new room-open handler (call after the navigator is mounted).
@@ -94,6 +101,7 @@ class PushManager {
   Future<void> login(String userId) async {
     if (!_supported || !_initialized) return;
     _userId = userId;
+    _deviceId = await DeviceIdentity.ensure();
     try {
       await OneSignal.login(userId);
       // Now is a good time to prompt for permission (user has actively signed in).
@@ -124,9 +132,21 @@ class PushManager {
   Future<void> _uploadVoipToken(String? token) async {
     final userId = _userId;
     final api = _api;
-    if (userId == null || api == null || token == null || token.isEmpty) return;
+    final deviceId = _deviceId;
+    if (userId == null ||
+        api == null ||
+        deviceId == null ||
+        token == null ||
+        token.isEmpty) {
+      return;
+    }
     try {
-      await api.setVoipToken(userId: userId, token: token);
+      await api.setVoipToken(
+        userId: userId,
+        deviceId: deviceId,
+        platform: DeviceIdentity.platformTag(),
+        token: token,
+      );
     } catch (e) {
       debugPrint('PushManager: setVoipToken failed: $e');
     }
@@ -135,9 +155,21 @@ class PushManager {
   Future<void> _uploadFcmToken(String? token) async {
     final userId = _userId;
     final api = _api;
-    if (userId == null || api == null || token == null || token.isEmpty) return;
+    final deviceId = _deviceId;
+    if (userId == null ||
+        api == null ||
+        deviceId == null ||
+        token == null ||
+        token.isEmpty) {
+      return;
+    }
     try {
-      await api.setFcmToken(userId: userId, token: token);
+      await api.setFcmToken(
+        userId: userId,
+        deviceId: deviceId,
+        platform: DeviceIdentity.platformTag(),
+        token: token,
+      );
     } catch (e) {
       debugPrint('PushManager: setFcmToken failed: $e');
     }
@@ -145,6 +177,16 @@ class PushManager {
 
   Future<void> logout() async {
     if (!_supported || !_initialized) return;
+    final userId = _userId;
+    final deviceId = _deviceId;
+    final api = _api;
+    if (userId != null && deviceId != null && api != null) {
+      try {
+        await api.clearDeviceToken(userId: userId, deviceId: deviceId);
+      } catch (e) {
+        debugPrint('PushManager.logout: clearDeviceToken failed: $e');
+      }
+    }
     _userId = null;
     try {
       await OneSignal.logout();

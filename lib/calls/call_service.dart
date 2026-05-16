@@ -31,8 +31,15 @@ class CallService extends ChangeNotifier {
 
   String? _userId;
   String? get userId => _userId;
-  void attach({required String userId, required String displayName}) {
+  String? _deviceId;
+  String? get deviceId => _deviceId;
+  void attach({
+    required String userId,
+    required String displayName,
+    String? deviceId,
+  }) {
     _userId = userId;
+    _deviceId = deviceId;
     // displayName is reserved for future use (eg sending it as part of the
     // call invite payload). Not consumed yet — the backend resolves names
     // server-side when pushing the call notification.
@@ -222,12 +229,14 @@ class CallService extends ChangeNotifier {
     if (me == null || s == null) return;
     if (s.status != CallStatus.incomingRinging) return;
 
-    // The PC was prepared in [_onRemoteOffer] (already has remote desc set).
-    // Re-creating it here would discard that setup → createAnswer would fail
-    // because the fresh PC has no remote description.
     final pc = _pc;
     if (pc == null) {
-      await endCall(errorMessage: 'Lost the offer — try again');
+      // The invite arrived but the WebRTC offer hasn't yet. Latch the
+      // intent — `_onRemoteOffer`'s existing race-recovery (line ~445)
+      // will auto-fire `acceptIncoming()` the moment the offer lands and
+      // the PC is set up. This is the same flag CallKit uses when the
+      // user taps Accept before the offer signal arrives.
+      markAcceptedNatively();
       return;
     }
 
@@ -241,7 +250,11 @@ class CallService extends ChangeNotifier {
         'sdpLen=${answer.sdp?.length ?? 0}',
       );
 
-      await api.acceptCall(callId: s.callId, userId: me);
+      await api.acceptCall(
+        callId: s.callId,
+        userId: me,
+        acceptingDeviceId: _deviceId,
+      );
       await api.sendCallSignal(
         callId: s.callId,
         fromUserId: me,
@@ -263,7 +276,11 @@ class CallService extends ChangeNotifier {
     final s = _session;
     if (me == null || s == null) return;
     try {
-      await api.rejectCall(callId: s.callId, userId: me);
+      await api.rejectCall(
+        callId: s.callId,
+        userId: me,
+        acceptingDeviceId: _deviceId,
+      );
     } catch (_) {}
     await _teardown(CallStatus.ended);
   }
@@ -353,12 +370,52 @@ class CallService extends ChangeNotifier {
     final payload = (signal['payload'] as String?) ?? '{}';
     if (kind == null || fromUserId == null || callId == null) return;
 
-    // Offer → start an incoming call (only if I'm currently idle).
-    if (kind == 'offer') {
+    // Invite → open the IncomingCallScreen IMMEDIATELY, before the caller
+    // has finished its WebRTC offer. The session lives without a PC until
+    // the offer arrives and `_onRemoteOffer` hydrates it.
+    if (kind == 'invite') {
       if (_session != null) {
-        // Already in a call — auto-reject the new one as busy.
+        // Already in a call — auto-reject as busy. The reject mutation
+        // will broadcast `taken` so the caller learns immediately.
         try {
-          await api.rejectCall(callId: callId, userId: me);
+          await api.rejectCall(
+            callId: callId,
+            userId: me,
+            acceptingDeviceId: _deviceId,
+          );
+        } catch (_) {}
+        return;
+      }
+      _onRemoteInvite(
+        callId: callId,
+        fromUserId: fromUserId,
+        payload: payload,
+      );
+      return;
+    }
+
+    // Taken → another of MY devices accepted or rejected this call. Drop
+    // the incoming UI on this device unless this is the device that
+    // actually accepted (byDeviceId == ours, or status already advanced
+    // past incomingRinging).
+    if (kind == 'taken') {
+      await _onRemoteTaken(callId: callId, payload: payload);
+      return;
+    }
+
+    // Offer → either hydrate the invite-created session OR start a fresh
+    // one if no invite was delivered (older caller / delivery race).
+    if (kind == 'offer') {
+      final s = _session;
+      if (s != null && s.callId != callId) {
+        // Some other call's offer landed while we're already on this one —
+        // busy-reject without disturbing our session.
+        try {
+          await api.rejectCall(
+            callId: callId,
+            userId: me,
+            acceptingDeviceId: _deviceId,
+          );
         } catch (_) {}
         return;
       }
@@ -389,6 +446,86 @@ class CallService extends ChangeNotifier {
       case 'cancel':
         await _teardown(CallStatus.ended, errorMessage: 'Missed call');
         break;
+    }
+  }
+
+  /// Opens the in-app IncomingCallScreen the moment the backend writes the
+  /// `invite` row — no waiting on the caller's getUserMedia + offer.
+  /// The session is created without a PC; `_onRemoteOffer` hydrates it
+  /// when the offer arrives. If the user taps Accept before the offer
+  /// lands, `acceptIncoming` sets `_acceptedNatively` and `_onRemoteOffer`
+  /// auto-fires it once the PC is ready.
+  void _onRemoteInvite({
+    required String callId,
+    required String fromUserId,
+    required String payload,
+  }) {
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final callerName = (parsed['callerName'] as String?) ?? 'Calling…';
+      final type = parsed['type'] as String?;
+      final roomId = (parsed['roomId'] as String?) ?? '';
+      final mediaKind = CallMediaKindWire.parse(type);
+
+      _session = CallSession(
+        callId: callId,
+        roomId: roomId,
+        peerUserId: fromUserId,
+        peerName: callerName,
+        mediaKind: mediaKind,
+        isCaller: false,
+        status: CallStatus.incomingRinging,
+        startedAt: DateTime.now(),
+        localVideoOff: mediaKind != CallMediaKind.video,
+      );
+      notifyListeners();
+      incomingTick.value = incomingTick.value + 1;
+      debugPrint(
+        'CallService._onRemoteInvite: opened incoming UI '
+        'callId=$callId kind=${mediaKind.wire}',
+      );
+    } catch (e, st) {
+      debugPrint('CallService._onRemoteInvite failed: $e\n$st');
+    }
+  }
+
+  /// A sibling device accepted/rejected this call. Tear down the local
+  /// incoming ringer (and any CallKit UI from PushKit) unless WE are that
+  /// device. We ignore the echo by comparing `byDeviceId` to our own;
+  /// additionally, any session whose status has advanced past
+  /// `incomingRinging` means we already accepted ourselves, so leave it
+  /// alone.
+  Future<void> _onRemoteTaken({
+    required String callId,
+    required String payload,
+  }) async {
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final byDeviceId = parsed['byDeviceId'] as String?;
+      if (byDeviceId != null &&
+          _deviceId != null &&
+          byDeviceId == _deviceId) {
+        return; // own echo
+      }
+      final s = _session;
+      if (s == null || s.callId != callId) {
+        // No active session for this call — still dismiss any native UI
+        // (e.g. CallKit from a PushKit invite that landed before the
+        // subscription delivered the invite signal).
+        await NativeCallHandler.instance.endNative(callId);
+        return;
+      }
+      if (s.status != CallStatus.incomingRinging || _acceptedNatively) {
+        // We're the accepting device; nothing to dismiss.
+        return;
+      }
+      debugPrint(
+        'CallService._onRemoteTaken: dismissing incoming session '
+        'callId=$callId byDeviceId=${byDeviceId ?? "(unknown)"}',
+      );
+      await _teardown(CallStatus.ended);
+    } catch (e, st) {
+      debugPrint('CallService._onRemoteTaken failed: $e\n$st');
     }
   }
 
@@ -424,23 +561,36 @@ class CallService extends ChangeNotifier {
         'resolved=${mediaKind.wire} sdpLen=${sdp.length}',
       );
 
-      _session = CallSession(
-        callId: callId,
-        roomId: '', // not strictly needed for callee UI
-        peerUserId: fromUserId,
-        peerName: 'Calling…', // overwritten by IncomingCallScreen via profile lookup
-        mediaKind: mediaKind,
-        isCaller: false,
-        status: CallStatus.incomingRinging,
-        startedAt: DateTime.now(),
-        localVideoOff: !isVideo,
-      );
-      notifyListeners();
+      // Hydrate an invite-created session in-place rather than blowing it
+      // away — that session may already carry a peer name resolved by the
+      // IncomingCallScreen, and bumping `incomingTick` again would
+      // re-push the screen.
+      final existing = _session;
+      if (existing != null && existing.callId == callId) {
+        _session = existing.copyWith(
+          localVideoOff: !isVideo,
+        );
+        notifyListeners();
+      } else {
+        _session = CallSession(
+          callId: callId,
+          roomId: '', // not strictly needed for callee UI
+          peerUserId: fromUserId,
+          peerName: 'Calling…', // overwritten by IncomingCallScreen via profile lookup
+          mediaKind: mediaKind,
+          isCaller: false,
+          status: CallStatus.incomingRinging,
+          startedAt: DateTime.now(),
+          localVideoOff: !isVideo,
+        );
+        notifyListeners();
+        incomingTick.value = incomingTick.value + 1;
+      }
       await _flushPendingLocalIce();
-      incomingTick.value = incomingTick.value + 1;
-      // Race recovery: if the user tapped Accept on CallKit BEFORE the
-      // offer arrived (acceptIncoming would have early-returned because
-      // there was no session yet), auto-fire it now. Fire-and-forget —
+      // Race recovery: if the user tapped Accept on CallKit (or on the
+      // in-app invite UI) BEFORE the offer arrived (acceptIncoming
+      // would have latched `_acceptedNatively` and returned early
+      // because `_pc` was null), auto-fire it now. Fire-and-forget —
       // acceptIncoming notifies its own state transitions.
       if (_acceptedNatively) {
         unawaited(acceptIncoming());

@@ -129,15 +129,48 @@ class ChatApi {
   }
 
   /// Persist the PushKit (iOS) VoIP token so the backend can wake this device
-  /// into CallKit even when the app is killed.
-  Future<void> setVoipToken({required String userId, required String token}) async {
-    await _cv.mutation('voipTokens:setVoipToken', {'userId': userId, 'token': token});
+  /// into CallKit even when the app is killed. Keyed by (userId, deviceId)
+  /// so multiple devices for the same user keep their own tokens.
+  Future<void> setVoipToken({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    required String token,
+  }) async {
+    await _cv.mutation('voipTokens:setVoipToken', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'platform': platform,
+      'token': token,
+    });
   }
 
   /// Persist the FCM (Android) token for high-priority data pushes that wake
   /// a killed app into the native ConnectionService ringer.
-  Future<void> setFcmToken({required String userId, required String token}) async {
-    await _cv.mutation('voipTokens:setFcmToken', {'userId': userId, 'token': token});
+  Future<void> setFcmToken({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    required String token,
+  }) async {
+    await _cv.mutation('voipTokens:setFcmToken', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'platform': platform,
+      'token': token,
+    });
+  }
+
+  /// Logout from a single device — remove only this device's row from
+  /// the userDevices registry. Sibling devices stay logged in.
+  Future<void> clearDeviceToken({
+    required String userId,
+    required String deviceId,
+  }) async {
+    await _cv.mutation('voipTokens:clearDeviceToken', {
+      'userId': userId,
+      'deviceId': deviceId,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -598,12 +631,28 @@ class ChatApi {
     return res.toString();
   }
 
-  Future<void> acceptCall({required String callId, required String userId}) async {
-    await _cv.mutation('calls:accept', {'callId': callId, 'userId': userId});
+  Future<void> acceptCall({
+    required String callId,
+    required String userId,
+    String? acceptingDeviceId,
+  }) async {
+    await _cv.mutation('calls:accept', {
+      'callId': callId,
+      'userId': userId,
+      'acceptingDeviceId': ?acceptingDeviceId,
+    });
   }
 
-  Future<void> rejectCall({required String callId, required String userId}) async {
-    await _cv.mutation('calls:reject', {'callId': callId, 'userId': userId});
+  Future<void> rejectCall({
+    required String callId,
+    required String userId,
+    String? acceptingDeviceId,
+  }) async {
+    await _cv.mutation('calls:reject', {
+      'callId': callId,
+      'userId': userId,
+      'acceptingDeviceId': ?acceptingDeviceId,
+    });
   }
 
   Future<void> cancelCall({required String callId, required String userId}) async {

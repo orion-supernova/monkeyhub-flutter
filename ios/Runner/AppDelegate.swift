@@ -16,6 +16,11 @@ import flutter_callkit_incoming
   private var voipRegistry: PKPushRegistry?
   private var cachedVoipToken: String?
   private var voipChannel: FlutterMethodChannel?
+  // Maps Convex callId → CallKit UUID minted when we reported an incoming
+  // call to flutter_callkit_incoming. Required so a follow-up "taken"
+  // PushKit payload can end *that specific call* with
+  // `.answeredElsewhere`. Cleared after a call ends.
+  private var callKitUuidByCallId: [String: UUID] = [:]
 
   fileprivate func setCaptureEventSink(_ sink: FlutterEventSink?) {
     captureEventSink = sink
@@ -75,13 +80,27 @@ import flutter_callkit_incoming
     // flutter_callkit_incoming, which talks to CXProvider and exposes the
     // accept/decline events back to Dart.
     let dict = payload.dictionaryPayload
+    let kind = (dict["kind"] as? String) ?? "invite"
+    let convexCallId = (dict["callId"] as? String) ?? ""
+
+    // "taken" push: a sibling device accepted/rejected this call.
+    // Dismiss CallKit with `.answeredElsewhere` so the system shows the
+    // correct dismissal animation instead of a silent kill. We still must
+    // satisfy Apple's "every push reports an incoming call" contract —
+    // reportCallEndedElsewhere does that via the foregroundReportProvider.
+    if kind == "taken" {
+      NSLog("[voip] taken push — answered elsewhere callId=\(convexCallId)")
+      reportCallEndedElsewhere(convexCallId: convexCallId)
+      completion()
+      return
+    }
+
     // Convex callIds are NOT RFC-4122 UUIDs. flutter_callkit_incoming
     // force-unwraps `UUID(uuidString:)` on `data.uuid` at line 286 of
     // SwiftFlutterCallkitIncomingPlugin.swift, so passing our callId
     // crashes the app. Mint a proper UUID for CallKit and preserve the
     // Convex callId in `extra` for Dart-side diagnostics.
-    let convexCallId = (dict["callId"] as? String) ?? ""
-    let callUuid = UUID().uuidString
+    let callUuid = UUID()
     let callerName = (dict["callerName"] as? String) ?? "Incoming call"
     let callerHandle = (dict["callerHandle"] as? String) ?? callerName
     let callType = ((dict["callType"] as? String) == "video") ? 1 : 0
@@ -103,9 +122,15 @@ import flutter_callkit_incoming
       return
     }
 
+    // Stash the CallKit UUID so a follow-up "taken" push can end this
+    // specific call with `.answeredElsewhere`.
+    if !convexCallId.isEmpty {
+      callKitUuidByCallId[convexCallId] = callUuid
+    }
+
     // Use the fully-qualified module path so Swift doesn't pick Foundation.Data.
     let callData = flutter_callkit_incoming.Data(
-      id: callUuid,
+      id: callUuid.uuidString,
       nameCaller: callerName,
       handle: callerHandle,
       type: callType
@@ -122,6 +147,27 @@ import flutter_callkit_incoming
       fromPushKit: true
     )
     completion()
+  }
+
+  // Dismiss the CallKit session previously shown for this Convex callId
+  // with `.answeredElsewhere`. The flutter_callkit_incoming plugin owns
+  // the CXProvider that's actually showing the UI, so we go through
+  // `saveEndCall(uuid, 4)` — reason 4 maps to .answeredElsewhere in
+  // SwiftFlutterCallkitIncomingPlugin.saveEndCall.
+  //
+  // Apple's PushKit contract requires `reportNewIncomingCall` on every
+  // push, so if we don't have a CallKit UUID for this callId yet (race:
+  // taken push arrives before invite push processed), fall back to the
+  // report-and-end escape hatch so iOS still sees a compliant report.
+  private func reportCallEndedElsewhere(convexCallId: String) {
+    let uuid = callKitUuidByCallId.removeValue(forKey: convexCallId)
+    if let uuid = uuid {
+      SwiftFlutterCallkitIncomingPlugin.sharedInstance?.saveEndCall(uuid.uuidString, 4)
+      return
+    }
+    // No CallKit session to target — Apple still wants a compliant
+    // report-and-end for this push. Use the existing escape hatch.
+    reportAndEndCall(callerName: "Call")
   }
 
   // PushKit contract escape hatch: when we don't want to show CallKit

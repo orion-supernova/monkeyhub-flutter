@@ -14,6 +14,7 @@ import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'privacy/capture_protection.dart';
 import 'push/badge_manager.dart';
+import 'push/device_identity.dart';
 import 'push/push_manager.dart';
 import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
@@ -166,9 +167,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             await PushManager.instance.optOut();
           }
           BadgeManager.instance.bind(_repo);
+          final deviceId = await DeviceIdentity.ensure();
           _callService.attach(
             userId: s.userId,
             displayName: s.name,
+            deviceId: deviceId,
           );
           await _signaling.start(s.userId);
         } catch (_) {/* offline boot — reconcile on reconnect */}
@@ -187,7 +190,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         // Mark online on first attach.
         _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
         BadgeManager.instance.bind(_repo);
-        _callService.attach(userId: s.userId, displayName: s.name);
+        final deviceId = await DeviceIdentity.ensure();
+        _callService.attach(
+          userId: s.userId,
+          displayName: s.name,
+          deviceId: deviceId,
+        );
         await _signaling.start(s.userId);
         _consumePendingPushRoom();
       } else if (s == null) {
