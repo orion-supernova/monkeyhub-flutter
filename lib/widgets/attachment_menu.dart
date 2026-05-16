@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/theme_scope.dart';
 
 class AttachmentMenuChoice {
@@ -14,76 +16,127 @@ Future<AttachmentMenuChoice?> showAttachmentMenu(BuildContext context) {
   return showModalBottomSheet<AttachmentMenuChoice>(
     context: context,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: 0.5),
     builder: (_) => const _AttachmentSheet(),
   );
 }
 
 class _AttachmentSheet extends StatelessWidget {
   const _AttachmentSheet();
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final options = [
-      (AttachmentMenuChoice.gallery, Icons.photo_library_outlined, 'PHOTO', 'pick an image'),
-      (AttachmentMenuChoice.video, Icons.video_library_outlined, 'VIDEO', 'pick a clip'),
-      (AttachmentMenuChoice.camera, Icons.photo_camera_outlined, 'CAMERA', 'capture now'),
-      (AttachmentMenuChoice.voice, Icons.mic_none, 'VOICE', 'record a moment'),
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final tiles = <(AttachmentMenuChoice, IconData, String)>[
+      (AttachmentMenuChoice.gallery, CupertinoIcons.photo, 'photo'),
+      (AttachmentMenuChoice.video, CupertinoIcons.film, 'video'),
+      (AttachmentMenuChoice.camera, CupertinoIcons.camera, 'camera'),
+      (AttachmentMenuChoice.voice, CupertinoIcons.mic, 'voice'),
     ];
-    return Container(
-      decoration: theme.sheetDecoration(),
-      padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            width: 36, height: 4,
-            decoration: BoxDecoration(
-                color: theme.inkMuted.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2)),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text('ATTACH', style: theme.label.copyWith(letterSpacing: 2.4)),
-          ),
-          const SizedBox(height: 12),
-          for (final o in options)
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(o.$1),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(14),
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: theme.sheetDecoration(),
+        padding: EdgeInsets.fromLTRB(14, 8, 14, 10 + bottomInset),
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(color: theme.ink),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 3.5,
                 decoration: BoxDecoration(
-                  color: theme.surface,
-                  border: Border.all(color: theme.divider),
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
+                  color: theme.inkMuted.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                child: Row(children: [
-                  Container(
-                    width: 36, height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.accentSoft,
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                    ),
-                    child: Icon(o.$2, size: 18, color: theme.accent),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(o.$3, style: theme.label),
-                        const SizedBox(height: 2),
-                        Text(o.$4, style: theme.monoTiny),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.arrow_outward, size: 14, color: theme.inkMuted),
-                ]),
               ),
-            ),
-        ],
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final t in tiles)
+                    Expanded(
+                      child: _AttachTile(
+                        icon: t.$2,
+                        label: t.$3,
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.of(context).pop(t.$1);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachTile extends StatefulWidget {
+  const _AttachTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  State<_AttachTile> createState() => _AttachTileState();
+}
+
+class _AttachTileState extends State<_AttachTile> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedScale(
+        scale: _pressed ? 0.92 : 1.0,
+        duration: const Duration(milliseconds: 90),
+        curve: Curves.easeOut,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.surfaceRaised,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: theme.divider,
+                    width: 0.8,
+                  ),
+                ),
+                child: Icon(widget.icon, size: 20, color: theme.accent),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                widget.label,
+                style: theme.monoTiny.copyWith(
+                  color: theme.inkSoft,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

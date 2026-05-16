@@ -54,6 +54,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 
   bool _bootstrapped = false;
   Object? _bootError;
+  // When a notification fires before auth / navigator are ready (cold start
+  // from a tap), stash the target room here and consume it once the app
+  // finishes booting and a signed-in session exists.
+  String? _pendingPushRoomId;
 
   @override
   void initState() {
@@ -63,19 +67,38 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.attachApi(_api);
+    PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
     _bootstrap();
   }
 
   void _openRoomFromPush(String roomId) {
-    // Ignore when no session — push could fire just before signOut clears auth.
-    if (_auth.session == null) return;
-    final nav = rootNavigatorKey.currentState;
-    if (nav == null) return;
+    // On a cold start from a notification tap, OneSignal's click handler can
+    // fire before _bootstrap finishes restoring auth and before the root
+    // navigator's state is mounted. Stash the roomId and let
+    // [_consumePendingPushRoom] flush it once both are ready.
+    if (_auth.session == null || rootNavigatorKey.currentState == null) {
+      _pendingPushRoomId = roomId;
+      return;
+    }
+    final nav = rootNavigatorKey.currentState!;
     // Pop any nested route first so we always land cleanly on the room.
     nav.popUntil((r) => r.isFirst);
     nav.push(MaterialPageRoute(
       builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
     ));
+  }
+
+  void _consumePendingPushRoom() {
+    final pending = _pendingPushRoomId;
+    if (pending == null) return;
+    if (_auth.session == null) return;
+    // The navigator state may still be one frame away on first boot.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pendingPushRoomId != pending) return;
+      _pendingPushRoomId = null;
+      _openRoomFromPush(pending);
+    });
   }
 
   @override
@@ -152,6 +175,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       }
     } catch (_) {/* secure storage may not be available in test harness */}
     if (mounted) setState(() => _bootstrapped = true);
+    _consumePendingPushRoom();
   }
 
   void _onAuthChange() async {
@@ -165,6 +189,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         BadgeManager.instance.bind(_repo);
         _callService.attach(userId: s.userId, displayName: s.name);
         await _signaling.start(s.userId);
+        _consumePendingPushRoom();
       } else if (s == null) {
         BadgeManager.instance.unbind();
         await _repo.detach();

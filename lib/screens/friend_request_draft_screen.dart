@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
@@ -7,6 +8,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../models/friend_request_message.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
@@ -41,6 +43,7 @@ class FriendRequestDraftScreen extends StatefulWidget {
 
 class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   final _composer = TextEditingController();
+  final _composerFocus = FocusNode();
   final _scroll = ScrollController();
   List<FriendRequestMessage> _messages = [];
   Timer? _poll;
@@ -70,6 +73,12 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       _refresh();
       _poll = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());
     }
+    // Pull the composer up the moment the screen lands — the user opened this
+    // screen to write something, so the keyboard should already be there.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _composerFocus.requestFocus();
+    });
   }
 
   Future<void> _refresh() async {
@@ -87,20 +96,23 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   }
 
   Future<void> _send() async {
+    if (_busy) return;
     final text = _composer.text.trim();
-    if (text.isEmpty || _busy) return;
+    final isCreating = _newRequestId == null && widget.req == null;
+    // Appending to an existing thread still requires text — empty taps are
+    // a no-op. Creating a fresh request, however, can fire with no message.
+    if (!isCreating && text.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     _composer.clear();
 
     try {
-      if (_newRequestId == null && widget.req == null) {
-        // Creating a fresh request with an initial message.
+      if (isCreating) {
         final id = await widget.repo.createDirectRequest(
           friendId: widget.target!.id,
           roomType: _roomType,
           messageLifetime: _roomType == RoomType.secret ? _ttl : null,
-          initialMessage: text,
+          initialMessage: text.isEmpty ? null : text,
         );
         setState(() => _newRequestId = id);
       } else {
@@ -112,7 +124,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       await _refresh();
     } catch (e) {
       // Re-fill composer so user doesn't lose what they typed.
-      _composer.text = text;
+      if (text.isNotEmpty) _composer.text = text;
       // Privacy-preserving error mapping. Block stays under generic
       // "couldn't send" — it must never reveal it's a block.
       final s = e.toString();
@@ -157,6 +169,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   void dispose() {
     _poll?.cancel();
     _composer.dispose();
+    _composerFocus.dispose();
     _scroll.dispose();
     super.dispose();
   }
@@ -169,61 +182,74 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     final me = widget.repo.userId ?? '';
     return Scaffold(
       backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
-          SafeArea(
-            child: Column(
-              children: [
-                _Header(user: _otherUser, isIncoming: _isIncoming, roomType: _roomType, ttl: _ttl, api: widget.api),
-                if (!_isIncoming && _newRequestId == null) _ComposeConfig(
-                  theme: theme,
-                  roomType: _roomType,
-                  ttl: _ttl,
-                  onRoomType: (t) => setState(() => _roomType = t),
-                  onTtl: (d) => setState(() => _ttl = d),
-                  ttls: _ttls,
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                    itemCount: _messages.length + 1,
-                    itemBuilder: (context, i) {
-                      if (i == 0) return _Intro(otherUser: _otherUser, isIncoming: _isIncoming);
-                      final m = _messages[i - 1];
-                      final isMine = m.userId == me;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
-                          children: [
-                            if (!isMine) ...[
-                              UserAvatar(user: _otherUser, size: 28, api: widget.api),
-                              const SizedBox(width: 8),
-                            ],
-                            Flexible(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
-                                child: Container(
-                                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                                  decoration: theme.messageBubbleDecoration(
-                                      isMine: isMine, ephemeral: _roomType == RoomType.secret),
-                                  child: Text(m.content,
-                                      style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink)),
+          Positioned.fill(child: theme.backgroundLayer(context)),
+          Positioned.fill(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _Header(user: _otherUser, isIncoming: _isIncoming, roomType: _roomType, ttl: _ttl, api: widget.api),
+                  if (!_isIncoming && _newRequestId == null) _ComposeConfig(
+                    theme: theme,
+                    roomType: _roomType,
+                    ttl: _ttl,
+                    onRoomType: (t) => setState(() => _roomType = t),
+                    onTtl: (d) => setState(() => _ttl = d),
+                    ttls: _ttls,
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scroll,
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                      itemCount: _messages.length + 1,
+                      itemBuilder: (context, i) {
+                        if (i == 0) return _Intro(otherUser: _otherUser, isIncoming: _isIncoming);
+                        final m = _messages[i - 1];
+                        final isMine = m.userId == me;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            children: [
+                              if (!isMine) ...[
+                                UserAvatar(user: _otherUser, size: 28, api: widget.api),
+                                const SizedBox(width: 8),
+                              ],
+                              Flexible(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                                  child: Container(
+                                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                                    decoration: theme.messageBubbleDecoration(
+                                        isMine: isMine, ephemeral: _roomType == RoomType.secret),
+                                    child: Text(m.content,
+                                        style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink)),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-                if (_isIncoming) _ApproveBar(onApprove: _approve, onReject: _reject),
-                _Composer(controller: _composer, onSend: _send, ephemeral: _roomType == RoomType.secret, ttl: _ttl, busy: _busy),
-                if (!_isIncoming && _newRequestId != null) _CancelBar(onCancel: _cancel),
-              ],
+                  if (_isIncoming) _ApproveBar(onApprove: _approve, onReject: _reject),
+                  if (!_isIncoming && _newRequestId == null)
+                    _SendRequestBar(busy: _busy, onSend: _send),
+                  _Composer(
+                    controller: _composer,
+                    focusNode: _composerFocus,
+                    onSend: _send,
+                    ephemeral: _roomType == RoomType.secret,
+                    ttl: _ttl,
+                    busy: _busy,
+                    requestMode: !_isIncoming && _newRequestId == null,
+                  ),
+                  if (!_isIncoming && _newRequestId != null) _CancelBar(onCancel: _cancel),
+                ],
+              ),
             ),
           ),
         ],
@@ -320,7 +346,7 @@ class _ComposeConfig extends StatelessWidget {
     required this.onTtl,
     required this.ttls,
   });
-  final dynamic theme;
+  final AppTheme theme;
   final RoomType roomType;
   final Duration ttl;
   final ValueChanged<RoomType> onRoomType;
@@ -356,7 +382,7 @@ class _ComposeConfig extends StatelessWidget {
                     decoration: theme.chipDecoration(filled: roomType == t),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       if (t == RoomType.secret) ...[
-                        theme.hourglassIcon(size: 10, color: roomType == t ? theme.accentInk : theme.accent),
+                        theme.hourglassIcon(size: 10.0, color: roomType == t ? theme.accentInk : theme.accent),
                         const SizedBox(width: 6),
                       ],
                       Text(
@@ -404,12 +430,19 @@ class _Composer extends StatelessWidget {
     required this.ephemeral,
     required this.ttl,
     required this.busy,
+    this.focusNode,
+    this.requestMode = false,
   });
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final VoidCallback onSend;
   final bool ephemeral;
   final Duration ttl;
   final bool busy;
+  /// True when this composer is in fresh-outgoing-request mode. Adjusts the
+  /// hint so the user understands a message is optional (the SEND REQUEST
+  /// button above already fires without one).
+  final bool requestMode;
 
   @override
   Widget build(BuildContext context) {
@@ -427,6 +460,7 @@ class _Composer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 style: theme.body.copyWith(color: theme.ink),
                 cursorColor: theme.accent,
                 minLines: 1,
@@ -434,7 +468,9 @@ class _Composer extends StatelessWidget {
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
-                  hintText: ephemeral ? 'whisper · auto-fades' : 'something to start with…',
+                  hintText: requestMode
+                      ? (ephemeral ? 'whisper a first line · optional' : 'add a first message · optional')
+                      : (ephemeral ? 'whisper · auto-fades' : 'something to start with…'),
                   hintStyle: theme.body.copyWith(color: theme.inkMuted),
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -526,6 +562,65 @@ class _CancelBar extends StatelessWidget {
         onTap: onCancel,
         child: Text('CANCEL REQUEST',
             style: theme.label.copyWith(color: theme.danger)),
+      ),
+    );
+  }
+}
+
+/// Primary CTA in the fresh-outgoing-request flow. Fires whatever's in the
+/// composer (text becomes the optional first message; empty sends the
+/// request with no message at all).
+class _SendRequestBar extends StatelessWidget {
+  const _SendRequestBar({required this.busy, required this.onSend});
+  final bool busy;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+      child: GestureDetector(
+        onTap: busy ? null : onSend,
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: busy ? theme.accentSoft : theme.accent,
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+            boxShadow: busy
+                ? null
+                : [
+                    BoxShadow(
+                      color: theme.accent.withValues(alpha: 0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+          ),
+          child: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: theme.accentInk),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.paperplane_fill, size: 14, color: theme.accentInk),
+                    const SizedBox(width: 10),
+                    Text(
+                      'SEND REQUEST',
+                      style: theme.label.copyWith(
+                        color: theme.accentInk,
+                        letterSpacing: 2.4,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }

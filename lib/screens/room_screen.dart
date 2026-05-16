@@ -52,6 +52,7 @@ class _RoomScreenState extends State<RoomScreen>
   late Timer _ticker;
   DateTime _now = DateTime.now();
   final TextEditingController _composer = TextEditingController();
+  final FocusNode _composerFocus = FocusNode();
   final ScrollController _scroll = ScrollController();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
   Subscription? _membersSub;
@@ -340,6 +341,7 @@ class _RoomScreenState extends State<RoomScreen>
   void dispose() {
     _ticker.cancel();
     _composer.dispose();
+    _composerFocus.dispose();
     _highlightCtrl.dispose();
     _hideTimer?.cancel();
     _scroll.removeListener(_onScroll);
@@ -369,10 +371,15 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// Arm a reply against [m]: a strong haptic + state change so the
   /// composer card slides into view. Idempotent — re-arming against the
-  /// same message just replaces the target.
+  /// same message just replaces the target. The composer is focused on
+  /// the next frame so the keyboard appears without a second tap.
   void _armReply(ChatMessage m) {
     HapticFeedback.heavyImpact();
     setState(() => _replyingTo = m);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _composerFocus.requestFocus();
+    });
   }
 
   /// Compute a short hint like "2 MESSAGES ABOVE" / "EARLIER" for a reply's
@@ -436,6 +443,7 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Future<void> _onAttach() async {
+    HapticFeedback.lightImpact();
     final choice = await showAttachmentMenu(context);
     if (choice == null || !mounted) return;
     final nav = Navigator.of(context);
@@ -466,8 +474,16 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _pickAndSendFromGallery() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 88);
-    if (picked == null) return;
-    await _uploadAndSend(file: File(picked.path), type: MessageType.image, contentType: 'image/jpeg');
+    if (picked == null || !mounted) return;
+    final nav = Navigator.of(context);
+    // Route through the same editor the camera path uses — gives the user a
+    // preview, optional annotation, and a deliberate "send" tap instead of
+    // shipping the photo the moment they pick it.
+    final edited = await nav.push<File>(MaterialPageRoute(
+      builder: (_) => CameraEditorScreen(source: File(picked.path)),
+    ));
+    if (edited == null) return;
+    await _uploadAndSend(file: edited, type: MessageType.image, contentType: 'image/png');
   }
 
   void _openProfile(ChatUser u) {
@@ -579,6 +595,7 @@ class _RoomScreenState extends State<RoomScreen>
             ),
           _Composer(
             controller: _composer,
+            focusNode: _composerFocus,
             ephemeral: room.isEphemeral,
             onSend: _send,
             onChanged: (_) => widget.repo.noteTyping(),
@@ -646,6 +663,7 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 _LiquidComposer(
                   controller: _composer,
+                  focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
                   onSend: _send,
                   onChanged: (_) => widget.repo.noteTyping(),
@@ -1182,10 +1200,12 @@ class _Composer extends StatelessWidget {
     required this.controller,
     required this.ephemeral,
     required this.onSend,
+    this.focusNode,
     this.onChanged,
     this.onAttach,
   });
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final bool ephemeral;
   final VoidCallback onSend;
   final ValueChanged<String>? onChanged;
@@ -1225,6 +1245,7 @@ class _Composer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 style: theme.body.copyWith(color: theme.ink),
                 cursorColor: theme.accent,
                 minLines: 1,
@@ -1677,10 +1698,12 @@ class _LiquidComposer extends StatelessWidget {
     required this.controller,
     required this.ephemeral,
     required this.onSend,
+    this.focusNode,
     this.onChanged,
     this.onAttach,
   });
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final bool ephemeral;
   final VoidCallback onSend;
   final ValueChanged<String>? onChanged;
@@ -1715,6 +1738,7 @@ class _LiquidComposer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: TextField(
                 controller: controller,
+                focusNode: focusNode,
                 style: theme.body.copyWith(color: theme.ink, fontSize: 16),
                 cursorColor: theme.accent,
                 minLines: 1,

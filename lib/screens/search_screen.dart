@@ -339,7 +339,7 @@ class _PersonRowState extends State<_PersonRow> {
   String _actionLabel() {
     switch (widget.user.friendshipStatus) {
       case FriendshipStatus.none:
-        return 'MESSAGE';
+        return 'SEND REQUEST';
       case FriendshipStatus.outgoingPending:
         return 'CANCEL';
       case FriendshipStatus.incomingPending:

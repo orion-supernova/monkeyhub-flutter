@@ -18,6 +18,7 @@ class PushManager {
 
   bool _initialized = false;
   void Function(String roomId)? _onOpenRoom;
+  String? Function()? _activeRoomIdProvider;
 
   // iOS PushKit channel — installed in ios/Runner/AppDelegate.swift. Dart
   // calls `getToken` after login; the channel also pushes `onTokenUpdated`
@@ -45,6 +46,14 @@ class PushManager {
     _api = api;
   }
 
+  /// Provide a callback that returns the currently-open room id (or null).
+  /// Used by the foreground-display handler to suppress notifications for
+  /// the chat the user is already viewing. Safe to call multiple times —
+  /// the latest provider wins.
+  void setActiveRoomIdProvider(String? Function() provider) {
+    _activeRoomIdProvider = provider;
+  }
+
   Future<void> initialize({
     void Function(String roomId)? onOpenRoom,
     ChatApi? api,
@@ -62,6 +71,7 @@ class PushManager {
       // when the user hasn't yet signed in. Settings screen can offer a
       // dedicated trigger later; for now request after login.
       OneSignal.Notifications.addClickListener(_onClick);
+      OneSignal.Notifications.addForegroundWillDisplayListener(_onWillDisplay);
       // Watch for iOS PushKit token rotation. Forward the new token to the
       // backend if a user is currently logged in.
       _voipChannel.setMethodCallHandler((call) async {
@@ -179,6 +189,18 @@ class PushManager {
     final roomId = data?['roomId']?.toString();
     if (roomId != null && roomId.isNotEmpty) {
       _onOpenRoom?.call(roomId);
+    }
+  }
+
+  void _onWillDisplay(OSNotificationWillDisplayEvent e) {
+    final data = e.notification.additionalData;
+    final roomId = data?['roomId']?.toString();
+    if (roomId == null || roomId.isEmpty) return;
+    final active = _activeRoomIdProvider?.call();
+    if (active == roomId) {
+      // User is already inside this room — suppress the banner/heads-up.
+      // The in-room subscription will deliver the message live.
+      e.preventDefault();
     }
   }
 }

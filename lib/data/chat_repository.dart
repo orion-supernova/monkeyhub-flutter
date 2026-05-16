@@ -79,11 +79,16 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _outgoingSub;
   Subscription? _globalTypingSub;
   String? _activeRoomId;
+  /// The room currently visible to the user (if any). Used by [PushManager] to
+  /// suppress incoming-message notifications for the chat already on screen.
+  String? get activeRoomId => _activeRoomId;
   Subscription? _messagesSub;
   Subscription? _activeTypingSub;
   Subscription? _readStateSub;
   Timer? _typingHeartbeat;
   bool _typingActive = false;
+  StreamSubscription<bool>? _connStateSub;
+  bool _wasConnected = true;
 
   /// Read state for the currently-open room: userId → lastReadAt.
   final Map<String, DateTime> _activeReadState = {};
@@ -221,6 +226,21 @@ class ChatRepository extends ChangeNotifier {
       },
       onError: (err) => debugPrint('typing(global) sub error: $err'),
     );
+
+    // Auto-retry failed sends on socket reconnect. When the user is in a
+    // tunnel and a send hits an `error` state, the message often actually
+    // reached the server before the socket dropped — but we don't know that
+    // locally. On reconnect we both retry (in case it didn't make it) and
+    // rely on the widened [_reconcilePending] window to dedupe against the
+    // server-delivered copy. See [_retryPendingErrors].
+    _wasConnected = cv.isConnected;
+    _connStateSub?.cancel();
+    _connStateSub = cv.connectionState.listen((connected) {
+      if (connected && !_wasConnected) {
+        _retryPendingErrors();
+      }
+      _wasConnected = connected;
+    });
   }
 
   Future<void> detach() async {
@@ -233,6 +253,7 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _typingHeartbeat?.cancel();
+    _connStateSub?.cancel();
     _roomsSub = null;
     _friendsSub = null;
     _incomingSub = null;
@@ -241,6 +262,7 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub = null;
     _activeTypingSub = null;
     _typingHeartbeat = null;
+    _connStateSub = null;
     _activeRoomId = null;
     _userId = null;
     _rooms = [];
@@ -724,7 +746,10 @@ class ChatRepository extends ChangeNotifier {
   }
 
   /// Drop optimistic pending messages that the server now confirms exist.
-  /// Match by (senderId, content, createdAt within 30s).
+  /// Match by (senderId, content, createdAt within 10 minutes). The window is
+  /// generous so that a metro-tunnel send — where the server received the
+  /// message but the client got marked `error` because the ack never made it
+  /// — collapses into a single bubble once reconnect delivers the live row.
   void _reconcilePending(String roomId) {
     final pend = _pending[roomId];
     if (pend == null || pend.isEmpty) return;
@@ -733,7 +758,51 @@ class ChatRepository extends ChangeNotifier {
       return live.any((l) =>
           l.senderId == p.senderId &&
           l.content == p.content &&
-          (l.createdAt.difference(p.createdAt).inSeconds).abs() < 30);
+          (l.createdAt.difference(p.createdAt).inMinutes).abs() < 10);
     });
+  }
+
+  /// Iterate every room's optimistic queue and re-send anything still in
+  /// `error`. Triggered on socket reconnect. The bubble flips back to
+  /// `pending` (rendered as "SENDING") so the user sees the in-place
+  /// retry; on success the live subscription delivers the server copy and
+  /// [_reconcilePending] removes the optimistic. On a second failure the
+  /// bubble returns to `error` and waits for the next reconnect or a manual
+  /// resend.
+  Future<void> _retryPendingErrors() async {
+    final id = _userId;
+    if (id == null) return;
+    final retryList = <(String, ChatMessage)>[];
+    for (final entry in _pending.entries) {
+      for (final m in entry.value) {
+        if (m.status == MessageStatus.error) {
+          retryList.add((entry.key, m));
+        }
+      }
+    }
+    if (retryList.isEmpty) return;
+    // Flip every target back to pending first so the UI batches a single
+    // "SENDING" frame instead of one per send.
+    for (final (_, m) in retryList) {
+      m.status = MessageStatus.pending;
+    }
+    notifyListeners();
+    for (final (roomId, m) in retryList) {
+      try {
+        await api.sendMessage(
+          roomId: roomId,
+          userId: id,
+          content: m.content,
+          type: m.type,
+          mediaStorageId: m.mediaStorageId,
+          replyToId: m.replyToId,
+        );
+        // Leave as pending — the messages:list subscription will deliver the
+        // server-confirmed copy and _reconcilePending will drop this one.
+      } catch (_) {
+        m.status = MessageStatus.error;
+        notifyListeners();
+      }
+    }
   }
 }

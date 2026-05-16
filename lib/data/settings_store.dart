@@ -32,7 +32,7 @@ class SettingsStore extends ChangeNotifier {
 
   String? _themeId;
   RoomLayout _roomLayout = RoomLayout.list;
-  NavStyle _navStyle = NavStyle.radial;
+  NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
   bool _pushEnabled = true;
   bool _captureProtection = false;
@@ -75,7 +75,8 @@ class SettingsStore extends ChangeNotifier {
       final lay = await _storage.read(key: _kLayout);
       _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
       final nav = await _storage.read(key: _kNav);
-      _navStyle = nav == 'pill' ? NavStyle.pill : NavStyle.radial;
+      // First-launch default is pill; honor an explicit 'radial' selection.
+      _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
       final sec = await _storage.read(key: _kSection);
       _section = HomeSection.parse(sec);
       final push = await _storage.read(key: _kPushEnabled);

@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
@@ -111,10 +113,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: PillNav(
                           activeId: _tab,
                           onChange: _setTab,
-                          items: const [
-                            PillNavItem(id: 'rooms', label: 'ROOMS'),
-                            PillNavItem(id: 'discover', label: 'DISCOVER'),
-                            PillNavItem(id: 'requests', label: 'REQUESTS'),
+                          items: [
+                            const PillNavItem(id: 'rooms', label: 'ROOMS'),
+                            const PillNavItem(id: 'discover', label: 'DISCOVER'),
+                            PillNavItem(
+                              id: 'requests',
+                              label: 'REQUESTS',
+                              badge: widget.repo.incomingRequests.isEmpty
+                                  ? null
+                                  : '${widget.repo.incomingRequests.length}',
+                            ),
                           ],
                         ),
                       ),
@@ -179,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCreate() {
+    HapticFeedback.lightImpact();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -253,7 +262,7 @@ class _Header extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Icon(Icons.add, size: 18, color: theme.accentInk),
+                        child: Icon(CupertinoIcons.plus, size: 16, color: theme.accentInk),
                       ),
                     ),
                   )

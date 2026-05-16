@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
@@ -82,167 +84,264 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: theme.sheetDecoration(),
-        padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  width: 36, height: 4,
-                  decoration: BoxDecoration(color: theme.inkMuted.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              Row(
-                children: [
-                  Text('new room', style: theme.displayLarge),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).maybePop(),
-                    child: Icon(Icons.close, color: theme.inkMuted),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(children: [
-                Container(width: 14, height: 1, color: theme.accent),
-                const SizedBox(width: 8),
-                Text(
-                  _type == RoomType.secret ? 'NOTHING WILL BE KEPT' : 'A SPACE THAT STAYS',
-                  style: theme.caption.copyWith(color: theme.accent),
-                ),
-              ]),
-              const SizedBox(height: 24),
-              _label(theme, 'NAME'),
-              _input(theme, _name, 'name it something honest…'),
-              const SizedBox(height: 18),
-              _label(theme, 'DESCRIPTION · OPTIONAL'),
-              _input(theme, _desc, 'one line about the room…'),
-              const SizedBox(height: 22),
-              _label(theme, 'VISIBILITY'),
-              Row(children: [
-                Expanded(
-                  child: _seg(
-                    theme,
-                    active: !_isPrivate,
-                    onTap: () => setState(() => _isPrivate = false),
-                    icon: theme.visibilityIcon(isPublic: true, size: 14),
-                    title: 'public',
-                    sub: 'anyone can find it',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _seg(
-                    theme,
-                    active: _isPrivate,
-                    onTap: () => setState(() => _isPrivate = true),
-                    icon: theme.visibilityIcon(isPublic: false, size: 14),
-                    title: 'private',
-                    sub: 'invite only',
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 22),
-              _label(theme, 'TYPE'),
-              Row(children: [
-                Expanded(
-                  child: _seg(
-                    theme,
-                    active: _type == RoomType.regular,
-                    onTap: () => setState(() => _type = RoomType.regular),
-                    icon: Icon(Icons.tag, size: 14, color: theme.inkSoft),
-                    title: 'standard',
-                    sub: 'messages persist',
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _seg(
-                    theme,
-                    active: _type == RoomType.secret,
-                    onTap: () => setState(() => _type = RoomType.secret),
-                    icon: theme.hourglassIcon(size: 14, color: theme.accent),
-                    title: 'ephemeral',
-                    sub: 'auto-deletes',
-                    highlight: true,
-                  ),
-                ),
-              ]),
-              AnimatedCrossFade(
-                duration: theme.motionMed,
-                crossFadeState: _type == RoomType.secret ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                firstChild: const SizedBox(height: 22),
-                secondChild: Padding(
-                  padding: const EdgeInsets.only(top: 22),
+    return Material(
+      type: MaterialType.transparency,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Container(
+              decoration: theme.sheetDecoration(),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+              child: DefaultTextStyle(
+                style: theme.body.copyWith(color: theme.ink),
+                child: SingleChildScrollView(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(children: [
-                        _label(theme, 'MESSAGE LIFE'),
-                        const Spacer(),
-                        Text(_fmtTtl(_ttl), style: theme.monoLarge.copyWith(color: theme.accent)),
-                      ]),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 18),
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: theme.inkMuted.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Row(
                         children: [
-                          for (final t in _ttls)
-                            GestureDetector(
-                              onTap: () => setState(() => _ttl = t),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-                                decoration: theme.chipDecoration(filled: _ttl == t),
-                                child: Text(
-                                  _fmtTtl(t),
-                                  style: theme.label.copyWith(color: _ttl == t ? theme.accentInk : theme.inkSoft),
-                                ),
-                              ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('new room', style: theme.displayLarge),
+                                const SizedBox(height: 6),
+                                Row(children: [
+                                  Container(
+                                    width: 18,
+                                    height: 2,
+                                    decoration: BoxDecoration(
+                                      color: theme.accent,
+                                      borderRadius: BorderRadius.circular(1),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    _type == RoomType.secret
+                                        ? 'NOTHING WILL BE KEPT'
+                                        : 'A SPACE THAT STAYS',
+                                    style: theme.caption.copyWith(
+                                      color: theme.accent,
+                                      letterSpacing: 2.0,
+                                    ),
+                                  ),
+                                ]),
+                              ],
                             ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).maybePop(),
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              width: 34,
+                              height: 34,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: theme.surfaceSunken,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: theme.divider),
+                              ),
+                              child: Icon(CupertinoIcons.xmark, color: theme.inkSoft, size: 14),
+                            ),
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 26),
+                      _label(theme, 'NAME'),
+                      _input(theme, _name, 'name it something honest…'),
+                      const SizedBox(height: 18),
+                      _label(theme, 'DESCRIPTION · OPTIONAL'),
+                      _input(theme, _desc, 'one line about the room…'),
+                      const SizedBox(height: 22),
+                      _label(theme, 'VISIBILITY'),
+                      Row(children: [
+                        Expanded(
+                          child: _seg(
+                            theme,
+                            active: !_isPrivate,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _isPrivate = false);
+                            },
+                            icon: theme.visibilityIcon(isPublic: true, size: 14),
+                            title: 'public',
+                            sub: 'anyone can find it',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _seg(
+                            theme,
+                            active: _isPrivate,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _isPrivate = true);
+                            },
+                            icon: theme.visibilityIcon(isPublic: false, size: 14),
+                            title: 'private',
+                            sub: 'invite only',
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: 22),
+                      _label(theme, 'TYPE'),
+                      Row(children: [
+                        Expanded(
+                          child: _seg(
+                            theme,
+                            active: _type == RoomType.regular,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _type = RoomType.regular);
+                            },
+                            icon: Icon(CupertinoIcons.number, size: 14, color: theme.inkSoft),
+                            title: 'standard',
+                            sub: 'messages persist',
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _seg(
+                            theme,
+                            active: _type == RoomType.secret,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _type = RoomType.secret);
+                            },
+                            icon: theme.hourglassIcon(size: 14, color: theme.accent),
+                            title: 'ephemeral',
+                            sub: 'auto-deletes',
+                            highlight: true,
+                          ),
+                        ),
+                      ]),
+                      AnimatedCrossFade(
+                        duration: theme.motionMed,
+                        crossFadeState: _type == RoomType.secret
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                        firstChild: const SizedBox(height: 22),
+                        secondChild: Padding(
+                          padding: const EdgeInsets.only(top: 22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(children: [
+                                _label(theme, 'MESSAGE LIFE'),
+                                const Spacer(),
+                                Text(_fmtTtl(_ttl),
+                                    style: theme.monoLarge.copyWith(color: theme.accent)),
+                              ]),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final t in _ttls)
+                                    GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        setState(() => _ttl = t);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 14, vertical: 9),
+                                        decoration: theme.chipDecoration(filled: _ttl == t),
+                                        child: Text(
+                                          _fmtTtl(t),
+                                          style: theme.label.copyWith(
+                                              color: _ttl == t
+                                                  ? theme.accentInk
+                                                  : theme.inkSoft),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_isPrivate) ...[
+                        const SizedBox(height: 22),
+                        _label(theme, 'PASSWORD · OPTIONAL'),
+                        _input(theme, _password, 'lock with a passphrase…', obscure: true),
+                      ],
+                      if (_error != null) ...[
+                        const SizedBox(height: 14),
+                        Container(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          decoration: BoxDecoration(
+                            color: theme.surfaceSunken,
+                            border: Border(
+                                left: BorderSide(color: theme.danger, width: 2)),
+                            borderRadius: BorderRadius.circular(theme.radiusMd),
+                          ),
+                          child: Text(_error!,
+                              style: theme.body.copyWith(color: theme.danger)),
+                        ),
+                      ],
+                      const SizedBox(height: 26),
+                      GestureDetector(
+                        onTap: _busy ? null : _create,
+                        child: AnimatedContainer(
+                          duration: theme.motionFast,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: _busy ? theme.accentSoft : theme.accent,
+                            borderRadius: BorderRadius.circular(theme.radiusLg),
+                            boxShadow: _busy
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color: theme.accent.withValues(alpha: 0.3),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                          ),
+                          child: _busy
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: theme.accentInk),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('OPEN THE ROOM',
+                                        style: theme.label.copyWith(
+                                            color: theme.accentInk,
+                                            letterSpacing: 2.4)),
+                                    const SizedBox(width: 10),
+                                    Icon(CupertinoIcons.arrow_up_right,
+                                        size: 14, color: theme.accentInk),
+                                  ],
+                                ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              if (_isPrivate) ...[
-                const SizedBox(height: 22),
-                _label(theme, 'PASSWORD · OPTIONAL'),
-                _input(theme, _password, 'lock with a passphrase…', obscure: true),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 14),
-                Text(_error!, style: theme.body.copyWith(color: theme.danger)),
-              ],
-              const SizedBox(height: 26),
-              GestureDetector(
-                onTap: _busy ? null : _create,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _busy ? theme.accentSoft : theme.accent,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  child: _busy
-                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk))
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('OPEN THE ROOM', style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.2)),
-                            const SizedBox(width: 10),
-                            Icon(Icons.north_east, size: 14, color: theme.accentInk),
-                          ],
-                        ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
