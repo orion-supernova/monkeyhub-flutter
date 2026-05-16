@@ -32,13 +32,18 @@ class PushManager {
   ChatApi? _api;
   String? _userId;
   String? _deviceId;
+  String? _deviceName;
 
-  bool get _supported => Platform.isIOS || Platform.isAndroid;
+  /// OneSignal + native push tokens are only available on iOS / Android.
+  /// Other platforms still participate in the device registry (for the
+  /// "Move call here" pill) but skip the OneSignal path entirely.
+  bool get _pushSupported => Platform.isIOS || Platform.isAndroid;
 
   /// Exposed so [CallService] can stamp the deviceId on accept/reject
   /// so the backend's `taken` signal includes a `byDeviceId` field —
   /// which lets the accepting device filter its own echo.
   String? get deviceId => _deviceId;
+  String? get deviceName => _deviceName;
 
   /// Call once at app startup. Safe to call multiple times.
   /// Bind a new room-open handler (call after the navigator is mounted).
@@ -68,7 +73,10 @@ class PushManager {
     if (onOpenRoom != null) _onOpenRoom = onOpenRoom;
     if (api != null) _api = api;
     if (_initialized) return;
-    if (!_supported) return;
+    if (!_pushSupported) {
+      _initialized = true; // mark so we don't re-run; OneSignal is a no-op here
+      return;
+    }
     final appId = Env.oneSignalAppId;
     if (appId.isEmpty) return;
     try {
@@ -99,19 +107,21 @@ class PushManager {
   /// `notifications.sendMessagePush` addresses pushes to external_id, so this
   /// is the link the server needs.
   Future<void> login(String userId) async {
-    if (!_supported || !_initialized) return;
     _userId = userId;
     _deviceId = await DeviceIdentity.ensure();
-    try {
-      await OneSignal.login(userId);
-      // Now is a good time to prompt for permission (user has actively signed in).
-      await OneSignal.Notifications.requestPermission(true);
-    } catch (e) {
-      debugPrint('OneSignal login failed: $e');
+    _deviceName = await DeviceIdentity.displayName();
+    if (_pushSupported && _initialized) {
+      try {
+        await OneSignal.login(userId);
+        // Good time to prompt for permission (user has actively signed in).
+        await OneSignal.Notifications.requestPermission(true);
+      } catch (e) {
+        debugPrint('OneSignal login failed: $e');
+      }
     }
-    // Upload native call tokens (PushKit on iOS, FCM on Android) for the
-    // server-side direct VoIP push path. Failures here are non-fatal — the
-    // OneSignal push remains as a fallback.
+    // Upload native call tokens. Failures here are non-fatal — OneSignal
+    // remains as a fallback on iOS/Android, and other platforms still
+    // register their device row via [_registerNoPushDevice] below.
     if (Platform.isIOS) {
       try {
         final token = await _voipChannel.invokeMethod<String>('getToken');
@@ -126,6 +136,28 @@ class PushManager {
       } catch (e) {
         debugPrint('PushManager.login: FCM token fetch failed: $e');
       }
+    } else {
+      // macOS / Windows / Linux / Web — register the device row so the
+      // active-call subscription can label this device in the pill,
+      // even though there's no native push wake path.
+      await _registerNoPushDevice();
+    }
+  }
+
+  Future<void> _registerNoPushDevice() async {
+    final userId = _userId;
+    final api = _api;
+    final deviceId = _deviceId;
+    if (userId == null || api == null || deviceId == null) return;
+    try {
+      await api.registerDevice(
+        userId: userId,
+        deviceId: deviceId,
+        platform: DeviceIdentity.platformTag(),
+        deviceName: _deviceName,
+      );
+    } catch (e) {
+      debugPrint('PushManager: registerDevice failed: $e');
     }
   }
 
@@ -146,6 +178,7 @@ class PushManager {
         deviceId: deviceId,
         platform: DeviceIdentity.platformTag(),
         token: token,
+        deviceName: _deviceName,
       );
     } catch (e) {
       debugPrint('PushManager: setVoipToken failed: $e');
@@ -169,6 +202,7 @@ class PushManager {
         deviceId: deviceId,
         platform: DeviceIdentity.platformTag(),
         token: token,
+        deviceName: _deviceName,
       );
     } catch (e) {
       debugPrint('PushManager: setFcmToken failed: $e');
@@ -176,10 +210,12 @@ class PushManager {
   }
 
   Future<void> logout() async {
-    if (!_supported || !_initialized) return;
     final userId = _userId;
     final deviceId = _deviceId;
     final api = _api;
+    // Always clear the device row, regardless of platform — every
+    // platform writes one at login (push-supported via set*Token,
+    // others via registerDevice).
     if (userId != null && deviceId != null && api != null) {
       try {
         await api.clearDeviceToken(userId: userId, deviceId: deviceId);
@@ -188,17 +224,19 @@ class PushManager {
       }
     }
     _userId = null;
-    try {
-      await OneSignal.logout();
-    } catch (e) {
-      debugPrint('OneSignal logout failed: $e');
+    if (_pushSupported && _initialized) {
+      try {
+        await OneSignal.logout();
+      } catch (e) {
+        debugPrint('OneSignal logout failed: $e');
+      }
     }
   }
 
   /// Opt this device IN to receiving pushes. Call when user toggles
   /// notifications ON in settings.
   Future<void> optIn() async {
-    if (!_supported || !_initialized) return;
+    if (!_pushSupported || !_initialized) return;
     try {
       OneSignal.User.pushSubscription.optIn();
     } catch (e) {
@@ -209,7 +247,7 @@ class PushManager {
   /// Opt this device OUT of receiving pushes — does NOT delete the alias, so
   /// re-enabling later restores immediately.
   Future<void> optOut() async {
-    if (!_supported || !_initialized) return;
+    if (!_pushSupported || !_initialized) return;
     try {
       OneSignal.User.pushSubscription.optOut();
     } catch (e) {
@@ -218,7 +256,7 @@ class PushManager {
   }
 
   Future<void> setBadge(int count) async {
-    if (!_supported || !_initialized) return;
+    if (!_pushSupported || !_initialized) return;
     try {
       // OneSignal SDK manages badge via notification payload; setting from
       // client requires platform channels. No-op for now — let server push

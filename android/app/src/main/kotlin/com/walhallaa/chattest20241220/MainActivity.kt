@@ -2,6 +2,8 @@ package com.walhallaa.chattest20241220
 
 import android.content.ComponentName
 import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -80,6 +82,26 @@ class MainActivity : FlutterActivity() {
                     "getToken" -> {
                         // Firebase disabled — no FCM token available.
                         result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // monkeyhub/device — exposes a human-readable name for this
+        // physical device. Settings.Global.DEVICE_NAME is user-editable
+        // on Android 7.1+ (e.g., "Bob's Pixel"); when blank we fall back
+        // to Build.MODEL (e.g., "Pixel 7").
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/device")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getDisplayName" -> {
+                        val configured = try {
+                            Settings.Global.getString(contentResolver, Settings.Global.DEVICE_NAME)
+                        } catch (_: Throwable) {
+                            null
+                        }
+                        val name = if (!configured.isNullOrBlank()) configured else Build.MODEL
+                        result.success(name)
                     }
                     else -> result.notImplemented()
                 }

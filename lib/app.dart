@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'auth/auth_service.dart';
 import 'backend/chat_api.dart';
 import 'backend/convex_client.dart';
+import 'calls/active_call_pill.dart';
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
 import 'calls/call_service.dart';
@@ -173,7 +174,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             displayName: s.name,
             deviceId: deviceId,
           );
-          await _signaling.start(s.userId);
+          await _signaling.start(s.userId, deviceId: deviceId);
         } catch (_) {/* offline boot — reconcile on reconnect */}
       }
     } catch (_) {/* secure storage may not be available in test harness */}
@@ -196,7 +197,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           displayName: s.name,
           deviceId: deviceId,
         );
-        await _signaling.start(s.userId);
+        await _signaling.start(s.userId, deviceId: deviceId);
         _consumePendingPushRoom();
       } else if (s == null) {
         BadgeManager.instance.unbind();
@@ -249,6 +250,18 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                       left: 0,
                       right: 0,
                       child: ConnectionBanner(cv: _cv),
+                    ),
+                  // Global "Move call here" pill — shows when an active
+                  // call exists on another of my devices. Tap to handoff.
+                  if (_bootstrapped && _bootError == null)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: ActiveCallPill(
+                        api: _api,
+                        service: _callService,
+                      ),
                     ),
                   // Pushes call screens onto the root navigator the moment the
                   // call service transitions to a non-idle state. Invisible.
@@ -356,22 +369,28 @@ class _CallOverlayState extends State<_CallOverlay> {
       return;
     }
     if (_activeCallId == s.callId) return; // already showing
-    final terminal =
-        s.status == CallStatus.ended || s.status == CallStatus.failed;
+    final terminal = s.status == CallStatus.ended ||
+        s.status == CallStatus.failed ||
+        s.status == CallStatus.handedOff;
     if (terminal) return;
     _activeCallId = s.callId;
     // Defer to the next frame so we don't navigate during a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
-      // Three routes from here:
+      // Routes from here:
       //   - Outgoing caller → CallScreen (the live in-call UI).
       //   - Callee, accepted via native CallKit → skip IncomingCallScreen
       //     and go straight to CallScreen. Without this branch the user
       //     sees a 1–3s flash of the in-app ringer between foregrounding
       //     and the service transitioning to `connecting`.
+      //   - Handoff "Move call here" tap → already past accept, status
+      //     is `switching` → CallScreen with brief switching indicator.
       //   - Callee, not yet accepted → IncomingCallScreen.
-      if (s.isCaller || widget.service.acceptedNatively) {
+      final goCallScreen = s.isCaller ||
+          widget.service.acceptedNatively ||
+          s.status == CallStatus.switching;
+      if (goCallScreen) {
         nav.push(MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => CallScreen(service: widget.service),

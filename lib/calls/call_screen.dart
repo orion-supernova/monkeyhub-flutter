@@ -73,11 +73,17 @@ class _CallScreenState extends State<CallScreen> {
     _syncStreams();
     if (s == null ||
         s.status == CallStatus.ended ||
-        s.status == CallStatus.failed) {
+        s.status == CallStatus.failed ||
+        s.status == CallStatus.handedOff) {
       // Show the terminal state briefly, then pop — but only once.
+      // handedOff pops immediately and silently (no error toast); the
+      // call moved to another of my devices.
       if (!_popScheduled) {
         _popScheduled = true;
-        Future.delayed(const Duration(milliseconds: 500), () {
+        final delay = (s != null && s.status == CallStatus.handedOff)
+            ? const Duration(milliseconds: 80)
+            : const Duration(milliseconds: 500);
+        Future.delayed(delay, () {
           if (mounted && Navigator.of(context).canPop()) {
             Navigator.of(context).pop();
           }
@@ -118,6 +124,10 @@ class _CallScreenState extends State<CallScreen> {
         return s.errorMessage ?? 'call ended';
       case CallStatus.failed:
         return s.errorMessage ?? 'call failed';
+      case CallStatus.switching:
+        return 'switching device…';
+      case CallStatus.handedOff:
+        return 'moved';
       case CallStatus.idle:
         return '';
     }
@@ -214,6 +224,18 @@ class _CallScreenState extends State<CallScreen> {
                 ],
               ),
             ),
+
+            // Switching-device chip. Shown briefly while a WebRTC
+            // renegotiation runs after the peer (or this device) moves
+            // the call to another device. Auto-hides on `connecting` /
+            // `active`.
+            if (s.status == CallStatus.switching)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 80,
+                left: 0,
+                right: 0,
+                child: const _SwitchingChip(),
+              ),
 
             // Bottom control bar
             Positioned(
@@ -371,6 +393,53 @@ class _ControlButton extends StatelessWidget {
           style: const TextStyle(color: Colors.white70, fontSize: 10),
         ),
       ],
+    );
+  }
+}
+
+/// Small centered pill shown over the call view while a WebRTC
+/// renegotiation runs (the peer or this device moved the call to
+/// another device). Subtle by design — the call audio/video continues
+/// behind it.
+class _SwitchingChip extends StatelessWidget {
+  const _SwitchingChip();
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Center(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'switching device…',
+              style: theme.monoTiny.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

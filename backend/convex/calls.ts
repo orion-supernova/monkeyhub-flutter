@@ -219,6 +219,9 @@ export const accept = mutation({
     await ctx.db.patch(callId, {
       status: "active",
       acceptedAt: Date.now(),
+      // Recorded so sibling devices' active-call subscriptions can compare
+      // against their own deviceId and render the "Move call here" pill.
+      acceptingDeviceId: acceptingDeviceId ?? undefined,
     });
     // Tell every other device of the callee to dismiss its ringer. All
     // callee devices share the `toUserId == calleeId` subscription; the
@@ -403,19 +406,42 @@ export const sendSignal = mutation({
     toUserId: v.id("users"),
     kind: v.string(),
     payload: v.string(),
+    // Optional during handoff: deliver only to a specific recipient
+    // device. Siblings of the same toUserId ignore the signal. See
+    // SignalingSubscriber's targetDeviceId filter on the client.
+    targetDeviceId: v.optional(v.string()),
+    // Optional: the sending device's id. Lets the recipient learn which
+    // device of the peer holds the call so it can target its own
+    // outgoing signals back.
+    fromDeviceId: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { callId, fromUserId, toUserId, kind, payload },
+    {
+      callId,
+      fromUserId,
+      toUserId,
+      kind,
+      payload,
+      targetDeviceId,
+      fromDeviceId,
+    },
   ) => {
     const call = await assertCallParticipant(ctx, callId, fromUserId);
-    // toUserId must be the other participant.
-    const expectedPeer =
-      call.callerId.toString() === fromUserId.toString()
-        ? call.calleeId.toString()
-        : call.callerId.toString();
-    if (toUserId.toString() !== expectedPeer) {
-      throw new Error("WRONG_PEER");
+    // toUserId must be the other participant OR — during handoff — the
+    // SAME user (handoff-takeover is sent to my own callee/caller userId
+    // but targets a specific deviceId).
+    const isHandoffToSelf =
+      toUserId.toString() === fromUserId.toString() &&
+      (kind === "handoff-takeover" || kind === "handoff-prepare");
+    if (!isHandoffToSelf) {
+      const expectedPeer =
+        call.callerId.toString() === fromUserId.toString()
+          ? call.calleeId.toString()
+          : call.callerId.toString();
+      if (toUserId.toString() !== expectedPeer) {
+        throw new Error("WRONG_PEER");
+      }
     }
     // Refuse signals for terminal calls. Late-arriving ICE candidates from a
     // slow network could otherwise repopulate rows after [purgeCallSignals]
@@ -431,7 +457,61 @@ export const sendSignal = mutation({
       payload,
       createdAt: Date.now(),
       consumed: false,
+      targetDeviceId: targetDeviceId ?? undefined,
+      fromDeviceId: fromDeviceId ?? undefined,
     });
+  },
+});
+
+// Transfer an active call from whichever device currently holds it to
+// [newDeviceId]. The new device performs a fresh WebRTC negotiation with
+// the peer; the old device tears down. See addendum design notes.
+export const handoffCall = mutation({
+  args: {
+    callId: v.id("calls"),
+    userId: v.id("users"),
+    newDeviceId: v.string(),
+  },
+  handler: async (ctx, { callId, userId, newDeviceId }) => {
+    const call = await assertCallParticipant(ctx, callId, userId);
+    if (call.status !== "active") throw new Error("CALL_NOT_ACTIVE");
+    const oldDeviceId = call.acceptingDeviceId;
+    if (oldDeviceId === newDeviceId) {
+      return { oldDeviceId: oldDeviceId ?? null };
+    }
+    await ctx.db.patch(callId, { acceptingDeviceId: newDeviceId });
+    // Tell the old device (if known) to tear down its PC quietly. Only
+    // it acts because the signal is targetDeviceId-scoped.
+    if (oldDeviceId) {
+      await ctx.db.insert("callSignals", {
+        callId,
+        fromUserId: userId,
+        toUserId: userId, // same user, different device
+        targetDeviceId: oldDeviceId,
+        fromDeviceId: newDeviceId,
+        kind: "handoff-takeover",
+        payload: JSON.stringify({ newDeviceId }),
+        createdAt: Date.now(),
+        consumed: false,
+      });
+    }
+    // Tell the peer to close its existing PC and expect a fresh offer
+    // from the new device.
+    const peerId =
+      call.callerId.toString() === userId.toString()
+        ? call.calleeId
+        : call.callerId;
+    await ctx.db.insert("callSignals", {
+      callId,
+      fromUserId: userId,
+      toUserId: peerId,
+      fromDeviceId: newDeviceId,
+      kind: "handoff-prepare",
+      payload: JSON.stringify({ newDeviceId }),
+      createdAt: Date.now(),
+      consumed: false,
+    });
+    return { oldDeviceId: oldDeviceId ?? null };
   },
 });
 
@@ -472,24 +552,70 @@ export const activeCallForUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     // Resolves to my live `ringing` or `active` call so the UI can re-attach
-    // after a cold start. Caller side first.
-    for (const status of ["ringing", "active"] as const) {
+    // after a cold start. Active calls (the more interesting state for the
+    // global "Move call here" pill) are checked first.
+    let call = null as any;
+    outer: for (const status of ["active", "ringing"] as const) {
       const asCallee = await ctx.db
         .query("calls")
         .withIndex("by_callee_status", (q) =>
           q.eq("calleeId", userId).eq("status", status),
         )
         .first();
-      if (asCallee) return asCallee;
+      if (asCallee) {
+        call = asCallee;
+        break outer;
+      }
       const asCaller = await ctx.db
         .query("calls")
         .withIndex("by_caller_status", (q) =>
           q.eq("callerId", userId).eq("status", status),
         )
         .first();
-      if (asCaller) return asCaller;
+      if (asCaller) {
+        call = asCaller;
+        break outer;
+      }
     }
-    return null;
+    if (!call) return null;
+    // Hydrate peer display fields so the pill doesn't need a second
+    // round-trip. Peer = the participant who isn't me.
+    const peerId =
+      call.callerId.toString() === userId.toString()
+        ? call.calleeId
+        : call.callerId;
+    const peer = await ctx.db.get(peerId);
+    const peerName = peer?.name ?? peer?.username ?? "Unknown";
+    // The deviceName for the device currently holding the call — for the
+    // "Move call here · On Bob's MacBook" label. Falls back to platform.
+    let acceptingDeviceName: string | null = null;
+    let acceptingPlatform: string | null = null;
+    if (call.acceptingDeviceId) {
+      const dev = await ctx.db
+        .query("userDevices")
+        .withIndex("by_user_device", (q) =>
+          q.eq("userId", call.calleeId).eq("deviceId", call.acceptingDeviceId),
+        )
+        .first();
+      if (dev) {
+        acceptingDeviceName = dev.deviceName ?? null;
+        acceptingPlatform = dev.platform;
+      }
+    }
+    return {
+      _id: call._id,
+      callerId: call.callerId,
+      calleeId: call.calleeId,
+      roomId: call.roomId,
+      type: call.type,
+      status: call.status,
+      startedAt: call.startedAt,
+      acceptedAt: call.acceptedAt,
+      acceptingDeviceId: call.acceptingDeviceId ?? null,
+      peerName,
+      acceptingDeviceName,
+      acceptingPlatform,
+    };
   },
 });
 

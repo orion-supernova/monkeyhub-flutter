@@ -47,9 +47,14 @@ export default defineSchema({
   userDevices: defineTable({
     userId: v.id("users"),
     deviceId: v.string(),                    // client-persisted UUIDv4
-    platform: v.string(),                    // "ios" | "ios-simulator" | "android"
+    platform: v.string(),                    // "ios" | "ios-simulator" | "android" | "macos" | "windows" | "linux" | "web"
     voipToken: v.optional(v.string()),       // iOS PushKit
     fcmToken: v.optional(v.string()),        // Android FCM
+    // Human-readable label shown in the "Move call here" pill. Captured
+    // from `UIDevice.current.name` / `Host.current().localizedName` /
+    // `Settings.Global.DEVICE_NAME` etc. at login. Optional — clients
+    // fall back to a friendly platform name when missing.
+    deviceName: v.optional(v.string()),
     lastSeenAt: v.number(),
     createdAt: v.number(),
   })
@@ -189,6 +194,11 @@ export default defineSchema({
     startedAt: v.number(),
     acceptedAt: v.optional(v.number()),
     endedAt: v.optional(v.number()),
+    // Which callee device currently holds the active WebRTC connection.
+    // Set when the call is accepted; updated on handoff. Sibling devices
+    // watch this through `activeCallForUser` to render the global "Move
+    // call here" pill (pill renders when this !== my deviceId).
+    acceptingDeviceId: v.optional(v.string()),
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])
@@ -200,10 +210,19 @@ export default defineSchema({
     callId: v.id("calls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(),            // "offer" | "answer" | "ice" | "state" | "bye" | "reject" | "cancel"
+    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer"
     payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
     createdAt: v.number(),
     consumed: v.boolean(),
+    // When set, only the recipient device whose deviceId matches acts on
+    // this signal — siblings of the same user ignore it. Used during
+    // handoff to target a specific device. `null` keeps the original
+    // broadcast-to-all-my-devices behavior.
+    targetDeviceId: v.optional(v.string()),
+    // The sender's deviceId. Informational — lets the recipient learn
+    // which device of the peer is currently in the call so subsequent
+    // signals can be device-targeted back.
+    fromDeviceId: v.optional(v.string()),
   })
     .index("by_to_unconsumed", ["toUserId", "consumed", "createdAt"])
     .index("by_call", ["callId"]),

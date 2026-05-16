@@ -310,6 +310,28 @@ import flutter_callkit_incoming
       }
     }
 
+    // monkeyhub/device — exposes a human-readable name for this physical
+    // device. Dart uploads it alongside push tokens so the active-call
+    // pill on sibling devices can render "On Bob's iPhone".
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubDevicePlugin") {
+      let channel = FlutterMethodChannel(
+        name: "monkeyhub/device",
+        binaryMessenger: registrar.messenger()
+      )
+      channel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "getDisplayName":
+          // iOS 16+ returns the model name ("iPhone") rather than the
+          // user-set device name for privacy. Pre-16 still returns the
+          // user's name. Either way, this is the best handle we have
+          // server-side without entitlements.
+          result(UIDevice.current.name)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
     // monkeyhub/voip — exposes the PushKit VoIP token to Dart. Dart calls
     // `getToken` after PushManager.login(userId) and uploads the result to
     // Convex's setVoipToken mutation. We also push token updates over the

@@ -136,12 +136,14 @@ class ChatApi {
     required String deviceId,
     required String platform,
     required String token,
+    String? deviceName,
   }) async {
     await _cv.mutation('voipTokens:setVoipToken', {
       'userId': userId,
       'deviceId': deviceId,
       'platform': platform,
       'token': token,
+      'deviceName': ?deviceName,
     });
   }
 
@@ -152,12 +154,32 @@ class ChatApi {
     required String deviceId,
     required String platform,
     required String token,
+    String? deviceName,
   }) async {
     await _cv.mutation('voipTokens:setFcmToken', {
       'userId': userId,
       'deviceId': deviceId,
       'platform': platform,
       'token': token,
+      'deviceName': ?deviceName,
+    });
+  }
+
+  /// Tokenless device registration for platforms without native push
+  /// (macOS, Windows, Linux, Web). Records the deviceId + label so the
+  /// global "Move call here" pill can name this device when it holds
+  /// the active call.
+  Future<void> registerDevice({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    String? deviceName,
+  }) async {
+    await _cv.mutation('voipTokens:registerDevice', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'platform': platform,
+      'deviceName': ?deviceName,
     });
   }
 
@@ -667,8 +689,10 @@ class ChatApi {
     required String callId,
     required String fromUserId,
     required String toUserId,
-    required String kind, // "offer"|"answer"|"ice"|"state"|"bye"|"reject"|"cancel"
+    required String kind, // "offer"|"answer"|"ice"|"state"|"bye"|"reject"|"cancel"|"handoff-*"
     required String payload,
+    String? fromDeviceId,
+    String? targetDeviceId,
   }) async {
     await _cv.mutation('calls:sendSignal', {
       'callId': callId,
@@ -676,7 +700,30 @@ class ChatApi {
       'toUserId': toUserId,
       'kind': kind,
       'payload': payload,
+      'fromDeviceId': ?fromDeviceId,
+      'targetDeviceId': ?targetDeviceId,
     });
+  }
+
+  /// Transfer an active call from whichever device holds it to [newDeviceId].
+  /// Returns the old deviceId (or null) so the client can update local
+  /// state. Side effects on the backend: writes `handoff-takeover` to the
+  /// old device and `handoff-prepare` to the peer.
+  Future<String?> handoffCall({
+    required String callId,
+    required String userId,
+    required String newDeviceId,
+  }) async {
+    final res = await _cv.mutation('calls:handoffCall', {
+      'callId': callId,
+      'userId': userId,
+      'newDeviceId': newDeviceId,
+    });
+    if (res is Map) {
+      final old = res['oldDeviceId'];
+      return old?.toString();
+    }
+    return null;
   }
 
   Future<void> consumeCallSignal({
@@ -693,6 +740,31 @@ class ChatApi {
     final res = await _cv.query('calls:activeCallForUser', {'userId': userId});
     if (res == null) return null;
     return (res as Map).cast<String, dynamic>();
+  }
+
+  /// Live subscription to my current `ringing` or `active` call (if any).
+  /// Backs the global "Move call here" pill and any other UI that needs
+  /// to know "is there a call happening on one of my devices right now?".
+  /// Returns the same shape as [activeCallForUser]: an inflated record
+  /// with peer name, type, status, acceptingDeviceId, and the holding
+  /// device's deviceName / platform.
+  Future<Subscription> subscribeActiveCall({
+    required String userId,
+    required void Function(Map<String, dynamic>? call) onCall,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'calls:activeCallForUser',
+      {'userId': userId},
+      onData: (raw) {
+        if (raw == null) {
+          onCall(null);
+          return;
+        }
+        onCall((raw as Map).cast<String, dynamic>());
+      },
+      onError: onError,
+    );
   }
 
   /// Returns `{ iceServers: [{urls, username?, credential?}, …] }`.

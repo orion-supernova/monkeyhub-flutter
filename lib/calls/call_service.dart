@@ -201,6 +201,7 @@ class CallService extends ChangeNotifier {
         callId: callId,
         fromUserId: me,
         toUserId: peerUserId,
+        fromDeviceId: _deviceId,
         kind: 'offer',
         payload: jsonEncode({
           'sdp': offer.sdp,
@@ -259,6 +260,7 @@ class CallService extends ChangeNotifier {
         callId: s.callId,
         fromUserId: me,
         toUserId: s.peerUserId,
+        fromDeviceId: _deviceId,
         kind: 'answer',
         payload: jsonEncode({'sdp': answer.sdp, 'type': answer.type}),
       );
@@ -366,9 +368,22 @@ class CallService extends ChangeNotifier {
     if (me == null) return;
     final kind = signal['kind'] as String?;
     final fromUserId = signal['fromUserId']?.toString();
+    final fromDeviceId = signal['fromDeviceId'] as String?;
     final callId = signal['callId']?.toString();
     final payload = (signal['payload'] as String?) ?? '{}';
     if (kind == null || fromUserId == null || callId == null) return;
+
+    // Track the peer's holding device so our outgoing signals (ICE in
+    // particular) can route back precisely after a peer-side handoff.
+    // Only update when the signal is from the peer (not from one of my
+    // own devices during handoff bookkeeping).
+    if (fromDeviceId != null && fromUserId != me) {
+      final s = _session;
+      if (s != null && s.callId == callId && s.peerDeviceId != fromDeviceId) {
+        _session = s.copyWith(peerDeviceId: fromDeviceId);
+        notifyListeners();
+      }
+    }
 
     // Invite → open the IncomingCallScreen IMMEDIATELY, before the caller
     // has finished its WebRTC offer. The session lives without a PC until
@@ -400,6 +415,31 @@ class CallService extends ChangeNotifier {
     // past incomingRinging).
     if (kind == 'taken') {
       await _onRemoteTaken(callId: callId, payload: payload);
+      return;
+    }
+
+    // Handoff signals — see addendum design notes.
+    if (kind == 'handoff-takeover') {
+      // I'm the old accepting device. The mutation already targeted this
+      // signal at my deviceId (via targetDeviceId), so we only get here
+      // when it's truly meant for us. Tear down quietly — no error toast.
+      await _onHandoffTakeover(callId: callId);
+      return;
+    }
+    if (kind == 'handoff-prepare') {
+      // I'm the peer. The sibling-device callee is taking over. Close my
+      // existing PC and wait for the new device's offer.
+      await _onHandoffPrepare(callId: callId);
+      return;
+    }
+    if (kind == 'handoff-offer') {
+      // I'm the peer in switching state. Apply the new offer and answer.
+      await _onHandoffOffer(callId: callId, payload: payload, peerDeviceId: fromDeviceId);
+      return;
+    }
+    if (kind == 'handoff-answer') {
+      // I'm the new accepting device. Finish the renegotiation.
+      await _onHandoffAnswer(callId: callId, payload: payload);
       return;
     }
 
@@ -526,6 +566,212 @@ class CallService extends ChangeNotifier {
       await _teardown(CallStatus.ended);
     } catch (e, st) {
       debugPrint('CallService._onRemoteTaken failed: $e\n$st');
+    }
+  }
+
+  // ───────── handoff ─────────
+
+  /// Move the active call from whichever device holds it onto THIS
+  /// device. Initiator-side flow: tell the backend, set up a local
+  /// session, build a fresh PC, and send a `handoff-offer` to the peer.
+  /// The peer renegotiates via `_onHandoffPrepare` / `_onHandoffOffer`;
+  /// the old device tears down via `_onHandoffTakeover`.
+  ///
+  /// [activeCall] is the snapshot from `subscribeActiveCall` — must
+  /// be `status: 'active'` and not already on this device.
+  Future<void> handoffToHere(Map<String, dynamic> activeCall) async {
+    final me = _userId;
+    final myDevice = _deviceId;
+    if (me == null || myDevice == null) return;
+    if (_session != null) {
+      throw StateError('Cannot handoff while a local call is active');
+    }
+    final callId = activeCall['_id']?.toString() ?? activeCall['callId']?.toString();
+    final callerId = activeCall['callerId']?.toString();
+    final calleeId = activeCall['calleeId']?.toString();
+    final roomId = activeCall['roomId']?.toString() ?? '';
+    final type = activeCall['type'] as String?;
+    final peerName = (activeCall['peerName'] as String?) ?? 'Calling…';
+    if (callId == null || callerId == null || calleeId == null) {
+      throw StateError('Invalid active call payload');
+    }
+    final iAmCaller = callerId == me;
+    final peerUserId = iAmCaller ? calleeId : callerId;
+    final mediaKind = CallMediaKindWire.parse(type);
+
+    _session = CallSession(
+      callId: callId,
+      roomId: roomId,
+      peerUserId: peerUserId,
+      peerName: peerName,
+      mediaKind: mediaKind,
+      isCaller: iAmCaller,
+      status: CallStatus.switching,
+      startedAt: DateTime.now(),
+      localVideoOff: mediaKind != CallMediaKind.video,
+    );
+    notifyListeners();
+
+    try {
+      // 1. Tell the backend so it can write handoff-takeover and
+      //    handoff-prepare signals. The mutation also flips
+      //    `calls.acceptingDeviceId` so the pill updates everywhere.
+      await api.handoffCall(
+        callId: callId,
+        userId: me,
+        newDeviceId: myDevice,
+      );
+
+      // 2. Spin up a fresh PC + media on this device.
+      _pc = await _createPeerConnection();
+      await _attachLocalMedia(mediaKind);
+      final offer = await _pc!.createOffer({
+        'offerToReceiveAudio': true,
+        'offerToReceiveVideo': mediaKind == CallMediaKind.video,
+      });
+      await _pc!.setLocalDescription(offer);
+
+      // 3. Ship the offer to the peer. Once they answer, ICE candidates
+      //    will already be in flight (onIceCandidate fires immediately
+      //    after setLocalDescription).
+      await api.sendCallSignal(
+        callId: callId,
+        fromUserId: me,
+        toUserId: peerUserId,
+        fromDeviceId: myDevice,
+        kind: 'handoff-offer',
+        payload: jsonEncode({
+          'sdp': offer.sdp,
+          'type': offer.type,
+          'mediaKind': mediaKind.wire,
+        }),
+      );
+
+      // 4. Watchdog: if the peer never answers, give up after 8s and
+      //    surface a friendly error rather than hanging in `switching`.
+      _armHandoffWatchdog(callId);
+    } catch (e, st) {
+      debugPrint('CallService.handoffToHere failed: $e\n$st');
+      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+    }
+  }
+
+  Timer? _handoffWatchdog;
+  void _armHandoffWatchdog(String callId) {
+    _handoffWatchdog?.cancel();
+    _handoffWatchdog = Timer(const Duration(seconds: 8), () async {
+      final s = _session;
+      if (s == null || s.callId != callId) return;
+      if (s.status == CallStatus.switching) {
+        debugPrint('CallService: handoff watchdog tripped');
+        await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+      }
+    });
+  }
+
+  Future<void> _onHandoffTakeover({required String callId}) async {
+    final s = _session;
+    if (s == null || s.callId != callId) return;
+    debugPrint('CallService._onHandoffTakeover: this device is being replaced');
+    _session = s.copyWith(status: CallStatus.handedOff);
+    notifyListeners();
+    // Drop the PC without sending bye/end — the call is still alive on
+    // the new device. NativeCallHandler clears any lingering CallKit UI.
+    unawaited(NativeCallHandler.instance.endNative(callId));
+    await _teardown(CallStatus.handedOff);
+  }
+
+  Future<void> _onHandoffPrepare({required String callId}) async {
+    final s = _session;
+    if (s == null || s.callId != callId) return;
+    debugPrint('CallService._onHandoffPrepare: peer is switching device');
+    // Drop the PC but KEEP the session (and the local stream) — we'll
+    // hydrate against the incoming offer shortly. `_disposePc` would
+    // also dispose the local stream, so do a narrower teardown.
+    try {
+      await _pc?.close();
+    } catch (_) {}
+    _pc = null;
+    _remoteDescSet = false;
+    _pendingRemoteIce.clear();
+    _remoteStream = null;
+    _session = s.copyWith(status: CallStatus.switching);
+    notifyListeners();
+  }
+
+  Future<void> _onHandoffOffer({
+    required String callId,
+    required String payload,
+    String? peerDeviceId,
+  }) async {
+    final me = _userId;
+    final s = _session;
+    if (me == null || s == null || s.callId != callId) return;
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final sdp = parsed['sdp'] as String?;
+      final type = parsed['type'] as String?;
+      if (sdp == null || type == null) return;
+
+      _pc = await _createPeerConnection();
+      await _pc!.setRemoteDescription(RTCSessionDescription(sdp, type));
+      _remoteDescSet = true;
+      _drainPendingIce();
+
+      // If we still have the local stream from the previous PC, re-add
+      // its tracks; otherwise getUserMedia fresh.
+      final existingLocal = _localStream;
+      if (existingLocal != null && existingLocal.getTracks().isNotEmpty) {
+        for (final t in existingLocal.getTracks()) {
+          await _pc!.addTrack(t, existingLocal);
+        }
+      } else {
+        await _attachLocalMedia(s.mediaKind);
+      }
+
+      final answer = await _pc!.createAnswer({});
+      await _pc!.setLocalDescription(answer);
+      await api.sendCallSignal(
+        callId: callId,
+        fromUserId: me,
+        toUserId: s.peerUserId,
+        fromDeviceId: _deviceId,
+        kind: 'handoff-answer',
+        payload: jsonEncode({'sdp': answer.sdp, 'type': answer.type}),
+      );
+
+      _session = s.copyWith(
+        status: CallStatus.connecting,
+        peerDeviceId: peerDeviceId ?? s.peerDeviceId,
+      );
+      notifyListeners();
+    } catch (e, st) {
+      debugPrint('CallService._onHandoffOffer failed: $e\n$st');
+      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+    }
+  }
+
+  Future<void> _onHandoffAnswer({
+    required String callId,
+    required String payload,
+  }) async {
+    final pc = _pc;
+    final s = _session;
+    if (pc == null || s == null || s.callId != callId) return;
+    _handoffWatchdog?.cancel();
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final sdp = parsed['sdp'] as String?;
+      final type = parsed['type'] as String?;
+      if (sdp == null || type == null) return;
+      await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
+      _remoteDescSet = true;
+      _drainPendingIce();
+      _session = s.copyWith(status: CallStatus.connecting);
+      notifyListeners();
+    } catch (e, st) {
+      debugPrint('CallService._onHandoffAnswer failed: $e\n$st');
+      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
     }
   }
 
@@ -672,6 +918,11 @@ class CallService extends ChangeNotifier {
         callId: s.callId,
         fromUserId: _userId!,
         toUserId: s.peerUserId,
+        fromDeviceId: _deviceId,
+        // Target the peer's specific device when known (post-handoff) so
+        // siblings of the peer don't waste cycles parsing irrelevant
+        // candidates. Pre-handoff this is null → broadcast as today.
+        targetDeviceId: s.peerDeviceId,
         kind: 'ice',
         payload: jsonEncode({
           'candidate': cand.candidate,
@@ -851,6 +1102,8 @@ class CallService extends ChangeNotifier {
         callId: s.callId,
         fromUserId: me,
         toUserId: s.peerUserId,
+        fromDeviceId: _deviceId,
+        targetDeviceId: s.peerDeviceId,
         kind: 'state',
         payload: jsonEncode({
           'audioMuted': s.localMuted,

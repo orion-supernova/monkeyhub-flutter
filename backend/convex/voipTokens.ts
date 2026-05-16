@@ -10,10 +10,11 @@ export const setVoipToken = mutation({
   args: {
     userId: v.id("users"),
     deviceId: v.string(),
-    platform: v.string(), // "ios" | "ios-simulator" | "android"
+    platform: v.string(), // "ios" | "ios-simulator" | "android" | "macos" | …
     token: v.string(),
+    deviceName: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, deviceId, platform, token }) => {
+  handler: async (ctx, { userId, deviceId, platform, token, deviceName }) => {
     const now = Date.now();
     const existing = await ctx.db
       .query("userDevices")
@@ -25,6 +26,7 @@ export const setVoipToken = mutation({
       await ctx.db.patch(existing._id, {
         platform,
         voipToken: token,
+        deviceName: deviceName ?? existing.deviceName,
         lastSeenAt: now,
       });
     } else {
@@ -34,6 +36,7 @@ export const setVoipToken = mutation({
         platform,
         voipToken: token,
         fcmToken: undefined,
+        deviceName: deviceName ?? undefined,
         lastSeenAt: now,
         createdAt: now,
       });
@@ -61,8 +64,9 @@ export const setFcmToken = mutation({
     deviceId: v.string(),
     platform: v.string(),
     token: v.string(),
+    deviceName: v.optional(v.string()),
   },
-  handler: async (ctx, { userId, deviceId, platform, token }) => {
+  handler: async (ctx, { userId, deviceId, platform, token, deviceName }) => {
     const now = Date.now();
     const existing = await ctx.db
       .query("userDevices")
@@ -74,6 +78,7 @@ export const setFcmToken = mutation({
       await ctx.db.patch(existing._id, {
         platform,
         fcmToken: token,
+        deviceName: deviceName ?? existing.deviceName,
         lastSeenAt: now,
       });
     } else {
@@ -83,6 +88,48 @@ export const setFcmToken = mutation({
         platform,
         voipToken: undefined,
         fcmToken: token,
+        deviceName: deviceName ?? undefined,
+        lastSeenAt: now,
+        createdAt: now,
+      });
+    }
+  },
+});
+
+// Tokenless registration — for devices that don't get a push wake-up
+// (macOS, Windows, Linux, Web) but still want to participate in the
+// active-call subscription and "Move call here" handoff. Records the
+// deviceId/platform/deviceName so the pill can label this device when
+// it holds the active call.
+export const registerDevice = mutation({
+  args: {
+    userId: v.id("users"),
+    deviceId: v.string(),
+    platform: v.string(),
+    deviceName: v.optional(v.string()),
+  },
+  handler: async (ctx, { userId, deviceId, platform, deviceName }) => {
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user_device", (q) =>
+        q.eq("userId", userId).eq("deviceId", deviceId),
+      )
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        platform,
+        deviceName: deviceName ?? existing.deviceName,
+        lastSeenAt: now,
+      });
+    } else {
+      await ctx.db.insert("userDevices", {
+        userId,
+        deviceId,
+        platform,
+        voipToken: undefined,
+        fcmToken: undefined,
+        deviceName: deviceName ?? undefined,
         lastSeenAt: now,
         createdAt: now,
       });

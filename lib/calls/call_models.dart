@@ -8,12 +8,22 @@ extension CallMediaKindWire on CallMediaKind {
 
 /// Local UI state. The backend `calls.status` plus the local PeerConnection
 /// state collapse into this — what the call_screen reads.
+///
+/// `switching` is used during a multi-device handoff:
+///   - on the peer who's already in the call, while it tears down its
+///     old PC and waits for the new device's offer (brief overlay).
+///   - on the new device taking the call, while it negotiates the
+///     fresh PC.
+/// `handedOff` is a terminal state for the *old* device after a handoff
+/// (treated like `ended` but suppresses error toasts).
 enum CallStatus {
   idle,
   outgoingRinging,
   incomingRinging,
   connecting,
   active,
+  switching,
+  handedOff,
   ended,
   failed,
 }
@@ -59,6 +69,7 @@ class CallSession {
     this.startedAt,
     this.connectedAt,
     this.errorMessage,
+    this.peerDeviceId,
   });
 
   final String callId;
@@ -75,6 +86,11 @@ class CallSession {
   final DateTime? startedAt;
   final DateTime? connectedAt;
   final String? errorMessage;
+  /// Which device of the peer currently holds the call. Tracked so our
+  /// outgoing signals (ICE, state, etc.) can be targeted post-handoff
+  /// and siblings of the peer ignore them. Updated when an incoming
+  /// signal carries `fromDeviceId`.
+  final String? peerDeviceId;
 
   CallSession copyWith({
     CallStatus? status,
@@ -84,6 +100,7 @@ class CallSession {
     bool? speakerOn,
     DateTime? connectedAt,
     String? errorMessage,
+    String? peerDeviceId,
   }) {
     return CallSession(
       callId: callId,
@@ -100,6 +117,7 @@ class CallSession {
       startedAt: startedAt,
       connectedAt: connectedAt ?? this.connectedAt,
       errorMessage: errorMessage,
+      peerDeviceId: peerDeviceId ?? this.peerDeviceId,
     );
   }
 }
