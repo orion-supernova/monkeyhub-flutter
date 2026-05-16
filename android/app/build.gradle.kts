@@ -3,9 +3,6 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // Reads android/app/google-services.json and exposes FCM credentials at
-    // build time. Required by firebase_messaging.
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -31,8 +28,8 @@ android {
         applicationId = "com.walhallaa.chattest20241220"
         minSdk = flutter.minSdkVersion
         targetSdk = 34
-        versionCode = 137001
-        versionName = "1.3.7"
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {
@@ -49,6 +46,4 @@ flutter {
 }
 
 dependencies {
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation("com.google.firebase:firebase-messaging")
 }

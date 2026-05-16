@@ -1,9 +1,8 @@
-package com.example.monkeyhub
+package com.walhallaa.chattest20241220
 
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.view.WindowManager
-import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -79,18 +78,8 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getToken" -> {
-                        FirebaseMessaging.getInstance().token
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    result.success(task.result)
-                                } else {
-                                    result.error(
-                                        "FCM_TOKEN_FAILED",
-                                        task.exception?.message,
-                                        null,
-                                    )
-                                }
-                            }
+                        // Firebase disabled — no FCM token available.
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }
