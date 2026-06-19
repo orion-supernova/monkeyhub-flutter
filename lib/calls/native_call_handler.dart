@@ -90,7 +90,17 @@ class NativeCallHandler {
         //      CallKit fires faster than the Convex realtime subscription),
         //      `_onRemoteOffer` will auto-fire acceptIncoming later.
         service.markAcceptedNatively();
-        await service.acceptIncoming();
+        try {
+          await service.acceptIncoming();
+        } catch (e) {
+          // The backend call may already be terminal (caller cancelled or it
+          // timed out) — accept throws NOT_RINGING. Clear the stuck native
+          // card instead of leaving a dead ringer on screen.
+          debugPrint('NativeCallHandler: acceptIncoming failed: $e');
+          try {
+            await FlutterCallkitIncoming.endAllCalls();
+          } catch (_) {}
+        }
         break;
       case Event.actionCallDecline:
         await service.reject();

@@ -96,16 +96,19 @@ export const sendVoip = internalAction({
   },
 });
 
-// Sent to every sibling iOS device when one device accepts or rejects a
-// ringing call, so CallKit can dismiss with `.answeredElsewhere` even on a
-// killed app where the in-app `taken` signal can't be delivered in time.
-// The accepting device is excluded via `excludeDeviceId`.
+// Sent to callee iOS devices to dismiss a ringing CallKit card with
+// `.answeredElsewhere`, even on a killed app where the in-app `taken` signal
+// can't be delivered in time. Two uses:
+//   - A sibling device accepted/rejected → pass that device's id as
+//     `excludeDeviceId` so it doesn't dismiss its own (now-active) call.
+//   - The caller cancelled, or the ring timed out / got stuck → pass
+//     `excludeDeviceId: null` to clear the ringer on EVERY callee device.
 export const sendVoipTaken = internalAction({
   args: {
     callId: v.id("calls"),
     calleeId: v.id("users"),
     excludeDeviceId: v.optional(v.union(v.string(), v.null())),
-    reason: v.string(), // "accepted" | "rejected"
+    reason: v.string(), // "accepted" | "rejected" | "cancelled" | "timeout"
   },
   handler: async (ctx, args) => {
     const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {

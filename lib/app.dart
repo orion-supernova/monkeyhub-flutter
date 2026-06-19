@@ -122,6 +122,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     if (state == AppLifecycleState.resumed) {
       // Clear platform badge on foreground; OneSignal won't auto-clear on iOS.
       BadgeManager.instance.clear();
+      // Re-assert the VoIP/FCM token. The backend clears a device's token
+      // after an APNs/FCM bad-token reply, which otherwise silently kills
+      // native call rings for the rest of the session (only the in-app
+      // realtime path survives). Re-uploading on resume self-heals that.
+      PushManager.instance.refreshTokens();
     }
   }
 

@@ -321,6 +321,16 @@ export const cancel = mutation({
       consumed: false,
     });
     await purgeCallSignals(ctx, callId, sigId);
+    // Dismiss the callee's native CallKit ringer too. A locked/killed callee
+    // woken by the invite VoIP push has a suspended realtime subscription, so
+    // the "cancel" signal above never reaches it — only a "taken" VoIP push
+    // can clear the lingering ring. Fan to ALL callee devices (no exclude).
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      calleeId: call.calleeId,
+      excludeDeviceId: null,
+      reason: "cancelled",
+    });
   },
 });
 
@@ -394,6 +404,15 @@ export const expireRingingCall = internalMutation({
       }
       await ctx.db.delete(r._id);
     }
+    // Dismiss the callee's native CallKit ringer on timeout — the realtime
+    // "cancel" signal above can't reach a locked/killed device, so push a
+    // "taken" VoIP payload to every callee device (see cancel mutation).
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      calleeId: call.calleeId,
+      excludeDeviceId: null,
+      reason: "timeout",
+    });
   },
 });
 
@@ -838,6 +857,13 @@ export const gcStuckRinging = internalMutation({
         payload: '{"reason":"stuck"}',
         createdAt: Date.now(),
         consumed: false,
+      });
+      // Clear any native CallKit ringer still up on a locked/killed callee.
+      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+        callId: call._id,
+        calleeId: call.calleeId,
+        excludeDeviceId: null,
+        reason: "timeout",
       });
     }
     if (rows.length > 0) {

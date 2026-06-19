@@ -133,29 +133,8 @@ class PushManager {
     // Upload native call tokens. Failures here are non-fatal — OneSignal
     // remains as a fallback on iOS/Android, and other platforms still
     // register their device row via [_registerNoPushDevice] below.
-    if (Platform.isIOS) {
-      try {
-        // Pull the cached token; fall back to one that arrived pre-login via
-        // the onTokenUpdated callback (PushKit issues it at launch, often
-        // before the user signs in).
-        final token =
-            await _voipChannel.invokeMethod<String>('getToken') ??
-                _pendingVoipToken;
-        await _uploadVoipToken(token);
-      } catch (e) {
-        debugPrint('PushManager.login: VoIP token fetch failed: $e');
-        // getToken threw — still try the pre-login token if we have one.
-        if (_pendingVoipToken != null) {
-          await _uploadVoipToken(_pendingVoipToken);
-        }
-      }
-    } else if (Platform.isAndroid) {
-      try {
-        final token = await _fcmChannel.invokeMethod<String>('getToken');
-        await _uploadFcmToken(token);
-      } catch (e) {
-        debugPrint('PushManager.login: FCM token fetch failed: $e');
-      }
+    if (Platform.isIOS || Platform.isAndroid) {
+      await refreshTokens();
     } else {
       // macOS / Windows / Linux / Web — register the device row so the
       // active-call subscription can label this device in the pill,
@@ -199,13 +178,56 @@ class PushManager {
         platform: DeviceIdentity.platformTag(),
         token: token,
         deviceName: _deviceName,
-        // Debug builds carry the development entitlement → sandbox APNs;
-        // profile/release builds carry production. Tag the token so the
-        // backend rings the matching APNs host (one deployment serves both).
-        apnsEnv: kDebugMode ? 'sandbox' : 'production',
+        // The token's real APNs environment is fixed by the embedded
+        // provisioning profile, not the Dart build mode — a development-
+        // profiled Release build issues a *sandbox* token that kDebugMode
+        // would mis-tag as production (→ APNs 400 → token cleared). Ask the
+        // native side for the authoritative value; fall back to the build-
+        // mode heuristic only if it's unavailable (e.g. App Store build).
+        apnsEnv: await _resolveApnsEnv(),
       );
     } catch (e) {
       debugPrint('PushManager: setVoipToken failed: $e');
+    }
+  }
+
+  /// Authoritative APNs environment from the embedded provisioning profile
+  /// (via AppDelegate), falling back to the build-mode heuristic.
+  Future<String> _resolveApnsEnv() async {
+    try {
+      final native =
+          await _voipChannel.invokeMethod<String>('getApnsEnvironment');
+      if (native == 'sandbox' || native == 'production') return native!;
+    } catch (e) {
+      debugPrint('PushManager: getApnsEnvironment failed: $e');
+    }
+    return kDebugMode ? 'sandbox' : 'production';
+  }
+
+  /// Re-fetch and re-upload native push tokens for the current session.
+  /// Idempotent and safe to call any time — no-ops until a user/deviceId
+  /// exist. Called on app resume so a token the backend cleared (e.g. after
+  /// a transient APNs error) is restored without waiting for a cold login.
+  Future<void> refreshTokens() async {
+    if (_userId == null || _deviceId == null) return;
+    if (Platform.isIOS) {
+      try {
+        final token = await _voipChannel.invokeMethod<String>('getToken') ??
+            _pendingVoipToken;
+        await _uploadVoipToken(token);
+      } catch (e) {
+        debugPrint('PushManager.refreshTokens: VoIP fetch failed: $e');
+        if (_pendingVoipToken != null) {
+          await _uploadVoipToken(_pendingVoipToken);
+        }
+      }
+    } else if (Platform.isAndroid) {
+      try {
+        final token = await _fcmChannel.invokeMethod<String>('getToken');
+        await _uploadFcmToken(token);
+      } catch (e) {
+        debugPrint('PushManager.refreshTokens: FCM fetch failed: $e');
+      }
     }
   }
 

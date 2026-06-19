@@ -198,15 +198,62 @@ import flutter_callkit_incoming
       if let error = error {
         NSLog("[voip] reportAndEndCall: report failed: \(error.localizedDescription)")
       }
-      // Mark answered-elsewhere with a real timestamp so iOS classifies
-      // this as a successfully-handled VoIP push and won't surface a
-      // missed-call notification.
+      // Safety-net end in case the synchronous end below raced the report
+      // registering. Idempotent — ending an already-ended call is a no-op.
       self?.foregroundReportProvider.reportCall(
         with: uuid,
         endedAt: Date(),
         reason: .answeredElsewhere
       )
     }
+    // End the call SYNCHRONOUSLY, in the same run-loop turn as the report,
+    // so CallKit never actually presents a (nameless) incoming card. The
+    // PushKit contract is satisfied — we did report an incoming call — but
+    // the user sees nothing because it's already over. Marked
+    // `.answeredElsewhere` with a real timestamp so iOS treats the VoIP push
+    // as successfully handled and shows no missed-call notification.
+    foregroundReportProvider.reportCall(
+      with: uuid,
+      endedAt: Date(),
+      reason: .answeredElsewhere
+    )
+  }
+
+  // Reads `aps-environment` ("development" | "production") from the embedded
+  // provisioning profile and maps it to the APNs host Dart should tag the
+  // PushKit token with ("sandbox" | "production"). This is the authoritative
+  // source — a Release build signed with a development profile still issues a
+  // *sandbox* token, which `kDebugMode` alone can't detect. Returns nil if the
+  // profile is absent (e.g. App Store builds strip embedded.mobileprovision);
+  // Dart then falls back to its build-mode heuristic.
+  private func apnsEnvironment() -> String? {
+    guard
+      let url = Bundle.main.url(
+        forResource: "embedded", withExtension: "mobileprovision"),
+      let data = try? Data(contentsOf: url),
+      let raw = String(data: data, encoding: .ascii)
+    else {
+      return nil
+    }
+    // The profile is CMS/PKCS7-wrapped; the embedded plist is plain XML in the
+    // middle. Slice from <plist to </plist> and parse just that.
+    guard
+      let start = raw.range(of: "<plist"),
+      let end = raw.range(of: "</plist>")
+    else {
+      return nil
+    }
+    let plistXml = String(raw[start.lowerBound..<end.upperBound])
+    guard
+      let plistData = plistXml.data(using: .utf8),
+      let plist = try? PropertyListSerialization.propertyList(
+        from: plistData, options: [], format: nil) as? [String: Any],
+      let entitlements = plist["Entitlements"] as? [String: Any],
+      let apsEnv = entitlements["aps-environment"] as? String
+    else {
+      return nil
+    }
+    return apsEnv == "production" ? "production" : "sandbox"
   }
 
   // MARK: - CXProviderDelegate
@@ -346,6 +393,13 @@ import flutter_callkit_incoming
         switch call.method {
         case "getToken":
           result(self?.cachedVoipToken)
+        case "getApnsEnvironment":
+          // The PushKit token's environment is fixed by the embedded
+          // provisioning profile's `aps-environment`, NOT by the Dart build
+          // mode. Reading it here lets Dart tag the token correctly so the
+          // backend rings the matching APNs host — a development-profiled
+          // Release build (sandbox token) is no longer mis-tagged production.
+          result(self?.apnsEnvironment())
         default:
           result(FlutterMethodNotImplemented)
         }
