@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'auth/auth_service.dart';
+import 'backend/call_api.dart';
 import 'backend/chat_api.dart';
 import 'backend/convex_client.dart';
 import 'calls/active_call_pill.dart';
@@ -40,11 +41,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   final ThemeController _themeController = ThemeController(_initialTheme());
   final ConvexBackend _cv = ConvexBackend.instance;
   late final ChatApi _api = ChatApi(_cv);
+  late final CallApi _callApi = CallApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
-  late final CallService _callService = CallService.ensure(_api);
+  late final CallService _callService = CallService.ensure(_callApi);
   late final SignalingSubscriber _signaling =
-      SignalingSubscriber(api: _api, service: _callService);
+      SignalingSubscriber(api: _callApi, service: _callService);
   // Cached merged listenable. Created exactly once so AnimatedBuilder's
   // listener subscription on _auth / _themeController is never re-bound
   // across parent rebuilds (each fresh Listenable.merge call would force
@@ -259,7 +261,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                       left: 0,
                       right: 0,
                       child: ActiveCallPill(
-                        api: _api,
+                        api: _callApi,
                         service: _callService,
                       ),
                     ),

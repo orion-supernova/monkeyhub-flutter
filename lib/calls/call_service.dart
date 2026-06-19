@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-import '../backend/chat_api.dart';
+import '../backend/call_api.dart';
 import 'call_models.dart';
 import 'native_call_handler.dart';
 
@@ -16,7 +16,7 @@ import 'native_call_handler.dart';
 /// across the app — UI listens via `addListener` and reads [session],
 /// [localStream], [remoteStream].
 ///
-/// Signaling rides on Convex via `ChatApi.subscribeCallSignals`; that
+/// Signaling rides on Convex via `CallApi.subscribeCallSignals`; that
 /// subscription is wired by `SignalingSubscriber` which delivers signals into
 /// [handleRemoteSignal].
 class CallService extends ChangeNotifier {
@@ -24,10 +24,10 @@ class CallService extends ChangeNotifier {
 
   static CallService? _instance;
   static CallService get instance => _instance!;
-  static CallService ensure(ChatApi api) =>
+  static CallService ensure(CallApi api) =>
       _instance ??= CallService(api: api);
 
-  final ChatApi api;
+  final CallApi api;
 
   String? _userId;
   String? get userId => _userId;

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../backend/chat_api.dart';
+import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
 import 'call_service.dart';
 
@@ -12,7 +12,7 @@ import 'call_service.dart';
 class SignalingSubscriber {
   SignalingSubscriber({required this.api, required this.service});
 
-  final ChatApi api;
+  final CallApi api;
   final CallService service;
 
   Subscription? _sub;

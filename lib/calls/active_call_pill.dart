@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../backend/chat_api.dart';
+import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
 import '../theme/theme_scope.dart';
 import 'call_service.dart';
@@ -14,7 +14,7 @@ class ActiveCallPill extends StatefulWidget {
     required this.api,
     required this.service,
   });
-  final ChatApi api;
+  final CallApi api;
   final CallService service;
 
   @override
