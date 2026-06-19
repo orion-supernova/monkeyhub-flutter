@@ -2,7 +2,7 @@ name: monkeyhub
 description: "MonkeyHub — rooms, friends, secrets that fade."
 publish_to: 'none'
 
-version: 1.3.17+1
+version: 1.3.18+1
 
 environment:
   sdk: ^3.11.4
