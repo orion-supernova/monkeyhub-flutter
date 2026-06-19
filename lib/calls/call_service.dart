@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -165,6 +164,9 @@ class CallService extends ChangeNotifier {
         status: CallStatus.outgoingRinging,
         startedAt: DateTime.now(),
         localVideoOff: kind == CallMediaKind.audio,
+        // Loudspeaker for video, earpiece for voice — matches the route
+        // applied when media attaches; avoids a wrong icon while ringing.
+        speakerOn: kind == CallMediaKind.video,
       );
       notifyListeners();
       // Surface the native "outgoing call" affordance (green pill on iOS,
@@ -350,14 +352,27 @@ class CallService extends ChangeNotifier {
   Future<void> toggleSpeaker() async {
     final s = _session;
     if (s == null) return;
-    final newOn = !s.speakerOn;
+    await _applyAudioRoute(speaker: !s.speakerOn);
+  }
+
+  /// Sets the audio output route (loudspeaker vs earpiece) and keeps the
+  /// session's [speakerOn] flag in sync so the UI matches reality.
+  ///
+  /// Applied with the per-kind default when local media attaches (video →
+  /// loudspeaker, voice → earpiece) on BOTH platforms, then re-asserted once
+  /// the call connects — iOS only honors the route after its CallKit audio
+  /// session goes active, so the attach-time call alone doesn't stick.
+  Future<void> _applyAudioRoute({required bool speaker}) async {
     try {
-      await Helper.setSpeakerphoneOn(newOn);
+      await Helper.setSpeakerphoneOn(speaker);
     } catch (e) {
-      debugPrint('setSpeakerphoneOn failed: $e');
+      debugPrint('setSpeakerphoneOn($speaker) failed: $e');
     }
-    _session = s.copyWith(speakerOn: newOn);
-    notifyListeners();
+    final s = _session;
+    if (s != null && s.speakerOn != speaker) {
+      _session = s.copyWith(speakerOn: speaker);
+      notifyListeners();
+    }
   }
 
   // ───────── inbound signaling ─────────
@@ -1026,6 +1041,8 @@ class CallService extends ChangeNotifier {
         );
         notifyListeners();
         unawaited(NativeCallHandler.instance.markConnected(s.callId));
+        // Re-assert the output route now the iOS audio session is live.
+        unawaited(_applyAudioRoute(speaker: s.speakerOn));
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
       } else if (state ==
@@ -1074,13 +1091,10 @@ class CallService extends ChangeNotifier {
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
     }
-    // On Android the audio output default is the earpiece. Route to speaker
-    // for video calls so it behaves like a typical phone app.
-    if (Platform.isAndroid && kind == CallMediaKind.video) {
-      try {
-        await Helper.setSpeakerphoneOn(true);
-      } catch (_) {}
-    }
+    // Default output route: loudspeaker for video, earpiece for voice — on
+    // both platforms. iOS won't latch this until its audio session is active,
+    // so onConnectionState (connected) re-asserts it.
+    await _applyAudioRoute(speaker: kind == CallMediaKind.video);
   }
 
   /// Pulls the `typ` token out of an ICE candidate SDP line:

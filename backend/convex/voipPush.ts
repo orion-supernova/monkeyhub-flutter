@@ -41,6 +41,7 @@ export const _loadUserDevices = internalQuery({
         deviceId: r.deviceId,
         platform: r.platform,
         voipToken: r.voipToken,
+        apnsEnv: r.apnsEnv,
         fcmToken: r.fcmToken,
       }));
     }
@@ -128,6 +129,8 @@ export const sendVoipTaken = internalAction({
   },
 });
 
+type ApnsEnv = "sandbox" | "production";
+
 type DeviceRow =
   | {
       deviceRowId: Id<"userDevices">;
@@ -135,6 +138,7 @@ type DeviceRow =
       deviceId: string;
       platform: string;
       voipToken?: string;
+      apnsEnv?: ApnsEnv;
       fcmToken?: string;
     }
   | {
@@ -143,6 +147,7 @@ type DeviceRow =
       deviceId: string;
       platform: string;
       voipToken?: string;
+      apnsEnv?: ApnsEnv;
       fcmToken?: string;
     };
 
@@ -156,8 +161,10 @@ async function pushToDevice(
   // realtime subscription path covers them.
   if (d.voipToken && d.platform !== "ios-simulator") {
     try {
-      await sendApnsVoip(d.voipToken, payload);
-      console.log(`sendVoip: APNs OK device=${d.deviceId}`);
+      await sendApnsVoip(d.voipToken, payload, d.apnsEnv);
+      console.log(
+        `sendVoip: APNs OK device=${d.deviceId} env=${d.apnsEnv ?? "default"}`,
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`sendVoip: APNs failed device=${d.deviceId}: ${msg}`);
@@ -180,7 +187,15 @@ async function pushToDevice(
         console.warn(
           `sendVoip: cleared voipToken device=${d.deviceId} after ${msg}`,
         );
+      } else if (msg.startsWith("APNS_MISCONFIG")) {
+        // Server-side: bad/expired APNs key, wrong team/bundle, or 401/403.
+        // Every call will fail until an operator fixes env config — make it
+        // loud and never clear the (perfectly valid) device token.
+        console.error(
+          `CALL_PUSH_MISCONFIG: APNs cannot send — fix deployment env. ${msg}`,
+        );
       }
+      // APNS_TRANSIENT and any other error: keep the token, retry next call.
     }
   }
   if (d.fcmToken) {
@@ -205,7 +220,14 @@ async function pushToDevice(
         console.warn(
           `sendVoip: cleared fcmToken device=${d.deviceId} after ${msg}`,
         );
+      } else if (msg.startsWith("FCM_MISCONFIG")) {
+        // Server-side: missing/invalid service account or 401/403. Loud,
+        // and never clear the valid device token.
+        console.error(
+          `CALL_PUSH_MISCONFIG: FCM cannot send — fix deployment env. ${msg}`,
+        );
       }
+      // FCM_TRANSIENT and any other error: keep the token, retry next call.
     }
   }
 }
@@ -215,24 +237,41 @@ async function pushToDevice(
 async function sendApnsVoip(
   voipToken: string,
   payload: Record<string, unknown>,
+  apnsEnv?: ApnsEnv,
 ): Promise<void> {
   const keyId = process.env.APNS_KEY_ID;
   const teamId = process.env.APNS_TEAM_ID;
   const bundleId = process.env.APNS_BUNDLE_ID;
   const keyP8 = process.env.APNS_KEY_P8;
-  const sandbox = (process.env.APNS_SANDBOX ?? "true") === "true";
+  // Per-token environment wins (a sandbox token only works against the
+  // sandbox host and vice-versa). Falls back to the APNS_SANDBOX env for
+  // legacy rows registered before apnsEnv existed.
+  const sandbox =
+    apnsEnv === "production"
+      ? false
+      : apnsEnv === "sandbox"
+        ? true
+        : (process.env.APNS_SANDBOX ?? "true") === "true";
   if (!keyId || !teamId || !bundleId || !keyP8) {
     throw new Error(
-      "missing APNS_KEY_ID / APNS_TEAM_ID / APNS_BUNDLE_ID / APNS_KEY_P8",
+      "APNS_MISCONFIG: missing APNS_KEY_ID / APNS_TEAM_ID / APNS_BUNDLE_ID / APNS_KEY_P8",
     );
   }
   const iat = Math.floor(Date.now() / 1000);
-  const jwt = await signJwt(
-    { alg: "ES256", typ: "JWT", kid: keyId },
-    { iss: teamId, iat },
-    keyP8,
-    "ES256",
-  );
+  let jwt: string;
+  try {
+    jwt = await signJwt(
+      { alg: "ES256", typ: "JWT", kid: keyId },
+      { iss: teamId, iat },
+      keyP8,
+      "ES256",
+    );
+  } catch (e) {
+    // A malformed/expired .p8 key fails here. This is a deployment
+    // misconfiguration, not a bad device token — never clear the token.
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`APNS_MISCONFIG: JWT signing failed (${msg})`);
+  }
   const host = sandbox ? "api.sandbox.push.apple.com" : "api.push.apple.com";
   const url = `https://${host}/3/device/${voipToken}`;
   const res = await fetch(url, {
@@ -249,11 +288,19 @@ async function sendApnsVoip(
   });
   if (!res.ok) {
     const body = await res.text();
-    // 410 Unregistered / 400 BadDeviceToken → caller should clear the
-    // stored token. Use a sentinel prefix so the catch site can branch
-    // on it without parsing the whole status line.
+    // Sentinel prefixes let the catch site branch without parsing the
+    // status line. Three classes, three behaviours:
+    //   *_BAD_TOKEN  (410/400) → device token revoked; clear it.
+    //   *_MISCONFIG  (401/403) → bad APNs auth key/team; never clear.
+    //   *_TRANSIENT  (429/5xx) → APNs blip; keep token, retry next call.
     if (res.status === 410 || res.status === 400) {
       throw new Error(`APNS_BAD_TOKEN:${res.status}:${body}`);
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`APNS_MISCONFIG: HTTP ${res.status}: ${body}`);
+    }
+    if (res.status === 429 || res.status >= 500) {
+      throw new Error(`APNS_TRANSIENT: HTTP ${res.status}: ${body}`);
     }
     throw new Error(`APNs HTTP ${res.status}: ${body}`);
   }
@@ -266,12 +313,20 @@ async function sendFcmData(
   payload: Record<string, unknown>,
 ): Promise<void> {
   const saJson = process.env.FCM_SERVICE_ACCOUNT_JSON;
-  if (!saJson) throw new Error("missing FCM_SERVICE_ACCOUNT_JSON");
-  const sa = JSON.parse(saJson) as {
+  if (!saJson) throw new Error("FCM_MISCONFIG: missing FCM_SERVICE_ACCOUNT_JSON");
+  let sa: {
     client_email: string;
     private_key: string;
     project_id: string;
   };
+  try {
+    sa = JSON.parse(saJson);
+  } catch (e) {
+    // Malformed service-account JSON is a deployment misconfiguration, not
+    // a bad device token.
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`FCM_MISCONFIG: invalid FCM_SERVICE_ACCOUNT_JSON (${msg})`);
+  }
   const accessToken = await fcmAccessToken(sa);
   // FCM v1 data values must all be strings.
   const data: Record<string, string> = {};
@@ -296,14 +351,22 @@ async function sendFcmData(
   );
   if (!res.ok) {
     const respBody = await res.text();
-    // FCM signals dead tokens via UNREGISTERED (404) or INVALID_ARGUMENT
-    // (400) — surface them so the caller can clear the stored token.
+    // Same three-class split as APNs:
+    //   FCM_BAD_TOKEN  (404 / 400 / UNREGISTERED) → clear the token.
+    //   FCM_MISCONFIG  (401/403) → bad service-account / perms; never clear.
+    //   FCM_TRANSIENT  (429/5xx) → FCM blip; keep token, retry next call.
     if (
       res.status === 404 ||
       res.status === 400 ||
       respBody.includes("UNREGISTERED")
     ) {
       throw new Error(`FCM_BAD_TOKEN:${res.status}:${respBody}`);
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`FCM_MISCONFIG: HTTP ${res.status}: ${respBody}`);
+    }
+    if (res.status === 429 || res.status >= 500) {
+      throw new Error(`FCM_TRANSIENT: HTTP ${res.status}: ${respBody}`);
     }
     throw new Error(`FCM HTTP ${res.status}: ${respBody}`);
   }

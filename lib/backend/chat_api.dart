@@ -137,6 +137,7 @@ class ChatApi {
     required String platform,
     required String token,
     String? deviceName,
+    String? apnsEnv, // "sandbox" | "production"
   }) async {
     await _cv.mutation('voipTokens:setVoipToken', {
       'userId': userId,
@@ -144,6 +145,7 @@ class ChatApi {
       'platform': platform,
       'token': token,
       'deviceName': ?deviceName,
+      'apnsEnv': ?apnsEnv,
     });
   }
 

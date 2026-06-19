@@ -33,6 +33,12 @@ class PushManager {
   String? _userId;
   String? _deviceId;
   String? _deviceName;
+  // Most recent iOS PushKit token seen via the `onTokenUpdated` callback.
+  // PushKit can hand us the token before the user logs in (it arrives at
+  // launch), so we stash it here and flush it during [login] — otherwise a
+  // cold-launch token would be dropped and the device would never register a
+  // VoIP token, forcing the backend onto the OneSignal-only path.
+  String? _pendingVoipToken;
 
   /// OneSignal + native push tokens are only available on iOS / Android.
   /// Other platforms still participate in the device registry (for the
@@ -93,6 +99,11 @@ class PushManager {
         if (call.method == 'onTokenUpdated') {
           final args = (call.arguments as Map?) ?? const {};
           final token = args['token'] as String?;
+          // Always remember the latest token, even if no user is logged in
+          // yet — [login] flushes it. _uploadVoipToken is a no-op until a
+          // user/deviceId exist, so this is the only thing that keeps a
+          // pre-login token from being lost.
+          if (token != null && token.isNotEmpty) _pendingVoipToken = token;
           await _uploadVoipToken(token);
         }
         return null;
@@ -124,10 +135,19 @@ class PushManager {
     // register their device row via [_registerNoPushDevice] below.
     if (Platform.isIOS) {
       try {
-        final token = await _voipChannel.invokeMethod<String>('getToken');
+        // Pull the cached token; fall back to one that arrived pre-login via
+        // the onTokenUpdated callback (PushKit issues it at launch, often
+        // before the user signs in).
+        final token =
+            await _voipChannel.invokeMethod<String>('getToken') ??
+                _pendingVoipToken;
         await _uploadVoipToken(token);
       } catch (e) {
         debugPrint('PushManager.login: VoIP token fetch failed: $e');
+        // getToken threw — still try the pre-login token if we have one.
+        if (_pendingVoipToken != null) {
+          await _uploadVoipToken(_pendingVoipToken);
+        }
       }
     } else if (Platform.isAndroid) {
       try {
@@ -179,6 +199,10 @@ class PushManager {
         platform: DeviceIdentity.platformTag(),
         token: token,
         deviceName: _deviceName,
+        // Debug builds carry the development entitlement → sandbox APNs;
+        // profile/release builds carry production. Tag the token so the
+        // backend rings the matching APNs host (one deployment serves both).
+        apnsEnv: kDebugMode ? 'sandbox' : 'production',
       );
     } catch (e) {
       debugPrint('PushManager: setVoipToken failed: $e');

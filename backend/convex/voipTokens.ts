@@ -13,8 +13,14 @@ export const setVoipToken = mutation({
     platform: v.string(), // "ios" | "ios-simulator" | "android" | "macos" | …
     token: v.string(),
     deviceName: v.optional(v.string()),
+    // "sandbox" for debug/dev builds, "production" for TestFlight/App Store.
+    // Lets the backend pick the matching APNs host per token.
+    apnsEnv: v.optional(v.union(v.literal("sandbox"), v.literal("production"))),
   },
-  handler: async (ctx, { userId, deviceId, platform, token, deviceName }) => {
+  handler: async (
+    ctx,
+    { userId, deviceId, platform, token, deviceName, apnsEnv },
+  ) => {
     const now = Date.now();
     const existing = await ctx.db
       .query("userDevices")
@@ -26,6 +32,7 @@ export const setVoipToken = mutation({
       await ctx.db.patch(existing._id, {
         platform,
         voipToken: token,
+        apnsEnv: apnsEnv ?? existing.apnsEnv,
         deviceName: deviceName ?? existing.deviceName,
         lastSeenAt: now,
       });
@@ -35,6 +42,7 @@ export const setVoipToken = mutation({
         deviceId,
         platform,
         voipToken: token,
+        apnsEnv,
         fcmToken: undefined,
         deviceName: deviceName ?? undefined,
         lastSeenAt: now,
@@ -148,21 +156,6 @@ export const clearDeviceToken = mutation({
       )
       .first();
     if (row) await ctx.db.delete(row._id);
-  },
-});
-
-// Deprecated: legacy path that nuked every token for a user. Kept as a
-// shim so any leftover call site still does the right thing — also sweeps
-// the new per-device rows. New code should call `clearDeviceToken`.
-export const clearTokens = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    await ctx.db.patch(userId, { voipToken: undefined, fcmToken: undefined });
-    const rows = await ctx.db
-      .query("userDevices")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    for (const r of rows) await ctx.db.delete(r._id);
   },
 });
 

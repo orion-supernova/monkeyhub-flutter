@@ -109,18 +109,12 @@ class CallApi {
     });
   }
 
-  Future<Map<String, dynamic>?> activeCallForUser(String userId) async {
-    final res = await _cv.query('calls:activeCallForUser', {'userId': userId});
-    if (res == null) return null;
-    return (res as Map).cast<String, dynamic>();
-  }
-
   /// Live subscription to my current `ringing` or `active` call (if any).
   /// Backs the global "Move call here" pill and any other UI that needs
   /// to know "is there a call happening on one of my devices right now?".
-  /// Returns the same shape as [activeCallForUser]: an inflated record
-  /// with peer name, type, status, acceptingDeviceId, and the holding
-  /// device's deviceName / platform.
+  /// Each emission is an inflated record with peer name, type, status,
+  /// acceptingDeviceId, and the holding device's deviceName / platform
+  /// (null when there is no live call).
   Future<Subscription> subscribeActiveCall({
     required String userId,
     required void Function(Map<String, dynamic>? call) onCall,

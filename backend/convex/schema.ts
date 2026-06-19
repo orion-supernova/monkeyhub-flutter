@@ -49,6 +49,14 @@ export default defineSchema({
     deviceId: v.string(),                    // client-persisted UUIDv4
     platform: v.string(),                    // "ios" | "ios-simulator" | "android" | "macos" | "windows" | "linux" | "web"
     voipToken: v.optional(v.string()),       // iOS PushKit
+    // APNs environment the voipToken was minted under. Debug/dev builds
+    // produce sandbox tokens, distribution (TestFlight/App Store) builds
+    // produce production tokens; the two are NOT interchangeable. Stored
+    // per-device so one deployment can ring both. Missing → fall back to
+    // the APNS_SANDBOX env default.
+    apnsEnv: v.optional(
+      v.union(v.literal("sandbox"), v.literal("production")),
+    ),
     fcmToken: v.optional(v.string()),        // Android FCM
     // Human-readable label shown in the "Move call here" pill. Captured
     // from `UIDevice.current.name` / `Host.current().localizedName` /

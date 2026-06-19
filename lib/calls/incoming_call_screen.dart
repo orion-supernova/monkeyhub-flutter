@@ -105,9 +105,22 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             child: Column(
               children: [
                 const SizedBox(height: 48),
-                Text(
-                  kindLabel,
-                  style: theme.monoTiny.copyWith(color: Colors.white70),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      s?.mediaKind == CallMediaKind.video
+                          ? Icons.videocam
+                          : Icons.call,
+                      size: 14,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      kindLabel,
+                      style: theme.monoTiny.copyWith(color: Colors.white70),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 AnimatedBuilder(
@@ -126,6 +139,13 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         color: Colors.white.withValues(alpha: 0.25),
                         width: 1,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.accent.withValues(alpha: 0.45),
+                          blurRadius: 44,
+                          spreadRadius: 4,
+                        ),
+                      ],
                     ),
                     child: Center(
                       child: Text(

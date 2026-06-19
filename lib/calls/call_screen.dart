@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -163,7 +164,35 @@ class _CallScreenState extends State<CallScreen> {
                     RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
               )
             else
-              _AudioBackdrop(name: s.peerName, theme: theme),
+              _AudioBackdrop(
+                name: s.peerName,
+                status: _statusLabel(s),
+                peerMuted: s.peerState.audioMuted,
+                theme: theme,
+              ),
+
+            // Top scrim so the name/status stay legible over remote video.
+            if (remoteVisible)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 200,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.55),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
 
             // Local PiP (video only)
             if (isVideo && !s.localVideoOff)
@@ -186,44 +215,46 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
 
-            // Top overlay: name + status
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 18,
-              left: 24,
-              right: isVideo ? 132 : 24,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.peerName,
-                    style: theme.displaySmall.copyWith(
-                      color: Colors.white,
-                      shadows: const [
-                        Shadow(blurRadius: 8, color: Colors.black54),
+            // Top overlay: name + status (video only — voice calls show the
+            // name + timer centered under the avatar instead).
+            if (isVideo)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 18,
+                left: 24,
+                right: 132,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      s.peerName,
+                      style: theme.displaySmall.copyWith(
+                        color: Colors.white,
+                        shadows: const [
+                          Shadow(blurRadius: 8, color: Colors.black54),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          _statusLabel(s),
+                          style: theme.monoTiny.copyWith(
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                        if (s.peerState.audioMuted) ...[
+                          const SizedBox(width: 10),
+                          const Icon(Icons.mic_off,
+                              size: 14, color: Colors.white70),
+                        ],
                       ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        _statusLabel(s),
-                        style: theme.monoTiny.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
-                        ),
-                      ),
-                      if (s.peerState.audioMuted) ...[
-                        const SizedBox(width: 10),
-                        const Icon(Icons.mic_off,
-                            size: 14, color: Colors.white70),
-                      ],
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             // Switching-device chip. Shown briefly while a WebRTC
             // renegotiation runs after the peer (or this device) moves
@@ -237,57 +268,76 @@ class _CallScreenState extends State<CallScreen> {
                 child: const _SwitchingChip(),
               ),
 
-            // Bottom control bar
+            // Bottom control bar — floating glass tray. The speaker toggle is
+            // ALWAYS present (video defaults to loudspeaker, voice to earpiece,
+            // both switchable).
             Positioned(
-              left: 0,
-              right: 0,
+              left: 16,
+              right: 16,
               bottom: 0,
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _ControlButton(
-                        icon: s.localMuted ? Icons.mic_off : Icons.mic,
-                        active: s.localMuted,
-                        onTap: widget.service.toggleMute,
-                        label: s.localMuted ? 'unmute' : 'mute',
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.12),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _ControlButton(
+                              icon: s.localMuted ? Icons.mic_off : Icons.mic,
+                              active: s.localMuted,
+                              onTap: widget.service.toggleMute,
+                              label: s.localMuted ? 'unmute' : 'mute',
+                            ),
+                            if (isVideo)
+                              _ControlButton(
+                                icon: s.localVideoOff
+                                    ? Icons.videocam_off
+                                    : Icons.videocam,
+                                active: s.localVideoOff,
+                                onTap: widget.service.toggleVideo,
+                                label: s.localVideoOff ? 'cam on' : 'cam off',
+                              ),
+                            if (isVideo)
+                              _ControlButton(
+                                icon: Icons.cameraswitch_outlined,
+                                onTap: widget.service.switchCamera,
+                                label: 'flip',
+                                enabled: !s.localVideoOff,
+                              ),
+                            _ControlButton(
+                              icon: s.speakerOn
+                                  ? Icons.volume_up
+                                  : Icons.phone_in_talk,
+                              active: s.speakerOn,
+                              onTap: widget.service.toggleSpeaker,
+                              label: 'speaker',
+                            ),
+                            _ControlButton(
+                              icon: Icons.call_end,
+                              background: theme.danger,
+                              iconColor: Colors.white,
+                              large: true,
+                              onTap: () => widget.service.endCall(),
+                              label: 'end',
+                            ),
+                          ],
+                        ),
                       ),
-                      if (isVideo)
-                        _ControlButton(
-                          icon: s.localVideoOff
-                              ? Icons.videocam_off
-                              : Icons.videocam,
-                          active: s.localVideoOff,
-                          onTap: widget.service.toggleVideo,
-                          label: s.localVideoOff ? 'cam on' : 'cam off',
-                        ),
-                      if (isVideo)
-                        _ControlButton(
-                          icon: Icons.cameraswitch_outlined,
-                          onTap: widget.service.switchCamera,
-                          label: 'flip',
-                        ),
-                      if (!isVideo)
-                        _ControlButton(
-                          icon: s.speakerOn
-                              ? Icons.volume_up
-                              : Icons.volume_down,
-                          active: s.speakerOn,
-                          onTap: widget.service.toggleSpeaker,
-                          label: 'speaker',
-                        ),
-                      _ControlButton(
-                        icon: Icons.call_end,
-                        background: theme.danger,
-                        iconColor: Colors.white,
-                        large: true,
-                        onTap: () => widget.service.endCall(),
-                        label: 'end',
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -299,45 +349,143 @@ class _CallScreenState extends State<CallScreen> {
   }
 }
 
-class _AudioBackdrop extends StatelessWidget {
-  const _AudioBackdrop({required this.name, required this.theme});
+class _AudioBackdrop extends StatefulWidget {
+  const _AudioBackdrop({
+    required this.name,
+    required this.status,
+    required this.theme,
+    this.peerMuted = false,
+  });
   final String name;
+  final String status;
+  final bool peerMuted;
   final dynamic theme;
 
   @override
+  State<_AudioBackdrop> createState() => _AudioBackdropState();
+}
+
+class _AudioBackdropState extends State<_AudioBackdrop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2600),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final accent = theme.accent as Color;
+    final initial = widget.name.isNotEmpty
+        ? widget.name.characters.first.toUpperCase()
+        : '?';
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+        // Soft ambient wash centered just behind the avatar; the focal glow
+        // is the avatar's own boxShadow so the two always line up.
+        gradient: RadialGradient(
+          center: const Alignment(0, -0.2),
+          radius: 1.0,
           colors: [
-            (theme.accent as Color).withValues(alpha: 0.6),
+            accent.withValues(alpha: 0.32),
             Colors.black,
           ],
+          stops: const [0.0, 0.85],
         ),
       ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.25), width: 1),
-              ),
-              child: Center(
-                child: Text(
-                  name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
-                  style: theme.displayHero.copyWith(color: Colors.white),
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Avatar + concentric pulse rings.
+              SizedBox(
+                width: 260,
+                height: 260,
+                child: AnimatedBuilder(
+                  animation: _pulse,
+                  builder: (context, child) {
+                    return Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        for (final phase in const [0.0, 0.5])
+                          _pulseRing(accent, (_pulse.value + phase) % 1.0),
+                        child!,
+                      ],
+                    );
+                  },
+                  child: Container(
+                    width: 132,
+                    height: 132,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.28),
+                          width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: 0.45),
+                          blurRadius: 40,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        initial,
+                        style: theme.displayHero.copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 28),
+              Text(
+                widget.name,
+                style: theme.displayMedium.copyWith(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.peerMuted) ...[
+                    const Icon(Icons.mic_off, size: 14, color: Colors.white70),
+                    const SizedBox(width: 8),
+                  ],
+                  Text(
+                    widget.status,
+                    style: theme.monoTiny.copyWith(
+                      color: Colors.white.withValues(alpha: 0.85),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pulseRing(Color accent, double t) {
+    final size = 132.0 + t * 120.0;
+    return Opacity(
+      opacity: (1.0 - t) * 0.35,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: accent.withValues(alpha: 0.6), width: 1.5),
         ),
       ),
     );
@@ -353,6 +501,7 @@ class _ControlButton extends StatelessWidget {
     this.background,
     this.iconColor,
     this.large = false,
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -362,10 +511,41 @@ class _ControlButton extends StatelessWidget {
   final Color? background;
   final Color? iconColor;
   final bool large;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final size = large ? 64.0 : 56.0;
+    if (!enabled) {
+      // Unavailable control (e.g. flip while the camera is off): dimmed and
+      // non-tappable.
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
+            color: Colors.white.withValues(alpha: 0.08),
+            shape: const CircleBorder(),
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: Icon(
+                icon,
+                color: Colors.white.withValues(alpha: 0.30),
+                size: large ? 30 : 24,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.30),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      );
+    }
     final bg = background ??
         (active
             ? Colors.white.withValues(alpha: 0.95)
