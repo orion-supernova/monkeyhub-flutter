@@ -11,6 +11,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/labeled_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'profile_screen.dart';
@@ -420,13 +421,19 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                       children: [
                         _avatarBlock(theme, r),
                         const SizedBox(height: 26),
-                        _label(theme, 'NAME'),
-                        _input(theme, _name, 'room name'),
+                        LabeledField(
+                          label: 'NAME',
+                          controller: _name,
+                          hint: 'room name',
+                        ),
                         const SizedBox(height: 18),
-                        _label(theme, 'DESCRIPTION'),
-                        _input(theme, _desc, 'one line about the room…'),
+                        LabeledField(
+                          label: 'DESCRIPTION',
+                          controller: _desc,
+                          hint: 'one line about the room…',
+                        ),
                         const SizedBox(height: 22),
-                        _label(theme, 'VISIBILITY'),
+                        const FieldLabel('VISIBILITY'),
                         Row(children: [
                           Expanded(
                             child: _seg(
@@ -453,7 +460,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         if (r.isEphemeral) ...[
                           const SizedBox(height: 22),
                           Row(children: [
-                            _label(theme, 'MESSAGE LIFE'),
+                            const FieldLabel('MESSAGE LIFE'),
                             const Spacer(),
                             if (_ttl != null)
                               Text(_fmtTtl(_ttl!), style: theme.monoLarge.copyWith(color: theme.accent)),
@@ -482,7 +489,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         if (_isOwner) ...[
                           const SizedBox(height: 22),
                           Row(children: [
-                            _label(theme, 'PASSWORD'),
+                            const FieldLabel('PASSWORD'),
                             const Spacer(),
                             if (r.hasPassword)
                               Container(
@@ -512,10 +519,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ),
                             const SizedBox(height: 10),
                           ],
-                          _input(
-                            theme,
-                            _newPassword,
-                            r.hasPassword ? 'replace passphrase…' : 'lock with a passphrase…',
+                          ThemedInput(
+                            controller: _newPassword,
+                            hint: r.hasPassword
+                                ? 'replace passphrase…'
+                                : 'lock with a passphrase…',
                             obscure: true,
                           ),
                           if (r.hasPassword) ...[
@@ -540,7 +548,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ],
                         ],
                         const SizedBox(height: 28),
-                        _label(theme, 'MEMBERS · ${_members.length}'),
+                        FieldLabel('MEMBERS · ${_members.length}'),
                         const SizedBox(height: 6),
                         _membersList(theme, r),
                         const SizedBox(height: 28),
@@ -757,32 +765,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             color: filled ? Colors.white : theme.danger,
             letterSpacing: 2,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _label(AppTheme theme, String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: theme.label),
-      );
-
-  Widget _input(AppTheme theme, TextEditingController c, String hint,
-      {bool obscure = false}) {
-    return Container(
-      decoration: theme.inputDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: TextField(
-        controller: c,
-        obscureText: obscure,
-        style: theme.body.copyWith(color: theme.ink),
-        cursorColor: theme.accent,
-        decoration: InputDecoration(
-          isCollapsed: true,
-          border: InputBorder.none,
-          hintText: hint,
-          hintStyle: theme.body.copyWith(color: theme.inkMuted),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );

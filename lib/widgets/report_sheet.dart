@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import 'labeled_field.dart';
 
 /// Prompts the user to pick a report reason. Resolves to the reason string
 /// (or null on dismiss). The "other" path lets the user type a free-form
@@ -126,23 +127,11 @@ class _ReportSheetState extends State<_ReportSheet> {
               ),
             if (_selected == 'OTHER') ...[
               const SizedBox(height: 4),
-              Container(
-                decoration: theme.inputDecoration(),
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: TextField(
-                  controller: _note,
-                  minLines: 2,
-                  maxLines: 5,
-                  style: theme.body.copyWith(color: theme.ink),
-                  cursorColor: theme.accent,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: 'what happened?',
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
+              ThemedInput(
+                controller: _note,
+                hint: 'what happened?',
+                minLines: 2,
+                maxLines: 5,
               ),
             ],
             const SizedBox(height: 18),

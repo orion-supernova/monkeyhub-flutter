@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/labeled_field.dart';
 import 'room_screen.dart';
 
 class CreateRoomSheet extends StatefulWidget {
@@ -162,13 +163,19 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                         ],
                       ),
                       const SizedBox(height: 26),
-                      _label(theme, 'NAME'),
-                      _input(theme, _name, 'name it something honest…'),
+                      LabeledField(
+                        label: 'NAME',
+                        controller: _name,
+                        hint: 'name it something honest…',
+                      ),
                       const SizedBox(height: 18),
-                      _label(theme, 'DESCRIPTION · OPTIONAL'),
-                      _input(theme, _desc, 'one line about the room…'),
+                      LabeledField(
+                        label: 'DESCRIPTION · OPTIONAL',
+                        controller: _desc,
+                        hint: 'one line about the room…',
+                      ),
                       const SizedBox(height: 22),
-                      _label(theme, 'VISIBILITY'),
+                      const FieldLabel('VISIBILITY'),
                       Row(children: [
                         Expanded(
                           child: _seg(
@@ -199,7 +206,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                         ),
                       ]),
                       const SizedBox(height: 22),
-                      _label(theme, 'TYPE'),
+                      const FieldLabel('TYPE'),
                       Row(children: [
                         Expanded(
                           child: _seg(
@@ -242,7 +249,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Row(children: [
-                                _label(theme, 'MESSAGE LIFE'),
+                                const FieldLabel('MESSAGE LIFE'),
                                 const Spacer(),
                                 Text(_fmtTtl(_ttl),
                                     style: theme.monoLarge.copyWith(color: theme.accent)),
@@ -279,8 +286,12 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                       ),
                       if (_isPrivate) ...[
                         const SizedBox(height: 22),
-                        _label(theme, 'PASSWORD · OPTIONAL'),
-                        _input(theme, _password, 'lock with a passphrase…', obscure: true),
+                        LabeledField(
+                          label: 'PASSWORD · OPTIONAL',
+                          controller: _password,
+                          hint: 'lock with a passphrase…',
+                          obscure: true,
+                        ),
                       ],
                       if (_error != null) ...[
                         const SizedBox(height: 14),
@@ -343,31 +354,6 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _label(AppTheme theme, String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: theme.label),
-      );
-
-  Widget _input(AppTheme theme, TextEditingController c, String hint, {bool obscure = false}) {
-    return Container(
-      decoration: theme.inputDecoration(),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: TextField(
-        controller: c,
-        obscureText: obscure,
-        style: theme.body.copyWith(color: theme.ink),
-        cursorColor: theme.accent,
-        decoration: InputDecoration(
-          isCollapsed: true,
-          border: InputBorder.none,
-          hintText: hint,
-          hintStyle: theme.body.copyWith(color: theme.inkMuted),
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
     );

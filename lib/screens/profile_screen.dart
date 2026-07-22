@@ -15,6 +15,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
+import '../widgets/labeled_field.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
@@ -222,23 +223,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 Text(title, style: theme.displaySmall),
                 const SizedBox(height: 14),
-                Container(
-                  decoration: theme.inputDecoration(),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: keyboardType,
-                    autofocus: true,
-                    style: theme.body.copyWith(color: theme.ink),
-                    cursorColor: theme.accent,
-                    decoration: InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: hint,
-                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
+                ThemedInput(
+                  controller: controller,
+                  hint: hint,
+                  keyboardType: keyboardType,
+                  autofocus: true,
                 ),
                 const SizedBox(height: 16),
                 Row(

@@ -154,7 +154,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_query.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: Text('search by handle or name', style: theme.bodySoft)),
+        child: Center(child: Text('search by username or name', style: theme.bodySoft)),
       );
     }
     if (_users.isEmpty) {

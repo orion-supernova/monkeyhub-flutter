@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
+import 'labeled_field.dart';
 
 /// Prompts for a room password when the user tries to join a locked room.
 /// Resolves to the entered password, or null if dismissed.
@@ -70,37 +71,19 @@ class _PasswordSheetState extends State<_PasswordSheet> {
               style: theme.bodySoft,
             ),
             const SizedBox(height: 20),
-            Container(
-              decoration: theme.inputDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      obscureText: _obscure,
-                      autofocus: true,
-                      style: theme.body.copyWith(color: theme.ink),
-                      cursorColor: theme.accent,
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        hintText: 'passphrase…',
-                        hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onSubmitted: (v) => Navigator.of(context).pop(v),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                    icon: Icon(
-                      _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                      color: theme.inkMuted,
-                      size: 18,
-                    ),
-                  ),
-                ],
+            ThemedInput(
+              controller: _controller,
+              hint: 'passphrase…',
+              obscure: _obscure,
+              autofocus: true,
+              onSubmitted: (v) => Navigator.of(context).pop(v),
+              trailing: IconButton(
+                onPressed: () => setState(() => _obscure = !_obscure),
+                icon: Icon(
+                  _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: theme.inkMuted,
+                  size: 18,
+                ),
               ),
             ),
             const SizedBox(height: 18),
