@@ -35,6 +35,24 @@ export default defineSchema({
         friendRequests: v.optional(v.string()), // "public" | "nobody"
       })
     ),
+    // Supervised (child) accounts. Absent === "adult" — every pre-existing
+    // row, so there is nothing to backfill. A child account is created by a
+    // guardian via `family.createChildAccount`, can only sign in by redeeming
+    // a pairing code (never a password), and cannot sign itself out.
+    accountType: v.optional(v.string()), // "adult" | "child"
+    birthYear: v.optional(v.number()),
+    // What this child is allowed to do without asking. Guardian-controlled
+    // via `family.setChildPolicy`; the child can never edit it. Only ever set
+    // on accountType === "child" rows.
+    childPolicy: v.optional(
+      v.object({
+        publicRoomsEnabled: v.boolean(), // false → Discover is hidden entirely
+        callsEnabled: v.boolean(),
+        mediaEnabled: v.boolean(),       // photo/video/voice sends
+        canRequestContacts: v.boolean(), // "ask to add someone"
+        canCreateRooms: v.boolean(),
+      })
+    ),
   }).index("by_username", ["username"]),
 
   // Per-device push registration. One row per (userId, deviceId) — every
@@ -79,10 +97,30 @@ export default defineSchema({
     messageLifetime: v.optional(v.number()),
     initialMessage: v.optional(v.string()),
     roomId: v.optional(v.id("rooms")),
+    // ── Supervision relay ────────────────────────────────────────────────
+    // How far a pending request has been released along the guardian chain:
+    //
+    //   child A → child B    A's guardian → B's guardian → B decides
+    //   child A → adult B    A's guardian →                B decides
+    //   adult A → child B                   B's guardian → B decides
+    //   adult A → adult B                                  B decides
+    //
+    // A party who has not been released to sees NOTHING — the row is filtered
+    // out of their incoming list and no push fires. `undefined` means "fully
+    // visible to the recipient" so every pre-existing row keeps working with
+    // no migration.
+    stage: v.optional(v.string()),
+    //   "awaitingSenderGuardian" | "awaitingRecipientGuardian" | "awaitingRecipient"
+    deniedBy: v.optional(v.string()),
+    //   "senderGuardian" | "recipientGuardian" | "recipient"
   })
     .index("by_user", ["userId"])
     .index("by_friend", ["friendId"])
-    .index("by_pair", ["userId", "friendId"]),
+    .index("by_pair", ["userId", "friendId"])
+    // Guardian queue lookups: "requests my child sent that I must release"
+    // and "requests addressed to my child that I must release".
+    .index("by_stage_user", ["stage", "userId"])
+    .index("by_stage_friend", ["stage", "friendId"]),
 
   rooms: defineTable({
     name: v.string(),
@@ -100,7 +138,9 @@ export default defineSchema({
     lastMessageTime: v.optional(v.number()),
   })
     .index("by_name", ["name"])
-    .index("by_last_activity", ["lastMessageTime"]),
+    .index("by_last_activity", ["lastMessageTime"])
+    // Discover lists public rooms only.
+    .index("by_visibility", ["isPrivate"]),
 
   roomMembers: defineTable({
     roomId: v.id("rooms"),
@@ -114,6 +154,51 @@ export default defineSchema({
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])
     .index("by_room_user", ["roomId", "userId"]),
+
+  // ── Family ────────────────────────────────────────────────────────────────
+
+  // Who supervises whom. A child may have several guardians; ANY of them can
+  // approve, deny, or revoke — approvals are not quorum-based.
+  guardianships: defineTable({
+    guardianId: v.id("users"),
+    childId: v.id("users"),
+    role: v.string(), // "primary" | "guardian"
+    createdAt: v.number(),
+  })
+    .index("by_guardian", ["guardianId"])
+    .index("by_child", ["childId"])
+    .index("by_pair", ["guardianId", "childId"]),
+
+  // Short-lived, single-use codes that hand a child account to a device.
+  // The plaintext six digits never touch the database — the client hashes
+  // them with the same sha256 helper it uses for passwords, and we compare
+  // hashes. A code is dead the moment it is redeemed or `expiresAt` passes.
+  pairingCodes: defineTable({
+    childId: v.id("users"),
+    createdByGuardianId: v.id("users"),
+    codeHash: v.string(),
+    expiresAt: v.number(),
+    consumedAt: v.optional(v.number()),
+    consumedDeviceId: v.optional(v.string()),
+  })
+    .index("by_child", ["childId"])
+    .index("by_codeHash", ["codeHash"]),
+
+  // Approvals that are NOT contact requests (those ride on friendships.stage).
+  // One row is both the request AND, once approved, the standing grant —
+  // revoking is a status flip, so the whole audit trail stays in one place.
+  approvalRequests: defineTable({
+    childId: v.id("users"),
+    kind: v.string(),   // "joinRoom"
+    status: v.string(), // "pending" | "approved" | "denied" | "revoked"
+    targetRoomId: v.optional(v.id("rooms")),
+    note: v.optional(v.string()), // the child's "why I want this"
+    createdAt: v.number(),
+    decidedAt: v.optional(v.number()),
+    decidedByGuardianId: v.optional(v.id("users")),
+  })
+    .index("by_child_status", ["childId", "status"])
+    .index("by_child_room", ["childId", "targetRoomId"]),
 
   blocks: defineTable({
     userId: v.id("users"),         // who is doing the blocking
@@ -163,7 +248,9 @@ export default defineSchema({
   })
     .index("by_room", ["roomId"])
     .index("by_room_time", ["roomId", "createdAt"])
-    .index("by_replyTo", ["replyToId"]),
+    .index("by_replyTo", ["replyToId"])
+    // Account teardown walks every message a user ever sent.
+    .index("by_user", ["userId"]),
 
   reactions: defineTable({
     messageId: v.id("messages"),
@@ -180,7 +267,9 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_room", ["roomId"])
-    .index("by_room_user", ["roomId", "userId"]),
+    .index("by_room_user", ["roomId", "userId"])
+    // Account teardown clears every room this user was typing in.
+    .index("by_user", ["userId"]),
 
   friendRequestMessages: defineTable({
     requestId: v.id("friendships"),

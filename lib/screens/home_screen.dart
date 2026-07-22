@@ -6,6 +6,7 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/pill_nav.dart';
@@ -19,20 +20,33 @@ import 'discover_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.repo, required this.api, required this.auth});
+  const HomeScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.auth,
+    required this.family,
+  });
   final ChatRepository repo;
   final ChatApi api;
   final AuthService auth;
+  final FamilyService family;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const List<String> _tabOrder = ['rooms', 'discover', 'requests'];
   String _tab = 'rooms';
   int _direction = 1;
   ChatUser? _me;
+
+  /// Discover disappears entirely for a child whose guardian hasn't unlocked
+  /// public rooms — not greyed out, not empty, absent. A locked door still
+  /// tells a child there's a room behind it.
+  List<String> get _tabOrder => widget.family.canSeePublicRooms
+      ? const ['rooms', 'discover', 'requests']
+      : const ['rooms', 'requests'];
 
   void _setTab(String next) {
     if (next == _tab) return;
@@ -48,13 +62,24 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     widget.repo.addListener(_onRepoChange);
+    widget.family.addListener(_onFamilyChange);
     _loadMe();
   }
 
   @override
   void dispose() {
     widget.repo.removeListener(_onRepoChange);
+    widget.family.removeListener(_onFamilyChange);
     super.dispose();
+  }
+
+  /// A guardian can unlock (or re-lock) Discover while the child is looking
+  /// at this screen. If the tab we're on just vanished, fall back to rooms.
+  void _onFamilyChange() {
+    if (!mounted) return;
+    setState(() {
+      if (!_tabOrder.contains(_tab)) _tab = 'rooms';
+    });
   }
 
   void _onRepoChange() {
@@ -101,7 +126,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  onCreateTap: _tab == 'rooms' ? _openCreate : null,
+                  onCreateTap: _tab == 'rooms' && widget.family.canCreateRooms
+                      ? _openCreate
+                      : null,
                 ),
                 Expanded(
                   child: ListView(
@@ -115,7 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           onChange: _setTab,
                           items: [
                             const PillNavItem(id: 'rooms', label: 'ROOMS'),
-                            const PillNavItem(id: 'discover', label: 'DISCOVER'),
+                            if (widget.family.canSeePublicRooms)
+                              const PillNavItem(
+                                  id: 'discover', label: 'DISCOVER'),
                             PillNavItem(
                               id: 'requests',
                               label: 'REQUESTS',
@@ -180,7 +209,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'requests':
         return RequestsPanel(repo: widget.repo, api: widget.api);
       case 'discover':
-        return DiscoverPanel(repo: widget.repo, api: widget.api);
+        return DiscoverPanel(
+          repo: widget.repo,
+          api: widget.api,
+          family: widget.family,
+        );
       default:
         return _RoomsPanel(repo: widget.repo, api: widget.api);
     }

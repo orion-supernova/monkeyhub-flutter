@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 
 export const signup = mutation({
   args: {
@@ -41,6 +42,13 @@ export const login = mutation({
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
     if (!user) throw new Error("USER_NOT_FOUND");
+
+    // Child accounts have no usable password — a guardian-issued pairing code
+    // is the only way in. Checked BEFORE the hash compare so the stored
+    // sentinel can never be brute-forced into a session, and so a child who
+    // somehow learned a password can't sign in on an unsupervised device.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+
     if (user.passwordHash !== passwordHash) throw new Error("WRONG_PASSWORD");
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
@@ -67,6 +75,10 @@ export const resetPasswordWithRecoveryKey = mutation({
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
     if (!user) throw new Error("USER_NOT_FOUND");
+    // Same reasoning as login: recovery is a password path, and children
+    // don't have one. Without this, setting a recovery phrase on a child
+    // account would be a way around pairing.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
     if (!user.recoveryKeyHash || user.recoveryKeyHash !== recoveryKeyHash) {
       throw new Error("INVALID_RECOVERY_KEY");
     }
@@ -79,82 +91,104 @@ export const resetPasswordWithRecoveryKey = mutation({
   },
 });
 
+/**
+ * Self-serve account deletion. A child cannot delete their own account — that
+ * would be an escape hatch out of supervision. Guardians remove a child via
+ * `family.deleteChildAccount`, which runs the same teardown.
+ */
 export const deleteAccount = mutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    // 1. Handle all room memberships
-    const memberships = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-
-    for (const membership of memberships) {
-      const roomId = membership.roomId;
-      await ctx.db.delete(membership._id);
-
-      const room = await ctx.db.get(roomId);
-      if (room && room.memberCount > 0) {
-        await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
-      }
-
-      const remaining = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room", (q) => q.eq("roomId", roomId))
-        .collect();
-
-      if (remaining.length === 0) {
-        const msgs = await ctx.db
-          .query("messages")
-          .withIndex("by_room", (q) => q.eq("roomId", roomId))
-          .collect();
-        for (const msg of msgs) {
-          const rxns = await ctx.db
-            .query("reactions")
-            .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-            .collect();
-          for (const r of rxns) await ctx.db.delete(r._id);
-          await ctx.db.delete(msg._id);
-        }
-        await ctx.db.delete(roomId);
-      }
-    }
-
-    // 2. Delete all friendships involving this user
-    const asUser = await ctx.db
-      .query("friendships")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-    const asFriend = await ctx.db
-      .query("friendships")
-      .withIndex("by_friend", (q) => q.eq("friendId", userId))
-      .collect();
-    for (const f of [...asUser, ...asFriend]) await ctx.db.delete(f._id);
-
-    // 3. Delete user's messages (and their reactions) in surviving rooms
-    const userMessages = await ctx.db
-      .query("messages")
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .collect();
-    for (const msg of userMessages) {
-      const rxns = await ctx.db
-        .query("reactions")
-        .withIndex("by_message", (q) => q.eq("messageId", msg._id))
-        .collect();
-      for (const r of rxns) await ctx.db.delete(r._id);
-      await ctx.db.delete(msg._id);
-    }
-
-    // 4. Clear typing indicators
-    const typingEntries = await ctx.db
-      .query("typingIndicators")
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .collect();
-    for (const t of typingEntries) await ctx.db.delete(t._id);
-
-    // 5. Delete user record
-    await ctx.db.delete(userId);
+    const user = await ctx.db.get(userId);
+    if (user?.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
+    await purgeUser(ctx, userId);
   },
 });
+
+/**
+ * The teardown itself, callable from other modules. Split out of
+ * `deleteAccount` so `family.deleteChildAccount` doesn't have to duplicate it.
+ */
+export const purgeAccount = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    await purgeUser(ctx, userId);
+  },
+});
+
+async function purgeUser(ctx: any, userId: any) {
+  // 1. Handle all room memberships
+  const memberships = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+
+  for (const membership of memberships) {
+    const roomId = membership.roomId;
+    await ctx.db.delete(membership._id);
+
+    const room = await ctx.db.get(roomId);
+    if (room && room.memberCount > 0) {
+      await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
+    }
+
+    const remaining = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .collect();
+
+    if (remaining.length === 0) {
+      const msgs = await ctx.db
+        .query("messages")
+        .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+        .collect();
+      for (const msg of msgs) {
+        const rxns = await ctx.db
+          .query("reactions")
+          .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+          .collect();
+        for (const r of rxns) await ctx.db.delete(r._id);
+        await ctx.db.delete(msg._id);
+      }
+      await ctx.db.delete(roomId);
+    }
+  }
+
+  // 2. Delete all friendships involving this user
+  const asUser = await ctx.db
+    .query("friendships")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  const asFriend = await ctx.db
+    .query("friendships")
+    .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
+    .collect();
+  for (const f of [...asUser, ...asFriend]) await ctx.db.delete(f._id);
+
+  // 3. Delete user's messages (and their reactions) in surviving rooms
+  const userMessages = await ctx.db
+    .query("messages")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  for (const msg of userMessages) {
+    const rxns = await ctx.db
+      .query("reactions")
+      .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+      .collect();
+    for (const r of rxns) await ctx.db.delete(r._id);
+    await ctx.db.delete(msg._id);
+  }
+
+  // 4. Clear typing indicators
+  const typingEntries = await ctx.db
+    .query("typingIndicators")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  for (const t of typingEntries) await ctx.db.delete(t._id);
+
+  // 5. Delete user record
+  await ctx.db.delete(userId);
+}
 
 export const updateStatus = mutation({
   args: { userId: v.id("users"), status: v.string() },
@@ -162,4 +196,3 @@ export const updateStatus = mutation({
     await ctx.db.patch(userId, { status, lastSeen: Date.now() });
   },
 });
-

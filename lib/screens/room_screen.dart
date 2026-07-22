@@ -12,13 +12,16 @@ import '../backend/convex_client.dart';
 import '../calls/call_button.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../family/family_service.dart';
 import '../media/upload_service.dart';
 import '../privacy/capture_protection.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
@@ -366,7 +369,45 @@ class _RoomScreenState extends State<RoomScreen>
     final replyId = _replyingTo?.id;
     _composer.clear();
     await widget.repo.sendText(widget.roomId, text, replyToId: replyId);
+    // A child guard rejection drops the optimistic bubble rather than leaving
+    // it in the retry queue, so say why instead of letting the message just
+    // vanish. Most likely a grant was revoked while the room was open.
+    final gate = widget.repo.takeChildGateError();
+    if (gate != null && mounted) {
+      _composer.text = text; // don't lose what they wrote
+      await _handleSendGate(gate);
+      return;
+    }
     _scrollToBottom();
+  }
+
+  /// A send was refused by a child guard. Two shapes: the room needs a
+  /// grown-up's yes (most likely a grant was revoked, or the room gained a
+  /// member from outside the family while it was open), or messaging is
+  /// switched off outright. Only the first is worth asking about, and the
+  /// ask has to actually raise a request — offering a button that does
+  /// nothing would be worse than not offering one.
+  Future<void> _handleSendGate(String gate) async {
+    final uid = widget.repo.userId;
+    final blockedOutright = isChildBlockedOutright(gate);
+    final wantsToAsk = await showApprovalGate(
+      context,
+      what: 'send messages here',
+      canAsk: !blockedOutright && uid != null,
+    );
+    if (!wantsToAsk || uid == null) return;
+    try {
+      await widget.api.requestApproval(
+        childId: uid,
+        kind: 'joinRoom',
+        targetRoomId: widget.roomId,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('couldn\'t ask right now — try again')),
+      );
+    }
   }
 
   /// Arm a reply against [m]: a strong haptic + state change so the
@@ -444,6 +485,14 @@ class _RoomScreenState extends State<RoomScreen>
 
   Future<void> _onAttach() async {
     HapticFeedback.lightImpact();
+    if (FamilyService.maybeInstance?.canSendMedia == false) {
+      await showApprovalGate(
+        context,
+        what: 'send pictures or voice notes',
+        canAsk: false,
+      );
+      return;
+    }
     final choice = await showAttachmentMenu(context);
     if (choice == null || !mounted) return;
     final nav = Navigator.of(context);

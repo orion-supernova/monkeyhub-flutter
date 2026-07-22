@@ -5,13 +5,16 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../push/push_manager.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_brand_mark.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/user_avatar.dart';
+import 'approvals_screen.dart';
 import 'chat_style_screen.dart';
+import 'family_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
@@ -20,10 +23,17 @@ import 'room_layout_screen.dart';
 import 'theme_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.repo, required this.api, required this.auth});
+  const SettingsScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.auth,
+    required this.family,
+  });
   final ChatRepository repo;
   final ChatApi api;
   final AuthService auth;
+  final FamilyService family;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -40,12 +50,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     SettingsStore.instance.addListener(_onSettings);
+    widget.family.addListener(_onSettings);
+    // The approvals badge should be right whenever this screen is opened.
+    widget.family.refresh();
     _loadMe();
   }
 
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    widget.family.removeListener(_onSettings);
     super.dispose();
   }
 
@@ -57,6 +71,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted || fresh == null) return;
       setState(() => _me = fresh);
     } catch (_) {/* keep the bootstrap ChatUser; avatar stays generic */}
+  }
+
+  String get _familyLabel {
+    final n = widget.family.context.children.length;
+    if (n == 0) return 'add a child';
+    return n == 1 ? '1 child' : '$n children';
   }
 
   String get _layoutLabel =>
@@ -219,6 +239,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
+              _SectionHeader(label: 'FAMILY'),
+              const SizedBox(height: 12),
+              if (widget.family.isChild)
+                _GuardiansRow(family: widget.family)
+              else ...[
+                _DisclosureRow(
+                  label: 'FAMILY',
+                  value: _familyLabel,
+                  leading: Icon(Icons.family_restroom,
+                      size: 16, color: theme.inkSoft),
+                  onTap: () {
+                    final s = widget.auth.session;
+                    if (s == null) return;
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => FamilyScreen(
+                        api: widget.api,
+                        userId: s.userId,
+                        family: widget.family,
+                      ),
+                    ));
+                  },
+                ),
+                if (widget.family.context.children.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _DisclosureRow(
+                    label: 'APPROVALS',
+                    value: widget.family.pendingCount == 0
+                        ? 'nothing waiting'
+                        : '${widget.family.pendingCount} waiting',
+                    leading: Icon(
+                      Icons.pending_actions,
+                      size: 16,
+                      color: widget.family.pendingCount > 0
+                          ? theme.accent
+                          : theme.inkSoft,
+                    ),
+                    onTap: () {
+                      final s = widget.auth.session;
+                      if (s == null) return;
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ApprovalsScreen(
+                          api: widget.api,
+                          guardianId: s.userId,
+                          family: widget.family,
+                        ),
+                      ));
+                    },
+                  ),
+                ],
+              ],
+
+              const SizedBox(height: 28),
               _SectionHeader(label: 'LINKS'),
               const SizedBox(height: 12),
               _ShowLinkUrlsToggle(),
@@ -331,6 +403,55 @@ class _SwatchDot extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: theme.divider, width: 0.5),
+      ),
+    );
+  }
+}
+
+/// The child's side of the FAMILY section: who looks after them, stated
+/// plainly. Read-only — there's nothing here for them to change, and
+/// pretending otherwise would be worse than saying so.
+class _GuardiansRow extends StatelessWidget {
+  const _GuardiansRow({required this.family});
+  final FamilyService family;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final guardians = family.context.guardians;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('MY GROWN-UPS', style: theme.label),
+                const SizedBox(height: 4),
+                Text(
+                  guardians.isEmpty
+                      ? 'nobody looking after this account yet'
+                      : guardians.map((g) => g.displayName).join(' · '),
+                  style: theme.body.copyWith(color: theme.inkSoft),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'They can see when you\'re online and who you talk to.',
+                  style: theme.bodySoft,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

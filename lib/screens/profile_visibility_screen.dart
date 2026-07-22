@@ -14,9 +14,20 @@ import '../theme/theme_scope.dart';
 /// bool living in [SettingsStore] — everything else is server-stored on
 /// `users.visibility`.
 class ProfileVisibilityScreen extends StatefulWidget {
-  const ProfileVisibilityScreen({super.key, required this.repo, required this.api});
+  const ProfileVisibilityScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    this.readOnly = false,
+  });
   final ChatRepository repo;
   final ChatApi api;
+
+  /// Child accounts see their settings but can't change them — these are
+  /// guardian-controlled, and `users.updateVisibility` refuses them outright
+  /// on the backend. Showing the values honestly beats hiding the screen:
+  /// a child should be able to see what their grown-ups can see.
+  final bool readOnly;
 
   @override
   State<ProfileVisibilityScreen> createState() => _ProfileVisibilityScreenState();
@@ -75,7 +86,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     FieldVisibility? friendRequests,
   }) async {
     final me = widget.repo.userId;
-    if (me == null) return;
+    if (me == null || widget.readOnly) return;
     setState(() {
       _saving = true;
       _vis = _vis.copyWith(
@@ -137,7 +148,12 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                   ),
                                 ),
                               ]),
-                              const SizedBox(height: 36),
+                              const SizedBox(height: 24),
+                              if (widget.readOnly) ...[
+                                _SupervisedNotice(theme: theme),
+                                const SizedBox(height: 24),
+                              ],
+                              const SizedBox(height: 12),
 
                               // ───── PROFILE ─────
                               _Section(theme: theme, label: 'PROFILE'),
@@ -148,6 +164,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'your profile picture',
                                 value: _vis.avatar,
                                 onChanged: (v) => _patch(avatar: v),
+                                enabled: !widget.readOnly,
                               ),
                               const SizedBox(height: 26),
                               _Row(
@@ -156,6 +173,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'whether you appear active right now',
                                 value: _vis.status,
                                 onChanged: (v) => _patch(status: v),
+                                enabled: !widget.readOnly,
                               ),
                               const SizedBox(height: 26),
                               _Row(
@@ -164,6 +182,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'the time you were last around',
                                 value: _vis.lastSeen,
                                 onChanged: (v) => _patch(lastSeen: v),
+                                enabled: !widget.readOnly,
                               ),
                               const SizedBox(height: 40),
 
@@ -176,6 +195,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'when on, others can see that you\'ve read their messages',
                                 value: _vis.seen,
                                 onChanged: (v) => _patch(seen: v),
+                                enabled: !widget.readOnly,
                               ),
                               const SizedBox(height: 26),
                               _RowBool(
@@ -198,6 +218,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: 'who can send you friend requests',
                                 value: _vis.friendRequests,
                                 onChanged: (v) => _patch(friendRequests: v),
+                                enabled: !widget.readOnly,
                               ),
 
                               if (_error != null) ...[
@@ -318,6 +339,49 @@ class _Field extends StatelessWidget {
   }
 }
 
+/// Shown at the top of this screen for a child: their visibility isn't
+/// theirs to set, and their grown-ups can see everything regardless. Better
+/// to say that plainly than to let them wonder why nothing moves.
+class _SupervisedNotice extends StatelessWidget {
+  const _SupervisedNotice({required this.theme});
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.accentSoft,
+        border: Border.all(color: theme.accent.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('YOUR GROWN-UPS SET THESE',
+                    style: theme.label.copyWith(color: theme.accent)),
+                const SizedBox(height: 6),
+                Text(
+                  'You can see what everyone else sees here, but only a '
+                  'grown-up can change it. They can always see your picture, '
+                  'when you\'re online and when you were last around.',
+                  style: theme.bodySoft,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Row extends StatelessWidget {
   const _Row({
     required this.theme,
@@ -325,12 +389,14 @@ class _Row extends StatelessWidget {
     required this.desc,
     required this.value,
     required this.onChanged,
+    this.enabled = true,
   });
   final AppTheme theme;
   final String label;
   final String desc;
   final FieldVisibility value;
   final ValueChanged<FieldVisibility> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -347,6 +413,7 @@ class _Row extends StatelessWidget {
         ],
         value: value,
         onChanged: onChanged,
+        enabled: enabled,
       ),
     );
   }
@@ -395,12 +462,14 @@ class _RowBinary extends StatelessWidget {
     required this.desc,
     required this.value,
     required this.onChanged,
+    this.enabled = true,
   });
   final AppTheme theme;
   final String label;
   final String desc;
   final FieldVisibility value;
   final ValueChanged<FieldVisibility> onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -416,6 +485,7 @@ class _RowBinary extends StatelessWidget {
         ],
         value: value == FieldVisibility.friends ? FieldVisibility.public : value,
         onChanged: onChanged,
+        enabled: enabled,
       ),
     );
   }
@@ -427,15 +497,22 @@ class _Seg<T> extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChanged,
+    this.enabled = true,
   });
   final AppTheme theme;
   final List<(T, String)> options;
   final T value;
   final ValueChanged<T> onChanged;
 
+  /// When false the control still shows the current value but ignores taps —
+  /// used for a child, whose visibility is guardian-controlled.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Opacity(
+      opacity: enabled ? 1 : 0.45,
+      child: Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: theme.surfaceSunken,
@@ -447,7 +524,7 @@ class _Seg<T> extends StatelessWidget {
           for (final o in options)
             Expanded(
               child: GestureDetector(
-                onTap: () => onChanged(o.$1),
+                onTap: enabled ? () => onChanged(o.$1) : null,
                 behavior: HitTestBehavior.opaque,
                 child: AnimatedContainer(
                   duration: theme.motionFast,
@@ -471,6 +548,7 @@ class _Seg<T> extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

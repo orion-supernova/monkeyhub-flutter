@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
@@ -612,7 +613,9 @@ class _SendRequestBar extends StatelessWidget {
                     Icon(CupertinoIcons.paperplane_fill, size: 14, color: theme.accentInk),
                     const SizedBox(width: 10),
                     Text(
-                      'SEND REQUEST',
+                      FamilyService.maybeInstance?.isChild == true
+                          ? 'ASK A GROWN-UP'
+                          : 'SEND REQUEST',
                       style: theme.label.copyWith(
                         color: theme.accentInk,
                         letterSpacing: 2.4,

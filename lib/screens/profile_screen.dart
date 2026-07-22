@@ -800,7 +800,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final repo = widget.repo;
     final api = widget.api;
     final canPrivacy = repo != null && api != null;
-    final canAccount = widget.auth != null;
+    // A child has no way out of their own account — no sign out, no delete.
+    // That's the point of a supervised device, so the section is absent
+    // rather than disabled: a greyed-out SIGN OUT just invites nagging.
+    // `AuthService` and the backend both refuse these too, in case a route
+    // reaches them another way.
+    final canAccount = widget.auth != null && !widget.auth!.isChild;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -813,7 +818,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.visibility_outlined,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => ProfileVisibilityScreen(repo: repo, api: api),
+                builder: (_) => ProfileVisibilityScreen(
+                  repo: repo,
+                  api: api,
+                  readOnly: widget.auth?.isChild ?? false,
+                ),
               ),
             ),
           ),

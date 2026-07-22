@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'enums.dart';
+import 'family.dart';
 
 /// Per-field visibility for a user's profile. Matches backend's
 /// `users.visibility` shape. New users default to `nobody` across the board;
@@ -79,6 +80,8 @@ class ChatUser {
     this.visibility,
     this.isRedacted = false,
     this.acceptsFriendRequests = true,
+    this.accountType = AccountType.adult,
+    this.childPolicy,
   });
 
   final String id;
@@ -104,6 +107,16 @@ class ChatUser {
   /// True when the target accepts friend requests. False means the SEND
   /// REQUEST button should be disabled (or return USER_NOT_FOUND server-side).
   bool acceptsFriendRequests;
+
+  /// Whether this account is supervised. Drives whether Sign Out is offered,
+  /// whether the visibility screen is editable, and whether Discover exists.
+  AccountType accountType;
+
+  /// Only present on a self-fetch, or when the viewer is this child's
+  /// guardian. Null for everyone else — and for every adult.
+  ChildPolicy? childPolicy;
+
+  bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
   String get displayInitial {
@@ -131,6 +144,11 @@ class ChatUser {
           : null,
       isRedacted: (j['isRedacted'] as bool?) ?? false,
       acceptsFriendRequests: (j['acceptsFriendRequests'] as bool?) ?? true,
+      accountType: AccountTypeWire.parse(j['accountType'] as String?),
+      childPolicy: j['childPolicy'] is Map
+          ? ChildPolicy.fromJson(
+              (j['childPolicy'] as Map).cast<String, dynamic>())
+          : null,
     );
   }
 
@@ -145,6 +163,8 @@ class ChatUser {
     ProfileVisibility? visibility,
     bool? isRedacted,
     bool? acceptsFriendRequests,
+    AccountType? accountType,
+    ChildPolicy? childPolicy,
   }) => ChatUser(
         id: id,
         username: username,
@@ -159,5 +179,7 @@ class ChatUser {
         visibility: visibility ?? this.visibility,
         isRedacted: isRedacted ?? this.isRedacted,
         acceptsFriendRequests: acceptsFriendRequests ?? this.acceptsFriendRequests,
+        accountType: accountType ?? this.accountType,
+        childPolicy: childPolicy ?? this.childPolicy,
       );
 }

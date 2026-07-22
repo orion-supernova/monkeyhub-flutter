@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
+import '../auth/session_store.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
+import 'child_pair_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -36,6 +38,14 @@ class _LoginScreenState extends State<LoginScreen> {
   _AuthMode _mode = _AuthMode.signIn;
   bool _busy = false;
   String? _error;
+
+  /// Whether the pairing screen is showing instead of the sign-in form.
+  ///
+  /// Seeded from the sticky child-device marker so a paired handset opens
+  /// straight into pairing on every launch and never flashes the adult form.
+  /// An adult can also reach it deliberately via the footer link, in which
+  /// case they get a way back.
+  late bool _pairing = SessionStore.instance.isChildDevice;
 
   /// Whether sign-up's optional name/email/recovery fields are revealed.
   bool _showOptional = false;
@@ -112,6 +122,8 @@ class _LoginScreenState extends State<LoginScreen> {
     'WRONG_PASSWORD': 'Wrong password.',
     'WRONG_RECOVERY_KEY': 'Recovery phrase doesn\'t match.',
     'NO_RECOVERY_KEY': 'This account has no recovery phrase set.',
+    'CHILD_MUST_PAIR':
+        'That\'s a kid\'s account — ask a grown-up for a pairing code.',
   };
 
   String _humanize(Object e) {
@@ -125,6 +137,15 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    if (_pairing) {
+      return ChildPairScreen(
+        auth: widget.auth,
+        // A device that belongs to a child has nowhere to go back to.
+        onCancel: SessionStore.instance.isChildDevice
+            ? null
+            : () => setState(() => _pairing = false),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -262,6 +283,11 @@ class _LoginScreenState extends State<LoginScreen> {
               _TextLink(
                 label: 'forgot password?',
                 onTap: () => _switchTo(_AuthMode.reset),
+              ),
+              const SizedBox(height: 10),
+              _TextLink(
+                label: 'setting up a kid\'s phone?',
+                onTap: () => setState(() => _pairing = true),
               ),
             ],
           ],

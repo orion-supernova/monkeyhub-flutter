@@ -7,6 +7,7 @@ import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/approval_gate.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
@@ -428,6 +429,13 @@ class _OutgoingCardState extends State<_OutgoingCard> {
               Text('SENT ${_ago(req.createdAt).toUpperCase()}', style: theme.monoTiny),
             ],
           ),
+          if (req.stage != null) ...[
+            const SizedBox(height: 12),
+            // Distinguishes "my own grown-up hasn't released it yet" from
+            // "it's with them now". Deliberately says nothing about the other
+            // side's supervision — that would disclose that they're a child.
+            WaitingPill(label: req.stage!.senderLabel),
+          ],
           if (req.messageCount > 0) ...[
             const SizedBox(height: 12),
             Text('${req.messageCount} message${req.messageCount == 1 ? '' : 's'} pending',

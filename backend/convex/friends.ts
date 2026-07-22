@@ -1,6 +1,47 @@
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import {
+  ERR_NOT_ALLOWED,
+  STAGE_RECIPIENT_GUARDIAN,
+  STAGE_SENDER_GUARDIAN,
+  childPolicyOf,
+  familyOf,
+  guardiansOf,
+  initialStageFor,
+  isReleasedToRecipient,
+} from "./childGuard";
+
+/**
+ * Pings whoever now holds a request. Deliberately explicit about the audience:
+ * while a request sits at a guardian hop, the person it's addressed to must
+ * learn nothing about it.
+ */
+async function notifyHolder(
+  ctx: any,
+  stage: string | undefined,
+  senderId: any,
+  recipientId: any,
+) {
+  if (stage === undefined) return; // adult → adult: unchanged, no push
+  const audience =
+    stage === STAGE_SENDER_GUARDIAN
+      ? await guardiansOf(ctx, senderId)
+      : stage === STAGE_RECIPIENT_GUARDIAN
+        ? await guardiansOf(ctx, recipientId)
+        : [];
+  if (audience.length === 0) return;
+  const sender = await ctx.db.get(senderId);
+  const who = sender?.name ?? sender?.username ?? "Someone";
+  await ctx.scheduler.runAfter(0, internal.notifications.sendApprovalPush, {
+    userIds: audience.map((u: any) => u.toString()),
+    title: "Needs your OK",
+    body:
+      stage === STAGE_SENDER_GUARDIAN
+        ? `${who} wants to add someone`
+        : `${who} wants to add your child`,
+  });
+}
 
 async function insertRequestMessage(
   ctx: any,
@@ -134,14 +175,22 @@ export const sendRequest = mutation({
         q.eq("userId", userId).eq("friendId", friend._id)
       )
       .first();
-    if (existing) throw new Error("ALREADY_FRIENDS_OR_PENDING");
+    // A guardian's "no" isn't permanent — a denied row is replaceable.
+    if (existing && existing.status === "denied") {
+      await ctx.db.delete(existing._id);
+    } else if (existing) {
+      throw new Error("ALREADY_FRIENDS_OR_PENDING");
+    }
 
+    const stage = await initialStageFor(ctx, userId, friend._id);
     await ctx.db.insert("friendships", {
       userId,
       friendId: friend._id,
       status: "pending",
       createdAt: Date.now(),
+      ...(stage ? { stage } : {}),
     });
+    await notifyHolder(ctx, stage, userId, friend._id);
     return friend._id;
   },
 });
@@ -184,11 +233,11 @@ export const rejectRequest = mutation({
 export const listFriends = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const friendships = await ctx.db
+    const rows = await ctx.db
       .query("friendships")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("status"), "accepted"))
       .collect();
+    const friendships = rows.filter((f) => f.status === "accepted");
 
     const friends = await Promise.all(
       friendships.map((f) => ctx.db.get(f.friendId))
@@ -200,12 +249,16 @@ export const listFriends = query({
 export const listPendingRequests = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    // Requests sent TO this user
-    const incoming = await ctx.db
+    // Requests sent TO this user. Rows still held at a guardian hop are
+    // invisible here — that filter is what keeps an unreleased request from
+    // ever reaching a child.
+    const rows = await ctx.db
       .query("friendships")
       .withIndex("by_friend", (q) => q.eq("friendId", userId))
-      .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
+    const incoming = rows.filter(
+      (f) => f.status === "pending" && isReleasedToRecipient(f.stage),
+    );
 
     const requesters = await Promise.all(
       incoming.map(async (f) => {
@@ -252,6 +305,16 @@ export const createDirectRequest = mutation({
       throw new Error("NOT_ACCEPTING_REQUESTS");
     }
 
+    // A child reaching outside the family needs the "ask to add" permission.
+    // Family members are exempt — they're reachable with no request at all.
+    const senderPolicy = await childPolicyOf(ctx, userId);
+    if (senderPolicy !== null) {
+      const family = await familyOf(ctx, userId);
+      if (!family.has(friendId.toString()) && !senderPolicy.canRequestContacts) {
+        throw new Error(ERR_NOT_ALLOWED);
+      }
+    }
+
     const { outgoing, incoming } = await getDirectFriendship(ctx, userId, friendId);
 
     if (outgoing?.status === "accepted" || incoming?.status === "accepted") {
@@ -263,6 +326,14 @@ export const createDirectRequest = mutation({
     if (incoming?.status === "pending") {
       throw new Error("REQUEST_ALREADY_RECEIVED");
     }
+    // A guardian's "no" isn't permanent. Clear the dead row so the child can
+    // ask again later; the guardian simply sees the request a second time.
+    if (outgoing?.status === "denied") await ctx.db.delete(outgoing._id);
+    if (incoming?.status === "denied") await ctx.db.delete(incoming._id);
+
+    // Where this request enters the guardian relay. `undefined` for adult to
+    // adult, which behaves exactly as it did before child accounts existed.
+    const stage = await initialStageFor(ctx, userId, friendId);
 
     const trimmed = initialMessage?.trim() ?? "";
     const requestId = await ctx.db.insert("friendships", {
@@ -273,10 +344,12 @@ export const createDirectRequest = mutation({
       roomType,
       messageLifetime,
       initialMessage: trimmed,
+      ...(stage ? { stage } : {}),
     });
     if (trimmed.length > 0) {
       await insertRequestMessage(ctx, requestId, userId, trimmed);
     }
+    await notifyHolder(ctx, stage, userId, friendId);
     return requestId;
   },
 });
@@ -323,6 +396,12 @@ export const approveDirectRequest = mutation({
       )
       .first();
     if (!request || request.status !== "pending") throw new Error("REQUEST_NOT_FOUND");
+    // A child cannot release their own request. Until a guardian has advanced
+    // it to `awaitingRecipient` this row isn't theirs to accept — and they
+    // can't even see it, so reaching here means a hand-crafted call.
+    if (!isReleasedToRecipient(request.stage)) {
+      throw new Error("REQUEST_NOT_FOUND");
+    }
 
     const requestMessages = await ctx.db
       .query("friendRequestMessages")
@@ -437,7 +516,9 @@ export const rejectDirectRequest = mutation({
         q.eq("userId", requesterId).eq("friendId", userId)
       )
       .first();
-    if (request?.status === "pending") {
+    // Same gate as approve: an unreleased row belongs to a guardian, who
+    // declines it via `family.advanceContactRequest`.
+    if (request?.status === "pending" && isReleasedToRecipient(request.stage)) {
       await clearRequestMessages(ctx, request._id);
       await ctx.db.delete(request._id);
     }
@@ -447,11 +528,15 @@ export const rejectDirectRequest = mutation({
 export const listIncomingDirectRequests = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const incoming = await ctx.db
+    // Only rows a guardian has released reach the recipient. This is the
+    // single line that makes a supervised request invisible until its turn.
+    const rows = await ctx.db
       .query("friendships")
       .withIndex("by_friend", (q) => q.eq("friendId", userId))
-      .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
+    const incoming = rows.filter(
+      (f) => f.status === "pending" && isReleasedToRecipient(f.stage),
+    );
 
     const requests = await Promise.all(
       incoming.map(async (request) => {
@@ -489,11 +574,11 @@ export const listIncomingDirectRequests = query({
 export const listOutgoingDirectRequests = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const outgoing = await ctx.db
+    const rows = await ctx.db
       .query("friendships")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("status"), "pending"))
       .collect();
+    const outgoing = rows.filter((f) => f.status === "pending");
 
     const requests = await Promise.all(
       outgoing.map(async (request) => {
@@ -512,6 +597,9 @@ export const listOutgoingDirectRequests = query({
           messageLifetime: request.messageLifetime,
           initialMessage: request.initialMessage ?? "",
           messageCount: messages.length,
+          // Lets the sender's UI distinguish "waiting for a grown-up" from
+          // "waiting for them" instead of showing a bare "pending".
+          stage: request.stage ?? null,
           user: {
             _id: receiver._id,
             username: receiver.username,

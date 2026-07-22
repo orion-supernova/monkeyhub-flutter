@@ -7,6 +7,7 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { childMayReach, childPolicyOf } from "./childGuard";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -83,6 +84,20 @@ export const initiate = mutation({
     // Honor block list — generic error so we don't reveal who blocked whom.
     if (await isPairBlocked(ctx, callerId, calleeId)) {
       throw new Error("CALL_FAILED");
+    }
+
+    // Child guard, both directions. A child can only be on a call with family
+    // or an approved contact, and only while calls are switched on for them.
+    // Same generic error as a block, for the same reason: the other party
+    // learns nothing about why.
+    for (const [a, b] of [
+      [callerId, calleeId],
+      [calleeId, callerId],
+    ]) {
+      const policy = await childPolicyOf(ctx, a);
+      if (policy === null) continue;
+      if (!policy.callsEnabled) throw new Error("CALL_FAILED");
+      if (!(await childMayReach(ctx, a, b))) throw new Error("CALL_FAILED");
     }
 
     // Membership sanity check: both users must belong to the room.

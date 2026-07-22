@@ -7,6 +7,7 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../family/family_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/radial_floating_menu.dart';
@@ -18,10 +19,17 @@ import 'settings_screen.dart';
 /// the [RadialFloatingMenu] (or a conventional bottom-pill nav, depending on
 /// [SettingsStore.navStyle]).
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key, required this.repo, required this.api, required this.auth});
+  const HomeShell({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.auth,
+    required this.family,
+  });
   final ChatRepository repo;
   final ChatApi api;
   final AuthService auth;
+  final FamilyService family;
   @override
   State<HomeShell> createState() => _HomeShellState();
 }
@@ -48,11 +56,21 @@ class _HomeShellState extends State<HomeShell> {
   Widget _section() {
     switch (SettingsStore.instance.section) {
       case HomeSection.chat:
-        return chat.HomeScreen(repo: widget.repo, api: widget.api, auth: widget.auth);
+        return chat.HomeScreen(
+          repo: widget.repo,
+          api: widget.api,
+          auth: widget.auth,
+          family: widget.family,
+        );
       case HomeSection.feed:
         return const FeedScreen();
       case HomeSection.settings:
-        return SettingsScreen(repo: widget.repo, api: widget.api, auth: widget.auth);
+        return SettingsScreen(
+          repo: widget.repo,
+          api: widget.api,
+          auth: widget.auth,
+          family: widget.family,
+        );
     }
   }
 

@@ -1,5 +1,12 @@
 import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  ERR_APPROVAL_REQUIRED,
+  assertChildMayReach,
+  assertChildPolicy,
+  childMayUseRoom,
+  isChild,
+} from "./childGuard";
 
 export const create = mutation({
   args: {
@@ -12,6 +19,13 @@ export const create = mutation({
     messageLifetime: v.optional(v.number()), // seconds
   },
   handler: async (ctx, { name, description, isPrivate, userId, passwordHash, type, messageLifetime }) => {
+    // Children can't make rooms unless a guardian switched it on, and even
+    // then only private ones — a child publishing a public room would be a
+    // discoverable surface nobody approved.
+    await assertChildPolicy(ctx, userId, "canCreateRooms");
+    const creatorIsChild = await isChild(ctx, userId);
+    const visibility = creatorIsChild ? true : isPrivate;
+
     const existing = await ctx.db
       .query("rooms")
       .withIndex("by_name", (q) => q.eq("name", name))
@@ -23,7 +37,7 @@ export const create = mutation({
       description,
       createdBy: userId,
       createdAt: Date.now(),
-      isPrivate,
+      isPrivate: visibility,
       memberCount: 1,
       passwordHash: passwordHash && passwordHash.length > 0 ? passwordHash : undefined,
       type: type ?? "regular",
@@ -52,6 +66,17 @@ export const join = mutation({
       if (!passwordHash || passwordHash.length === 0) throw new Error("ROOM_PASSWORD_REQUIRED");
       if (passwordHash !== room.passwordHash) throw new Error("ROOM_PASSWORD_INVALID");
     }
+
+    // Children need a guardian's yes first. `childMayUseRoom` already lets a
+    // family-only room through, so a parent adding their kid to the family
+    // group chat doesn't need an approval round-trip. The client turns this
+    // error into the "ask a grown-up" sheet rather than a failure.
+    if (await isChild(ctx, userId)) {
+      if (!(await childMayUseRoom(ctx, userId, roomId))) {
+        throw new Error(ERR_APPROVAL_REQUIRED);
+      }
+    }
+
     const existing = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
@@ -181,10 +206,23 @@ export const updateRoomAvatar = mutation({
 });
 
 export const listPublic = query({
-  handler: async (ctx) => {
+  args: { viewerUserId: v.optional(v.id("users")) },
+  handler: async (ctx, { viewerUserId }) => {
+    // A child without `publicRoomsEnabled` doesn't get a filtered Discover —
+    // they get no Discover at all. Returning [] here is the backstop; the
+    // client also hides the tab outright.
+    if (viewerUserId) {
+      const viewer = await ctx.db.get(viewerUserId);
+      if (
+        viewer?.accountType === "child" &&
+        !(viewer.childPolicy?.publicRoomsEnabled ?? false)
+      ) {
+        return [];
+      }
+    }
     const rooms = await ctx.db
       .query("rooms")
-      .filter((q) => q.eq(q.field("isPrivate"), false))
+      .withIndex("by_visibility", (q) => q.eq("isPrivate", false))
       .collect();
     // Strip passwordHash for security — expose only a boolean indicator
     return rooms.map(({ passwordHash, ...rest }) => ({
@@ -291,6 +329,11 @@ export const getOrCreateDM = mutation({
   },
   handler: async (ctx, { userId, friendId, roomType, messageLifetime }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_DM_SELF");
+
+    // Either party being a child gates the DM: family is always fine, anyone
+    // else has to have cleared the guardian relay into an accepted contact.
+    await assertChildMayReach(ctx, userId, friendId);
+    await assertChildMayReach(ctx, friendId, userId);
 
     const acceptedForward = await ctx.db
       .query("friendships")

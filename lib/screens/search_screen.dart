@@ -6,6 +6,7 @@ import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/room_password_sheet.dart';
 import '../widgets/user_avatar.dart';
@@ -339,7 +340,11 @@ class _PersonRowState extends State<_PersonRow> {
   String _actionLabel() {
     switch (widget.user.friendshipStatus) {
       case FriendshipStatus.none:
-        return 'SEND REQUEST';
+        // A child's request goes to their grown-up first, so promising to
+        // "send" it would be a lie.
+        return FamilyService.maybeInstance?.isChild == true
+            ? 'ASK TO ADD'
+            : 'SEND REQUEST';
       case FriendshipStatus.outgoingPending:
         return 'CANCEL';
       case FriendshipStatus.incomingPending:

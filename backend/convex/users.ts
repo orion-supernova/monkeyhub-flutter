@@ -1,5 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import {
+  ACCOUNT_ADULT,
+  ACCOUNT_CHILD,
+  DEFAULT_CHILD_POLICY,
+  ERR_NOT_ALLOWED,
+  familyOf,
+  isChild,
+  isGuardianOf,
+} from "./childGuard";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -27,6 +36,15 @@ export const getProfile = query({
     const isSelf =
       viewerUserId !== undefined && viewerUserId.toString() === userId.toString();
 
+    // Guardian bypass. This is how "everything enabled for their parents to
+    // check" is delivered WITHOUT making the child public to the world: the
+    // child's visibility map stays as restrictive as we like, and guardians
+    // simply aren't subject to it. Strangers still see a redacted profile.
+    const isGuardian =
+      viewerUserId !== undefined &&
+      !isSelf &&
+      (await isGuardianOf(ctx, viewerUserId, userId));
+
     // Friends check.
     let isFriend = false;
     if (viewerUserId && !isSelf) {
@@ -46,7 +64,7 @@ export const getProfile = query({
     }
 
     function canSee(level: string | undefined): boolean {
-      if (isSelf) return true;
+      if (isSelf || isGuardian) return true;
       const v = level ?? "public";
       if (v === "public") return true;
       if (v === "friends") return isFriend;
@@ -59,17 +77,24 @@ export const getProfile = query({
       username: user.username,
       name: user.name,
       // Self-only data — never expose to other viewers.
-      email: isSelf ? user.email : undefined,
+      email: isSelf || isGuardian ? user.email : undefined,
       avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,
       status: canSee(vis.status) ? user.status : undefined,
       lastSeen: canSee(vis.lastSeen) ? user.lastSeen : undefined,
       // Mirror the visibility map back so self-view UI can render it without
       // a separate fetch. Other viewers get an empty map — knowing someone's
       // settings is itself a privacy leak.
-      visibility: isSelf ? vis : undefined,
+      visibility: isSelf || isGuardian ? vis : undefined,
+      // Lets the client decide what to render without a second round trip:
+      // hide Sign Out, lock the visibility screen, gate Discover.
+      accountType: user.accountType ?? ACCOUNT_ADULT,
+      childPolicy:
+        (isSelf || isGuardian) && user.accountType === ACCOUNT_CHILD
+          ? user.childPolicy ?? DEFAULT_CHILD_POLICY
+          : undefined,
       // Hint to the viewer that fields were redacted, so the UI can show
       // a "limited view" pill instead of guessing.
-      isRedacted: !isSelf &&
+      isRedacted: !isSelf && !isGuardian &&
         (!canSee(vis.avatar) ||
           !canSee(vis.status) ||
           !canSee(vis.lastSeen)),
@@ -120,6 +145,10 @@ export const updateVisibility = mutation({
   ) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    // A child can't loosen or tighten their own visibility — the guardian
+    // bypass in getProfile makes it moot for parents, and letting a child
+    // set fields to "public" would expose them to everyone.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
     const valid = new Set(["public", "friends", "nobody"]);
     const reqValid = new Set(["public", "nobody"]);
     function pick(level: string | undefined, allowed: Set<string>): string | undefined {
@@ -192,12 +221,35 @@ export const searchUsers = query({
       }
     }
 
+    // A child searching gets a closed world: their family, plus people a
+    // guardian has already let through into an accepted contact. Everyone
+    // else is simply not there — no "locked" rows hinting at who exists.
+    let reachable: Set<string> | null = null;
+    if (await isChild(ctx, currentUserId)) {
+      reachable = await familyOf(ctx, currentUserId);
+      const mine = await ctx.db
+        .query("friendships")
+        .withIndex("by_user", (qf) => qf.eq("userId", currentUserId))
+        .collect();
+      for (const f of mine) {
+        if (f.status === "accepted") reachable.add(f.friendId.toString());
+      }
+      const theirs = await ctx.db
+        .query("friendships")
+        .withIndex("by_friend", (qf) => qf.eq("friendId", currentUserId))
+        .collect();
+      for (const f of theirs) {
+        if (f.status === "accepted") reachable.add(f.userId.toString());
+      }
+    }
+
     const users = await ctx.db.query("users").collect();
     const filtered = users
       .filter(
         (u) =>
           u._id !== currentUserId &&
           !hidden.has(u._id.toString()) &&
+          (reachable === null || reachable.has(u._id.toString())) &&
           (u.username.toLowerCase().includes(q.toLowerCase()) ||
             (u.name ?? "").toLowerCase().includes(q.toLowerCase()))
       )

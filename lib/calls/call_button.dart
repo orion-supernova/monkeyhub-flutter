@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
@@ -55,6 +56,13 @@ class CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Calls can be switched off for a child. Hide rather than disable — the
+    // backend refuses either way, and a dead button just invites tapping.
+    // Null (not yet resolved) reads as unrestricted, which is right for the
+    // adult case and harmless for a child since `calls.initiate` still gates.
+    if (FamilyService.maybeInstance?.canCall == false) {
+      return const SizedBox.shrink();
+    }
     switch (variant) {
       case CallButtonVariant.classic:
         return _ClassicCallButton(onPick: (k) => _start(context, k));

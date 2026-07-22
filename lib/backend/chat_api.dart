@@ -7,6 +7,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
+import '../models/family.dart';
 import '../models/friend_request_message.dart';
 import 'convex_client.dart';
 
@@ -287,8 +288,13 @@ class ChatApi {
     return _decodeRooms(res);
   }
 
-  Future<List<ChatRoom>> listPublic() async {
-    final res = await _cv.query('rooms:listPublic', const {});
+  /// Pass [viewerUserId] so the backend can return an empty list for a child
+  /// whose guardian hasn't unlocked public rooms — the client hides Discover
+  /// too, but this is the half that can't be worked around.
+  Future<List<ChatRoom>> listPublic({String? viewerUserId}) async {
+    final res = await _cv.query('rooms:listPublic', {
+      'viewerUserId': ?viewerUserId,
+    });
     return _decodeRooms(res);
   }
 
@@ -616,6 +622,242 @@ class ChatApi {
     return ((res as List?) ?? const [])
         .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Family
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Am I a child, what may I do, who's in my family, and how much is waiting
+  /// on me. One call — the client leans on this to decide what to render.
+  Future<FamilyContext?> getFamilyContext(String userId) async {
+    final res = await _cv.query('family:getFamilyContext', {'userId': userId});
+    if (res == null) return null;
+    return FamilyContext.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  Future<AuthResult> createChildAccount({
+    required String guardianId,
+    required String username,
+    required String name,
+    int? birthYear,
+  }) async {
+    final res = await _cv.mutation('family:createChildAccount', {
+      'guardianId': guardianId,
+      'username': username,
+      'name': name,
+      'birthYear': ?birthYear,
+    });
+    return AuthResult.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  Future<void> addGuardian({
+    required String guardianId,
+    required String childId,
+    required String newGuardianUsername,
+  }) async {
+    await _cv.mutation('family:addGuardian', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'newGuardianUsername': newGuardianUsername,
+    });
+  }
+
+  /// Registers a pairing code for a child device. [code] is generated on this
+  /// device and shown to the user; only its hash crosses the wire, exactly as
+  /// passwords do. Returns when the code expires.
+  Future<DateTime> createPairingCode({
+    required String guardianId,
+    required String childId,
+    required String code,
+  }) async {
+    final res = await _cv.mutation('family:createPairingCode', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'codeHash': sha256Hash(code),
+    });
+    final map = (res as Map).cast<String, dynamic>();
+    return DateTime.fromMillisecondsSinceEpoch(
+      ((map['expiresAt'] ?? 0) as num).toInt(),
+    );
+  }
+
+  Future<void> revokePairingCode({
+    required String guardianId,
+    required String childId,
+  }) async {
+    await _cv.mutation('family:revokePairingCode', {
+      'guardianId': guardianId,
+      'childId': childId,
+    });
+  }
+
+  /// Trades a pairing code for a session on the child's device. Single-use —
+  /// a second attempt with the same code fails with PAIRING_CODE_INVALID.
+  Future<AuthResult> redeemPairingCode({
+    required String code,
+    required String deviceId,
+    required String platform,
+    String? deviceName,
+  }) async {
+    final res = await _cv.mutation('family:redeemPairingCode', {
+      'codeHash': sha256Hash(code),
+      'deviceId': deviceId,
+      'platform': platform,
+      'deviceName': ?deviceName,
+    });
+    return AuthResult.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  /// Everything waiting on this guardian, across all their children.
+  Future<List<QueueItem>> listGuardianQueue(String guardianId) async {
+    final res = await _cv.query('family:listGuardianQueue', {
+      'guardianId': guardianId,
+    });
+    return ((res as List?) ?? const [])
+        .map((e) => QueueItem.fromJson((e as Map).cast<String, dynamic>()))
+        .whereType<QueueItem>()
+        .toList();
+  }
+
+  /// Moves a contact request one hop along the guardian relay, or kills it.
+  /// Used for both [QueueItemType.contactOutgoing] and `contactIncoming`.
+  Future<void> advanceContactRequest({
+    required String friendshipId,
+    required String guardianId,
+    required bool approve,
+  }) async {
+    await _cv.mutation('family:advanceContactRequest', {
+      'friendshipId': friendshipId,
+      'guardianId': guardianId,
+      'approve': approve,
+    });
+  }
+
+  /// Raises a "can I join this room?" with the child's guardians.
+  Future<String> requestApproval({
+    required String childId,
+    required String kind,
+    String? targetRoomId,
+    String? note,
+  }) async {
+    final res = await _cv.mutation('family:requestApproval', {
+      'childId': childId,
+      'kind': kind,
+      'targetRoomId': ?targetRoomId,
+      'note': ?note,
+    });
+    return res.toString();
+  }
+
+  /// Approving also performs the join, so the child doesn't have to re-tap.
+  Future<String?> decideApproval({
+    required String approvalId,
+    required String guardianId,
+    required bool approve,
+  }) async {
+    final res = await _cv.mutation('family:decideApproval', {
+      'approvalId': approvalId,
+      'guardianId': guardianId,
+      'approve': approve,
+    });
+    return res?.toString();
+  }
+
+  Future<void> revokeApproval({
+    required String guardianId,
+    required String approvalId,
+  }) async {
+    await _cv.mutation('family:revokeApproval', {
+      'guardianId': guardianId,
+      'approvalId': approvalId,
+    });
+  }
+
+  Future<void> revokeContact({
+    required String guardianId,
+    required String childId,
+    required String contactUserId,
+  }) async {
+    await _cv.mutation('family:revokeContact', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'contactUserId': contactUserId,
+    });
+  }
+
+  Future<List<PendingApproval>> listMyApprovals(String childId) async {
+    final res = await _cv.query('family:listMyApprovals', {'childId': childId});
+    return ((res as List?) ?? const [])
+        .map((e) => PendingApproval.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  Future<ChildGrants> listChildGrants({
+    required String guardianId,
+    required String childId,
+  }) async {
+    final res = await _cv.query('family:listChildGrants', {
+      'guardianId': guardianId,
+      'childId': childId,
+    });
+    return ChildGrants.fromJson(
+      (res as Map?)?.cast<String, dynamic>() ?? const {},
+    );
+  }
+
+  /// Only the flags you pass are touched.
+  Future<ChildPolicy> setChildPolicy({
+    required String guardianId,
+    required String childId,
+    bool? publicRoomsEnabled,
+    bool? callsEnabled,
+    bool? mediaEnabled,
+    bool? canRequestContacts,
+    bool? canCreateRooms,
+  }) async {
+    final res = await _cv.mutation('family:setChildPolicy', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'publicRoomsEnabled': ?publicRoomsEnabled,
+      'callsEnabled': ?callsEnabled,
+      'mediaEnabled': ?mediaEnabled,
+      'canRequestContacts': ?canRequestContacts,
+      'canCreateRooms': ?canCreateRooms,
+    });
+    return ChildPolicy.fromJson((res as Map).cast<String, dynamic>());
+  }
+
+  Future<void> unlinkChild({
+    required String guardianId,
+    required String childId,
+  }) async {
+    await _cv.mutation('family:unlinkChild', {
+      'guardianId': guardianId,
+      'childId': childId,
+    });
+  }
+
+  Future<void> promoteToAdult({
+    required String guardianId,
+    required String childId,
+    required String password,
+  }) async {
+    await _cv.mutation('family:promoteToAdult', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'passwordHash': sha256Hash(password),
+    });
+  }
+
+  Future<void> deleteChildAccount({
+    required String guardianId,
+    required String childId,
+  }) async {
+    await _cv.mutation('family:deleteChildAccount', {
+      'guardianId': guardianId,
+      'childId': childId,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────

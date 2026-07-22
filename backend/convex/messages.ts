@@ -1,6 +1,12 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import {
+  ERR_APPROVAL_REQUIRED,
+  ERR_NOT_ALLOWED,
+  childMayUseRoom,
+  childPolicyOf,
+} from "./childGuard";
 
 export const send = mutation({
   args: {
@@ -21,6 +27,20 @@ export const send = mutation({
     if (!membership) throw new Error("NOT_A_MEMBER");
 
     const msgType = type ?? "text";
+
+    // Child guard. Membership alone isn't enough: a grant can be revoked
+    // while the child is still sitting in the room, and the room's members
+    // can change after approval. Re-checked on every send so revocation is
+    // immediate rather than "until they close the screen".
+    const policy = await childPolicyOf(ctx, userId);
+    if (policy !== null) {
+      if (!(await childMayUseRoom(ctx, userId, roomId))) {
+        throw new Error(ERR_APPROVAL_REQUIRED);
+      }
+      if (msgType !== "text" && !policy.mediaEnabled) {
+        throw new Error(ERR_NOT_ALLOWED);
+      }
+    }
 
     // Resolve senderName if not provided
     let resolvedSenderName = senderName;

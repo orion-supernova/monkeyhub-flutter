@@ -12,6 +12,7 @@ import 'calls/incoming_call_screen.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
+import 'family/family_service.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'privacy/capture_protection.dart';
@@ -44,6 +45,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   late final CallApi _callApi = CallApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
+  late final FamilyService _family = FamilyService.ensure(_api);
   late final CallService _callService = CallService.ensure(_callApi);
   late final SignalingSubscriber _signaling =
       SignalingSubscriber(api: _callApi, service: _callService);
@@ -127,6 +129,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       // native call rings for the rest of the session (only the in-app
       // realtime path survives). Re-uploading on resume self-heals that.
       PushManager.instance.refreshTokens();
+      // An approval may have been granted (or revoked) elsewhere while we
+      // were backgrounded — most likely on the parent's own other device.
+      _family.refresh();
     }
   }
 
@@ -169,6 +174,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       if (s != null) {
         try {
           await _repo.attach(s.userId);
+          // Fire-and-forget: the UI renders as an unrestricted adult until
+          // this lands, and every gate is enforced server-side anyway.
+          _family.attach(s.userId);
           await PushManager.instance.login(s.userId);
           // Respect the user's last notification preference.
           if (!SettingsStore.instance.pushEnabled) {
@@ -194,6 +202,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     try {
       if (s != null && _repo.userId != s.userId) {
         await _repo.attach(s.userId);
+        _family.attach(s.userId);
         await PushManager.instance.login(s.userId);
         // Mark online on first attach.
         _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
@@ -208,6 +217,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         _consumePendingPushRoom();
       } else if (s == null) {
         BadgeManager.instance.unbind();
+        _family.detach();
         await _repo.detach();
         await PushManager.instance.logout();
         await _signaling.stop();
@@ -309,6 +319,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
               auth: _auth,
               repo: _repo,
               api: _api,
+              family: _family,
               themeController: _themeController,
               bootstrapped: _bootstrapped,
               bootError: _bootError,
@@ -508,6 +519,7 @@ class _AppHome extends StatefulWidget {
     required this.auth,
     required this.repo,
     required this.api,
+    required this.family,
     required this.themeController,
     required this.bootstrapped,
     required this.bootError,
@@ -517,6 +529,7 @@ class _AppHome extends StatefulWidget {
   final AuthService auth;
   final ChatRepository repo;
   final ChatApi api;
+  final FamilyService family;
   final ThemeController themeController;
   final bool bootstrapped;
   final Object? bootError;
@@ -569,6 +582,7 @@ class _AppHomeState extends State<_AppHome> {
             repo: widget.repo,
             api: widget.api,
             auth: widget.auth,
+            family: widget.family,
           )
         : LoginScreen(
             key: ValueKey('login_${theme.id}'),

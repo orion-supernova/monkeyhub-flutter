@@ -10,6 +10,57 @@ import { v } from "convex/values";
 const ONESIGNAL_APP_ID = "c191a9f0-15cf-402a-8a04-dcc16108f4b0";
 const ONESIGNAL_BASE = "https://api.onesignal.com";
 
+/**
+ * Push for anything sitting in a guardian's approval queue, and for a request
+ * that has just been released to its recipient. Takes explicit userIds rather
+ * than deriving them, because the caller already knows exactly who the next
+ * hop is — and getting that wrong would leak a request to someone who isn't
+ * supposed to know it exists yet.
+ */
+export const sendApprovalPush = internalAction({
+  args: {
+    userIds: v.array(v.string()),
+    title: v.string(),
+    body: v.string(),
+  },
+  handler: async (ctx, { userIds, title, body }) => {
+    const apiKey = process.env.ONESIGNAL_API_KEY;
+    if (!apiKey) {
+      console.error(
+        "sendApprovalPush: ONESIGNAL_API_KEY env var is not set — push skipped."
+      );
+      return;
+    }
+    if (userIds.length === 0) return;
+
+    const payload = {
+      app_id: ONESIGNAL_APP_ID,
+      target_channel: "push",
+      include_aliases: { external_id: userIds },
+      headings: { en: title },
+      contents: { en: body },
+      data: { kind: "approval" },
+      ios_badgeType: "Increase",
+      ios_badgeCount: 1,
+    };
+
+    const response = await fetch(`${ONESIGNAL_BASE}/notifications`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Key ${apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.error(
+        `sendApprovalPush: OneSignal API error (HTTP ${response.status}): ${await response.text()}`
+      );
+    }
+  },
+});
+
 export const sendMessagePush = internalAction({
   args: {
     roomId: v.id("rooms"),

@@ -8,6 +8,7 @@ import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/family.dart';
 import '../models/friend_request.dart';
 import 'cache_store.dart';
 import 'settings_store.dart';
@@ -640,10 +641,30 @@ class ChatRepository extends ChangeNotifier {
         mediaStorageId: mediaStorageId,
         replyToId: replyToId,
       );
-    } catch (_) {
+    } catch (e) {
+      // A child guard rejection is not a transient failure, so it must not
+      // sit in the pending list waiting to be retried forever — the retry
+      // would fail identically until a guardian acts. Drop the optimistic
+      // bubble and surface it so the composer can explain.
+      if (isChildGateError(e)) {
+        _pending[roomId]?.removeWhere((m) => m.id == tempId);
+        _lastChildGateError = e.toString();
+        notifyListeners();
+        return;
+      }
       optimistic.status = MessageStatus.error;
       notifyListeners();
     }
+  }
+
+  /// Set when the last send was refused by a child guard, so the room screen
+  /// can show the "ask a grown-up" sheet instead of a silent failure.
+  /// Read-and-clear: consuming it resets the flag.
+  String? _lastChildGateError;
+  String? takeChildGateError() {
+    final e = _lastChildGateError;
+    _lastChildGateError = null;
+    return e;
   }
 
   Future<void> deleteMessage(String messageId) async {

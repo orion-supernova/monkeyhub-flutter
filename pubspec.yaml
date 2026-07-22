@@ -2,7 +2,7 @@ name: monkeyhub
 description: "MonkeyHub — rooms, friends, secrets that fade."
 publish_to: 'none'
 
-version: 1.3.19+1
+version: 1.3.20+1
 
 environment:
   sdk: ^3.11.4
@@ -63,6 +63,12 @@ dependencies:
   # Auth / crypto
   crypto: ^3.0.3
   flutter_secure_storage: ^9.2.2
+
+  # Child-device pairing. The parent's phone renders a short-lived code as a
+  # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
+  # six digits get typed in by hand.
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
 
   # Storage / paths
   path_provider: ^2.1.4
