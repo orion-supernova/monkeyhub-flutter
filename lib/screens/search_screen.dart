@@ -15,19 +15,38 @@ import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
 import 'room_screen.dart';
 
+/// Which half of search this screen is. Rooms live under Discover, people
+/// under Friends — the two are never mixed, so a child who may ask to add a
+/// contact can reach people search without that also handing them Discover.
+enum SearchMode { people, rooms }
+
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key, required this.repo, required this.api});
+  const SearchScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.mode,
+    required this.heroTag,
+  });
   final ChatRepository repo;
   final ChatApi api;
+  final SearchMode mode;
+
+  /// Tag of the collapsed bar this screen flies out of. Each entry point
+  /// passes its own — Discover's and Friends' bars can both be mounted for a
+  /// frame mid tab-transition, and two live Heroes sharing a tag throws.
+  final String heroTag;
+
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
 class _SearchScreenState extends State<SearchScreen> {
   final _q = TextEditingController();
-  String _mode = 'rooms';
   String _query = '';
   Timer? _debounce;
+
+  bool get _people => widget.mode == SearchMode.people;
 
   List<ChatUser> _users = [];
   List<ChatRoom> _rooms = [];
@@ -56,7 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
     if (hasQuery) {
       _debounce = Timer(const Duration(milliseconds: 250), _refresh);
-    } else if (_mode == 'rooms') {
+    } else if (!_people) {
       _refresh();
     }
   }
@@ -65,12 +84,17 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _loading = true);
     final me = widget.repo.userId ?? '';
     try {
-      if (_mode == 'people') {
+      if (_people) {
         _users = _query.isEmpty
             ? const []
             : await widget.api.searchUsers(query: _query, currentUserId: me);
       } else {
-        final rs = await widget.api.listPublic();
+        // Pass the viewer — the backend blanks this list for a child without
+        // `publicRoomsEnabled` (rooms.ts listPublic). Omitting it here would
+        // route around the very gate Discover relies on.
+        final rs = await widget.api.listPublic(
+          viewerUserId: widget.repo.userId,
+        );
         _rooms = _query.isEmpty
             ? rs
             : rs.where((r) => r.name.toLowerCase().contains(_query.toLowerCase())).toList();
@@ -93,26 +117,12 @@ class _SearchScreenState extends State<SearchScreen> {
               children: [
                 _Header(
                   q: _q,
+                  heroTag: widget.heroTag,
+                  hintText: _people ? 'search people…' : 'search rooms…',
                   onChanged: _onChanged,
                   onClose: () => Navigator.of(context).maybePop(),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _ModeChip(
-                          label: 'ROOMS',
-                          active: _mode == 'rooms',
-                          onTap: () { setState(() => _mode = 'rooms'); _refresh(); }),
-                      const SizedBox(width: 8),
-                      _ModeChip(
-                          label: 'PEOPLE',
-                          active: _mode == 'people',
-                          onTap: () { setState(() => _mode = 'people'); _refresh(); }),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 4),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: theme.motionMed,
@@ -135,10 +145,10 @@ class _SearchScreenState extends State<SearchScreen> {
                       ],
                     ),
                     child: KeyedSubtree(
-                      key: ValueKey(_mode),
+                      key: ValueKey(widget.mode),
                       child: _loading
                           ? Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2))
-                          : (_mode == 'people' ? _peopleBody() : _roomsBody()),
+                          : (_people ? _peopleBody() : _roomsBody()),
                     ),
                   ),
                 ),
@@ -152,16 +162,36 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _peopleBody() {
     final theme = ThemeScope.of(context);
+    // A child only matches people they already have as they type; anyone else
+    // needs the complete username. Say so up front and again when nothing
+    // matched, otherwise the rule reads as the search being broken.
+    final isChild = FamilyService.maybeInstance?.isChild == true;
     if (_query.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: Text('search by username or name', style: theme.bodySoft)),
+        child: Center(
+          child: Text(
+            isChild
+                ? 'type a whole username to find someone new'
+                : 'search by username or name',
+            style: theme.bodySoft,
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
     if (_users.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(child: Text('no one matches', style: theme.bodySoft)),
+        child: Center(
+          child: Text(
+            isChild
+                ? 'no one matches — new people need their\nwhole username, spelled exactly'
+                : 'no one matches',
+            style: theme.bodySoft,
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
     return ListView.builder(
@@ -198,8 +228,16 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.q, required this.onChanged, required this.onClose});
+  const _Header({
+    required this.q,
+    required this.heroTag,
+    required this.hintText,
+    required this.onChanged,
+    required this.onClose,
+  });
   final TextEditingController q;
+  final String heroTag;
+  final String hintText;
   final ValueChanged<String> onChanged;
   final VoidCallback onClose;
   @override
@@ -211,7 +249,7 @@ class _Header extends StatelessWidget {
         children: [
           Expanded(
             child: Hero(
-              tag: 'discover-search-bar',
+              tag: heroTag,
               child: Material(
                 type: MaterialType.transparency,
                 child: Container(
@@ -229,7 +267,7 @@ class _Header extends StatelessWidget {
                         decoration: InputDecoration(
                           isCollapsed: true,
                           border: InputBorder.none,
-                          hintText: 'search…',
+                          hintText: hintText,
                           hintStyle: theme.body.copyWith(color: theme.inkMuted),
                           contentPadding: const EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -250,33 +288,6 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({required this.label, required this.active, required this.onTap});
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: theme.chipDecoration(filled: active),
-        child: AnimatedDefaultTextStyle(
-          duration: theme.motionFast,
-          curve: Curves.easeOutCubic,
-          style: theme.label.copyWith(color: active ? theme.accentInk : theme.inkSoft),
-          child: Text(label),
-        ),
       ),
     );
   }

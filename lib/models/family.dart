@@ -124,6 +124,7 @@ class ChildSummary {
     required this.user,
     required this.policy,
     required this.pendingCount,
+    this.guardians = const [],
     this.status,
     this.lastSeen,
   });
@@ -131,8 +132,18 @@ class ChildSummary {
   final ChatUser user;
   final ChildPolicy policy;
   final int pendingCount;
+
+  /// Everyone who supervises this child, including the viewer.
+  final List<ChatUser> guardians;
+
   final String? status;
   final DateTime? lastSeen;
+
+  /// True when the viewer is this child's only grown-up. Removing the last
+  /// guardian is refused server-side (`LAST_GUARDIAN`) because it would strand
+  /// the account with no one able to re-adopt or delete it — so the UI offers
+  /// graduating or deleting instead.
+  bool get isSoleGuardian => guardians.length <= 1;
 
   factory ChildSummary.fromJson(Map<String, dynamic> j) {
     final ls = j['lastSeen'];
@@ -143,6 +154,9 @@ class ChildSummary {
           ? ChildPolicy.fromJson(pol.cast<String, dynamic>())
           : ChildPolicy.locked,
       pendingCount: ((j['pendingCount'] ?? 0) as num).toInt(),
+      guardians: ((j['guardians'] as List?) ?? const [])
+          .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+          .toList(growable: false),
       status: j['status'] as String?,
       lastSeen: ls is num
           ? DateTime.fromMillisecondsSinceEpoch(ls.toInt())
@@ -343,19 +357,106 @@ class PendingApproval {
       );
 }
 
+/// A person on a child's allowed list.
+///
+/// Two independent things, which the dashboard has to keep distinct: whether
+/// a guardian has *pre-approved* them (the whitelist — [approvalId] is set),
+/// and whether the two are actually [connected]. A whitelisted person who
+/// never accepted is allowed but not talking; a person the child added
+/// through the normal relay is talking but not whitelisted.
+class ChildContact {
+  ChildContact({
+    required this.user,
+    required this.connected,
+    this.approvalId,
+  });
+
+  final ChatUser user;
+
+  /// An accepted friendship exists — they can actually message each other.
+  final bool connected;
+
+  /// The whitelist row, when this person was pre-approved. Null means they
+  /// got here through the normal approval flow instead, so there's no
+  /// standing pre-approval to take back.
+  final String? approvalId;
+
+  bool get isWhitelisted => approvalId != null;
+
+  /// What the row should say about this person's state.
+  String get stateLabel {
+    if (connected && isWhitelisted) return 'allowed · talking';
+    if (connected) return 'talking';
+    return 'allowed · not added yet';
+  }
+
+  factory ChildContact.fromJson(Map<String, dynamic> j) => ChildContact(
+        user: ChatUser.fromJson(j),
+        connected: (j['connected'] as bool?) ?? false,
+        approvalId: j['approvalId']?.toString(),
+      );
+}
+
+/// What taking a contact away from a child would actually destroy.
+///
+/// Fetched before the confirmation so the sheet can be specific — "128
+/// messages, last one on Tuesday" rather than a vague "this cannot be undone".
+class ContactRemovalPreview {
+  const ContactRemovalPreview({
+    required this.dmCount,
+    required this.messageCount,
+    required this.sharedGroupRooms,
+    this.lastMessageAt,
+  });
+
+  /// How many DM rooms the pair share. Can be more than one — a regular chat
+  /// and a Chamber of Secrets chat are separate rooms.
+  final int dmCount;
+  final int messageCount;
+  final DateTime? lastMessageAt;
+
+  /// Group rooms both are in. These are NOT removed — they're listed so the
+  /// parent knows the two still share a space and can revoke it separately.
+  final List<RoomBrief> sharedGroupRooms;
+
+  /// True when nothing would be destroyed, so the confirmation can be skipped
+  /// entirely rather than asking about nothing.
+  bool get isEmpty => dmCount == 0 && sharedGroupRooms.isEmpty;
+
+  static const unknown = ContactRemovalPreview(
+    dmCount: 0,
+    messageCount: 0,
+    sharedGroupRooms: [],
+  );
+
+  factory ContactRemovalPreview.fromJson(Map<String, dynamic> j) {
+    final last = j['lastMessageAt'];
+    return ContactRemovalPreview(
+      dmCount: ((j['dmCount'] ?? 0) as num).toInt(),
+      messageCount: ((j['messageCount'] ?? 0) as num).toInt(),
+      lastMessageAt: last is num
+          ? DateTime.fromMillisecondsSinceEpoch(last.toInt())
+          : null,
+      sharedGroupRooms: ((j['sharedGroupRooms'] as List?) ?? const [])
+          .map((e) => RoomBrief.fromJson((e as Map).cast<String, dynamic>()))
+          .toList(),
+    );
+  }
+}
+
 /// What a guardian has already granted a child, for the dashboard.
 class ChildGrants {
   ChildGrants({required this.rooms, required this.contacts});
 
   final List<RoomBrief> rooms;
-  final List<ChatUser> contacts;
+  final List<ChildContact> contacts;
 
   factory ChildGrants.fromJson(Map<String, dynamic> j) => ChildGrants(
         rooms: ((j['rooms'] as List?) ?? const [])
             .map((e) => RoomBrief.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
         contacts: ((j['contacts'] as List?) ?? const [])
-            .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+            .map((e) => ChildContact.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),
       );
 }

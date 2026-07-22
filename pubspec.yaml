@@ -68,7 +68,10 @@ dependencies:
   # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
   # six digits get typed in by hand.
   qr_flutter: ^4.1.0
-  mobile_scanner: ^5.2.3
+  # 7.x replaced Google ML Kit with Apple's Vision framework on iOS/macOS.
+  # ML Kit ships no arm64-simulator slices, which made the app unbuildable
+  # for Apple Silicon simulators (iOS 26+ sims are arm64-only, no Rosetta).
+  mobile_scanner: ^7.4.0
 
   # Storage / paths
   path_provider: ^2.1.4

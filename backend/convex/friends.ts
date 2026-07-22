@@ -13,9 +13,17 @@ import {
 } from "./childGuard";
 
 /**
- * Pings whoever now holds a request. Deliberately explicit about the audience:
- * while a request sits at a guardian hop, the person it's addressed to must
- * learn nothing about it.
+ * Pings whoever now holds a request.
+ *
+ * Deliberately explicit about the audience: while a request sits at a
+ * guardian hop, the person it's addressed to must learn nothing about it —
+ * so the push goes to the guardian, never to them.
+ *
+ * When nothing is holding it (`stage === undefined`, i.e. no supervision on
+ * either side) the recipient gets it directly. That case had no push at all
+ * before — friend requests have always arrived silently — which is why a
+ * request to a child looked like "notifications are broken" even though the
+ * guardian hop was firing correctly.
  */
 async function notifyHolder(
   ctx: any,
@@ -23,23 +31,26 @@ async function notifyHolder(
   senderId: any,
   recipientId: any,
 ) {
-  if (stage === undefined) return; // adult → adult: unchanged, no push
   const audience =
     stage === STAGE_SENDER_GUARDIAN
       ? await guardiansOf(ctx, senderId)
       : stage === STAGE_RECIPIENT_GUARDIAN
         ? await guardiansOf(ctx, recipientId)
-        : [];
+        : [recipientId];
   if (audience.length === 0) return;
   const sender = await ctx.db.get(senderId);
   const who = sender?.name ?? sender?.username ?? "Someone";
+  const forGuardian =
+    stage === STAGE_SENDER_GUARDIAN || stage === STAGE_RECIPIENT_GUARDIAN;
   await ctx.scheduler.runAfter(0, internal.notifications.sendApprovalPush, {
     userIds: audience.map((u: any) => u.toString()),
-    title: "Needs your OK",
+    title: forGuardian ? "Needs your OK" : "New request",
     body:
       stage === STAGE_SENDER_GUARDIAN
         ? `${who} wants to add someone`
-        : `${who} wants to add your child`,
+        : stage === STAGE_RECIPIENT_GUARDIAN
+          ? `${who} wants to add your child`
+          : `${who} sent you a request`,
   });
 }
 
@@ -488,6 +499,15 @@ export const approveDirectRequest = mutation({
       });
       await clearRequestMessages(ctx, request._id);
     }
+
+    // Tell the sender their request landed. Without this the other half of
+    // the exchange is silent: they ask, and then nothing ever tells them yes.
+    const accepter = await ctx.db.get(userId);
+    await ctx.scheduler.runAfter(0, internal.notifications.sendApprovalPush, {
+      userIds: [requesterId.toString()],
+      title: "Request accepted",
+      body: `${accepter?.name ?? accepter?.username ?? "They"} accepted your request`,
+    });
 
     return roomId;
   },

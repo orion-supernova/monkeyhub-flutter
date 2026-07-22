@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
@@ -12,18 +13,31 @@ import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
 import 'room_screen.dart';
+import 'search_screen.dart';
 
-class RequestsPanel extends StatefulWidget {
-  const RequestsPanel({super.key, required this.repo, required this.api});
+/// People search lives here rather than in Discover. Discover is gated on
+/// `publicRoomsEnabled`, so hanging username search off it left a child with
+/// "ask to add" but no public rooms unable to find anyone at all. This tab is
+/// always present, for every account.
+const String _searchBarTag = 'friends-search-bar';
+
+class FriendsPanel extends StatefulWidget {
+  const FriendsPanel({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.family,
+  });
   final ChatRepository repo;
   final ChatApi api;
+  final FamilyService family;
   @override
-  State<RequestsPanel> createState() => _RequestsPanelState();
+  State<FriendsPanel> createState() => _FriendsPanelState();
 }
 
-class _RequestsPanelState extends State<RequestsPanel> {
-  static const List<String> _order = ['incoming', 'outgoing', 'friends'];
-  String _tab = 'incoming';
+class _FriendsPanelState extends State<FriendsPanel> {
+  static const List<String> _order = ['friends', 'incoming', 'outgoing'];
+  String _tab = 'friends';
   int _direction = 1;
 
   void _setTab(String next) {
@@ -40,16 +54,48 @@ class _RequestsPanelState extends State<RequestsPanel> {
   void initState() {
     super.initState();
     widget.repo.addListener(_onRepoChange);
+    // A guardian can revoke "ask to add" while the child is on this tab; the
+    // search bar has to go with it.
+    widget.family.addListener(_onRepoChange);
   }
 
   @override
   void dispose() {
     widget.repo.removeListener(_onRepoChange);
+    widget.family.removeListener(_onRepoChange);
     super.dispose();
   }
 
   void _onRepoChange() {
     if (mounted) setState(() {});
+  }
+
+  void _openPeopleSearch() {
+    final theme = ThemeScope.of(context);
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: theme.motionMed,
+        reverseTransitionDuration: theme.motionMed,
+        pageBuilder: (_, _, _) => SearchScreen(
+          repo: widget.repo,
+          api: widget.api,
+          mode: SearchMode.people,
+          heroTag: _searchBarTag,
+        ),
+        transitionsBuilder: (_, anim, _, child) {
+          final curved =
+              CurvedAnimation(parent: anim, curve: theme.motionEntrance);
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
+                  .animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -62,9 +108,44 @@ class _RequestsPanelState extends State<RequestsPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.family.canRequestContacts) ...[
+          GestureDetector(
+            onTap: _openPeopleSearch,
+            child: Hero(
+              tag: _searchBarTag,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Container(
+                  decoration: theme.inputDecoration(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: theme.inkMuted, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'find someone by @username…',
+                          style: theme.body.copyWith(color: theme.inkMuted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            _SubTab(
+              label: 'friends · ${friends.length}',
+              active: _tab == 'friends',
+              onTap: () => _setTab('friends'),
+            ),
+            const SizedBox(width: 18),
             _SubTab(
               label: 'incoming · ${incoming.length}',
               active: _tab == 'incoming',
@@ -75,12 +156,6 @@ class _RequestsPanelState extends State<RequestsPanel> {
               label: 'outgoing · ${outgoing.length}',
               active: _tab == 'outgoing',
               onTap: () => _setTab('outgoing'),
-            ),
-            const SizedBox(width: 18),
-            _SubTab(
-              label: 'friends · ${friends.length}',
-              active: _tab == 'friends',
-              onTap: () => _setTab('friends'),
             ),
           ],
         ),
@@ -135,7 +210,12 @@ class _RequestsPanelState extends State<RequestsPanel> {
       case 'outgoing':
         return _OutgoingList(repo: widget.repo, api: widget.api, requests: outgoing);
       case 'friends':
-        return _FriendsList(repo: widget.repo, api: widget.api, friends: friends);
+        return _FriendsList(
+          repo: widget.repo,
+          api: widget.api,
+          friends: friends,
+          canSearch: widget.family.canRequestContacts,
+        );
       default:
         return const SizedBox.shrink();
     }
@@ -212,15 +292,28 @@ class _OutgoingList extends StatelessWidget {
 }
 
 class _FriendsList extends StatelessWidget {
-  const _FriendsList({required this.repo, required this.api, required this.friends});
+  const _FriendsList({
+    required this.repo,
+    required this.api,
+    required this.friends,
+    required this.canSearch,
+  });
   final ChatRepository repo;
   final ChatApi api;
   final List<ChatUser> friends;
+
+  /// Whether the search bar above is there to point at. A child without
+  /// "ask to add" has no way to act on the suggestion, so don't make one.
+  final bool canSearch;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     if (friends.isEmpty) {
-      return _empty(theme, 'no friends yet — discover someone');
+      return _empty(
+        theme,
+        canSearch ? 'no friends yet — find someone above' : 'no friends yet',
+      );
     }
     return Column(
       children: [

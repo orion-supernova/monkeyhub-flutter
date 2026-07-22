@@ -636,6 +636,28 @@ class ChatApi {
     return FamilyContext.fromJson((res as Map).cast<String, dynamic>());
   }
 
+  /// Live version of [getFamilyContext]. A guardian tightening or loosening a
+  /// rule reaches the child's phone over the socket that's already open, so
+  /// the child doesn't have to restart the app to lose (or gain) a tab.
+  Future<Subscription> subscribeFamilyContext({
+    required String userId,
+    required void Function(FamilyContext? context) onContext,
+    void Function(Object error)? onError,
+  }) {
+    return _cv.subscribe(
+      'family:getFamilyContext',
+      {'userId': userId},
+      onData: (raw) {
+        if (raw == null) {
+          onContext(null);
+          return;
+        }
+        onContext(FamilyContext.fromJson((raw as Map).cast<String, dynamic>()));
+      },
+      onError: onError,
+    );
+  }
+
   Future<AuthResult> createChildAccount({
     required String guardianId,
     required String username,
@@ -689,6 +711,53 @@ class ChatApi {
     await _cv.mutation('family:revokePairingCode', {
       'guardianId': guardianId,
       'childId': childId,
+    });
+  }
+
+  /// Mints the code that hands a child's phone back. Same shape as
+  /// [createPairingCode] — only the hash crosses the wire — but a different
+  /// table server-side, so a release code can never be redeemed as a sign-in.
+  Future<DateTime> createReleaseCode({
+    required String guardianId,
+    required String childId,
+    required String code,
+  }) async {
+    final res = await _cv.mutation('family:createReleaseCode', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'codeHash': sha256Hash(code),
+    });
+    final map = (res as Map).cast<String, dynamic>();
+    return DateTime.fromMillisecondsSinceEpoch(
+      ((map['expiresAt'] ?? 0) as num).toInt(),
+    );
+  }
+
+  /// Releases this handset with a guardian's six-digit code. Single-use.
+  Future<void> releaseDeviceByCode({
+    required String code,
+    required String deviceId,
+  }) async {
+    await _cv.mutation('family:releaseDeviceByCode', {
+      'codeHash': sha256Hash(code),
+      'deviceId': deviceId,
+    });
+  }
+
+  /// Releases this handset with a guardian's own password — the path that
+  /// works when there's only one phone and no adult session to mint a code.
+  /// Every failure comes back as the same error by design.
+  Future<void> releaseDeviceByGuardianPassword({
+    required String childId,
+    required String guardianUsername,
+    required String password,
+    required String deviceId,
+  }) async {
+    await _cv.mutation('family:releaseDeviceByGuardianPassword', {
+      'childId': childId,
+      'guardianUsername': guardianUsername,
+      'passwordHash': sha256Hash(password),
+      'deviceId': deviceId,
     });
   }
 
@@ -774,6 +843,57 @@ class ChatApi {
     });
   }
 
+  /// Whitelists [username] for a child: a standing pre-approval that skips
+  /// this guardian's hop in the relay from now on, in both directions. Not a
+  /// friendship — the other person still has to accept.
+  ///
+  /// With [sendRequestNow] the request is also fired on the child's behalf,
+  /// entering the relay at whatever hop the pre-approval just unlocked.
+  /// Returns whether a request actually went out (false when they were
+  /// already connected, or one was already in flight).
+  Future<bool> allowContactByUsername({
+    required String guardianId,
+    required String childId,
+    required String username,
+    bool sendRequestNow = false,
+  }) async {
+    final res = await _cv.mutation('family:allowContactByUsername', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'username': username,
+      if (sendRequestNow) 'sendRequestNow': true,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (map['requested'] as bool?) ?? false;
+  }
+
+  /// Links up a family created before auto-friending existed. Idempotent —
+  /// safe to call on every family-screen load.
+  Future<void> backfillFamilyFriendships(String guardianId) async {
+    await _cv.mutation('family:backfillFamilyFriendships', {
+      'guardianId': guardianId,
+    });
+  }
+
+  /// What removing this contact would destroy. Call before confirming — the
+  /// removal itself is unconditional and total.
+  Future<ContactRemovalPreview> previewContactRemoval({
+    required String guardianId,
+    required String childId,
+    required String contactUserId,
+  }) async {
+    final res = await _cv.query('family:previewContactRemoval', {
+      'guardianId': guardianId,
+      'childId': childId,
+      'contactUserId': contactUserId,
+    });
+    return ContactRemovalPreview.fromJson(
+      (res as Map?)?.cast<String, dynamic>() ?? const {},
+    );
+  }
+
+  /// Severs the contact AND wipes every DM the pair share — messages,
+  /// reactions, and media, for both of them. Not reversible.
   Future<void> revokeContact({
     required String guardianId,
     required String childId,

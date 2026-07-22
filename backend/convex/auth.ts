@@ -1,6 +1,7 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
+import { wipeRoomCompletely } from "./roomCleanup";
 
 export const signup = mutation({
   args: {
@@ -116,21 +117,60 @@ export const purgeAccount = internalMutation({
   },
 });
 
+/** Drops a stored file, tolerating one that's already gone. */
+async function deleteStored(ctx: any, storageId: any) {
+  if (!storageId) return;
+  try {
+    await ctx.storage.delete(storageId);
+  } catch (_) {/* already gone */}
+}
+
+/**
+ * Deletes every row across the given groups, skipping ids already seen.
+ *
+ * Most of the teardown below queries a table from two directions at once
+ * (`by_user` + `by_friend`, `by_caller` + `by_callee`, …). Those can return
+ * the same row twice, and a second `ctx.db.delete` on one id throws — so the
+ * dedupe is load-bearing, not defensive.
+ */
+async function deleteRows(ctx: any, ...groups: any[][]) {
+  const seen = new Set<string>();
+  for (const rows of groups) {
+    for (const row of rows) {
+      const key = row._id.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      await ctx.db.delete(row._id);
+    }
+  }
+}
+
+const byUser = (userId: any) => (q: any) => q.eq("userId", userId);
+
+/**
+ * Removes every trace of an account.
+ *
+ * Convex has no foreign keys and no cascade deletes, so this has to name every
+ * table that can point at a user. Anything missed is not merely untidy: an
+ * orphaned `blocks` row keeps two people invisible to each other, a stale
+ * `userDevices` row keeps pushing to a dead account, and undeleted
+ * `mediaStorageId` files bill forever with nothing referencing them.
+ *
+ * Ordering matters in one place only — rooms go first, because wiping a room
+ * takes its messages with it and leaves the per-message pass less to walk.
+ */
 async function purgeUser(ctx: any, userId: any) {
-  // 1. Handle all room memberships
+  const user = await ctx.db.get(userId);
+
+  // ── Rooms ────────────────────────────────────────────────────────────────
   const memberships = await ctx.db
     .query("roomMembers")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .withIndex("by_user", byUser(userId))
     .collect();
 
   for (const membership of memberships) {
     const roomId = membership.roomId;
     await ctx.db.delete(membership._id);
-
-    const room = await ctx.db.get(roomId);
-    if (room && room.memberCount > 0) {
-      await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
-    }
 
     const remaining = await ctx.db
       .query("roomMembers")
@@ -138,55 +178,197 @@ async function purgeUser(ctx: any, userId: any) {
       .collect();
 
     if (remaining.length === 0) {
-      const msgs = await ctx.db
-        .query("messages")
-        .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-        .collect();
-      for (const msg of msgs) {
-        const rxns = await ctx.db
-          .query("reactions")
-          .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-          .collect();
-        for (const r of rxns) await ctx.db.delete(r._id);
-        await ctx.db.delete(msg._id);
-      }
-      await ctx.db.delete(roomId);
+      // Last one out. `wipeRoomCompletely` is the same teardown the block and
+      // "take back" flows use — it takes the room's media too.
+      await wipeRoomCompletely(ctx, roomId);
+      continue;
     }
+
+    const room = await ctx.db.get(roomId);
+    if (!room) continue;
+
+    // Recount rather than decrement: `remaining` is the truth, so a count
+    // that had already drifted heals here.
+    const patch: any = { memberCount: remaining.length };
+
+    // `rooms.createdBy` gates NOT_OWNER (rooms.ts). Leaving it pointing at a
+    // deleted user would freeze the room for everyone still in it — nobody
+    // could ever rename or delete it again. Hand it to whoever has been there
+    // longest, and make that real by promoting their membership too.
+    if (room.createdBy?.toString() === userId.toString()) {
+      const heir = remaining.reduce((a: any, b: any) =>
+        (a.joinedAt ?? 0) <= (b.joinedAt ?? 0) ? a : b,
+      );
+      patch.createdBy = heir.userId;
+      if (heir.role !== "owner") {
+        await ctx.db.patch(heir._id, { role: "owner" });
+      }
+    }
+    await ctx.db.patch(roomId, patch);
   }
 
-  // 2. Delete all friendships involving this user
-  const asUser = await ctx.db
-    .query("friendships")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .collect();
-  const asFriend = await ctx.db
-    .query("friendships")
-    .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
-    .collect();
-  for (const f of [...asUser, ...asFriend]) await ctx.db.delete(f._id);
-
-  // 3. Delete user's messages (and their reactions) in surviving rooms
+  // ── Messages this user sent in rooms that survived ───────────────────────
   const userMessages = await ctx.db
     .query("messages")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .withIndex("by_user", byUser(userId))
     .collect();
   for (const msg of userMessages) {
     const rxns = await ctx.db
       .query("reactions")
       .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
       .collect();
-    for (const r of rxns) await ctx.db.delete(r._id);
+    await deleteRows(ctx, rxns);
+    await deleteStored(ctx, msg.mediaStorageId);
     await ctx.db.delete(msg._id);
   }
+  await deleteStored(ctx, user?.avatarStorageId);
 
-  // 4. Clear typing indicators
-  const typingEntries = await ctx.db
-    .query("typingIndicators")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+  // Reactions left on other people's messages, which outlive the above.
+  await deleteRows(
+    ctx,
+    await ctx.db.query("reactions").withIndex("by_user", byUser(userId)).collect(),
+  );
+
+  // ── Social graph ─────────────────────────────────────────────────────────
+  await deleteRows(
+    ctx,
+    await ctx.db.query("friendships").withIndex("by_user", byUser(userId)).collect(),
+    await ctx.db
+      .query("friendships")
+      .withIndex("by_friend", (q: any) => q.eq("friendId", userId))
+      .collect(),
+  );
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("friendRequestMessages")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
+  await deleteRows(
+    ctx,
+    await ctx.db.query("blocks").withIndex("by_user", byUser(userId)).collect(),
+    await ctx.db
+      .query("blocks")
+      .withIndex("by_blocked", (q: any) => q.eq("blockedUserId", userId))
+      .collect(),
+  );
+
+  // ── Family ───────────────────────────────────────────────────────────────
+  // Both directions: this user may be the child OR the guardian.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("guardianships")
+      .withIndex("by_guardian", (q: any) => q.eq("guardianId", userId))
+      .collect(),
+    await ctx.db
+      .query("guardianships")
+      .withIndex("by_child", (q: any) => q.eq("childId", userId))
+      .collect(),
+  );
+  for (const table of ["pairingCodes", "releaseCodes"]) {
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query(table)
+        .withIndex("by_child", (q: any) => q.eq("childId", userId))
+        .collect(),
+      await ctx.db
+        .query(table)
+        .withIndex("by_creator", (q: any) => q.eq("createdByGuardianId", userId))
+        .collect(),
+    );
+  }
+
+  const approvalGroups = [];
+  for (const status of ["pending", "approved", "denied", "revoked"]) {
+    approvalGroups.push(
+      await ctx.db
+        .query("approvalRequests")
+        .withIndex("by_child_status", (q: any) =>
+          q.eq("childId", userId).eq("status", status),
+        )
+        .collect(),
+    );
+  }
+  approvalGroups.push(
+    await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_target_user", (q: any) => q.eq("targetUserId", userId))
+      .collect(),
+  );
+  approvalGroups.push(
+    await ctx.db
+      .query("approvalRequests")
+      .withIndex("by_decider", (q: any) => q.eq("decidedByGuardianId", userId))
+      .collect(),
+  );
+  await deleteRows(ctx, ...approvalGroups);
+
+  // ── Calls ────────────────────────────────────────────────────────────────
+  const calls = [
+    ...(await ctx.db
+      .query("calls")
+      .withIndex("by_caller", (q: any) => q.eq("callerId", userId))
+      .collect()),
+    ...(await ctx.db
+      .query("calls")
+      .withIndex("by_callee", (q: any) => q.eq("calleeId", userId))
+      .collect()),
+  ];
+  const signalGroups = [];
+  for (const call of calls) {
+    signalGroups.push(
+      await ctx.db
+        .query("callSignals")
+        .withIndex("by_call", (q: any) => q.eq("callId", call._id))
+        .collect(),
+    );
+  }
+  // Strays whose call row is already gone (a cron trims old calls).
+  signalGroups.push(
+    await ctx.db
+      .query("callSignals")
+      .withIndex("by_from", (q: any) => q.eq("fromUserId", userId))
+      .collect(),
+  );
+  signalGroups.push(
+    await ctx.db
+      .query("callSignals")
+      .withIndex("by_to", (q: any) => q.eq("toUserId", userId))
+      .collect(),
+  );
+  await deleteRows(ctx, ...signalGroups);
+  await deleteRows(ctx, calls);
+
+  // ── Devices ──────────────────────────────────────────────────────────────
+  // Left behind, these keep waking a phone for an account that no longer exists.
+  await deleteRows(
+    ctx,
+    await ctx.db.query("userDevices").withIndex("by_user", byUser(userId)).collect(),
+  );
+
+  // ── Reports ──────────────────────────────────────────────────────────────
+  // Kept, not deleted: a moderation record has to outlive the person who filed
+  // it, or anyone could erase their own report trail by deleting their account.
+  // Tombstone the author instead of leaving a dangling id.
+  const reports = await ctx.db
+    .query("reports")
+    .withIndex("by_reporter", (q: any) => q.eq("reporterId", userId))
     .collect();
-  for (const t of typingEntries) await ctx.db.delete(t._id);
+  for (const r of reports) {
+    await ctx.db.patch(r._id, { reporterId: undefined });
+  }
 
-  // 5. Delete user record
+  // ── Finally ──────────────────────────────────────────────────────────────
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("typingIndicators")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
   await ctx.db.delete(userId);
 }
 

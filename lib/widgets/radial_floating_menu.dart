@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'count_badge.dart';
 
 /// Gesture-driven radial pie menu for major-section switching.
 ///
@@ -37,10 +38,19 @@ class RadialFloatingMenu extends StatefulWidget {
 }
 
 class RadialMenuItem {
-  const RadialMenuItem({required this.section, required this.icon, required this.label});
+  const RadialMenuItem({
+    required this.section,
+    required this.icon,
+    required this.label,
+    this.badgeCount = 0,
+  });
   final HomeSection section;
   final IconData icon;
   final String label;
+
+  /// Shows a dot on the orb when > 0. A number would collide with the icon
+  /// at this size, and the orb only has to say "look here", not how much.
+  final int badgeCount;
 }
 
 class _RadialFloatingMenuState extends State<RadialFloatingMenu>
@@ -354,7 +364,7 @@ class _Slice extends StatelessWidget {
       ];
       scale = 1.0;
     }
-    return ClipOval(
+    final orb = ClipOval(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
         child: AnimatedContainer(
@@ -374,6 +384,21 @@ class _Slice extends StatelessWidget {
           child: Icon(item.icon, color: iconColor, size: 20),
         ),
       ),
+    );
+    if (item.badgeCount <= 0) return orb;
+    // Outside the ClipOval — inside it the dot would be clipped away by the
+    // orb's own circular mask.
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        orb,
+        Positioned(
+          top: 2,
+          right: 2,
+          child: DotBadge(show: true),
+        ),
+      ],
     );
   }
 }

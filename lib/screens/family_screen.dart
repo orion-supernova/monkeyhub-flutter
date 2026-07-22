@@ -39,6 +39,16 @@ class _FamilyScreenState extends State<FamilyScreen> {
     super.initState();
     widget.family.addListener(_onFamily);
     widget.family.refresh();
+    _backfill();
+  }
+
+  /// Links up families created before auto-friending existed. Idempotent and
+  /// cheap, so it just runs on open rather than needing a migration or a
+  /// "repair" button the user would have to know to press.
+  Future<void> _backfill() async {
+    try {
+      await widget.api.backfillFamilyFriendships(widget.userId);
+    } catch (_) {/* nothing user-visible depends on this succeeding */}
   }
 
   @override
@@ -123,6 +133,12 @@ class _FamilyScreenState extends State<FamilyScreen> {
                                 guardianId: widget.userId,
                                 child: c.user,
                               )),
+                              onRelease: () => _open(PairingCodeScreen(
+                                api: widget.api,
+                                guardianId: widget.userId,
+                                child: c.user,
+                                purpose: CodePurpose.release,
+                              )),
                             ),
                         const SizedBox(height: 18),
                         _AddChildButton(
@@ -188,12 +204,17 @@ class _ChildCard extends StatelessWidget {
     required this.api,
     required this.onOpen,
     required this.onPair,
+    required this.onRelease,
   });
 
   final ChildSummary summary;
   final ChatApi api;
   final VoidCallback onOpen;
   final VoidCallback onPair;
+
+  /// Mints the code that hands the child's phone back — the inverse of
+  /// [onPair], and the only way a child device can be signed out.
+  final VoidCallback onRelease;
 
   /// Reads the presence pair the way the rest of the app does: an "away" that
   /// has gone stale is really just offline.
@@ -286,8 +307,16 @@ class _ChildCard extends StatelessWidget {
               Expanded(
                 child: _CardAction(
                   icon: Icons.qr_code_2,
-                  label: 'PAIR A DEVICE',
+                  label: 'PAIR',
                   onTap: onPair,
+                ),
+              ),
+              Container(width: 1, height: 38, color: theme.divider),
+              Expanded(
+                child: _CardAction(
+                  icon: Icons.phonelink_erase,
+                  label: 'RELEASE',
+                  onTap: onRelease,
                 ),
               ),
               Container(width: 1, height: 38, color: theme.divider),

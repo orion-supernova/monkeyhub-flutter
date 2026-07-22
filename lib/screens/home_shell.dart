@@ -10,6 +10,7 @@ import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
 import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
@@ -39,11 +40,15 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     SettingsStore.instance.addListener(_onSettings);
+    // Without this the approvals badge would only update when something else
+    // happened to rebuild the shell.
+    widget.family.addListener(_onSettings);
   }
 
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
+    widget.family.removeListener(_onSettings);
     super.dispose();
   }
 
@@ -102,10 +107,21 @@ class _HomeShellState extends State<HomeShell> {
               child: RadialFloatingMenu(
                 active: settings.section,
                 onSelect: _select,
-                items: const [
-                  RadialMenuItem(section: HomeSection.chat, icon: CupertinoIcons.bubble_left, label: 'CHAT'),
-                  RadialMenuItem(section: HomeSection.feed, icon: CupertinoIcons.sparkles, label: 'FEED'),
-                  RadialMenuItem(section: HomeSection.settings, icon: CupertinoIcons.gear, label: 'SET'),
+                items: [
+                  const RadialMenuItem(
+                      section: HomeSection.chat,
+                      icon: CupertinoIcons.bubble_left,
+                      label: 'CHAT'),
+                  const RadialMenuItem(
+                      section: HomeSection.feed,
+                      icon: CupertinoIcons.sparkles,
+                      label: 'FEED'),
+                  RadialMenuItem(
+                    section: HomeSection.settings,
+                    icon: CupertinoIcons.gear,
+                    label: 'SET',
+                    badgeCount: widget.family.pendingCount,
+                  ),
                 ],
               ),
             )
@@ -113,6 +129,7 @@ class _HomeShellState extends State<HomeShell> {
             _PillBottomNav(
               active: settings.section,
               onSelect: _select,
+              settingsBadge: widget.family.pendingCount,
             ),
         ],
       ),
@@ -121,9 +138,17 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 class _PillBottomNav extends StatelessWidget {
-  const _PillBottomNav({required this.active, required this.onSelect});
+  const _PillBottomNav({
+    required this.active,
+    required this.onSelect,
+    this.settingsBadge = 0,
+  });
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
+
+  /// Approvals waiting on this account. Rendered on the Settings segment,
+  /// which is the only route to the family screen.
+  final int settingsBadge;
 
   static const _sections = [
     HomeSection.chat,
@@ -191,7 +216,8 @@ class _PillBottomNav extends StatelessWidget {
                     children: [
                       _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat),
                       _btn(theme, CupertinoIcons.sparkles, 'Feed', HomeSection.feed),
-                      _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings),
+                      _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings,
+                          badge: settingsBadge),
                     ],
                   ),
                 ],
@@ -203,7 +229,13 @@ class _PillBottomNav extends StatelessWidget {
     );
   }
 
-  Widget _btn(AppTheme theme, IconData icon, String label, HomeSection s) {
+  Widget _btn(
+    AppTheme theme,
+    IconData icon,
+    String label,
+    HomeSection s, {
+    int badge = 0,
+  }) {
     final isActive = s == active;
     return Expanded(
       child: GestureDetector(
@@ -227,18 +259,32 @@ class _PillBottomNav extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              AnimatedDefaultTextStyle(
-                duration: theme.motionMed,
-                curve: Curves.easeOutCubic,
-                style: TextStyle(
-                  fontFamily: 'CupertinoSystemText',
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  letterSpacing: -0.08,
-                  color: isActive ? theme.accent : theme.inkSoft,
+              // Flexible so the label ellipsises rather than overflowing when
+              // the badge appears — a third of a narrow phone's pill is only
+              // just wide enough for "Settings" on its own.
+              Flexible(
+                child: AnimatedDefaultTextStyle(
+                  duration: theme.motionMed,
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    fontFamily: 'CupertinoSystemText',
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                    letterSpacing: -0.08,
+                    color: isActive ? theme.accent : theme.inkSoft,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                 ),
-                child: Text(label),
               ),
+              if (badge > 0) ...[
+                const SizedBox(width: 5),
+                CountBadge(count: badge, onAccent: isActive),
+              ],
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../models/family.dart';
 
 /// Holds the signed-in account's family state and hands it to the UI.
@@ -10,11 +11,14 @@ import '../models/family.dart';
 /// button renders — so those checks stay consistent and there's one place to
 /// look when a screen misbehaves for a child.
 ///
-/// Fails safe: until [refresh] has succeeded the context is [FamilyContext
-/// .empty], which reads as an unrestricted adult. That's the right default
-/// for the overwhelmingly common case, and every gate is *also* enforced
-/// server-side, so a stale client can annoy a child but can't let them past
-/// anything.
+/// [attach] opens a live subscription, so a guardian toggling a rule lands on
+/// the child's phone over the already-open socket — no restart. [refresh] is
+/// kept as a one-shot fallback for a cold start or a dropped subscription.
+///
+/// Fails safe: until the first emission the context is [FamilyContext.empty],
+/// which reads as an unrestricted adult. That's the right default for the
+/// overwhelmingly common case, and every gate is *also* enforced server-side,
+/// so a stale client can annoy a child but can't let them past anything.
 class FamilyService extends ChangeNotifier {
   FamilyService(this._api);
   final ChatApi _api;
@@ -35,6 +39,17 @@ class FamilyService extends ChangeNotifier {
   String? _userId;
   FamilyContext _context = FamilyContext.empty;
   bool _loading = false;
+
+  /// Live feed of [FamilyContext]. Null between [detach] and the next
+  /// [attach], or if opening the subscription failed — [refresh] is still
+  /// there as a fallback in that case.
+  Subscription? _sub;
+
+  /// The account an [attach] is currently opening a subscription for. Callers
+  /// don't await `attach` (see app.dart), so without this a second call
+  /// arriving before the first `subscribe` resolves would open a duplicate and
+  /// orphan one of them.
+  String? _subscribingFor;
 
   FamilyContext get context => _context;
   bool get isChild => _context.isChild;
@@ -57,14 +72,57 @@ class FamilyService extends ChangeNotifier {
   /// True when the create-room entry point should render.
   bool get canCreateRooms => !isChild || policy.canCreateRooms;
 
+  /// Re-attaching the *same* user is a no-op only while the subscription is
+  /// actually live. If it failed to open (or was torn down), fall through and
+  /// try again — otherwise the account would silently stay on stale rules
+  /// until the next [refresh].
   Future<void> attach(String userId) async {
-    if (_userId == userId) return;
-    _userId = userId;
-    _context = FamilyContext.empty;
-    await refresh();
+    if (_userId == userId && (_sub != null || _subscribingFor == userId)) {
+      return;
+    }
+    final switchingAccounts = _userId != userId;
+    _sub?.cancel();
+    _sub = null;
+    if (switchingAccounts) {
+      _userId = userId;
+      // Don't leak the previous account's rules into the new one's first frame.
+      _context = FamilyContext.empty;
+    }
+    _subscribingFor = userId;
+    try {
+      final sub = await _api.subscribeFamilyContext(
+        userId: userId,
+        onContext: (fresh) {
+          if (_userId != userId || fresh == null) return;
+          _context = fresh;
+          notifyListeners();
+        },
+        // Transient socket trouble — hold the last known context. The
+        // foreground `refresh()` in app.dart reconciles.
+        onError: (_) {},
+      );
+      // A sign-out (or a switch to another account) landed while we were
+      // opening. Drop it on the floor rather than leaving a live subscription
+      // running for someone who is no longer signed in.
+      if (_userId != userId) {
+        sub.cancel();
+        return;
+      }
+      _sub = sub;
+    } catch (_) {
+      _sub = null;
+      await refresh();
+    } finally {
+      if (_subscribingFor == userId) _subscribingFor = null;
+    }
   }
 
   void detach() {
+    _sub?.cancel();
+    _sub = null;
+    // Clearing this makes any subscription still being opened cancel itself
+    // when it resolves — see the `_userId != userId` check in [attach].
+    _subscribingFor = null;
     _userId = null;
     _context = FamilyContext.empty;
     notifyListeners();

@@ -18,17 +18,27 @@ String pairingUri(String code) => 'monkeyhub://pair?c=$code';
 /// The code is generated here and only its hash goes to the server (see
 /// `ChatApi.createPairingCode`) — the same shape as passwords, so the backend
 /// never holds anything replayable.
+/// Which direction this code goes: onto a device, or off one.
+///
+/// The mint-and-count-down UX is identical either way, so this screen carries
+/// both rather than being forked. Only the mutation, the wording, and whether
+/// a QR is offered differ — the release screen on the child's phone is a
+/// numeric field, not a scanner.
+enum CodePurpose { pair, release }
+
 class PairingCodeScreen extends StatefulWidget {
   const PairingCodeScreen({
     super.key,
     required this.api,
     required this.guardianId,
     required this.child,
+    this.purpose = CodePurpose.pair,
   });
 
   final ChatApi api;
   final String guardianId;
   final ChatUser child;
+  final CodePurpose purpose;
 
   @override
   State<PairingCodeScreen> createState() => _PairingCodeScreenState();
@@ -36,6 +46,8 @@ class PairingCodeScreen extends StatefulWidget {
 
 class _PairingCodeScreenState extends State<PairingCodeScreen> {
   static final _random = Random.secure();
+
+  bool get _releasing => widget.purpose == CodePurpose.release;
 
   String? _code;
   DateTime? _expiresAt;
@@ -76,7 +88,10 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
     // Six digits, uniformly distributed across 100000–999999.
     final code = (100000 + _random.nextInt(900000)).toString();
     try {
-      final expiresAt = await widget.api.createPairingCode(
+      final mint = _releasing
+          ? widget.api.createReleaseCode
+          : widget.api.createPairingCode;
+      final expiresAt = await mint(
         guardianId: widget.guardianId,
         childId: widget.child.id,
         code: code,
@@ -106,7 +121,10 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
           SafeArea(
             child: Column(
               children: [
-                _Header(name: widget.child.displayName),
+                _Header(
+                  name: widget.child.displayName,
+                  title: _releasing ? 'RELEASE' : 'PAIR',
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
@@ -114,8 +132,12 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'On ${widget.child.displayName}\'s phone, open MonkeyHub '
-                          'and scan this — or type the numbers.',
+                          _releasing
+                              ? 'On ${widget.child.displayName}\'s phone, open '
+                                  'their profile, tap “hand this phone back”, '
+                                  'and type these numbers.'
+                              : 'On ${widget.child.displayName}\'s phone, open '
+                                  'MonkeyHub and scan this — or type the numbers.',
                           style: theme.bodySoft,
                         ),
                         const SizedBox(height: 28),
@@ -130,8 +152,13 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                             ),
                           )
                         else ...[
-                          _QrPanel(data: pairingUri(code), dimmed: _expired),
-                          const SizedBox(height: 24),
+                          // No QR when releasing — the child's release screen
+                          // is a numeric field, and a scannable release code
+                          // is a code that can be grabbed off a screen.
+                          if (!_releasing) ...[
+                            _QrPanel(data: pairingUri(code), dimmed: _expired),
+                            const SizedBox(height: 24),
+                          ],
                           _CodeDigits(code: code, dimmed: _expired),
                           const SizedBox(height: 18),
                           Center(
@@ -277,8 +304,9 @@ class _CodeDigits extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.name});
+  const _Header({required this.name, required this.title});
   final String name;
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -295,7 +323,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              'PAIR ${name.toUpperCase()}',
+              '$title ${name.toUpperCase()}',
               style: theme.label.copyWith(letterSpacing: 2.8),
               overflow: TextOverflow.ellipsis,
             ),

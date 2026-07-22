@@ -10,6 +10,7 @@ import '../models/chat_user.dart';
 import '../push/push_manager.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_brand_mark.dart';
+import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/user_avatar.dart';
 import 'approvals_screen.dart';
@@ -247,6 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _DisclosureRow(
                   label: 'FAMILY',
                   value: _familyLabel,
+                  badge: widget.family.pendingCount,
                   leading: Icon(Icons.family_restroom,
                       size: 16, color: theme.inkSoft),
                   onTap: () {
@@ -347,11 +349,15 @@ class _DisclosureRow extends StatelessWidget {
     required this.value,
     required this.onTap,
     this.leading,
+    this.badge = 0,
   });
   final String label;
   final String value;
   final VoidCallback onTap;
   final Widget? leading;
+
+  /// Pending count shown as an accent pill before the chevron. Zero hides it.
+  final int badge;
 
   @override
   Widget build(BuildContext context) {
@@ -381,6 +387,10 @@ class _DisclosureRow extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
             ),
+            if (badge > 0) ...[
+              const SizedBox(width: 8),
+              CountBadge(count: badge),
+            ],
             const SizedBox(width: 8),
             Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
           ],

@@ -135,9 +135,41 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Unpairs a child device, from the child's own handset. Not reachable from
-  /// the child UI — a guardian does this in person. Clears the sticky child
-  /// marker too, so the device can be handed on and used normally.
+  /// Hands this handset back, using a release code a guardian minted on their
+  /// own device. Throws on a bad or expired code — nothing local is touched
+  /// unless the server accepted it.
+  Future<void> releaseChildDeviceWithCode(String code) async {
+    final deviceId = await DeviceIdentity.ensure();
+    await _api.releaseDeviceByCode(code: code, deviceId: deviceId);
+    await releaseChildDevice();
+  }
+
+  /// Same, with a guardian's own username and password. This is the path that
+  /// works on a single phone: pairing a child signs the adult out, so there is
+  /// no adult session left anywhere to mint a code from.
+  Future<void> releaseChildDeviceWithPassword({
+    required String guardianUsername,
+    required String password,
+  }) async {
+    final s = _session;
+    if (s == null) return;
+    final deviceId = await DeviceIdentity.ensure();
+    await _api.releaseDeviceByGuardianPassword(
+      childId: s.userId,
+      guardianUsername: guardianUsername,
+      password: password,
+      deviceId: deviceId,
+    );
+    await releaseChildDevice();
+  }
+
+  /// Unpairs a child device, from the child's own handset. A guardian does
+  /// this in person, having proved themselves via one of the two calls above —
+  /// this is the local half and assumes that already happened.
+  ///
+  /// Clears the sticky child marker as well as the session, which is what
+  /// makes the phone open on the adult login form afterwards rather than
+  /// straight back onto the pairing screen.
   Future<void> releaseChildDevice() async {
     final s = _session;
     if (s != null) {

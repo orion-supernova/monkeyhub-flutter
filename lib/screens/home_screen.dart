@@ -15,7 +15,7 @@ import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
 import 'room_screen.dart';
 import 'create_room_sheet.dart';
-import 'requests_screen.dart';
+import 'friends_screen.dart';
 import 'discover_screen.dart';
 import 'profile_screen.dart';
 
@@ -44,9 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Discover disappears entirely for a child whose guardian hasn't unlocked
   /// public rooms — not greyed out, not empty, absent. A locked door still
   /// tells a child there's a room behind it.
+  ///
+  /// Discover is public *rooms* only. People live under Friends, which is
+  /// always present — so "ask to add" never depends on public rooms.
   List<String> get _tabOrder => widget.family.canSeePublicRooms
-      ? const ['rooms', 'discover', 'requests']
-      : const ['rooms', 'requests'];
+      ? const ['rooms', 'discover', 'friends']
+      : const ['rooms', 'friends'];
 
   void _setTab(String next) {
     if (next == _tab) return;
@@ -146,8 +149,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               const PillNavItem(
                                   id: 'discover', label: 'DISCOVER'),
                             PillNavItem(
-                              id: 'requests',
-                              label: 'REQUESTS',
+                              id: 'friends',
+                              label: 'FRIENDS',
                               badge: widget.repo.incomingRequests.isEmpty
                                   ? null
                                   : '${widget.repo.incomingRequests.length}',
@@ -206,8 +209,12 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (_tab) {
       case 'rooms':
         return _RoomsPanel(repo: widget.repo, api: widget.api);
-      case 'requests':
-        return RequestsPanel(repo: widget.repo, api: widget.api);
+      case 'friends':
+        return FriendsPanel(
+          repo: widget.repo,
+          api: widget.api,
+          family: widget.family,
+        );
       case 'discover':
         return DiscoverPanel(
           repo: widget.repo,
@@ -316,8 +323,8 @@ class _Hero extends StatelessWidget {
     switch (tab) {
       case 'rooms':
         return 'rooms.';
-      case 'requests':
-        return 'requests.';
+      case 'friends':
+        return 'friends.';
       case 'discover':
         return 'discover.';
       default:
@@ -329,10 +336,10 @@ class _Hero extends StatelessWidget {
     switch (tab) {
       case 'rooms':
         return '$roomCount in your hub';
-      case 'requests':
-        return 'friend · invite · direct';
+      case 'friends':
+        return 'people · requests · invites';
       case 'discover':
-        return 'public rooms · open profiles';
+        return 'public rooms · open to join';
       default:
         return '';
     }

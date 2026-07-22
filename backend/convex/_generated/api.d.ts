@@ -10,12 +10,15 @@
 
 import type * as auth from "../auth.js";
 import type * as calls from "../calls.js";
+import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
+import type * as family from "../family.js";
 import type * as files from "../files.js";
 import type * as friends from "../friends.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
 import type * as reactions from "../reactions.js";
+import type * as roomCleanup from "../roomCleanup.js";
 import type * as rooms from "../rooms.js";
 import type * as typing from "../typing.js";
 import type * as users from "../users.js";
@@ -31,12 +34,15 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   calls: typeof calls;
+  childGuard: typeof childGuard;
   crons: typeof crons;
+  family: typeof family;
   files: typeof files;
   friends: typeof friends;
   messages: typeof messages;
   notifications: typeof notifications;
   reactions: typeof reactions;
+  roomCleanup: typeof roomCleanup;
   rooms: typeof rooms;
   typing: typeof typing;
   users: typeof users;

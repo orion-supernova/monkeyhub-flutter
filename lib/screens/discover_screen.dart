@@ -13,6 +13,11 @@ import 'room_screen.dart';
 import 'search_screen.dart';
 // Discover panel doesn't open profile directly anymore — search screen does.
 
+/// Discover is rooms-only; people search lives in Friends. Its own Hero tag,
+/// distinct from the Friends bar, so a tab transition can't briefly mount two
+/// Heroes under one tag.
+const String _searchBarTag = 'discover-search-bar';
+
 class DiscoverPanel extends StatefulWidget {
   const DiscoverPanel({
     super.key,
@@ -114,8 +119,12 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
             PageRouteBuilder(
               transitionDuration: theme.motionMed,
               reverseTransitionDuration: theme.motionMed,
-              pageBuilder: (_, _, _) =>
-                  SearchScreen(repo: widget.repo, api: widget.api),
+              pageBuilder: (_, _, _) => SearchScreen(
+                repo: widget.repo,
+                api: widget.api,
+                mode: SearchMode.rooms,
+                heroTag: _searchBarTag,
+              ),
               transitionsBuilder: (_, anim, _, child) {
                 final curved = CurvedAnimation(parent: anim, curve: theme.motionEntrance);
                 return FadeTransition(
@@ -130,7 +139,7 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
             ),
           ),
           child: Hero(
-            tag: 'discover-search-bar',
+            tag: _searchBarTag,
             child: Material(
               type: MaterialType.transparency,
               child: Container(
@@ -142,7 +151,7 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'search rooms · people…',
+                        'search rooms…',
                         style: theme.body.copyWith(color: theme.inkMuted),
                       ),
                     ),

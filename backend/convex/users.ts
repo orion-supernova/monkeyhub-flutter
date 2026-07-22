@@ -9,6 +9,7 @@ import {
   isChild,
   isGuardianOf,
 } from "./childGuard";
+import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -221,9 +222,11 @@ export const searchUsers = query({
       }
     }
 
-    // A child searching gets a closed world: their family, plus people a
-    // guardian has already let through into an accepted contact. Everyone
-    // else is simply not there — no "locked" rows hinting at who exists.
+    // A child searching gets a nearly-closed world: their family and their
+    // approved contacts match as they type, exactly like an adult's search.
+    // Anyone else surfaces ONLY on a complete, exact username — so a child
+    // can reach someone whose handle they were given in person, but can't
+    // browse, guess, or enumerate their way to a stranger.
     let reachable: Set<string> | null = null;
     if (await isChild(ctx, currentUserId)) {
       reachable = await familyOf(ctx, currentUserId);
@@ -243,16 +246,21 @@ export const searchUsers = query({
       }
     }
 
+    const needle = q.trim().toLowerCase();
     const users = await ctx.db.query("users").collect();
     const filtered = users
-      .filter(
-        (u) =>
-          u._id !== currentUserId &&
-          !hidden.has(u._id.toString()) &&
-          (reachable === null || reachable.has(u._id.toString())) &&
-          (u.username.toLowerCase().includes(q.toLowerCase()) ||
-            (u.name ?? "").toLowerCase().includes(q.toLowerCase()))
-      )
+      .filter((u) => {
+        if (u._id === currentUserId) return false;
+        if (hidden.has(u._id.toString())) return false;
+        const handle = u.username.toLowerCase();
+        const fuzzy =
+          handle.includes(needle) ||
+          (u.name ?? "").toLowerCase().includes(needle);
+        if (reachable === null) return fuzzy; // adult — unchanged
+        // Child: fuzzy within the people they already have, exact anywhere.
+        if (reachable.has(u._id.toString())) return fuzzy;
+        return needle.length > 0 && handle === needle;
+      })
       .slice(0, 20);
 
     const enriched = await Promise.all(
@@ -352,70 +360,14 @@ export const blockUser = mutation({
     }
 
     if (deleteDm) {
-      // Find the DM room the two share. DM rooms are named
-      //   `dm:<roomKey>:<sortedIdA>:<sortedIdB>`  (see rooms.getOrCreateDM).
-      // We don't know which roomKey was used, so we walk both members'
-      // memberships and pick rooms whose name starts with "dm:" and whose
-      // other member is the target.
-      const myRooms = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-      for (const m of myRooms) {
-        const room = await ctx.db.get(m.roomId);
-        if (!room || !room.name?.startsWith("dm:")) continue;
-        // Confirm target is the other member.
-        const otherMember = await ctx.db
-          .query("roomMembers")
-          .withIndex("by_room_user", (q) =>
-            q.eq("roomId", m.roomId).eq("userId", targetUserId)
-          )
-          .first();
-        if (!otherMember) continue;
-        await _wipeRoomCompletely(ctx, m.roomId);
+      // A pair can hold more than one DM (regular + Chamber of Secrets), so
+      // this wipes every one it finds — see `findDmRoomsBetween`.
+      for (const roomId of await findDmRoomsBetween(ctx, userId, targetUserId)) {
+        await wipeRoomCompletely(ctx, roomId);
       }
     }
   },
 });
-
-/**
- * Helper: delete every trace of a room — messages, their reactions, their
- * media, typing rows, memberships, and the room itself.
- */
-async function _wipeRoomCompletely(ctx: any, roomId: any) {
-  // Messages → reactions + media + row
-  const msgs = await ctx.db
-    .query("messages")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const msg of msgs) {
-    const reactions = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-      .collect();
-    for (const r of reactions) await ctx.db.delete(r._id);
-    if (msg.mediaStorageId) {
-      try {
-        await ctx.storage.delete(msg.mediaStorageId);
-      } catch (_) {/* already gone */}
-    }
-    await ctx.db.delete(msg._id);
-  }
-  // Memberships
-  const members = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const m of members) await ctx.db.delete(m._id);
-  // Typing indicators
-  const typing = await ctx.db
-    .query("typingIndicators")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const t of typing) await ctx.db.delete(t._id);
-  // The room itself
-  await ctx.db.delete(roomId);
-}
 
 export const unblockUser = mutation({
   args: { userId: v.id("users"), targetUserId: v.id("users") },

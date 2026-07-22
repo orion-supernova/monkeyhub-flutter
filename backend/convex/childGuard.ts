@@ -38,6 +38,14 @@ export const ERR_APPROVAL_REQUIRED = "CHILD_APPROVAL_REQUIRED";
 export const ERR_NOT_ALLOWED = "CHILD_NOT_ALLOWED";
 export const ERR_MUST_PAIR = "CHILD_MUST_PAIR";
 export const ERR_NOT_GUARDIAN = "NOT_A_GUARDIAN";
+/**
+ * Refused an unlink that would leave a child with no guardian at all. Every
+ * family mutation is gated on `assertGuardian`, including `addGuardian` — so a
+ * childless-of-guardians account can never be re-adopted, re-paired, or even
+ * deleted, and the child can't rescue it either (no password, and self-delete
+ * is refused for children). The account would be a permanent zombie.
+ */
+export const ERR_LAST_GUARDIAN = "LAST_GUARDIAN";
 export const ERR_CODE_INVALID = "PAIRING_CODE_INVALID";
 export const ERR_CODE_EXPIRED = "PAIRING_CODE_EXPIRED";
 
@@ -125,20 +133,52 @@ export async function familyOf(ctx: any, childId: any): Promise<Set<string>> {
 // ──────────────────────────── the relay chain ────────────────────────────
 
 /**
+ * A standing "this person is fine" grant, set by a guardian ahead of time.
+ * Consulted by [initialStageFor] to skip that guardian's hop — the whole
+ * point of the whitelist is that an already-vetted person doesn't cost the
+ * parent a decision every time.
+ */
+export async function hasContactPreApproval(
+  ctx: any,
+  childId: any,
+  otherUserId: any,
+): Promise<boolean> {
+  const rows = await ctx.db
+    .query("approvalRequests")
+    .withIndex("by_child_user", (q: any) =>
+      q.eq("childId", childId).eq("targetUserId", otherUserId),
+    )
+    .collect();
+  return rows.some((r: any) => r.kind === "contact" && r.status === "approved");
+}
+
+/**
  * Where a brand-new contact request from [senderId] to [recipientId] enters
  * the chain. `undefined` means "no supervision" — adult to adult, straight
  * into the recipient's requests list, exactly as before this feature existed.
  *
- * The sender's guardian always goes first: nothing leaves a child's family
- * before their own guardian has seen it.
+ * The sender's guardian goes first: nothing leaves a child's family before
+ * their own guardian has seen it — UNLESS that guardian already whitelisted
+ * the recipient, in which case their hop is skipped and the request moves
+ * straight on. The two ends are independent, so a whitelisted child-to-child
+ * pair still stops at the *other* child's guardian.
  */
 export async function initialStageFor(
   ctx: any,
   senderId: any,
   recipientId: any,
 ): Promise<string | undefined> {
-  if (await isChild(ctx, senderId)) return STAGE_SENDER_GUARDIAN;
-  if (await isChild(ctx, recipientId)) return STAGE_RECIPIENT_GUARDIAN;
+  if (await isChild(ctx, senderId)) {
+    if (!(await hasContactPreApproval(ctx, senderId, recipientId))) {
+      return STAGE_SENDER_GUARDIAN;
+    }
+    // Sender's side is pre-cleared — fall through to the recipient's side.
+  }
+  if (await isChild(ctx, recipientId)) {
+    if (!(await hasContactPreApproval(ctx, recipientId, senderId))) {
+      return STAGE_RECIPIENT_GUARDIAN;
+    }
+  }
   return undefined;
 }
 

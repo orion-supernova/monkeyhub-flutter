@@ -44,6 +44,10 @@ export const sendApprovalPush = internalAction({
       ios_badgeCount: 1,
     };
 
+    console.log(
+      `sendApprovalPush: targeting ${userIds.length} user(s) by external_id: ${userIds.join(", ")}`
+    );
+
     const response = await fetch(`${ONESIGNAL_BASE}/notifications`, {
       method: "POST",
       headers: {
@@ -53,10 +57,17 @@ export const sendApprovalPush = internalAction({
       body: JSON.stringify(payload),
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
       console.error(
-        `sendApprovalPush: OneSignal API error (HTTP ${response.status}): ${await response.text()}`
+        `sendApprovalPush: OneSignal API error (HTTP ${response.status}): ${responseText}`
       );
+    } else {
+      // Logged on success too, matching sendMessagePush — OneSignal returns
+      // an empty recipient count when no device matched the external_id,
+      // which is the difference between "not sent" and "sent nowhere".
+      console.log(`sendApprovalPush: OneSignal accepted — ${responseText}`);
     }
   },
 });

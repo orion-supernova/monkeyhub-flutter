@@ -146,6 +146,129 @@ void main() {
     });
   });
 
+  group('allowed contacts', () {
+    ChildContact parse(Map<String, dynamic> j) => ChildContact.fromJson(j);
+
+    test('a whitelisted person who has not accepted reads as not-yet-added', () {
+      final c = parse(const {
+        '_id': 'u1',
+        'username': 'grandma',
+        'name': 'Grandma',
+        'connected': false,
+        'approvalId': 'a1',
+      });
+      expect(c.isWhitelisted, isTrue);
+      expect(c.connected, isFalse);
+      expect(c.stateLabel, 'allowed · not added yet');
+    });
+
+    test('someone added through the normal flow has no pre-approval', () {
+      // No approvalId means there's nothing to "take back" — the row has to
+      // be unfriended instead, which is what drives the revoke branch.
+      final c = parse(const {
+        '_id': 'u2',
+        'username': 'zoe',
+        'name': 'Zoe',
+        'connected': true,
+      });
+      expect(c.isWhitelisted, isFalse);
+      expect(c.stateLabel, 'talking');
+    });
+
+    test('whitelisted and connected are independent, not exclusive', () {
+      final c = parse(const {
+        '_id': 'u3',
+        'username': 'dad',
+        'name': 'Dad',
+        'connected': true,
+        'approvalId': 'a3',
+      });
+      expect(c.isWhitelisted, isTrue);
+      expect(c.connected, isTrue);
+      expect(c.stateLabel, 'allowed · talking');
+    });
+
+    test('grants decode a mixed list', () {
+      final g = ChildGrants.fromJson(const {
+        'rooms': [
+          {'_id': 'r1', 'name': 'minecraft', 'memberCount': 3, 'approvalId': 'ar1'}
+        ],
+        'contacts': [
+          {'_id': 'u1', 'username': 'grandma', 'name': 'Gran', 'approvalId': 'a1'},
+          {'_id': 'u2', 'username': 'zoe', 'name': 'Zoe', 'connected': true},
+        ],
+      });
+      expect(g.rooms.single.approvalId, 'ar1');
+      expect(g.contacts.where((c) => c.isWhitelisted).length, 1);
+      expect(g.contacts.where((c) => c.connected).length, 1);
+    });
+  });
+
+  group('contact removal preview', () {
+    test('nothing shared means no confirmation is needed', () {
+      // Drives the skip-the-sheet branch — asking "are you sure?" about
+      // nothing is pure friction.
+      final p = ContactRemovalPreview.fromJson(const {
+        'dmCount': 0,
+        'messageCount': 0,
+        'sharedGroupRooms': [],
+      });
+      expect(p.isEmpty, isTrue);
+    });
+
+    test('a chat with history is not empty', () {
+      final p = ContactRemovalPreview.fromJson(const {
+        'dmCount': 1,
+        'messageCount': 128,
+        'lastMessageAt': 1700000000000,
+        'sharedGroupRooms': [],
+      });
+      expect(p.isEmpty, isFalse);
+      expect(p.messageCount, 128);
+      expect(p.lastMessageAt, isNotNull);
+    });
+
+    test('a shared room alone still warrants the sheet', () {
+      // No DM, but the parent should still be told the two share a space
+      // that this action will NOT touch.
+      final p = ContactRemovalPreview.fromJson(const {
+        'dmCount': 0,
+        'messageCount': 0,
+        'sharedGroupRooms': [
+          {'_id': 'r1', 'name': 'minecraft', 'memberCount': 12}
+        ],
+      });
+      expect(p.isEmpty, isFalse);
+      expect(p.sharedGroupRooms.single.name, 'minecraft');
+    });
+
+    test('counts more than one DM per pair', () {
+      // A pair can hold a regular chat AND a Chamber of Secrets chat; both
+      // get wiped, so both must be counted in the warning.
+      final p = ContactRemovalPreview.fromJson(const {
+        'dmCount': 2,
+        'messageCount': 40,
+        'sharedGroupRooms': [],
+      });
+      expect(p.dmCount, 2);
+    });
+
+    test('the offline fallback reads as nothing-known, not nothing-to-lose',
+        () {
+      // `unknown` is what a failed preview falls back to. It must not claim
+      // there is history to delete, but the caller still routes through the
+      // confirmation because it cannot prove there isn't.
+      expect(ContactRemovalPreview.unknown.messageCount, 0);
+      expect(ContactRemovalPreview.unknown.dmCount, 0);
+    });
+
+    test('a missing payload decodes rather than throwing', () {
+      final p = ContactRemovalPreview.fromJson(const {});
+      expect(p.isEmpty, isTrue);
+      expect(p.lastMessageAt, isNull);
+    });
+  });
+
   group('queue items', () {
     test('routes contact rows and room rows to different mutations', () {
       // isContact decides between advanceContactRequest (a friendships id)

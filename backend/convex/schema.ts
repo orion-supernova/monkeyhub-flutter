@@ -182,23 +182,59 @@ export default defineSchema({
     consumedDeviceId: v.optional(v.string()),
   })
     .index("by_child", ["childId"])
-    .index("by_codeHash", ["codeHash"]),
+    .index("by_codeHash", ["codeHash"])
+    // Account teardown: codes a departing guardian minted for other children.
+    .index("by_creator", ["createdByGuardianId"]),
 
-  // Approvals that are NOT contact requests (those ride on friendships.stage).
-  // One row is both the request AND, once approved, the standing grant —
-  // revoking is a status flip, so the whole audit trail stays in one place.
+  // Short-lived, single-use codes that hand a child's device BACK — the exact
+  // inverse of `pairingCodes`, and deliberately a separate table rather than a
+  // `purpose` field on that one.
+  //
+  // `redeemPairingCode` finds codes by `codeHash` alone. Were both kinds to
+  // share a table, a single missed purpose-check would let a release code be
+  // redeemed as a *sign-in* code — a child who watched a parent release one
+  // handset could pair themselves onto another. Separate tables make that
+  // impossible structurally instead of by remembering to check.
+  releaseCodes: defineTable({
+    childId: v.id("users"),
+    createdByGuardianId: v.id("users"),
+    codeHash: v.string(),
+    expiresAt: v.number(),
+    consumedAt: v.optional(v.number()),
+    consumedDeviceId: v.optional(v.string()),
+  })
+    .index("by_child", ["childId"])
+    .index("by_codeHash", ["codeHash"])
+    .index("by_creator", ["createdByGuardianId"]),
+
+  // Standing grants. One row is both the request AND, once approved, the
+  // grant — revoking is a status flip, so the whole audit trail stays in one
+  // place.
+  //
+  // Two kinds:
+  //   "joinRoom" — raised by the child, decided by a guardian.
+  //   "contact"  — the whitelist. Created already-approved by a guardian, and
+  //                consulted by `initialStageFor` to SKIP that guardian's hop
+  //                in the relay. It is a pre-approval, not a friendship: the
+  //                other person still has to accept.
   approvalRequests: defineTable({
     childId: v.id("users"),
-    kind: v.string(),   // "joinRoom"
+    kind: v.string(),   // "joinRoom" | "contact"
     status: v.string(), // "pending" | "approved" | "denied" | "revoked"
     targetRoomId: v.optional(v.id("rooms")),
+    targetUserId: v.optional(v.id("users")),
     note: v.optional(v.string()), // the child's "why I want this"
     createdAt: v.number(),
     decidedAt: v.optional(v.number()),
     decidedByGuardianId: v.optional(v.id("users")),
   })
     .index("by_child_status", ["childId", "status"])
-    .index("by_child_room", ["childId", "targetRoomId"]),
+    .index("by_child_room", ["childId", "targetRoomId"])
+    .index("by_child_user", ["childId", "targetUserId"])
+    // Account teardown: rows where the departing user is the person being
+    // asked about, or the guardian who ruled on one.
+    .index("by_target_user", ["targetUserId"])
+    .index("by_decider", ["decidedByGuardianId"]),
 
   blocks: defineTable({
     userId: v.id("users"),         // who is doing the blocking
@@ -206,10 +242,16 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_pair", ["userId", "blockedUserId"]),
+    .index("by_pair", ["userId", "blockedUserId"])
+    // Account teardown: a block survives its author otherwise, leaving the
+    // blocked party invisible to a ghost.
+    .index("by_blocked", ["blockedUserId"]),
 
   reports: defineTable({
-    reporterId: v.id("users"),
+    // Nulled out — not deleted — when the reporter deletes their account.
+    // A report is a moderation record, so it outlives the person who filed
+    // it; leaving the id dangling instead would point at a nonexistent user.
+    reporterId: v.optional(v.id("users")),
     targetType: v.string(),  // "user" | "message" | "room"
     targetId: v.string(),    // string-encoded id; resolved by targetType
     reason: v.string(),
@@ -259,7 +301,10 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_message", ["messageId"])
-    .index("by_message_user", ["messageId", "userId"]),
+    .index("by_message_user", ["messageId", "userId"])
+    // Account teardown walks every reaction a user ever left, including those
+    // on messages that survive them.
+    .index("by_user", ["userId"]),
 
   typingIndicators: defineTable({
     roomId: v.id("rooms"),
@@ -299,7 +344,11 @@ export default defineSchema({
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])
-    .index("by_status_started", ["status", "startedAt"]),
+    .index("by_status_started", ["status", "startedAt"])
+    // Account teardown needs every call regardless of status; the pair above
+    // is status-scoped.
+    .index("by_caller", ["callerId"])
+    .index("by_callee", ["calleeId"]),
 
   // Signaling messages between the two peers. Client subscribes by toUserId
   // and marks each delivered signal `consumed: true`. A cron cleans old rows.
@@ -322,5 +371,9 @@ export default defineSchema({
     fromDeviceId: v.optional(v.string()),
   })
     .index("by_to_unconsumed", ["toUserId", "consumed", "createdAt"])
-    .index("by_call", ["callId"]),
+    .index("by_call", ["callId"])
+    // Account teardown: signals this user sent, and consumed ones addressed to
+    // them (which by_to_unconsumed can't reach without scanning both values).
+    .index("by_from", ["fromUserId"])
+    .index("by_to", ["toUserId"]),
 });

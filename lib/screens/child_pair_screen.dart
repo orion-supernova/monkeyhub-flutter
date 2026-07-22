@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../auth/auth_service.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/code_field.dart';
 
 /// Pulls the six digits out of whatever the scanner saw. Accepts both the
 /// `monkeyhub://pair?c=NNNNNN` URI the parent app renders and a bare code, so
@@ -187,7 +188,7 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                         ],
                       ),
                       const SizedBox(height: 22),
-                      _CodeField(
+                      CodeField(
                         controller: _manual,
                         onCompleted: _submit,
                         enabled: !_busy,
@@ -320,7 +321,7 @@ class _ScannerPanel extends StatelessWidget {
               onDetect: onDetect,
               // A denied or missing camera must not dead-end the child —
               // the typed path below still works.
-              errorBuilder: (context, error, child) => Container(
+              errorBuilder: (context, error) => Container(
                 color: theme.surfaceSunken,
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(24),
@@ -340,60 +341,6 @@ class _ScannerPanel extends StatelessWidget {
               style: theme.monoTiny.copyWith(color: theme.inkMuted)),
         ),
       ],
-    );
-  }
-}
-
-class _CodeField extends StatelessWidget {
-  const _CodeField({
-    required this.controller,
-    required this.onCompleted,
-    required this.enabled,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onCompleted;
-  final bool enabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return TextField(
-      controller: controller,
-      enabled: enabled,
-      keyboardType: TextInputType.number,
-      textAlign: TextAlign.center,
-      maxLength: 6,
-      autocorrect: false,
-      enableSuggestions: false,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: theme.monoLarge.copyWith(letterSpacing: 10),
-      decoration: InputDecoration(
-        counterText: '',
-        hintText: '000000',
-        hintStyle: theme.monoLarge
-            .copyWith(letterSpacing: 10, color: theme.inkMuted),
-        filled: true,
-        fillColor: theme.surfaceSunken,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.divider),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.divider),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          borderSide: BorderSide(color: theme.accent),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18),
-      ),
-      // Six digits is the whole code, so submit the moment it's complete
-      // rather than making a child hunt for the button.
-      onChanged: (v) {
-        if (v.length == 6) onCompleted(v);
-      },
     );
   }
 }

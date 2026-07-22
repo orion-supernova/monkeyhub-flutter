@@ -21,6 +21,7 @@ import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_visibility_screen.dart';
+import 'release_device_screen.dart';
 import 'room_screen.dart';
 
 /// Profile screen.
@@ -805,7 +806,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // rather than disabled: a greyed-out SIGN OUT just invites nagging.
     // `AuthService` and the backend both refuse these too, in case a route
     // reaches them another way.
+    //
+    // What a child DOES get is "hand this phone back" below, which is not an
+    // exception to the above: it releases the handset only against a grown-up's
+    // release code or password, and is visible precisely because the credential
+    // is the real gate. A parent who can't find the button can't use it.
     final canAccount = widget.auth != null && !widget.auth!.isChild;
+    final isChildAccount = widget.auth != null && widget.auth!.isChild;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -859,6 +866,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _deleteAccount();
               }
             },
+          ),
+        ],
+        if (isChildAccount) ...[
+          const SizedBox(height: 28),
+          _sectionHeader(theme, 'THIS PHONE'),
+          const SizedBox(height: 10),
+          _RowActionTile(
+            label: 'HAND THIS PHONE BACK',
+            danger: false,
+            busy: false,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ReleaseDeviceScreen(auth: widget.auth!),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Only a grown-up can do this — it needs their code or password.',
+            style: theme.monoTiny.copyWith(color: theme.inkMuted),
           ),
         ],
       ],
