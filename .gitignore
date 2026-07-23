@@ -56,8 +56,9 @@ app.*.map.json
 
 android/.kotlin/sessions/
 
-# Firebase Hosting deploy artifacts — hosting/public/ is regenerated from
-# hosting/index.template.html by deploy.sh and holds the (large) APK.
+# Download-page staging area — hosting/public/ is regenerated from
+# hosting/index.template.html by deploy.sh and holds the (large) APK before it
+# is rsynced to the VM.
 /hosting/public/
 /.firebase/
 firebase-debug.log

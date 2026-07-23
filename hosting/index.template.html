@@ -1,7 +1,13 @@
 <!DOCTYPE html>
-<!-- Template — deploy.sh replaces __APP_VERSION__ / __APK_SIZE__ / __UPDATED_AT__
-     and writes the result to hosting/public/index.html. Don't edit the copy in
-     public/, it is regenerated on every Android deploy. -->
+<!-- Template — deploy.sh replaces __APP_VERSION__ / __APK_SIZE__ / __UPDATED_AT__ /
+     __APK_FILE__ and writes the result to hosting/public/index.html. Don't edit
+     the copy in public/, it is regenerated on every Android deploy.
+
+     __APK_FILE__ is the VERSIONED filename on purpose: Cloudflare overrides the
+     origin's no-cache on .apk with a 4h browser TTL, so a stable
+     monkeyhub-latest.apk link could hand out the previous build after a release.
+     A new version = a new URL = no stale cache. monkeyhub-latest.apk still exists
+     server-side (hardlink) as a convenience link for sharing. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -101,7 +107,7 @@
 
   <div class="card">
     <span class="ver">v__APP_VERSION__</span>
-    <a class="btn" href="monkeyhub-latest.apk" download>Download for Android</a>
+    <a class="btn" href="__APK_FILE__" download>Download for Android</a>
     <p class="meta">APK · __APK_SIZE__ · updated __UPDATED_AT__</p>
   </div>
 

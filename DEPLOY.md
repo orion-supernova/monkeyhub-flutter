@@ -11,7 +11,7 @@ Select what to deploy  (↑/↓ move · space toggle · enter go)
 ```
 
 Space toggles, enter ships. Selecting Android asks one more question: **APK**
-(signed APK published to the download page at https://monkeyhub-2b2c6.web.app)
+(signed APK published to the download page at https://monkeyhub.walhallaa.com/download)
 or **AAB** (Google Play, internal testing track).
 
 ## Flags (non-interactive / CI)
@@ -19,8 +19,9 @@ or **AAB** (Google Play, internal testing track).
 | Flag | Effect |
 |---|---|
 | `--ios` | iOS → App Store Connect |
-| `--android[=apk\|play]` | Android; `apk` (default) = hosted download page, `play` = Play internal |
-| `--all` | Convex + iOS + Android(apk) |
+| `--android[=apk\|play]` | Android; `apk` (default) = self-hosted download page, `play` = Play internal |
+| `--web` | Flutter web build → https://monkeyhub.walhallaa.com (opt-in, experimental) |
+| `--all` | Convex + iOS + Android(apk) — web is never included |
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
 
@@ -40,16 +41,55 @@ Android `versionCode` is derived in `android/app/build.gradle.kts`
   signing (so `flutter run --release` works anywhere) — deploy.sh detects this
   and refuses to ship.
 
-## APK download page
+## APK download page (self-hosted)
 
-- Template: `hosting/index.template.html` (edit THIS, not the generated copy).
+**Share link: https://monkeyhub.walhallaa.com/download**
+
+This used to be Firebase Hosting. The Spark (free) plan refuses to serve APKs
+(`Executable files are forbidden on the Spark billing plan`), so Android
+distribution moved to the Oracle VM.
+
+- Templates: `hosting/index.template.html` (download page) and
+  `hosting/root.template.html` (placeholder at the site root). Edit THESE, not
+  the generated copies.
 - On every APK deploy the script rebuilds `hosting/public/` (gitignored):
-  stamps version/size/date, copies `monkeyhub-latest.apk` +
-  `monkeyhub-<version>.apk`, deploys via `npx firebase-tools`.
-- First-time on a machine: `npx firebase-tools login` (the script tells you
-  when it's needed).
-- Stable share link: **https://monkeyhub-2b2c6.web.app** (the
-  `monkeyhub-latest.apk` URL never changes).
+  stamps version/size/date/filename, then rsyncs `index.html` +
+  `monkeyhub-latest.apk` to the VM. The versioned name is created server-side
+  as a hardlink, so the 163 MB only crosses the wire once (~1 min).
+- **Retention is latest-only** — each deploy deletes the previous versioned APK.
+- The page's download button points at `monkeyhub-<version>.apk`, not
+  `monkeyhub-latest.apk`, on purpose: Cloudflare overrides the origin's
+  `no-cache` on `.apk` with a 4 h browser TTL, so a stable URL could hand out
+  the previous build right after a release. A new version = a new URL.
+  `monkeyhub-latest.apk` still exists for casual sharing.
+
+### Where it runs
+
+| Piece | Location |
+|---|---|
+| Files | `ubuntu@79.76.54.204:/srv/monkeyhub/{download,web}` |
+| Web server | Caddy, `:8081` block in `/etc/caddy/Caddyfile` |
+| Tunnel | `monkeyhub-tunnel` (`96c30746-…`), `/etc/cloudflared/config-monkeyhub.yml`, unit `cloudflared-monkeyhub` |
+| SSH key | `~/Documents/BelesMakinem/ssh-key-2024-12-04-2.key` |
+
+Override `VM_HOST` / `VM_USER` / `VM_SSH_KEY` in `.env.local` if the box or key
+moves. deploy.sh SSH-pings the VM during pre-flight, so an unreachable box fails
+in seconds instead of after a 15-minute build.
+
+Debugging: `sudo journalctl -u cloudflared-monkeyhub -n 50` and
+`curl -sI http://127.0.0.1:8081/download/` on the box (bypasses Cloudflare).
+
+## Web app
+
+`./deploy.sh --web` builds Flutter web and rsyncs `build/web/` to
+`/srv/monkeyhub/web/`, served at **https://monkeyhub.walhallaa.com/**. Until the
+first run, that URL shows the `hosting/root.template.html` placeholder (the
+script only uploads the placeholder when no `main.dart.js` is present, so it
+never clobbers a real build).
+
+Experimental: `convex_flutter` has a web implementation, but
+`flutter_callkit_incoming` and the WebRTC/recording plugins are mobile-only —
+chat may work in a browser, calling won't.
 
 ## Switching Android to Google Play (once the account is verified)
 

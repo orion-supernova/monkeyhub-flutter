@@ -2,7 +2,7 @@ name: monkeyhub
 description: "MonkeyHub — rooms, friends, secrets that fade."
 publish_to: 'none'
 
-version: 1.3.24+1
+version: 1.3.26+1
 
 environment:
   sdk: ^3.11.4
@@ -91,6 +91,14 @@ dependencies:
   html: ^0.15.4
   share_plus: ^10.0.0
 
+  # Splash-screen plugin. MUST live in `dependencies`, not dev_dependencies:
+  # its Android platform class ends up referenced in the generated plugin
+  # registrant, but Flutter's release Gradle builds EXCLUDE dev-dependency
+  # plugin modules — the mismatch fails `assembleRelease` with
+  # "package net.jonhanson.flutter_native_splash does not exist".
+  # (`dart run flutter_native_splash:create` still works from here.)
+  flutter_native_splash: ^2.4.1
+
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
   # newer platform-interface contract; pin to the fixed line.
@@ -107,11 +115,10 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
-  # Branding generators — run with:
+  # Branding generator — run with:
   #   dart run flutter_launcher_icons
-  #   dart run flutter_native_splash:create
+  # (flutter_native_splash lives in `dependencies` — see note there.)
   flutter_launcher_icons: ^0.14.1
-  flutter_native_splash: ^2.4.1
 
 flutter_launcher_icons:
   image_path: "branding/logo.png"

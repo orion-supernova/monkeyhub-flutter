@@ -62,7 +62,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // (chat-context entry points like getMembers don't compute it).
     final resolved = _resolveFriendship(widget.user.id);
     _user = widget.user.copyWith(friendshipStatus: resolved.status, requestId: resolved.requestId);
+    // The account type can change underneath an open profile: a guardian
+    // graduating this child from their own phone lands over the live family
+    // subscription. Everything on the me-view keys off it — the ACCOUNT
+    // section, whether visibility is read-only, whether "hand this phone back"
+    // is offered — so repaint rather than leaving the supervised UI up.
+    widget.auth?.addListener(_onAuth);
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    widget.auth?.removeListener(_onAuth);
+    super.dispose();
+  }
+
+  void _onAuth() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _refresh() async {

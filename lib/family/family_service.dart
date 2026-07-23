@@ -40,6 +40,18 @@ class FamilyService extends ChangeNotifier {
   FamilyContext _context = FamilyContext.empty;
   bool _loading = false;
 
+  /// Whether [context] is something the server actually said, rather than the
+  /// [FamilyContext.empty] placeholder.
+  ///
+  /// Matters because `empty` reads as an unrestricted *adult* — the right way
+  /// to fail for gating, but indistinguishable from a real "you're an adult"
+  /// emission. Anything that acts on `accountType` being adult (see
+  /// `_syncAccountType` in app.dart, which rewrites the persisted session) has
+  /// to wait for this, or every cold start would graduate a genuine child in
+  /// the frames before the subscription lands.
+  bool _loaded = false;
+  bool get hasContext => _loaded;
+
   /// Live feed of [FamilyContext]. Null between [detach] and the next
   /// [attach], or if opening the subscription failed — [refresh] is still
   /// there as a fallback in that case.
@@ -87,6 +99,7 @@ class FamilyService extends ChangeNotifier {
       _userId = userId;
       // Don't leak the previous account's rules into the new one's first frame.
       _context = FamilyContext.empty;
+      _loaded = false;
     }
     _subscribingFor = userId;
     try {
@@ -95,6 +108,7 @@ class FamilyService extends ChangeNotifier {
         onContext: (fresh) {
           if (_userId != userId || fresh == null) return;
           _context = fresh;
+          _loaded = true;
           notifyListeners();
         },
         // Transient socket trouble — hold the last known context. The
@@ -125,6 +139,7 @@ class FamilyService extends ChangeNotifier {
     _subscribingFor = null;
     _userId = null;
     _context = FamilyContext.empty;
+    _loaded = false;
     notifyListeners();
   }
 
@@ -136,6 +151,7 @@ class FamilyService extends ChangeNotifier {
       final fresh = await _api.getFamilyContext(uid);
       if (fresh != null && _userId == uid) {
         _context = fresh;
+        _loaded = true;
         notifyListeners();
       }
     } catch (_) {

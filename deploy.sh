@@ -8,10 +8,17 @@
 # Pipelines:
 #   Convex   → npx convex deploy (from backend/)
 #   iOS      → flutter build ios → xcodebuild archive/export → App Store Connect
-#   Android  → APK mode:  flutter build apk → Firebase Hosting download page
-#                         (https://monkeyhub-2b2c6.web.app)
+#   Android  → APK mode:  flutter build apk → rsync to the Oracle VM, served by
+#                         Caddy behind cloudflared
+#                         (https://monkeyhub.walhallaa.com/download)
 #            → Play mode: flutter build appbundle → Google Play internal track
 #                         (needs verified Play account; see DEPLOY.md)
+#   Web      → --web: flutter build web → rsync to the same VM, served at
+#                     https://monkeyhub.walhallaa.com/ (opt-in, not in --all)
+#
+# The APK used to live on Firebase Hosting; the Spark (free) plan refuses to
+# serve executables ("Executable files are forbidden on the Spark billing plan"),
+# so Android distribution moved to the self-hosted VM. See DEPLOY.md.
 #
 # IMPORTANT — two similarly-named files at project root:
 #   env.local   (no dot)  → runtime app secrets (CONVEX_URL, ONESIGNAL_APP_ID).
@@ -26,9 +33,17 @@ SCRIPT_START_TIME=$(date +%s)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-FIREBASE_PROJECT="monkeyhub-2b2c6"
-HOSTING_URL="https://monkeyhub-2b2c6.web.app"
 ANDROID_PACKAGE="com.walhallaa.chattest20241220"
+
+# ----- self-hosted download page (Oracle VM + Caddy + cloudflared) -----
+# Override any of these from .env.local if the box or key ever moves.
+VM_HOST="${VM_HOST:-79.76.54.204}"
+VM_USER="${VM_USER:-ubuntu}"
+VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/ssh-key-2024-12-04-2.key}"
+VM_APK_DIR="/srv/monkeyhub/download"
+VM_WEB_DIR="/srv/monkeyhub/web"
+HOSTING_URL="https://monkeyhub.walhallaa.com/download"
+WEB_URL="https://monkeyhub.walhallaa.com"
 
 # ----- flags -----
 SKIP_VERSION_BUMP=false
@@ -36,7 +51,8 @@ RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 DEPLOY_IOS=""
 DEPLOY_ANDROID=""
 ANDROID_MODE="apk" # apk | play
-RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android APK: deploy to hosting.
+DEPLOY_WEB=false   # --web: flutter build web → VM. Opt-in, never part of --all.
+RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android APK / web: rsync to the VM.
 RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
@@ -50,15 +66,17 @@ No platform flags + no TTY     → legacy default: Convex + iOS.
 
 Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
-  --android[=apk|play]  Ship Android. apk (default): signed APK + hosted
+  --android[=apk|play]  Ship Android. apk (default): signed APK + self-hosted
                         download page. play: AAB for Google Play internal.
-  --all                 Convex + iOS + Android(apk).
+  --web                 Build Flutter web and publish it at $WEB_URL
+                        (experimental — callkit/WebRTC are mobile-only).
+  --all                 Convex + iOS + Android(apk). Web is never included.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
 
 Behavior flags:
   --skip-version-bump   Re-ship the same version.
-  --no-upload           Build/export but skip ASC upload AND hosting deploy.
+  --no-upload           Build/export but skip ASC upload AND the VM upload.
   --no-git              Don't commit/push the version bump.
   --dry                 --no-convex --no-upload --no-git --skip-version-bump.
   -h, --help            Show this help.
@@ -75,6 +93,7 @@ while [[ $# -gt 0 ]]; do
         --android)           DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
         --android=apk)       DEPLOY_ANDROID=true; ANDROID_MODE="apk";  PLATFORM_ARGS=true ;;
         --android=play)      DEPLOY_ANDROID=true; ANDROID_MODE="play"; PLATFORM_ARGS=true ;;
+        --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_ANDROID=false
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
@@ -200,6 +219,7 @@ if [ "$DEPLOY_ANDROID" = true ]; then
 else
     echo "  • Android build:    no"
 fi
+echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
 echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 [ "$DRY_RUN" = true ] && echo "  • Mode: DRY (no side effects)"
@@ -406,8 +426,26 @@ validate_environment() {
             exit 1
         fi
         if [ "$ANDROID_MODE" = "apk" ]; then
-            if [ ! -f "hosting/index.template.html" ] || [ ! -f "firebase.json" ]; then
-                echo "❌ Hosting files missing (hosting/index.template.html + firebase.json)."
+            if [ ! -f "hosting/index.template.html" ] || [ ! -f "hosting/root.template.html" ]; then
+                echo "❌ Page templates missing (hosting/index.template.html + hosting/root.template.html)."
+                exit 1
+            fi
+        fi
+    fi
+
+    # The VM serves both the APK page and the web build — prove it's reachable
+    # BEFORE burning 15 minutes on a build we then can't publish.
+    if { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } || [ "$DEPLOY_WEB" = true ]; then
+        if [ "$RUN_UPLOAD" = true ]; then
+            if [ ! -f "$VM_SSH_KEY" ]; then
+                echo "❌ VM SSH key not found: $VM_SSH_KEY"
+                echo "   Set VM_SSH_KEY in .env.local if the key lives elsewhere."
+                exit 1
+            fi
+            if ! ssh -i "$VM_SSH_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
+                     -o StrictHostKeyChecking=accept-new "$VM_USER@$VM_HOST" true 2>/dev/null; then
+                echo "❌ Can't reach $VM_USER@$VM_HOST over SSH."
+                echo "   Check the box is up and the key is authorized, then re-run."
                 exit 1
             fi
         fi
@@ -426,7 +464,7 @@ if [ "$RUN_CONVEX" = true ]; then
 fi
 
 # Nothing app-side selected → done after Convex.
-if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ]; then
+if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ]; then
     echo ""
     echo "✨ Backend-only deploy complete"
     exit 0
@@ -575,37 +613,50 @@ if [ "$DEPLOY_ANDROID" = true ]; then
         APK_SIZE=$(du -h "$APK_PATH" | cut -f1 | tr -d ' ')
         STAMP_DATE=$(date '+%b %d, %Y')
 
+        # One APK copy only — the versioned filename is created server-side as a
+        # hardlink, so the 163MB goes over the wire once.
         echo "  • Staging download page (hosting/public)"
         rm -rf hosting/public
         mkdir -p hosting/public
         cp "$APK_PATH" "hosting/public/monkeyhub-latest.apk"
-        cp "$APK_PATH" "hosting/public/monkeyhub-$DISPLAY_VERSION.apk"
         sed -e "s/__APP_VERSION__/$DISPLAY_VERSION/g" \
             -e "s/__APK_SIZE__/${APK_SIZE}B/g" \
             -e "s/__UPDATED_AT__/$STAMP_DATE/g" \
+            -e "s/__APK_FILE__/monkeyhub-$DISPLAY_VERSION.apk/g" \
             hosting/index.template.html > hosting/public/index.html
 
         if [ "$RUN_UPLOAD" = true ]; then
-            firebase_deploy() {
-                npx --yes firebase-tools deploy --only hosting --project "$FIREBASE_PROJECT" --non-interactive \
-                    > /tmp/monkeyhub_firebase_deploy.log 2>&1
+            SSH_OPTS="-i $VM_SSH_KEY -o BatchMode=yes -o ConnectTimeout=15"
+            upload_apk() {
+                rsync -a --partial --progress -e "ssh $SSH_OPTS" \
+                    hosting/public/index.html hosting/public/monkeyhub-latest.apk \
+                    "$VM_USER@$VM_HOST:$VM_APK_DIR/" || return 1
+                # Retention: latest only. Drop previous versioned APKs, then
+                # hardlink the new one so /download/monkeyhub-<v>.apk works
+                # (versioned URL = cache-bust; Cloudflare overrides our
+                # no-cache on .apk with a 4h browser TTL).
+                ssh $SSH_OPTS "$VM_USER@$VM_HOST" \
+                    "cd $VM_APK_DIR \
+                     && find . -maxdepth 1 -name 'monkeyhub-*.apk' ! -name 'monkeyhub-latest.apk' -delete \
+                     && ln -f monkeyhub-latest.apk 'monkeyhub-$DISPLAY_VERSION.apk' \
+                     && chmod 644 *.apk index.html"
             }
-            echo "Deploying download page to Firebase Hosting..."
-            if firebase_deploy; then
+            echo "Uploading download page to $VM_HOST (${APK_SIZE}B)..."
+            if upload_apk; then
                 echo "  ✅ Hosted at $HOSTING_URL"
             else
-                if grep -qiE "not logged in|authentication|credential|login" /tmp/monkeyhub_firebase_deploy.log; then
-                    echo "❌ Firebase Hosting deploy failed — not logged in."
-                    echo "   One-time fix:  npx firebase-tools login"
-                    echo "   Then re-run:   ./deploy.sh --android=apk --skip-version-bump --no-convex"
-                else
-                    echo "❌ Firebase Hosting deploy failed. Log:"
-                    echo "   /tmp/monkeyhub_firebase_deploy.log"
-                fi
+                echo "❌ Upload to $VM_USER@$VM_HOST failed."
+                echo "   Check: ssh -i $VM_SSH_KEY $VM_USER@$VM_HOST"
+                echo "   Then re-run:   ./deploy.sh --android=apk --skip-version-bump --no-convex"
                 exit 1
             fi
+
+            # Keep the root landing page in place until a real web build exists.
+            ssh $SSH_OPTS "$VM_USER@$VM_HOST" "[ -f $VM_WEB_DIR/main.dart.js ]" 2>/dev/null \
+                || scp $SSH_OPTS hosting/root.template.html \
+                       "$VM_USER@$VM_HOST:$VM_WEB_DIR/index.html" > /dev/null
         else
-            echo "⏭️  Skipping hosting deploy (--no-upload). Page staged in hosting/public/."
+            echo "⏭️  Skipping VM upload (--no-upload). Page staged in hosting/public/."
         fi
 
     else
@@ -641,6 +692,40 @@ if [ "$DEPLOY_ANDROID" = true ]; then
 
     ANDROID_END_TIME=$(date +%s)
     ANDROID_BUILD_TIME=$((ANDROID_END_TIME - ANDROID_START_TIME))
+fi
+
+# ----- Web build (opt-in via --web) -----
+# Experimental: convex_flutter ships a web implementation, but
+# flutter_callkit_incoming and the WebRTC/recording plugins are mobile-only, so
+# calling features won't work in the browser. Replaces the placeholder landing
+# page at $WEB_URL.
+WEB_BUILD_TIME=0
+if [ "$DEPLOY_WEB" = true ]; then
+    WEB_START_TIME=$(date +%s)
+    echo "🌐 Starting web build..."
+    run_with_spinner "Building Flutter web (release)" \
+        flutter build web --release
+
+    if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
+        echo "❌ No web build output at build/web/"
+        exit 1
+    fi
+
+    if [ "$RUN_UPLOAD" = true ]; then
+        WEB_SSH_OPTS="-i $VM_SSH_KEY -o BatchMode=yes -o ConnectTimeout=15"
+        if rsync -a --delete -e "ssh $WEB_SSH_OPTS" \
+                build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR/"; then
+            echo "  ✅ Web app at $WEB_URL"
+        else
+            echo "❌ Web upload to $VM_USER@$VM_HOST failed."
+            exit 1
+        fi
+    else
+        echo "⏭️  Skipping web upload (--no-upload). Build in build/web/."
+    fi
+
+    WEB_END_TIME=$(date +%s)
+    WEB_BUILD_TIME=$((WEB_END_TIME - WEB_START_TIME))
 fi
 
 # ----- Git -----
@@ -682,8 +767,13 @@ fi
 if [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "play" ]; then
     echo "  🤖 Android AAB:    $AAB_PATH"
 fi
+if [ "$DEPLOY_WEB" = true ]; then
+    [ "$RUN_UPLOAD" = true ]  && echo "  🌐 Web:            $WEB_URL"
+    [ "$RUN_UPLOAD" = false ] && echo "  🌐 Web build:      build/web/"
+fi
 echo ""
 echo "⏱️  Timing:"
 [ "$DEPLOY_IOS" = true ]     && echo "  🍎 iOS build:      ${IOS_BUILD_TIME}s"
 [ "$DEPLOY_ANDROID" = true ] && echo "  🤖 Android build:  ${ANDROID_BUILD_TIME}s"
+[ "$DEPLOY_WEB" = true ]     && echo "  🌐 Web build:      ${WEB_BUILD_TIME}s"
 echo "  📊 Total:          ${TOTAL_TIME}s"

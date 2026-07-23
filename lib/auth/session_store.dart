@@ -110,8 +110,13 @@ class SessionStore {
 
   /// Deliberately NOT called by [clearSession] — a child signing out (which
   /// the UI doesn't offer, but a guardian unpairing does) must still land on
-  /// the pairing screen rather than the adult login form. Only a guardian
-  /// releasing the device should reach for this.
+  /// the pairing screen rather than the adult login form.
+  ///
+  /// Two callers, both meaning "this handset is nobody's child device now":
+  /// a guardian releasing the device (`AuthService.releaseChildDevice`), and
+  /// the account being graduated to an adult one
+  /// (`AuthService.applyAccountType`) — which is the only one of the two still
+  /// available afterwards, since graduation destroys the release codes.
   Future<void> clearChildDevice() async {
     _isChildDevice = false;
     await _storage.delete(key: _kChildDevice);

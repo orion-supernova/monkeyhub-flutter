@@ -75,6 +75,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
     _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
+    _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.attachApi(_api);
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
@@ -210,6 +211,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     });
   }
 
+  /// Keeps the persisted session's account type in step with the live family
+  /// context, which is the only place a graduation reaches this handset — the
+  /// guardian performs it on their own phone.
+  ///
+  /// Waits for [FamilyService.hasContext]: the placeholder context reads as an
+  /// adult, so acting before the first emission would graduate every child on
+  /// every cold start. The resulting `notifyListeners` re-enters
+  /// [_onAuthChange], which no-ops — the user id hasn't changed.
+  void _syncAccountType() {
+    if (!_family.hasContext) return;
+    _auth.applyAccountType(_family.context.accountType);
+  }
+
   void _onAuthChange() async {
     final s = _auth.session;
     try {
@@ -253,6 +267,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
+    _family.removeListener(_syncAccountType);
     _signaling.stop();
     _repo.dispose();
     super.dispose();

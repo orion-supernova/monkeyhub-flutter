@@ -183,6 +183,43 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reconciles the locally cached account type with server truth, which
+  /// arrives on the live `FamilyContext` subscription (see `app.dart`).
+  ///
+  /// Account type is persisted at sign-in and would otherwise never change on
+  /// this handset — but a guardian can graduate a child from *their* phone, and
+  /// the child's phone has to notice. Until it does, that phone keeps the whole
+  /// supervised UI: no sign out, read-only visibility, and a "hand this phone
+  /// back" button that can no longer work, since graduation deletes the
+  /// guardianship and every release code the release screen needs.
+  ///
+  /// Only ever called with what the server said, so it goes both ways — but in
+  /// practice only child → adult happens, since pairing mints a fresh session.
+  Future<void> applyAccountType(AccountType type) async {
+    final s = _session;
+    if (s == null || s.accountType == type) return;
+    debugPrint('[auth] account type ${s.accountType.wire} → ${type.wire}');
+    _session = Session(
+      userId: s.userId,
+      username: s.username,
+      name: s.name,
+      accountType: type,
+    );
+    notifyListeners();
+    await SessionStore.instance.saveSession(
+      userId: s.userId,
+      username: s.username,
+      name: s.name,
+      accountType: type,
+    );
+    // Not a child device any more. Dropping the sticky marker is what makes a
+    // later sign-out land on the ordinary login form instead of bouncing to
+    // the pairing screen — the graduated account now has a real password.
+    if (type != AccountType.child) {
+      await SessionStore.instance.clearChildDevice();
+    }
+  }
+
   Future<void> deleteAccount() async {
     final s = _session;
     // A child deleting their own account would be an escape hatch out of

@@ -1238,6 +1238,16 @@ export const unlinkChild = mutation({
  * Graduates a child to a normal account: clears the supervision flags, sets a
  * real password, and drops every guardianship. Irreversible by design — after
  * this the former guardians have no special visibility.
+ *
+ * The row is left *indistinguishable* from one `auth.signup` would create —
+ * every supervision-only field is removed rather than rewritten. `accountType`
+ * included: signup never sets it, and absent already reads as adult everywhere
+ * (`accountType ?? ACCOUNT_ADULT`), so writing "adult" would be the only trace
+ * that this account was ever somebody's child.
+ *
+ * The family friendships stay. They are ordinary `accepted` rows with no
+ * marker, so the former guardians and siblings simply remain friends — losing
+ * supervision shouldn't silently unfriend the family.
  */
 export const promoteToAdult = mutation({
   args: {
@@ -1249,8 +1259,10 @@ export const promoteToAdult = mutation({
     await assertGuardian(ctx, guardianId, childId);
 
     await ctx.db.patch(childId, {
-      accountType: ACCOUNT_ADULT,
+      accountType: undefined,
       childPolicy: undefined,
+      // Only ever collected for a child account, and read nowhere.
+      birthYear: undefined,
       passwordHash,
     });
 
