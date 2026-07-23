@@ -1,7 +1,112 @@
-import { internalAction, internalQuery } from "./_generated/server";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+
+// ─────────────── push-provider auth token caching ───────────────
+//
+// APNs REQUIRES the same provider JWT be reused for 20-60 minutes. Signing
+// a fresh one per push trips Apple's TooManyProviderTokenUpdates 429 rate
+// limit, after which EVERY push for the key fails until the window cools —
+// observed as "calling randomly dies completely under rapid testing, then
+// recovers after a quiet period". Tokens are cached in module scope (fast
+// path, per warm isolate) and in the pushAuthTokens table (survives cold
+// starts and is shared across isolates). Google's FCM OAuth tokens get the
+// same treatment (valid 60 min; per-push minting is needless latency).
+
+const TOKEN_REUSE_MS = 50 * 60 * 1000;
+
+type ProviderTokenEntry = { token: string; keyRef: string; issuedAt: number };
+
+const providerTokenCache: Record<string, ProviderTokenEntry> = {};
+
+export const _getPushAuthToken = internalQuery({
+  args: { provider: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      token: v.string(),
+      keyRef: v.string(),
+      issuedAt: v.number(),
+    }),
+  ),
+  handler: async (ctx, { provider }) => {
+    const row = await ctx.db
+      .query("pushAuthTokens")
+      .withIndex("by_provider", (q) => q.eq("provider", provider))
+      .first();
+    if (!row) return null;
+    return { token: row.token, keyRef: row.keyRef, issuedAt: row.issuedAt };
+  },
+});
+
+export const _setPushAuthToken = internalMutation({
+  args: {
+    provider: v.string(),
+    token: v.string(),
+    keyRef: v.string(),
+    issuedAt: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { provider, token, keyRef, issuedAt }) => {
+    const row = await ctx.db
+      .query("pushAuthTokens")
+      .withIndex("by_provider", (q) => q.eq("provider", provider))
+      .first();
+    if (row) {
+      await ctx.db.patch(row._id, { token, keyRef, issuedAt });
+    } else {
+      await ctx.db.insert("pushAuthTokens", {
+        provider,
+        token,
+        keyRef,
+        issuedAt,
+      });
+    }
+    return null;
+  },
+});
+
+// Returns a provider auth token, minting a fresh one only when the cached
+// one is missing, older than TOKEN_REUSE_MS, or signed with a different
+// key (keyRef mismatch — key rotation). Concurrent refreshes across
+// isolates are harmless: they happen at most once per ~50 min, far below
+// any provider's update limit.
+async function cachedProviderToken(
+  ctx: any,
+  provider: "apns" | "fcm",
+  keyRef: string,
+  mint: () => Promise<string>,
+): Promise<string> {
+  const now = Date.now();
+  const mem = providerTokenCache[provider];
+  if (mem && mem.keyRef === keyRef && now - mem.issuedAt < TOKEN_REUSE_MS) {
+    return mem.token;
+  }
+  const stored = (await ctx.runQuery(internal.voipPush._getPushAuthToken, {
+    provider,
+  })) as ProviderTokenEntry | null;
+  if (
+    stored &&
+    stored.keyRef === keyRef &&
+    now - stored.issuedAt < TOKEN_REUSE_MS
+  ) {
+    providerTokenCache[provider] = stored;
+    return stored.token;
+  }
+  const token = await mint();
+  const entry: ProviderTokenEntry = { token, keyRef, issuedAt: now };
+  providerTokenCache[provider] = entry;
+  await ctx.runMutation(internal.voipPush._setPushAuthToken, {
+    provider,
+    ...entry,
+  });
+  return token;
+}
 
 // Direct VoIP push delivery — wakes a *killed* app for CallKit (iOS) or
 // ConnectionService (Android). Runs alongside the OneSignal push in
@@ -94,9 +199,30 @@ export const sendVoip = internalAction({
     // Fan out in parallel — one slow APNs round-trip shouldn't block the
     // sibling devices. allSettled because we never want one failure to
     // suppress logging for the others.
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       devices.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
     );
+    // OneSignal rescue: calls.initiate skips the OneSignal banner when
+    // every phone has a native token — but if the native push then fails
+    // for ALL devices (e.g. an APNs outage or rate limit), the callee
+    // would get complete silence. A time-sensitive banner naming the
+    // caller is strictly better than nothing.
+    const anyDelivered = results.some(
+      (r) => r.status === "fulfilled" && r.value === true,
+    );
+    if (!anyDelivered) {
+      console.warn(
+        `sendVoip: no native push delivered for callee=${args.calleeId} — OneSignal rescue`,
+      );
+      await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
+        callId: args.callId,
+        calleeId: args.calleeId,
+        callerId: args.callerId,
+        callerName: args.callerName,
+        type: args.type,
+        roomId: args.roomId,
+      });
+    }
   },
 });
 
@@ -177,13 +303,17 @@ export const retryPushToDevice = internalAction({
 
 const TRANSIENT_RETRY_DELAY_MS = 2000;
 
+// Returns true when at least one channel (APNs / FCM) accepted the push
+// for this device — sendVoip uses this to trigger the OneSignal rescue
+// when NO device could be reached natively.
 async function pushToDevice(
   ctx: any,
   userId: Id<"users">,
   d: DeviceRow,
   payload: Record<string, unknown>,
   opts: { isRetry?: boolean } = {},
-): Promise<void> {
+): Promise<boolean> {
+  let delivered = false;
   // One retry per device per push; scheduled at most once from below.
   let scheduledRetry = false;
   const scheduleRetry = async () => {
@@ -199,7 +329,8 @@ async function pushToDevice(
   // realtime subscription path covers them.
   if (d.voipToken && d.platform !== "ios-simulator") {
     try {
-      await sendApnsVoip(d.voipToken, payload, d.apnsEnv);
+      await sendApnsVoip(ctx, d.voipToken, payload, d.apnsEnv);
+      delivered = true;
       console.log(
         `sendVoip: APNs OK device=${d.deviceId} env=${d.apnsEnv ?? "default"}`,
       );
@@ -242,7 +373,8 @@ async function pushToDevice(
   }
   if (d.fcmToken) {
     try {
-      await sendFcmData(d.fcmToken, payload);
+      await sendFcmData(ctx, d.fcmToken, payload);
+      delivered = true;
       console.log(`sendVoip: FCM OK device=${d.deviceId}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -275,11 +407,13 @@ async function pushToDevice(
       // Any other error: keep the token, retry next call.
     }
   }
+  return delivered;
 }
 
 // ────────────────────────── APNs (iOS PushKit) ──────────────────────────
 
 async function sendApnsVoip(
+  ctx: any,
   voipToken: string,
   payload: Record<string, unknown>,
   apnsEnv?: ApnsEnv,
@@ -305,14 +439,18 @@ async function sendApnsVoip(
       "APNS_MISCONFIG: missing APNS_KEY_ID / APNS_TEAM_ID / APNS_BUNDLE_ID / APNS_KEY_P8",
     );
   }
-  const iat = Math.floor(Date.now() / 1000);
+  // Cached provider JWT — reused for ~50 min per Apple's requirement.
+  // NEVER mint per-push: that trips TooManyProviderTokenUpdates and takes
+  // down every push for the key.
   let jwt: string;
   try {
-    jwt = await signJwt(
-      { alg: "ES256", typ: "JWT", kid: keyId },
-      { iss: teamId, iat },
-      keyP8,
-      "ES256",
+    jwt = await cachedProviderToken(ctx, "apns", keyId, () =>
+      signJwt(
+        { alg: "ES256", typ: "JWT", kid: keyId },
+        { iss: teamId, iat: Math.floor(Date.now() / 1000) },
+        keyP8,
+        "ES256",
+      ),
     );
   } catch (e) {
     // A malformed/expired .p8 key fails here. This is a deployment
@@ -364,6 +502,7 @@ async function sendApnsVoip(
 // ────────────────────────── FCM (Android) ──────────────────────────
 
 async function sendFcmData(
+  ctx: any,
   fcmToken: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
@@ -382,7 +521,7 @@ async function sendFcmData(
     const msg = e instanceof Error ? e.message : String(e);
     throw new Error(`FCM_MISCONFIG: invalid FCM_SERVICE_ACCOUNT_JSON (${msg})`);
   }
-  const accessToken = await fcmAccessToken(sa);
+  const accessToken = await fcmAccessToken(ctx, sa);
   // FCM v1 data values must all be strings.
   const data: Record<string, string> = {};
   for (const k of Object.keys(payload)) data[k] = String(payload[k]);
@@ -427,36 +566,43 @@ async function sendFcmData(
   }
 }
 
-async function fcmAccessToken(sa: {
-  client_email: string;
-  private_key: string;
-}): Promise<string> {
-  const iat = Math.floor(Date.now() / 1000);
-  const jwt = await signJwt(
-    { alg: "RS256", typ: "JWT" },
-    {
-      iss: sa.client_email,
-      scope: "https://www.googleapis.com/auth/firebase.messaging",
-      aud: "https://oauth2.googleapis.com/token",
-      iat,
-      exp: iat + 3600,
-    },
-    sa.private_key,
-    "RS256",
-  );
-  const params = new URLSearchParams();
-  params.set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
-  params.set("assertion", jwt);
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
+async function fcmAccessToken(
+  ctx: any,
+  sa: {
+    client_email: string;
+    private_key: string;
+  },
+): Promise<string> {
+  // Google access tokens are valid for 60 min — cache and reuse like the
+  // APNs JWT instead of a sign + OAuth round-trip per push.
+  return cachedProviderToken(ctx, "fcm", sa.client_email, async () => {
+    const iat = Math.floor(Date.now() / 1000);
+    const jwt = await signJwt(
+      { alg: "RS256", typ: "JWT" },
+      {
+        iss: sa.client_email,
+        scope: "https://www.googleapis.com/auth/firebase.messaging",
+        aud: "https://oauth2.googleapis.com/token",
+        iat,
+        exp: iat + 3600,
+      },
+      sa.private_key,
+      "RS256",
+    );
+    const params = new URLSearchParams();
+    params.set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
+    params.set("assertion", jwt);
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    if (!res.ok) {
+      throw new Error(`FCM OAuth HTTP ${res.status}: ${await res.text()}`);
+    }
+    const j = (await res.json()) as { access_token: string };
+    return j.access_token;
   });
-  if (!res.ok) {
-    throw new Error(`FCM OAuth HTTP ${res.status}: ${await res.text()}`);
-  }
-  const j = (await res.json()) as { access_token: string };
-  return j.access_token;
 }
 
 // ────────────────────────── JWT signing helpers ──────────────────────────

@@ -379,4 +379,17 @@ export default defineSchema({
     // them (which by_to_unconsumed can't reach without scanning both values).
     .index("by_from", ["fromUserId"])
     .index("by_to", ["toUserId"]),
+
+  // Cached push-provider auth tokens, one row per provider ("apns" | "fcm").
+  // APNs REQUIRES the same provider JWT be reused for 20-60 minutes —
+  // signing a fresh one per push trips the TooManyProviderTokenUpdates 429
+  // rate limit, which then rejects EVERY push for the key (observed as
+  // "calling randomly breaks entirely under rapid testing"). keyRef pins
+  // the token to the signing key so a key rotation invalidates the cache.
+  pushAuthTokens: defineTable({
+    provider: v.string(),
+    token: v.string(),
+    keyRef: v.string(),
+    issuedAt: v.number(),
+  }).index("by_provider", ["provider"]),
 });
