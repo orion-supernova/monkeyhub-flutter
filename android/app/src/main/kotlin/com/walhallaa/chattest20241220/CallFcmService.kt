@@ -81,6 +81,7 @@ class CallFcmService : FirebaseMessagingService() {
                         "id" to uuidForCallId(callId),
                         "nameCaller" to callerName,
                         "appName" to "MonkeyHub",
+                        "avatar" to (data["callerAvatarUrl"] ?: ""),
                         "handle" to (data["callerHandle"] ?: callerName),
                         "type" to if (isVideo) 1 else 0,
                         // Matches the backend ring window (60s FCM ttl +

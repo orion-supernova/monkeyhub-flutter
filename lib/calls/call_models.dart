@@ -62,6 +62,7 @@ class CallSession {
     required this.mediaKind,
     required this.isCaller,
     required this.status,
+    this.peerAvatarStorageId,
     this.peerState = const PeerMediaState(),
     this.localMuted = false,
     this.localVideoOff = false,
@@ -76,6 +77,11 @@ class CallSession {
   final String roomId;
   final String peerUserId;
   final String peerName;
+
+  /// Convex storage id of the peer's avatar image, when known — carried in
+  /// the invite payload and/or resolved via profile lookup. Lets the call
+  /// screens render a real avatar instead of an initial letter.
+  final String? peerAvatarStorageId;
   final CallMediaKind mediaKind;
   final bool isCaller;
   final CallStatus status;
@@ -94,6 +100,8 @@ class CallSession {
 
   CallSession copyWith({
     CallStatus? status,
+    String? peerName,
+    String? peerAvatarStorageId,
     PeerMediaState? peerState,
     bool? localMuted,
     bool? localVideoOff,
@@ -106,7 +114,8 @@ class CallSession {
       callId: callId,
       roomId: roomId,
       peerUserId: peerUserId,
-      peerName: peerName,
+      peerName: peerName ?? this.peerName,
+      peerAvatarStorageId: peerAvatarStorageId ?? this.peerAvatarStorageId,
       mediaKind: mediaKind,
       isCaller: isCaller,
       status: status ?? this.status,

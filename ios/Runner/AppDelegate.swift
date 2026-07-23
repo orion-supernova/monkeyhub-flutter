@@ -6,7 +6,16 @@ import CallKit
 import flutter_callkit_incoming
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, PKPushRegistryDelegate, CXProviderDelegate {
+@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate {
+  // Pre-warmed Flutter engine, created and run at process launch —
+  // INCLUDING cold background launches triggered by a VoIP push, where no
+  // UI scene ever connects. The previous implicit-engine setup only
+  // initialized Flutter when a scene attached a FlutterViewController, so
+  // a killed+locked phone receiving a call had no engine, no registered
+  // plugins, and therefore no CallKit ring. SceneDelegate attaches the UI
+  // to this same engine when a scene does connect.
+  var flutterEngine: FlutterEngine!
+
   // Event sink for screen-capture state changes pushed to Dart.
   fileprivate var captureEventSink: FlutterEventSink?
 
@@ -51,6 +60,17 @@ import flutter_callkit_incoming
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Start Dart immediately, headless if need be. On a background VoIP
+    // launch this is what makes flutter_callkit_incoming register (its
+    // sharedInstance is set inside GeneratedPluginRegistrant.register) so
+    // the CallKit ringer can show, and lets the app restore auth + attach
+    // signaling so an answered call actually connects.
+    let engine = FlutterEngine(name: "main")
+    engine.run()
+    GeneratedPluginRegistrant.register(with: engine)
+    registerAppChannels(on: engine)
+    flutterEngine = engine
+
     NotificationCenter.default.addObserver(
       self,
       selector: #selector(_capturedDidChange),
@@ -126,22 +146,11 @@ import flutter_callkit_incoming
     let callerHandle = (dict["callerHandle"] as? String) ?? callerName
     let callType = ((dict["callType"] as? String) == "video") ? 1 : 0
 
-    // iOS 13+ requires that every VoIP push report an incoming call to
-    // CallKit within ~5s, or the system kills the app and may revoke the
-    // PushKit token. We have two paths:
-    //   - App in background/killed → show the full CallKit ringer.
-    //   - App in foreground → the Convex realtime signal subscription is
-    //     already routing the in-app IncomingCallScreen; stacking CallKit
-    //     on top produces a jarring dual-UI. Use the "report and
-    //     immediately end" escape hatch so we satisfy the API contract
-    //     without UI.
-    let isForeground = UIApplication.shared.applicationState == .active
-    if isForeground {
-      NSLog("[voip] foreground push — report-and-end (no CallKit UI)")
-      reportAndEndCall(callerName: callerName)
-      completion()
-      return
-    }
+    // WhatsApp-style: the receiver ALWAYS gets the native CallKit UI —
+    // foreground included. (The in-app ringer screen is reserved for
+    // platforms without CallKit: iOS simulator and desktop.) The Dart
+    // side creates its session silently from the realtime invite signal
+    // and only navigates once CallKit reports the accept.
 
     // Stash the CallKit UUID so a follow-up "taken" push can end this
     // specific call with `.answeredElsewhere`. Persisted too, because the
@@ -165,6 +174,12 @@ import flutter_callkit_incoming
       "callType": callType,
       "rawPayload": dict,
     ] as NSDictionary
+    // Classify the CallKit audio session correctly so the plugin's own
+    // configureAudioSession (which runs at ring/answer/didActivate) sets a
+    // call-appropriate mode instead of .default — .videoChat also biases
+    // the default route toward the loudspeaker.
+    callData.supportsVideo = callType == 1
+    callData.audioSessionMode = callType == 1 ? "videoChat" : "voiceChat"
 
     showIncomingWithRetry(callData, convexCallId: convexCallId, pushCompletion: completion)
   }
@@ -292,9 +307,15 @@ import flutter_callkit_incoming
   // token and silently drops future VoIP pushes.
   private lazy var foregroundReportProvider: CXProvider = {
     let config = CXProviderConfiguration(localizedName: "Monkeyhub")
-    // .answeredElsewhere needs a one-shot provider; everything else
-    // (icon, ringtone, supportsVideo) is irrelevant since we never
-    // show its UI.
+    // This provider does double duty: silent report-and-end (PushKit
+    // compliance) AND the last-resort fallback RINGER in
+    // showIncomingWithRetry. supportedHandleTypes defaults to an EMPTY
+    // set, and reportNewIncomingCall with a .generic handle not in the
+    // set errors out — which silently killed every fallback ring.
+    config.supportedHandleTypes = [.generic]
+    config.supportsVideo = true
+    config.maximumCallGroups = 1
+    config.maximumCallsPerCallGroup = 1
     let provider = CXProvider(configuration: config)
     provider.setDelegate(self, queue: nil)
     return provider
@@ -421,11 +442,12 @@ import flutter_callkit_incoming
     captureEventSink?(UIScreen.main.isCaptured)
   }
 
-  func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
-    GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-
+  // Registers the app's custom method channels on the pre-warmed engine.
+  // Called from didFinishLaunchingWithOptions right after
+  // GeneratedPluginRegistrant (which registers the third-party plugins).
+  private func registerAppChannels(on engine: FlutterEngine) {
     // monkeyhub/capture — screen-capture/mirroring observation.
-    if let captureRegistrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubCapturePlugin") {
+    if let captureRegistrar = engine.registrar(forPlugin: "MonkeyHubCapturePlugin") {
       // Method channel: returns current isCaptured state on demand.
       let captureMethods = FlutterMethodChannel(
         name: "monkeyhub/capture",
@@ -456,7 +478,7 @@ import flutter_callkit_incoming
     // Backs LauncherIconService in Dart. We talk to UIApplication directly
     // here because flutter_dynamic_icon_plus's Swift wrapper (SwiftTryCatch)
     // collides with Swift's reserved `try` keyword under modern compilers.
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubLauncherIconPlugin") {
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubLauncherIconPlugin") {
       let channel = FlutterMethodChannel(
         name: "monkeyhub/launcher_icon",
         binaryMessenger: registrar.messenger()
@@ -507,7 +529,7 @@ import flutter_callkit_incoming
     // monkeyhub/device — exposes a human-readable name for this physical
     // device. Dart uploads it alongside push tokens so the active-call
     // pill on sibling devices can render "On Bob's iPhone".
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubDevicePlugin") {
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubDevicePlugin") {
       let channel = FlutterMethodChannel(
         name: "monkeyhub/device",
         binaryMessenger: registrar.messenger()
@@ -530,7 +552,7 @@ import flutter_callkit_incoming
     // `getToken` after PushManager.login(userId) and uploads the result to
     // Convex's setVoipToken mutation. We also push token updates over the
     // same channel via `onTokenUpdated` so token rotation propagates.
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubVoipPlugin") {
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubVoipPlugin") {
       let channel = FlutterMethodChannel(
         name: "monkeyhub/voip",
         binaryMessenger: registrar.messenger()
@@ -586,7 +608,7 @@ import flutter_callkit_incoming
     // monkeyhub/badge — set or clear the app icon badge count.
     // Register the channel via a plugin registrar so we get a binaryMessenger
     // without depending on the rootViewController being a FlutterViewController.
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "MonkeyHubBadgePlugin") {
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubBadgePlugin") {
       let badgeChannel = FlutterMethodChannel(
         name: "monkeyhub/badge",
         binaryMessenger: registrar.messenger()

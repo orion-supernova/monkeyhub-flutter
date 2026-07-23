@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -421,6 +422,69 @@ class CallService extends ChangeNotifier {
     }
   }
 
+  /// CallKit activated the AVAudioSession (flutter_callkit_incoming's
+  /// `actionCallToggleAudioSession` event, bridged by NativeCallHandler).
+  /// Two problems converge exactly here:
+  ///   1. The callkit plugin re-runs its own configureAudioSession at every
+  ///      activation AND once more ~1200ms after answer — playAndRecord
+  ///      with mode .default and no .defaultToSpeaker — clobbering any
+  ///      route/category we set earlier. So re-assert ours now AND once
+  ///      again after its delayed pass.
+  ///   2. flutter_webrtc's mic unit may have started BEFORE activation
+  ///      (it has no CallKit coordination), in which case it captures
+  ///      silence until the track is re-primed — the mute→unmute "fix"
+  ///      users discovered, done here programmatically.
+  Future<void> onNativeAudioSessionActivated() async {
+    final s = _session;
+    if (s == null || !inCall) return;
+    await _applyIosAudioConfig(s.mediaKind);
+    await _applyAudioRoute(speaker: s.speakerOn);
+    _reprimeLocalAudio();
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      final s2 = _session;
+      if (s2 == null || !inCall) return;
+      unawaited(_applyIosAudioConfig(s2.mediaKind));
+      unawaited(_applyAudioRoute(speaker: s2.speakerOn));
+    });
+  }
+
+  /// Cycle the local audio tracks' enabled flag to restart WebRTC's audio
+  /// unit against the (now active) session. Ends in the user's actual mute
+  /// state, so it's safe to call any time mid-call.
+  void _reprimeLocalAudio() {
+    final ls = _localStream;
+    if (ls == null) return;
+    final muted = _session?.localMuted ?? false;
+    for (final t in ls.getAudioTracks()) {
+      t.enabled = false;
+      t.enabled = !muted;
+    }
+  }
+
+  /// Classify the AVAudioSession for calling BEFORE the callkit plugin's
+  /// generic playAndRecord/.default config wins: voiceChat/videoChat modes
+  /// enable the right signal processing, and defaultToSpeaker makes video
+  /// calls come up on the loudspeaker like every mainstream calling app.
+  Future<void> _applyIosAudioConfig(CallMediaKind kind) async {
+    if (!Platform.isIOS) return;
+    try {
+      await Helper.setAppleAudioConfiguration(AppleAudioConfiguration(
+        appleAudioCategory: AppleAudioCategory.playAndRecord,
+        appleAudioCategoryOptions: {
+          AppleAudioCategoryOption.allowBluetooth,
+          AppleAudioCategoryOption.allowBluetoothA2DP,
+          if (kind == CallMediaKind.video)
+            AppleAudioCategoryOption.defaultToSpeaker,
+        },
+        appleAudioMode: kind == CallMediaKind.video
+            ? AppleAudioMode.videoChat
+            : AppleAudioMode.voiceChat,
+      ));
+    } catch (e) {
+      debugPrint('setAppleAudioConfiguration failed: $e');
+    }
+  }
+
   // ───────── inbound signaling ─────────
 
   /// Called by [SignalingSubscriber] for every fresh inbound signal.
@@ -472,7 +536,10 @@ class CallService extends ChangeNotifier {
       }
       if (_session != null) {
         // Already in a call — auto-reject as busy. The reject mutation
-        // will broadcast `taken` so the caller learns immediately.
+        // will broadcast `taken` so the caller learns immediately. The
+        // `taken` push excludes THIS device (it's the rejecting one), so
+        // dismiss the second call's native card ourselves — targeted, so
+        // the active call's native session survives.
         try {
           await api.rejectCall(
             callId: callId,
@@ -480,6 +547,7 @@ class CallService extends ChangeNotifier {
             acceptingDeviceId: _deviceId,
           );
         } catch (_) {}
+        unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
         return;
       }
       _onRemoteInvite(
@@ -536,7 +604,8 @@ class CallService extends ChangeNotifier {
       final s = _session;
       if (s != null && s.callId != callId) {
         // Some other call's offer landed while we're already on this one —
-        // busy-reject without disturbing our session.
+        // busy-reject without disturbing our session (targeted native
+        // dismiss for the same reason as the invite busy branch).
         try {
           await api.rejectCall(
             callId: callId,
@@ -544,6 +613,7 @@ class CallService extends ChangeNotifier {
             acceptingDeviceId: _deviceId,
           );
         } catch (_) {}
+        unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
         return;
       }
       await _onRemoteOffer(callId: callId, fromUserId: fromUserId, payload: payload);
@@ -592,6 +662,8 @@ class CallService extends ChangeNotifier {
       final callerName = (parsed['callerName'] as String?) ?? 'Calling…';
       final type = parsed['type'] as String?;
       final roomId = (parsed['roomId'] as String?) ?? '';
+      final avatarStorageId = parsed['callerAvatarStorageId'] as String?;
+      final avatarUrl = parsed['callerAvatarUrl'] as String?;
       final mediaKind = CallMediaKindWire.parse(type);
 
       _session = CallSession(
@@ -599,14 +671,26 @@ class CallService extends ChangeNotifier {
         roomId: roomId,
         peerUserId: fromUserId,
         peerName: callerName,
+        peerAvatarStorageId: avatarStorageId,
         mediaKind: mediaKind,
         isCaller: false,
         status: CallStatus.incomingRinging,
         startedAt: DateTime.now(),
         localVideoOff: mediaKind != CallMediaKind.video,
+        speakerOn: mediaKind == CallMediaKind.video,
       );
       notifyListeners();
       incomingTick.value = incomingTick.value + 1;
+      // Android foreground: FCM's service only rings for background/killed,
+      // so surface the native full-screen ringer from here (WhatsApp model
+      // — the receiver never sees an in-app ringer). No-op on iOS (PushKit
+      // shows CallKit) and deduped against an existing card for this call.
+      unawaited(NativeCallHandler.instance.showIncoming(
+        callId: callId,
+        callerName: callerName,
+        kind: mediaKind,
+        avatarUrl: avatarUrl,
+      ));
       debugPrint(
         'CallService._onRemoteInvite: opened incoming UI '
         'callId=$callId kind=${mediaKind.wire}',
@@ -696,6 +780,7 @@ class CallService extends ChangeNotifier {
       status: CallStatus.switching,
       startedAt: DateTime.now(),
       localVideoOff: mediaKind != CallMediaKind.video,
+      speakerOn: mediaKind == CallMediaKind.video,
     );
     notifyListeners();
 
@@ -909,12 +994,13 @@ class CallService extends ChangeNotifier {
           callId: callId,
           roomId: '', // not strictly needed for callee UI
           peerUserId: fromUserId,
-          peerName: 'Calling…', // overwritten by IncomingCallScreen via profile lookup
+          peerName: 'Calling…', // enriched via _CallOverlay profile lookup
           mediaKind: mediaKind,
           isCaller: false,
           status: CallStatus.incomingRinging,
           startedAt: DateTime.now(),
           localVideoOff: !isVideo,
+          speakerOn: isVideo,
         );
         notifyListeners();
         incomingTick.value = incomingTick.value + 1;
@@ -964,6 +1050,15 @@ class CallService extends ChangeNotifier {
   Future<void> _onRemoteIce(String payload) async {
     try {
       final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final raw = parsed['candidate'] as String? ?? '';
+      // Drop the peer's LAN candidates (typ host, incl. mDNS-obfuscated
+      // `.local` ones from older clients) — adding them would make our
+      // WebRTC run local-network connectivity checks, which is exactly
+      // what triggers iOS's Local Network permission prompt.
+      if (RegExp(r'\btyp\s+host\b').hasMatch(raw) || raw.contains('.local')) {
+        debugPrint('CallService._onRemoteIce: dropping remote host candidate');
+        return;
+      }
       final cand = RTCIceCandidate(
         parsed['candidate'] as String?,
         parsed['sdpMid'] as String?,
@@ -1035,43 +1130,68 @@ class CallService extends ChangeNotifier {
 
   // ───────── helpers ─────────
 
-  /// Updates [peerName] on the active incoming session — used by the
-  /// IncomingCallScreen once it resolves the caller's display name from the
-  /// repo cache.
-  void updatePeerDisplayName(String peerName) {
+  /// Patch the peer's display identity on the live session — called once
+  /// the profile (name + avatar) resolves, e.g. `_CallOverlay`'s
+  /// getProfile enrichment. Safe no-op when nothing changed.
+  void updatePeerIdentity({String? peerName, String? avatarStorageId}) {
     final s = _session;
     if (s == null) return;
-    _session = CallSession(
-      callId: s.callId,
-      roomId: s.roomId,
-      peerUserId: s.peerUserId,
+    final sameName = peerName == null || peerName == s.peerName;
+    final sameAvatar =
+        avatarStorageId == null || avatarStorageId == s.peerAvatarStorageId;
+    if (sameName && sameAvatar) return;
+    _session = s.copyWith(
       peerName: peerName,
-      mediaKind: s.mediaKind,
-      isCaller: s.isCaller,
-      status: s.status,
-      peerState: s.peerState,
-      localMuted: s.localMuted,
-      localVideoOff: s.localVideoOff,
-      speakerOn: s.speakerOn,
-      startedAt: s.startedAt,
-      connectedAt: s.connectedAt,
-      errorMessage: s.errorMessage,
+      peerAvatarStorageId: avatarStorageId,
     );
     notifyListeners();
   }
 
   Future<RTCPeerConnection> _createPeerConnection() async {
     final servers = await _iceServers();
+    // iOS shows the Local Network permission prompt the moment WebRTC runs
+    // connectivity checks against host (LAN) candidates. We avoid host
+    // candidates entirely:
+    //   - TURN configured → relay-only policy (no host gathering at all;
+    //     media relays through our TURN server; cross-network calls are
+    //     unaffected since they'd use srflx/relay anyway).
+    //   - STUN-only deployment → keep policy 'all' but filter host
+    //     candidates out of both directions (srflx paths still work,
+    //     including NAT hairpinning for same-network devices).
+    final hasTurn = servers.any((s) {
+      final u = s['urls'];
+      final list = u is List ? u : [u];
+      return list.any((x) {
+        final url = x.toString();
+        return url.startsWith('turn:') || url.startsWith('turns:');
+      });
+    });
+    if (!hasTurn) {
+      debugPrint(
+        'CallService: TURN not configured — filtering host candidates; '
+        'devices behind symmetric NATs may fail to connect (srflx only). '
+        'Deploy TURN (backend/turn/README.md) for production.',
+      );
+    }
     final config = {
       'iceServers': servers,
       'sdpSemantics': 'unified-plan',
+      if (hasTurn) 'iceTransportPolicy': 'relay',
     };
     final pc = await createPeerConnection(config, {});
 
     pc.onIceCandidate = (cand) async {
       if (cand.candidate == null) return;
-      final s = _session;
       final typ = _candidateType(cand.candidate);
+      // Never ship host candidates — the peer probing our LAN address is
+      // what triggers iOS's Local Network prompt on THEIR side (and ours
+      // when we probe theirs). Relay policy already suppresses these; this
+      // filter covers the STUN-only path.
+      if (typ == 'host') {
+        debugPrint('CallService.onIceCandidate: dropping host candidate');
+        return;
+      }
+      final s = _session;
       // Defensive buffer: if a candidate fires before _session is set
       // (shouldn't happen with current ordering, but guards future regressions),
       // park it and flush when the session arrives.
@@ -1113,8 +1233,11 @@ class CallService extends ChangeNotifier {
         );
         notifyListeners();
         unawaited(NativeCallHandler.instance.markConnected(s.callId));
-        // Re-assert the output route now the iOS audio session is live.
+        // Re-assert the output route now the iOS audio session is live,
+        // and re-prime the mic in case its unit started before the
+        // CallKit session activated (silent-capture race).
         unawaited(_applyAudioRoute(speaker: s.speakerOn));
+        _reprimeLocalAudio();
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
       } else if (state ==
@@ -1138,6 +1261,8 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
+    // Classify the audio session before getUserMedia starts the mic unit.
+    await _applyIosAudioConfig(kind);
     final constraints = <String, dynamic>{
       'audio': true,
       if (kind == CallMediaKind.video)

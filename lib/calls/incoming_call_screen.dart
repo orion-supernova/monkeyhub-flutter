@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../backend/chat_api.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'call_screen.dart';
 import 'call_service.dart';
 
 /// Full-screen UI shown when an incoming call arrives. Tap accept → spins up
 /// media + answer, replaces self with [CallScreen]. Tap reject → tears down.
+///
+/// Phones ring via the NATIVE UI (CallKit / ConnectionService) instead —
+/// this screen only shows on platforms without one (iOS simulator,
+/// desktop). See `_CallOverlay._nativeRinger`.
 class IncomingCallScreen extends StatefulWidget {
-  const IncomingCallScreen({super.key, required this.service});
+  const IncomingCallScreen({super.key, required this.service, this.api});
   final CallService service;
+  final ChatApi? api;
 
   @override
   State<IncomingCallScreen> createState() => _IncomingCallScreenState();
@@ -53,7 +61,10 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     if (s.status == CallStatus.connecting || s.status == CallStatus.active) {
       // We've accepted — swap to the active call screen.
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => CallScreen(service: widget.service)),
+        MaterialPageRoute(
+          builder: (_) =>
+              CallScreen(service: widget.service, api: widget.api),
+        ),
       );
     }
     setState(() {});
@@ -105,22 +116,38 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             child: Column(
               children: [
                 const SizedBox(height: 48),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      s?.mediaKind == CallMediaKind.video
-                          ? Icons.videocam
-                          : Icons.call,
-                      size: 14,
-                      color: Colors.white70,
+                // Call-type pill — the voice/video distinction must be
+                // unmissable, not a faint caption.
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      kindLabel,
-                      style: theme.monoTiny.copyWith(color: Colors.white70),
-                    ),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        s?.mediaKind == CallMediaKind.video
+                            ? Icons.videocam
+                            : Icons.call,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        kindLabel.toUpperCase(),
+                        style: theme.label.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
                 AnimatedBuilder(
@@ -134,7 +161,6 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                     height: 150,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.08),
                       border: Border.all(
                         color: Colors.white.withValues(alpha: 0.25),
                         width: 1,
@@ -147,14 +173,18 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        name.isNotEmpty
-                            ? name.characters.first.toUpperCase()
-                            : '?',
-                        style: theme.displayHero
-                            .copyWith(color: Colors.white, fontSize: 56),
+                    // Real avatar photo when known; per-user gradient +
+                    // initial otherwise.
+                    child: UserAvatar(
+                      user: ChatUser(
+                        id: s?.peerUserId ?? '',
+                        username: '',
+                        name: name,
+                        avatarStorageId: s?.peerAvatarStorageId,
                       ),
+                      api: widget.api,
+                      size: 148,
+                      showStatus: false,
                     ),
                   ),
                 ),
@@ -181,7 +211,11 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         onTap: _reject,
                       ),
                       _RingButton(
-                        icon: Icons.call,
+                        // Video calls accept with the camera glyph so the
+                        // user knows what they're walking into.
+                        icon: s?.mediaKind == CallMediaKind.video
+                            ? Icons.videocam
+                            : Icons.call,
                         background: theme.success,
                         label: _pending == _RingAction.accept
                             ? 'connecting…'

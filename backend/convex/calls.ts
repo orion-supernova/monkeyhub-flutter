@@ -155,6 +155,13 @@ export const initiate = mutation({
 
     const caller = await ctx.db.get(callerId);
     const callerName = caller?.name ?? caller?.username ?? "Someone";
+    // Caller identity for the callee's ringer UIs. The storage id feeds the
+    // in-app screens (RemoteImage); the resolved URL feeds Android's native
+    // full-screen ringer, which can only load plain image URLs.
+    const callerAvatarStorageId = caller?.avatarStorageId?.toString() ?? null;
+    const callerAvatarUrl = caller?.avatarStorageId
+      ? await ctx.storage.getUrl(caller.avatarStorageId)
+      : null;
 
     const callId = await ctx.db.insert("calls", {
       callerId,
@@ -180,6 +187,8 @@ export const initiate = mutation({
         callerName,
         type,
         roomId: roomId.toString(),
+        callerAvatarStorageId,
+        callerAvatarUrl,
       }),
       createdAt: Date.now(),
       consumed: false,
@@ -226,6 +235,7 @@ export const initiate = mutation({
       calleeId,
       callerId,
       callerName,
+      callerAvatarUrl,
       type,
       roomId,
     });

@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 import 'dart:math';
 
@@ -49,6 +50,11 @@ class NativeCallHandler {
   // simulator and `.../var/containers/Bundle/Application/...` on real
   // hardware, so the path substring is reliable.
   late final bool _isIosSimulator = _detectIosSimulator();
+
+  /// Whether this device rings via the in-app fallback screen instead of
+  /// CallKit (simulator CallKit is unreliable — see _detectIosSimulator).
+  /// Read by `_CallOverlay` to decide whether IncomingCallScreen may show.
+  bool get isIosSimulator => _isIosSimulator;
 
   static bool _detectIosSimulator() {
     if (!Platform.isIOS) return false;
@@ -122,7 +128,27 @@ class NativeCallHandler {
         }
         break;
       case Event.actionCallDecline:
-        if (service.session != null) {
+        final declinedCallId = _callIdFromEvent(event.body);
+        final current = service.session;
+        if (current != null &&
+            declinedCallId != null &&
+            declinedCallId != current.callId) {
+          // Declining a SECOND incoming card while another call is live
+          // (busy scenario) — reject that call on the backend only; the
+          // active call's session and native UI must stay untouched.
+          final me = service.userId;
+          if (me != null) {
+            try {
+              await service.api.rejectCall(
+                callId: declinedCallId,
+                userId: me,
+                acceptingDeviceId: service.deviceId,
+              );
+            } catch (_) {}
+          }
+          break;
+        }
+        if (current != null) {
           await service.reject();
         } else {
           // Ghost card: no Dart session to reject through — service.reject()
@@ -153,6 +179,16 @@ class NativeCallHandler {
         break;
       case Event.actionCallToggleMute:
         await service.toggleMute();
+        break;
+      case Event.actionCallToggleAudioSession:
+        // CallKit activated/deactivated the AVAudioSession. On activation
+        // the callkit plugin re-runs its own audio-session config which
+        // clobbers our route, and the WebRTC mic unit may have started too
+        // early to capture — CallService re-asserts both.
+        final body = event.body;
+        if (body is Map && body['isActivate'] == true) {
+          unawaited(service.onNativeAudioSessionActivated());
+        }
         break;
       case Event.actionCallToggleHold:
         // Not implemented — we don't expose hold yet.
@@ -354,12 +390,55 @@ class NativeCallHandler {
       nameCaller: peerName,
       handle: peerName,
       type: kind == CallMediaKind.video ? 1 : 0,
-      ios: const IOSParams(handleType: 'generic'),
+      extra: {'callId': callId},
+      ios: IOSParams(
+        handleType: 'generic',
+        supportsVideo: kind == CallMediaKind.video,
+        // Proper session mode instead of the plugin's `.default`: enables
+        // call-grade processing and biases video calls to the speaker.
+        audioSessionMode:
+            kind == CallMediaKind.video ? 'videoChat' : 'voiceChat',
+      ),
     );
     try {
       await FlutterCallkitIncoming.startCall(params);
     } catch (e) {
       debugPrint('NativeCallHandler.showOutgoing failed: $e');
+    }
+  }
+
+  /// Show the native incoming ringer from Dart — Android foreground path.
+  /// (iOS foreground gets the CallKit ring from the VoIP push; Android's
+  /// FCM service only shows the UI for background/killed, so a foreground
+  /// invite would otherwise fall back to the in-app screen the WhatsApp
+  /// model avoids.) Dedupes against a card CallFcmService may already
+  /// have shown for the same call.
+  Future<void> showIncoming({
+    required String callId,
+    required String callerName,
+    required CallMediaKind kind,
+    String? avatarUrl,
+  }) async {
+    if (!Platform.isAndroid) return;
+    try {
+      final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+      final already = active.any((c) =>
+          c is Map &&
+          ((c['extra'] as Map?)?['callId']?.toString() == callId));
+      if (already) return;
+      await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
+        id: _uuidFor(callId),
+        nameCaller: callerName,
+        appName: 'MonkeyHub',
+        avatar: avatarUrl,
+        handle: callerName,
+        type: kind == CallMediaKind.video ? 1 : 0,
+        duration: 60000,
+        extra: {'callId': callId},
+        android: const AndroidParams(isShowFullLockedScreen: true),
+      ));
+    } catch (e) {
+      debugPrint('NativeCallHandler.showIncoming failed: $e');
     }
   }
 
@@ -378,6 +457,29 @@ class NativeCallHandler {
       debugPrint('NativeCallHandler.endNative failed: $e');
     }
     await _endIosFallbackCalls();
+  }
+
+  /// End ONLY the native card whose `extra.callId` matches — safe while a
+  /// different call is live on this device (busy scenario: dismissing the
+  /// second card must not kill the active call's native session, which
+  /// endAllCalls would).
+  Future<void> endNativeByCallId(String callId) async {
+    if (_isIosSimulator) return;
+    _uuidByCallId.remove(callId);
+    try {
+      final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+      for (final c in active) {
+        if (c is Map &&
+            ((c['extra'] as Map?)?['callId']?.toString() == callId)) {
+          final uuid = c['id']?.toString();
+          if (uuid != null && uuid.isNotEmpty) {
+            await FlutterCallkitIncoming.endCall(uuid);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('NativeCallHandler.endNativeByCallId failed: $e');
+    }
   }
 
   /// [endNative] without a callId — for clearing ghost/stale cards where

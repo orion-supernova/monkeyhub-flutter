@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/family.dart';
@@ -16,10 +18,45 @@ class SessionStore {
   static const _kAccountType = 'mh.accountType';
   static const _kChildDevice = 'mh.isChildDevice';
 
+  // `first_unlock_this_device`, NOT `unlocked`: a VoIP push can cold-start
+  // the app while the phone is LOCKED, and the session must be readable
+  // then or an answered call can never connect (CallService never attaches
+  // without a restored userId). first_unlock keeps items readable from the
+  // first unlock after boot onward, locked or not — same accessibility
+  // class WhatsApp-tier VoIP apps use.
   final _storage = const FlutterSecureStorage(
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
+  // Pre-existing installs wrote their items under `unlocked`; those may be
+  // invisible to reads issued with the new accessibility attribute. Reads
+  // fall back to this legacy instance and migrate hits forward.
+  static const _legacyStorage = FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
+
+  /// Read [key], falling back to (and migrating from) the legacy
+  /// `unlocked`-accessibility item on iOS. The migration write re-stamps
+  /// the item with the new accessibility class, so it becomes readable on
+  /// locked-phone launches from then on.
+  Future<String?> _read(String key) async {
+    final value = await _storage.read(key: key);
+    if (value != null) return value;
+    if (!Platform.isIOS) return null;
+    try {
+      final legacy = await _legacyStorage.read(key: key);
+      if (legacy != null) {
+        await _storage.write(key: key, value: legacy);
+      }
+      return legacy;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Sticky marker that this handset belongs to a child.
   ///
@@ -51,12 +88,12 @@ class SessionStore {
   Future<Session?> loadSession() async {
     // Read the marker first — the login screen needs it even when there is
     // no session left to restore.
-    _isChildDevice = (await _storage.read(key: _kChildDevice)) == 'true';
-    final id = await _storage.read(key: _kUserId);
+    _isChildDevice = (await _read(_kChildDevice)) == 'true';
+    final id = await _read(_kUserId);
     if (id == null || id.isEmpty) return null;
-    final username = await _storage.read(key: _kUsername) ?? '';
-    final name = await _storage.read(key: _kName) ?? username;
-    final type = AccountTypeWire.parse(await _storage.read(key: _kAccountType));
+    final username = await _read(_kUsername) ?? '';
+    final name = await _read(_kName) ?? username;
+    final type = AccountTypeWire.parse(await _read(_kAccountType));
     if (type == AccountType.child) _isChildDevice = true;
     return Session(
       userId: id,
@@ -90,7 +127,7 @@ class SessionStore {
   Future<void> saveThemeId(String id) async =>
       _storage.write(key: _kThemeId, value: id);
 
-  Future<String?> loadThemeId() async => _storage.read(key: _kThemeId);
+  Future<String?> loadThemeId() async => _read(_kThemeId);
 }
 
 class Session {

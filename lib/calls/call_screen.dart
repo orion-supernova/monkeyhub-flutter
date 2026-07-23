@@ -5,15 +5,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
+import '../backend/chat_api.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'call_service.dart';
 
 /// Full-screen UI for the active call. Listens to [CallService] and pops
 /// itself once the session transitions to a terminal state.
 class CallScreen extends StatefulWidget {
-  const CallScreen({super.key, required this.service});
+  const CallScreen({super.key, required this.service, this.api});
   final CallService service;
+
+  /// Used to load the peer's avatar image; falls back to the per-user
+  /// gradient + initial when absent.
+  final ChatApi? api;
 
   @override
   State<CallScreen> createState() => _CallScreenState();
@@ -106,14 +113,20 @@ class _CallScreenState extends State<CallScreen> {
     super.dispose();
   }
 
+  /// "Video call" / "Voice call" — prefixed to pre-active statuses so the
+  /// two call kinds are never ambiguous (the active state shows the timer
+  /// alone, WhatsApp-style).
+  String _kindLabel(CallSession s) =>
+      s.mediaKind == CallMediaKind.video ? 'Video call' : 'Voice call';
+
   String _statusLabel(CallSession s) {
     switch (s.status) {
       case CallStatus.outgoingRinging:
-        return 'ringing…';
+        return '${_kindLabel(s)} · ringing…';
       case CallStatus.incomingRinging:
-        return 'incoming';
+        return '${_kindLabel(s)} · incoming';
       case CallStatus.connecting:
-        return 'connecting…';
+        return '${_kindLabel(s)} · connecting…';
       case CallStatus.active:
         final start = s.connectedAt ?? s.startedAt;
         if (start == null) return 'connected';
@@ -134,6 +147,15 @@ class _CallScreenState extends State<CallScreen> {
     }
   }
 
+  /// The peer as a [ChatUser] so avatar widgets can render a real photo
+  /// (via api + storage id) with the per-user gradient fallback.
+  ChatUser _peerAsUser(CallSession s) => ChatUser(
+        id: s.peerUserId,
+        username: '',
+        name: s.peerName,
+        avatarStorageId: s.peerAvatarStorageId,
+      );
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -148,6 +170,14 @@ class _CallScreenState extends State<CallScreen> {
     final remoteVisible = isVideo &&
         widget.service.remoteStream != null &&
         !s.peerState.videoOff;
+    // WhatsApp-style pre-answer/pre-connect view for video calls: your own
+    // camera fills the screen until the peer's video arrives (then the
+    // local view shrinks into the PiP tile).
+    final localFullscreen = isVideo &&
+        !remoteVisible &&
+        !s.localVideoOff &&
+        widget.service.localStream != null &&
+        _renderersReady;
 
     return PopScope(
       canPop: false,
@@ -156,23 +186,41 @@ class _CallScreenState extends State<CallScreen> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Remote video / audio avatar
+            // Remote video / local camera preview / audio avatar
             if (remoteVisible)
               RTCVideoView(
                 _remoteRenderer,
                 objectFit:
                     RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
               )
-            else
+            else if (localFullscreen) ...[
+              RTCVideoView(
+                _localRenderer,
+                mirror: true,
+                objectFit:
+                    RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+              ),
+              // Soft darkening so the overlaid name/status/controls read
+              // over any camera image.
+              IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.25),
+                  ),
+                ),
+              ),
+            ] else
               _AudioBackdrop(
                 name: s.peerName,
                 status: _statusLabel(s),
                 peerMuted: s.peerState.audioMuted,
                 theme: theme,
+                user: _peerAsUser(s),
+                api: widget.api,
               ),
 
-            // Top scrim so the name/status stay legible over remote video.
-            if (remoteVisible)
+            // Top scrim so the name/status stay legible over video.
+            if (remoteVisible || localFullscreen)
               Positioned(
                 top: 0,
                 left: 0,
@@ -194,8 +242,9 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
 
-            // Local PiP (video only)
-            if (isVideo && !s.localVideoOff)
+            // Local PiP — only once the remote video is on screen (before
+            // that the local camera IS the fullscreen view).
+            if (isVideo && !s.localVideoOff && remoteVisible)
               Positioned(
                 top: MediaQuery.of(context).padding.top + 16,
                 right: 16,
@@ -354,12 +403,16 @@ class _AudioBackdrop extends StatefulWidget {
     required this.name,
     required this.status,
     required this.theme,
+    required this.user,
+    this.api,
     this.peerMuted = false,
   });
   final String name;
   final String status;
   final bool peerMuted;
   final dynamic theme;
+  final ChatUser user;
+  final ChatApi? api;
 
   @override
   State<_AudioBackdrop> createState() => _AudioBackdropState();
@@ -382,9 +435,6 @@ class _AudioBackdropState extends State<_AudioBackdrop>
   Widget build(BuildContext context) {
     final theme = widget.theme;
     final accent = theme.accent as Color;
-    final initial = widget.name.isNotEmpty
-        ? widget.name.characters.first.toUpperCase()
-        : '?';
     return Container(
       decoration: BoxDecoration(
         // Soft ambient wash centered just behind the avatar; the focal glow
@@ -424,7 +474,6 @@ class _AudioBackdropState extends State<_AudioBackdrop>
                     width: 132,
                     height: 132,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                       border: Border.all(
                           color: Colors.white.withValues(alpha: 0.28),
@@ -437,11 +486,13 @@ class _AudioBackdropState extends State<_AudioBackdrop>
                         ),
                       ],
                     ),
-                    child: Center(
-                      child: Text(
-                        initial,
-                        style: theme.displayHero.copyWith(color: Colors.white),
-                      ),
+                    // Real avatar photo when available; per-user gradient +
+                    // initial otherwise (UserAvatar handles both).
+                    child: UserAvatar(
+                      user: widget.user,
+                      api: widget.api,
+                      size: 130,
+                      showStatus: false,
                     ),
                   ),
                 ),

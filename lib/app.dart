@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import 'auth/auth_service.dart';
@@ -295,7 +297,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                     ),
                   // Pushes call screens onto the root navigator the moment the
                   // call service transitions to a non-idle state. Invisible.
-                  _CallOverlay(service: _callService),
+                  _CallOverlay(service: _callService, api: _api),
                   // Sits above every other layer so it covers banners +
                   // overlays during a screen recording.
                   const CaptureShield(),
@@ -372,14 +374,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 /// itself. A single _CallOverlay lives inside the MaterialApp.builder so it
 /// can navigate above whatever screen the user is currently on.
 class _CallOverlay extends StatefulWidget {
-  const _CallOverlay({required this.service});
+  const _CallOverlay({required this.service, required this.api});
   final CallService service;
+  final ChatApi api;
   @override
   State<_CallOverlay> createState() => _CallOverlayState();
 }
 
 class _CallOverlayState extends State<_CallOverlay> {
   String? _activeCallId;
+  String? _enrichedCallId;
 
   @override
   void initState() {
@@ -393,45 +397,91 @@ class _CallOverlayState extends State<_CallOverlay> {
     super.dispose();
   }
 
+  /// Whether this platform rings via the NATIVE UI (CallKit /
+  /// ConnectionService). On these platforms the in-app IncomingCallScreen
+  /// must never appear — WhatsApp model: the OS ringer is the incoming UI,
+  /// the app UI appears only once the call is accepted. The in-app ringer
+  /// remains for platforms without a native ringer: iOS simulator and
+  /// desktop.
+  bool get _nativeRinger {
+    if (kIsWeb) return false;
+    final p = defaultTargetPlatform;
+    if (p == TargetPlatform.android) return true;
+    if (p == TargetPlatform.iOS) {
+      return !NativeCallHandler.instance.isIosSimulator;
+    }
+    return false;
+  }
+
   void _onChanged() {
     final s = widget.service.session;
     if (s == null) {
       _activeCallId = null;
+      _enrichedCallId = null;
       return;
     }
-    if (_activeCallId == s.callId) return; // already showing
     final terminal = s.status == CallStatus.ended ||
         s.status == CallStatus.failed ||
         s.status == CallStatus.handedOff;
     if (terminal) return;
+    _maybeEnrichPeerIdentity(s);
+    if (_activeCallId == s.callId) return; // already showing
+    // Routes from here:
+    //   - Outgoing caller → CallScreen (the live in-call UI).
+    //   - Callee, accepted via native CallKit → straight to CallScreen.
+    //   - Handoff "Move call here" tap → already past accept, status
+    //     is `switching` → CallScreen with brief switching indicator.
+    //   - Callee still ringing → the NATIVE ringer owns the UI on phones
+    //     (don't latch _activeCallId — a later accept must still route);
+    //     in-app IncomingCallScreen only on simulator/desktop.
+    final goCallScreen = s.isCaller ||
+        widget.service.acceptedNatively ||
+        s.status != CallStatus.incomingRinging;
+    if (!goCallScreen && _nativeRinger) return;
     _activeCallId = s.callId;
     // Defer to the next frame so we don't navigate during a build.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
-      // Routes from here:
-      //   - Outgoing caller → CallScreen (the live in-call UI).
-      //   - Callee, accepted via native CallKit → skip IncomingCallScreen
-      //     and go straight to CallScreen. Without this branch the user
-      //     sees a 1–3s flash of the in-app ringer between foregrounding
-      //     and the service transitioning to `connecting`.
-      //   - Handoff "Move call here" tap → already past accept, status
-      //     is `switching` → CallScreen with brief switching indicator.
-      //   - Callee, not yet accepted → IncomingCallScreen.
-      final goCallScreen = s.isCaller ||
-          widget.service.acceptedNatively ||
-          s.status == CallStatus.switching;
       if (goCallScreen) {
         nav.push(MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => CallScreen(service: widget.service),
+          builder: (_) => CallScreen(service: widget.service, api: widget.api),
         ));
       } else {
         nav.push(MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => IncomingCallScreen(service: widget.service),
+          builder: (_) =>
+              IncomingCallScreen(service: widget.service, api: widget.api),
         ));
       }
+    });
+  }
+
+  /// One profile lookup per call: fills in the real display name (the
+  /// offer-created path shows 'Calling…') and the avatar when the invite
+  /// payload didn't carry one (older backend, caller side).
+  void _maybeEnrichPeerIdentity(CallSession s) {
+    if (_enrichedCallId == s.callId) return;
+    final needsName = s.peerName.isEmpty || s.peerName == 'Calling…';
+    final needsAvatar = s.peerAvatarStorageId == null;
+    if (!needsName && !needsAvatar) {
+      _enrichedCallId = s.callId;
+      return;
+    }
+    _enrichedCallId = s.callId;
+    widget.api
+        .getProfile(s.peerUserId, viewerUserId: widget.service.userId)
+        .then((profile) {
+      if (profile == null) return;
+      final current = widget.service.session;
+      if (current == null || current.callId != s.callId) return;
+      widget.service.updatePeerIdentity(
+        peerName: needsName ? profile.name : null,
+        avatarStorageId: profile.avatarStorageId,
+      );
+    }).catchError((Object e) {
+      debugPrint('_CallOverlay: profile enrichment failed: $e');
     });
   }
 

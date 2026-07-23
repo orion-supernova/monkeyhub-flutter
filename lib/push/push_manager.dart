@@ -1,7 +1,9 @@
+import 'dart:async' show unawaited;
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding, AppLifecycleState;
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import '../backend/chat_api.dart';
@@ -144,8 +146,7 @@ class PushManager {
     if (_pushSupported && _initialized) {
       try {
         await OneSignal.login(userId);
-        // Good time to prompt for permission (user has actively signed in).
-        await OneSignal.Notifications.requestPermission(true);
+        await _maybeRequestNotificationPermission();
       } catch (e) {
         debugPrint('OneSignal login failed: $e');
       }
@@ -160,6 +161,27 @@ class PushManager {
       // active-call subscription can label this device in the pill,
       // even though there's no native push wake path.
       await _registerNoPushDevice();
+    }
+  }
+
+  /// Request the OS notification permission — but only when the app is
+  /// actually in the foreground. With the pre-warmed engine, login() also
+  /// runs during headless background launches (VoIP push cold start),
+  /// where prompting is impossible/undesirable; the next foreground resume
+  /// re-invokes this via [refreshTokens].
+  ///
+  /// `fallbackToSettings` is deliberately FALSE: passing true makes
+  /// OneSignal pop its own "notifications are off — go to Settings" alert,
+  /// which races the first-time OS prompt and appears even right after the
+  /// user tapped Allow. A Settings redirect belongs behind an explicit
+  /// re-enable button, never the first ask.
+  Future<void> _maybeRequestNotificationPermission() async {
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle != null && lifecycle != AppLifecycleState.resumed) return;
+    try {
+      await OneSignal.Notifications.requestPermission(false);
+    } catch (e) {
+      debugPrint('PushManager: requestPermission failed: $e');
     }
   }
 
@@ -230,6 +252,10 @@ class PushManager {
   /// a transient APNs error) is restored without waiting for a cold login.
   Future<void> refreshTokens() async {
     if (_userId == null || _deviceId == null) return;
+    // Covers the headless-login case: if the permission ask was skipped
+    // because the app wasn't foregrounded, retry it now (resume path).
+    // No-op once permission is determined — iOS shows the prompt only once.
+    unawaited(_maybeRequestNotificationPermission());
     if (Platform.isIOS) {
       try {
         final token = await _voipChannel.invokeMethod<String>('getToken') ??

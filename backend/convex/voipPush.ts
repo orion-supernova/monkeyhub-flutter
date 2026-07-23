@@ -67,6 +67,7 @@ export const sendVoip = internalAction({
     calleeId: v.id("users"),
     callerId: v.id("users"),
     callerName: v.string(),
+    callerAvatarUrl: v.optional(v.union(v.string(), v.null())),
     type: v.string(),
     roomId: v.id("rooms"),
   },
@@ -84,6 +85,9 @@ export const sendVoip = internalAction({
       callerId: args.callerId.toString(),
       callerName: args.callerName,
       callerHandle: args.callerName,
+      // Android's native full-screen ringer renders this URL as the
+      // caller avatar (plugin `avatar` field, wired in CallFcmService).
+      callerAvatarUrl: args.callerAvatarUrl ?? "",
       callType: args.type,
       roomId: args.roomId.toString(),
     };
