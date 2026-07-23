@@ -372,6 +372,9 @@ export default defineSchema({
   })
     .index("by_to_unconsumed", ["toUserId", "consumed", "createdAt"])
     .index("by_call", ["callId"])
+    // GC sweep: consumed rows older than the retention window, without a
+    // table scan (gcConsumedSignals in calls.ts).
+    .index("by_consumed", ["consumed", "createdAt"])
     // Account teardown: signals this user sent, and consumed ones addressed to
     // them (which by_to_unconsumed can't reach without scanning both values).
     .index("by_from", ["fromUserId"])

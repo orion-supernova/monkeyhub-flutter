@@ -1,10 +1,14 @@
 package com.walhallaa.chattest20241220
 
 import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
+import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -80,8 +84,17 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getToken" -> {
-                        // Firebase disabled — no FCM token available.
-                        result.success(null)
+                        FirebaseMessaging.getInstance().token
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    result.success(task.result)
+                                } else {
+                                    // Null (not an error) keeps Dart's
+                                    // refreshTokens() flow silent — same
+                                    // contract as a missing iOS PushKit token.
+                                    result.success(null)
+                                }
+                            }
                     }
                     else -> result.notImplemented()
                 }
@@ -102,6 +115,34 @@ class MainActivity : FlutterActivity() {
                         }
                         val name = if (!configured.isNullOrBlank()) configured else Build.MODEL
                         result.success(name)
+                    }
+                    // Battery-optimization exemption — OEM power managers
+                    // (Xiaomi/Samsung/Oppo…) defer or drop high-priority FCM
+                    // for optimized apps, which is fatal for call wakes.
+                    // Dart (AndroidCallReliability) checks + prompts once.
+                    "isIgnoringBatteryOptimizations" -> {
+                        val pm = getSystemService(POWER_SERVICE) as PowerManager
+                        result.success(pm.isIgnoringBatteryOptimizations(packageName))
+                    }
+                    "requestIgnoreBatteryOptimizations" -> {
+                        try {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                    Uri.parse("package:$packageName")
+                                )
+                            )
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            // Some OEM builds hide this screen; fall back to
+                            // the generic list so the user can still find us.
+                            try {
+                                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                                result.success(true)
+                            } catch (_: Throwable) {
+                                result.success(false)
+                            }
+                        }
                     }
                     else -> result.notImplemented()
                 }

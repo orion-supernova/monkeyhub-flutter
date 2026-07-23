@@ -24,6 +24,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
+  static const _kFullScreenIntentPrompted = 'mh.fullScreenIntentPrompted';
+  static const _kBatteryOptPrompted = 'mh.batteryOptPrompted';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -42,6 +44,8 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  bool _fullScreenIntentPrompted = false;
+  bool _batteryOptPrompted = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -64,6 +68,12 @@ class SettingsStore extends ChangeNotifier {
   /// Even when on, only contributors whose `seen` visibility allows it will
   /// surface; see [profile_visibility_screen] for the inbound warning.
   bool get viewReadReceipts => _viewReadReceipts;
+
+  /// One-time Android call-reliability prompts (full-screen-intent access and
+  /// battery-optimization exemption). Tracked so the user is asked exactly
+  /// once — both remain reachable from system settings if declined.
+  bool get fullScreenIntentPrompted => _fullScreenIntentPrompted;
+  bool get batteryOptPrompted => _batteryOptPrompted;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -117,6 +127,10 @@ class SettingsStore extends ChangeNotifier {
       _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
       final slu = await _storage.read(key: _kShowLinkUrls);
       _showLinkUrls = slu == 'true'; // default false
+      _fullScreenIntentPrompted =
+          await _storage.read(key: _kFullScreenIntentPrompted) == 'true';
+      _batteryOptPrompted =
+          await _storage.read(key: _kBatteryOptPrompted) == 'true';
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -199,6 +213,18 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> markFullScreenIntentPrompted() async {
+    if (_fullScreenIntentPrompted) return;
+    _fullScreenIntentPrompted = true;
+    await _storage.write(key: _kFullScreenIntentPrompted, value: 'true');
+  }
+
+  Future<void> markBatteryOptPrompted() async {
+    if (_batteryOptPrompted) return;
+    _batteryOptPrompted = true;
+    await _storage.write(key: _kBatteryOptPrompted, value: 'true');
   }
 
   Future<void> setManualLogoThemeId(String id) async {

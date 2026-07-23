@@ -185,15 +185,37 @@ export const initiate = mutation({
       consumed: false,
     });
 
-    // Fire push so the callee's app wakes if backgrounded.
-    await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
-      callId,
-      calleeId,
-      callerId,
-      callerName,
-      type,
-      roomId,
-    });
+    // OneSignal alert-push fallback — wakes the callee with a banner when no
+    // native wake path exists. Skipped when every push-capable device (iOS /
+    // Android phone) already has a native VoIP/FCM token: those devices get
+    // the real full-screen call UI from sendVoip below, and the extra banner
+    // would just double-notify with no way to dismiss it on cancel/timeout.
+    // Any tokenless phone (fresh install, token cleared after a bad-token
+    // reply) keeps the banner as its only wake.
+    const calleeDevices = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user", (q) => q.eq("userId", calleeId))
+      .collect();
+    const phones = calleeDevices.filter(
+      (d) => d.platform === "ios" || d.platform === "android",
+    );
+    const callee = await ctx.db.get(calleeId);
+    const allPhonesNative =
+      phones.length > 0
+        ? phones.every((d) => d.voipToken || d.fcmToken)
+        : // No per-device rows: legacy user-level tokens still get the direct
+          // push via _loadUserDevices' fallback row.
+          Boolean(callee?.voipToken || callee?.fcmToken);
+    if (!allPhonesNative) {
+      await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
+        callId,
+        calleeId,
+        callerId,
+        callerName,
+        type,
+        roomId,
+      });
+    }
 
     // Direct VoIP push (APNs PushKit + FCM data-only). This is what wakes a
     // *killed* app into the native CallKit / ConnectionService UI. Runs in
@@ -780,18 +802,13 @@ export const gcConsumedSignals = internalMutation({
   args: {},
   handler: async (ctx) => {
     const cutoff = Date.now() - CONSUMED_SIGNAL_RETENTION_MS;
-    // Convex doesn't expose a single index on (consumed, createdAt), but
-    // `by_to_unconsumed` lets us hit the consumed=true partition quickly
-    // by iterating all users' rows — for early-stage volumes that's fine.
-    // We collect old consumed rows by scanning callSignals filtered by
-    // consumed=true and createdAt < cutoff. Cap each run at 200 deletes.
+    // Index-backed: by_consumed = (consumed, createdAt) hits exactly the
+    // consumed=true partition older than the cutoff — no table scan.
+    // Cap each run at 200 deletes; the next tick picks up the rest.
     const rows = await ctx.db
       .query("callSignals")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("consumed"), true),
-          q.lt(q.field("createdAt"), cutoff),
-        ),
+      .withIndex("by_consumed", (q) =>
+        q.eq("consumed", true).lt("createdAt", cutoff),
       )
       .take(200);
     for (const r of rows) {

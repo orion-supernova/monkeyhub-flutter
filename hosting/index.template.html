@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!-- Template — deploy.sh replaces __APP_VERSION__ / __APK_SIZE__ / __UPDATED_AT__
+     and writes the result to hosting/public/index.html. Don't edit the copy in
+     public/, it is regenerated on every Android deploy. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MonkeyHub — Android</title>
+<meta name="description" content="Download MonkeyHub for Android">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --jungle: #0d1410;
+    --jungle-2: #131c16;
+    --banana: #ffc53d;
+    --banana-deep: #e8a20c;
+    --leaf: #2e4d38;
+    --ink: #f2efe6;
+    --ink-dim: #9aa694;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Atkinson Hyperlegible", sans-serif;
+    background:
+      radial-gradient(1100px 700px at 85% -10%, rgba(46,77,56,.55), transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, rgba(232,162,12,.12), transparent 55%),
+      var(--jungle);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    overflow-x: hidden;
+  }
+  /* grain so the dark doesn't band */
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  main { max-width: 460px; width: 100%; text-align: center; }
+  .mark {
+    font-size: 72px; line-height: 1; display: inline-block;
+    filter: drop-shadow(0 12px 28px rgba(0,0,0,.5));
+    animation: drop .7s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  h1 {
+    font-family: "Fredoka", sans-serif; font-weight: 600;
+    font-size: clamp(2.2rem, 8vw, 3rem); letter-spacing: .5px;
+    margin-top: 14px; animation: rise .55s .12s ease-out both;
+  }
+  h1 .hub { color: var(--banana); }
+  .tag { color: var(--ink-dim); margin-top: 6px; animation: rise .55s .2s ease-out both; }
+  .card {
+    margin-top: 34px; padding: 28px 24px 24px;
+    background: linear-gradient(180deg, var(--jungle-2), rgba(19,28,22,.6));
+    border: 1px solid rgba(242,239,230,.08);
+    border-radius: 22px;
+    animation: rise .55s .3s ease-out both;
+  }
+  .ver {
+    display: inline-flex; gap: 8px; align-items: baseline;
+    font-family: "Fredoka", sans-serif; font-weight: 500;
+    background: rgba(255,197,61,.1); color: var(--banana);
+    border: 1px solid rgba(255,197,61,.25);
+    padding: 4px 14px; border-radius: 999px; font-size: .95rem;
+  }
+  .btn {
+    display: block; margin: 22px auto 0; max-width: 320px;
+    font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 1.25rem;
+    color: #201500; text-decoration: none;
+    background: linear-gradient(180deg, var(--banana), var(--banana-deep));
+    padding: 16px 20px; border-radius: 16px;
+    box-shadow: 0 10px 24px rgba(232,162,12,.28), inset 0 1px 0 rgba(255,255,255,.35);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 16px 32px rgba(232,162,12,.36), inset 0 1px 0 rgba(255,255,255,.35); }
+  .btn:active { transform: translateY(0); }
+  .meta { margin-top: 12px; color: var(--ink-dim); font-size: .9rem; }
+  .hint {
+    margin-top: 26px; text-align: left; color: var(--ink-dim); font-size: .92rem;
+    background: rgba(46,77,56,.18); border-left: 3px solid var(--leaf);
+    padding: 12px 14px; border-radius: 0 12px 12px 0;
+    animation: rise .55s .4s ease-out both;
+  }
+  .hint b { color: var(--ink); }
+  footer { margin-top: 30px; color: var(--ink-dim); font-size: .85rem; animation: rise .55s .5s ease-out both; }
+  @keyframes drop { from { transform: translateY(-40px) scale(.8); opacity: 0; } }
+  @keyframes rise { from { transform: translateY(14px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <span class="mark" aria-hidden="true">🐵</span>
+  <h1>Monkey<span class="hub">Hub</span></h1>
+  <p class="tag">Family chat &amp; calls — without the zoo.</p>
+
+  <div class="card">
+    <span class="ver">v__APP_VERSION__</span>
+    <a class="btn" href="monkeyhub-latest.apk" download>Download for Android</a>
+    <p class="meta">APK · __APK_SIZE__ · updated __UPDATED_AT__</p>
+  </div>
+
+  <p class="hint"><b>Installing:</b> your phone will ask you to allow installs
+  from your browser the first time — tap <b>Settings&nbsp;→&nbsp;Allow</b>,
+  then open the file again. Updates install right over the old version.</p>
+
+  <footer>iPhone? MonkeyHub ships through TestFlight / the App&nbsp;Store.</footer>
+</main>
+</body>
+</html>

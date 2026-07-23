@@ -46,6 +46,19 @@ target 'Runner' do
   end
 end
 
+# OneSignal Notification Service Extension — gives iOS alert pushes confirmed
+# delivery, reliable badge increments, and rich media. The Xcode target must
+# be created first (File → New → Target → Notification Service Extension,
+# named exactly 'OneSignalNotificationServiceExtension'); this block
+# self-activates once it exists so `pod install` stays green until then.
+# Full steps: NOTIFICATION_SETUP.md at the repo root.
+if File.read(File.expand_path('Runner.xcodeproj/project.pbxproj', __dir__)).include?('OneSignalNotificationServiceExtension')
+  target 'OneSignalNotificationServiceExtension' do
+    use_frameworks!
+    pod 'OneSignalXCFramework', '5.5.1', :subspecs => ['OneSignalExtension']
+  end
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)

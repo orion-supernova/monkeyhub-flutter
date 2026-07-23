@@ -154,12 +154,43 @@ type DeviceRow =
       fcmToken?: string;
     };
 
+// Re-attempts a single device after a transient APNs/FCM failure (429/5xx).
+// Scheduled once from pushToDevice with isRetry=true so it can't loop; ~2s
+// keeps the second attempt well inside the 60s ring window.
+export const retryPushToDevice = internalAction({
+  args: {
+    userId: v.id("users"),
+    device: v.any(),
+    payload: v.any(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { userId, device, payload }) => {
+    await pushToDevice(ctx, userId, device as DeviceRow, payload, {
+      isRetry: true,
+    });
+  },
+});
+
+const TRANSIENT_RETRY_DELAY_MS = 2000;
+
 async function pushToDevice(
   ctx: any,
   userId: Id<"users">,
   d: DeviceRow,
   payload: Record<string, unknown>,
+  opts: { isRetry?: boolean } = {},
 ): Promise<void> {
+  // One retry per device per push; scheduled at most once from below.
+  let scheduledRetry = false;
+  const scheduleRetry = async () => {
+    if (opts.isRetry || scheduledRetry) return;
+    scheduledRetry = true;
+    await ctx.scheduler.runAfter(
+      TRANSIENT_RETRY_DELAY_MS,
+      internal.voipPush.retryPushToDevice,
+      { userId, device: d, payload },
+    );
+  };
   // Skip simulator rows for APNs (PushKit doesn't reach simulators); the
   // realtime subscription path covers them.
   if (d.voipToken && d.platform !== "ios-simulator") {
@@ -197,8 +228,12 @@ async function pushToDevice(
         console.error(
           `CALL_PUSH_MISCONFIG: APNs cannot send — fix deployment env. ${msg}`,
         );
+      } else if (msg.startsWith("APNS_TRANSIENT")) {
+        // APNs blip (429/5xx): keep the token and try this device once more
+        // in ~2s — a ring is time-critical, "next call" is too late.
+        await scheduleRetry();
       }
-      // APNS_TRANSIENT and any other error: keep the token, retry next call.
+      // Any other error: keep the token, retry next call.
     }
   }
   if (d.fcmToken) {
@@ -229,8 +264,11 @@ async function pushToDevice(
         console.error(
           `CALL_PUSH_MISCONFIG: FCM cannot send — fix deployment env. ${msg}`,
         );
+      } else if (msg.startsWith("FCM_TRANSIENT")) {
+        // FCM blip (429/5xx): same single in-ring-window retry as APNs.
+        await scheduleRetry();
       }
-      // FCM_TRANSIENT and any other error: keep the token, retry next call.
+      // Any other error: keep the token, retry next call.
     }
   }
 }
@@ -248,13 +286,16 @@ async function sendApnsVoip(
   const keyP8 = process.env.APNS_KEY_P8;
   // Per-token environment wins (a sandbox token only works against the
   // sandbox host and vice-versa). Falls back to the APNS_SANDBOX env for
-  // legacy rows registered before apnsEnv existed.
+  // legacy rows registered before apnsEnv existed — defaulting to PRODUCTION
+  // when the env var is absent, since that's where real users' tokens live
+  // (a sandbox default would silently 400 every production token and get it
+  // cleared by the dead-token sweep).
   const sandbox =
     apnsEnv === "production"
       ? false
       : apnsEnv === "sandbox"
         ? true
-        : (process.env.APNS_SANDBOX ?? "true") === "true";
+        : (process.env.APNS_SANDBOX ?? "false") === "true";
   if (!keyId || !teamId || !bundleId || !keyP8) {
     throw new Error(
       "APNS_MISCONFIG: missing APNS_KEY_ID / APNS_TEAM_ID / APNS_BUNDLE_ID / APNS_KEY_P8",

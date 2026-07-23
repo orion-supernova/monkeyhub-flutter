@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "691782206017",
+    "project_id": "monkeyhub-2b2c6",
+    "storage_bucket": "monkeyhub-2b2c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:691782206017:android:5172d313c12d6273663cc0",
+        "android_client_info": {
+          "package_name": "com.walhallaa.chattest20241220"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACKq2JwFCP2Fv114z_bCX8BijPoDJ9CKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

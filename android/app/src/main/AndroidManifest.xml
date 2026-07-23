@@ -14,6 +14,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Lets the app open the "ignore battery optimizations" system prompt so
+         OEM power managers (Xiaomi/Samsung/Oppo…) don't defer the high-priority
+         FCM call wake. Requested once post-login; see AndroidCallReliability. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:label="MonkeyHub"
@@ -38,6 +42,19 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- Receives the backend's data-only call pushes (voipPush.ts) and
+             shows/dismisses the flutter_callkit_incoming full-screen call UI —
+             the Android mirror of the iOS PushKit handler in AppDelegate.swift.
+             OneSignal's own pushes bypass this service (it filters them in its
+             high-priority FCMBroadcastReceiver). -->
+        <service
+            android:name=".CallFcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- Alternate launcher icons. Each <activity-alias> corresponds to one
              theme's brand mark. Names match the alt-icon names passed to

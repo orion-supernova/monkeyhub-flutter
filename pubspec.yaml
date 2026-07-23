@@ -49,7 +49,10 @@ dependencies:
   # Native call UI: iOS CallKit + Android Telecom/ConnectionService. Lets the
   # OS ring a full-screen incoming-call experience even when the app is
   # backgrounded or killed (when paired with a VoIP push wake-up).
-  flutter_callkit_incoming: ^2.5.0
+  # PINNED: AppDelegate.swift (saveEndCall reason codes) and CallFcmService.kt
+  # (FlutterCallkitIncomingPlugin.getInstance / showIncomingNotification) call
+  # plugin internals — re-verify both before any bump.
+  flutter_callkit_incoming: 2.5.8
 
   # FCM for Android VoIP-style data pushes is wired natively in MainActivity.kt
   # via the `monkeyhub/fcm` method channel — no Flutter Firebase plugin needed

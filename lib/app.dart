@@ -9,6 +9,7 @@ import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
 import 'calls/call_service.dart';
 import 'calls/incoming_call_screen.dart';
+import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
@@ -16,6 +17,7 @@ import 'family/family_service.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'privacy/capture_protection.dart';
+import 'push/android_call_reliability.dart';
 import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
 import 'push/push_manager.dart';
@@ -190,11 +192,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             deviceId: deviceId,
           );
           await _signaling.start(s.userId, deviceId: deviceId);
+          // A call accepted from the native UI while the app was dead lands
+          // here (Android): the plugin persisted the accept; replay it now
+          // that CallService + signaling are live.
+          await NativeCallHandler.instance.replayColdStartCalls();
         } catch (_) {/* offline boot — reconcile on reconnect */}
       }
     } catch (_) {/* secure storage may not be available in test harness */}
     if (mounted) setState(() => _bootstrapped = true);
     _consumePendingPushRoom();
+    // One-time Android prompts (full-screen intent, battery exemption).
+    // After the first frame so the dialogs have a mounted navigator.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_auth.session != null) AndroidCallReliability.instance.ensure();
+    });
   }
 
   void _onAuthChange() async {
@@ -214,7 +225,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           deviceId: deviceId,
         );
         await _signaling.start(s.userId, deviceId: deviceId);
+        await NativeCallHandler.instance.replayColdStartCalls();
         _consumePendingPushRoom();
+        AndroidCallReliability.instance.ensure();
       } else if (s == null) {
         BadgeManager.instance.unbind();
         _family.detach();

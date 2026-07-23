@@ -83,6 +83,7 @@ class NativeCallHandler {
     debugPrint('NativeCallHandler: ${event.event} body=${event.body}');
     switch (event.event) {
       case Event.actionCallAccept:
+        _captureNativeUuid(event.body);
         // Flag the service BEFORE awaiting acceptIncoming so:
         //   1. `_CallOverlay` skips the in-app IncomingCallScreen and
         //      routes the user straight to CallScreen.
@@ -121,6 +122,71 @@ class NativeCallHandler {
       default:
         // Ignore the lifecycle bookkeeping events (start, callback, etc.).
         break;
+    }
+  }
+
+  /// Incoming calls shown by native code (AppDelegate.swift on iOS,
+  /// CallFcmService.kt on Android) mint their UUID natively — Dart never
+  /// sees it unless we lift it off the accept event. Capturing it here lets
+  /// [markConnected] target the right native call so the system timer runs.
+  void _captureNativeUuid(dynamic body) {
+    if (body is! Map) return;
+    final uuid = body['id']?.toString();
+    final extra = body['extra'];
+    final callId = extra is Map ? extra['callId']?.toString() : null;
+    if (uuid != null && uuid.isNotEmpty && callId != null && callId.isNotEmpty) {
+      _uuidByCallId[callId] = uuid;
+    }
+  }
+
+  /// Replay a native accept that happened while no Dart was running.
+  ///
+  /// Android killed-app flow: CallFcmService shows the call UI, the user taps
+  /// Accept, the plugin persists the call with `isAccepted=true` and launches
+  /// the app — but the accept EVENT fired before this isolate existed. Called
+  /// once per session right after the signaling subscription starts, so
+  /// [CallService.acceptIncoming] (or its `_onRemoteOffer` auto-accept race
+  /// recovery) can pick the call up.
+  ///
+  /// iOS is deliberately excluded: CallKit accept relaunches keep the event
+  /// stream alive through the plugin's own replay, and the flow has been
+  /// working — don't add a second accept path there.
+  Future<void> replayColdStartCalls() async {
+    if (!Platform.isAndroid) return;
+    List<dynamic> calls;
+    try {
+      calls = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+    } catch (e) {
+      debugPrint('NativeCallHandler.replayColdStartCalls: $e');
+      return;
+    }
+    if (calls.isEmpty) return;
+    final service = CallService.instance;
+    var accepted = false;
+    for (final c in calls) {
+      if (c is! Map) continue;
+      if (c['isAccepted'] == true) {
+        accepted = true;
+        _captureNativeUuid(c);
+        debugPrint('NativeCallHandler: replaying cold-start accept '
+            'for ${c['extra']}');
+        service.markAcceptedNatively();
+        try {
+          await service.acceptIncoming();
+        } catch (e) {
+          // Call already terminal (cancelled / timed out while we booted).
+          debugPrint('NativeCallHandler: cold-start accept failed: $e');
+          accepted = false;
+        }
+        break; // Only ever one live call at a time.
+      }
+    }
+    if (!accepted && !service.inCall) {
+      // Stale ringing card(s) with nothing behind them — clear so the user
+      // isn't left staring at a dead ringer after reopening the app.
+      try {
+        await FlutterCallkitIncoming.endAllCalls();
+      } catch (_) {}
     }
   }
 
