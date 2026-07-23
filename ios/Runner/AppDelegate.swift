@@ -21,6 +21,27 @@ import flutter_callkit_incoming
   // PushKit payload can end *that specific call* with
   // `.answeredElsewhere`. Cleared after a call ends.
   private var callKitUuidByCallId: [String: UUID] = [:]
+  // Fallback-provider bookkeeping (see showIncomingWithRetry): when the
+  // flutter_callkit_incoming plugin isn't registered in time we ring on
+  // `foregroundReportProvider` instead. Maps that card's UUID → Convex
+  // callId so answer/decline can be bridged to Dart and "taken" pushes can
+  // dismiss the right card.
+  private var fallbackCallIdByUuid: [UUID: String] = [:]
+  // voip-channel calls that fired before Dart was listening (cold
+  // background launch). Dart drains them via `takePendingEvents` once its
+  // handler is installed, so a fallback-card answer/decline isn't lost.
+  private var pendingVoipEvents: [(method: String, args: [String: Any])] = []
+  // True once Dart has called into the voip channel — only then is a
+  // direct invokeMethod guaranteed to find a handler on the other side.
+  private var voipDartReady = false
+
+  // UserDefaults keys persisting the last invite's callId → CallKit UUID
+  // mapping. The in-memory `callKitUuidByCallId` dies with the process, but
+  // a "taken" push can arrive in a NEW process (app killed between invite
+  // and taken) and must still dismiss the right card. Only one call rings
+  // at a time, so a single persisted pair suffices.
+  private static let lastInviteCallIdKey = "voip.lastInvite.callId"
+  private static let lastInviteUuidKey = "voip.lastInvite.uuid"
 
   fileprivate func setCaptureEventSink(_ sink: FlutterEventSink?) {
     captureEventSink = sink
@@ -123,9 +144,12 @@ import flutter_callkit_incoming
     }
 
     // Stash the CallKit UUID so a follow-up "taken" push can end this
-    // specific call with `.answeredElsewhere`.
+    // specific call with `.answeredElsewhere`. Persisted too, because the
+    // "taken" may land in a fresh process after this one is killed.
     if !convexCallId.isEmpty {
       callKitUuidByCallId[convexCallId] = callUuid
+      UserDefaults.standard.set(convexCallId, forKey: Self.lastInviteCallIdKey)
+      UserDefaults.standard.set(callUuid.uuidString, forKey: Self.lastInviteUuidKey)
     }
 
     // Use the fully-qualified module path so Swift doesn't pick Foundation.Data.
@@ -142,11 +166,66 @@ import flutter_callkit_incoming
       "rawPayload": dict,
     ] as NSDictionary
 
-    SwiftFlutterCallkitIncomingPlugin.sharedInstance?.showCallkitIncoming(
-      callData,
-      fromPushKit: true
-    )
-    completion()
+    showIncomingWithRetry(callData, convexCallId: convexCallId, pushCompletion: completion)
+  }
+
+  // Shows the CallKit ringer for an invite push, handling two failure modes
+  // that used to silently drop calls (and accrue PushKit penalty — iOS
+  // progressively stops delivering VoIP pushes to an app that doesn't
+  // report a call for every push, which is exactly "locked phone never
+  // rings"):
+  //
+  //   1. The old code called the plugin's 2-arg showCallkitIncoming and
+  //      fired PushKit's completion() immediately, before
+  //      reportNewIncomingCall had run. Use the completion-taking overload
+  //      so iOS sees a fully reported call before we signal done.
+  //   2. On a cold background launch (app killed + locked), this push
+  //      handler can run BEFORE the implicit Flutter engine registers
+  //      plugins — `sharedInstance` is nil and the old optional-chained
+  //      call did nothing at all. Retry briefly; if the plugin never
+  //      appears, ring on our own CXProvider so the phone still rings and
+  //      the PushKit contract is honored.
+  private func showIncomingWithRetry(
+    _ callData: flutter_callkit_incoming.Data,
+    convexCallId: String,
+    attempt: Int = 0,
+    pushCompletion: @escaping () -> Void
+  ) {
+    if let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance {
+      plugin.showCallkitIncoming(callData, fromPushKit: true, completion: pushCompletion)
+      return
+    }
+    // Plugin registration lands within a few hundred ms of process launch;
+    // budget ~2s of retries, well inside PushKit's ~5s reporting deadline.
+    if attempt < 20 {
+      NSLog("[voip] plugin not registered yet — retry \(attempt)")
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        self?.showIncomingWithRetry(
+          callData,
+          convexCallId: convexCallId,
+          attempt: attempt + 1,
+          pushCompletion: pushCompletion
+        )
+      }
+      return
+    }
+    // Last resort: a real ringing call on our own provider. Answer/decline
+    // is bridged to Dart via the voip channel (see CXProviderDelegate).
+    NSLog("[voip] plugin never registered — fallback provider ring")
+    let uuid = UUID(uuidString: callData.uuid) ?? UUID()
+    if !convexCallId.isEmpty {
+      fallbackCallIdByUuid[uuid] = convexCallId
+    }
+    let update = CXCallUpdate()
+    update.remoteHandle = CXHandle(type: .generic, value: callData.handle)
+    update.localizedCallerName = callData.nameCaller
+    update.hasVideo = callData.type > 0
+    foregroundReportProvider.reportNewIncomingCall(with: uuid, update: update) { error in
+      if let error = error {
+        NSLog("[voip] fallback report failed: \(error.localizedDescription)")
+      }
+      pushCompletion()
+    }
   }
 
   // Dismiss the CallKit session previously shown for this Convex callId
@@ -160,9 +239,40 @@ import flutter_callkit_incoming
   // taken push arrives before invite push processed), fall back to the
   // report-and-end escape hatch so iOS still sees a compliant report.
   private func reportCallEndedElsewhere(convexCallId: String) {
-    let uuid = callKitUuidByCallId.removeValue(forKey: convexCallId)
-    if let uuid = uuid {
-      SwiftFlutterCallkitIncomingPlugin.sharedInstance?.saveEndCall(uuid.uuidString, 4)
+    // Resolve the CallKit UUID: in-memory map first, then the persisted
+    // last-invite pair (this process may have been launched by the "taken"
+    // push itself, after the invite's process died).
+    var uuid = callKitUuidByCallId.removeValue(forKey: convexCallId)
+    if uuid == nil,
+       !convexCallId.isEmpty,
+       UserDefaults.standard.string(forKey: Self.lastInviteCallIdKey) == convexCallId,
+       let stored = UserDefaults.standard.string(forKey: Self.lastInviteUuidKey) {
+      uuid = UUID(uuidString: stored)
+    }
+    if UserDefaults.standard.string(forKey: Self.lastInviteCallIdKey) == convexCallId {
+      UserDefaults.standard.removeObject(forKey: Self.lastInviteCallIdKey)
+      UserDefaults.standard.removeObject(forKey: Self.lastInviteUuidKey)
+    }
+    // The plugin's saveEndCall silently no-ops when its lazily-created
+    // provider is nil (fresh process that never showed a call), which would
+    // swallow this push without a compliant report. Only take that path
+    // when the plugin is up AND still tracking this exact call.
+    if let uuid = uuid,
+       let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance,
+       plugin.activeCalls().contains(where: {
+         ($0["id"] as? String)?.uppercased() == uuid.uuidString.uppercased()
+       }) {
+      plugin.saveEndCall(uuid.uuidString, 4)
+      return
+    }
+    // A fallback-provider card may be ringing for this call instead.
+    if let entry = fallbackCallIdByUuid.first(where: { $0.value == convexCallId }) {
+      fallbackCallIdByUuid.removeValue(forKey: entry.key)
+      foregroundReportProvider.reportCall(
+        with: entry.key,
+        endedAt: Date(),
+        reason: .answeredElsewhere
+      )
       return
     }
     // No CallKit session to target — Apple still wants a compliant
@@ -257,17 +367,54 @@ import flutter_callkit_incoming
   }
 
   // MARK: - CXProviderDelegate
-  // Apple requires a delegate on every CXProvider, even one we only use
-  // for report-and-end. We don't expose CallKit interaction through this
-  // provider (the flutter_callkit_incoming plugin owns the user-facing
-  // provider), so every action just gets failed/fulfilled minimally.
+  // Apple requires a delegate on every CXProvider. This provider normally
+  // only does report-and-end (no user interaction possible), but it also
+  // hosts the last-resort fallback ringer from showIncomingWithRetry — so
+  // answer/end must be honored and bridged to Dart.
+  //
+  // NOTE: the old code had `provider(_:perform action: CXAction)`, which is
+  // NOT a CXProviderDelegate method — CallKit never called it. The
+  // per-action methods below are the real ones.
 
   func providerDidReset(_ provider: CXProvider) {
-    // No persistent state to clear — this provider is fire-and-forget.
+    fallbackCallIdByUuid.removeAll()
   }
 
-  func provider(_ provider: CXProvider, perform action: CXAction) {
+  func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+    if let callId = fallbackCallIdByUuid[action.callUUID] {
+      NSLog("[voip] fallback card answered callId=\(callId)")
+      invokeVoipOrQueue("onFallbackAnswer", args: ["callId": callId])
+    }
     action.fulfill()
+  }
+
+  func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+    if let callId = fallbackCallIdByUuid.removeValue(forKey: action.callUUID) {
+      NSLog("[voip] fallback card declined/ended callId=\(callId)")
+      invokeVoipOrQueue("onFallbackDecline", args: ["callId": callId])
+    }
+    action.fulfill()
+  }
+
+  func provider(_ provider: CXProvider, perform action: CXSetMutedCallAction) {
+    action.fulfill()
+  }
+
+  func provider(_ provider: CXProvider, perform action: CXSetHeldCallAction) {
+    action.fulfill()
+  }
+
+  // Delivers a voip-channel call to Dart, or queues it until Dart's handler
+  // is provably installed — a fallback-card answer on a cold background
+  // launch fires before any Dart exists and must not be lost. (Merely
+  // having `voipChannel` set isn't enough: an invokeMethod that races
+  // Dart's setMethodCallHandler is silently dropped.)
+  private func invokeVoipOrQueue(_ method: String, args: [String: Any]) {
+    if voipDartReady, let channel = voipChannel {
+      channel.invokeMethod(method, arguments: args)
+    } else {
+      pendingVoipEvents.append((method: method, args: args))
+    }
   }
 
   @objc private func _capturedDidChange() {
@@ -393,6 +540,36 @@ import flutter_callkit_incoming
         switch call.method {
         case "getToken":
           result(self?.cachedVoipToken)
+        case "takePendingEvents":
+          // Dart's handler is installed (it just called us) — hand over any
+          // fallback-card actions queued before it existed, and switch to
+          // direct delivery for future ones.
+          if let self = self {
+            self.voipDartReady = true
+            let events = self.pendingVoipEvents.map { event -> [String: Any] in
+              var e = event.args
+              e["method"] = event.method
+              return e
+            }
+            self.pendingVoipEvents.removeAll()
+            result(events)
+          } else {
+            result([])
+          }
+        case "endFallbackCalls":
+          // Dart-side call teardown: dismiss any card still ringing on the
+          // fallback provider (the plugin's endAllCalls can't reach it).
+          if let self = self {
+            for (uuid, _) in self.fallbackCallIdByUuid {
+              self.foregroundReportProvider.reportCall(
+                with: uuid,
+                endedAt: Date(),
+                reason: .remoteEnded
+              )
+            }
+            self.fallbackCallIdByUuid.removeAll()
+          }
+          result(nil)
         case "getApnsEnvironment":
           // The PushKit token's environment is fixed by the embedded
           // provisioning profile's `aps-environment`, NOT by the Dart build

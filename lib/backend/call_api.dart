@@ -134,6 +134,33 @@ class CallApi {
     );
   }
 
+  /// One-shot status probe for a specific call. Returns the status string
+  /// ("ringing" | "active" | "ended" | "missed" | "cancelled" | "rejected"),
+  /// or null when the call no longer exists (GC'd) or isn't ours. Used to
+  /// validate a native CallKit card before honoring accept/decline on it.
+  Future<String?> getCallStatus({
+    required String callId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('calls:getCallStatus', {
+      'callId': callId,
+      'userId': userId,
+    });
+    return (res as Map?)?['status']?.toString();
+  }
+
+  /// One-shot snapshot of my live `ringing`/`active` call (same shape as
+  /// [subscribeActiveCall] emissions, null when there is none). Used by
+  /// cold-start reconciliation to decide whether a persisted native call
+  /// card is real or stale.
+  Future<Map<String, dynamic>?> getActiveCallOnce({
+    required String userId,
+  }) async {
+    final res = await _cv.query('calls:activeCallForUser', {'userId': userId});
+    if (res == null) return null;
+    return (res as Map).cast<String, dynamic>();
+  }
+
   /// Returns `{ iceServers: [{urls, username?, credential?}, …] }`.
   Future<List<Map<String, dynamic>>> getIceConfig(String userId) async {
     final res = await _cv.action('calls:getIceConfig', {'userId': userId});

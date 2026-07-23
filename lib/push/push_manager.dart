@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import '../backend/chat_api.dart';
+import '../calls/native_call_handler.dart';
 import '../env.dart';
 import 'device_identity.dart';
 
@@ -105,6 +106,25 @@ class PushManager {
           // pre-login token from being lost.
           if (token != null && token.isNotEmpty) _pendingVoipToken = token;
           await _uploadVoipToken(token);
+          return null;
+        }
+        // Answer/decline on AppDelegate's fallback CallKit card (shown when
+        // the flutter_callkit_incoming plugin wasn't registered in time to
+        // handle a VoIP push) — bridge into the normal call flow. Events
+        // that fired before this handler existed are drained separately via
+        // `takePendingEvents` in NativeCallHandler.
+        if (call.method == 'onFallbackAnswer' ||
+            call.method == 'onFallbackDecline') {
+          final args = (call.arguments as Map?) ?? const {};
+          final callId = args['callId']?.toString();
+          if (callId != null && callId.isNotEmpty) {
+            if (call.method == 'onFallbackAnswer') {
+              await NativeCallHandler.instance.handleFallbackAnswer(callId);
+            } else {
+              await NativeCallHandler.instance.handleFallbackDecline(callId);
+            }
+          }
+          return null;
         }
         return null;
       });

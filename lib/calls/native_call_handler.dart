@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
@@ -84,12 +85,30 @@ class NativeCallHandler {
     switch (event.event) {
       case Event.actionCallAccept:
         _captureNativeUuid(event.body);
+        // Ghost guard: a CallKit card can outlive its call (the caller
+        // cancelled or the ring timed out while the app was locked/killed).
+        // If Dart has no session for it, confirm with the backend that the
+        // call is still live BEFORE latching the accept — a latched accept
+        // for a dead call waits forever for an offer that can never come.
+        if (service.session == null) {
+          final callId = _callIdFromEvent(event.body);
+          if (callId != null && await _isCallLive(callId) == false) {
+            debugPrint(
+              'NativeCallHandler: stale CallKit accept callId=$callId — clearing',
+            );
+            await endAllNative();
+            break;
+          }
+        }
         // Flag the service BEFORE awaiting acceptIncoming so:
         //   1. `_CallOverlay` skips the in-app IncomingCallScreen and
         //      routes the user straight to CallScreen.
         //   2. If the offer signal hasn't arrived yet (rare race when
         //      CallKit fires faster than the Convex realtime subscription),
         //      `_onRemoteOffer` will auto-fire acceptIncoming later.
+        // The accept watchdog inside markAcceptedNatively covers the case
+        // where the liveness probe couldn't run (offline) and no offer ever
+        // arrives.
         service.markAcceptedNatively();
         try {
           await service.acceptIncoming();
@@ -98,13 +117,32 @@ class NativeCallHandler {
           // timed out) — accept throws NOT_RINGING. Clear the stuck native
           // card instead of leaving a dead ringer on screen.
           debugPrint('NativeCallHandler: acceptIncoming failed: $e');
-          try {
-            await FlutterCallkitIncoming.endAllCalls();
-          } catch (_) {}
+          service.clearNativeAccept();
+          await endAllNative();
         }
         break;
       case Event.actionCallDecline:
-        await service.reject();
+        if (service.session != null) {
+          await service.reject();
+        } else {
+          // Ghost card: no Dart session to reject through — service.reject()
+          // would silently no-op, leaving backend state and the accept latch
+          // untouched. Best-effort backend reject (harmless if the call is
+          // already terminal), then make sure nothing native lingers.
+          final callId = _callIdFromEvent(event.body);
+          final me = service.userId;
+          if (callId != null && me != null) {
+            try {
+              await service.api.rejectCall(
+                callId: callId,
+                userId: me,
+                acceptingDeviceId: service.deviceId,
+              );
+            } catch (_) {}
+          }
+          service.clearNativeAccept();
+          await endAllNative();
+        }
         break;
       case Event.actionCallEnded:
       case Event.actionCallTimeout:
@@ -139,20 +177,21 @@ class NativeCallHandler {
     }
   }
 
-  /// Replay a native accept that happened while no Dart was running.
+  /// Reconcile persisted native call state with backend truth after a
+  /// (re)start. Called once per session right after the signaling
+  /// subscription starts. Two jobs:
   ///
-  /// Android killed-app flow: CallFcmService shows the call UI, the user taps
-  /// Accept, the plugin persists the call with `isAccepted=true` and launches
-  /// the app — but the accept EVENT fired before this isolate existed. Called
-  /// once per session right after the signaling subscription starts, so
-  /// [CallService.acceptIncoming] (or its `_onRemoteOffer` auto-accept race
-  /// recovery) can pick the call up.
-  ///
-  /// iOS is deliberately excluded: CallKit accept relaunches keep the event
-  /// stream alive through the plugin's own replay, and the flow has been
-  /// working — don't add a second accept path there.
+  ///   1. Replay a native accept that happened while no Dart was running
+  ///      (killed-app flow: the plugin shows the call UI, the user taps
+  ///      Accept, the plugin persists the call and launches the app — but
+  ///      the accept EVENT fired before this isolate existed).
+  ///   2. Clear ghost cards: calls the plugin still tracks whose backend
+  ///      call went terminal while the app was dead. Previously iOS was
+  ///      excluded from this entirely, which is exactly how stale ghost
+  ///      ringers survived an app restart there.
   Future<void> replayColdStartCalls() async {
-    if (!Platform.isAndroid) return;
+    final service = CallService.instance;
+    await _drainPendingFallbackEvents();
     List<dynamic> calls;
     try {
       calls = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
@@ -160,33 +199,144 @@ class NativeCallHandler {
       debugPrint('NativeCallHandler.replayColdStartCalls: $e');
       return;
     }
-    if (calls.isEmpty) return;
-    final service = CallService.instance;
-    var accepted = false;
+
+    // Backend truth: my live ringing/active call, if any. Distinguish "no
+    // live call" from "couldn't ask" (offline) — when unreachable, stay
+    // lenient and keep the old replay behavior rather than killing a
+    // possibly-valid ring; the accept watchdog covers a wrong guess.
+    Map<String, dynamic>? live;
+    var backendReachable = false;
+    final me = service.userId;
+    if (me != null) {
+      try {
+        live = await service.api
+            .getActiveCallOnce(userId: me)
+            .timeout(const Duration(seconds: 4));
+        backendReachable = true;
+      } catch (e) {
+        debugPrint(
+            'NativeCallHandler.replayColdStartCalls: status fetch failed: $e');
+      }
+    }
+    final liveId = live?['_id']?.toString();
+
+    if (calls.isEmpty) {
+      // Nothing native persisted — but a stale accept latch from a previous
+      // run could still poison routing. Clear it if no call is live.
+      if (backendReachable && live == null) service.clearNativeAccept();
+      return;
+    }
+
+    var handled = false;
     for (final c in calls) {
       if (c is! Map) continue;
-      if (c['isAccepted'] == true) {
-        accepted = true;
+      // Android persists `isAccepted`; iOS reports `accepted`.
+      final accepted = c['isAccepted'] == true || c['accepted'] == true;
+      final extra = c['extra'];
+      final callId = extra is Map ? extra['callId']?.toString() : null;
+      final matchesLive = callId != null && callId == liveId;
+
+      if (accepted && (matchesLive || !backendReachable)) {
         _captureNativeUuid(c);
         debugPrint('NativeCallHandler: replaying cold-start accept '
             'for ${c['extra']}');
         service.markAcceptedNatively();
         try {
           await service.acceptIncoming();
+          handled = true;
         } catch (e) {
           // Call already terminal (cancelled / timed out while we booted).
           debugPrint('NativeCallHandler: cold-start accept failed: $e');
-          accepted = false;
+          service.clearNativeAccept();
         }
         break; // Only ever one live call at a time.
       }
+      if (!accepted && matchesLive && live?['status'] == 'ringing') {
+        // Genuinely still-ringing card — leave it up; the signaling
+        // subscription delivers the invite/offer momentarily.
+        handled = true;
+        break;
+      }
     }
-    if (!accepted && !service.inCall) {
-      // Stale ringing card(s) with nothing behind them — clear so the user
-      // isn't left staring at a dead ringer after reopening the app.
+    if (!handled && !service.inCall) {
+      // Stale card(s) with nothing behind them — clear so the user isn't
+      // left staring at (or answering) a dead ringer after reopening.
+      await endAllNative();
+      if (backendReachable && live == null) service.clearNativeAccept();
+    }
+  }
+
+  /// Bridged from AppDelegate's fallback CXProvider: the plugin wasn't
+  /// registered when the invite push arrived, so the card the user answered
+  /// lives on a provider the plugin doesn't know about. Runs the same
+  /// validation + latch flow as a normal CallKit accept; the signaling
+  /// subscription hydrates the session and auto-fires the accept.
+  Future<void> handleFallbackAnswer(String callId) async {
+    final service = CallService.maybeInstance;
+    if (service == null) return;
+    if (service.session == null && await _isCallLive(callId) == false) {
+      debugPrint(
+          'NativeCallHandler: fallback answer for dead call $callId — clearing');
+      await endAllNative();
+      return;
+    }
+    service.markAcceptedNatively();
+    try {
+      await service.acceptIncoming();
+    } catch (e) {
+      debugPrint('NativeCallHandler: fallback accept failed: $e');
+      service.clearNativeAccept();
+      await endAllNative();
+    }
+  }
+
+  /// Fallback-card counterpart of [Event.actionCallDecline].
+  Future<void> handleFallbackDecline(String callId) async {
+    final service = CallService.maybeInstance;
+    if (service == null) return;
+    if (service.session != null && service.session!.callId == callId) {
+      await service.reject();
+      return;
+    }
+    final me = service.userId;
+    if (me != null) {
       try {
-        await FlutterCallkitIncoming.endAllCalls();
+        await service.api.rejectCall(
+          callId: callId,
+          userId: me,
+          acceptingDeviceId: service.deviceId,
+        );
       } catch (_) {}
+    }
+    service.clearNativeAccept();
+    await endAllNative();
+  }
+
+  /// `extra.callId` from a plugin event body (the Convex callId that iOS /
+  /// Android stashed when showing the native UI), or null.
+  String? _callIdFromEvent(dynamic body) {
+    if (body is! Map) return null;
+    final extra = body['extra'];
+    final callId = extra is Map ? extra['callId']?.toString() : null;
+    return (callId != null && callId.isNotEmpty) ? callId : null;
+  }
+
+  /// Backend liveness probe for a call. Returns false only on a definitive
+  /// "not live" answer; null means "couldn't determine" (offline, timeout,
+  /// not signed in) — callers should stay lenient then and let the accept
+  /// watchdog arbitrate.
+  Future<bool?> _isCallLive(String callId) async {
+    final service = CallService.maybeInstance;
+    final userId = service?.userId;
+    if (service == null || userId == null) return null;
+    try {
+      final status = await service.api
+          .getCallStatus(callId: callId, userId: userId)
+          .timeout(const Duration(seconds: 3));
+      return status == 'ringing' || status == 'active';
+    } catch (e) {
+      debugPrint('NativeCallHandler._isCallLive: $e');
+      return null;
     }
   }
 
@@ -226,6 +376,61 @@ class NativeCallHandler {
       await FlutterCallkitIncoming.endAllCalls();
     } catch (e) {
       debugPrint('NativeCallHandler.endNative failed: $e');
+    }
+    await _endIosFallbackCalls();
+  }
+
+  /// [endNative] without a callId — for clearing ghost/stale cards where
+  /// Dart never had a session.
+  Future<void> endAllNative() async {
+    if (_isIosSimulator) return;
+    try {
+      await FlutterCallkitIncoming.endAllCalls();
+    } catch (e) {
+      debugPrint('NativeCallHandler.endAllNative failed: $e');
+    }
+    await _endIosFallbackCalls();
+  }
+
+  // AppDelegate's last-resort fallback ringer lives on a CXProvider the
+  // flutter_callkit_incoming plugin doesn't know about, so the plugin's
+  // endAllCalls can't dismiss it — ask AppDelegate directly.
+  static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
+
+  Future<void> _endIosFallbackCalls() async {
+    if (!Platform.isIOS) return;
+    try {
+      await _voipChannel.invokeMethod('endFallbackCalls');
+    } catch (_) {}
+  }
+
+  /// Pull fallback-card answer/decline actions that fired before any Dart
+  /// handler existed (cold background launch — AppDelegate queues them).
+  /// Also flips AppDelegate to direct delivery for future ones. Runs at the
+  /// top of [replayColdStartCalls]; idempotent (the native queue empties).
+  Future<void> _drainPendingFallbackEvents() async {
+    if (!Platform.isIOS || _isIosSimulator) return;
+    List<dynamic> events;
+    try {
+      events =
+          await _voipChannel.invokeListMethod<dynamic>('takePendingEvents') ??
+              const [];
+    } catch (e) {
+      debugPrint('NativeCallHandler._drainPendingFallbackEvents: $e');
+      return;
+    }
+    for (final e in events) {
+      if (e is! Map) continue;
+      final callId = e['callId']?.toString();
+      if (callId == null || callId.isEmpty) continue;
+      switch (e['method']) {
+        case 'onFallbackAnswer':
+          await handleFallbackAnswer(callId);
+          break;
+        case 'onFallbackDecline':
+          await handleFallbackDecline(callId);
+          break;
+      }
     }
   }
 

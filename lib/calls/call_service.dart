@@ -23,6 +23,10 @@ class CallService extends ChangeNotifier {
 
   static CallService? _instance;
   static CallService get instance => _instance!;
+
+  /// Null-safe variant for callers that can run before [ensure] (e.g. the
+  /// fallback-card bridge draining events during early app init).
+  static CallService? get maybeInstance => _instance;
   static CallService ensure(CallApi api) =>
       _instance ??= CallService(api: api);
 
@@ -77,8 +81,49 @@ class CallService extends ChangeNotifier {
   bool _acceptedNatively = false;
   bool get acceptedNatively => _acceptedNatively;
   void markAcceptedNatively() {
+    _armAcceptWatchdog();
     if (_acceptedNatively) return;
     _acceptedNatively = true;
+    notifyListeners();
+  }
+
+  /// Watchdog armed whenever a native accept is latched. If the latch was
+  /// set for a dead call (caller cancelled / ring timed out while the app
+  /// was locked or killed), no offer will ever hydrate the session —
+  /// `sendSignal` refuses signals for terminal calls — so without this the
+  /// app sits frozen on a call that can never connect, and the stale latch
+  /// poisons the NEXT call's routing (`_CallOverlay` skips the ringer).
+  Timer? _acceptWatchdog;
+
+  void _armAcceptWatchdog() {
+    _acceptWatchdog?.cancel();
+    _acceptWatchdog = Timer(const Duration(seconds: 10), () async {
+      if (!_acceptedNatively) return;
+      final s = _session;
+      final stuck =
+          _pc == null || s == null || s.status == CallStatus.incomingRinging;
+      if (!stuck) return;
+      debugPrint(
+        'CallService: accept watchdog tripped — no offer arrived, '
+        'treating call as dead (callId=${s?.callId})',
+      );
+      if (s != null) {
+        await _teardown(CallStatus.failed, errorMessage: 'Call unavailable');
+      } else {
+        clearNativeAccept();
+        unawaited(NativeCallHandler.instance.endAllNative());
+      }
+    });
+  }
+
+  /// Reset the CallKit-accept latch without a session teardown — used when
+  /// a native accept turns out to target a call with no Dart session (a
+  /// ghost CallKit card), where `_teardown` would never run.
+  void clearNativeAccept() {
+    _acceptWatchdog?.cancel();
+    _acceptWatchdog = null;
+    if (!_acceptedNatively) return;
+    _acceptedNatively = false;
     notifyListeners();
   }
 
@@ -268,6 +313,7 @@ class CallService extends ChangeNotifier {
       );
 
       _session = s.copyWith(status: CallStatus.connecting);
+      _acceptWatchdog?.cancel();
       notifyListeners();
     } catch (e, st) {
       debugPrint('CallService.acceptIncoming failed: $e\n$st');
@@ -378,6 +424,19 @@ class CallService extends ChangeNotifier {
   // ───────── inbound signaling ─────────
 
   /// Called by [SignalingSubscriber] for every fresh inbound signal.
+  /// A session-creating signal (invite, or offer with no session) is only
+  /// honored within 45s of its server-side creation — comfortably past the
+  /// 30s ring timeout. Older rows are stale re-deliveries (typically the
+  /// signaling subscription replaying unconsumed rows after an app restart)
+  /// whose call is already terminal.
+  static const _staleSignalMs = 45 * 1000;
+
+  bool _isStaleSignal(Map<String, dynamic> signal) {
+    final createdAt = (signal['createdAt'] as num?)?.toInt();
+    if (createdAt == null) return false;
+    return DateTime.now().millisecondsSinceEpoch - createdAt > _staleSignalMs;
+  }
+
   Future<void> handleRemoteSignal(Map<String, dynamic> signal) async {
     final me = _userId;
     if (me == null) return;
@@ -404,6 +463,13 @@ class CallService extends ChangeNotifier {
     // has finished its WebRTC offer. The session lives without a PC until
     // the offer arrives and `_onRemoteOffer` hydrates it.
     if (kind == 'invite') {
+      // Freshness gate: the backend rings for 30s, so any invite older than
+      // that (server-stamped createdAt) is a stale row re-delivered after an
+      // app restart — its call is terminal and must not re-ring as a ghost.
+      if (_isStaleSignal(signal)) {
+        debugPrint('CallService: dropping stale invite callId=$callId');
+        return;
+      }
       if (_session != null) {
         // Already in a call — auto-reject as busy. The reject mutation
         // will broadcast `taken` so the caller learns immediately.
@@ -461,6 +527,12 @@ class CallService extends ChangeNotifier {
     // Offer → either hydrate the invite-created session OR start a fresh
     // one if no invite was delivered (older caller / delivery race).
     if (kind == 'offer') {
+      // Same freshness gate as `invite`, but only for the session-CREATING
+      // path — an offer hydrating an already-ringing session is fine.
+      if (_session == null && _isStaleSignal(signal)) {
+        debugPrint('CallService: dropping stale offer callId=$callId');
+        return;
+      }
       final s = _session;
       if (s != null && s.callId != callId) {
         // Some other call's offer landed while we're already on this one —
@@ -1128,6 +1200,12 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> _teardown(CallStatus terminal, {String? errorMessage}) async {
+    _acceptWatchdog?.cancel();
+    _acceptWatchdog = null;
+    // Reset the native-accept latch SYNCHRONOUSLY — leaving it set through
+    // the delayed null-out below opens a 400ms window where a new incoming
+    // call would be mis-routed straight to CallScreen.
+    _acceptedNatively = false;
     final s = _session;
     if (s != null) {
       _session = s.copyWith(status: terminal, errorMessage: errorMessage);
@@ -1141,7 +1219,6 @@ class CallService extends ChangeNotifier {
       _session = null;
       _remoteStream = null;
       _remoteStreamTick = 0;
-      _acceptedNatively = false;
       notifyListeners();
     });
   }
@@ -1168,6 +1245,7 @@ class CallService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _acceptWatchdog?.cancel();
     incomingTick.dispose();
     _disposePc();
     super.dispose();

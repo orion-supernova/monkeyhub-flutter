@@ -903,3 +903,21 @@ export const gcStuckRinging = internalMutation({
     }
   },
 });
+
+// One-shot status probe used by the client to validate a native CallKit
+// card before honoring accept/decline on it — a ghost card (call already
+// cancelled/missed while the app was dead) must be dismissed, not answered.
+// Participants only; null when the call row has been GC'd.
+export const getCallStatus = query({
+  args: { callId: v.id("calls"), userId: v.id("users") },
+  returns: v.union(v.null(), v.object({ status: v.string() })),
+  handler: async (ctx, { callId, userId }) => {
+    const call = await ctx.db.get(callId);
+    if (!call) return null;
+    const u = userId.toString();
+    if (call.callerId.toString() !== u && call.calleeId.toString() !== u) {
+      return null;
+    }
+    return { status: call.status };
+  },
+});

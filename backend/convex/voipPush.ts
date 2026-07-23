@@ -318,6 +318,11 @@ async function sendApnsVoip(
   }
   const host = sandbox ? "api.sandbox.push.apple.com" : "api.push.apple.com";
   const url = `https://${host}/3/device/${voipToken}`;
+  // APNs holds the push for a briefly-unreachable device instead of
+  // discarding it (expiration 0 = deliver-now-or-drop). An invite is only
+  // meaningful inside the 30s ring window; a "taken" dismissal must chase a
+  // reconnecting device longer, or its CallKit ringer lingers as a ghost.
+  const expirationSeconds = payload.kind === "taken" ? 60 : 30;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -325,7 +330,9 @@ async function sendApnsVoip(
       "apns-topic": `${bundleId}.voip`,
       "apns-push-type": "voip",
       "apns-priority": "10",
-      "apns-expiration": "0",
+      "apns-expiration": String(
+        Math.floor(Date.now() / 1000) + expirationSeconds,
+      ),
       "content-type": "application/json",
     },
     body: JSON.stringify(payload),
