@@ -8,6 +8,7 @@ import {
   isChild,
 } from "./childGuard";
 import { effectiveStatus } from "./presence";
+import { unreadForRoom } from "./badges";
 
 export const create = mutation({
   args: {
@@ -255,11 +256,21 @@ export const listUserRooms = query({
         // Surface the caller's own read cursor so the client can flag rooms
         // with messages newer than lastReadAt as unread (m is this user's
         // membership row). markRoomRead keeps lastReadAt current.
+        //
+        // `unreadCount` is a capped scan rather than a denormalized counter.
+        // This subscription already re-runs on every message — `messages.send`
+        // patches rooms.lastMessage, and we ctx.db.get(m.roomId) right above —
+        // so counting here adds no new invalidation for the common case, while
+        // a counter on roomMembers would patch N member rows per send and
+        // re-fire getReadState for the whole room. See badges.ts.
+        const unread = await unreadForRoom(ctx, m.roomId, userId, m.lastReadAt);
         return {
           ...rest,
           participantIds,
           hasPassword: !!passwordHash,
           lastReadAt: m.lastReadAt ?? null,
+          unreadCount: unread.count,
+          unreadCapped: unread.capped,
         };
       })
     );

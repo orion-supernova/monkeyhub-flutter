@@ -31,6 +31,7 @@ import 'push/push_manager.dart';
 import 'push/web_notifier.dart';
 import 'push/web_presence.dart';
 import 'data/ui_selection_store.dart';
+import 'platform.dart';
 import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
@@ -84,13 +85,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   bool _alertsPrimed = false;
 
   /// Whether web/desktop alert sounds + web banners apply on this platform.
-  /// Mobile is served by OneSignal, so we don't prime anything there. `kIsWeb`
-  /// is checked first so `defaultTargetPlatform` reads stay off the mobile path.
-  static bool get _alertsEnabled =>
-      kIsWeb ||
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.linux;
+  /// Mobile is served by OneSignal, so we don't prime anything there.
+  static bool get _alertsEnabled => isWebOrDesktop;
 
   void _primeAlerts() {
     if (_alertsPrimed || !_alertsEnabled) return;
@@ -191,6 +187,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
     _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
+    PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
     PushManager.instance.attachApi(_api);
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
     // Web message-banner clicks open the room, same as a push tap.
@@ -206,6 +203,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       }
     });
     _bootstrap();
+  }
+
+  /// Land a friend-request / approval notification tap on the Friends tab.
+  ///
+  /// Unlike [_openRoomFromPush] there's nothing to stash for a cold start:
+  /// [UiSelectionStore] holds the request until a [HomeScreen] mounts and
+  /// consumes it, which covers the launch-from-notification case for free.
+  void _openRequestsFromPush() {
+    UiSelectionStore.instance.requestHomeTab('friends');
+    SettingsStore.instance.setSection(HomeSection.chat);
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    nav.popUntil((r) => r.isFirst);
   }
 
   void _openRoomFromPush(String roomId) {
@@ -263,8 +273,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       // dropped subscriptions. Heal both: probe, force a rebuild if dead, and
       // re-register every subscription + flush stuck sends. Fire-and-forget.
       _healConnection();
-      // Clear platform badge on foreground; OneSignal won't auto-clear on iOS.
-      BadgeManager.instance.clear();
+      // Re-assert the true badge on foreground. Not a clear — pushes now carry
+      // an absolute count, so anything still unread must stay badged.
+      BadgeManager.instance.sync();
       // Re-assert the VoIP/FCM token. The backend clears a device's token
       // after an APNs/FCM bad-token reply, which otherwise silently kills
       // native call rings for the rest of the session (only the in-app

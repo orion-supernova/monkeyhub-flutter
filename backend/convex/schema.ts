@@ -310,6 +310,34 @@ export default defineSchema({
     // on messages that survive them.
     .index("by_user", ["userId"]),
 
+  // One row per (recipient, message) push OneSignal accepted.
+  //
+  // Exists so deleting a message can call DELETE /notifications/{id} while the
+  // push is still queued — that endpoint cancels undelivered notifications
+  // only, it cannot pull one off a device. Removing an *already delivered*
+  // notification is the client's job, driven by the silent dismiss push, and
+  // needs no lookup here because the notification's identifier is just the
+  // messageId (sent as collapse_id).
+  //
+  // Deliberately NOT a field on roomMembers: that table is read by three hot
+  // reactive queries (listUserRooms / getReadState / getMemberIds), and
+  // writing to it on every send would re-fire all of them for every member —
+  // the subscription-storm class already documented in messages.ts.
+  pushReceipts: defineTable({
+    userId: v.id("users"),
+    roomId: v.id("rooms"),
+    // Dangles once the message is deleted. Only ever compared against, never
+    // ctx.db.get()'d, so a stale id is harmless.
+    messageId: v.id("messages"),
+    onesignalId: v.string(),
+    sentAt: v.number(),
+  })
+    .index("by_message", ["messageId"])
+    // Also serves ["userId"] as a prefix, which is what account teardown walks.
+    .index("by_user_room", ["userId", "roomId"])
+    .index("by_room", ["roomId"])
+    .index("by_sent", ["sentAt"]),
+
   typingIndicators: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),

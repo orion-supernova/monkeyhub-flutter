@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 
 class ThemeChip extends StatefulWidget {
@@ -42,7 +43,10 @@ class _ThemeChipState extends State<ThemeChip> {
     _overlay = OverlayEntry(builder: (ctx) {
       final theme = ThemeScope.of(context);
       final controller = ThemeScope.controllerOf(context);
-      return Stack(
+      // Esc closes the popover, same as tapping outside it.
+      return OverlayModalScope(
+        onDismiss: _close,
+        child: Stack(
         children: [
           // Tap-outside dismiss layer.
           Positioned.fill(
@@ -81,6 +85,7 @@ class _ThemeChipState extends State<ThemeChip> {
             ),
           ),
         ],
+        ),
       );
     });
     overlay.insert(_overlay!);

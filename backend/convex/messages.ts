@@ -1,4 +1,4 @@
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
@@ -157,6 +157,80 @@ export const send = mutation({
   },
 });
 
+/**
+ * Everything that has to happen when a message stops existing, whether the
+ * user deleted it or it self-destructed. Both paths ran verbatim copies of
+ * this before; they had already drifted (neither repaired the room preview).
+ *
+ * Ordering matters: this must run BEFORE `ctx.db.delete(messageId)`, because
+ * it reads the message's siblings to re-derive the room preview.
+ */
+async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
+  // Reactions.
+  const reactions = await ctx.db
+    .query("reactions")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+  for (const r of reactions) await ctx.db.delete(r._id);
+
+  // Media.
+  if (msg.mediaStorageId) {
+    await ctx.storage.delete(msg.mediaStorageId);
+  }
+
+  // Mark every child reply's denormalized preview as deleted so their inline
+  // tether keeps rendering ("message removed") instead of pointing at a
+  // vanished parent.
+  const children = await ctx.db
+    .query("messages")
+    .withIndex("by_replyTo", (q: any) => q.eq("replyToId", messageId))
+    .collect();
+  for (const child of children) {
+    const existing = child.replyToPreview;
+    if (!existing) continue;
+    await ctx.db.patch(child._id, {
+      replyToPreview: { ...existing, contentPreview: "__DELETED__" },
+    });
+  }
+
+  await ctx.db.delete(messageId);
+
+  // Repair the room's last-message preview. Only when the removed message was
+  // actually the newest — a mid-history delete would otherwise re-write the
+  // room doc and needlessly invalidate every member's listUserRooms
+  // subscription. Previously nothing did this at all, so deleting the newest
+  // message left its text on the room card forever.
+  const room = await ctx.db.get(msg.roomId);
+  if (room && room.lastMessageTime === msg.createdAt) {
+    const newest = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q: any) => q.eq("roomId", msg.roomId))
+      .order("desc")
+      .first();
+    await ctx.db.patch(msg.roomId, {
+      lastMessage: newest
+        ? newest.type === "text"
+          ? (newest.content ?? "").slice(0, 100)
+          : `[${newest.type}]`
+        : undefined,
+      lastMessageTime: newest ? newest.createdAt : undefined,
+    });
+  }
+
+  // Take back the pushes. Cancels anything still queued, and asks devices that
+  // already showed it to remove it. See notifications.revokeMessagePushes.
+  await ctx.scheduler.runAfter(0, internal.notifications.revokeMessagePushes, {
+    messageId,
+    roomId: msg.roomId,
+  });
+}
+
+/** Existence probe for `sendMessagePush`, which can't touch the db directly. */
+export const stillExists = internalQuery({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => (await ctx.db.get(messageId)) !== null,
+});
+
 export const deleteMessage = mutation({
   args: {
     messageId: v.id("messages"),
@@ -177,34 +251,7 @@ export const deleteMessage = mutation({
       }
     }
 
-    // Delete all reactions for this message
-    const reactions = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (q) => q.eq("messageId", messageId))
-      .collect();
-    for (const r of reactions) await ctx.db.delete(r._id);
-
-    // Delete associated file from storage if present
-    if (msg.mediaStorageId) {
-      await ctx.storage.delete(msg.mediaStorageId);
-    }
-
-    // Mark every child reply's denormalized preview as deleted so their
-    // inline tether keeps rendering ("message removed") instead of pointing
-    // at a vanished parent.
-    const children = await ctx.db
-      .query("messages")
-      .withIndex("by_replyTo", (q) => q.eq("replyToId", messageId))
-      .collect();
-    for (const child of children) {
-      const existing = child.replyToPreview;
-      if (!existing) continue;
-      await ctx.db.patch(child._id, {
-        replyToPreview: { ...existing, contentPreview: "__DELETED__" },
-      });
-    }
-
-    await ctx.db.delete(messageId);
+    await removeMessageAndFanout(ctx, msg, messageId);
   },
 });
 
@@ -275,33 +322,7 @@ export const expireMessage = internalMutation({
     const msg = await ctx.db.get(messageId);
     if (!msg) return; // Already deleted (e.g. manually deleted before expiry)
 
-    // Delete all reactions for this message
-    const reactions = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (q) => q.eq("messageId", messageId))
-      .collect();
-    for (const r of reactions) await ctx.db.delete(r._id);
-
-    // Delete associated media from storage if present
-    if (msg.mediaStorageId) {
-      await ctx.storage.delete(msg.mediaStorageId);
-    }
-
-    // Same child-preview tombstone treatment as manual delete — keeps the
-    // tether on any reply that referenced this now-expired parent.
-    const children = await ctx.db
-      .query("messages")
-      .withIndex("by_replyTo", (q) => q.eq("replyToId", messageId))
-      .collect();
-    for (const child of children) {
-      const existing = child.replyToPreview;
-      if (!existing) continue;
-      await ctx.db.patch(child._id, {
-        replyToPreview: { ...existing, contentPreview: "__DELETED__" },
-      });
-    }
-
-    await ctx.db.delete(messageId);
+    await removeMessageAndFanout(ctx, msg, messageId);
   },
 });
 
@@ -391,6 +412,28 @@ export const markRoomRead = mutation({
       .first();
     if (!membership) return; // not a member, silently no-op
     await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
+
+    // Reading the room retires its outstanding notifications. The device that
+    // did the reading also clears them locally (it doesn't need a round trip);
+    // this covers the user's *other* devices and corrects the badge everywhere.
+    const rows = await ctx.db
+      .query("pushReceipts")
+      .withIndex("by_user_room", (q) =>
+        q.eq("userId", userId).eq("roomId", roomId)
+      )
+      .collect();
+    for (const r of rows) await ctx.db.delete(r._id);
+
+    if (rows.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.notifications.cancelByIds, {
+        onesignalIds: rows.map((r) => r.onesignalId),
+      });
+    }
+    await ctx.scheduler.runAfter(0, internal.notifications.dismissAndSync, {
+      userIds: [userId],
+      dismissIds: rows.map((r) => r.messageId.toString()),
+      roomId,
+    });
   },
 });
 

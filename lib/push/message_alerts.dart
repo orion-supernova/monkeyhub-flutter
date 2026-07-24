@@ -1,7 +1,8 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart';
 
 import '../audio/alert_sounds.dart';
+import '../platform.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
 import 'web_notifier.dart';
@@ -22,13 +23,8 @@ class MessageAlerts {
   static final MessageAlerts instance = MessageAlerts._();
 
   /// Web (autoplay + Notification API) and desktop (no native push) need this;
-  /// mobile is served by OneSignal. `kIsWeb` is checked first so `dart:io`
-  /// platform reads never happen on web.
-  static bool get _enabled =>
-      kIsWeb ||
-      defaultTargetPlatform == TargetPlatform.macOS ||
-      defaultTargetPlatform == TargetPlatform.windows ||
-      defaultTargetPlatform == TargetPlatform.linux;
+  /// mobile is served by OneSignal.
+  static bool get _enabled => isWebOrDesktop;
 
   ChatRepository? _repo;
   // roomId → newest message time we've already alerted on (ms since epoch).

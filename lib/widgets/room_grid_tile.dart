@@ -3,7 +3,9 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import 'count_badge.dart';
 import 'remote_image.dart';
+import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
@@ -15,13 +17,13 @@ class RoomGridTile extends StatelessWidget {
     required this.onTap,
     this.api,
     this.dmUser,
-    this.typingNames = const [],
+    this.typists = const [],
   });
   final ChatRoom room;
   final VoidCallback onTap;
   final ChatApi? api;
   final ChatUser? dmUser;
-  final List<String> typingNames;
+  final List<ChatUser> typists;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +73,9 @@ class RoomGridTile extends StatelessWidget {
                     alignment: WrapAlignment.end,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (room.hasUnread)
+                      if (room.unreadCount > 0)
+                        CountBadge(count: room.unreadCount)
+                      else if (room.hasUnread)
                         Container(
                           width: 10,
                           height: 10,
@@ -113,31 +117,8 @@ class RoomGridTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Flexible(
-                    child: typingNames.isNotEmpty
-                        ? Row(children: [
-                            Container(
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: theme.accent,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Text(
-                                typingNames.length == 1
-                                    ? '${typingNames.first} is typing…'
-                                    : '${typingNames.length} typing…',
-                                style: theme.body.copyWith(color: theme.accent, fontStyle: FontStyle.italic, fontSize: 12),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ])
+                    child: typists.isNotEmpty
+                        ? TypingLine(typists: typists)
                         : Text(
                             (room.lastMessage != null && room.lastMessage!.isNotEmpty)
                                 ? room.lastMessage!

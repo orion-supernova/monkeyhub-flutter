@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/ui_selection_store.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
@@ -68,6 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     widget.repo.addListener(_onRepoChange);
     widget.family.addListener(_onFamilyChange);
+    UiSelectionStore.instance.addListener(_onExternalTabRequest);
+    // A tap that arrived before this screen mounted (cold start from a
+    // notification) is still waiting in the store.
+    _onExternalTabRequest();
     _loadMe();
   }
 
@@ -75,7 +80,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     widget.repo.removeListener(_onRepoChange);
     widget.family.removeListener(_onFamilyChange);
+    UiSelectionStore.instance.removeListener(_onExternalTabRequest);
     super.dispose();
+  }
+
+  /// Honour a tab switch requested from outside the widget tree — a friend
+  /// request notification tap. Ignored if the tab isn't available to this
+  /// account (a child without Discover).
+  void _onExternalTabRequest() {
+    final requested = UiSelectionStore.instance.requestedHomeTab;
+    if (requested == null || !_tabOrder.contains(requested)) return;
+    UiSelectionStore.instance.consumeRequestedHomeTab();
+    if (!mounted) return;
+    _setTab(requested);
   }
 
   /// A guardian can unlock (or re-lock) Discover while the child is looking
@@ -150,9 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             PillNavItem(
                               id: 'rooms',
                               label: 'ROOMS',
-                              badge: widget.repo.unreadRoomCount == 0
+                              badge: widget.repo.unreadMessageTotal == 0
                                   ? null
-                                  : '${widget.repo.unreadRoomCount}',
+                                  : '${widget.repo.unreadMessageTotal}',
                             ),
                             if (widget.family.canSeePublicRooms)
                               const PillNavItem(
@@ -479,7 +496,7 @@ class _RoomsPanel extends StatelessWidget {
               room: rooms[i],
               api: api,
               dmUser: repo.otherUserFor(rooms[i]),
-              typingNames: repo.typingIn(rooms[i].id),
+              typists: repo.typingIn(rooms[i].id),
               onTap: () =>
                   openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
             ),
@@ -504,7 +521,7 @@ class _RoomsPanel extends StatelessWidget {
               room: rooms[i],
               api: api,
               dmUser: repo.otherUserFor(rooms[i]),
-              typingNames: repo.typingIn(rooms[i].id),
+              typists: repo.typingIn(rooms[i].id),
               onTap: () =>
                   openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
             ),

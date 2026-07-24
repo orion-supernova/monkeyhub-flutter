@@ -9,8 +9,10 @@ import '../data/ui_selection_store.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_field.dart';
 import 'room_screen.dart';
 
 class CreateRoomSheet extends StatefulWidget {
@@ -180,12 +182,19 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                         label: 'NAME',
                         controller: _name,
                         hint: 'name it something honest…',
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) =>
+                            FocusScope.of(context).nextFocus(),
                       ),
                       const SizedBox(height: 18),
                       LabeledField(
                         label: 'DESCRIPTION · OPTIONAL',
                         controller: _desc,
                         hint: 'one line about the room…',
+                        textInputAction: TextInputAction.done,
+                        // Same guard as the CTA, so Enter can't create a room
+                        // the button is currently refusing to.
+                        onSubmitted: (_) => _busy ? null : _create(),
                       ),
                       const SizedBox(height: 22),
                       const FieldLabel('VISIBILITY'),
@@ -301,11 +310,10 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                       // can be discoverable yet locked, a private room can be
                       // hidden yet open. Show the field for both.
                       const SizedBox(height: 22),
-                      LabeledField(
+                      PasswordField(
                         label: 'PASSWORD · OPTIONAL',
                         controller: _password,
                         hint: 'lock with a passphrase…',
-                        obscure: true,
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: 14),
@@ -322,7 +330,12 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                         ),
                       ],
                       const SizedBox(height: 26),
-                      GestureDetector(
+                      FocusableTap(
+                        onTap: _busy ? null : _create,
+                        enabled: !_busy,
+                        semanticLabel: 'Open the room',
+                        radius: theme.radiusLg,
+                        child: GestureDetector(
                         onTap: _busy ? null : _create,
                         child: AnimatedContainer(
                           duration: theme.motionFast,
@@ -361,6 +374,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                                   ],
                                 ),
                         ),
+                      ),
                       ),
                     ],
                   ),

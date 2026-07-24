@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'labeled_field.dart';
@@ -37,6 +38,17 @@ class _ReportSheetState extends State<_ReportSheet> {
   void dispose() {
     _note.dispose();
     super.dispose();
+  }
+
+  /// Lifted out of the button's inline closure so the keyboard activation path
+  /// and the tap path run the same code.
+  void _submitReport() {
+    final selected = _selected;
+    if (selected == null) return;
+    final reason = selected == 'OTHER' && _note.text.trim().isNotEmpty
+        ? 'OTHER: ${_note.text.trim()}'
+        : selected;
+    Navigator.of(context).pop(reason);
   }
 
   @override
@@ -134,15 +146,13 @@ class _ReportSheetState extends State<_ReportSheet> {
               ),
             ],
             const SizedBox(height: 18),
-            GestureDetector(
-              onTap: _selected == null
-                  ? null
-                  : () {
-                      final reason = _selected == 'OTHER' && _note.text.trim().isNotEmpty
-                          ? 'OTHER: ${_note.text.trim()}'
-                          : _selected!;
-                      Navigator.of(context).pop(reason);
-                    },
+            FocusableTap(
+              onTap: _selected == null ? null : _submitReport,
+              enabled: _selected != null,
+              semanticLabel: 'Submit report',
+              radius: theme.radiusMd,
+              child: GestureDetector(
+              onTap: _selected == null ? null : _submitReport,
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 alignment: Alignment.center,
@@ -158,6 +168,7 @@ class _ReportSheetState extends State<_ReportSheet> {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),

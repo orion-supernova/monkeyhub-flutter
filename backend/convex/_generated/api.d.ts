@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as badges from "../badges.js";
 import type * as calls from "../calls.js";
 import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
@@ -34,6 +35,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  badges: typeof badges;
   calls: typeof calls;
   childGuard: typeof childGuard;
   crons: typeof crons;

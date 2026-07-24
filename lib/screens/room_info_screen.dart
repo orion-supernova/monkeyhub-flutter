@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
 import 'profile_screen.dart';
@@ -533,12 +534,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ),
                             const SizedBox(height: 10),
                           ],
-                          ThemedInput(
+                          PasswordField(
                             controller: _newPassword,
                             hint: r.hasPassword
                                 ? 'replace passphrase…'
                                 : 'lock with a passphrase…',
-                            obscure: true,
                           ),
                           if (r.hasPassword) ...[
                             const SizedBox(height: 10),

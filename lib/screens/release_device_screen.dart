@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_field.dart';
 
 /// Hands a child's phone back to a grown-up.
 ///
@@ -187,16 +189,18 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                           enableSuggestions: false,
                         ),
                         const SizedBox(height: 10),
-                        ThemedInput(
+                        PasswordField(
                           controller: _password,
                           hint: 'their password',
-                          obscure: true,
-                          autocorrect: false,
-                          enableSuggestions: false,
                           onSubmitted: (_) => _submitPassword(),
                         ),
                         const SizedBox(height: 16),
-                        GestureDetector(
+                        FocusableTap(
+                          onTap: _busy ? null : _submitPassword,
+                          enabled: !_busy,
+                          semanticLabel: 'Sign out',
+                          radius: theme.radiusMd,
+                          child: GestureDetector(
                           onTap: _busy ? null : _submitPassword,
                           behavior: HitTestBehavior.opaque,
                           child: Container(
@@ -217,6 +221,7 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                                 letterSpacing: 2.4,
                               ),
                             ),
+                          ),
                           ),
                         ),
                         if (_error != null) ...[

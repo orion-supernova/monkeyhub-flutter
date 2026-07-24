@@ -41,4 +41,14 @@ crons.interval(
   {},
 );
 
+// Sweep push receipts past the notification TTL. Rows are normally removed on
+// delete or on read; this catches the ones nobody ever acted on. See
+// notifications.gcPushReceipts.
+crons.interval(
+  "notifications.gcPushReceipts",
+  { hours: 6 },
+  internal.notifications.gcPushReceipts,
+  {},
+);
+
 export default crons;

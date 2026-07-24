@@ -49,6 +49,14 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
     .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const t of typing) await ctx.db.delete(t._id);
+  // Outstanding push receipts. The notifications themselves are already moot —
+  // every message they pointed at is gone — so we drop the rows without
+  // cancelling; the badge corrects on the recipients' next push or foreground.
+  const receipts = await ctx.db
+    .query("pushReceipts")
+    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const p of receipts) await ctx.db.delete(p._id);
   // The room itself
   await ctx.db.delete(roomId);
 }

@@ -10,6 +10,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../screens/profile_screen.dart';
+import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'message_action_menu.dart';
 import 'message_bubble.dart';
@@ -252,7 +253,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
     return Material(
       type: MaterialType.transparency,
-      child: Stack(
+      // Esc dismisses with the same exit animation as a scrim tap, and Tab
+      // stays inside the overlay.
+      child: OverlayModalScope(
+        onDismiss: _dismiss,
+        child: Stack(
         children: [
           // Frosted scrim. Tap to dismiss.
           Positioned.fill(
@@ -391,6 +396,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             ),
           ),
         ],
+        ),
       ),
     );
   }

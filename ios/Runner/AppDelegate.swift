@@ -630,6 +630,105 @@ import flutter_callkit_incoming
         result(nil)
       }
     }
+
+    // monkeyhub/notifications — pull already-delivered notifications out of
+    // Notification Center.
+    //
+    // The server can only cancel a push while it's still queued (OneSignal's
+    // DELETE /notifications explicitly does not remove a delivered message),
+    // so removing one that already landed has to happen here. Notifications
+    // are matched by the identifiers the backend set as `collapse_id`
+    // (= messageId) and `thread_id` (= roomId).
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubNotificationsPlugin") {
+      let notifChannel = FlutterMethodChannel(
+        name: "monkeyhub/notifications",
+        binaryMessenger: registrar.messenger()
+      )
+      notifChannel.setMethodCallHandler { call, result in
+        let args = call.arguments as? [String: Any] ?? [:]
+        let center = UNUserNotificationCenter.current()
+        switch call.method {
+        case "dismiss":
+          let ids = (args["ids"] as? [String]) ?? []
+          if !ids.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: ids)
+          }
+          result(nil)
+        case "dismissRoom":
+          guard let roomId = args["roomId"] as? String else {
+            result(nil)
+            return
+          }
+          center.getDeliveredNotifications { delivered in
+            let ids = delivered
+              .filter { $0.request.content.threadIdentifier == roomId }
+              .map { $0.request.identifier }
+            if !ids.isEmpty {
+              center.removeDeliveredNotifications(withIdentifiers: ids)
+            }
+            // getDeliveredNotifications answers off the main thread; hop back
+            // before touching the Flutter channel.
+            DispatchQueue.main.async { result(nil) }
+          }
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+  }
+
+  /// Silent-push entry point for server-driven notification removal.
+  ///
+  /// The backend sends `content_available: true` with no `contents` when a
+  /// message is deleted or a room is read on another device, carrying the
+  /// identifiers to pull. Nothing is displayed for these.
+  ///
+  /// Caveat worth knowing: iOS does not deliver silent pushes to a
+  /// force-quit app, so a notification can outlive its message until the
+  /// next launch. No API on any platform changes that.
+  override func application(
+    _ application: UIApplication,
+    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+  ) {
+    // OneSignal nests the app's `data` payload under "custom" → "a".
+    let custom = userInfo["custom"] as? [String: Any]
+    let data = (custom?["a"] as? [String: Any]) ?? userInfo
+
+    guard (data["kind"] as? String) == "dismiss" else {
+      super.application(
+        application,
+        didReceiveRemoteNotification: userInfo,
+        fetchCompletionHandler: completionHandler
+      )
+      return
+    }
+
+    let center = UNUserNotificationCenter.current()
+    let ids = (data["dismissIds"] as? [String]) ?? []
+    let roomId = data["roomId"] as? String
+
+    if !ids.isEmpty {
+      center.removeDeliveredNotifications(withIdentifiers: ids)
+    }
+
+    // Room-level sweep (sent when the user reads the room elsewhere).
+    // removeDeliveredNotifications is asynchronous and fire-and-forget, so we
+    // must not resolve the completion handler until the enumeration is done —
+    // otherwise iOS can suspend us mid-removal.
+    if let roomId, ids.isEmpty {
+      center.getDeliveredNotifications { delivered in
+        let roomIds = delivered
+          .filter { $0.request.content.threadIdentifier == roomId }
+          .map { $0.request.identifier }
+        if !roomIds.isEmpty {
+          center.removeDeliveredNotifications(withIdentifiers: roomIds)
+        }
+        completionHandler(.newData)
+      }
+    } else {
+      completionHandler(.newData)
+    }
   }
 }
 

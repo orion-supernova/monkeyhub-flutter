@@ -4,7 +4,9 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import '../keyboard/focusable_tap.dart';
 import 'labeled_field.dart';
+import 'password_field.dart';
 import 'remote_image.dart';
 
 /// Confirmation gate shown before joining a public room. Previews the room
@@ -40,7 +42,6 @@ class _JoinRoomSheet extends StatefulWidget {
 
 class _JoinRoomSheetState extends State<_JoinRoomSheet> {
   final _password = TextEditingController();
-  bool _obscure = true;
 
   @override
   void dispose() {
@@ -149,54 +150,56 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
             if (room.hasPassword) ...[
               const SizedBox(height: 20),
               const FieldLabel('PASSWORD'),
-              ThemedInput(
+              PasswordField(
                 controller: _password,
                 hint: 'passphrase…',
-                obscure: _obscure,
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
-                onSubmitted: (_) => _join(),
-                trailing: IconButton(
-                  onPressed: () => setState(() => _obscure = !_obscure),
-                  icon: Icon(
-                    _obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: theme.inkMuted,
-                    size: 18,
-                  ),
-                ),
+                // Enter must not do what the dimmed JOIN button says it can't.
+                onSubmitted: (_) => _canJoin ? _join() : null,
               ),
             ],
             const SizedBox(height: 20),
-            Opacity(
-              opacity: _canJoin ? 1 : 0.4,
-              child: GestureDetector(
-                onTap: _join,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    borderRadius: BorderRadius.circular(theme.radiusMd),
-                  ),
-                  child: Text(
-                    'JOIN',
-                    style: theme.label
-                        .copyWith(color: theme.accentInk, letterSpacing: 2.4),
+            FocusableTap(
+              onTap: _canJoin ? _join : null,
+              enabled: _canJoin,
+              autofocus: !room.hasPassword,
+              semanticLabel: 'Join',
+              radius: theme.radiusMd,
+              child: Opacity(
+                opacity: _canJoin ? 1 : 0.4,
+                child: GestureDetector(
+                  onTap: _join,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: theme.accent,
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                    ),
+                    child: Text(
+                      'JOIN',
+                      style: theme.label
+                          .copyWith(color: theme.accentInk, letterSpacing: 2.4),
+                    ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 4),
-            GestureDetector(
+            FocusableTap(
               onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                alignment: Alignment.center,
-                child: Text('cancel',
-                    style: theme.bodySoft.copyWith(color: theme.inkMuted)),
+              semanticLabel: 'Cancel',
+              radius: theme.radiusMd,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  alignment: Alignment.center,
+                  child: Text('cancel',
+                      style: theme.bodySoft.copyWith(color: theme.inkMuted)),
+                ),
               ),
             ),
           ],

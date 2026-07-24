@@ -17,6 +17,8 @@ class ChatRoom {
     this.type = RoomType.regular,
     this.messageLifetime,
     this.avatarStorageId,
+    this.unreadCount = 0,
+    this.unreadCapped = false,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -37,6 +39,14 @@ class ChatRoom {
   RoomType type;
   Duration? messageLifetime;
   String? avatarStorageId;
+
+  /// Number of messages in this room newer than [lastReadAt] and not sent by
+  /// this user, computed server-side and capped at 99 (see backend
+  /// `badges.UNREAD_CAP`). [unreadCapped] is true when the real number is
+  /// higher, so the UI can render "99+".
+  int unreadCount;
+  bool unreadCapped;
+
   final List<String> participantIds;
 
   bool get isEphemeral => type == RoomType.secret;
@@ -44,12 +54,19 @@ class ChatRoom {
   bool get isDm => name.startsWith('dm:');
 
   /// True when the room has a message newer than this user's read cursor.
-  /// Never read (lastReadAt == null) with any message counts as unread.
-  /// markRoomRead advances lastReadAt past your own sends while you're in the
-  /// room, so your own last message doesn't light this up.
+  ///
+  /// Prefers the server-computed [unreadCount], which — unlike the timestamp
+  /// comparison — doesn't count the user's own sends. The timestamp fallback
+  /// is kept for the deploy window where a client is talking to a backend that
+  /// doesn't send `unreadCount` yet.
   bool get hasUnread =>
-      lastMessageTime != null &&
-      (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!));
+      unreadCount > 0 ||
+      (unreadCount == 0 &&
+          lastMessageTime != null &&
+          (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!)));
+
+  /// Badge text for the room list — "99+" once the server-side cap is hit.
+  String get unreadLabel => unreadCapped ? '99+' : '$unreadCount';
 
   /// For DM rooms, returns the "other" participant id (the one that's not me).
   String? otherParticipantId(String myId) {
@@ -75,6 +92,8 @@ class ChatRoom {
         'type': type.wire,
         if (messageLifetime != null) 'messageLifetime': messageLifetime!.inSeconds,
         if (avatarStorageId != null) 'avatarStorageId': avatarStorageId,
+        'unreadCount': unreadCount,
+        'unreadCapped': unreadCapped,
         'participantIds': participantIds,
       };
 
@@ -99,6 +118,8 @@ class ChatRoom {
       type: RoomTypeWire.parse(j['type'] as String?),
       messageLifetime: ml is num ? Duration(seconds: ml.toInt()) : null,
       avatarStorageId: j['avatarStorageId'] as String?,
+      unreadCount: ((j['unreadCount'] ?? 0) as num).toInt(),
+      unreadCapped: (j['unreadCapped'] ?? false) as bool,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }

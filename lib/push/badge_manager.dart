@@ -5,15 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
-import 'push_manager.dart';
 import 'web_badge.dart';
 
 /// Computes a single "needs attention" number for this user and pushes it to
 /// the platform app icon. The number aggregates:
 ///   - count of incoming friend / direct requests
-///   - count of rooms with a message newer than the last time the user
-///     opened them (best-effort; we don't yet persist a per-room read marker
-///     so this currently degrades to 0)
+///   - total unread messages across every room, from the server-computed
+///     per-room `unreadCount` (see backend `badges.ts`)
+///
+/// This must stay in step with the absolute `ios_badgeCount` the backend
+/// stamps into every push — the two are independent computations of the same
+/// number, and they'd be visibly wrong if they diverged.
 ///
 /// The platform write is dispatched per platform by [_writePlatform]:
 ///   - iOS / macOS / Windows / Linux → the native `monkeyhub/badge` method
@@ -22,9 +24,9 @@ import 'web_badge.dart';
 ///     when the app is an installed PWA). A browser tab has no app-icon badge.
 ///   - Android → no-op: badges are notification-channel-driven and handled by
 ///     OneSignal directly; we don't override that here.
-/// Backend pushes already set the iOS badge via the OneSignal payload — this
-/// manager is responsible for the in-process truth and for *clearing* the
-/// badge when the user reopens the app.
+/// Backend pushes already set the iOS badge via the OneSignal payload (an
+/// absolute `SetTo` value) — this manager is responsible for the in-process
+/// truth and for re-asserting it when the user reopens the app.
 class BadgeManager extends ChangeNotifier {
   BadgeManager._();
   static final BadgeManager instance = BadgeManager._();
@@ -54,20 +56,24 @@ class BadgeManager extends ChangeNotifier {
   void _recompute() {
     final repo = _repo;
     if (repo == null) return;
-    final next = repo.incomingRequests.length;
+    final next = repo.incomingRequests.length + repo.unreadMessageTotal;
     if (next == _total) return;
     _total = next;
     notifyListeners();
     _writePlatform(_total);
   }
 
-  /// Reset the platform badge — fire when the app resumes to the foreground
-  /// since OneSignal won't auto-clear it on iOS.
-  Future<void> clear() async {
-    _total = 0;
-    notifyListeners();
-    await _writePlatform(0);
-    await PushManager.instance.setBadge(0);
+  /// Re-assert the true badge value — fire when the app resumes to the
+  /// foreground, since iOS won't recompute it on its own.
+  ///
+  /// This deliberately does NOT zero the badge. Under the old `Increase`
+  /// payload the badge carried no meaning of its own, so clearing on resume
+  /// was the only correction available. Now that every push carries an
+  /// absolute `SetTo` count, zeroing here would wipe a legitimately unread
+  /// total the moment the user glanced at an unrelated screen.
+  Future<void> sync() async {
+    _recompute();
+    await _writePlatform(_total);
   }
 
   Future<void> _writePlatform(int n) async {

@@ -3,7 +3,9 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import 'count_badge.dart';
 import 'remote_image.dart';
+import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
@@ -14,7 +16,7 @@ class RoomCard extends StatelessWidget {
     required this.onTap,
     this.api,
     this.dmUser,
-    this.typingNames = const [],
+    this.typists = const [],
   });
 
   final ChatRoom room;
@@ -24,7 +26,7 @@ class RoomCard extends StatelessWidget {
   /// For DM rooms, the other participant — used to override the raw "dm:..."
   /// room name with the friend's display name + avatar.
   final ChatUser? dmUser;
-  final List<String> typingNames;
+  final List<ChatUser> typists;
 
   String _ago(DateTime? then) {
     if (then == null) return '';
@@ -115,31 +117,15 @@ class RoomCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (room.unreadCount > 0) ...[
+                  const SizedBox(width: 8),
+                  CountBadge(count: room.unreadCount),
+                ],
               ],
             ),
             const SizedBox(height: 8),
-            if (typingNames.isNotEmpty)
-              Row(children: [
-                Container(
-                  width: 5, height: 5,
-                  decoration: BoxDecoration(
-                    color: theme.accent,
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 6)],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    typingNames.length == 1
-                        ? '${typingNames.first} is typing…'
-                        : '${typingNames.length} typing…',
-                    style: theme.bodySoft.copyWith(color: theme.accent, fontStyle: FontStyle.italic),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ])
+            if (typists.isNotEmpty)
+              TypingLine(typists: typists)
             else if (room.lastMessage != null && room.lastMessage!.isNotEmpty)
               Text(
                 room.lastMessage!,

@@ -22,6 +22,7 @@ class PushManager {
 
   bool _initialized = false;
   void Function(String roomId)? _onOpenRoom;
+  VoidCallback? _onOpenRequests;
   String? Function()? _activeRoomIdProvider;
 
   // iOS PushKit channel — installed in ios/Runner/AppDelegate.swift. Dart
@@ -32,6 +33,11 @@ class PushManager {
   // PushKit channel; Dart calls `getToken` after login. No rotation
   // callback — the next login picks up a refreshed token.
   static const MethodChannel _fcmChannel = MethodChannel('monkeyhub/fcm');
+  // Local notification-shade control. The server can cancel a push only while
+  // it's still queued; once a device has displayed it, removing it is
+  // necessarily a client-side act. Installed in ios/Runner/AppDelegate.swift.
+  static const MethodChannel _notifChannel =
+      MethodChannel('monkeyhub/notifications');
   ChatApi? _api;
   String? _userId;
   String? _deviceId;
@@ -60,6 +66,13 @@ class PushManager {
   /// Call once at app startup. Safe to call multiple times.
   /// Bind a new room-open handler (call after the navigator is mounted).
   /// Safe to call any number of times — the latest wins.
+  /// Where a friend-request / approval notification tap should land. Those
+  /// pushes have no room to open, so without this a tap just raised the app
+  /// and left the user wherever they were.
+  void setOnOpenRequests(VoidCallback handler) {
+    _onOpenRequests = handler;
+  }
+
   void setOnOpenRoom(void Function(String roomId) handler) {
     _onOpenRoom = handler;
   }
@@ -353,13 +366,40 @@ class PushManager {
     }
   }
 
-  Future<void> setBadge(int count) async {
-    if (!_pushSupported || !_initialized) return;
+  /// Pull this room's already-delivered notifications out of the shade.
+  ///
+  /// Called when the user opens/reads a room. The server also fires a silent
+  /// dismiss push for the user's *other* devices, but this device doesn't need
+  /// to wait for a round trip — and on iOS a silent push wouldn't arrive at
+  /// all if the app had been force-quit.
+  Future<void> dismissRoomNotifications(String roomId) async {
+    if (kIsWeb) return;
     try {
-      // OneSignal SDK manages badge via notification payload; setting from
-      // client requires platform channels. No-op for now — let server push
-      // payload include `ios_badgeType` / `ios_badgeCount`.
-    } catch (_) {}
+      if (Platform.isAndroid) {
+        // Pairs with the `android_group` the backend stamps on every message
+        // push. This is Android-only in the SDK and self-guards.
+        await OneSignal.Notifications.removeGroupedNotifications(roomId);
+        return;
+      }
+      await _notifChannel.invokeMethod('dismissRoom', {'roomId': roomId});
+    } on MissingPluginException {
+      // Platform not wired (macOS/Windows/Linux) — nothing to dismiss there.
+    } catch (e) {
+      debugPrint('dismissRoomNotifications failed: $e');
+    }
+  }
+
+  /// Remove specific notifications by the identifier the server sent as
+  /// `collapse_id` — which is the messageId. Used when a message is deleted.
+  Future<void> dismissNotifications(List<String> ids) async {
+    if (kIsWeb || ids.isEmpty) return;
+    try {
+      await _notifChannel.invokeMethod('dismiss', {'ids': ids});
+    } on MissingPluginException {
+      // Same as above.
+    } catch (e) {
+      debugPrint('dismissNotifications failed: $e');
+    }
   }
 
   void _onClick(OSNotificationClickEvent e) {
@@ -367,6 +407,11 @@ class PushManager {
     final roomId = data?['roomId']?.toString();
     if (roomId != null && roomId.isNotEmpty) {
       _onOpenRoom?.call(roomId);
+      return;
+    }
+    // Friend request / approval — no room, so route to the requests list.
+    if (data?['kind']?.toString() == 'approval') {
+      _onOpenRequests?.call();
     }
   }
 

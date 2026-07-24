@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/submit_on_enter.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
@@ -471,23 +472,28 @@ class _Composer extends StatelessWidget {
             child: Container(
               decoration: theme.inputDecoration(),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-              child: TextField(
+              // No `onSubmitted`: a multi-line TextField never fires it.
+              // See lib/keyboard/submit_on_enter.dart.
+              child: SubmitOnEnter(
                 controller: controller,
-                focusNode: focusNode,
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                minLines: 1,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: requestMode
-                      ? (ephemeral ? 'whisper a first line · optional' : 'add a first message · optional')
-                      : (ephemeral ? 'whisper · auto-fades' : 'something to start with…'),
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                onSubmit: onSend,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: theme.body.copyWith(color: theme.ink),
+                  cursorColor: theme.accent,
+                  minLines: 1,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: requestMode
+                        ? (ephemeral ? 'whisper a first line · optional' : 'add a first message · optional')
+                        : (ephemeral ? 'whisper · auto-fades' : 'something to start with…'),
+                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
-                onSubmitted: (_) => onSend(),
               ),
             ),
           ),

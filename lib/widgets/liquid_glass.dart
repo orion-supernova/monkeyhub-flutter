@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 
 enum LiquidGlassShape { circle, capsule, rounded }
@@ -142,14 +143,45 @@ class _LiquidGlassState extends State<LiquidGlass> {
       child: sized,
     );
 
+    // The null check is exactly the right gate for keyboard focus too: the
+    // composer's glass *field* passes no onTap and must not become a focus
+    // stop, while the send/attach buttons pass one and should.
     if (widget.onTap == null) return scaled;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTap: widget.onTap,
-      child: scaled,
+    return FocusableTap(
+      onTap: _activateFromKeyboard,
+      shape: _ringShape,
+      radius: widget.radius,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: scaled,
+      ),
     );
+  }
+
+  FocusRingShape get _ringShape {
+    switch (widget.shape) {
+      case LiquidGlassShape.circle:
+        return FocusRingShape.circle;
+      case LiquidGlassShape.capsule:
+        return FocusRingShape.capsule;
+      case LiquidGlassShape.rounded:
+        return FocusRingShape.rounded;
+    }
+  }
+
+  /// Enter/Space activation. Pulses the same press state a tap would, so
+  /// keyboard use gets the identical scale feedback instead of firing
+  /// invisibly.
+  void _activateFromKeyboard() {
+    final theme = ThemeScope.of(context);
+    setState(() => _pressed = true);
+    Future<void>.delayed(theme.motionMed, () {
+      if (mounted) setState(() => _pressed = false);
+    });
+    widget.onTap?.call();
   }
 }

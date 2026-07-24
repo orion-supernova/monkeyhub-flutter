@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../auth/session_store.dart';
+import '../keyboard/focusable_tap.dart';
+import '../platform.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_field.dart';
 import 'child_pair_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -208,28 +211,45 @@ class _LoginScreenState extends State<LoginScreen> {
   /// The field stack for the active mode. Username is always first; the rest
   /// depend on what the mode actually needs. Fields carry no separate label —
   /// the placeholder names them.
+  /// Move to the next field. Used instead of explicit [FocusNode]s because
+  /// `_fields()` is rebuilt unkeyed whenever `_mode` or `_showOptional`
+  /// changes — owned nodes would need disposal and focus would still land
+  /// arbitrarily after a mode switch. `nextFocus()` needs no node at all.
+  void _next() => FocusScope.of(context).nextFocus();
+
   List<Widget> _fields() {
+    // The last field of each mode submits on Enter; every other field advances.
+    final passwordIsLast = _mode == _AuthMode.signIn;
+    final confirmIsLast = _mode == _AuthMode.signUp && !_showOptional;
+
     return [
       ThemedInput(
         controller: _username,
         hint: 'username',
         autocorrect: false,
         enableSuggestions: false,
+        autofocus: isPhysicalKeyboardPlatform,
+        textInputAction: TextInputAction.next,
+        onSubmitted: (_) => _next(),
       ),
       if (_mode != _AuthMode.reset) ...[
         const SizedBox(height: 12),
-        ThemedInput(
+        PasswordField(
           controller: _password,
           hint: 'password',
-          obscure: true,
+          textInputAction:
+              passwordIsLast ? TextInputAction.done : TextInputAction.next,
+          onSubmitted: (_) => passwordIsLast ? _submit() : _next(),
         ),
       ],
       if (_mode == _AuthMode.signUp) ...[
         const SizedBox(height: 12),
-        ThemedInput(
+        PasswordField(
           controller: _confirmPassword,
           hint: 'confirm password',
-          obscure: true,
+          textInputAction:
+              confirmIsLast ? TextInputAction.done : TextInputAction.next,
+          onSubmitted: (_) => confirmIsLast ? _submit() : _next(),
         ),
         const SizedBox(height: 14),
         _DisclosureLink(
@@ -240,21 +260,42 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         if (_showOptional) ...[
           const SizedBox(height: 14),
-          ThemedInput(controller: _name, hint: 'name'),
+          ThemedInput(
+            controller: _name,
+            hint: 'name',
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _next(),
+          ),
           const SizedBox(height: 12),
-          ThemedInput(controller: _email, hint: 'email'),
+          ThemedInput(
+            controller: _email,
+            hint: 'email',
+            textInputAction: TextInputAction.next,
+            onSubmitted: (_) => _next(),
+          ),
           const SizedBox(height: 12),
-          ThemedInput(controller: _recovery, hint: 'recovery phrase'),
+          ThemedInput(
+            controller: _recovery,
+            hint: 'recovery phrase',
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _submit(),
+          ),
         ],
       ],
       if (_mode == _AuthMode.reset) ...[
         const SizedBox(height: 12),
-        ThemedInput(controller: _recovery, hint: 'recovery phrase'),
-        const SizedBox(height: 12),
         ThemedInput(
+          controller: _recovery,
+          hint: 'recovery phrase',
+          textInputAction: TextInputAction.next,
+          onSubmitted: (_) => _next(),
+        ),
+        const SizedBox(height: 12),
+        PasswordField(
           controller: _newPassword,
           hint: 'new password',
-          obscure: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
         ),
       ],
     ];
@@ -352,7 +393,12 @@ class _SubmitButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
+    return FocusableTap(
+      onTap: busy ? null : onTap,
+      enabled: !busy,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: theme.motionFast,
@@ -385,6 +431,7 @@ class _SubmitButton extends StatelessWidget {
                 style: theme.label
                     .copyWith(color: theme.accentInk, letterSpacing: 2.4),
               ),
+      ),
       ),
     );
   }

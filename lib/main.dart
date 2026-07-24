@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show BrowserContextMenu;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
 import 'calls/native_call_handler.dart';
@@ -20,13 +21,28 @@ Future<void> main() async {
   // briefly default to Midnight before bootstrap's async read replaces it —
   // visible as a flicker on hot restart.
   await SettingsStore.instance.load();
-  // OneSignal (push) and flutter_callkit_incoming (native call UI) are
-  // iOS/Android-only plugins backed by dart:io — touching them on web throws
-  // and blanks the whole app before the first frame. Skip both on web; the
-  // push/call paths already no-op there (see PushManager._pushSupported and
-  // NativeCallHandler's kIsWeb guards). Web push, if ever wanted, needs
-  // OneSignal's separate JS Web SDK, not this plugin.
-  if (!kIsWeb) {
+  if (kIsWeb) {
+    // Hand right-click to Flutter instead of the browser.
+    //
+    // On web the browser's context menu is enabled by default and Flutter's
+    // are suppressed, so a right-click on a message bubble raised Chrome's own
+    // menu and `onSecondaryTap` never fired. Disabling it flips both: the
+    // bubble action menu works, and text fields switch from the browser's
+    // cut/copy/paste menu to Flutter's AdaptiveTextSelectionToolbar — so that
+    // still works, it's just Flutter-rendered.
+    //
+    // The trade-off is app-wide: browser affordances like "open link in new
+    // tab" and "inspect" are gone from right-click. Standard for an app-like
+    // web build, and the price of right-click doing anything of our own.
+    await BrowserContextMenu.disableContextMenu();
+  } else {
+    // OneSignal (push) and flutter_callkit_incoming (native call UI) are
+    // iOS/Android-only plugins backed by dart:io — touching them on web throws
+    // and blanks the whole app before the first frame. Skip both on web; the
+    // push/call paths already no-op there (see PushManager._pushSupported and
+    // NativeCallHandler's kIsWeb guards). Web push, if ever wanted, needs
+    // OneSignal's separate JS Web SDK, not this plugin.
+    //
     // Initialize OneSignal early so notification taps can route into the app.
     // The onOpenRoom callback is resolved later by app.dart, which holds the
     // repo + api; PushManager just stashes the callback until then.

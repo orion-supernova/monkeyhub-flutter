@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'remote_image.dart';
@@ -101,14 +102,23 @@ class _ConfirmSheet extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(true),
           ),
           const SizedBox(height: 10),
-          GestureDetector(
+          // Autofocused so Enter on a freshly-opened destructive sheet cancels
+          // rather than deletes — matching the macOS/Windows convention. Tab
+          // once to reach the destructive option.
+          FocusableTap(
             onTap: () => Navigator.of(context).pop(false),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              alignment: Alignment.center,
-              child: Text('CANCEL',
-                  style: theme.label.copyWith(color: theme.inkMuted)),
+            autofocus: true,
+            semanticLabel: 'Cancel',
+            radius: theme.radiusMd,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(false),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                alignment: Alignment.center,
+                child: Text('CANCEL',
+                    style: theme.label.copyWith(color: theme.inkMuted)),
+              ),
             ),
           ),
         ],
@@ -128,6 +138,7 @@ class ChoiceTile extends StatelessWidget {
     required this.sub,
     required this.onTap,
     this.filled = false,
+    this.autofocus = false,
   });
   final Color color;
   final IconData icon;
@@ -138,10 +149,19 @@ class ChoiceTile extends StatelessWidget {
   /// Use for the most destructive option, so it reads as the heavier choice.
   final bool filled;
 
+  /// Whether this tile takes keyboard focus when the sheet opens. Destructive
+  /// sheets autofocus their CANCEL instead — see the sheet builders.
+  final bool autofocus;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
+    return FocusableTap(
+      onTap: onTap,
+      autofocus: autofocus,
+      semanticLabel: title,
+      radius: theme.radiusMd,
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -179,6 +199,7 @@ class ChoiceTile extends StatelessWidget {
             Icon(Icons.arrow_outward, size: 14, color: theme.inkMuted),
           ],
         ),
+      ),
       ),
     );
   }

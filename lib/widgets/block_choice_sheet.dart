@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
@@ -119,13 +120,21 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
             ],
             const SizedBox(height: 14),
             Center(
-              child: GestureDetector(
+              // Autofocused so Enter on a freshly-opened sheet cancels rather
+              // than blocking. Tab to reach the block options.
+              child: FocusableTap(
                 onTap: () => Navigator.of(context).pop(BlockChoice.cancel),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-                  child: Text(
-                    'CANCEL',
-                    style: theme.label.copyWith(color: theme.inkMuted, letterSpacing: 2),
+                autofocus: true,
+                semanticLabel: 'Cancel',
+                radius: theme.radiusMd,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(BlockChoice.cancel),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
+                    child: Text(
+                      'CANCEL',
+                      style: theme.label.copyWith(color: theme.inkMuted, letterSpacing: 2),
+                    ),
                   ),
                 ),
               ),

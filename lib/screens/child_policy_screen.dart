@@ -4,11 +4,13 @@ import '../backend/chat_api.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_field.dart';
 import '../widgets/remove_contact_sheet.dart';
 import '../widgets/user_avatar.dart';
 
@@ -897,44 +899,65 @@ class _PromptSheetState extends State<_PromptSheet> {
                   const SizedBox(height: 14),
                   Text(widget.blurb, style: theme.bodySoft),
                   const SizedBox(height: 18),
-                  ThemedInput(
-                    controller: _value,
-                    hint: widget.hint,
-                    obscure: widget.obscure,
-                    autofocus: true,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    onSubmitted: (_) => _submit(),
-                  ),
+                  // Obscured prompts are passwords (the graduate-child flow),
+                  // so they get the show/hide toggle; plain prompts stay a
+                  // bare input.
+                  if (widget.obscure)
+                    PasswordField(
+                      controller: _value,
+                      hint: widget.hint,
+                      autofocus: true,
+                      onSubmitted: (_) => _submit(),
+                    )
+                  else
+                    ThemedInput(
+                      controller: _value,
+                      hint: widget.hint,
+                      autofocus: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      onSubmitted: (_) => _submit(),
+                    ),
                   const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: _submit,
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: _valid ? theme.accent : theme.surfaceSunken,
-                        borderRadius: BorderRadius.circular(theme.radiusMd),
-                      ),
-                      child: Text(
-                        widget.ctaLabel,
-                        style: theme.label.copyWith(
-                          color: _valid ? theme.accentInk : theme.inkMuted,
-                          letterSpacing: 2.4,
+                  FocusableTap(
+                    onTap: _valid ? _submit : null,
+                    enabled: _valid,
+                    semanticLabel: widget.ctaLabel,
+                    radius: theme.radiusMd,
+                    child: GestureDetector(
+                      onTap: _submit,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _valid ? theme.accent : theme.surfaceSunken,
+                          borderRadius: BorderRadius.circular(theme.radiusMd),
+                        ),
+                        child: Text(
+                          widget.ctaLabel,
+                          style: theme.label.copyWith(
+                            color: _valid ? theme.accentInk : theme.inkMuted,
+                            letterSpacing: 2.4,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  GestureDetector(
+                  FocusableTap(
                     onTap: () => Navigator.of(context).pop(),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      child: Text('CANCEL',
-                          style: theme.label.copyWith(color: theme.inkSoft)),
+                    semanticLabel: 'Cancel',
+                    radius: theme.radiusMd,
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        alignment: Alignment.center,
+                        child: Text('CANCEL',
+                            style: theme.label.copyWith(color: theme.inkSoft)),
+                      ),
                     ),
                   ),
                 ],

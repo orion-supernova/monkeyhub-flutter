@@ -36,6 +36,8 @@ class ThemedInput extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.trailing,
+    this.focusNode,
+    this.textInputAction,
   });
 
   final TextEditingController controller;
@@ -44,6 +46,14 @@ class ThemedInput extends StatelessWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
   final int? minLines;
+
+  /// For programmatic focus — autofocus chains, moving focus on submit.
+  final FocusNode? focusNode;
+
+  /// `next` on a non-terminal field turns the soft keyboard's return key into a
+  /// "next field" arrow; `done` on the last one submits. Mobile-facing — the
+  /// desktop Enter path is handled by the caller's `onSubmitted`.
+  final TextInputAction? textInputAction;
 
   /// Defaults to 1 to match [TextField]'s own default — passing `null` here
   /// would make the field grow without bound.
@@ -62,6 +72,8 @@ class ThemedInput extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final field = TextField(
       controller: controller,
+      focusNode: focusNode,
+      textInputAction: textInputAction,
       obscureText: obscure,
       autofocus: autofocus,
       keyboardType: keyboardType,
@@ -108,6 +120,8 @@ class LabeledField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.trailing,
+    this.focusNode,
+    this.textInputAction,
   });
 
   final String label;
@@ -123,6 +137,8 @@ class LabeledField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final Widget? trailing;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
 
   @override
   Widget build(BuildContext context) {
@@ -143,6 +159,8 @@ class LabeledField extends StatelessWidget {
           onChanged: onChanged,
           onSubmitted: onSubmitted,
           trailing: trailing,
+          focusNode: focusNode,
+          textInputAction: textInputAction,
         ),
       ],
     );

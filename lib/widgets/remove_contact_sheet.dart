@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
@@ -185,15 +186,23 @@ class _RemoveContactSheet extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Center(
-              child: GestureDetector(
+              // Autofocused so Enter cancels rather than removing. Tab to
+              // reach the destructive option.
+              child: FocusableTap(
                 onTap: () => Navigator.of(context).pop(false),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
-                  child: Text(
-                    'CANCEL',
-                    style: theme.label
-                        .copyWith(color: theme.inkMuted, letterSpacing: 2),
+                autofocus: true,
+                semanticLabel: 'Cancel',
+                radius: theme.radiusMd,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).pop(false),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
+                    child: Text(
+                      'CANCEL',
+                      style: theme.label
+                          .copyWith(color: theme.inkMuted, letterSpacing: 2),
+                    ),
                   ),
                 ),
               ),

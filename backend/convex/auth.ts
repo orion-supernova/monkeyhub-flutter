@@ -229,6 +229,16 @@ async function purgeUser(ctx: any, userId: any) {
     await ctx.db.query("reactions").withIndex("by_user", byUser(userId)).collect(),
   );
 
+  // Push receipts addressed to this user. `by_user_room` is used as a
+  // userId-only prefix here.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("pushReceipts")
+      .withIndex("by_user_room", byUser(userId))
+      .collect(),
+  );
+
   // ── Social graph ─────────────────────────────────────────────────────────
   await deleteRows(
     ctx,

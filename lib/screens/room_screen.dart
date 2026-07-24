@@ -21,14 +21,19 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../data/ui_selection_store.dart';
+import '../keyboard/focusable_tap.dart';
+import '../keyboard/submit_on_enter.dart';
+import '../platform.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../widgets/thread_overlay.dart';
@@ -388,10 +393,20 @@ class _RoomScreenState extends State<RoomScreen>
     final gate = widget.repo.takeChildGateError();
     if (gate != null && mounted) {
       _composer.text = text; // don't lose what they wrote
+      _keepComposerFocus();
       await _handleSendGate(gate);
       return;
     }
+    _keepComposerFocus();
     _scrollToBottom();
+  }
+
+  /// Keep the caret in the composer after an Enter-send so the user can keep
+  /// typing. Desktop only — on mobile the send button is the affordance and
+  /// re-focusing would re-open the soft keyboard the user may have dismissed.
+  void _keepComposerFocus() {
+    if (!isPhysicalKeyboardPlatform || !mounted) return;
+    if (!_composerFocus.hasFocus) _composerFocus.requestFocus();
   }
 
   /// A send was refused by a child guard. Two shapes: the room needs a
@@ -650,19 +665,30 @@ class _RoomScreenState extends State<RoomScreen>
               listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
             ),
           ),
-          if (_replyingTo != null)
-            ComposerReplyCard(
-              parent: _replyingTo!,
-              api: widget.api,
-              onCancel: () => setState(() => _replyingTo = null),
+          // Same column as the messages above, so the composer lines up with
+          // the conversation instead of running the full width of the window.
+          AdaptivePageBody(
+            maxWidth: ContentWidth.roomDetail,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_replyingTo != null)
+                  ComposerReplyCard(
+                    parent: _replyingTo!,
+                    api: widget.api,
+                    onCancel: () => setState(() => _replyingTo = null),
+                  ),
+                _Composer(
+                  controller: _composer,
+                  focusNode: _composerFocus,
+                  ephemeral: room.isEphemeral,
+                  onSend: _send,
+                  onChanged: (_) => widget.repo.noteTyping(),
+                  onAttach: _onAttach,
+                ),
+              ],
             ),
-          _Composer(
-            controller: _composer,
-            focusNode: _composerFocus,
-            ephemeral: room.isEphemeral,
-            onSend: _send,
-            onChanged: (_) => widget.repo.noteTyping(),
-            onAttach: _onAttach,
           ),
         ],
       ),
@@ -698,7 +724,10 @@ class _RoomScreenState extends State<RoomScreen>
             right: 0,
             child: SafeArea(
               bottom: false,
-              child: _LiquidHeader(
+              child: AdaptivePageBody(
+                maxWidth: ContentWidth.roomDetail,
+                alignment: Alignment.center,
+                child: _LiquidHeader(
                 room: room,
                 dmUser: widget.repo.otherUserFor(room),
                 api: widget.api,
@@ -708,6 +737,7 @@ class _RoomScreenState extends State<RoomScreen>
                   _openProfile(u);
                 },
                 onOpenInfo: () => _openRoomInfo(room),
+                ),
               ),
             ),
           ),
@@ -715,9 +745,19 @@ class _RoomScreenState extends State<RoomScreen>
             bottom: 0,
             left: 0,
             right: 0,
-            child: Column(
+            child: AdaptivePageBody(
+              maxWidth: ContentWidth.roomDetail,
+              alignment: Alignment.center,
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Floats above the composer rather than adding to `chromeH`,
+                // so the message list's padding stays correct and the pill
+                // simply hovers over the last message while it's showing.
+                TypingPill(
+                  typists: widget.repo.typingIn(room.id),
+                  api: widget.api,
+                ),
                 if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
@@ -733,6 +773,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onAttach: _onAttach,
                 ),
               ],
+              ),
             ),
           ),
         ],
@@ -763,7 +804,12 @@ class _RoomScreenState extends State<RoomScreen>
     _chipRestingY = listPadding.top + 4;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      // Dismisses the soft keyboard when you tap the transcript. On desktop
+      // there is no soft keyboard to dismiss, and stealing focus here would
+      // silently break Enter-to-send after any click in the conversation.
+      onTap: isPhysicalKeyboardPlatform
+          ? null
+          : () => FocusManager.instance.primaryFocus?.unfocus(),
       child: messages.isEmpty
           ? (!initialLoaded
                 ? Center(
@@ -777,7 +823,16 @@ class _RoomScreenState extends State<RoomScreen>
                       : const _NoMessagesPlaceholder()))
           : Stack(
               children: [
-                ListView.builder(
+                // Centre the conversation into a readable column on wide
+                // windows. Without this the list spans the whole pane, so a
+                // sent and a received bubble sit pinned to opposite edges with
+                // several hundred px of dead gutter between them — the bubbles
+                // were already capped by messageMaxWidth, it was the column
+                // around them that was missing. Pure passthrough on phones.
+                AdaptivePageBody(
+                  maxWidth: ContentWidth.roomDetail,
+                  alignment: Alignment.center,
+                  child: ListView.builder(
                   key: _listViewportKey,
                   controller: _scroll,
                   reverse: true,
@@ -978,6 +1033,7 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 );
               },
+                  ),
                 ),
                 Positioned(
                   // Anchor below the list's own top padding so the chip
@@ -1046,18 +1102,11 @@ class _Header extends StatelessWidget {
     this.onTapDmUser,
   });
   final ChatRoom room;
-  final List<String> typing;
+  final List<ChatUser> typing;
   final VoidCallback onOpenInfo;
   final ChatUser? dmUser;
   final ChatApi api;
   final VoidCallback? onTapDmUser;
-
-  String _typingLabel() {
-    if (typing.isEmpty) return '';
-    if (typing.length == 1) return '${typing.first} is typing…';
-    if (typing.length == 2) return '${typing[0]} and ${typing[1]} are typing…';
-    return '${typing.first} and ${typing.length - 1} others are typing…';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1116,11 +1165,11 @@ class _Header extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        SizedBox(width: 14, height: 14, child: _TypingDots(color: theme.accent)),
+                        TypingDots(color: theme.accent),
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            _typingLabel(),
+                            typingLabel(typing),
                             style: theme.monoTiny.copyWith(color: theme.accent),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1213,51 +1262,6 @@ class _RoomIntro extends StatelessWidget {
   }
 }
 
-class _TypingDots extends StatefulWidget {
-  const _TypingDots({required this.color});
-  final Color color;
-  @override
-  State<_TypingDots> createState() => _TypingDotsState();
-}
-
-class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100))
-    ..repeat();
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, _) {
-        final t = _ctrl.value;
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: List.generate(3, (i) {
-            final phase = ((t * 3) - i).clamp(0.0, 1.0);
-            final a = (0.3 + 0.7 * (1 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0));
-            return Padding(
-              padding: EdgeInsets.only(right: i == 2 ? 0 : 2),
-              child: Container(
-                width: 3,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: a),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            );
-          }),
-        );
-      },
-    );
-  }
-}
-
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
@@ -1286,7 +1290,11 @@ class _Composer extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (onAttach != null) ...[
-            GestureDetector(
+            FocusableTap(
+              onTap: onAttach,
+              semanticLabel: 'Attach',
+              shape: FocusRingShape.circle,
+              child: GestureDetector(
               onTap: onAttach,
               child: Container(
                 width: 38,
@@ -1299,6 +1307,7 @@ class _Composer extends StatelessWidget {
                 ),
                 child: Icon(Icons.add, color: theme.inkSoft, size: 18),
               ),
+              ),
             ),
             const SizedBox(width: 10),
           ],
@@ -1306,27 +1315,37 @@ class _Composer extends StatelessWidget {
             child: Container(
               decoration: theme.inputDecoration(),
               padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: TextField(
+              // No `onSubmitted` here: a multi-line TextField never fires it —
+              // Flutter turns Enter into a newline. SubmitOnEnter intercepts
+              // the key instead, and leaves Shift+Enter as the newline.
+              child: SubmitOnEnter(
                 controller: controller,
-                focusNode: focusNode,
-                style: theme.body.copyWith(color: theme.ink),
-                cursorColor: theme.accent,
-                minLines: 1,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: ephemeral ? 'whisper something the server will forget…' : 'say something…',
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                onSubmit: onSend,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: theme.body.copyWith(color: theme.ink),
+                  cursorColor: theme.accent,
+                  minLines: 1,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: ephemeral ? 'whisper something the server will forget…' : 'say something…',
+                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  ),
+                  onChanged: onChanged,
                 ),
-                onChanged: onChanged,
-                onSubmitted: (_) => onSend(),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          GestureDetector(
+          FocusableTap(
+            onTap: onSend,
+            semanticLabel: 'Send',
+            shape: FocusRingShape.circle,
+            child: GestureDetector(
             onTap: onSend,
             child: Container(
               width: 38,
@@ -1344,6 +1363,7 @@ class _Composer extends StatelessWidget {
               ),
               child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
             ),
+          ),
           ),
         ],
       ),
@@ -1799,21 +1819,25 @@ class _LiquidComposer extends StatelessWidget {
               shape: LiquidGlassShape.rounded,
               radius: 22,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: TextField(
+              // See _Composer above — multi-line fields never fire onSubmitted.
+              child: SubmitOnEnter(
                 controller: controller,
-                focusNode: focusNode,
-                style: theme.body.copyWith(color: theme.ink, fontSize: 16),
-                cursorColor: theme.accent,
-                minLines: 1,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  border: InputBorder.none,
-                  hintText: ephemeral ? 'whisper something the server will forget…' : 'Message',
-                  hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                onSubmit: onSend,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: theme.body.copyWith(color: theme.ink, fontSize: 16),
+                  cursorColor: theme.accent,
+                  minLines: 1,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    border: InputBorder.none,
+                    hintText: ephemeral ? 'whisper something the server will forget…' : 'Message',
+                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                  ),
+                  onChanged: onChanged,
                 ),
-                onChanged: onChanged,
-                onSubmitted: (_) => onSend(),
               ),
             ),
           ),

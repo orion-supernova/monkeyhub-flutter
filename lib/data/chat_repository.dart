@@ -10,6 +10,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
+import '../push/push_manager.dart';
 import 'cache_store.dart';
 import 'settings_store.dart';
 
@@ -32,9 +33,15 @@ class ChatRepository extends ChangeNotifier {
   List<ChatRoom> _rooms = [];
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
-  /// Number of rooms with messages newer than this user's read cursor —
-  /// drives the unread count on the Chat tab / ROOMS pill.
+  /// Number of rooms with messages newer than this user's read cursor.
   int get unreadRoomCount => _rooms.where((r) => r.hasUnread).length;
+
+  /// Total unread *messages* across every room — drives the Chat tab / ROOMS
+  /// pill badge and, via [BadgeManager], the OS app-icon badge. Counts
+  /// messages rather than rooms so it matches what the push payload's
+  /// absolute `ios_badgeCount` says.
+  int get unreadMessageTotal =>
+      _rooms.fold(0, (sum, r) => sum + r.unreadCount);
 
   /// Lookup a user by id from any cached source the repo currently knows
   /// (friends list). Returns null when the user isn't cached — callers may
@@ -73,9 +80,12 @@ class ChatRepository extends ChangeNotifier {
   // four-subscription cascade.
   final Map<String, String?> _lastSeenNewestMsgId = {};
 
-  // Map of roomId → list of typing-user display names (other users only).
-  final Map<String, List<String>> _typingByRoom = {};
-  List<String> typingIn(String roomId) =>
+  // Map of roomId → the users currently typing there (other users only).
+  // Full [ChatUser]s rather than bare names so the indicator can render real
+  // avatars for multi-person typing; the backend returns the same key shape
+  // `ChatUser.fromJson` expects.
+  final Map<String, List<ChatUser>> _typingByRoom = {};
+  List<ChatUser> typingIn(String roomId) =>
       List.unmodifiable(_typingByRoom[roomId] ?? const []);
 
   Subscription? _roomsSub;
@@ -222,8 +232,16 @@ class ChatRepository extends ChangeNotifier {
         if (data is Map) {
           data.forEach((roomId, names) {
             if (names is List) {
-              _typingByRoom[roomId.toString()] =
-                  names.map((e) => e.toString()).toList();
+              // This stream carries names only — the room list renders a
+              // label, not avatars. Wrapped in a name-only [ChatUser] so the
+              // shared typing widgets take one type regardless of which
+              // subscription filled the map. The open room's subscription
+              // (below) overwrites its entry with fully-populated users.
+              _typingByRoom[roomId.toString()] = names
+                  .map((e) => e.toString())
+                  .where((s) => s.isNotEmpty)
+                  .map((n) => ChatUser(id: '', username: '', name: n))
+                  .toList();
             }
           });
         }
@@ -390,6 +408,10 @@ class ChatRepository extends ChangeNotifier {
           if (newestId != null && newestId != _lastSeenNewestMsgId[roomId]) {
             _lastSeenNewestMsgId[roomId] = newestId;
             api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+            // Reading it means its notifications are spent. Done locally
+            // rather than waiting for the server's silent dismiss push, which
+            // is best-effort and can't reach a force-quit app at all.
+            PushManager.instance.dismissRoomNotifications(roomId);
           }
         }
         notifyListeners();
@@ -419,6 +441,7 @@ class ChatRepository extends ChangeNotifier {
     // Mark the room read on entry too.
     if (me != null) {
       api.markRoomRead(roomId: roomId, userId: me).catchError((_) {});
+      PushManager.instance.dismissRoomNotifications(roomId);
     }
     final id = _userId;
     if (id != null) {
@@ -428,8 +451,8 @@ class ChatRepository extends ChangeNotifier {
         onData: (data) {
           final list = (data as List?) ?? const [];
           _typingByRoom[roomId] = list
-              .map((e) => ((e as Map)['name'] ?? '').toString())
-              .where((s) => s.isNotEmpty)
+              .whereType<Map>()
+              .map((e) => ChatUser.fromJson(e.cast<String, dynamic>()))
               .toList();
           notifyListeners();
         },

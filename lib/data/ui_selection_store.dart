@@ -40,4 +40,26 @@ class UiSelectionStore extends ChangeNotifier {
     _settingsDetailKey = key;
     notifyListeners();
   }
+
+  /// A one-shot request to switch the home screen's tab ('rooms' | 'discover' |
+  /// 'friends'), used when something outside the widget tree needs to steer the
+  /// UI — currently a friend-request notification tap.
+  ///
+  /// One-shot because it's an event, not state: [HomeScreen] calls
+  /// [consumeRequestedHomeTab] when it acts on it, so a later rebuild (or a
+  /// second HomeScreen after a navigation) doesn't yank the user back to a tab
+  /// they've since left.
+  String? _requestedHomeTab;
+  String? get requestedHomeTab => _requestedHomeTab;
+
+  void requestHomeTab(String tab) {
+    _requestedHomeTab = tab;
+    notifyListeners();
+  }
+
+  String? consumeRequestedHomeTab() {
+    final t = _requestedHomeTab;
+    _requestedHomeTab = null;
+    return t;
+  }
 }

@@ -130,7 +130,7 @@ class _HomeShellState extends State<HomeShell> {
                     section: HomeSection.chat,
                     icon: CupertinoIcons.bubble_left,
                     label: 'CHAT',
-                    badgeCount: widget.repo.unreadRoomCount,
+                    badgeCount: widget.repo.unreadMessageTotal,
                   ),
                   const RadialMenuItem(
                       section: HomeSection.feed,
@@ -149,7 +149,7 @@ class _HomeShellState extends State<HomeShell> {
             _PillBottomNav(
               active: settings.section,
               onSelect: _select,
-              chatBadge: widget.repo.unreadRoomCount,
+              chatBadge: widget.repo.unreadMessageTotal,
               settingsBadge: widget.family.pendingCount,
             ),
         ],
@@ -178,7 +178,7 @@ class _HomeShellState extends State<HomeShell> {
                 _SideRail(
                   active: settings.section,
                   onSelect: _select,
-                  chatBadge: widget.repo.unreadRoomCount,
+                  chatBadge: widget.repo.unreadMessageTotal,
                   settingsBadge: widget.family.pendingCount,
                 ),
                 VerticalDivider(

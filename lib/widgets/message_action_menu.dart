@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
 
@@ -204,7 +205,12 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // Flutter's debug "missing ancestor" yellow underlines.
     return Material(
       type: MaterialType.transparency,
-      child: Stack(
+      // Esc dismisses, and Tab can't escape into the widgets behind the scrim.
+      // Routed through _resolve so Esc gets the same exit animation and
+      // re-entrancy guard as a scrim tap.
+      child: OverlayModalScope(
+        onDismiss: () => _resolve(null),
+        child: Stack(
         children: [
           _Scrim(t: curved, onTap: () => _resolve(null)),
           _LiftedBubble(
@@ -256,6 +262,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           ),
         ),
         ],
+        ),
       ),
     );
   }

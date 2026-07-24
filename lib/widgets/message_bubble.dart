@@ -155,6 +155,10 @@ class MessageBubble extends StatelessWidget {
                 GestureDetector(
                   onLongPress: onLongPress,
                   onDoubleTap: onDoubleTap,
+                  // Desktop/trackpad right-click opens the same action menu,
+                  // anchored to the same bubble rect. No platform gate needed —
+                  // touch devices never produce a secondary tap.
+                  onSecondaryTap: onLongPress,
                   child: bubbleArea,
                 ),
                 if (message.reactions.isNotEmpty && onReactionTap != null)
@@ -328,6 +332,8 @@ class EphemeralMessageBubble extends StatelessWidget {
                   GestureDetector(
                     onLongPress: onLongPress,
                     onDoubleTap: onDoubleTap,
+                    // See MessageBubble above — right-click mirrors long-press.
+                    onSecondaryTap: onLongPress,
                     child: bubbleArea,
                   ),
                   if (message.reactions.isNotEmpty && onReactionTap != null)

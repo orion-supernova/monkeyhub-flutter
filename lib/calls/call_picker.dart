@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/glass_surface.dart';
 import 'call_models.dart';
@@ -112,7 +113,10 @@ class _CallPickerOverlayState extends State<_CallPickerOverlay>
     // the main source of jank here).
     return Material(
       type: MaterialType.transparency,
-      child: Stack(
+      // Esc closes the picker, same as tapping the scrim.
+      child: OverlayModalScope(
+        onDismiss: () => _close(null),
+        child: Stack(
         children: [
           Positioned.fill(
             child: GestureDetector(
@@ -159,6 +163,7 @@ class _CallPickerOverlayState extends State<_CallPickerOverlay>
             ),
           ),
         ],
+        ),
       ),
     );
   }

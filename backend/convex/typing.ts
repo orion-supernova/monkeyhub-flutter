@@ -1,7 +1,25 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 1.5s inactivity, heartbeat every 2s
+const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
+
+/**
+ * Shape both typing queries return per typist. Deliberately mirrors the keys
+ * `ChatUser.fromJson` reads on the client, so the indicator can render a real
+ * `UserAvatar` without a bespoke model. Avatars are unfiltered here for the
+ * same reason `rooms.getMembers` leaves them unfiltered: everyone in this list
+ * is already a member of a room the viewer is in.
+ */
+async function typistOf(ctx: any, userId: any) {
+  const user = await ctx.db.get(userId);
+  if (!user) return null;
+  return {
+    _id: user._id,
+    username: user.username ?? "",
+    name: user.name ?? user.username ?? "",
+    avatarStorageId: user.avatarStorageId,
+  };
+}
 
 export const setTyping = mutation({
   args: {
@@ -42,6 +60,11 @@ export const clearTyping = mutation({
 
 /// Returns { roomId: [typerName, …] } for all rooms the user belongs to.
 /// A single subscription gives live typing state for the whole room list.
+///
+/// Intentionally still plain names, not the richer `typistOf` shape: the room
+/// list only renders a label, and changing this to objects would garble the
+/// typing text on every app build already in users' hands. The in-room
+/// indicator, which does need avatars, uses `getTypingUsers` below.
 export const getTypingForUser = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -73,7 +96,7 @@ export const getTypingForUser = query({
             })
           )
         ).filter(Boolean) as string[];
-        result[m.roomId.toString()] = names;
+        if (names.length > 0) result[m.roomId.toString()] = names;
       }
     }
     return result;
@@ -96,14 +119,8 @@ export const getTypingUsers = query({
         now - t.updatedAt < TYPING_TTL_MS
     );
 
-    // Enrich with user names
     const enriched = await Promise.all(
-      active.map(async (t) => {
-        const user = await ctx.db.get(t.userId);
-        return user
-          ? { userId: t.userId, name: user.name ?? user.username, username: user.username }
-          : null;
-      })
+      active.map((t) => typistOf(ctx, t.userId))
     );
     return enriched.filter(Boolean);
   },
