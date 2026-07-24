@@ -20,8 +20,8 @@ or **AAB** (Google Play, internal testing track).
 |---|---|
 | `--ios` | iOS → App Store Connect |
 | `--android[=apk\|play]` | Android; `apk` (default) = self-hosted download page, `play` = Play internal |
-| `--web` | Flutter web build → https://monkeyhub.walhallaa.com (opt-in, experimental) |
-| `--all` | Convex + iOS + Android(apk) — web is never included |
+| `--web` | Flutter web build → https://monkeyhub.walhallaa.com |
+| `--all` | Convex + iOS + Android(apk) + web |
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
 
@@ -160,9 +160,12 @@ first run, that URL shows the `hosting/root.template.html` placeholder (the
 script only uploads the placeholder when no `main.dart.js` is present, so it
 never clobbers a real build).
 
-Experimental: `convex_flutter` has a web implementation, but
-`flutter_callkit_incoming` and the WebRTC/recording plugins are mobile-only —
-chat may work in a browser, calling won't.
+One standing limitation, not a maturity caveat: `flutter_callkit_incoming` is
+mobile-only, so a browser gets no CallKit / ConnectionService ringing.
+
+Note a web deploy reaches every user on their next page load, with no store
+review and nothing to install — so `--all` lands web well before the iOS build
+finishes review.
 
 ## Switching Android to Google Play (once the account is verified)
 

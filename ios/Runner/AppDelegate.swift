@@ -692,8 +692,15 @@ import flutter_callkit_incoming
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
     // OneSignal nests the app's `data` payload under "custom" → "a".
+    //
+    // The fallback re-keys userInfo to [String: Any] rather than using it as-is:
+    // `??` needs both sides to be the same type, and userInfo arrives as
+    // [AnyHashable: Any]. APNs payload keys are always strings, so the cast
+    // holds; an empty dictionary just falls through to super below.
     let custom = userInfo["custom"] as? [String: Any]
-    let data = (custom?["a"] as? [String: Any]) ?? userInfo
+    let data = (custom?["a"] as? [String: Any])
+      ?? (userInfo as? [String: Any])
+      ?? [:]
 
     guard (data["kind"] as? String) == "dismiss" else {
       super.application(

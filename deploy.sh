@@ -14,7 +14,7 @@
 #            → Play mode: flutter build appbundle → Google Play internal track
 #                         (needs verified Play account; see DEPLOY.md)
 #   Web      → --web: flutter build web → rsync to the same VM, served at
-#                     https://monkeyhub.walhallaa.com/ (opt-in, not in --all)
+#                     https://monkeyhub.walhallaa.com/
 #
 # The APK used to live on Firebase Hosting; the Spark (free) plan refuses to
 # serve executables ("Executable files are forbidden on the Spark billing plan"),
@@ -51,7 +51,7 @@ RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 DEPLOY_IOS=""
 DEPLOY_ANDROID=""
 ANDROID_MODE="apk" # apk | play
-DEPLOY_WEB=false   # --web: flutter build web → VM. Opt-in, never part of --all.
+DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android APK / web: rsync to the VM.
 RUN_GIT=true
 DRY_RUN=false
@@ -68,9 +68,8 @@ Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
   --android[=apk|play]  Ship Android. apk (default): signed APK + self-hosted
                         download page. play: AAB for Google Play internal.
-  --web                 Build Flutter web and publish it at $WEB_URL
-                        (experimental — callkit/WebRTC are mobile-only).
-  --all                 Convex + iOS + Android(apk). Web is never included.
+  --web                 Build Flutter web and publish it at $WEB_URL.
+  --all                 Convex + iOS + Android(apk) + web.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
 
@@ -94,8 +93,11 @@ while [[ $# -gt 0 ]]; do
         --android=apk)       DEPLOY_ANDROID=true; ANDROID_MODE="apk";  PLATFORM_ARGS=true ;;
         --android=play)      DEPLOY_ANDROID=true; ANDROID_MODE="play"; PLATFORM_ARGS=true ;;
         --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
-        --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
+        --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
+                             PLATFORM_ARGS=true ;;
+        # Zeroes web too, so "backend only" holds even after --all or --web.
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_ANDROID=false
+                             DEPLOY_WEB=false
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
         --dry)
             DRY_RUN=true
@@ -114,8 +116,10 @@ done
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
-    local labels=("Convex backend" "iOS  → App Store Connect" "Android" "Web  → $WEB_URL (experimental)")
-    local selected=(1 1 0 0)   # defaults mirror the legacy behavior; Web is opt-in
+    local labels=("Convex backend" "iOS  → App Store Connect" "Android" "Web  → $WEB_URL")
+    # Menu starts on Convex + iOS only. Unlike --all (which now ships web too),
+    # the picker leaves Android and Web unticked so a bare Enter stays cheap.
+    local selected=(1 1 0 0)
     # Honor explicit --no-convex / --web even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
     [ "$DEPLOY_WEB" = true ] && selected[3]=1
@@ -490,10 +494,11 @@ fi
 publish_release() {   # $1 = channel, $2 = updateUrl (optional)
     local channel="$1"
     local update_url="${2:-}"
-    if [ "$RUN_CONVEX" = false ]; then
-        echo "  ⏭️  Not announcing $channel $DISPLAY_VERSION (--no-convex)"
-        return 0
-    fi
+    # Deliberately NOT gated on --no-convex. That flag means "don't push backend
+    # code", not "don't record what shipped" — and the retry line this script
+    # prints after a failed upload recommends --no-convex, which is exactly when
+    # a silent skip would hurt. Every call site already sits inside a
+    # RUN_UPLOAD=true branch, so --no-upload and --dry never reach here.
     local payload="{\"channel\":\"$channel\",\"version\":\"$DISPLAY_VERSION\""
     [ -n "$update_url" ] && payload="$payload,\"updateUrl\":\"$update_url\""
     payload="$payload}"
@@ -757,11 +762,12 @@ if [ "$DEPLOY_ANDROID" = true ]; then
     ANDROID_BUILD_TIME=$((ANDROID_END_TIME - ANDROID_START_TIME))
 fi
 
-# ----- Web build (opt-in via --web) -----
-# Experimental: convex_flutter ships a web implementation, but
-# flutter_callkit_incoming and the WebRTC/recording plugins are mobile-only, so
-# calling features won't work in the browser. Replaces the placeholder landing
-# page at $WEB_URL.
+# ----- Web build (--web, or as part of --all) -----
+# Replaces the placeholder landing page at $WEB_URL.
+#
+# One standing limitation, not a caveat about maturity: the native call UI
+# (flutter_callkit_incoming) is mobile-only, so a browser gets no CallKit /
+# ConnectionService ringing.
 WEB_BUILD_TIME=0
 if [ "$DEPLOY_WEB" = true ]; then
     WEB_START_TIME=$(date +%s)
