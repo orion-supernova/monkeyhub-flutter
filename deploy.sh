@@ -114,17 +114,18 @@ done
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
-    local labels=("Convex backend" "iOS  → App Store Connect" "Android")
-    local selected=(1 1 0)   # defaults mirror the legacy behavior
-    # Honor explicit --no-convex even in interactive mode.
+    local labels=("Convex backend" "iOS  → App Store Connect" "Android" "Web  → $WEB_URL (experimental)")
+    local selected=(1 1 0 0)   # defaults mirror the legacy behavior; Web is opt-in
+    # Honor explicit --no-convex / --web even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
-    local cursor=0 count=3 key rest i marker arrow
+    [ "$DEPLOY_WEB" = true ] && selected[3]=1
+    local cursor=0 count=4 key rest i marker arrow
 
     exec 3</dev/tty
     tput civis 2>/dev/null || true
     echo "Select what to deploy  (↑/↓ move · space toggle · enter go)"
     while true; do
-        for i in 0 1 2; do
+        for i in 0 1 2 3; do
             [ "${selected[$i]}" = 1 ] && marker="◉" || marker="◯"
             [ "$i" = "$cursor" ] && arrow="❯" || arrow=" "
             printf "  %s %s %s\033[K\n" "$arrow" "$marker" "${labels[$i]}"
@@ -151,11 +152,12 @@ pick_platforms() {
     RUN_CONVEX=$([ "${selected[0]}" = 1 ] && echo true || echo false)
     DEPLOY_IOS=$([ "${selected[1]}" = 1 ] && echo true || echo false)
     DEPLOY_ANDROID=$([ "${selected[2]}" = 1 ] && echo true || echo false)
+    DEPLOY_WEB=$([ "${selected[3]}" = 1 ] && echo true || echo false)
 
     if [ "$DEPLOY_ANDROID" = true ]; then
         pick_android_mode
     fi
-    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ]; then
+    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ]; then
         echo "Nothing selected — exiting."
         exit 0
     fi
@@ -652,7 +654,9 @@ if [ "$DEPLOY_ANDROID" = true ]; then
             fi
 
             # Keep the root landing page in place until a real web build exists.
-            ssh $SSH_OPTS "$VM_USER@$VM_HOST" "[ -f $VM_WEB_DIR/main.dart.js ]" 2>/dev/null \
+            # Match the web-build validation: modern Flutter web may emit
+            # flutter_bootstrap.js instead of main.dart.js.
+            ssh $SSH_OPTS "$VM_USER@$VM_HOST" "[ -f $VM_WEB_DIR/main.dart.js ] || [ -f $VM_WEB_DIR/flutter_bootstrap.js ]" 2>/dev/null \
                 || scp $SSH_OPTS hosting/root.template.html \
                        "$VM_USER@$VM_HOST:$VM_WEB_DIR/index.html" > /dev/null
         else
