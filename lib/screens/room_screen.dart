@@ -1884,41 +1884,38 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
           ),
           const SizedBox(width: 12),
           Expanded(
+            // LiquidGlass now shrink-wraps its content, so the capsule is as
+            // wide as the title and no wider; Center keeps it centred in the
+            // header and the inner Flexible(Text) ellipsizes once a long
+            // title reaches the available width. (This used to need an
+            // IntrinsicWidth to undo LiquidGlass expanding to fill.)
             child: Center(
-              // IntrinsicWidth makes LiquidGlass shrink-wrap its content
-              // (LiquidGlass's internal Center would otherwise expand to fill
-              // whatever bounded width it gets, which is why a short title
-              // still produced a full-width capsule). When the title is long
-              // IntrinsicWidth clamps to the parent's max, so the inner
-              // Flexible(Text) ellipsizes inside the capsule's max width.
-              child: IntrinsicWidth(
-                child: LiquidGlass(
-                  shape: LiquidGlassShape.capsule,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  onTap: _expandTitle,
-                  child: AnimatedSize(
-                    duration: theme.motionMed,
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.dmUser != null)
-                          UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
-                        else
-                          _RoomAvatar(room: widget.room, api: widget.api, size: 32),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
-                            overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
-                            softWrap: _expanded,
-                            maxLines: _expanded ? 3 : 1,
-                          ),
+              child: LiquidGlass(
+                shape: LiquidGlassShape.capsule,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                onTap: _expandTitle,
+                child: AnimatedSize(
+                  duration: theme.motionMed,
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.dmUser != null)
+                        UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
+                      else
+                        _RoomAvatar(room: widget.room, api: widget.api, size: 32),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
+                          overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
+                          softWrap: _expanded,
+                          maxLines: _expanded ? 3 : 1,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),

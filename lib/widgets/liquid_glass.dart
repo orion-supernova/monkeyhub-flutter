@@ -110,7 +110,20 @@ class _LiquidGlassState extends State<LiquidGlass> {
                 ),
               ),
             ),
-            Padding(padding: widget.padding, child: Center(child: widget.child)),
+            // A Stack sizes to its non-positioned children, so THIS decides
+            // how wide the glass is. Centring unconditionally made that child
+            // an Align, which expands to fill whatever bounded width it is
+            // given — so a capsule around two words still painted full width,
+            // and every caller that wanted a pill had to defend itself with
+            // an IntrinsicWidth. Centre only when [size] pins the box, where
+            // there is real slack to centre the child within; otherwise let
+            // the glass shrink-wrap its content.
+            Padding(
+              padding: widget.padding,
+              child: widget.size == null
+                  ? widget.child
+                  : Center(child: widget.child),
+            ),
           ],
         ),
       ),

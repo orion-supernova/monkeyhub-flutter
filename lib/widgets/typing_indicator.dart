@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
 import 'user_avatar.dart';
@@ -11,15 +12,19 @@ import 'user_avatar.dart';
 /// one place because three hand-rolled copies had drifted apart, so the same
 /// two people typing read differently depending on which screen you were on.
 ///
-///   1  → mom is typing…
-///   2  → mom and dad are typing…
-///   3+ → mom, dad +2 are typing…
+///   1  → mom is typing
+///   2  → mom and dad are typing
+///   3+ → mom, dad +2 are typing
+///
+/// No trailing ellipsis: every surface that shows this label also shows
+/// [TypingDots] beside it, and the animated dots ARE the ellipsis. Printing
+/// "typing…" next to them rendered the same idea twice, six dots in a row.
 String typingLabel(List<ChatUser> typists) {
   if (typists.isEmpty) return '';
   final names = typists.map((u) => u.displayName).toList();
-  if (names.length == 1) return '${names[0]} is typing…';
-  if (names.length == 2) return '${names[0]} and ${names[1]} are typing…';
-  return '${names[0]}, ${names[1]} +${names.length - 2} are typing…';
+  if (names.length == 1) return '${names[0]} is typing';
+  if (names.length == 2) return '${names[0]} and ${names[1]} are typing';
+  return '${names[0]}, ${names[1]} +${names.length - 2} are typing';
 }
 
 /// Three dots that fade in sequence. Also lifts each dot slightly at the peak
@@ -192,28 +197,49 @@ class _TypingPillState extends State<TypingPill> {
             child: shown.isEmpty
                 ? const SizedBox(width: double.infinity, height: 0)
                 : Padding(
+                    // 16 matches the compact composer's own inset rather than
+                    // the transcript's 20: the pill floats directly above the
+                    // composer, so a stagger against the capsule 8px below it
+                    // reads louder than a 4px offset from bubbles further up.
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: LiquidGlass(
-                        shape: LiquidGlassShape.capsule,
-                        padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TypistAvatars(typists: shown, api: widget.api),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                typingLabel(shown),
-                                style: theme.monoTiny.copyWith(color: theme.ink),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                      // The capsule hugs its row, so it is normally just wide
+                      // enough for "mom is typing…". The cap only bites when a
+                      // busy room produces a long label: it then ellipsizes at
+                      // the same width a message bubble would, instead of
+                      // running the full width of a desktop chat column.
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(maxWidth: messageMaxWidth(context)),
+                        child: LiquidGlass(
+                          shape: LiquidGlassShape.capsule,
+                          // Tight on the avatar side (a circle needs no help
+                          // from the stadium cap), roomier past the dots so
+                          // they don't crowd the curve.
+                          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _TypistAvatars(typists: shown, api: widget.api),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  typingLabel(shown),
+                                  // Status, not content — reads as chrome
+                                  // beside the messages it sits over.
+                                  style: theme.monoTiny
+                                      .copyWith(color: theme.inkSoft),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            TypingDots(color: theme.accent, size: 5),
-                          ],
+                              const SizedBox(width: 8),
+                              // 4 to match TypingLine, and proportionate to
+                              // monoTiny — at 5 the dots outweighed the label.
+                              TypingDots(color: theme.accent, size: 4),
+                            ],
+                          ),
                         ),
                       ),
                     ),
