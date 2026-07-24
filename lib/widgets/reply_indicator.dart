@@ -10,6 +10,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
 import 'user_avatar.dart';
@@ -279,7 +280,10 @@ class _PhantomEcho extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
-    final maxW = MediaQuery.sizeOf(context).width * 0.72;
+    // Never wider than the bubble it is quoting for. This used to be a
+    // fraction of the WINDOW, which on a desktop pane made the quote card
+    // several times the width of the message under it.
+    final maxW = messageMaxWidth(context);
     // Tinted toward the accent when the quoted message is the current user's,
     // matching how their own bubbles read. Blended to an opaque colour first
     // so the 0.88 alpha below doesn't fade an already-translucent token twice.
@@ -554,7 +558,10 @@ class _StickyNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
-    final maxW = MediaQuery.sizeOf(context).width * 0.66;
+    // Sits slightly inside the bubble's own cap — the proportion this style
+    // always had (0.66 vs the 0.72 the others used), now measured against the
+    // bubble instead of the window.
+    final maxW = messageMaxWidth(context) * 0.92;
     final rotation = isMine ? 0.035 : -0.035; // ~±2°
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
@@ -754,7 +761,9 @@ class _ComicTail extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
-    final maxW = MediaQuery.sizeOf(context).width * 0.62;
+    // As above — the comic tail's 0.62-of-window proportion, re-based on the
+    // bubble's cap.
+    final maxW = messageMaxWidth(context) * 0.86;
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
     // Tinted toward the accent when the quoted message is the current user's
@@ -972,7 +981,8 @@ class _ClassicQuote extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
-    final maxW = MediaQuery.sizeOf(context).width * 0.72;
+    // See _PhantomEcho: the bubble's cap, not a slice of the window.
+    final maxW = messageMaxWidth(context);
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
     final mutedInk = theme.inkMuted;
@@ -991,6 +1001,12 @@ class _ClassicQuote extends StatelessWidget {
             ),
             child: IntrinsicHeight(
               child: Row(
+                // Hugs its content. With the default MainAxisSize.max (and
+                // the Expanded that used to sit below) the quote card always
+                // filled maxW, so a one-word quote painted a full-width slab.
+                // The stretch here is the CROSS axis — it equalises the
+                // accent rail's height, and is unrelated.
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 // Mirrored on isMine. This was the one design that ignored
                 // the flag entirely: the rail was pinned hard-left and the
@@ -1023,7 +1039,10 @@ class _ClassicQuote extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(
+                  // Flexible, not Expanded: the text takes only what it needs
+                  // and still ellipsizes when the quote is long enough to hit
+                  // maxW.
+                  Flexible(
                     child: Padding(
                       padding:
                           const EdgeInsets.fromLTRB(0, 8, 0, 8),

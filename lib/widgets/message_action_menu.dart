@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
@@ -63,11 +64,19 @@ Future<MessageActionResult?> showMessageActionMenu({
   final screenSize = MediaQuery.sizeOf(context);
   final safeInsets = MediaQuery.paddingOf(context);
 
+  // The entry lands on the ROOT overlay, so `bubbleBuilder` runs outside the
+  // room's ChatPane and would see no chat metrics at all. Today that is
+  // invisible because _LiftedBubble force-sizes the preview to the measured
+  // rect, but capturing them here keeps the preview honest if that ever
+  // relaxes — and makes the intent explicit rather than accidental.
+  final metrics = ChatMetricsScope.readOf(context);
+
   final completer = Completer<MessageActionResult?>();
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _MessageActionMenuOverlay(
       bubbleRect: bubbleRect,
+      metrics: metrics,
       bubbleBuilder: bubbleBuilder,
       isMine: isMine,
       canCopy: canCopy,
@@ -92,6 +101,7 @@ Future<MessageActionResult?> showMessageActionMenu({
 class _MessageActionMenuOverlay extends StatefulWidget {
   const _MessageActionMenuOverlay({
     required this.bubbleRect,
+    required this.metrics,
     required this.bubbleBuilder,
     required this.isMine,
     required this.canCopy,
@@ -103,6 +113,10 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   });
 
   final Rect bubbleRect;
+
+  /// Chat metrics captured from the pane the bubble was lifted out of; null
+  /// when it wasn't inside one.
+  final ChatMetrics? metrics;
   final WidgetBuilder bubbleBuilder;
   final bool isMine;
   final bool canCopy;
@@ -217,7 +231,12 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             t: curved,
             rect: bubble,
             isMine: widget.isMine,
-            child: widget.bubbleBuilder(context),
+            child: widget.metrics == null
+                ? widget.bubbleBuilder(context)
+                : ChatMetricsScope(
+                    metrics: widget.metrics!,
+                    child: Builder(builder: widget.bubbleBuilder),
+                  ),
           ),
         Positioned(
           top: pillTop,

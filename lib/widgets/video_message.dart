@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 
 /// Inline video player for chat messages. Resolves the storage URL on demand
@@ -12,11 +13,17 @@ class VideoMessage extends StatefulWidget {
     required this.api,
     required this.storageId,
     required this.isMine,
+    this.maxWidth,
   });
 
   final ChatApi api;
   final String? storageId;
   final bool isMine;
+
+  /// Widest the video box may get, normally `ChatMetrics.videoMaxWidth` from
+  /// the enclosing chat pane. Null falls back to [ChatMetrics.videoMin], which
+  /// is the 280 this used to hard-code — so phones are unchanged.
+  final double? maxWidth;
 
   @override
   State<VideoMessage> createState() => _VideoMessageState();
@@ -84,20 +91,25 @@ class _VideoMessageState extends State<VideoMessage> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final c = _controller;
+    // Placeholders keep the 240x180-inside-280 proportions they had when all
+    // three numbers were literals, so they scale together with the box.
+    final boxW = widget.maxWidth ?? ChatMetrics.videoMin;
+    final placeholderW = boxW * (240 / 280);
+    final placeholderH = boxW * (180 / 280);
 
     Widget surface;
     if (_error != null) {
       surface = Container(
-        width: 240,
-        height: 180,
+        width: placeholderW,
+        height: placeholderH,
         color: theme.surfaceSunken,
         alignment: Alignment.center,
         child: Icon(Icons.broken_image_outlined, color: theme.inkMuted),
       );
     } else if (c == null || _resolving) {
       surface = Container(
-        width: 240,
-        height: 180,
+        width: placeholderW,
+        height: placeholderH,
         color: theme.surfaceSunken,
         alignment: Alignment.center,
         child: SizedBox(
@@ -119,7 +131,10 @@ class _VideoMessageState extends State<VideoMessage> {
         alignment: Alignment.center,
         children: [
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 280, maxHeight: 360),
+            constraints: BoxConstraints(
+              maxWidth: boxW,
+              maxHeight: boxW * ChatMetrics.videoAspectCap,
+            ),
             child: surface,
           ),
           if (c != null && !c.value.isPlaying)

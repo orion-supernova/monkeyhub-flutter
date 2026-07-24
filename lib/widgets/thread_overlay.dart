@@ -15,6 +15,7 @@ import '../keyboard/overlay_modal_scope.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'chat_composer.dart';
+import 'chat_pane.dart';
 import 'composer_reply_card.dart';
 import 'message_action_menu.dart';
 import 'message_bubble.dart';
@@ -542,8 +543,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
             ),
             // Scrolling sheet of full-size bubbles + composer. The sheet is
             // transparent (no card surface) so the scrim shows through.
+            //
+            // The ChatPane goes here — inside Positioned.fill, outside the
+            // Column — so the transcript and composer are column-constrained
+            // while the scrim, close button and toast stay full-bleed: they
+            // are chrome for the window, not for the conversation. An overlay
+            // has no pane of its own, so what it measures IS the window,
+            // which is exactly right.
             Positioned.fill(
-              child: SafeArea(
+              child: ChatPane(
+                child: SafeArea(
                 // Bottom handled manually — see bottomInset above.
                 bottom: false,
                 child: AnimatedBuilder(
@@ -580,6 +589,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                         ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),
@@ -618,7 +628,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // Reversed so the newest sits against the composer and so prepending an
     // older page preserves scroll position for free.
     final count = messages.length + 1; // +1 for the top loading//end slot
-    return ListView.builder(
+    return ChatColumn(
+      child: ListView.builder(
       controller: _scroll,
       reverse: true,
       // Build well beyond the viewport so `ensureVisible` finds anchor keys
@@ -719,6 +730,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
           ],
         );
       },
+      ),
     );
   }
 
@@ -728,7 +740,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final room = widget.repo.roomById(widget.roomId);
     final ephemeral = room?.isEphemeral ?? false;
     final classic = SettingsStore.instance.chatStyle == ChatStyle.classic;
-    return Column(
+    // Same column as the thread transcript above it, so the composer lines up
+    // with the conversation instead of running the full window width.
+    return ChatColumn(
+      child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // No "REPLYING TO" banner in the normal case. In a room it earns its
@@ -774,6 +789,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           ),
       ],
+      ),
     );
   }
 }

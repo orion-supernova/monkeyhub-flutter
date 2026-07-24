@@ -91,7 +91,11 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
-    final maxWidth = messageMaxWidth(context);
+    // One lookup for the whole bubble. Null when this bubble is rendered
+    // outside a ChatPane (the lifted preview in the action menu overlay), in
+    // which case every metric below falls back to the literal it replaced.
+    final metrics = ChatMetricsScope.maybeOf(context);
+    final maxWidth = metrics?.bubbleMaxWidth ?? messageMaxWidth(context);
 
     // The main bubble with halo wrapper. The reply indicator (when present)
     // sits in a sibling Column ABOVE this — outside the bubble — so it can
@@ -102,7 +106,7 @@ class MessageBubble extends StatelessWidget {
       child: _HighlightPulse(
         t: highlightT,
         isMine: isMine,
-        child: _bubbleContent(theme, isMine, ephemeral: false),
+        child: _bubbleContent(theme, isMine, ephemeral: false, metrics: metrics),
       ),
     );
 
@@ -189,7 +193,8 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _bubbleContent(AppTheme theme, bool isMine, {required bool ephemeral}) {
+  Widget _bubbleContent(AppTheme theme, bool isMine,
+      {required bool ephemeral, ChatMetrics? metrics}) {
     return buildMessageContent(
       theme: theme,
       message: message,
@@ -197,6 +202,7 @@ class MessageBubble extends StatelessWidget {
       ephemeral: ephemeral,
       api: api,
       useHero: useHero,
+      metrics: metrics,
     );
   }
 }
@@ -252,6 +258,9 @@ class EphemeralMessageBubble extends StatelessWidget {
     final progress = message.lifeProgress(now);
     final dissolving = progress > 0.82;
     final dissolveT = dissolving ? ((progress - 0.82) / 0.18).clamp(0.0, 1.0) : 0.0;
+    // See MessageBubble.build — null outside a ChatPane, and every metric
+    // then falls back to the literal it replaced.
+    final metrics = ChatMetricsScope.maybeOf(context);
 
     final inner = buildMessageContent(
       theme: theme,
@@ -260,6 +269,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       ephemeral: true,
       api: api,
       useHero: useHero,
+      metrics: metrics,
     );
 
     final bubble = Stack(
@@ -279,7 +289,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       child: Opacity(opacity: 1 - dissolveT * 0.85, child: bubble),
     );
 
-    final maxWidth = messageMaxWidth(context);
+    final maxWidth = metrics?.bubbleMaxWidth ?? messageMaxWidth(context);
 
     final innerBubble = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
@@ -354,7 +364,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                     Opacity(
                       opacity: 1 - dissolveT,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: messageMaxWidth(context)),
+                        constraints: BoxConstraints(maxWidth: maxWidth),
                         child: ReactionRow(
                           reactions: message.reactions,
                           currentUserId: currentUserId,
@@ -395,9 +405,14 @@ Widget buildMessageContent({
   required bool ephemeral,
   required ChatApi api,
   bool useHero = true,
+  /// Pane geometry, when this bubble is inside a `ChatPane`. Media tiles grow
+  /// with the bubble on wide panes; when null (or on a phone, where the
+  /// clamps bottom out) every size below is exactly the literal it replaced.
+  ChatMetrics? metrics,
 }) {
   final deco =
       theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+  final imageSize = metrics?.mediaMaxWidth ?? ChatMetrics.mediaMin;
 
   final hasCaption = message.content.isNotEmpty;
   // Media messages render as a rounded media tile WITHOUT a surrounding
@@ -415,8 +430,11 @@ Widget buildMessageContent({
           final remote = RemoteImage(
             storageId: id,
             api: api,
-            width: 240,
-            height: 240,
+            // Kept square: the BoxFit.cover crop and the Hero flight into
+            // FullscreenImageViewer both assume a stable aspect ratio.
+            // Growing the square is fine; changing the ratio distorts.
+            width: imageSize,
+            height: imageSize,
             borderRadius: mediaRadius,
           );
           return GestureDetector(
@@ -434,7 +452,7 @@ Widget buildMessageContent({
         imageTile = imageChild;
       } else {
         imageTile = Container(
-          width: 240,
+          width: imageSize,
           height: 80,
           decoration: BoxDecoration(
             color: theme.surfaceSunken,
@@ -482,6 +500,7 @@ Widget buildMessageContent({
           api: api,
           storageId: message.mediaStorageId,
           isMine: isMine,
+          maxWidth: metrics?.videoMaxWidth,
         ),
       );
       if (!hasCaption) return videoTile;
@@ -589,6 +608,11 @@ class _LinkAwareBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Null outside a chat pane, where this falls back to the 320 it used to
+    // hard-code.
+    final linkWidth =
+        ChatMetricsScope.maybeOf(context)?.linkPreviewWidth ??
+            ChatMetrics.linkMin;
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) {
@@ -614,9 +638,10 @@ class _LinkAwareBubble extends StatelessWidget {
           // layout swaps between skeleton / hero / compact / bare —
           // otherwise the column would shrink to the narrower bare/compact
           // intrinsic width once the fetch lands, visibly pulling the
-          // message left or right depending on alignment.
+          // message left or right depending on alignment. Still fixed —
+          // just fixed per pane rather than forever.
           return SizedBox(
-            width: 320,
+            width: linkWidth,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -651,7 +676,15 @@ class _LinkAwareBubble extends StatelessWidget {
           decoration: decoration,
           clipBehavior: Clip.antiAlias,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            // Stretch ONLY when there are preview cards to fill the bubble.
+            // Unconditionally, it forced every text bubble out to the full
+            // maxWidth of its ConstrainedBox — a two-letter "hey" rendered as
+            // a full-width bar with a screenful of empty space beside the
+            // text. With `start` the bubble hugs its text and the max is what
+            // it should always have been: the point where a long message
+            // wraps to a second line.
+            crossAxisAlignment:
+                hasUrls ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               if (hasText)

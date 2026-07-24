@@ -25,10 +25,10 @@ import '../platform.dart';
 import '../theme/layout.dart';
 import 'room_items.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/chat_composer.dart';
+import '../widgets/chat_pane.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
@@ -737,16 +737,23 @@ class _RoomScreenState extends State<RoomScreen>
     }
     final chatStyle = SettingsStore.instance.chatStyle;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          if (chatStyle == ChatStyle.classic)
-            _buildClassic(context, room, messages, items, me)
-          else
-            _buildLiquid(context, room, messages, items, me),
-        ],
+    // ChatPane sits ABOVE the Scaffold on purpose: it must measure the pane
+    // the shell handed us, not the Scaffold's body, which shrinks while the
+    // keyboard animates. (The builder still re-runs on every keyboard frame,
+    // but the width doesn't move, so ChatMetricsScope.updateShouldNotify
+    // returns false and nothing below rebuilds.)
+    return ChatPane(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            theme.backgroundLayer(context),
+            if (chatStyle == ChatStyle.classic)
+              _buildClassic(context, room, messages, items, me)
+            else
+              _buildLiquid(context, room, messages, items, me),
+          ],
+        ),
       ),
     );
   }
@@ -779,9 +786,7 @@ class _RoomScreenState extends State<RoomScreen>
           ),
           // Same column as the messages above, so the composer lines up with
           // the conversation instead of running the full width of the window.
-          AdaptivePageBody(
-            maxWidth: ContentWidth.roomDetail,
-            alignment: Alignment.center,
+          ChatColumn(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -838,9 +843,7 @@ class _RoomScreenState extends State<RoomScreen>
             right: 0,
             child: SafeArea(
               bottom: false,
-              child: AdaptivePageBody(
-                maxWidth: ContentWidth.roomDetail,
-                alignment: Alignment.center,
+              child: ChatColumn(
                 child: _LiquidHeader(
                 room: room,
                 dmUser: widget.repo.otherUserFor(room),
@@ -859,9 +862,7 @@ class _RoomScreenState extends State<RoomScreen>
             bottom: 0,
             left: 0,
             right: 0,
-            child: AdaptivePageBody(
-              maxWidth: ContentWidth.roomDetail,
-              alignment: Alignment.center,
+            child: ChatColumn(
               child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -937,15 +938,16 @@ class _RoomScreenState extends State<RoomScreen>
                       : const _NoMessagesPlaceholder()))
           : Stack(
               children: [
-                // Centre the conversation into a readable column on wide
-                // windows. Without this the list spans the whole pane, so a
-                // sent and a received bubble sit pinned to opposite edges with
-                // several hundred px of dead gutter between them — the bubbles
-                // were already capped by messageMaxWidth, it was the column
-                // around them that was missing. Pure passthrough on phones.
-                AdaptivePageBody(
-                  maxWidth: ContentWidth.roomDetail,
-                  alignment: Alignment.center,
+                // The conversation fills its pane and only caps out on very
+                // wide monitors, where a sent and a received bubble would
+                // otherwise sit pinned to opposite edges with several hundred
+                // px of dead space between them. Pure passthrough below
+                // ChatMetrics.surfaceMax — i.e. on phones and on every normal
+                // laptop pane. NOTE the key stays on the ListView so
+                // _recomputePositionState keeps measuring in list-local
+                // coordinates; the Align this may introduce offsets x only,
+                // and only .dy is read.
+                ChatColumn(
                   child: ListView.builder(
                   key: _listViewportKey,
                   controller: _scroll,
@@ -1244,12 +1246,20 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // The rule stays full-bleed while the header CONTENT shares the chat
+    // column — the macOS/Slack convention, and what stops the remaining
+    // gutter on an ultrawide monitor from reading as a rendering bug. The
+    // padding lives inside the column rather than on the Container: on the
+    // Container it would be applied outside the constraint and the header
+    // would sit 12px in from the column while the transcript sits 20px in.
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: theme.divider, width: 1)),
       ),
-      child: Row(
+      child: ChatColumn(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
+          child: Row(
         children: [
           IconButton(
             onPressed: () => _roomBack(context),
@@ -1326,6 +1336,8 @@ class _Header extends StatelessWidget {
             icon: Icon(Icons.more_horiz, color: theme.inkSoft, size: 18),
           ),
         ],
+          ),
+        ),
       ),
     );
   }
