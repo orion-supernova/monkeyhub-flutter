@@ -359,10 +359,36 @@ class ChatApi {
     return res.toString();
   }
 
-  /// Fetch the entire conversational thread containing [messageId] — walks
-  /// up to the root via the parent chain, then BFS down through all
-  /// descendants. Result is chronological (oldest first), capped at
-  /// [maxTotal] messages.
+  /// One page of the thread rooted at [rootId], walking *older*: pass the
+  /// oldest `createdAt` you already hold as [before], or omit it for the
+  /// newest page. Result is chronological (oldest first).
+  ///
+  /// There is deliberately no "load newer" — the newest end of a thread is
+  /// covered by the room's live `messages:list` subscription, which
+  /// [ChatRepository.threadFor] merges in.
+  Future<({List<ChatMessage> messages, bool hasMore})> getThreadPage({
+    required String roomId,
+    required String rootId,
+    required String viewerUserId,
+    DateTime? before,
+    int limit = 25,
+  }) async {
+    final res = await _cv.query('messages:getThreadPage', {
+      'roomId': roomId,
+      'rootId': rootId,
+      'viewerUserId': viewerUserId,
+      'beforeTimestamp': ?before?.millisecondsSinceEpoch,
+      'limit': limit,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      messages: _decodeMessages(map['messages']),
+      hasMore: (map['hasMore'] as bool?) ?? false,
+    );
+  }
+
+  /// DEPRECATED — use [getThreadPage]. Fetches the entire conversational
+  /// thread containing [messageId] in one unpaged shot, capped at [maxTotal].
   Future<List<ChatMessage>> getThread({
     required String messageId,
     int maxTotal = 50,

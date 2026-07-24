@@ -17,6 +17,7 @@ import type * as family from "../family.js";
 import type * as files from "../files.js";
 import type * as friends from "../friends.js";
 import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   files: typeof files;
   friends: typeof friends;
   messages: typeof messages;
+  migrations: typeof migrations;
   notifications: typeof notifications;
   presence: typeof presence;
   reactions: typeof reactions;

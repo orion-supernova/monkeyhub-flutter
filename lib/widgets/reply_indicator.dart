@@ -27,25 +27,37 @@ import 'user_avatar.dart';
 ///   * [ReplyStyle.comicTail] — a small parent mini-bubble with a literal
 ///     comic-book triangle tail pointing down at the main bubble.
 ///
-/// All three handle deleted parents (renders "message removed" muted,
+/// All four handle deleted parents (renders "message removed" muted,
 /// disables tap, hides the branch button), media replies (thumbnail in
 /// place of the text snippet), and mine/theirs symmetry.
+///
+/// Every design mirrors on [isMine]: the connector, the tether rail and the
+/// branch button all sit on the side facing the bubble they belong to.
 class ReplyIndicator extends StatelessWidget {
   const ReplyIndicator({
     super.key,
     required this.preview,
     required this.isMine,
-    required this.distanceLabel, // currently unused by these designs
     required this.api,
     required this.onTap,
+    this.parentIsMine = false,
     this.parentAuthor,
     this.onViewThread,
     this.styleOverride,
   });
 
   final ReplyPreview preview;
+
+  /// Whether the *replying* message is the current user's — drives which
+  /// side everything mirrors to.
   final bool isMine;
-  final String? distanceLabel;
+
+  /// Whether the *quoted parent* was written by the current user. Designs
+  /// that give the quote a bubble of its own (phantom, comic) use it to pick
+  /// mine-vs-theirs coloring, so replying to yourself doesn't render a ghost
+  /// in someone else's colors.
+  final bool parentIsMine;
+
   final ChatApi api;
   final VoidCallback onTap;
   final ChatUser? parentAuthor;
@@ -64,6 +76,7 @@ class ReplyIndicator extends StatelessWidget {
         return _PhantomEcho(
           preview: preview,
           isMine: isMine,
+          parentIsMine: parentIsMine,
           api: api,
           parentAuthor: parentAuthor,
           onTap: onTap,
@@ -82,6 +95,7 @@ class ReplyIndicator extends StatelessWidget {
         return _ComicTail(
           preview: preview,
           isMine: isMine,
+          parentIsMine: parentIsMine,
           api: api,
           parentAuthor: parentAuthor,
           onTap: onTap,
@@ -159,7 +173,6 @@ Widget _mediaThumb({
   required ReplyPreview preview,
   required ChatApi api,
   required AppTheme theme,
-  required Color mutedInk,
   double size = 18,
 }) {
   final hasMedia =
@@ -248,6 +261,7 @@ class _PhantomEcho extends StatelessWidget {
   const _PhantomEcho({
     required this.preview,
     required this.isMine,
+    required this.parentIsMine,
     required this.api,
     required this.parentAuthor,
     required this.onTap,
@@ -255,6 +269,7 @@ class _PhantomEcho extends StatelessWidget {
   });
   final ReplyPreview preview;
   final bool isMine;
+  final bool parentIsMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
   final VoidCallback onTap;
@@ -265,11 +280,12 @@ class _PhantomEcho extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
     final maxW = MediaQuery.sizeOf(context).width * 0.72;
-    // Phantom is colored as a "they" bubble — surfaceRaised — since we don't
-    // have current-user context here to tell whether the parent author was
-    // mine. Visually this reads as "external context" floating above the
-    // bubble regardless. The avatar puck carries the identity color.
-    final phantomBg = theme.surfaceRaised;
+    // Tinted toward the accent when the quoted message is the current user's,
+    // matching how their own bubbles read. Blended to an opaque colour first
+    // so the 0.88 alpha below doesn't fade an already-translucent token twice.
+    final phantomBg = parentIsMine
+        ? Color.alphaBlend(theme.accentSoft, theme.surfaceRaised)
+        : theme.surfaceRaised;
     final phantomInk = theme.ink;
     final phantomMuted = theme.inkMuted;
 
@@ -325,44 +341,48 @@ class _PhantomEcho extends StatelessWidget {
               ),
             ),
             // ── connector with branch icon ──
-            if (!deleted)
-              SizedBox(
-                height: 44,
-                child: Align(
-                  alignment: isMine
-                      ? Alignment.centerRight
-                      : Alignment.centerLeft,
-                  child: SizedBox(
-                    width: 64,
-                    height: 44,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _PhantomConnectorPainter(
-                              isMine: isMine,
-                              color: theme.accent,
-                            ),
-                          ),
-                        ),
-                        if (onViewThread != null)
-                          Positioned(
-                            // 44×44 hit area; offset places the visual
-                            // icon centered on the curve's midpoint.
-                            left: isMine ? null : 0,
-                            right: isMine ? 0 : null,
-                            top: 0,
-                            child: _BranchButton(
-                              onTap: onViewThread!,
-                              theme: theme,
-                            ),
-                          ),
-                      ],
+            //
+            // Sized to the connector itself rather than wrapped in a
+            // full-width Align: an unbounded SizedBox here stretched the whole
+            // Column to `maxW`, which made the parent bubble's long-press
+            // target extend far past the visible bubble on short messages.
+            // The Column's crossAxisAlignment already mirrors it.
+            //
+            // The connector stays when the parent is deleted — only the branch
+            // button goes. Dropping the whole 44px block collapsed the gap to
+            // 2px and made deleted-parent replies look like a different design
+            // (comic and classic both keep theirs).
+            SizedBox(
+              width: 64,
+              height: 44,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _PhantomConnectorPainter(
+                        isMine: isMine,
+                        color: deleted
+                            ? theme.inkMuted.withValues(alpha: 0.55)
+                            : theme.accent,
+                      ),
                     ),
                   ),
-                ),
+                  if (onViewThread != null && !deleted)
+                    Positioned(
+                      // 44×44 hit area; offset places the visual
+                      // icon centered on the curve's midpoint.
+                      left: isMine ? null : 0,
+                      right: isMine ? 0 : null,
+                      top: 0,
+                      child: _BranchButton(
+                        onTap: onViewThread!,
+                        theme: theme,
+                      ),
+                    ),
+                ],
               ),
+            ),
           ],
         ),
       ),
@@ -485,7 +505,6 @@ class _PhantomBody extends StatelessWidget {
                       preview: preview,
                       api: api,
                       theme: theme,
-                      mutedInk: phantomMuted,
                     ),
                     const SizedBox(width: 6),
                     Flexible(
@@ -544,20 +563,25 @@ class _StickyNote extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxW),
       child: Padding(
         // Padding indents the polaroid slightly from the bubble's leading
-        // edge so the rotation is visible without clipping; bottom padding
-        // is small so the polaroid sits close to the bubble underneath.
+        // edge so the rotation is visible without clipping; the pin stub
+        // below supplies the gap to the bubble underneath.
         padding: EdgeInsets.fromLTRB(
           isMine ? 0 : 8,
           0,
           isMine ? 8 : 0,
-          6,
+          2,
         ),
-        child: Transform.rotate(
-          angle: rotation,
-          alignment: isMine
-              ? AlignmentDirectional.bottomEnd
-              : AlignmentDirectional.bottomStart,
-          child: GestureDetector(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Transform.rotate(
+              angle: rotation,
+              alignment: isMine
+                  ? AlignmentDirectional.bottomEnd
+                  : AlignmentDirectional.bottomStart,
+              child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: deleted ? null : onTap,
             child: Container(
@@ -583,6 +607,10 @@ class _StickyNote extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Leading reserve, used when the branch button is
+                      // mirrored to this side.
+                      if (onViewThread != null && !deleted && isMine)
+                        const SizedBox(width: 28),
                       _smallAvatar(
                         preview: preview,
                         api: api,
@@ -626,7 +654,6 @@ class _StickyNote extends StatelessWidget {
                                     preview: preview,
                                     api: api,
                                     theme: theme,
-                                    mutedInk: theme.inkMuted,
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
@@ -651,18 +678,20 @@ class _StickyNote extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Reserve trailing space for the branch button so the
-                      // sender + content don't shift under the icon's
-                      // hit-target.
-                      if (onViewThread != null && !deleted)
+                      // Trailing reserve — mirrors with the button above.
+                      if (onViewThread != null && !deleted && !isMine)
                         const SizedBox(width: 28),
                     ],
                   ),
                   if (onViewThread != null && !deleted)
                     Positioned(
-                      // Icon hangs off bottom-right of the polaroid; the
-                      // 44×44 hit area extends well past the corner.
-                      right: -22,
+                      // Hangs off the polaroid's bottom corner on the side
+                      // facing the bubble; the 44×44 hit area extends well
+                      // past it. Mirrored like the rest of the note — left
+                      // unmirrored it overhung the column edge on my own
+                      // messages, since the note is flush right there.
+                      left: isMine ? -22 : null,
+                      right: isMine ? null : -22,
                       bottom: -22,
                       child: _BranchButton(
                         onTap: onViewThread!,
@@ -673,7 +702,28 @@ class _StickyNote extends StatelessWidget {
                 ],
               ),
             ),
-          ),
+              ),
+            ),
+            // Pin stub. The other three designs all bind the quote to its
+            // bubble with something — a bezier, a comic tail, a tether rail —
+            // and sticky was the only one where the note floated unattached.
+            // Inset to sit under the avatar puck, mirrored with the note.
+            Padding(
+              padding: EdgeInsets.only(
+                left: isMine ? 0 : 22,
+                right: isMine ? 22 : 0,
+              ),
+              child: Container(
+                width: 2,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: theme.accent
+                      .withValues(alpha: deleted ? 0.35 : 0.75),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -686,6 +736,7 @@ class _ComicTail extends StatelessWidget {
   const _ComicTail({
     required this.preview,
     required this.isMine,
+    required this.parentIsMine,
     required this.api,
     required this.parentAuthor,
     required this.onTap,
@@ -693,6 +744,7 @@ class _ComicTail extends StatelessWidget {
   });
   final ReplyPreview preview;
   final bool isMine;
+  final bool parentIsMine;
   final ChatApi api;
   final ChatUser? parentAuthor;
   final VoidCallback onTap;
@@ -705,9 +757,12 @@ class _ComicTail extends StatelessWidget {
     final maxW = MediaQuery.sizeOf(context).width * 0.62;
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
-    // Comic mini bubble uses the parent's "theirs" coloring (surfaceRaised).
-    // Tail color matches so the visual reads as one continuous shape.
-    final bubbleColor = theme.surfaceRaised;
+    // Tinted toward the accent when the quoted message is the current user's
+    // — replying to yourself used to render the mini bubble in someone
+    // else's colors. Tail color matches so it reads as one continuous shape.
+    final bubbleColor = parentIsMine
+        ? Color.alphaBlend(theme.accentSoft, theme.surfaceRaised)
+        : theme.surfaceRaised;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxW),
@@ -742,6 +797,10 @@ class _ComicTail extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Leading reserve, used when the branch button is
+                      // mirrored to this side.
+                      if (onViewThread != null && !deleted && isMine)
+                        const SizedBox(width: 30),
                       _smallAvatar(
                         preview: preview,
                         api: api,
@@ -785,7 +844,6 @@ class _ComicTail extends StatelessWidget {
                                     preview: preview,
                                     api: api,
                                     theme: theme,
-                                    mutedInk: theme.inkMuted,
                                   ),
                                   const SizedBox(width: 6),
                                   Flexible(
@@ -810,15 +868,19 @@ class _ComicTail extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (onViewThread != null && !deleted)
+                      // Trailing reserve — mirrors with the button below.
+                      if (onViewThread != null && !deleted && !isMine)
                         const SizedBox(width: 30),
                     ],
                   ),
                   if (onViewThread != null && !deleted)
                     Positioned(
-                      // 44×44 hit area centered roughly on the bubble's
-                      // top-trailing corner.
-                      right: -14,
+                      // 44×44 hit area centered roughly on the mini bubble's
+                      // top corner, on the side facing the reply. The tail
+                      // below already mirrors; this didn't, which read as a
+                      // misplaced icon on my own messages.
+                      left: isMine ? -14 : null,
+                      right: isMine ? null : -14,
                       top: -14,
                       child: _BranchButton(
                         onTap: onViewThread!,
@@ -833,23 +895,20 @@ class _ComicTail extends StatelessWidget {
           // The comic-book triangle tail. Aligned to the leading edge of the
           // mini bubble for theirs and trailing for mine, so it visually
           // points toward where the main reply bubble's leading edge sits.
-          SizedBox(
-            height: 12,
-            child: Align(
-              alignment:
-                  isMine ? Alignment.centerRight : Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: isMine ? 0 : 18,
-                  right: isMine ? 18 : 0,
-                ),
-                child: CustomPaint(
-                  size: const Size(16, 12),
-                  painter: _ComicTailPainter(
-                    fill: bubbleColor,
-                    stroke: theme.ink,
-                  ),
-                ),
+          // No Align wrapper: it expanded to the full `maxW`, dragging the
+          // whole Column — and therefore the bubble's long-press target —
+          // out to 62% of the screen beside short messages. The Column's
+          // crossAxisAlignment already mirrors this.
+          Padding(
+            padding: EdgeInsets.only(
+              left: isMine ? 0 : 18,
+              right: isMine ? 18 : 0,
+            ),
+            child: CustomPaint(
+              size: const Size(16, 12),
+              painter: _ComicTailPainter(
+                fill: bubbleColor,
+                stroke: theme.ink,
               ),
             ),
           ),
@@ -916,7 +975,6 @@ class _ClassicQuote extends StatelessWidget {
     final maxW = MediaQuery.sizeOf(context).width * 0.72;
     final isMedia =
         preview.type == MessageType.image || preview.type == MessageType.video;
-    final softInk = theme.inkSoft;
     final mutedInk = theme.inkMuted;
 
     return ConstrainedBox(
@@ -934,14 +992,21 @@ class _ClassicQuote extends StatelessWidget {
             child: IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
+                // Mirrored on isMine. This was the one design that ignored
+                // the flag entirely: the rail was pinned hard-left and the
+                // branch button hard-right for both sides, so on the user's
+                // own right-aligned bubbles the accent tether pointed away
+                // from the bubble it belonged to.
+                textDirection: isMine ? TextDirection.rtl : TextDirection.ltr,
                 children: [
                   Container(
                     width: 3,
                     decoration: BoxDecoration(
                       color: theme.accent.withValues(alpha: 0.95),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(8),
-                        bottomLeft: Radius.circular(8),
+                      borderRadius: BorderRadiusDirectional.horizontal(
+                        start: const Radius.circular(8),
+                      ).resolve(
+                        isMine ? TextDirection.rtl : TextDirection.ltr,
                       ),
                     ),
                   ),
@@ -994,14 +1059,13 @@ class _ClassicQuote extends StatelessWidget {
                                   preview: preview,
                                   api: api,
                                   theme: theme,
-                                  mutedInk: mutedInk,
                                 ),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
                                     _previewLabel(preview),
                                     style: theme.bodySoft
-                                        .copyWith(color: softInk),
+                                        .copyWith(color: theme.ink),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1011,10 +1075,11 @@ class _ClassicQuote extends StatelessWidget {
                           else
                             Text(
                               _previewLabel(preview),
-                              style: theme.bodySoft.copyWith(
-                                color: softInk,
-                                fontStyle: FontStyle.italic,
-                              ),
+                              // Roman, not italic, and full-strength ink —
+                              // classic was the only design that italicised
+                              // live message text, which made it read as
+                              // deleted/placeholder next to the other three.
+                              style: theme.bodySoft.copyWith(color: theme.ink),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),

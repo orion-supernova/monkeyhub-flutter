@@ -100,6 +100,11 @@ export const send = mutation({
       mediaStorageId?: any;
     } | undefined;
     let resolvedReplyToId: any | undefined;
+    // Thread root, derived from the *resolved* parent. Computing it from the
+    // raw `replyToId` arg would let a cross-room parent produce a message
+    // that belongs to a thread but has no tether — it'd render in the thread
+    // with nothing above it. Written only alongside replyToId/replyToPreview.
+    let resolvedRootId: any | undefined;
     if (replyToId) {
       const parent = await ctx.db.get(replyToId);
       if (parent && parent.roomId.toString() === roomId.toString()) {
@@ -112,6 +117,7 @@ export const send = mutation({
           mediaStorageId: parent.mediaStorageId,
         };
         resolvedReplyToId = replyToId;
+        resolvedRootId = parent.rootId ?? parent._id;
       }
     }
 
@@ -124,7 +130,9 @@ export const send = mutation({
       mediaStorageId,
       senderName: resolvedSenderName,
       expiresAt,
-      ...(replyToPreview ? { replyToId: resolvedReplyToId, replyToPreview } : {}),
+      ...(replyToPreview
+        ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
+        : {}),
     });
 
     // Schedule server-side deletion for self-destructing messages
@@ -326,6 +334,88 @@ export const expireMessage = internalMutation({
   },
 });
 
+// Paged thread read. Supersedes `getThread` below, which is kept only for
+// already-shipped clients.
+//
+// A thread is `{root} ∪ {m : m.rootId === rootId}` — see the `rootId` comment
+// in schema.ts for why the tree is flattened this way. Because `by_root_time`
+// is time-ordered, a page is a plain range scan and page N+1 is always a
+// prefix-extension of page N: newly-loaded messages can only ever appear
+// above what's already on screen, never in the middle of it.
+//
+// Walks *older*, mirroring `listBefore`: pass the oldest `createdAt` you hold
+// as `beforeTimestamp`. The newest end is owned by the room's live
+// subscription on the client, so there is deliberately no "load newer".
+//
+// The root itself carries no `rootId`, so it isn't in the index scan — it's
+// unshifted once the scan runs dry (a reply's createdAt always postdates its
+// parent's, so the root is unconditionally the head of the thread).
+export const getThreadPage = query({
+  args: {
+    roomId: v.id("rooms"),
+    rootId: v.id("messages"),
+    viewerUserId: v.id("users"),
+    beforeTimestamp: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { roomId, rootId, viewerUserId, beforeTimestamp, limit }) => {
+    // `getThread` has no authorization at all — any messageId reads a thread.
+    // Checking here is safe precisely because this query is only ever fetched
+    // one-shot, never subscribed: reading `roomMembers` from a live query
+    // would make it refire on every `markRoomRead` patch (see the comment on
+    // `list` about why reactive queries must stay off shared docs).
+    const membership = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", viewerUserId)
+      )
+      .first();
+    if (!membership) throw new Error("NOT_A_MEMBER");
+
+    const cap = Math.min(limit ?? 25, 100);
+
+    let q = ctx.db
+      .query("messages")
+      .withIndex("by_root_time", (ix) =>
+        beforeTimestamp === undefined
+          ? ix.eq("rootId", rootId)
+          : ix.eq("rootId", rootId).lt("createdAt", beforeTimestamp)
+      );
+
+    const descendants = await q.order("desc").take(cap);
+    const hasMore = descendants.length === cap;
+    const collected = descendants.reverse(); // chronological
+
+    // Scan ran dry — prepend the root, unless the caller already has it.
+    if (!hasMore) {
+      const root = await ctx.db.get(rootId);
+      if (
+        root &&
+        root.roomId.toString() === roomId.toString() &&
+        (beforeTimestamp === undefined || root.createdAt < beforeTimestamp)
+      ) {
+        collected.unshift(root);
+      }
+    }
+
+    // Reactions only. Do NOT read `users` here — same reason as `list`.
+    const enriched = await Promise.all(
+      collected.map(async (msg) => {
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_message", (ix) => ix.eq("messageId", msg._id))
+          .collect();
+        return { ...msg, reactions };
+      })
+    );
+
+    return { messages: enriched, hasMore };
+  },
+});
+
+// DEPRECATED — superseded by `getThreadPage`. Retained so app versions
+// already in the wild keep working; delete once they've aged out.
+//
 // Returns the entire conversational thread containing [messageId]: walks up
 // to the root via replyToId, then BFS down through the by_replyTo index to
 // collect every descendant. Result is sorted chronologically (oldest first)

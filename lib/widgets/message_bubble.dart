@@ -36,11 +36,11 @@ class MessageBubble extends StatelessWidget {
     this.onReplyIndicatorTap,
     this.onViewThread,
     this.parentAuthor,
-    this.distanceLabel,
     this.highlightT = 0,
     this.useHero = true,
     this.showReplyIndicator = true,
     this.seenByOthers = false,
+    this.grouped = false,
   });
 
   final ChatMessage message;
@@ -65,9 +65,6 @@ class MessageBubble extends StatelessWidget {
   /// renders the parent's avatar circle, making the reply visually richer.
   final ChatUser? parentAuthor;
 
-  /// Optional formatted distance hint shown on the reply indicator's header.
-  final String? distanceLabel;
-
   /// 0..1 driving a one-shot accent halo pulse around the bubble (used by the
   /// scroll-to-parent flow). 0 = no pulse.
   final double highlightT;
@@ -83,6 +80,12 @@ class MessageBubble extends StatelessWidget {
   final bool showReplyIndicator;
 
   final bool seenByOthers;
+
+  /// When true this message continues a run from the same sender: the avatar
+  /// slot renders empty (the space is still reserved so the left edge doesn't
+  /// shift) and the vertical gap tightens. Nothing collapses the run's meta
+  /// rows — SENDING / FAILED / SEEN stay per-message.
+  final bool grouped;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +116,8 @@ class MessageBubble extends StatelessWidget {
           ReplyIndicator(
             preview: message.replyToPreview!,
             isMine: isMine,
-            distanceLabel: distanceLabel,
+            parentIsMine:
+                message.replyToPreview!.senderId == currentUserId,
             api: api,
             parentAuthor: parentAuthor,
             onTap: () {
@@ -130,7 +134,7 @@ class MessageBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
       child: Row(
         mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,6 +149,7 @@ class MessageBubble extends StatelessWidget {
               author: author,
               api: api,
               onTap: onAuthorTap,
+              collapsed: grouped,
             ),
             const SizedBox(width: 8),
           ],
@@ -211,10 +216,11 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onReplyIndicatorTap,
     this.onViewThread,
     this.parentAuthor,
-    this.distanceLabel,
     this.highlightT = 0,
     this.useHero = true,
     this.showReplyIndicator = true,
+    this.seenByOthers = false,
+    this.grouped = false,
   });
   final ChatMessage message;
   final DateTime now;
@@ -228,10 +234,16 @@ class EphemeralMessageBubble extends StatelessWidget {
   final void Function(String parentId)? onReplyIndicatorTap;
   final VoidCallback? onViewThread;
   final ChatUser? parentAuthor;
-  final String? distanceLabel;
   final double highlightT;
   final bool useHero;
   final bool showReplyIndicator;
+  final bool seenByOthers;
+
+  /// When true this message continues a run from the same sender: the avatar
+  /// slot renders empty (the space is still reserved so the left edge doesn't
+  /// shift) and the vertical gap tightens. Nothing collapses the run's meta
+  /// rows — SENDING / FAILED / SEEN stay per-message.
+  final bool grouped;
 
   @override
   Widget build(BuildContext context) {
@@ -290,7 +302,8 @@ class EphemeralMessageBubble extends StatelessWidget {
           ReplyIndicator(
             preview: message.replyToPreview!,
             isMine: isMine,
-            distanceLabel: distanceLabel,
+            parentIsMine:
+                message.replyToPreview!.senderId == currentUserId,
             api: api,
             parentAuthor: parentAuthor,
             onTap: () {
@@ -307,7 +320,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
       child: Transform.translate(
         offset: Offset(0, -dissolveT * 10),
         child: Row(
@@ -321,6 +334,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                   author: author,
                   api: api,
                   onTap: onAuthorTap,
+                  collapsed: grouped,
                 ),
               ),
               const SizedBox(width: 8),
@@ -355,6 +369,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                       message: message,
                       isMine: isMine,
                       countdown: message.timeLeft(now),
+                      seenByOthers: seenByOthers,
                     ),
                   ),
                 ],
@@ -517,18 +532,24 @@ class _AvatarSlot extends StatelessWidget {
     required this.author,
     required this.api,
     required this.onTap,
+    this.collapsed = false,
   });
 
   final ChatUser? author;
   final ChatApi api;
   final VoidCallback? onTap;
 
+  /// Renders empty at the same size — used for grouped runs, where repeating
+  /// the avatar on every bubble is what makes five consecutive messages read
+  /// as five separate cards.
+  final bool collapsed;
+
   static const double _size = 28;
 
   @override
   Widget build(BuildContext context) {
     final user = author;
-    if (user == null) {
+    if (collapsed || user == null) {
       return const SizedBox(width: _size, height: _size);
     }
     return GestureDetector(

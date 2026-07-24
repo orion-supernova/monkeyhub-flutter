@@ -291,10 +291,23 @@ export default defineSchema({
         mediaStorageId: v.optional(v.id("_storage")),
       })
     ),
+    // Thread membership, denormalized at send time: the id of the message at
+    // the top of this reply chain. Set ONLY on replies — a root message has
+    // no `rootId`, so a thread is `{root} ∪ {m : m.rootId === root._id}`.
+    //
+    // This exists purely so threads can be *paged*. Deriving a thread by BFS
+    // over `by_replyTo` produces a set that can't be split into pages: the
+    // cap truncates in BFS order but the result renders in time order, so
+    // page N+1 is not a prefix-extension of page N and newly-loaded messages
+    // land in the middle of the list. `by_root_time` makes a thread page a
+    // plain time-ordered range scan, exactly like `by_room_time` does for a
+    // room. Never written without `replyToId` — see `messages:send`.
+    rootId: v.optional(v.id("messages")),
   })
     .index("by_room", ["roomId"])
     .index("by_room_time", ["roomId", "createdAt"])
     .index("by_replyTo", ["replyToId"])
+    .index("by_root_time", ["rootId", "createdAt"])
     // Account teardown walks every message a user ever sent.
     .index("by_user", ["userId"]),
 

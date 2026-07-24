@@ -19,10 +19,17 @@ class OverlayModalScope extends StatefulWidget {
     super.key,
     required this.onDismiss,
     required this.child,
+    this.restoreFocus = true,
   });
 
   final VoidCallback onDismiss;
   final Widget child;
+
+  /// Whether dismissing hands focus back to whatever held it when the overlay
+  /// opened. Set false when the overlay contains its own text field: the node
+  /// we'd restore to is typically the host screen's composer, so restoring it
+  /// pops the soft keyboard back up the instant the overlay closes.
+  final bool restoreFocus;
 
   @override
   State<OverlayModalScope> createState() => _OverlayModalScopeState();
@@ -49,7 +56,7 @@ class _OverlayModalScopeState extends State<OverlayModalScope> {
 
   @override
   void dispose() {
-    final restore = _restoreTo;
+    final restore = widget.restoreFocus ? _restoreTo : null;
     _scope.dispose();
     if (restore != null && restore.context != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

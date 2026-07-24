@@ -21,14 +21,14 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../data/ui_selection_store.dart';
-import '../keyboard/focusable_tap.dart';
-import '../keyboard/submit_on_enter.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
+import 'room_items.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import '../widgets/chat_composer.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
@@ -113,10 +113,16 @@ class _RoomScreenState extends State<RoomScreen>
   String? _highlightedMessageId;
   late final AnimationController _highlightCtrl;
 
-  // Lookup populated each build: messageId → its index in the (reversed)
-  // items list. Lets us compute the "N MESSAGES ABOVE" hint on reply
-  // indicators in O(1) without re-scanning the list per bubble.
-  Map<String, int> _messageIndex = const {};
+  // ──── thread folding ────
+  // Ids folded out of the list by the last _buildItems pass. Read from async
+  // callbacks (scroll-to-parent) to tell "collapsed" apart from "not loaded".
+  Set<String> _hiddenMessageIds = const {};
+  // Memo for the item pass. _ticker rebuilds at 5Hz whether or not anything
+  // changed, and messagesFor() hands back the same list instance while no
+  // sends are pending, so identity is a cheap and correct cache key.
+  List<ChatMessage>? _memoSource;
+  String _memoPinKey = '';
+  ({List<RoomItem> items, Set<String> hidden})? _memoResult;
 
   @override
   void initState() {
@@ -168,21 +174,80 @@ class _RoomScreenState extends State<RoomScreen>
     CaptureProtection.instance.pushScope();
   }
 
-  /// Flatten the message list into intro / date-divider / message items.
-  /// A divider is inserted whenever consecutive messages cross a date
-  /// boundary in the user's local time.
-  List<_RoomItem> _buildItems(ChatRoom room, List<ChatMessage> messages) {
-    final out = <_RoomItem>[_IntroItem()];
-    DateTime? lastDay;
-    for (final m in messages) {
-      final d = DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
-      if (lastDay == null || d != lastDay) {
-        out.add(_DateDividerItem(_humanDay(d)));
-        lastDay = d;
-      }
-      out.add(_MessageItem(m));
+  /// Wraps a row so thread rails can be painted in the leading gutter.
+  ///
+  /// The gutter is reserved on EVERY row and the ListView's own horizontal
+  /// padding is reduced by the same amount, so content sits at exactly the
+  /// same x whether a rail is present or not — no jitter as threads come and
+  /// go. A Stack rather than a Row: a Row with stretch needs a bounded height
+  /// the list can't supply, and IntrinsicHeight on every row is not worth it.
+  Widget _railed(List<RailSegment> rails, Widget child) {
+    final content =
+        Padding(padding: const EdgeInsets.only(left: _kRailGutter), child: child);
+    if (rails.isEmpty) return content;
+    final theme = ThemeScope.of(context);
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: _kRailGutter,
+          child: IgnorePointer(
+            child: CustomPaint(
+              painter: _ThreadRailPainter(rails: rails, accent: theme.accent),
+            ),
+          ),
+        ),
+        content,
+      ],
+    );
+  }
+
+  /// Whether [m] must keep its own row — never folded into a chip.
+  ///
+  /// The `_dateTracks` clause is the load-bearing one: that map is populated
+  /// from the itemBuilder, so containsKey means "this row has already been
+  /// built at least once this session". Without it a message would vanish
+  /// out from under the reader the moment a newer reply pushed it into the
+  /// thread's interior — possibly mid-video, or with its action menu open —
+  /// and the same thing would happen on pagination when loadOlder prepends a
+  /// root that turns the previously-first message into an interior one.
+  bool _isPinned(ChatMessage m) =>
+      m.id.startsWith('tmp_') ||
+      m.status != MessageStatus.sent ||
+      m.type == MessageType.system ||
+      m.id == _highlightedMessageId ||
+      m.id == _replyingTo?.id ||
+      _dateTracks.containsKey('m_${m.id}');
+
+  /// Flatten the message list into intro / date-divider / message / thread-
+  /// fold rows. See lib/screens/room_items.dart for the algorithm.
+  ({List<RoomItem> items, Set<String> hidden}) _buildItems(
+    ChatRoom room,
+    List<ChatMessage> messages,
+  ) {
+    // Everything _isPinned reads has to be in the key, or an armed reply or a
+    // highlight pulse would be computed against a stale fold set.
+    final pinKey = '${_dateTracks.length}'
+        '|${_replyingTo?.id ?? ''}'
+        '|${_highlightedMessageId ?? ''}';
+    final memo = _memoResult;
+    if (memo != null &&
+        identical(messages, _memoSource) &&
+        pinKey == _memoPinKey) {
+      return memo;
     }
-    return out;
+    final result = buildRoomItems(
+      messages: messages,
+      roomIsEphemeral: room.isEphemeral,
+      isPinned: _isPinned,
+      dayLabel: _humanDay,
+    );
+    _memoSource = messages;
+    _memoPinKey = pinKey;
+    _memoResult = result;
+    return result;
   }
 
   String _humanDay(DateTime d) {
@@ -380,19 +445,23 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
-    // Snapshot reply-target BEFORE the async send. The card itself does NOT
-    // auto-close on send — the user explicitly dismisses with the X. This
-    // lets them fire off multiple replies to the same parent without re-
-    // arming, which is the common pattern for back-and-forth in threads.
-    final replyId = _replyingTo?.id;
+    // Snapshot the reply target BEFORE the async send, then disarm: the reply
+    // is sent, so the card has nothing left to say. It stays armed only when
+    // the send is refused below, since then there's still a pending reply.
+    final replyTarget = _replyingTo;
+    setState(() => _replyingTo = null);
     _composer.clear();
-    await widget.repo.sendText(widget.roomId, text, replyToId: replyId);
+    await widget.repo.sendText(widget.roomId, text, replyToId: replyTarget?.id);
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just
     // vanish. Most likely a grant was revoked while the room was open.
     final gate = widget.repo.takeChildGateError();
     if (gate != null && mounted) {
-      _composer.text = text; // don't lose what they wrote
+      // Nothing was sent — put the user back exactly where they were.
+      setState(() {
+        _composer.text = text;
+        _replyingTo = replyTarget;
+      });
       _keepComposerFocus();
       await _handleSendGate(gate);
       return;
@@ -451,29 +520,61 @@ class _RoomScreenState extends State<RoomScreen>
     });
   }
 
-  /// Compute a short hint like "2 MESSAGES ABOVE" / "EARLIER" for a reply's
-  /// parent, based on the current items layout. Returns null when the
-  /// parent isn't loaded — the reply indicator hides the suffix in that
-  /// case rather than showing a stale number.
-  String? _distanceLabelFor(ChatMessage child) {
-    final parentId = child.replyToId;
-    if (parentId == null) return null;
-    final childIdx = _messageIndex[child.id];
-    final parentIdx = _messageIndex[parentId];
-    if (childIdx == null || parentIdx == null) return 'EARLIER';
-    // items is reversed (newest at idx 0). Parent is older → larger index.
-    final gap = parentIdx - childIdx - 1;
-    if (gap <= 0) return 'ABOVE';
-    if (gap == 1) return '1 MESSAGE ABOVE';
-    if (gap <= 20) return '$gap MESSAGES ABOVE';
-    return 'EARLIER';
-  }
+  /// Open the thread containing [m], scrolled to [m] itself.
+  ///
+  /// [ChatMessage.threadKey] resolves to the message's own id when it's a
+  /// root, so this works whether the user tapped the top of a chain or a
+  /// reply deep inside it.
+  ///
+  /// The overlay has its own composer, so replies made in there stay in
+  /// there — the only thing it hands back is a child-guard refusal, which
+  /// needs a surface that isn't behind the overlay's blurred scrim.
+  Future<void> _openThread(ChatMessage m) =>
+      _openThreadAt(rootId: m.threadKey, anchorMessageId: m.id);
+
+  /// Opens the thread overlay on a folded run, anchored on the oldest message
+  /// the chip stands in for so the user lands on the content they tapped for
+  /// rather than the top of the thread.
+  Future<void> _openFoldedThread(ThreadFoldItem fold) => _openThreadAt(
+        rootId: fold.threadKey,
+        anchorMessageId: fold.oldestHiddenId,
+      );
+
+  Future<void> _openThreadAt({
+    required String rootId,
+    required String anchorMessageId,
+  }) =>
+      showThreadOverlay(
+        context: context,
+        api: widget.api,
+        repo: widget.repo,
+        roomId: widget.roomId,
+        rootId: rootId,
+        anchorMessageId: anchorMessageId,
+        onChildGate: (gate, unsentText) {
+          if (!mounted) return;
+          _composer.text = unsentText;
+          unawaited(_handleSendGate(gate));
+        },
+      );
 
   /// Smoothly scroll to the parent message identified by [messageId], then
   /// fire a one-shot accent halo pulse on it. If the parent isn't currently
   /// in the items list, attempts up to 3 older-page loads before giving up.
   Future<void> _scrollToMessageAndHighlight(String messageId) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
+
+    // Folded out of the timeline: it has no row to scroll to, and no amount
+    // of paging will give it one. Open the thread on it instead — the same
+    // place the fold chip goes.
+    if (_hiddenMessageIds.contains(messageId)) {
+      final m = widget.repo.findMessageInRoom(widget.roomId, messageId);
+      if (m != null) {
+        await _openThread(m);
+        return;
+      }
+    }
+
     for (var attempt = 0; attempt < 4; attempt++) {
       if (!mounted) return;
       final track = _dateTracks['m_$messageId'];
@@ -490,7 +591,13 @@ class _RoomScreenState extends State<RoomScreen>
         _highlightCtrl.forward(from: 0);
         return;
       }
-      // Parent not currently rendered — try paging older history.
+      // Only page when the message genuinely isn't loaded. An unmounted key
+      // also means "loaded, but scrolled outside the list's cacheExtent", and
+      // paging older history for that burns round-trips and then reports the
+      // message as missing when it was there all along.
+      if (widget.repo.findMessageInRoom(widget.roomId, messageId) != null) {
+        break;
+      }
       if (!widget.repo.hasMoreOlder(widget.roomId)) break;
       final got = await widget.repo.loadOlder(widget.roomId);
       if (got == 0) break;
@@ -499,7 +606,7 @@ class _RoomScreenState extends State<RoomScreen>
     }
     if (!mounted) return;
     messenger?.showSnackBar(
-      const SnackBar(content: Text("original message not loaded")),
+      const SnackBar(content: Text("couldn't jump to that message")),
     );
   }
 
@@ -579,20 +686,25 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Future<void> _uploadAndSend({required File file, required MessageType type, required String contentType}) async {
+    // Snapshot and disarm up front — see _send. Restored if the upload or the
+    // send throws, so a failure doesn't silently lose the reply target.
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
     try {
-      // The reply card stays open across sends — see _send for the rationale.
-      final replyId = _replyingTo?.id;
       final uploader = UploadService(widget.api);
       final storageId = await uploader.uploadXFile(file: file, contentType: contentType);
       await widget.repo.sendMedia(
         roomId: widget.roomId,
         storageId: storageId,
         type: type,
-        replyToId: replyId,
+        replyToId: replyTarget?.id,
       );
       _scrollToBottom();
     } catch (_) {
       /* TODO surface as toast */
+      if (mounted && replyTarget != null) {
+        setState(() => _replyingTo = replyTarget);
+      }
     }
   }
 
@@ -614,15 +726,15 @@ class _RoomScreenState extends State<RoomScreen>
     // chronologically (intro → divider → messages) and reversed here so
     // items[0] is the newest message (visually at the bottom) and the intro
     // ends up at items[last] (visually at the top).
-    final items = messages.isEmpty ? const <_RoomItem>[] : _buildItems(room, messages).reversed.toList();
-    // Precompute id → index lookup for O(1) distance-hint computation in
-    // the reply indicator. Re-derived per build (items rebuilds anyway).
-    final idx = <String, int>{};
-    for (var i = 0; i < items.length; i++) {
-      final it = items[i];
-      if (it is _MessageItem) idx[it.message.id] = i;
+    final List<RoomItem> items;
+    if (messages.isEmpty) {
+      items = const <RoomItem>[];
+      _hiddenMessageIds = const {};
+    } else {
+      final built = _buildItems(room, messages);
+      _hiddenMessageIds = built.hidden;
+      items = built.items.reversed.toList();
     }
-    _messageIndex = idx;
     final chatStyle = SettingsStore.instance.chatStyle;
 
     return Scaffold(
@@ -639,7 +751,7 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
-  Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<_RoomItem> items, String me) {
+  Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
     return SafeArea(
       child: Column(
         children: [
@@ -662,7 +774,7 @@ class _RoomScreenState extends State<RoomScreen>
               messages,
               items,
               me,
-              listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              listPadding: const EdgeInsets.fromLTRB(20 - _kRailGutter, 12, 20, 24),
             ),
           ),
           // Same column as the messages above, so the composer lines up with
@@ -679,7 +791,7 @@ class _RoomScreenState extends State<RoomScreen>
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
-                _Composer(
+                ChatComposerClassic(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
@@ -695,7 +807,7 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
-  Widget _buildLiquid(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<_RoomItem> items, String me) {
+  Widget _buildLiquid(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
     final topSafe = MediaQuery.paddingOf(context).top;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     // Header: 8pt top + 44pt button + 8pt bottom = 60pt; composer: same.
@@ -704,7 +816,9 @@ class _RoomScreenState extends State<RoomScreen>
     // double-count and leave a massive gap.
     const chromeH = 60.0;
     final listPadding = EdgeInsets.fromLTRB(
-      20,
+      // Rails are painted in a per-row gutter; take its width out of the
+      // list padding so message content keeps its original 20px inset.
+      20 - _kRailGutter,
       topSafe + chromeH + 12,
       20,
       chromeH + 16 + bottomSafe,
@@ -764,7 +878,7 @@ class _RoomScreenState extends State<RoomScreen>
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
-                _LiquidComposer(
+                ChatComposerLiquid(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
@@ -793,7 +907,7 @@ class _RoomScreenState extends State<RoomScreen>
     BuildContext context,
     ChatRoom room,
     List<ChatMessage> messages,
-    List<_RoomItem> items,
+    List<RoomItem> items,
     String me, {
     required EdgeInsets listPadding,
   }) {
@@ -841,18 +955,48 @@ class _RoomScreenState extends State<RoomScreen>
                   itemCount: items.length,
                   itemBuilder: (context, i) {
                     final item = items[i];
-                    if (item is _IntroItem) {
-                      return _RoomIntro(room: room, members: _members.values.toList(), api: widget.api);
+                    if (item is IntroItem) {
+                      return _railed(
+                        const [],
+                        _RoomIntro(
+                          room: room,
+                          members: _members.values.toList(),
+                          api: widget.api,
+                        ),
+                      );
                     }
-                    if (item is _DateDividerItem) {
+                    if (item is DateDividerItem) {
                       return _trackedDate(
                         stableId: 'd_${item.label}',
                         label: item.label,
                         isDivider: true,
-                        child: _DateDivider(label: item.label),
+                        child: _railed(
+                          item.rails,
+                          _DateDivider(label: item.label),
+                        ),
                       );
                     }
-                    final m = (item as _MessageItem).message;
+                    // MUST precede the cast below — a new RoomItem subtype
+                    // reaching it throws, and the analyzer won't catch that.
+                    if (item is ThreadFoldItem) {
+                      // Deliberately not wrapped in _trackedDate: the chip
+                      // carries no date, and registering it would let it win
+                      // the topmost-tracked-item contest in
+                      // _recomputePositionState and show a wrong floating date.
+                      return _railed(
+                        item.rails,
+                        _ThreadFoldChip(
+                          fold: item,
+                          api: widget.api,
+                          members: _members,
+                          onTap: () => _openFoldedThread(item),
+                        ),
+                      );
+                    }
+                    final messageItem = item as MessageItem;
+                    final m = messageItem.message;
+                    final grouped = messageItem.grouped;
+                    final showReplyTether = messageItem.showReplyTether;
                 final author = _members[m.senderId];
                 final isMine = m.senderId == me;
                 final othersRead = widget.repo.latestOthersReadAt;
@@ -862,7 +1006,6 @@ class _RoomScreenState extends State<RoomScreen>
                     m.status == MessageStatus.sent &&
                     m.type != MessageType.system;
                 final hasParent = m.isReply;
-                final distanceLabel = _distanceLabelFor(m);
                 final highlightT = (_highlightedMessageId == m.id)
                     ? _highlightCtrl.value
                     : 0.0;
@@ -891,7 +1034,6 @@ class _RoomScreenState extends State<RoomScreen>
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
-                              distanceLabel: distanceLabel,
                             )
                           : MessageBubble(
                               message: m,
@@ -900,7 +1042,6 @@ class _RoomScreenState extends State<RoomScreen>
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
-                              distanceLabel: distanceLabel,
                               seenByOthers: seenByOthers,
                             );
                     },
@@ -921,14 +1062,7 @@ class _RoomScreenState extends State<RoomScreen>
                       _armReply(m);
                       break;
                     case MessageAction.viewThread:
-                      await showThreadOverlay(
-                        context: this.context,
-                        api: widget.api,
-                        repo: widget.repo,
-                        roomId: widget.roomId,
-                        currentMessageId: m.id,
-                        onReply: _armReply,
-                      );
+                      await _openThread(m);
                       break;
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
@@ -973,14 +1107,7 @@ class _RoomScreenState extends State<RoomScreen>
                 final parentAuthor = m.isReply
                     ? _members[m.replyToPreview?.senderId]
                     : null;
-                Future<void> onViewThread() => showThreadOverlay(
-                      context: this.context,
-                      api: widget.api,
-                      repo: widget.repo,
-                      roomId: widget.roomId,
-                      currentMessageId: m.id,
-                      onReply: _armReply,
-                    );
+                Future<void> onViewThread() => _openThread(m);
                 final bubble = m.isEphemeral
                     ? EphemeralMessageBubble(
                         key: ValueKey('e_${m.id}'),
@@ -996,8 +1123,10 @@ class _RoomScreenState extends State<RoomScreen>
                         onReplyIndicatorTap: _scrollToMessageAndHighlight,
                         onViewThread: m.isReply ? onViewThread : null,
                         parentAuthor: parentAuthor,
-                        distanceLabel: distanceLabel,
                         highlightT: highlightT,
+                        seenByOthers: seenByOthers,
+                        showReplyIndicator: showReplyTether,
+                        grouped: grouped,
                       )
                     : MessageBubble(
                         key: ValueKey('s_${m.id}'),
@@ -1013,15 +1142,18 @@ class _RoomScreenState extends State<RoomScreen>
                         onReplyIndicatorTap: _scrollToMessageAndHighlight,
                         onViewThread: m.isReply ? onViewThread : null,
                         parentAuthor: parentAuthor,
-                        distanceLabel: distanceLabel,
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
+                        showReplyIndicator: showReplyTether,
+                        grouped: grouped,
                       );
                 return _trackedDate(
                   stableId: 'm_${m.id}',
                   label: _humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
-                  child: AnimatedSwitcher(
+                  child: _railed(
+                    messageItem.rails,
+                    AnimatedSwitcher(
                     duration: theme.motionMed,
                     switchInCurve: theme.motionEntrance,
                     child: SwipeToReply(
@@ -1029,6 +1161,7 @@ class _RoomScreenState extends State<RoomScreen>
                       enabled: canReply,
                       onReplyTriggered: () => _armReply(m),
                       child: bubble,
+                    ),
                     ),
                   ),
                 );
@@ -1262,129 +1395,154 @@ class _RoomIntro extends StatelessWidget {
   }
 }
 
-class _Composer extends StatelessWidget {
-  const _Composer({
-    required this.controller,
-    required this.ephemeral,
-    required this.onSend,
-    this.focusNode,
-    this.onChanged,
-    this.onAttach,
+/// Width reserved on every row for thread rails. Two lanes at a 6px pitch,
+/// plus the stroke. Subtracted from the ListView's horizontal padding so the
+/// net content inset is unchanged.
+const double _kRailGutter = 12.0;
+
+/// Paints the vertical connectors that tie a thread's separated messages
+/// together.
+///
+/// One segment per lane per row; consecutive rows butt together into a
+/// continuous line. Members draw at full accent, rows the rail merely passes
+/// draw faint — that contrast is the whole signal: "this thread carries on
+/// past these unrelated messages".
+class _ThreadRailPainter extends CustomPainter {
+  const _ThreadRailPainter({required this.rails, required this.accent});
+
+  final List<RailSegment> rails;
+  final Color accent;
+
+  static const double _stroke = 2.0;
+  static const double _pitch = 6.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final seg in rails) {
+      // Lane 0 sits closest to the message content; extra lanes step outward.
+      final x = size.width - _stroke - seg.lane * _pitch;
+      final paint = Paint()
+        ..strokeWidth = _stroke
+        ..strokeCap = StrokeCap.round
+        ..color = accent.withValues(alpha: seg.isMember ? 0.85 : 0.20);
+
+      final mid = size.height / 2;
+      switch (seg.kind) {
+        case RailKind.capTop:
+          canvas.drawLine(Offset(x, mid), Offset(x, size.height), paint);
+          // A dot terminates the run so the thread has a visible beginning.
+          canvas.drawCircle(Offset(x, mid), _stroke, paint);
+        case RailKind.capBottom:
+          canvas.drawLine(Offset(x, 0), Offset(x, mid), paint);
+          canvas.drawCircle(Offset(x, mid), _stroke, paint);
+        case RailKind.through:
+        case RailKind.across:
+          canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThreadRailPainter old) =>
+      old.accent != accent ||
+      old.rails.length != rails.length ||
+      !_sameRails(old.rails, rails);
+
+  static bool _sameRails(List<RailSegment> a, List<RailSegment> b) {
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].kind != b[i].kind || a[i].lane != b[i].lane) return false;
+    }
+    return true;
+  }
+}
+
+/// Stands in for a run of thread messages folded out of the timeline. Tapping
+/// it opens the thread overlay anchored on the oldest message it hides.
+class _ThreadFoldChip extends StatelessWidget {
+  const _ThreadFoldChip({
+    required this.fold,
+    required this.api,
+    required this.members,
+    required this.onTap,
   });
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final bool ephemeral;
-  final VoidCallback onSend;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onAttach;
+
+  final ThreadFoldItem fold;
+  final ChatApi api;
+  final Map<String, ChatUser> members;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.divider, width: 1)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          if (onAttach != null) ...[
-            FocusableTap(
-              onTap: onAttach,
-              semanticLabel: 'Attach',
-              shape: FocusRingShape.circle,
-              child: GestureDetector(
-              onTap: onAttach,
-              child: Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.surfaceRaised,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.divider),
+    // Cap the avatar stack — past three it stops reading as "who" and starts
+    // reading as clutter.
+    final shown = fold.senderIds.take(3).toList();
+    return Padding(
+      // Left-inset into the avatar gutter rather than centred: a centred pill
+      // reads as a date marker, which this very much is not.
+      padding: const EdgeInsets.fromLTRB(36, 2, 0, 2),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: theme.chipDecoration(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  CupertinoIcons.arrow_branch,
+                  size: 11,
+                  color: theme.accent,
                 ),
-                child: Icon(Icons.add, color: theme.inkSoft, size: 18),
-              ),
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: Container(
-              decoration: theme.inputDecoration(),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              // No `onSubmitted` here: a multi-line TextField never fires it —
-              // Flutter turns Enter into a newline. SubmitOnEnter intercepts
-              // the key instead, and leaves Shift+Enter as the newline.
-              child: SubmitOnEnter(
-                controller: controller,
-                onSubmit: onSend,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink),
-                  cursorColor: theme.accent,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: ephemeral ? 'whisper something the server will forget…' : 'say something…',
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  onChanged: onChanged,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          FocusableTap(
-            onTap: onSend,
-            semanticLabel: 'Send',
-            shape: FocusRingShape.circle,
-            child: GestureDetector(
-            onTap: onSend,
-            child: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.38),
-                    blurRadius: 14,
-                    offset: const Offset(0, 3),
+                const SizedBox(width: 7),
+                for (var i = 0; i < shown.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 3),
+                  _FoldSender(
+                    userId: shown[i],
+                    members: members,
+                    api: api,
                   ),
                 ],
-              ),
-              child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
+                if (shown.isNotEmpty) const SizedBox(width: 7),
+                Text(
+                  // "MESSAGES", never "REPLIES": nothing denormalizes a thread
+                  // size server-side, so the only number we can honestly show
+                  // is how many *loaded* messages are folded right here.
+                  '${fold.count} MESSAGES',
+                  style: theme.monoTiny.copyWith(
+                    color: theme.inkSoft,
+                    letterSpacing: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// ───────────────────────── list item model ─────────────────────────
+class _FoldSender extends StatelessWidget {
+  const _FoldSender({
+    required this.userId,
+    required this.members,
+    required this.api,
+  });
 
-abstract class _RoomItem {}
+  final String userId;
+  final Map<String, ChatUser> members;
+  final ChatApi api;
 
-class _IntroItem extends _RoomItem {}
-
-class _DateDividerItem extends _RoomItem {
-  _DateDividerItem(this.label);
-  final String label;
-}
-
-class _MessageItem extends _RoomItem {
-  _MessageItem(this.message);
-  final ChatMessage message;
+  @override
+  Widget build(BuildContext context) {
+    final user = members[userId];
+    if (user == null) return const SizedBox.shrink();
+    return UserAvatar(user: user, api: api, size: 14, showStatus: false);
+  }
 }
 
 class _DateDivider extends StatelessWidget {
@@ -1769,85 +1927,6 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
             size: const Size(44, 44),
             onTap: widget.onOpenInfo,
             child: Icon(Icons.info_outline, size: 18, color: theme.accent),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LiquidComposer extends StatelessWidget {
-  const _LiquidComposer({
-    required this.controller,
-    required this.ephemeral,
-    required this.onSend,
-    this.focusNode,
-    this.onChanged,
-    this.onAttach,
-  });
-  final TextEditingController controller;
-  final FocusNode? focusNode;
-  final bool ephemeral;
-  final VoidCallback onSend;
-  final ValueChanged<String>? onChanged;
-  final VoidCallback? onAttach;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    // Scaffold handles the keyboard via resizeToAvoidBottomInset — the body
-    // shrinks and `bottomSafe` is already reduced to 0 when the keyboard
-    // covers the home indicator. Adding viewInsets here would double-count.
-    final pad = EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe);
-    return Padding(
-      padding: pad,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (onAttach != null) ...[
-            LiquidGlass(
-              shape: LiquidGlassShape.circle,
-              size: const Size(44, 44),
-              onTap: onAttach,
-              child: Icon(Icons.add, size: 18, color: theme.accent),
-            ),
-            const SizedBox(width: 12),
-          ],
-          Expanded(
-            child: LiquidGlass(
-              shape: LiquidGlassShape.rounded,
-              radius: 22,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              // See _Composer above — multi-line fields never fire onSubmitted.
-              child: SubmitOnEnter(
-                controller: controller,
-                onSubmit: onSend,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink, fontSize: 16),
-                  cursorColor: theme.accent,
-                  minLines: 1,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: ephemeral ? 'whisper something the server will forget…' : 'Message',
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                  ),
-                  onChanged: onChanged,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(44, 44),
-            tinted: true,
-            onTap: onSend,
-            child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
           ),
         ],
       ),

@@ -228,7 +228,6 @@ class _Preview extends StatelessWidget {
           ReplyIndicator(
             preview: _parentPreview,
             isMine: false,
-            distanceLabel: null,
             api: api,
             onTap: () {},
             onViewThread: () {},

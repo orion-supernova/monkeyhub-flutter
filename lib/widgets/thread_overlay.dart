@@ -6,63 +6,63 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../screens/profile_screen.dart';
 import '../keyboard/overlay_modal_scope.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'chat_composer.dart';
+import 'composer_reply_card.dart';
 import 'message_action_menu.dart';
 import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
 import 'report_sheet.dart';
+import 'swipe_to_reply.dart';
 
-/// Open the thread view anchored on [currentMessageId]. Fetches the entire
-/// conversational thread (ancestors + descendants via `getThread`) and
-/// renders the messages as a vertically-scrolling sheet over a frosted
-/// scrim — full-size bubbles, no progressive dim. The originally-tapped
-/// message gets a persistent accent halo and is centered on first frame.
+/// Page size for thread paging. Small on purpose — the overlay pages on
+/// scroll, so the first paint costs a fraction of the old flat 50-message
+/// fetch.
+const int kThreadPageSize = 25;
+
+/// Open the thread rooted at [rootId], scrolled to [anchorMessageId].
 ///
-/// Long-press / double-tap on a bubble inside the sheet brings up the
-/// regular action menu (Reply / Copy / Profile / Delete / Report). Reply
-/// fires [onReply], which the caller uses to arm the main room composer;
-/// the overlay then dismisses itself.
+/// The list is live: it reads [ChatRepository.threadFor], which merges
+/// fetched pages with the room's own subscription, so messages sent from
+/// inside the thread — and messages other people send while it's open —
+/// appear without a refetch. Scrolling to the top pages further back.
 ///
-/// Dismiss: tap the scrim OR tap the close button. Vertical drag scrolls
-/// the list and does NOT dismiss.
+/// Dismiss: tap the scrim, tap the close button, or press Esc. Vertical drag
+/// scrolls the list and dismisses the keyboard rather than the overlay.
+///
+/// [onChildGate] is invoked instead of sending when a child guard refuses the
+/// message. The overlay dismisses first and hands back the refusal plus the
+/// unsent text, so the host screen can restore it into its own composer and
+/// run the approval flow on a surface that isn't behind a blurred scrim.
 Future<void> showThreadOverlay({
   required BuildContext context,
   required ChatApi api,
   required ChatRepository repo,
   required String roomId,
-  required String currentMessageId,
-  required void Function(ChatMessage target) onReply,
+  required String rootId,
+  required String anchorMessageId,
+  void Function(String gateError, String unsentText)? onChildGate,
 }) async {
   final theme = ThemeScope.of(context);
-  final messenger = ScaffoldMessenger.maybeOf(context);
-
-  List<ChatMessage> chain;
-  try {
-    chain = await repo.fetchThread(currentMessageId);
-  } catch (_) {
-    messenger?.showSnackBar(
-      const SnackBar(content: Text("couldn't load thread")),
-    );
-    return;
-  }
-  if (chain.isEmpty || !context.mounted) return;
-
   final overlay = Overlay.of(context, rootOverlay: true);
   final completer = Completer<void>();
   late OverlayEntry entry;
   entry = OverlayEntry(
     builder: (_) => _ThreadSheet(
-      chain: chain,
       api: api,
       repo: repo,
-      focusedMessageId: currentMessageId,
+      roomId: roomId,
+      rootId: rootId,
+      anchorMessageId: anchorMessageId,
       themeMotion: theme.motionEntrance,
-      onReply: onReply,
+      onChildGate: onChildGate,
       onResolve: () {
         if (!completer.isCompleted) completer.complete();
         try {
@@ -77,22 +77,24 @@ Future<void> showThreadOverlay({
 
 class _ThreadSheet extends StatefulWidget {
   const _ThreadSheet({
-    required this.chain,
     required this.api,
     required this.repo,
-    required this.focusedMessageId,
+    required this.roomId,
+    required this.rootId,
+    required this.anchorMessageId,
     required this.themeMotion,
-    required this.onReply,
     required this.onResolve,
+    this.onChildGate,
   });
 
-  final List<ChatMessage> chain;
   final ChatApi api;
   final ChatRepository repo;
-  final String focusedMessageId;
+  final String roomId;
+  final String rootId;
+  final String anchorMessageId;
   final Curve themeMotion;
-  final void Function(ChatMessage target) onReply;
   final VoidCallback onResolve;
+  final void Function(String gateError, String unsentText)? onChildGate;
 
   @override
   State<_ThreadSheet> createState() => _ThreadSheetState();
@@ -101,10 +103,37 @@ class _ThreadSheet extends StatefulWidget {
 class _ThreadSheetState extends State<_ThreadSheet>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
+  final ScrollController _scroll = ScrollController();
+  final TextEditingController _composer = TextEditingController();
+  final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
+
   bool _closing = false;
-  // Per-message-id GlobalKeys so we can ensureVisible() the focused one and
-  // anchor the action menu at the right rect on long-press.
+
+  /// Per-message-id keys for `ensureVisible` and for anchoring the action
+  /// menu. Built lazily in the item builder rather than up-front: the list is
+  /// live, and a message that arrives after the overlay opens would otherwise
+  /// have no key — which silently kills long-press on exactly the messages
+  /// the user is most likely to interact with.
   final Map<String, GlobalKey> _keys = {};
+
+  /// The message a new reply attaches to. Null means "the last message in the
+  /// thread", resolved at send time so it tracks live arrivals. Set
+  /// explicitly by Reply / swipe.
+  ChatMessage? _target;
+
+  /// One-shot guard so the anchor scroll doesn't re-fire on every rebuild.
+  bool _didAnchor = false;
+
+  /// Ephemeral bubbles render a countdown against this. Without a ticker the
+  /// overlay computed `DateTime.now()` once and the countdowns sat frozen.
+  Timer? _tick;
+  DateTime _now = DateTime.now();
+
+  /// In-overlay toast. A SnackBar can't be used here: ScaffoldMessenger
+  /// renders inside the Scaffold's subtree, which sits *below* this root
+  /// overlay entry and behind the blurred scrim.
+  String? _toast;
+  Timer? _toastTimer;
 
   @override
   void initState() {
@@ -115,28 +144,198 @@ class _ThreadSheetState extends State<_ThreadSheet>
       reverseDuration: const Duration(milliseconds: 160),
     )..forward();
 
-    for (final m in widget.chain) {
-      _keys[m.id] = GlobalKey(debugLabel: 'thread-${m.id}');
-    }
+    widget.repo.addListener(_onRepoChange);
+    _scroll.addListener(_onScroll);
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
 
+    widget.repo.openThread(widget.rootId);
+    // Deferred a frame on purpose: loadOlderThread notifies synchronously
+    // before its first await, and we're already listening — kicking it off
+    // here directly would call setState while the tree is still building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _keys[widget.focusedMessageId]?.currentContext;
-      if (ctx != null && ctx.mounted) {
-        Scrollable.ensureVisible(
-          ctx,
-          alignment: 0.5,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-        );
-      }
+      if (mounted) unawaited(_loadFirstPage());
     });
   }
 
   @override
   void dispose() {
+    _tick?.cancel();
+    _toastTimer?.cancel();
+    widget.repo.removeListener(_onRepoChange);
+    widget.repo.closeThread(widget.rootId);
+    _scroll.dispose();
+    _composer.dispose();
+    _composerFocus.dispose();
     _ctrl.dispose();
     super.dispose();
   }
+
+  void _onRepoChange() {
+    if (mounted) setState(() {});
+  }
+
+  List<ChatMessage> get _messages =>
+      widget.repo.threadFor(widget.roomId, widget.rootId);
+
+  Future<void> _loadFirstPage() async {
+    await widget.repo.loadOlderThread(
+      roomId: widget.roomId,
+      rootId: widget.rootId,
+      pageSize: kThreadPageSize,
+    );
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _anchor());
+  }
+
+  // ───────────── scrolling ─────────────
+
+  /// The list is `reverse: true`, so the *top* of the thread is the maximum
+  /// scroll extent. Mirrors the room screen's own near-top trigger.
+  void _onScroll() {
+    if (!_scroll.hasClients) return;
+    final p = _scroll.position;
+    if (p.pixels >= p.maxScrollExtent - 220) {
+      if (widget.repo.hasMoreThread(widget.rootId) &&
+          !widget.repo.isLoadingThread(widget.rootId)) {
+        unawaited(widget.repo.loadOlderThread(
+          roomId: widget.roomId,
+          rootId: widget.rootId,
+          pageSize: kThreadPageSize,
+        ));
+      }
+    }
+  }
+
+  /// Centers the anchor message. `ListView.builder` only builds near the
+  /// viewport, so if the anchor is far up the thread its key has no context
+  /// yet and `ensureVisible` would silently no-op — page back and retry a
+  /// bounded number of times before giving up, the same shape the room
+  /// screen uses for scroll-to-parent.
+  Future<void> _anchor({int attempt = 0}) async {
+    if (!mounted || _didAnchor) return;
+    final ctx = _keys[widget.anchorMessageId]?.currentContext;
+    if (ctx != null && ctx.mounted) {
+      _didAnchor = true;
+      await Scrollable.ensureVisible(
+        ctx,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+    if (attempt >= 3 || !widget.repo.hasMoreThread(widget.rootId)) {
+      // Give up quietly — the thread still renders, just not centered.
+      _didAnchor = true;
+      return;
+    }
+    await widget.repo.loadOlderThread(
+      roomId: widget.roomId,
+      rootId: widget.rootId,
+      pageSize: kThreadPageSize,
+    );
+    if (!mounted) return;
+    await Future<void>.delayed(Duration.zero);
+    if (!mounted) return;
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _anchor(attempt: attempt + 1));
+  }
+
+  /// Tapping a reply tether inside the thread scrolls to the quoted parent
+  /// rather than doing nothing.
+  void _jumpToParent(String parentId) {
+    final ctx = _keys[parentId]?.currentContext;
+    if (ctx == null || !ctx.mounted) {
+      _showToast('that message is further up the thread');
+      return;
+    }
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.5,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  // ───────────── composing ─────────────
+
+  void _showToast(String message) {
+    _toastTimer?.cancel();
+    setState(() => _toast = message);
+    _toastTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _toast = null);
+    });
+  }
+
+  void _armReply(ChatMessage m) {
+    HapticFeedback.heavyImpact();
+    setState(() => _target = m);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _composerFocus.requestFocus();
+    });
+  }
+
+  /// Resolves the reply target against the *current* thread. A message can
+  /// never be sent into a thread with a null parent — it would land in the
+  /// room but outside the thread, and appear to vanish from this overlay — so
+  /// a target that was deleted or expired mid-compose falls back to the last
+  /// live message.
+  ChatMessage? _resolveTarget(List<ChatMessage> messages) {
+    if (messages.isEmpty) return null;
+    final t = _target;
+    if (t != null) {
+      for (final m in messages) {
+        if (m.id == t.id) return m;
+      }
+    }
+    return messages.last;
+  }
+
+  Future<void> _send() async {
+    final text = _composer.text.trim();
+    if (text.isEmpty) return;
+    final target = _resolveTarget(_messages);
+    if (target == null) {
+      _showToast("couldn't find the thread to reply to");
+      return;
+    }
+    if (target.id.startsWith('tmp_')) {
+      _showToast('still sending — try again in a second');
+      return;
+    }
+    _composer.clear();
+    // Disarm: the reply is sent, so an explicit target has nothing left to
+    // say. Falling back to null means the next send goes to the tail — which
+    // is now the message just sent. Nothing to restore on the refusal path
+    // below: it dismisses the overlay and hands the text to the room.
+    if (_target != null) setState(() => _target = null);
+    await widget.repo.sendText(widget.roomId, text, replyToId: target.id);
+
+    // Read-and-clear, immediately after the send, exactly as the room screen
+    // does — leaving it set would leak the refusal into the next send there.
+    final gate = widget.repo.takeChildGateError();
+    if (gate != null) {
+      final handler = widget.onChildGate;
+      await _dismiss();
+      // Handed to the host rather than shown here: the approval sheet is a
+      // pushed route, and this overlay's scrim would blur it.
+      handler?.call(gate, text);
+      return;
+    }
+    if (!mounted) return;
+    // Reverse list: offset 0 is the newest message.
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  // ───────────── dismissal ─────────────
 
   Future<void> _dismiss() async {
     if (_closing) return;
@@ -145,6 +344,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (!mounted) return;
     widget.onResolve();
   }
+
+  // ───────────── action menu ─────────────
 
   Future<void> _onLongPressBubble(ChatMessage m, ChatUser? author) async {
     final isMine = m.senderId == widget.repo.userId;
@@ -155,7 +356,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final anchor = _keys[m.id];
     if (anchor == null) return;
     HapticFeedback.mediumImpact();
-    final messenger = ScaffoldMessenger.maybeOf(context);
     final result = await showMessageActionMenu(
       context: context,
       anchorKey: anchor,
@@ -166,25 +366,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
       // intentionally suppress the View Thread row inside this overlay to
       // prevent recursion. The user already sees the thread.
       hasParent: false,
-      bubbleBuilder: (_) => m.isEphemeral
-          ? EphemeralMessageBubble(
-              message: m,
-              now: DateTime.now(),
-              currentUserId: widget.repo.userId ?? '',
-              api: widget.api,
-              author: author,
-              useHero: false,
-              showReplyIndicator: false,
-            )
-          : MessageBubble(
-              message: m,
-              now: DateTime.now(),
-              currentUserId: widget.repo.userId ?? '',
-              api: widget.api,
-              author: author,
-              useHero: false,
-              showReplyIndicator: false,
-            ),
+      bubbleBuilder: (_) => _bubbleFor(
+        m,
+        author,
+        showReplyIndicator: false,
+        interactive: false,
+      ),
     );
     if (!mounted || result == null) return;
     if (result.emoji != null) {
@@ -199,12 +386,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
     }
     switch (result.action!) {
       case MessageAction.reply:
-        widget.onReply(m);
-        await _dismiss();
+        // Stays in the thread now that there's a composer here — retarget
+        // rather than dismissing to the room's composer.
+        _armReply(m);
         break;
       case MessageAction.copy:
         await Clipboard.setData(ClipboardData(text: m.content));
-        messenger?.showSnackBar(const SnackBar(content: Text('copied')));
+        _showToast('copied');
         break;
       case MessageAction.viewProfile:
         if (author != null && context.mounted) {
@@ -235,6 +423,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             targetId: m.id,
             reason: reason,
           );
+          _showToast('reported');
         } catch (_) {}
         break;
       case MessageAction.viewThread:
@@ -244,158 +433,376 @@ class _ThreadSheetState extends State<_ThreadSheet>
     }
   }
 
+  // ───────────── rendering ─────────────
+
+  Widget _bubbleFor(
+    ChatMessage m,
+    ChatUser? author, {
+    required bool showReplyIndicator,
+    required bool interactive,
+    bool grouped = false,
+  }) {
+    final me = widget.repo.userId ?? '';
+    if (m.isEphemeral) {
+      return EphemeralMessageBubble(
+        message: m,
+        now: _now,
+        currentUserId: me,
+        api: widget.api,
+        author: author,
+        useHero: false,
+        grouped: grouped,
+        showReplyIndicator: showReplyIndicator,
+        // Null hides the branch button — no thread-within-a-thread.
+        onViewThread: null,
+        onReplyIndicatorTap: interactive ? _jumpToParent : null,
+        onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
+        onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
+      );
+    }
+    return MessageBubble(
+      message: m,
+      now: _now,
+      currentUserId: me,
+      api: widget.api,
+      author: author,
+      useHero: false,
+      grouped: grouped,
+      showReplyIndicator: showReplyIndicator,
+      onViewThread: null,
+      onReplyIndicatorTap: interactive ? _jumpToParent : null,
+      onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
+      onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final curved = CurvedAnimation(parent: _ctrl, curve: widget.themeMotion);
-    final me = widget.repo.userId ?? '';
-    final now = DateTime.now();
+    final messages = _messages;
+    final loading = widget.repo.isLoadingThread(widget.rootId);
+    final hasLoaded = widget.repo.hasLoadedThread(widget.rootId);
+    final target = _resolveTarget(messages);
+    // Whether the send would attach somewhere other than the newest message,
+    // i.e. the user deliberately branched off an earlier one.
+    final offTail =
+        target != null && messages.isNotEmpty && target.id != messages.last.id;
+
+    // SafeArea consumes *padding*, not *viewInsets*, and padding.bottom is
+    // not reliably zeroed when the keyboard is up — so take the larger of the
+    // two rather than adding them, or the home indicator gets counted twice.
+    final media = MediaQuery.of(context);
+    final bottomInset =
+        media.viewInsets.bottom > media.padding.bottom
+            ? media.viewInsets.bottom
+            : media.padding.bottom;
 
     return Material(
       type: MaterialType.transparency,
-      // Esc dismisses with the same exit animation as a scrim tap, and Tab
-      // stays inside the overlay.
       child: OverlayModalScope(
         onDismiss: _dismiss,
+        // This overlay owns a text field, so restoring focus to the room's
+        // composer on close would pop the keyboard straight back up.
+        restoreFocus: false,
         child: Stack(
-        children: [
-          // Frosted scrim. Tap to dismiss.
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _dismiss,
-              child: AnimatedBuilder(
-                animation: curved,
-                builder: (_, _) {
-                  final t = curved.value;
-                  return Stack(
-                    children: [
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: 22 * t,
-                              sigmaY: 22 * t,
-                            ),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                      ),
-                      Positioned.fill(
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.32 * t),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-          // Scrolling sheet of full-size bubbles. The sheet itself is
-          // transparent (no card surface) so the scrim shows through; this
-          // keeps the focus on the bubbles and matches the action-menu
-          // visual language.
-          Positioned.fill(
-            child: SafeArea(
-              child: AnimatedBuilder(
-                animation: curved,
-                builder: (_, child) =>
-                    Opacity(opacity: curved.value, child: child),
-                child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 80, 20, 24),
-                  itemCount: widget.chain.length,
-                  itemBuilder: (context, i) {
-                    final m = widget.chain[i];
-                    final author = widget.repo.userById(m.senderId) ??
-                        ChatUser(
-                          id: m.senderId,
-                          username: m.senderName,
-                          name: m.senderName,
-                        );
-                    final isFocused = m.id == widget.focusedMessageId;
-                    final isMine = m.senderId == me;
-                    final bubble = m.isEphemeral
-                        ? EphemeralMessageBubble(
-                            message: m,
-                            now: now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                            useHero: false,
-                            // Inline indicators ARE shown inside the thread
-                            // overlay — but with onViewThread null so the
-                            // branch button hides (no recursion).
-                            showReplyIndicator: true,
-                            onViewThread: null,
-                            onLongPress: () => _onLongPressBubble(m, author),
-                            onDoubleTap: () => _onLongPressBubble(m, author),
-                          )
-                        : MessageBubble(
-                            message: m,
-                            now: now,
-                            currentUserId: me,
-                            api: widget.api,
-                            author: author,
-                            useHero: false,
-                            showReplyIndicator: true,
-                            onViewThread: null,
-                            onLongPress: () => _onLongPressBubble(m, author),
-                            onDoubleTap: () => _onLongPressBubble(m, author),
-                          );
-
-                    final keyed = KeyedSubtree(key: _keys[m.id], child: bubble);
-                    if (!isFocused) return keyed;
-
-                    // Wrap focused message in a halo + accent border. The
-                    // halo lives behind the bubble; the border sits in front
-                    // so it reads even where the halo is occluded by other
-                    // bubbles in the scroll view.
+          children: [
+            // Frosted scrim. Tap to dismiss.
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _dismiss,
+                child: AnimatedBuilder(
+                  animation: curved,
+                  builder: (_, _) {
+                    final t = curved.value;
                     return Stack(
-                      alignment: isMine
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
                       children: [
                         Positioned.fill(
                           child: IgnorePointer(
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(22),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: theme.accent
-                                        .withValues(alpha: 0.45),
-                                    blurRadius: 22,
-                                    spreadRadius: 2,
-                                  ),
-                                ],
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 22 * t,
+                                sigmaY: 22 * t,
                               ),
+                              child: const SizedBox.expand(),
                             ),
                           ),
                         ),
-                        keyed,
+                        Positioned.fill(
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.32 * t),
+                          ),
+                        ),
                       ],
                     );
                   },
                 ),
               ),
             ),
-          ),
-          // Close button — only valid dismiss affordance besides scrim tap.
-          Positioned(
-            top: 0,
-            right: 16,
-            child: SafeArea(
-              child: AnimatedBuilder(
-                animation: curved,
-                builder: (_, child) =>
-                    Opacity(opacity: curved.value, child: child),
-                child: _CloseButton(onTap: _dismiss),
+            // Scrolling sheet of full-size bubbles + composer. The sheet is
+            // transparent (no card surface) so the scrim shows through.
+            Positioned.fill(
+              child: SafeArea(
+                // Bottom handled manually — see bottomInset above.
+                bottom: false,
+                child: AnimatedBuilder(
+                  animation: curved,
+                  builder: (_, child) =>
+                      Opacity(opacity: curved.value, child: child),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: messages.isEmpty
+                            ? Center(
+                                child: hasLoaded
+                                    ? Text(
+                                        'thread unavailable',
+                                        style: theme.bodySoft
+                                            .copyWith(color: theme.inkMuted),
+                                      )
+                                    : const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                              )
+                            : _buildList(messages, theme, loading),
+                      ),
+                      if (target != null)
+                        AnimatedPadding(
+                          duration: const Duration(milliseconds: 100),
+                          curve: Curves.easeOut,
+                          padding: EdgeInsets.only(bottom: bottomInset),
+                          child: _buildComposer(target, offTail: offTail),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
+            // Close button — the other dismiss affordance besides scrim tap.
+            Positioned(
+              top: 0,
+              right: 16,
+              child: SafeArea(
+                child: AnimatedBuilder(
+                  animation: curved,
+                  builder: (_, child) =>
+                      Opacity(opacity: curved.value, child: child),
+                  child: _CloseButton(onTap: _dismiss),
+                ),
+              ),
+            ),
+            if (_toast != null)
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: bottomInset + 96,
+                child: IgnorePointer(child: _Toast(message: _toast!)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildList(
+    List<ChatMessage> messages,
+    AppTheme theme,
+    bool loading,
+  ) {
+    final me = widget.repo.userId ?? '';
+    // Reversed so the newest sits against the composer and so prepending an
+    // older page preserves scroll position for free.
+    final count = messages.length + 1; // +1 for the top loading//end slot
+    return ListView.builder(
+      controller: _scroll,
+      reverse: true,
+      // Build well beyond the viewport so `ensureVisible` finds anchor keys
+      // and long-press works on off-screen bubbles.
+      cacheExtent: 1200,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
+      itemCount: count,
+      itemBuilder: (context, i) {
+        if (i == count - 1) {
+          // Visually the top of the thread.
+          if (!loading) return const SizedBox(height: 8);
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        final j = messages.length - 1 - i; // chronological index
+        final m = messages[j];
+        final author = widget.repo.userById(m.senderId) ??
+            ChatUser(
+              id: m.senderId,
+              username: m.senderName,
+              name: m.senderName,
+            );
+
+        // Only tether a reply to its parent when the parent ISN'T the bubble
+        // directly above it. In a linear chain that's always the case, so the
+        // quoted card would just duplicate the message already on screen; in
+        // a branching thread it's the only thing that says which message this
+        // is actually answering.
+        final showIndicator = m.isReply &&
+            (j == 0 || m.replyToId != messages[j - 1].id);
+
+        // Same run-grouping rule the room list uses, so a thread doesn't
+        // read as looser than the conversation it came from.
+        final prev = j == 0 ? null : messages[j - 1];
+        final grouped = prev != null &&
+            prev.senderId == m.senderId &&
+            !showIndicator &&
+            m.createdAt.difference(prev.createdAt).inMinutes < 5;
+
+        final isFocused = m.id == widget.anchorMessageId;
+        final isMine = m.senderId == me;
+        final canReply = !m.id.startsWith('tmp_') &&
+            m.status == MessageStatus.sent &&
+            m.type != MessageType.system;
+
+        final bubble = SwipeToReply(
+          enabled: canReply,
+          onReplyTriggered: () => _armReply(m),
+          child: _bubbleFor(
+            m,
+            author,
+            showReplyIndicator: showIndicator,
+            interactive: true,
+            grouped: grouped,
           ),
-        ],
+        );
+
+        final keyed = KeyedSubtree(
+          key: _keys.putIfAbsent(
+            m.id,
+            () => GlobalKey(debugLabel: 'thread-${m.id}'),
+          ),
+          child: bubble,
+        );
+        if (!isFocused) return keyed;
+
+        // Halo behind the anchor message so it stays findable after scroll.
+        return Stack(
+          alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.accent.withValues(alpha: 0.45),
+                        blurRadius: 22,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            keyed,
+          ],
+        );
+      },
+    );
+  }
+
+  /// [target] is the message a send will attach to. [offTail] is true only
+  /// when that's *not* the newest message in the thread.
+  Widget _buildComposer(ChatMessage target, {required bool offTail}) {
+    final room = widget.repo.roomById(widget.roomId);
+    final ephemeral = room?.isEphemeral ?? false;
+    final classic = SettingsStore.instance.chatStyle == ChatStyle.classic;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // No "REPLYING TO" banner in the normal case. In a room it earns its
+        // space — it's the only thing saying you're not just typing into the
+        // channel. In a thread the whole view IS the context, and the default
+        // target is the message sitting directly above the composer, so the
+        // card just restates what's already on screen.
+        //
+        // It comes back when you long-press or swipe an EARLIER message to
+        // branch, because then the send goes somewhere the layout doesn't
+        // imply — that's the one case where silence would be wrong.
+        if (offTail)
+          ComposerReplyCard(
+            // Without the key the card doesn't re-run its entrance animation
+            // when the user retargets, so the switch reads as nothing
+            // happening.
+            key: ValueKey(target.id),
+            parent: target,
+            api: widget.api,
+            // Clearing goes back to the tail, which is the default — there is
+            // no null target inside a thread.
+            onCancel: () => setState(() => _target = null),
+          ),
+        // Attachments are deliberately absent: the attach flow pushes
+        // full-screen routes (camera, voice recorder) that would fight this
+        // root-overlay entry for layering. Text only in the thread.
+        if (classic)
+          ChatComposerClassic(
+            controller: _composer,
+            focusNode: _composerFocus,
+            ephemeral: ephemeral,
+            onSend: _send,
+            onChanged: (_) => widget.repo.noteTyping(),
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+          )
+        else
+          ChatComposerLiquid(
+            controller: _composer,
+            focusNode: _composerFocus,
+            ephemeral: ephemeral,
+            onSend: _send,
+            onChanged: (_) => widget.repo.noteTyping(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          ),
+      ],
+    );
+  }
+}
+
+class _Toast extends StatelessWidget {
+  const _Toast({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Center(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.surface.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: theme.accent.withValues(alpha: 0.30)),
+            ),
+            child: Text(
+              message,
+              style: theme.bodySoft.copyWith(color: theme.ink),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ),
     );

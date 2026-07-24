@@ -55,6 +55,7 @@ class ChatMessage {
     List<MessageReaction>? reactions,
     this.replyToId,
     this.replyToPreview,
+    this.rootId,
   }) : reactions = reactions ?? [];
 
   final String id;
@@ -71,6 +72,16 @@ class ChatMessage {
   List<MessageReaction> reactions;
   final String? replyToId;
   final ReplyPreview? replyToPreview;
+
+  /// Id of the message at the top of this reply chain. Set by the server on
+  /// replies only — a root message has no [rootId], which is why thread
+  /// membership is tested with [threadKey] rather than this field directly.
+  final String? rootId;
+
+  /// The thread this message belongs to. A root is the head of its own
+  /// thread, so it keys on its own id; replies key on the shared [rootId].
+  /// Two messages are in the same thread iff their [threadKey]s match.
+  String get threadKey => rootId ?? id;
 
   bool get isEphemeral => expiresAt != null;
   bool get isMedia =>
@@ -112,6 +123,7 @@ class ChatMessage {
       replyToPreview: rp is Map
           ? ReplyPreview.fromJson(rp.cast<String, dynamic>())
           : null,
+      rootId: j['rootId']?.toString(),
     );
   }
 
@@ -129,6 +141,9 @@ class ChatMessage {
         'reactions': reactions.map((r) => r.toJson()).toList(),
         if (replyToId != null) 'replyToId': replyToId,
         if (replyToPreview != null) 'replyToPreview': replyToPreview!.toJson(),
+        // Round-trips through CacheStore — without it, cached messages lose
+        // their thread membership on cold boot.
+        if (rootId != null) 'rootId': rootId,
       };
 
   ChatMessage copyWith({
@@ -138,6 +153,7 @@ class ChatMessage {
     List<MessageReaction>? reactions,
     String? replyToId,
     ReplyPreview? replyToPreview,
+    String? rootId,
   }) => ChatMessage(
         id: id ?? this.id,
         roomId: roomId,
@@ -153,5 +169,6 @@ class ChatMessage {
         reactions: reactions ?? this.reactions,
         replyToId: replyToId ?? this.replyToId,
         replyToPreview: replyToPreview ?? this.replyToPreview,
+        rootId: rootId ?? this.rootId,
       );
 }

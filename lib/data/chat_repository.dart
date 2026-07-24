@@ -396,7 +396,12 @@ class ChatRepository extends ChangeNotifier {
         final parsed = list
             .map((e) => ChatMessage.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
-        _messages[roomId] = parsed;
+        // Re-attach any pages the user scrolled back through. A bare
+        // `_messages[roomId] = parsed` would drop them: this subscription
+        // refires on every reaction add/remove too, so a single reaction
+        // used to collapse the room back to the newest 100 and — because
+        // `_exhausted` isn't reset here — permanently kill `hasMoreOlder`.
+        _messages[roomId] = _withOlderPrefix(roomId, parsed);
         _reconcilePending(roomId);
         if (me != null) {
           CacheStore.instance.scheduleSaveMessages(me, roomId, parsed);
@@ -473,6 +478,7 @@ class ChatRepository extends ChangeNotifier {
     _activeReadState.clear();
     _loadingOlder.clear();
     _exhausted.clear();
+    _olderPrefix.clear();
   }
 
   /// Whether the first batch of messages (cache or server) has landed for
@@ -486,6 +492,28 @@ class ChatRepository extends ChangeNotifier {
 
   final Set<String> _loadingOlder = {};
   final Set<String> _exhausted = {};
+
+  /// Pages fetched by [loadOlder], kept separately from `_messages` so the
+  /// `messages:list` subscription can rebuild its 100-message live window
+  /// without discarding scrolled-back history. Oldest first. Cleared by
+  /// [closeRoom] alongside `_loadingOlder` / `_exhausted`.
+  final Map<String, List<ChatMessage>> _olderPrefix = {};
+
+  /// Splices the retained older pages in front of a fresh live window,
+  /// keeping only entries strictly older than the window and dropping any
+  /// the window now covers itself.
+  List<ChatMessage> _withOlderPrefix(String roomId, List<ChatMessage> live) {
+    final prefix = _olderPrefix[roomId];
+    if (prefix == null || prefix.isEmpty) return live;
+    if (live.isEmpty) return List<ChatMessage>.from(prefix);
+    final oldestLive = live.first.createdAt;
+    final liveIds = {for (final m in live) m.id};
+    final kept = prefix
+        .where((m) => m.createdAt.isBefore(oldestLive) && !liveIds.contains(m.id))
+        .toList();
+    if (kept.isEmpty) return live;
+    return [...kept, ...live];
+  }
 
   bool isLoadingOlder(String roomId) => _loadingOlder.contains(roomId);
   bool hasMoreOlder(String roomId) => !_exhausted.contains(roomId);
@@ -516,6 +544,8 @@ class ChatRepository extends ChangeNotifier {
       final fresh = older.where((m) => !seen.contains(m.id)).toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
       _messages[roomId] = [...fresh, ...cur];
+      // Retain the page so the next subscription fire can splice it back in.
+      _olderPrefix[roomId] = [...fresh, ...(_olderPrefix[roomId] ?? const [])];
       if (older.length < pageSize) _exhausted.add(roomId);
       return fresh.length;
     } catch (_) {
@@ -605,11 +635,121 @@ class ChatRepository extends ChangeNotifier {
     return null;
   }
 
-  Future<List<ChatMessage>> fetchThread(
-    String messageId, {
-    int maxTotal = 50,
-  }) =>
-      api.getThread(messageId: messageId, maxTotal: maxTotal);
+  // ───────────── threads ─────────────
+  //
+  // A thread is read as two halves that get merged on every build:
+  //
+  //   1. Pages fetched from `messages:getThreadPage`, kept in `_threadPages`.
+  //      Static snapshots — they never update after the fetch.
+  //   2. The room's own live message list, filtered to the thread. Every
+  //      thread message is also a room message, so this gives live arrivals,
+  //      reaction updates, deletions and optimistic `tmp_` bubbles for free.
+  //
+  // Half 2 is why there's no second Convex subscription for threads:
+  // `resubscribe()` only replays the fixed set of room-scoped subscriptions,
+  // so an overlay-owned one would go permanently dead after a socket
+  // reconnect with no recovery path.
+  //
+  // The honest limit: only the newest ~100 room messages are live, so thread
+  // messages older than that window are frozen snapshots. That's the same
+  // guarantee the room screen itself gives.
+
+  final Map<String, List<ChatMessage>> _threadPages = {};
+  final Set<String> _loadingThread = {};
+  final Set<String> _threadExhausted = {};
+  final Set<String> _threadLoaded = {};
+
+  bool isLoadingThread(String rootId) => _loadingThread.contains(rootId);
+  bool hasMoreThread(String rootId) => !_threadExhausted.contains(rootId);
+
+  /// Whether at least one page for [rootId] has come back from the server.
+  /// Tracked separately from `_threadPages` because a legitimately empty
+  /// first page (every thread message already live in the room window) still
+  /// counts as loaded — the overlay must stop showing a spinner.
+  bool hasLoadedThread(String rootId) => _threadLoaded.contains(rootId);
+
+  /// Every message in the thread rooted at [rootId], oldest first, merged
+  /// from fetched pages and the room's live list and deduped by id.
+  ///
+  /// Live entries win over page snapshots for the same id — a page is a
+  /// point-in-time copy, the live list has current reactions and status.
+  List<ChatMessage> threadFor(String roomId, String rootId) {
+    final byId = <String, ChatMessage>{};
+    for (final m in _threadPages[rootId] ?? const <ChatMessage>[]) {
+      byId[m.id] = m;
+    }
+    for (final m in messagesFor(roomId)) {
+      if (m.threadKey == rootId) byId[m.id] = m;
+    }
+    final merged = byId.values.toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return merged;
+  }
+
+  /// Begin a thread session. Clears any state from a previous open so a
+  /// stale `_threadExhausted` entry can't suppress paging.
+  void openThread(String rootId) {
+    _threadPages.remove(rootId);
+    _threadExhausted.remove(rootId);
+    _loadingThread.remove(rootId);
+    _threadLoaded.remove(rootId);
+  }
+
+  void closeThread(String rootId) {
+    _threadPages.remove(rootId);
+    _threadExhausted.remove(rootId);
+    _loadingThread.remove(rootId);
+    _threadLoaded.remove(rootId);
+  }
+
+  /// Fetches the next older page of the thread rooted at [rootId]. Returns
+  /// the number of newly-prepended messages. Idempotent while a page is in
+  /// flight; a no-op once [hasMoreThread] is false.
+  Future<int> loadOlderThread({
+    required String roomId,
+    required String rootId,
+    int pageSize = 25,
+  }) async {
+    if (_loadingThread.contains(rootId)) return 0;
+    if (_threadExhausted.contains(rootId)) return 0;
+    final me = _userId;
+    if (me == null) return 0;
+    _loadingThread.add(rootId);
+    notifyListeners();
+    try {
+      // Cursor off the merged view, not just `_threadPages` — otherwise the
+      // first call after a live message arrives would refetch a page the
+      // room subscription already gave us.
+      final cur = threadFor(roomId, rootId);
+      final page = await api.getThreadPage(
+        roomId: roomId,
+        rootId: rootId,
+        viewerUserId: me,
+        before: cur.isEmpty ? null : cur.first.createdAt,
+        limit: pageSize,
+      );
+      _threadLoaded.add(rootId);
+      if (!page.hasMore) _threadExhausted.add(rootId);
+      if (page.messages.isEmpty) return 0;
+      final existing = _threadPages[rootId] ?? const <ChatMessage>[];
+      final seen = {for (final m in existing) m.id};
+      final fresh = page.messages.where((m) => !seen.contains(m.id)).toList();
+      if (fresh.isEmpty) return 0;
+      _threadPages[rootId] = [...fresh, ...existing]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return fresh.length;
+    } catch (_) {
+      // Mark loaded but NOT exhausted: the overlay needs to stop spinning
+      // and fall back to whatever the room's live list already has, while
+      // a scroll can still retry — a transient failure shouldn't disable
+      // paging for the rest of the session.
+      _threadLoaded.add(rootId);
+      return 0;
+    } finally {
+      _loadingThread.remove(rootId);
+      notifyListeners();
+    }
+  }
 
   Future<void> _send({
     required String roomId,
@@ -627,6 +767,11 @@ class ChatRepository extends ChangeNotifier {
     // to see the bubble), we drop the replyToId on the optimistic message
     // but still attempt the send with it (the server resolves the parent).
     ReplyPreview? optimisticPreview;
+    // Thread membership for the pending bubble, resolved from the same
+    // cached parent. Without it the optimistic message wouldn't match
+    // `threadFor`'s filter and would be invisible in an open thread view
+    // until the server echo arrived.
+    String? optimisticRootId;
     if (replyToId != null) {
       final parent = findMessageInRoom(roomId, replyToId);
       if (parent != null) {
@@ -640,6 +785,7 @@ class ChatRepository extends ChangeNotifier {
           type: parent.type,
           mediaStorageId: parent.mediaStorageId,
         );
+        optimisticRootId = parent.threadKey;
       }
     }
 
@@ -656,6 +802,7 @@ class ChatRepository extends ChangeNotifier {
       status: MessageStatus.pending,
       replyToId: optimisticPreview != null ? replyToId : null,
       replyToPreview: optimisticPreview,
+      rootId: optimisticPreview != null ? optimisticRootId : null,
     );
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
     notifyListeners();
