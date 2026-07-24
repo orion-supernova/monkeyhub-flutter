@@ -13,6 +13,8 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/labeled_field.dart';
@@ -22,7 +24,7 @@ import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_visibility_screen.dart';
 import 'release_device_screen.dart';
-import 'room_screen.dart';
+import 'navigation/open_room.dart';
 
 /// Profile screen.
 ///
@@ -216,10 +218,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required TextInputType keyboardType,
   }) async {
     final controller = TextEditingController(text: currentValue);
-    final next = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    final next = await showAdaptiveSheet<String>(
+      context,
       builder: (ctx) {
         final theme = ThemeScope.of(ctx);
         final bottom = MediaQuery.of(ctx).viewInsets.bottom;
@@ -343,21 +343,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final roomId = await repo.approveDirectRequest(_u.id);
           if (!mounted) return;
           if (roomId != null) {
-            nav.push(
-              MaterialPageRoute(
-                builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
-              ),
-            );
+            openRoom(context, roomId: roomId, repo: repo, api: api);
           }
           break;
         case FriendshipStatus.friend:
           final roomId = await repo.openDmWith(_u);
           if (!mounted) return;
-          nav.push(
-            MaterialPageRoute(
-              builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
-            ),
-          );
+          openRoom(context, roomId: roomId, repo: repo, api: api);
           break;
       }
     } catch (e) {
@@ -592,7 +584,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: ListView(
+            child: AdaptivePageBody(
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
               children: [
                 Row(
@@ -790,6 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2)),
                 ],
               ],
+            ),
             ),
           ),
         ],
@@ -1055,10 +1049,8 @@ Future<AvatarAction?> showAvatarActionSheet(
   BuildContext context, {
   required bool hasAvatar,
 }) {
-  return showModalBottomSheet<AvatarAction>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+  return showAdaptiveSheet<AvatarAction>(
+    context,
     builder: (ctx) {
       final theme = ThemeScope.of(ctx);
       return SafeArea(

@@ -44,6 +44,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1100),
     )..repeat(reverse: true);
+    // The ringtone is driven by _CallOverlay from the call-state change (not
+    // here), because on a backgrounded web tab this screen never mounts — see
+    // _CallOverlayState._syncRingtone.
     widget.service.addListener(_onChanged);
   }
 

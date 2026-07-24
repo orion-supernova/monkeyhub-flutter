@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../family/family_service.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/user_avatar.dart';
 
 /// The parent's inbox: everything waiting on them, across every child.
@@ -108,7 +109,8 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -154,6 +156,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                             ),
                 ),
               ],
+            ),
             ),
           ),
         ],

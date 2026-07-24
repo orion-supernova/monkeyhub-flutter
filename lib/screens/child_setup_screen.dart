@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import 'pairing_code_screen.dart';
 
@@ -100,7 +101,8 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -221,6 +223,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

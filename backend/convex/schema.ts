@@ -53,7 +53,11 @@ export default defineSchema({
         canCreateRooms: v.boolean(),
       })
     ),
-  }).index("by_username", ["username"]),
+  })
+    .index("by_username", ["username"])
+    // Presence staleness sweep (users.sweepStalePresence) ranges over lastSeen
+    // to find clients that stopped heartbeating. See presence.ts.
+    .index("by_lastSeen", ["lastSeen"]),
 
   // Per-device push registration. One row per (userId, deviceId) — every
   // logged-in device gets its own entry so a sibling device login doesn't

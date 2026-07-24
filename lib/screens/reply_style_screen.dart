@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/reply_indicator.dart';
 
 /// Picker for the inline reply indicator's visual style. Each card shows a
@@ -49,7 +50,8 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: ListView(
+            child: AdaptivePageBody(
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
               children: [
                 Row(children: [
@@ -116,6 +118,7 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
                   onTap: () => _set(ReplyStyle.classic),
                 ),
               ],
+            ),
             ),
           ),
         ],

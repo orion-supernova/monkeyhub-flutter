@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 
 /// Reached via the `+` on the floating reaction pill. WhatsApp-style:
 /// a categorized sheet of every emoji, with skin tones and search. No
@@ -106,10 +107,8 @@ class ReactionPickerSheet extends StatelessWidget {
 
 /// Helper: show the picker and return the chosen emoji (or null on dismiss).
 Future<String?> showReactionPicker(BuildContext context) {
-  return showModalBottomSheet<String>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  return showAdaptiveSheet<String>(
+    context,
     builder: (_) => const ReactionPickerSheet(),
   );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_brand_mark.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -14,7 +15,8 @@ class FeedScreen extends StatelessWidget {
       children: [
         theme.backgroundLayer(context),
         SafeArea(
-          child: Padding(
+          child: AdaptivePageBody(
+            child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 28, 20, 80),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,6 +55,7 @@ class FeedScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ],

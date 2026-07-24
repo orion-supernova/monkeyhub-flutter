@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'labeled_field.dart';
 
 /// Prompts for a room password when the user tries to join a locked room.
 /// Resolves to the entered password, or null if dismissed.
 Future<String?> showRoomPasswordSheet(BuildContext context, ChatRoom room) {
-  return showModalBottomSheet<String>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+  return showAdaptiveSheet<String>(
+    context,
     builder: (_) => _PasswordSheet(room: room),
   );
 }

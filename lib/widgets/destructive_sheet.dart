@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'remote_image.dart';
 
 /// Building blocks shared by the sheets that ask "are you sure?" before
@@ -46,10 +47,8 @@ Future<bool> showConfirmSheet(
   required String body,
   required String confirmLabel,
 }) async {
-  final res = await showModalBottomSheet<bool>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  final res = await showAdaptiveSheet<bool>(
+    context,
     builder: (_) => _ConfirmSheet(
       headline: headline,
       body: body,

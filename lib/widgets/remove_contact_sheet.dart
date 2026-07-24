@@ -5,6 +5,7 @@ import '../models/chat_room.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
 
 /// Confirms taking a person away from a child, spelling out what gets deleted.
@@ -25,10 +26,8 @@ Future<bool> showRemoveContactSheet(
   required ContactRemovalPreview preview,
   required ChatApi api,
 }) async {
-  final res = await showModalBottomSheet<bool>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  final res = await showAdaptiveSheet<bool>(
+    context,
     builder: (_) => _RemoveContactSheet(
       contactName: contactName,
       childName: childName,

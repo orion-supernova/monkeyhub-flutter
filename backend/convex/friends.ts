@@ -11,6 +11,7 @@ import {
   initialStageFor,
   isReleasedToRecipient,
 } from "./childGuard";
+import { effectiveStatus } from "./presence";
 
 /**
  * Pings whoever now holds a request.
@@ -253,7 +254,9 @@ export const listFriends = query({
     const friends = await Promise.all(
       friendships.map((f) => ctx.db.get(f.friendId))
     );
-    return friends.filter(Boolean);
+    return friends
+      .filter(Boolean)
+      .map((u) => ({ ...u!, status: effectiveStatus(u!.status, u!.lastSeen) }));
   },
 });
 
@@ -274,7 +277,13 @@ export const listPendingRequests = query({
     const requesters = await Promise.all(
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
-        return user ? { ...user, friendshipId: f._id } : null;
+        return user
+          ? {
+              ...user,
+              friendshipId: f._id,
+              status: effectiveStatus(user.status, user.lastSeen),
+            }
+          : null;
       })
     );
     return requesters.filter(Boolean);
@@ -581,7 +590,7 @@ export const listIncomingDirectRequests = query({
             name: requester.name,
             email: requester.email,
             avatarStorageId: requester.avatarStorageId,
-            status: requester.status,
+            status: effectiveStatus(requester.status, requester.lastSeen),
           },
         };
       })
@@ -626,7 +635,7 @@ export const listOutgoingDirectRequests = query({
             name: receiver.name,
             email: receiver.email,
             avatarStorageId: receiver.avatarStorageId,
-            status: receiver.status,
+            status: effectiveStatus(receiver.status, receiver.lastSeen),
           },
         };
       })
@@ -663,6 +672,10 @@ export const searchUsers = query({
           u.username.toLowerCase().includes(query.toLowerCase())
       )
       .slice(0, 10)
-      .map((u) => ({ _id: u._id, username: u.username, status: u.status }));
+      .map((u) => ({
+        _id: u._id,
+        username: u.username,
+        status: effectiveStatus(u.status, u.lastSeen),
+      }));
   },
 });

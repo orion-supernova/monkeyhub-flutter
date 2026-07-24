@@ -5,6 +5,8 @@ import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/destructive_sheet.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/remove_contact_sheet.dart';
@@ -186,10 +188,8 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   }
 
   Future<void> _addByUsername() async {
-    final result = await showModalBottomSheet<_AddContactResult>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final result = await showAdaptiveSheet<_AddContactResult>(
+      context,
       builder: (_) => _AddContactSheet(childName: widget.child.user.displayName),
     );
     if (result == null || !mounted) return;
@@ -224,10 +224,8 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   // ── Grown-ups ────────────────────────────────────────────────────────────
 
   Future<void> _addGuardian() async {
-    final username = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final username = await showAdaptiveSheet<String>(
+      context,
       builder: (_) => _PromptSheet(
         heading: 'ADD A GROWN-UP',
         blurb: 'They get exactly what you have: every request to approve, '
@@ -305,10 +303,8 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   // ── Danger zone ──────────────────────────────────────────────────────────
 
   Future<void> _graduate() async {
-    final password = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    final password = await showAdaptiveSheet<String>(
+      context,
       builder: (_) => _PromptSheet(
         heading: 'GRADUATE ${_child.user.displayName.toUpperCase()}',
         blurb: 'They become a normal account with this password, and every '
@@ -376,7 +372,8 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
@@ -572,6 +569,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

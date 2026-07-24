@@ -8,11 +8,12 @@ import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
-import 'room_screen.dart';
+import 'navigation/open_room.dart';
 import 'search_screen.dart';
 
 /// People search lives here rather than in Discover. Discover is gated on
@@ -105,7 +106,8 @@ class _FriendsPanelState extends State<FriendsPanel> {
     final outgoing = widget.repo.outgoingRequests;
     final friends = widget.repo.friends;
 
-    return Column(
+    return AdaptivePageBody(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.family.canRequestContacts) ...[
@@ -196,6 +198,7 @@ class _FriendsPanelState extends State<FriendsPanel> {
           ),
         ),
       ],
+    ),
     );
   }
 
@@ -351,13 +354,11 @@ class _IncomingCardState extends State<_IncomingCard> {
   Future<void> _accept() async {
     if (_busy) return;
     setState(() => _busy = true);
-    final nav = Navigator.of(context);
     try {
       final roomId = await widget.repo.approveDirectRequest(widget.req.user.id);
       if (!mounted) return;
       if (roomId != null) {
-        nav.push(MaterialPageRoute(
-            builder: (_) => RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+        openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
       }
     } catch (_) {} finally {
       if (mounted) setState(() => _busy = false);
@@ -552,12 +553,10 @@ class _FriendRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return GestureDetector(
       onTap: () async {
-        final nav = Navigator.of(context);
         try {
           final roomId = await repo.openDmWith(user);
           if (!context.mounted) return;
-          nav.push(MaterialPageRoute(
-              builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api)));
+          openRoom(context, roomId: roomId, repo: repo, api: api);
         } catch (_) {}
       },
       child: Container(

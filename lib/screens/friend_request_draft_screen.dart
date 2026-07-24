@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
+import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../models/friend_request_message.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
@@ -145,8 +148,17 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     final roomId = await widget.repo.approveDirectRequest(_otherUser.id);
     if (!mounted) return;
     if (roomId != null) {
-      nav.pushReplacement(MaterialPageRoute(
-          builder: (_) => RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+      if (context.isExpanded) {
+        // Desktop: dismiss this full-screen draft and open the room in the
+        // chat pane instead of replacing the route.
+        nav.pop();
+        SettingsStore.instance.setSection(HomeSection.chat);
+        UiSelectionStore.instance.selectRoom(roomId);
+      } else {
+        nav.pushReplacement(MaterialPageRoute(
+            builder: (_) =>
+                RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+      }
     } else {
       nav.pop();
     }
@@ -220,7 +232,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
                               ],
                               Flexible(
                                 child: ConstrainedBox(
-                                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                                  constraints: BoxConstraints(maxWidth: messageMaxWidth(context)),
                                   child: Container(
                                     padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                                     decoration: theme.messageBubbleDecoration(

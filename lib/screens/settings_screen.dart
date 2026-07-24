@@ -5,9 +5,11 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../push/push_manager.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_brand_mark.dart';
 import '../widgets/count_badge.dart';
@@ -19,6 +21,7 @@ import 'family_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
+import 'navigation/open_room.dart';
 import 'profile_screen.dart';
 import 'room_layout_screen.dart';
 import 'theme_screen.dart';
@@ -52,6 +55,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     SettingsStore.instance.addListener(_onSettings);
     widget.family.addListener(_onSettings);
+    // Rebuild when the desktop settings pane's selection changes so the active
+    // row highlights.
+    UiSelectionStore.instance.addListener(_onSettings);
     // The approvals badge should be right whenever this screen is opened.
     widget.family.refresh();
     _loadMe();
@@ -61,8 +67,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
+    UiSelectionStore.instance.removeListener(_onSettings);
     super.dispose();
   }
+
+  /// True when [key]'s sub-screen is the one shown in the desktop detail pane.
+  bool _isOpen(String key) =>
+      context.isExpanded &&
+      UiSelectionStore.instance.settingsDetailKey == key;
 
   Future<void> _loadMe() async {
     final s = widget.auth.session;
@@ -144,14 +156,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   final me = _me ??
                       ChatUser(id: s.userId, username: s.username, name: s.name);
                   return GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    onTap: () => openSettingsDetail(
+                      context,
+                      key: 'profile',
                       builder: (_) => ProfileScreen(
                         user: me,
                         repo: widget.repo,
                         api: widget.api,
                         auth: widget.auth,
                       ),
-                    )),
+                    ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: theme.roomCardDecoration(ephemeral: false, active: false),
@@ -183,19 +197,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _DisclosureRow(
                 label: 'THEME',
                 value: activeTheme.name,
+                selected: _isOpen('theme'),
                 leading: _SwatchDot(color: activeTheme.accent),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ThemeScreen()),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'theme', builder: (_) => const ThemeScreen()),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'APP LOGO',
                 value: _logoLabel,
+                selected: _isOpen('logo'),
                 leading: Icon(Icons.workspaces_outline, size: 16, color: theme.inkSoft),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LogoScreen()),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'logo', builder: (_) => const LogoScreen()),
               ),
 
               const SizedBox(height: 28),
@@ -204,39 +218,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _DisclosureRow(
                 label: 'ROOM LAYOUT',
                 value: _layoutLabel,
+                selected: _isOpen('roomLayout'),
                 leading: Icon(Icons.dashboard_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RoomLayoutScreen()),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'roomLayout',
+                    builder: (_) => const RoomLayoutScreen()),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'NAVIGATION',
                 value: _navLabel,
+                selected: _isOpen('navigation'),
                 leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const NavigationScreen()),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'navigation',
+                    builder: (_) => const NavigationScreen()),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'CHAT STYLE',
                 value: _chatStyleLabel,
+                selected: _isOpen('chatStyle'),
                 leading: Icon(Icons.bubble_chart_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ChatStyleScreen()),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'chatStyle',
+                    builder: (_) => const ChatStyleScreen()),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'REPLY STYLE',
                 value: _replyStyleLabel,
+                selected: _isOpen('replyStyle'),
                 leading: Icon(Icons.reply_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ReplyStyleScreen(api: widget.api),
-                  ),
-                ),
+                onTap: () => openSettingsDetail(context,
+                    key: 'replyStyle',
+                    builder: (_) => ReplyStyleScreen(api: widget.api)),
               ),
 
               const SizedBox(height: 28),
@@ -249,18 +265,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   label: 'FAMILY',
                   value: _familyLabel,
                   badge: widget.family.pendingCount,
+                  selected: _isOpen('family'),
                   leading: Icon(Icons.family_restroom,
                       size: 16, color: theme.inkSoft),
                   onTap: () {
                     final s = widget.auth.session;
                     if (s == null) return;
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => FamilyScreen(
-                        api: widget.api,
-                        userId: s.userId,
-                        family: widget.family,
-                      ),
-                    ));
+                    openSettingsDetail(context,
+                        key: 'family',
+                        builder: (_) => FamilyScreen(
+                              api: widget.api,
+                              userId: s.userId,
+                              family: widget.family,
+                            ));
                   },
                 ),
                 if (widget.family.context.children.isNotEmpty) ...[
@@ -270,6 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: widget.family.pendingCount == 0
                         ? 'nothing waiting'
                         : '${widget.family.pendingCount} waiting',
+                    selected: _isOpen('approvals'),
                     leading: Icon(
                       Icons.pending_actions,
                       size: 16,
@@ -280,13 +298,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () {
                       final s = widget.auth.session;
                       if (s == null) return;
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ApprovalsScreen(
-                          api: widget.api,
-                          guardianId: s.userId,
-                          family: widget.family,
-                        ),
-                      ));
+                      openSettingsDetail(context,
+                          key: 'approvals',
+                          builder: (_) => ApprovalsScreen(
+                                api: widget.api,
+                                guardianId: s.userId,
+                                family: widget.family,
+                              ));
                     },
                   ),
                 ],
@@ -350,6 +368,7 @@ class _DisclosureRow extends StatelessWidget {
     required this.onTap,
     this.leading,
     this.badge = 0,
+    this.selected = false,
   });
   final String label;
   final String value;
@@ -358,6 +377,10 @@ class _DisclosureRow extends StatelessWidget {
 
   /// Pending count shown as an accent pill before the chevron. Zero hides it.
   final int badge;
+
+  /// Whether this row's sub-screen is currently open in the desktop detail
+  /// pane. Renders an accent-tinted surface so the two-pane selection is clear.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -368,8 +391,12 @@ class _DisclosureRow extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
         decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(color: theme.divider),
+          color: selected
+              ? theme.accent.withValues(alpha: 0.14)
+              : theme.surface,
+          border: Border.all(
+            color: selected ? theme.accent.withValues(alpha: 0.4) : theme.divider,
+          ),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
         child: Row(

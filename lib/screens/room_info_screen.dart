@@ -11,6 +11,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
@@ -410,7 +411,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 _header(theme, r),
                 Expanded(
@@ -583,6 +585,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

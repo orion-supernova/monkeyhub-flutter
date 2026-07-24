@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
 import '../widgets/labeled_field.dart';
 
@@ -120,7 +121,8 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 _Header(onClose: () => Navigator.of(context).maybePop()),
                 Expanded(
@@ -230,6 +232,7 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

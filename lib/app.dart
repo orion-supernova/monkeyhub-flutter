@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
@@ -18,15 +20,21 @@ import 'data/settings_store.dart';
 import 'family/family_service.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'audio/alert_sounds.dart';
 import 'privacy/capture_protection.dart';
 import 'push/android_call_reliability.dart';
 import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
+import 'push/message_alerts.dart';
 import 'push/push_manager.dart';
+import 'push/web_notifier.dart';
+import 'push/web_presence.dart';
+import 'data/ui_selection_store.dart';
 import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'theme/layout.dart';
 import 'theme/theme_scope.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
@@ -69,6 +77,51 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   // finishes booting and a signed-in session exists.
   String? _pendingPushRoomId;
 
+  // Alert sounds and the web Notification permission both require a user
+  // gesture to activate (browser autoplay policy / Notification.requestPermission
+  // being ignored outside a gesture). Prime once, on the first pointer down.
+  bool _alertsPrimed = false;
+
+  /// Whether web/desktop alert sounds + web banners apply on this platform.
+  /// Mobile is served by OneSignal, so we don't prime anything there. `kIsWeb`
+  /// is checked first so `defaultTargetPlatform` reads stay off the mobile path.
+  static bool get _alertsEnabled =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.macOS ||
+      defaultTargetPlatform == TargetPlatform.windows ||
+      defaultTargetPlatform == TargetPlatform.linux;
+
+  void _primeAlerts() {
+    if (_alertsPrimed || !_alertsEnabled) return;
+    _alertsPrimed = true;
+    AlertSounds.instance.unlock();
+    WebNotifier.requestPermission();
+  }
+
+  // Presence keepalive. Stamps `lastSeen` every 30s while signed in so the
+  // server can treat a client that stopped heartbeating (closed browser tab,
+  // killed app) as offline — the robust cross-platform fix for "still shows
+  // online after closing". See backend presence.ts / users:heartbeat.
+  Timer? _presenceHeartbeat;
+
+  void _startPresenceHeartbeat(String userId) {
+    _presenceHeartbeat?.cancel();
+    _api.heartbeat(userId: userId).catchError((_) {});
+    _presenceHeartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
+      final s = _auth.session;
+      if (s == null) {
+        _stopPresenceHeartbeat();
+        return;
+      }
+      _api.heartbeat(userId: s.userId).catchError((_) {});
+    });
+  }
+
+  void _stopPresenceHeartbeat() {
+    _presenceHeartbeat?.cancel();
+    _presenceHeartbeat = null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -79,6 +132,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.attachApi(_api);
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
+    // Web message-banner clicks open the room, same as a push tap.
+    MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
+    // Web only: a closing tab flips us offline immediately (best-effort; the
+    // server staleness sweep is the backstop). No-op off web.
+    WebPresence.registerOffline(() {
+      final s = _auth.session;
+      if (s != null) {
+        _api.updateStatus(userId: s.userId, status: 'offline').catchError((_) {});
+      }
+    });
     _bootstrap();
   }
 
@@ -92,8 +155,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       return;
     }
     final nav = rootNavigatorKey.currentState!;
-    // Pop any nested route first so we always land cleanly on the room.
+    // Pop any nested route first so we always land cleanly on the shell.
     nav.popUntil((r) => r.isFirst);
+    if (gLastWindowClass == WindowClass.expanded) {
+      // Desktop: fill the chat detail pane instead of pushing a full screen.
+      SettingsStore.instance.setSection(HomeSection.chat);
+      UiSelectionStore.instance.selectRoom(roomId);
+      return;
+    }
     nav.push(MaterialPageRoute(
       builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
     ));
@@ -127,6 +196,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     // Fire-and-forget — network may be unavailable; status reconciles next foreground.
     _api.updateStatus(userId: session.userId, status: next).catchError((_) {});
     if (state == AppLifecycleState.resumed) {
+      // A long OS suspension can leave the Convex WebSocket silently dead with
+      // its connectionState wedged on "connecting". Probe now to reveal the
+      // real state and prod the native client to rebuild a stale socket, so we
+      // don't sit on a stuck "reconnecting…" banner. Fire-and-forget.
+      _cv.probeConnection();
       // Clear platform badge on foreground; OneSignal won't auto-clear on iOS.
       BadgeManager.instance.clear();
       // Re-assert the VoIP/FCM token. The backend clears a device's token
@@ -188,6 +262,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             await PushManager.instance.optOut();
           }
           BadgeManager.instance.bind(_repo);
+          MessageAlerts.instance.bind(_repo);
+          _startPresenceHeartbeat(s.userId);
           final deviceId = await DeviceIdentity.ensure();
           _callService.attach(
             userId: s.userId,
@@ -234,6 +310,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         // Mark online on first attach.
         _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
         BadgeManager.instance.bind(_repo);
+        MessageAlerts.instance.bind(_repo);
+        _startPresenceHeartbeat(s.userId);
         final deviceId = await DeviceIdentity.ensure();
         _callService.attach(
           userId: s.userId,
@@ -245,12 +323,15 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         _consumePendingPushRoom();
         AndroidCallReliability.instance.ensure();
       } else if (s == null) {
+        _stopPresenceHeartbeat();
         BadgeManager.instance.unbind();
+        MessageAlerts.instance.unbind();
         _family.detach();
         await _repo.detach();
         await PushManager.instance.logout();
         await _signaling.stop();
         await _callService.endCall();
+        _callService.detachWatch();
         // Reset landing tab so the next sign-in starts on Chat instead of
         // wherever the previous session left off (e.g. Settings, which is
         // where Sign Out is reached from).
@@ -265,6 +346,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    _stopPresenceHeartbeat();
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
     _family.removeListener(_syncAccountType);
@@ -288,35 +370,48 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
             navigatorKey: rootNavigatorKey,
             title: 'MonkeyHub',
             builder: (context, child) {
-              return Stack(
-                children: [
-                  ?child,
-                  if (_bootstrapped && _bootError == null)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: ConnectionBanner(cv: _cv),
-                    ),
-                  // Global "Move call here" pill — shows when an active
-                  // call exists on another of my devices. Tap to handoff.
-                  if (_bootstrapped && _bootError == null)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: ActiveCallPill(
-                        api: _callApi,
-                        service: _callService,
+              // _WindowClassProvider hosts the single app-wide LayoutBuilder
+              // ABOVE the root navigator, so every route — the shell and any
+              // full-screen push (profile, search, room, …) — reads the same
+              // WindowClass via context. The `child` (navigator) is captured,
+              // so a drag-resize only rebuilds the LayoutScope wrapper, never
+              // this Stack.
+              return Listener(
+                // Observe (never consume) the first pointer-down to unlock
+                // audio + request notification permission within a user gesture.
+                onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
+                child: _WindowClassProvider(
+                child: Stack(
+                  children: [
+                    ?child,
+                    if (_bootstrapped && _bootError == null)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: ConnectionBanner(cv: _cv),
                       ),
-                    ),
-                  // Pushes call screens onto the root navigator the moment the
-                  // call service transitions to a non-idle state. Invisible.
-                  _CallOverlay(service: _callService, api: _api),
-                  // Sits above every other layer so it covers banners +
-                  // overlays during a screen recording.
-                  const CaptureShield(),
-                ],
+                    // Global "Move call here" pill — shows when an active
+                    // call exists on another of my devices. Tap to handoff.
+                    if (_bootstrapped && _bootError == null)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: ActiveCallPill(
+                          service: _callService,
+                        ),
+                      ),
+                    // Pushes call screens onto the root navigator the moment
+                    // the call service transitions to a non-idle state.
+                    // Invisible.
+                    _CallOverlay(service: _callService, api: _api),
+                    // Sits above every other layer so it covers banners +
+                    // overlays during a screen recording.
+                    const CaptureShield(),
+                  ],
+                ),
+                ),
               );
             },
             theme: ThemeData(
@@ -384,6 +479,34 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   }
 }
 
+/// Hosts the app's single [LayoutBuilder], above the root navigator, and
+/// publishes the current [WindowClass] to the whole tree via [LayoutScope].
+/// The [child] (the navigator + overlays) is captured, so continuous window
+/// resize only re-runs this builder and swaps the cheap [LayoutScope] wrapper —
+/// the navigator subtree is not rebuilt. [LayoutScope.updateShouldNotify]
+/// further gates dependents so they rebuild only when the class actually flips.
+class _WindowClassProvider extends StatelessWidget {
+  const _WindowClassProvider({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wc = Breakpoints.classOf(constraints.maxWidth);
+        // Mirror for code with no descendant context (push/call-overlay
+        // routing in this file).
+        gLastWindowClass = wc;
+        return LayoutScope(
+          windowClass: wc,
+          width: constraints.maxWidth,
+          child: child,
+        );
+      },
+    );
+  }
+}
+
 /// Watches [CallService] and pushes the right call screen onto the root
 /// navigator whenever a fresh non-idle call session appears. Renders nothing
 /// itself. A single _CallOverlay lives inside the MaterialApp.builder so it
@@ -399,6 +522,13 @@ class _CallOverlay extends StatefulWidget {
 class _CallOverlayState extends State<_CallOverlay> {
   String? _activeCallId;
   String? _enrichedCallId;
+  // The call we're currently ringing for. Driven straight from the CallService
+  // listener (below) rather than IncomingCallScreen.initState, because on a
+  // backgrounded web tab the frame loop is paused — so the post-frame push of
+  // that screen never runs and its initState never fires. This listener runs on
+  // the WS-driven state change regardless of rendering, so the ring (and the
+  // call banner) work whether the tab is foreground or background.
+  String? _ringingCallId;
 
   @override
   void initState() {
@@ -428,8 +558,38 @@ class _CallOverlayState extends State<_CallOverlay> {
     return false;
   }
 
+  /// Start/stop the in-app ringtone (and, on web, the call banner) from the
+  /// call-state change directly, so it works even when a backgrounded web tab
+  /// has stopped producing frames. See `_ringingCallId`.
+  void _syncRingtone(CallSession? s) {
+    final ringing = s != null &&
+        s.status == CallStatus.incomingRinging &&
+        !s.isCaller &&
+        !_nativeRinger &&
+        !widget.service.acceptedNatively;
+    if (ringing) {
+      if (_ringingCallId == s.callId) return;
+      _ringingCallId = s.callId;
+      AlertSounds.instance.startRingtone();
+      // When the tab isn't focused the in-app ringer never mounts (no frames),
+      // so surface a persistent OS banner. No-op off web / when focused.
+      if (!WebNotifier.isFocused) {
+        WebNotifier.showCall(
+          title: 'Incoming call',
+          body: s.peerName.isNotEmpty ? s.peerName : 'Someone is calling',
+        );
+      }
+    } else {
+      if (_ringingCallId == null) return;
+      _ringingCallId = null;
+      AlertSounds.instance.stopRingtone();
+      WebNotifier.dismissCall();
+    }
+  }
+
   void _onChanged() {
     final s = widget.service.session;
+    _syncRingtone(s);
     if (s == null) {
       _activeCallId = null;
       _enrichedCallId = null;

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_brand_mark.dart';
 import '../widgets/brand_icon_canvas.dart';
 import '../widgets/monkey_collection.dart';
@@ -52,7 +53,8 @@ class _LogoScreenState extends State<LogoScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: ListView(
+            child: AdaptivePageBody(
+              child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
               children: [
                 Row(children: [
@@ -96,6 +98,7 @@ class _LogoScreenState extends State<LogoScreen> {
                   preview: const _DefaultPreview(),
                 ),
               ],
+            ),
             ),
           ),
         ],

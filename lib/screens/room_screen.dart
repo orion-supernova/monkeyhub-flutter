@@ -20,6 +20,8 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
+import '../data/ui_selection_store.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
@@ -39,6 +41,17 @@ import 'camera_screen.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
+
+/// Back affordance shared by both room headers. In the desktop two-pane layout
+/// the room lives in the chat detail pane (never a full-screen route), so
+/// "back" clears the pane selection; on compact it pops the pushed route.
+void _roomBack(BuildContext context) {
+  if (context.isExpanded) {
+    UiSelectionStore.instance.selectRoom(null);
+  } else {
+    Navigator.of(context).maybePop();
+  }
+}
 
 class RoomScreen extends StatefulWidget {
   const RoomScreen({super.key, required this.roomId, required this.repo, required this.api});
@@ -569,6 +582,7 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final room = _room ?? widget.repo.roomById(widget.roomId);
@@ -1056,7 +1070,7 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () => _roomBack(context),
             icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
             visualDensity: VisualDensity.compact,
           ),
@@ -1675,7 +1689,7 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
           LiquidGlass(
             shape: LiquidGlassShape.circle,
             size: const Size(44, 44),
-            onTap: () => Navigator.of(context).maybePop(),
+            onTap: () => _roomBack(context),
             child: Icon(Icons.arrow_back, size: 18, color: theme.accent),
           ),
           const SizedBox(width: 12),

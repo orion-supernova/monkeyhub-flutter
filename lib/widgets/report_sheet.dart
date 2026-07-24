@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'labeled_field.dart';
 
 /// Prompts the user to pick a report reason. Resolves to the reason string
 /// (or null on dismiss). The "other" path lets the user type a free-form
 /// reason; everything is short to keep the sheet tight.
 Future<String?> showReportSheet(BuildContext context) {
-  return showModalBottomSheet<String>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  return showAdaptiveSheet<String>(
+    context,
     builder: (_) => const _ReportSheet(),
   );
 }

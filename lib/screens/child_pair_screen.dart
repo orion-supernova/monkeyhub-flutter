@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../auth/auth_service.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
 
@@ -141,7 +142,7 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
+                constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
                   child: Column(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:convex_flutter/convex_flutter.dart' as cv;
+import 'package:flutter/foundation.dart';
 
 import '../env.dart';
 
@@ -40,6 +41,10 @@ class ConvexBackend {
         cv.ConvexConfig(
           deploymentUrl: Env.convexUrl,
           clientId: Env.clientId,
+          // A cheap, public, no-argument query used as the connectivity probe
+          // (see [probeConnection]) and by the client's own reconnect(). Its
+          // `viewerUserId` arg is optional, so `{}` is valid and returns fast.
+          healthCheckQuery: 'rooms:listPublic',
         ),
       );
       _initError = null;
@@ -64,14 +69,37 @@ class ConvexBackend {
 
   Future<dynamic> mutation(String name, Map<String, dynamic> args) async {
     await _ensureInitialized();
-    final raw = await _c.mutation(name: name, args: args);
-    return _decode(raw);
+    try {
+      return _decode(await _c.mutation(name: name, args: args));
+    } catch (e) {
+      if (_isVoidResultThrow(e)) return null;
+      rethrow;
+    }
   }
 
   Future<dynamic> action(String name, Map<String, dynamic> args) async {
     await _ensureInitialized();
-    final raw = await _c.action(name: name, args: args);
-    return _decode(raw);
+    try {
+      return _decode(await _c.action(name: name, args: args));
+    } catch (e) {
+      if (_isVoidResultThrow(e)) return null;
+      rethrow;
+    }
+  }
+
+  /// The web ConvexClient throws `Exception('No result in mutation/action
+  /// response')` for a void (null-returning) mutation/action even when the
+  /// server reported `success: true`; the native client returns the string
+  /// `"null"` without error. Convex void mutations are legitimate (e.g.
+  /// `calls:accept`, `calls:sendSignal`, `calls:consumeSignal`, `calls:end`),
+  /// so normalise the web throw to a null result to match native behaviour.
+  /// Without this, `CallService.acceptIncoming` sees a spurious failure and
+  /// immediately ends the call — accept-then-instant-hangup on web.
+  static bool _isVoidResultThrow(Object e) {
+    if (!kIsWeb) return false;
+    final s = e.toString();
+    return s.contains('No result in mutation response') ||
+        s.contains('No result in action response');
   }
 
   Future<Subscription> subscribe(
@@ -127,6 +155,27 @@ class ConvexBackend {
   bool get isConnected {
     try {
       return _c.isConnected;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Ground-truth connectivity check: round-trips the cheap no-arg health
+  /// query and returns true if the server responds within [timeout].
+  ///
+  /// Why this exists: after a long OS suspension the WebSocket can silently
+  /// die while the native client's `connectionState` stays wedged on
+  /// `connecting`/`reconnecting` and never re-emits `connected`. That leaves
+  /// the "reconnecting…" banner stuck even though a query would actually
+  /// succeed. Issuing a real query both reveals the true state AND prods the
+  /// native client to rebuild a dead socket. Used by the connection banner's
+  /// self-heal watchdog and the app's resume handler.
+  Future<bool> probeConnection({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    try {
+      await query('rooms:listPublic', const {}).timeout(timeout);
+      return true;
     } catch (_) {
       return false;
     }

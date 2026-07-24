@@ -7,6 +7,7 @@ import {
   childMayUseRoom,
   isChild,
 } from "./childGuard";
+import { effectiveStatus } from "./presence";
 
 export const create = mutation({
   args: {
@@ -286,7 +287,10 @@ export const getMembers = query({
           name: user.name,
           email: user.email,
           avatarStorageId: user.avatarStorageId,
-          status: user.status,
+          // Staleness-corrected: a user who stopped heartbeating (closed the
+          // tab / killed the app) reads as offline even if the stored status
+          // is stale. See presence.ts.
+          status: effectiveStatus(user.status, user.lastSeen),
           // Needed by the client's status dot — the 5-minute "fresh away"
           // gate in user_avatar.dart reads this and demotes amber → gray
           // once the user's been idle long enough.

@@ -6,6 +6,7 @@ import '../data/settings_store.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 
 /// Visibility & privacy preferences, grouped into PROFILE / MESSAGES / PEOPLE.
 ///
@@ -120,7 +121,8 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 _backBar(theme),
                 Expanded(
@@ -231,6 +233,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                         ),
                 ),
               ],
+            ),
             ),
           ),
           if (_saving)

@@ -13,6 +13,12 @@ enum CallButtonVariant { classic, liquid }
 /// to the room-info button; tapping reveals a frosted popover with
 /// "Voice call" / "Video call". DM-only — callers gate visibility on
 /// `room.isDm`.
+///
+/// Reflects call state live: while a call is active on THIS device
+/// ([CallService.inCall]) or ANOTHER of the user's devices
+/// ([CallService.busyElsewhere]) the button is visibly disabled and a tap
+/// explains why instead of starting a second call. Listens to [CallService]
+/// (a [ChangeNotifier]) so the state is always current.
 class CallButton extends StatelessWidget {
   const CallButton({
     super.key,
@@ -54,6 +60,19 @@ class CallButton extends StatelessWidget {
     return 'could not start call';
   }
 
+  /// Why the button is disabled right now (null when it's tappable).
+  String? _busyReason(CallService service) {
+    if (service.inCall) return "You're already on a call";
+    if (service.busyElsewhere) return 'Call in progress on another device';
+    return null;
+  }
+
+  void _showBusy(BuildContext context, String reason) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(reason), duration: const Duration(seconds: 3)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Calls can be switched off for a child. Hide rather than disable — the
@@ -63,18 +82,41 @@ class CallButton extends StatelessWidget {
     if (FamilyService.maybeInstance?.canCall == false) {
       return const SizedBox.shrink();
     }
-    switch (variant) {
-      case CallButtonVariant.classic:
-        return _ClassicCallButton(onPick: (k) => _start(context, k));
-      case CallButtonVariant.liquid:
-        return _LiquidCallButton(onPick: (k) => _start(context, k));
-    }
+    final service = CallService.instance;
+    return ListenableBuilder(
+      listenable: service,
+      builder: (context, _) {
+        final busyReason = _busyReason(service);
+        final enabled = busyReason == null;
+        void onDisabledTap() => _showBusy(context, busyReason!);
+        switch (variant) {
+          case CallButtonVariant.classic:
+            return _ClassicCallButton(
+              enabled: enabled,
+              onPick: (k) => _start(context, k),
+              onDisabledTap: onDisabledTap,
+            );
+          case CallButtonVariant.liquid:
+            return _LiquidCallButton(
+              enabled: enabled,
+              onPick: (k) => _start(context, k),
+              onDisabledTap: onDisabledTap,
+            );
+        }
+      },
+    );
   }
 }
 
 class _ClassicCallButton extends StatefulWidget {
-  const _ClassicCallButton({required this.onPick});
+  const _ClassicCallButton({
+    required this.onPick,
+    required this.enabled,
+    required this.onDisabledTap,
+  });
   final ValueChanged<CallMediaKind> onPick;
+  final bool enabled;
+  final VoidCallback onDisabledTap;
 
   @override
   State<_ClassicCallButton> createState() => _ClassicCallButtonState();
@@ -88,6 +130,10 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
   final GlobalKey _anchorKey = GlobalKey();
 
   Future<void> _handleTap() async {
+    if (!widget.enabled) {
+      widget.onDisabledTap();
+      return;
+    }
     final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
     if (picked != null) widget.onPick(picked);
   }
@@ -95,20 +141,29 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final color = widget.enabled
+        ? theme.inkSoft
+        : theme.inkSoft.withValues(alpha: 0.35);
     return IconButton(
       key: _anchorKey,
       tooltip: 'call',
       padding: EdgeInsets.zero,
       iconSize: 18,
-      icon: Icon(Icons.call_outlined, color: theme.inkSoft, size: 18),
+      icon: Icon(Icons.call_outlined, color: color, size: 18),
       onPressed: _handleTap,
     );
   }
 }
 
 class _LiquidCallButton extends StatefulWidget {
-  const _LiquidCallButton({required this.onPick});
+  const _LiquidCallButton({
+    required this.onPick,
+    required this.enabled,
+    required this.onDisabledTap,
+  });
   final ValueChanged<CallMediaKind> onPick;
+  final bool enabled;
+  final VoidCallback onDisabledTap;
 
   @override
   State<_LiquidCallButton> createState() => _LiquidCallButtonState();
@@ -122,6 +177,10 @@ class _LiquidCallButtonState extends State<_LiquidCallButton> {
   final GlobalKey _anchorKey = GlobalKey();
 
   Future<void> _handleTap() async {
+    if (!widget.enabled) {
+      widget.onDisabledTap();
+      return;
+    }
     final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
     if (picked != null) widget.onPick(picked);
   }
@@ -129,12 +188,15 @@ class _LiquidCallButtonState extends State<_LiquidCallButton> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final color = widget.enabled
+        ? theme.accent
+        : theme.accent.withValues(alpha: 0.35);
     return LiquidGlass(
       key: _anchorKey,
       shape: LiquidGlassShape.circle,
       size: const Size(44, 44),
       onTap: _handleTap,
-      child: Icon(Icons.call_outlined, size: 18, color: theme.accent),
+      child: Icon(Icons.call_outlined, size: 18, color: color),
     );
   }
 }

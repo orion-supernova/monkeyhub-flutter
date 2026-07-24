@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../backend/call_api.dart';
-import '../backend/convex_client.dart';
 import '../theme/theme_scope.dart';
 import 'call_service.dart';
 
 /// Global premium-feel pill rendered at the top of every screen when there
 /// is an active call on ANOTHER of my devices. Tap to transfer the call to
 /// this device. See `lib/calls/call_service.dart#handoffToHere`.
+///
+/// Reads the cross-device active call from [CallService.activeCallElsewhere]
+/// (the single source of truth) rather than holding its own subscription, so
+/// it can never show a call this device just ended.
 class ActiveCallPill extends StatefulWidget {
   const ActiveCallPill({
     super.key,
-    required this.api,
     required this.service,
   });
-  final CallApi api;
   final CallService service;
 
   @override
@@ -22,80 +22,30 @@ class ActiveCallPill extends StatefulWidget {
 }
 
 class _ActiveCallPillState extends State<ActiveCallPill> {
-  Subscription? _sub;
-  String? _subscribedUserId;
-  Map<String, dynamic>? _activeCall;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
     widget.service.addListener(_onServiceChanged);
-    // Initial bind — CallService may already have a userId attached.
-    _resubscribeIfNeeded();
   }
 
   @override
   void dispose() {
     widget.service.removeListener(_onServiceChanged);
-    _sub?.cancel();
     super.dispose();
   }
 
   void _onServiceChanged() {
-    // Either userId changed (login/logout) or local session changed
-    // (started/ended a call here). Both can affect visibility.
-    _resubscribeIfNeeded();
+    // CallService owns the cross-device active-call subscription now
+    // (activeCallElsewhere / busyElsewhere), so any change to it — or to the
+    // local session — arrives through this listener. Just rebuild.
     if (mounted) setState(() {});
-  }
-
-  void _resubscribeIfNeeded() {
-    final uid = widget.service.userId;
-    if (uid == _subscribedUserId) return;
-    _sub?.cancel();
-    _sub = null;
-    _subscribedUserId = uid;
-    _activeCall = null;
-    if (uid == null) return;
-    // Fire-and-forget; the callback handles state updates.
-    widget.api
-        .subscribeActiveCall(
-      userId: uid,
-      onCall: (call) {
-        if (!mounted) return;
-        setState(() => _activeCall = call);
-      },
-      onError: (e) => debugPrint('ActiveCallPill subscribe error: $e'),
-    )
-        .then((s) {
-      if (!mounted) {
-        s.cancel();
-        return;
-      }
-      _sub = s;
-    });
-  }
-
-  bool get _shouldShow {
-    final call = _activeCall;
-    if (call == null) return false;
-    final status = call['status'] as String?;
-    if (status != 'active') return false;
-    final accDev = call['acceptingDeviceId'] as String?;
-    final me = widget.service.deviceId;
-    if (accDev == null || me == null) return false;
-    if (accDev == me) return false;
-    // If THIS device already has a session for this call (e.g., we're
-    // mid-handoff onto ourselves), don't show.
-    final sess = widget.service.session;
-    final callId = call['_id']?.toString() ?? '';
-    if (sess != null && sess.callId == callId) return false;
-    return true;
   }
 
   Future<void> _moveHere() async {
     if (_busy) return;
-    final call = _activeCall;
+    final call = widget.service.activeCallElsewhere;
     if (call == null) return;
     _busy = true;
     // Mark accepted-natively so _CallOverlay routes to CallScreen (not
@@ -113,8 +63,8 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final visible = _shouldShow;
-    final call = _activeCall;
+    final call = widget.service.activeCallElsewhere;
+    final visible = call != null;
     final peerName = (call?['peerName'] as String?) ?? 'Unknown';
     final deviceName = (call?['acceptingDeviceName'] as String?);
     final platform = (call?['acceptingPlatform'] as String?);

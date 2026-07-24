@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
 
 enum BlockChoice { cancel, blockOnly, blockAndDelete }
@@ -15,10 +16,8 @@ Future<BlockChoice> showBlockChoiceSheet(
   required bool hasDm,
   required ChatApi api,
 }) async {
-  final res = await showModalBottomSheet<BlockChoice>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  final res = await showAdaptiveSheet<BlockChoice>(
+    context,
     builder: (_) => _BlockChoiceSheet(
       displayName: displayName,
       isFriend: isFriend,

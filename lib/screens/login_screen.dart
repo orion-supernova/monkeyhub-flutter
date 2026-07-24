@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../auth/session_store.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import 'child_pair_screen.dart';
@@ -154,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
+                constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
                 child: Column(
                   children: [
                     // Form fills the space above the footer and stays

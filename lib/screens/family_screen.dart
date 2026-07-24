@@ -5,6 +5,7 @@ import '../family/family_service.dart';
 import '../theme/app_theme.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/user_avatar.dart';
 import 'approvals_screen.dart';
 import 'child_policy_screen.dart';
@@ -79,7 +80,8 @@ class _FamilyScreenState extends State<FamilyScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
@@ -152,6 +154,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

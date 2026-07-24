@@ -31,4 +31,14 @@ crons.interval(
   {},
 );
 
+// Presence backstop: demote users who stopped heartbeating (closed tab, killed
+// app) to 'offline'. Readers already correct this on the fly via
+// effectiveStatus; this keeps the stored value honest. See presence.ts.
+crons.interval(
+  "users.sweepStalePresence",
+  { minutes: 2 },
+  internal.users.sweepStalePresence,
+  {},
+);
+
 export default crons;

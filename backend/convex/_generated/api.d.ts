@@ -17,6 +17,7 @@ import type * as files from "../files.js";
 import type * as friends from "../friends.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
+import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as roomCleanup from "../roomCleanup.js";
 import type * as rooms from "../rooms.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   friends: typeof friends;
   messages: typeof messages;
   notifications: typeof notifications;
+  presence: typeof presence;
   reactions: typeof reactions;
   roomCleanup: typeof roomCleanup;
   rooms: typeof rooms;

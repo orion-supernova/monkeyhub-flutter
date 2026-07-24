@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/user_avatar.dart';
 
 class BlockedUsersScreen extends StatefulWidget {
@@ -67,7 +68,8 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 8, 20, 8),
@@ -148,6 +150,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                             ),
                 ),
               ],
+            ),
             ),
           ),
         ],

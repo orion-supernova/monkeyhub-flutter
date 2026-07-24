@@ -43,10 +43,22 @@ class UserAvatar extends StatelessWidget {
 
   static const _amber = Color(0xFFE0A33C);
   static const _awayFreshWindow = Duration(minutes: 5);
+  // A client that stopped heartbeating is treated as offline server-side after
+  // ~2 min; give the local self-heal a little slack over that so a genuinely
+  // fresh "online" never flickers gray between heartbeats.
+  static const _onlineFreshWindow = Duration(minutes: 3);
 
   Color? _statusColor(AppTheme theme) {
     switch (user.status) {
       case 'online':
+        // Belt-and-suspenders for the server staleness fallback: if we somehow
+        // hold a stale 'online' whose lastSeen is old, don't show a live green
+        // dot. (The server normally sends 'offline' already.)
+        final ls = user.lastSeen;
+        if (ls != null &&
+            DateTime.now().difference(ls) > _onlineFreshWindow) {
+          return theme.inkMuted;
+        }
         return theme.success;
       case 'away':
         // If we know when they were last seen, only stay amber while still

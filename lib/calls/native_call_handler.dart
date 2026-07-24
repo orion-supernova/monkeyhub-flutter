@@ -56,6 +56,14 @@ class NativeCallHandler {
   /// Read by `_CallOverlay` to decide whether IncomingCallScreen may show.
   bool get isIosSimulator => _isIosSimulator;
 
+  /// Whether the native call UI (flutter_callkit_incoming) is available and
+  /// should be driven. Only real iOS/Android hardware has it — web and desktop
+  /// have no plugin implementation (calling `endAllCalls`, `startCall`, etc.
+  /// there throws MissingPluginException), and the iOS simulator's CallKit is
+  /// unreliable. Those platforms use the in-app IncomingCallScreen instead.
+  bool get _nativeCallUi =>
+      !kIsWeb && (Platform.isAndroid || Platform.isIOS) && !_isIosSimulator;
+
   static bool _detectIosSimulator() {
     // kIsWeb first: it's a const, so Platform.* (dart:io) is never touched on
     // web, where evaluating it throws.
@@ -88,7 +96,7 @@ class NativeCallHandler {
     if (event == null) return;
     // CallKit on simulator is unreliable and we don't show its UI there —
     // ignore any stray events it fires to avoid hijacking the in-app flow.
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     final service = CallService.instance;
     debugPrint('NativeCallHandler: ${event.event} body=${event.body}');
     switch (event.event) {
@@ -388,7 +396,7 @@ class NativeCallHandler {
     required String peerName,
     required CallMediaKind kind,
   }) async {
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     final params = CallKitParams(
       id: _uuidFor(callId),
       nameCaller: peerName,
@@ -453,7 +461,7 @@ class NativeCallHandler {
   /// We only ever have one active call at a time, so clearing everything
   /// is the right behavior.
   Future<void> endNative(String callId) async {
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     _uuidByCallId.remove(callId);
     try {
       await FlutterCallkitIncoming.endAllCalls();
@@ -468,7 +476,7 @@ class NativeCallHandler {
   /// second card must not kill the active call's native session, which
   /// endAllCalls would).
   Future<void> endNativeByCallId(String callId) async {
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     _uuidByCallId.remove(callId);
     try {
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
@@ -489,7 +497,7 @@ class NativeCallHandler {
   /// [endNative] without a callId — for clearing ghost/stale cards where
   /// Dart never had a session.
   Future<void> endAllNative() async {
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     try {
       await FlutterCallkitIncoming.endAllCalls();
     } catch (e) {
@@ -543,7 +551,7 @@ class NativeCallHandler {
   /// Mirror the WebRTC "active" state to CallKit so the system call timer
   /// starts ticking and the audio session is correctly classified.
   Future<void> markConnected(String callId) async {
-    if (_isIosSimulator) return;
+    if (!_nativeCallUi) return;
     final uuid = _uuidByCallId[callId];
     if (uuid == null) return;
     try {

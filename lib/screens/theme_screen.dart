@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 
 class ThemeScreen extends StatefulWidget {
   const ThemeScreen({super.key});
@@ -76,7 +77,8 @@ class _ThemeScreenState extends State<ThemeScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
@@ -134,6 +136,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],

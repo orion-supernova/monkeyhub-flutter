@@ -31,6 +31,23 @@
 
   <title>MonkeyHub</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Opaque black host backdrop. Flutter-web composites platform views
+    (flutter_webrtc's RTCVideoView / HtmlElementView) by punching a transparent
+    hole through the Flutter canvas; without a background here the page behind
+    shows through during video calls. Black matches the (opaque) call screens
+    and native, so any such hole reveals black instead of the page. Normal
+    (non-call) UI paints opaquely over this, so it's never otherwise seen.
+  -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #000;
+    }
+  </style>
 </head>
 <body>
   <!--

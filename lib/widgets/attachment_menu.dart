@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 
 class AttachmentMenuChoice {
   const AttachmentMenuChoice._(this.id);
@@ -13,10 +14,8 @@ class AttachmentMenuChoice {
 }
 
 Future<AttachmentMenuChoice?> showAttachmentMenu(BuildContext context) {
-  return showModalBottomSheet<AttachmentMenuChoice>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withValues(alpha: 0.5),
+  return showAdaptiveSheet<AttachmentMenuChoice>(
+    context,
     builder: (_) => const _AttachmentSheet(),
   );
 }

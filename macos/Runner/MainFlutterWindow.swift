@@ -7,6 +7,9 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    // Floor the window size so the responsive shell always has room for its
+    // rail + panes and never collapses into a degenerate sliver.
+    self.minSize = NSSize(width: 480, height: 600)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 

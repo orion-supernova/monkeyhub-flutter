@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { effectiveStatus, PRESENCE_OFFLINE_MS } from "./presence";
 import {
   ACCOUNT_ADULT,
   ACCOUNT_CHILD,
@@ -80,7 +81,9 @@ export const getProfile = query({
       // Self-only data — never expose to other viewers.
       email: isSelf || isGuardian ? user.email : undefined,
       avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,
-      status: canSee(vis.status) ? user.status : undefined,
+      status: canSee(vis.status)
+        ? effectiveStatus(user.status, user.lastSeen)
+        : undefined,
       lastSeen: canSee(vis.lastSeen) ? user.lastSeen : undefined,
       // Mirror the visibility map back so self-view UI can render it without
       // a separate fetch. Other viewers get an empty map — knowing someone's
@@ -128,6 +131,47 @@ export const updateStatus = mutation({
       status,
       lastSeen: Date.now(),
     });
+  },
+});
+
+/**
+ * Lightweight presence keepalive. The client calls this on an interval while
+ * signed in so `lastSeen` stays fresh; readers use that timestamp to treat a
+ * client that stopped heartbeating (closed tab / killed app) as offline. Only
+ * stamps `lastSeen` — the online/away distinction stays owned by updateStatus.
+ * Skips a user already marked offline (logged out) so a stray late heartbeat
+ * can't resurrect them. See presence.ts.
+ */
+export const heartbeat = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.status === "offline") return;
+    await ctx.db.patch(userId, { lastSeen: Date.now() });
+  },
+});
+
+/**
+ * Cron backstop: persist the offline demotion for anyone still marked
+ * online/away whose last heartbeat is older than the offline window. Readers
+ * already compute this on the fly via effectiveStatus; this keeps the STORED
+ * value honest too (so any consumer that reads status directly is correct).
+ * The lower bound (> 0) skips rows with no lastSeen at all (never heartbeated),
+ * which would otherwise be swept the instant they appear.
+ */
+export const sweepStalePresence = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - PRESENCE_OFFLINE_MS;
+    const stale = await ctx.db
+      .query("users")
+      .withIndex("by_lastSeen", (q) => q.gt("lastSeen", 0).lt("lastSeen", cutoff))
+      .collect();
+    for (const u of stale) {
+      if (u.status !== "offline") {
+        await ctx.db.patch(u._id, { status: "offline" });
+      }
+    }
   },
 });
 
@@ -294,7 +338,7 @@ export const searchUsers = query({
           _id: u._id,
           username: u.username,
           name: u.name ?? u.username,
-          status: u.status,
+          status: effectiveStatus(u.status, u.lastSeen),
           avatarStorageId: u.avatarStorageId,
           friendshipStatus,
           requestId,

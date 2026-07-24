@@ -129,6 +129,14 @@ class ChatApi {
     await _cv.mutation('users:updateStatus', {'userId': userId, 'status': status});
   }
 
+  /// Presence keepalive — refreshes `lastSeen` without changing the stored
+  /// online/away status. Called on an interval by the app so a client that
+  /// stops heartbeating (closed browser tab, killed app) is treated as offline
+  /// by the server's staleness fallback. See backend `users:heartbeat`.
+  Future<void> heartbeat({required String userId}) async {
+    await _cv.mutation('users:heartbeat', {'userId': userId});
+  }
+
   /// Persist the PushKit (iOS) VoIP token so the backend can wake this device
   /// into CallKit even when the app is killed. Keyed by (userId, deviceId)
   /// so multiple devices for the same user keep their own tokens.

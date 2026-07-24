@@ -6,10 +6,11 @@ import '../family/family_service.dart';
 import '../models/chat_room.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/room_password_sheet.dart';
 import '../widgets/visibility_badge.dart';
-import 'room_screen.dart';
+import 'navigation/open_room.dart';
 import 'search_screen.dart';
 // Discover panel doesn't open profile directly anymore — search screen does.
 
@@ -111,7 +112,8 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Column(
+    return AdaptivePageBody(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         GestureDetector(
@@ -191,7 +193,6 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
                   room: r,
                   awaiting: _awaiting.contains(r.id),
                   onTap: () async {
-                    final nav = Navigator.of(context);
                     final messenger = ScaffoldMessenger.of(context);
                     // Child gate first: no point asking for a password on a
                     // room they can't enter yet.
@@ -204,10 +205,9 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
                     }
                     try {
                       await widget.repo.joinRoom(roomId: r.id, password: password);
-                      if (!mounted) return;
-                      nav.push(MaterialPageRoute(
-                          builder: (_) =>
-                              RoomScreen(roomId: r.id, repo: widget.repo, api: widget.api)));
+                      if (!context.mounted) return;
+                      openRoom(context,
+                          roomId: r.id, repo: widget.repo, api: widget.api);
                     } catch (e) {
                       // A child can still trip the server-side gate if a
                       // grant was revoked between listing and tapping.
@@ -225,6 +225,7 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
             ],
           ),
       ],
+    ),
     );
   }
 }

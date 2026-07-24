@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
+import '../data/ui_selection_store.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import 'room_screen.dart';
@@ -62,10 +65,20 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
         messageLifetime: _type == RoomType.secret ? _ttl : null,
       );
       if (!mounted) return;
-      Navigator.of(context).pop();
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => RoomScreen(roomId: id, repo: widget.repo, api: widget.api)),
-      );
+      final nav = Navigator.of(context);
+      if (context.isExpanded) {
+        // Desktop: dismiss the sheet and open the new room in the chat pane.
+        SettingsStore.instance.setSection(HomeSection.chat);
+        UiSelectionStore.instance.selectRoom(id);
+        nav.pop();
+      } else {
+        nav.pop();
+        nav.push(
+          MaterialPageRoute(
+              builder: (_) =>
+                  RoomScreen(roomId: id, repo: widget.repo, api: widget.api)),
+        );
+      }
     } catch (e) {
       setState(() {
         _busy = false;

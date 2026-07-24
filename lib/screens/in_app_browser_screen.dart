@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_sheet.dart';
 
 /// In-app browser presented from any tapped link.
 ///
@@ -193,9 +194,8 @@ class _InAppBrowserScreenState extends State<InAppBrowserScreen> {
   }
 
   Future<void> _showMenu(BuildContext context, AppTheme theme) async {
-    final action = await showModalBottomSheet<_BrowserAction>(
-      context: context,
-      backgroundColor: Colors.transparent,
+    final action = await showAdaptiveSheet<_BrowserAction>(
+      context,
       builder: (_) => _BrowserMenuSheet(theme: theme),
     );
     switch (action) {

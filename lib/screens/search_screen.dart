@@ -8,12 +8,13 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import '../widgets/room_password_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
-import 'room_screen.dart';
+import 'navigation/open_room.dart';
 
 /// Which half of search this screen is. Rooms live under Discover, people
 /// under Friends — the two are never mixed, so a child who may ask to add a
@@ -113,7 +114,8 @@ class _SearchScreenState extends State<SearchScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Column(
+            child: AdaptivePageBody(
+              child: Column(
               children: [
                 _Header(
                   q: _q,
@@ -153,6 +155,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ],
@@ -329,15 +332,13 @@ class _PersonRowState extends State<_PersonRow> {
           final roomId = await widget.repo.approveDirectRequest(widget.user.id);
           if (!mounted) return;
           if (roomId != null) {
-            nav.push(MaterialPageRoute(
-                builder: (_) => RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+            openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
           }
           break;
         case FriendshipStatus.friend:
           final roomId = await widget.repo.openDmWith(widget.user);
           if (!mounted) return;
-          nav.push(MaterialPageRoute(
-              builder: (_) => RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+          openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
           break;
       }
     } catch (_) {} finally {
@@ -429,7 +430,6 @@ class _RoomRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return GestureDetector(
       onTap: () async {
-        final nav = Navigator.of(context);
         final messenger = ScaffoldMessenger.of(context);
         String? password;
         if (room.hasPassword) {
@@ -438,8 +438,8 @@ class _RoomRow extends StatelessWidget {
         }
         try {
           await repo.joinRoom(roomId: room.id, password: password);
-          nav.push(MaterialPageRoute(
-              builder: (_) => RoomScreen(roomId: room.id, repo: repo, api: api)));
+          if (!context.mounted) return;
+          openRoom(context, roomId: room.id, repo: repo, api: api);
         } catch (e) {
           final msg = e.toString().contains('WRONG_PASSWORD')
               ? 'wrong password'

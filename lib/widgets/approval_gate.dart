@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/theme_scope.dart';
+import 'adaptive_sheet.dart';
 
 // The guard error codes and `isChildGateError` live in models/family.dart so
 // non-UI layers can use them too; this file is only the sheet that renders
@@ -18,10 +19,8 @@ Future<bool> showApprovalGate(
   bool alreadyAsked = false,
   bool canAsk = true,
 }) async {
-  final result = await showModalBottomSheet<bool>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
+  final result = await showAdaptiveSheet<bool>(
+    context,
     builder: (ctx) => _ApprovalGateSheet(
       what: what,
       detail: detail,

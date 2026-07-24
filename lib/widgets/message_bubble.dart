@@ -8,6 +8,7 @@ import '../models/enums.dart';
 import '../data/settings_store.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
 import '../screens/in_app_browser_screen.dart';
@@ -87,7 +88,7 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
-    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+    final maxWidth = messageMaxWidth(context);
 
     // The main bubble with halo wrapper. The reply indicator (when present)
     // sits in a sibling Column ABOVE this — outside the bubble — so it can
@@ -262,7 +263,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       child: Opacity(opacity: 1 - dissolveT * 0.85, child: bubble),
     );
 
-    final maxWidth = MediaQuery.of(context).size.width * 0.72;
+    final maxWidth = messageMaxWidth(context);
 
     final innerBubble = ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
@@ -333,7 +334,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                     Opacity(
                       opacity: 1 - dissolveT,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+                        constraints: BoxConstraints(maxWidth: messageMaxWidth(context)),
                         child: ReactionRow(
                           reactions: message.reactions,
                           currentUserId: currentUserId,

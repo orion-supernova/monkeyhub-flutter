@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/call_api.dart';
+import '../backend/convex_client.dart';
 import 'call_models.dart';
 import 'native_call_handler.dart';
 
@@ -33,6 +34,13 @@ class CallService extends ChangeNotifier {
 
   final CallApi api;
 
+  /// Real mobile hardware, where flutter_webrtc's native `Helper` audio APIs
+  /// (setSpeakerphoneOn, switchCamera) exist. On web/desktop those channels
+  /// have no implementation and throw MissingPluginException — the browser/OS
+  /// manages audio routing itself, so we simply skip them there.
+  static bool get _isMobile =>
+      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
   String? _userId;
   String? get userId => _userId;
   String? _deviceId;
@@ -51,6 +59,83 @@ class CallService extends ChangeNotifier {
     // Warm the ICE config so the first call doesn't pay the action cold-start.
     // TURN creds are valid for 1 hour and we re-fetch at 50 min.
     unawaited(_iceServers());
+
+    _watchActiveCall(userId);
+  }
+
+  // ───────── cross-device active-call watch ─────────
+  //
+  // The single source of truth for "is there a call on ANOTHER of my devices?".
+  // Both [ActiveCallPill] (to render "Move here") and [CallButton] (to disable
+  // while busy) read [activeCallElsewhere] / [busyElsewhere] from here instead
+  // of each maintaining their own subscription and predicate.
+  Subscription? _activeCallSub;
+  String? _activeCallWatchUserId;
+  Map<String, dynamic>? _activeCallRaw;
+
+  // Every callId this device has ever held a local session for. A just-ended
+  // call is excluded from [activeCallElsewhere] via this set, so the "Move
+  // here" pill can't flash during the ~400ms window where [_teardown] has
+  // already cleared [_session] but the `activeCallForUser` subscription hasn't
+  // yet reported the call as ended. callIds are unique, so this never needs
+  // clearing mid-session (only on logout, via [detachWatch]).
+  final Set<String> _localCallIds = {};
+  void _rememberLocalCall(String callId) {
+    if (callId.isNotEmpty) _localCallIds.add(callId);
+  }
+
+  void _watchActiveCall(String userId) {
+    if (_activeCallWatchUserId == userId && _activeCallSub != null) return;
+    _activeCallSub?.cancel();
+    _activeCallSub = null;
+    _activeCallWatchUserId = userId;
+    _activeCallRaw = null;
+    // Fire-and-forget; the callback drives state.
+    api
+        .subscribeActiveCall(
+      userId: userId,
+      onCall: (call) {
+        _activeCallRaw = call;
+        notifyListeners();
+      },
+      onError: (e) => debugPrint('CallService active-call watch error: $e'),
+    )
+        .then((s) {
+      // Guard against a re-subscribe (new userId) that raced ahead of us.
+      if (_activeCallWatchUserId != userId) {
+        s.cancel();
+        return;
+      }
+      _activeCallSub = s;
+    });
+  }
+
+  /// The active call on ANOTHER of my devices, if any — else null. Excludes
+  /// calls this device is or was part of (live session or a remembered local
+  /// callId), so a call I just ended never resurfaces here.
+  Map<String, dynamic>? get activeCallElsewhere {
+    final c = _activeCallRaw;
+    if (c == null || c['status'] != 'active') return null;
+    final acc = c['acceptingDeviceId'] as String?;
+    if (acc == null || acc == _deviceId) return null;
+    final id = c['_id']?.toString() ?? '';
+    if (id.isEmpty || id == _session?.callId || _localCallIds.contains(id)) {
+      return null;
+    }
+    return c;
+  }
+
+  /// True when a call is active on another of my devices.
+  bool get busyElsewhere => activeCallElsewhere != null;
+
+  /// Stop watching and drop all cross-device state — call on logout.
+  void detachWatch() {
+    _activeCallSub?.cancel();
+    _activeCallSub = null;
+    _activeCallWatchUserId = null;
+    _activeCallRaw = null;
+    _localCallIds.clear();
+    notifyListeners();
   }
 
   // ───────── active call state ─────────
@@ -200,6 +285,7 @@ class CallService extends ChangeNotifier {
         roomId: roomId,
         type: kind.wire,
       );
+      _rememberLocalCall(callId);
       _session = CallSession(
         callId: callId,
         roomId: roomId,
@@ -389,6 +475,7 @@ class CallService extends ChangeNotifier {
     if (ls == null) return;
     final tracks = ls.getVideoTracks();
     if (tracks.isEmpty) return;
+    if (!_isMobile) return; // Helper.switchCamera is a mobile-only channel.
     try {
       await Helper.switchCamera(tracks.first);
     } catch (e) {
@@ -410,10 +497,15 @@ class CallService extends ChangeNotifier {
   /// the call connects — iOS only honors the route after its CallKit audio
   /// session goes active, so the attach-time call alone doesn't stick.
   Future<void> _applyAudioRoute({required bool speaker}) async {
-    try {
-      await Helper.setSpeakerphoneOn(speaker);
-    } catch (e) {
-      debugPrint('setSpeakerphoneOn($speaker) failed: $e');
+    if (_isMobile) {
+      // Web/desktop have no earpiece/loudspeaker switch — the browser/OS owns
+      // output routing — and Helper.setSpeakerphoneOn throws there. Still keep
+      // the speakerOn flag in sync below so the UI toggle stays coherent.
+      try {
+        await Helper.setSpeakerphoneOn(speaker);
+      } catch (e) {
+        debugPrint('setSpeakerphoneOn($speaker) failed: $e');
+      }
     }
     final s = _session;
     if (s != null && s.speakerOn != speaker) {
@@ -666,6 +758,7 @@ class CallService extends ChangeNotifier {
       final avatarUrl = parsed['callerAvatarUrl'] as String?;
       final mediaKind = CallMediaKindWire.parse(type);
 
+      _rememberLocalCall(callId);
       _session = CallSession(
         callId: callId,
         roomId: roomId,
@@ -770,6 +863,7 @@ class CallService extends ChangeNotifier {
     final peerUserId = iAmCaller ? calleeId : callerId;
     final mediaKind = CallMediaKindWire.parse(type);
 
+    _rememberLocalCall(callId);
     _session = CallSession(
       callId: callId,
       roomId: roomId,

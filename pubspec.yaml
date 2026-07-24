@@ -182,6 +182,10 @@ flutter:
     - assets/google_fonts/JetBrainsMono-Regular.ttf
     - assets/google_fonts/Spectral-Regular.ttf
     - assets/google_fonts/Audiowide-Regular.ttf
+    # Alert sounds — incoming-call ringtone (looped) + new-message ping. Used
+    # on web/desktop where there is no native OS ringer. See lib/audio/.
+    - assets/audio/ringtone.mp3
+    - assets/audio/ping.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -8,12 +8,14 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/pill_nav.dart';
 import '../widgets/room_card.dart';
 import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
-import 'room_screen.dart';
+import 'navigation/open_room.dart';
 import 'create_room_sheet.dart';
 import 'friends_screen.dart';
 import 'discover_screen.dart';
@@ -135,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Expanded(
                   child: ListView(
+                    key: const PageStorageKey('home_main_list'),
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
                     children: [
                       _Hero(tab: _tab, roomCount: rooms.length),
@@ -234,10 +237,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openCreate() {
     HapticFeedback.lightImpact();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
+    showAdaptiveSheet(
+      context,
       builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
     );
   }
@@ -453,7 +454,8 @@ class _RoomsPanel extends StatelessWidget {
     final layout = SettingsStore.instance.roomLayout;
 
     if (layout == RoomLayout.grid) {
-      final cols = MediaQuery.of(context).size.width > 700 ? 3 : 2;
+      // Medium/expanded windows get a third column; phones stay at two.
+      final cols = context.isCompact ? 2 : 3;
       return GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -478,9 +480,8 @@ class _RoomsPanel extends StatelessWidget {
               api: api,
               dmUser: repo.otherUserFor(rooms[i]),
               typingNames: repo.typingIn(rooms[i].id),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
-              ),
+              onTap: () =>
+                  openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
             ),
           );
         },
@@ -504,9 +505,8 @@ class _RoomsPanel extends StatelessWidget {
               api: api,
               dmUser: repo.otherUserFor(rooms[i]),
               typingNames: repo.typingIn(rooms[i].id),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => RoomScreen(roomId: rooms[i].id, repo: repo, api: api)),
-              ),
+              onTap: () =>
+                  openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
             ),
           ),
       ],
