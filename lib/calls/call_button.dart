@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../family/family_service.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import 'call_models.dart';
@@ -9,10 +10,20 @@ import 'call_service.dart';
 
 enum CallButtonVariant { classic, liquid }
 
-/// Header entry-point for starting a 1:1 call. Renders as a small icon next
-/// to the room-info button; tapping reveals a frosted popover with
-/// "Voice call" / "Video call". DM-only — callers gate visibility on
-/// `room.isDm`.
+/// Header width from which both call kinds are shown side by side instead of
+/// behind a picker. Measured against the CHAT PANE, not the window: in the
+/// two-pane desktop shell the header only owns the detail pane, and a 1024px
+/// window leaves it about 580.
+const double _kSideBySideCallsFrom = 520;
+
+/// Header entry-point for starting a 1:1 call. DM-only — callers gate
+/// visibility on `room.isDm`.
+///
+/// On a narrow header this is one icon that opens a frosted popover with
+/// "Voice call" / "Video call". Where there is room for them, both kinds get
+/// their own button instead: the popover exists to buy horizontal space, and
+/// when space isn't scarce it is just an extra tap in front of the two things
+/// it was hiding.
 ///
 /// Reflects call state live: while a call is active on THIS device
 /// ([CallService.inCall]) or ANOTHER of the user's devices
@@ -89,31 +100,65 @@ class CallButton extends StatelessWidget {
         final busyReason = _busyReason(service);
         final enabled = busyReason == null;
         void onDisabledTap() => _showBusy(context, busyReason!);
-        switch (variant) {
-          case CallButtonVariant.classic:
-            return _ClassicCallButton(
-              enabled: enabled,
-              onPick: (k) => _start(context, k),
-              onDisabledTap: onDisabledTap,
-            );
-          case CallButtonVariant.liquid:
-            return _LiquidCallButton(
-              enabled: enabled,
-              onPick: (k) => _start(context, k),
-              onDisabledTap: onDisabledTap,
-            );
+
+        Widget button(CallMediaKind? kind) {
+          switch (variant) {
+            case CallButtonVariant.classic:
+              return _ClassicCallButton(
+                kind: kind,
+                enabled: enabled,
+                onPick: (k) => _start(context, k),
+                onDisabledTap: onDisabledTap,
+              );
+            case CallButtonVariant.liquid:
+              return _LiquidCallButton(
+                kind: kind,
+                enabled: enabled,
+                onPick: (k) => _start(context, k),
+                onDisabledTap: onDisabledTap,
+              );
+          }
         }
+
+        final roomy = ChatMetricsScope.of(context).paneWidth >=
+            _kSideBySideCallsFrom;
+        if (!roomy) return button(null);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            button(CallMediaKind.audio),
+            // The classic variant's IconButtons carry their own 48px hit box,
+            // so they space themselves; the liquid circles need the same 12
+            // the header uses between its other controls.
+            if (variant == CallButtonVariant.liquid) const SizedBox(width: 12),
+            button(CallMediaKind.video),
+          ],
+        );
       },
     );
   }
 }
 
+/// Icon + tooltip for a direct button; null [kind] is the picker button.
+({IconData icon, String tooltip}) _face(CallMediaKind? kind) => switch (kind) {
+      CallMediaKind.audio => (icon: Icons.call_outlined, tooltip: 'voice call'),
+      CallMediaKind.video => (
+          icon: Icons.videocam_outlined,
+          tooltip: 'video call'
+        ),
+      null => (icon: Icons.call_outlined, tooltip: 'call'),
+    };
+
 class _ClassicCallButton extends StatefulWidget {
   const _ClassicCallButton({
+    required this.kind,
     required this.onPick,
     required this.enabled,
     required this.onDisabledTap,
   });
+
+  /// Starts this kind directly. Null opens the picker instead.
+  final CallMediaKind? kind;
   final ValueChanged<CallMediaKind> onPick;
   final bool enabled;
   final VoidCallback onDisabledTap;
@@ -134,6 +179,11 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
       widget.onDisabledTap();
       return;
     }
+    final kind = widget.kind;
+    if (kind != null) {
+      widget.onPick(kind);
+      return;
+    }
     final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
     if (picked != null) widget.onPick(picked);
   }
@@ -144,12 +194,13 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
     final color = widget.enabled
         ? theme.inkSoft
         : theme.inkSoft.withValues(alpha: 0.35);
+    final face = _face(widget.kind);
     return IconButton(
       key: _anchorKey,
-      tooltip: 'call',
+      tooltip: face.tooltip,
       padding: EdgeInsets.zero,
       iconSize: 18,
-      icon: Icon(Icons.call_outlined, color: color, size: 18),
+      icon: Icon(face.icon, color: color, size: 18),
       onPressed: _handleTap,
     );
   }
@@ -157,10 +208,14 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
 
 class _LiquidCallButton extends StatefulWidget {
   const _LiquidCallButton({
+    required this.kind,
     required this.onPick,
     required this.enabled,
     required this.onDisabledTap,
   });
+
+  /// Starts this kind directly. Null opens the picker instead.
+  final CallMediaKind? kind;
   final ValueChanged<CallMediaKind> onPick;
   final bool enabled;
   final VoidCallback onDisabledTap;
@@ -181,6 +236,11 @@ class _LiquidCallButtonState extends State<_LiquidCallButton> {
       widget.onDisabledTap();
       return;
     }
+    final kind = widget.kind;
+    if (kind != null) {
+      widget.onPick(kind);
+      return;
+    }
     final picked = await showCallPicker(context: context, anchorKey: _anchorKey);
     if (picked != null) widget.onPick(picked);
   }
@@ -191,12 +251,16 @@ class _LiquidCallButtonState extends State<_LiquidCallButton> {
     final color = widget.enabled
         ? theme.accent
         : theme.accent.withValues(alpha: 0.35);
-    return LiquidGlass(
-      key: _anchorKey,
-      shape: LiquidGlassShape.circle,
-      size: const Size(44, 44),
-      onTap: _handleTap,
-      child: Icon(Icons.call_outlined, size: 18, color: color),
+    final face = _face(widget.kind);
+    return Tooltip(
+      message: face.tooltip,
+      child: LiquidGlass(
+        key: _anchorKey,
+        shape: LiquidGlassShape.circle,
+        size: const Size(44, 44),
+        onTap: _handleTap,
+        child: Icon(face.icon, size: 18, color: color),
+      ),
     );
   }
 }
