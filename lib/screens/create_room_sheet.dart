@@ -297,15 +297,16 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                           ),
                         ),
                       ),
-                      if (_isPrivate) ...[
-                        const SizedBox(height: 22),
-                        LabeledField(
-                          label: 'PASSWORD · OPTIONAL',
-                          controller: _password,
-                          hint: 'lock with a passphrase…',
-                          obscure: true,
-                        ),
-                      ],
+                      // Password is independent of visibility: a public room
+                      // can be discoverable yet locked, a private room can be
+                      // hidden yet open. Show the field for both.
+                      const SizedBox(height: 22),
+                      LabeledField(
+                        label: 'PASSWORD · OPTIONAL',
+                        controller: _password,
+                        hint: 'lock with a passphrase…',
+                        obscure: true,
+                      ),
                       if (_error != null) ...[
                         const SizedBox(height: 14),
                         Container(

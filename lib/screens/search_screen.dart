@@ -9,7 +9,7 @@ import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/room_password_sheet.dart';
+import '../widgets/join_room_sheet.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
@@ -431,13 +431,12 @@ class _RoomRow extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         final messenger = ScaffoldMessenger.of(context);
-        String? password;
-        if (room.hasPassword) {
-          password = await showRoomPasswordSheet(context, room);
-          if (password == null || password.isEmpty) return;
-        }
+        // Preview + confirm before joining; a locked room's password field
+        // lives inside this same sheet.
+        final result = await showJoinRoomSheet(context, room, api);
+        if (!context.mounted || result == null) return;
         try {
-          await repo.joinRoom(roomId: room.id, password: password);
+          await repo.joinRoom(roomId: room.id, password: result.password);
           if (!context.mounted) return;
           openRoom(context, roomId: room.id, repo: repo, api: api);
         } catch (e) {

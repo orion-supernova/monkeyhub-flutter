@@ -8,7 +8,7 @@ import '../models/family.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/approval_gate.dart';
-import '../widgets/room_password_sheet.dart';
+import '../widgets/join_room_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'navigation/open_room.dart';
 import 'search_screen.dart';
@@ -194,17 +194,17 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
                   awaiting: _awaiting.contains(r.id),
                   onTap: () async {
                     final messenger = ScaffoldMessenger.of(context);
-                    // Child gate first: no point asking for a password on a
-                    // room they can't enter yet.
+                    // Child gate first: no point previewing a room they can't
+                    // enter yet.
                     if (!await _clearedToJoin(r)) return;
-                    String? password;
-                    if (r.hasPassword) {
-                      if (!context.mounted) return;
-                      password = await showRoomPasswordSheet(context, r);
-                      if (!mounted || password == null || password.isEmpty) return;
-                    }
+                    if (!context.mounted) return;
+                    // Preview + confirm before joining; a locked room's password
+                    // field lives inside this same sheet.
+                    final result = await showJoinRoomSheet(context, r, widget.api);
+                    if (!mounted || result == null) return;
                     try {
-                      await widget.repo.joinRoom(roomId: r.id, password: password);
+                      await widget.repo
+                          .joinRoom(roomId: r.id, password: result.password);
                       if (!context.mounted) return;
                       openRoom(context,
                           roomId: r.id, repo: widget.repo, api: widget.api);

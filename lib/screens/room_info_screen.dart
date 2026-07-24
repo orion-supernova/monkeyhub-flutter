@@ -405,6 +405,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (!_loaded) _hydrate();
     final busy = _saving || _leaving || _deleting;
 
+    // A DM has no name/visibility/password of its own — it's just the two
+    // people. Resolve the other person so we show their name and avatar
+    // instead of the internal "dm:regular:<id>:<id>" key.
+    final peer = r.isDm ? _dmPeer() : null;
+    final title = peer?.displayName ?? r.name;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -414,51 +420,57 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             child: AdaptivePageBody(
               child: Column(
               children: [
-                _header(theme, r),
+                _header(theme, r, title),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _avatarBlock(theme, r),
+                        _avatarBlock(theme, r, peer),
                         const SizedBox(height: 26),
-                        LabeledField(
-                          label: 'NAME',
-                          controller: _name,
-                          hint: 'room name',
-                        ),
-                        const SizedBox(height: 18),
+                        // Name/visibility don't apply to a 1:1 DM — the room is
+                        // just the two people.
+                        if (!r.isDm) ...[
+                          LabeledField(
+                            label: 'NAME',
+                            controller: _name,
+                            hint: 'room name',
+                          ),
+                          const SizedBox(height: 18),
+                        ],
                         LabeledField(
                           label: 'DESCRIPTION',
                           controller: _desc,
                           hint: 'one line about the room…',
                         ),
-                        const SizedBox(height: 22),
-                        const FieldLabel('VISIBILITY'),
-                        Row(children: [
-                          Expanded(
-                            child: _seg(
-                              theme,
-                              active: !_isPrivate,
-                              onTap: () => setState(() => _isPrivate = false),
-                              icon: theme.visibilityIcon(isPublic: true, size: 14),
-                              title: 'public',
-                              sub: 'anyone can find it',
+                        if (!r.isDm) ...[
+                          const SizedBox(height: 22),
+                          const FieldLabel('VISIBILITY'),
+                          Row(children: [
+                            Expanded(
+                              child: _seg(
+                                theme,
+                                active: !_isPrivate,
+                                onTap: () => setState(() => _isPrivate = false),
+                                icon: theme.visibilityIcon(isPublic: true, size: 14),
+                                title: 'public',
+                                sub: 'anyone can find it',
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: _seg(
-                              theme,
-                              active: _isPrivate,
-                              onTap: () => setState(() => _isPrivate = true),
-                              icon: theme.visibilityIcon(isPublic: false, size: 14),
-                              title: 'private',
-                              sub: 'invite only',
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _seg(
+                                theme,
+                                active: _isPrivate,
+                                onTap: () => setState(() => _isPrivate = true),
+                                icon: theme.visibilityIcon(isPublic: false, size: 14),
+                                title: 'private',
+                                sub: 'invite only',
+                              ),
                             ),
-                          ),
-                        ]),
+                          ]),
+                        ],
                         if (r.isEphemeral) ...[
                           const SizedBox(height: 22),
                           Row(children: [
@@ -488,7 +500,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ],
                           ),
                         ],
-                        if (_isOwner) ...[
+                        if (_isOwner && !r.isDm) ...[
                           const SizedBox(height: 22),
                           Row(children: [
                             const FieldLabel('PASSWORD'),
@@ -593,7 +605,19 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
-  Widget _header(AppTheme theme, ChatRoom r) {
+  /// The other participant in a DM, resolved from the live member list (which
+  /// is populated for any DM, unlike the friends-only cache). Null while members
+  /// are still loading or for non-DM rooms.
+  ChatUser? _dmPeer() {
+    final me = widget.repo.userId;
+    for (final m in _members) {
+      if (m.id != me) return m;
+    }
+    final room = _room;
+    return room == null ? null : widget.repo.otherUserFor(room);
+  }
+
+  Widget _header(AppTheme theme, ChatRoom r, String title) {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 20, 14),
       decoration: BoxDecoration(
@@ -611,9 +635,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ROOM SETTINGS', style: theme.monoTiny),
+                Text(r.isDm ? 'CONVERSATION' : 'ROOM SETTINGS', style: theme.monoTiny),
                 const SizedBox(height: 2),
-                Text(r.name, style: theme.displayMedium, overflow: TextOverflow.ellipsis),
+                Text(title, style: theme.displayMedium, overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -622,8 +646,35 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
-  Widget _avatarBlock(AppTheme theme, ChatRoom r) {
+  Widget _avatarBlock(AppTheme theme, ChatRoom r, ChatUser? peer) {
     final size = 92.0;
+    // A DM shows the other person's avatar, and it isn't editable — you can't
+    // rename or re-skin someone else.
+    if (r.isDm) {
+      return Center(
+        child: Column(
+          children: [
+            if (peer != null)
+              UserAvatar(user: peer, size: size, api: widget.api)
+            else
+              Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: theme.surfaceSunken,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.divider),
+                ),
+                child: Icon(Icons.person_outline, color: theme.inkMuted, size: 32),
+              ),
+            if (peer != null) ...[
+              const SizedBox(height: 8),
+              Text('@${peer.username}', style: theme.monoTiny),
+            ],
+          ],
+        ),
+      );
+    }
     final hasAvatar = r.avatarStorageId != null && r.avatarStorageId!.isNotEmpty;
     return Center(
       child: GestureDetector(

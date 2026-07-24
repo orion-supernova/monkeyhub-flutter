@@ -758,7 +758,12 @@ class CallService extends ChangeNotifier {
       final avatarUrl = parsed['callerAvatarUrl'] as String?;
       final mediaKind = CallMediaKindWire.parse(type);
 
-      _rememberLocalCall(callId);
+      // NB: deliberately NOT calling _rememberLocalCall here. Merely ringing
+      // isn't "holding" the call — if it's answered on another of my devices,
+      // this device must be able to show the "Move here" pill (which
+      // activeCallElsewhere suppresses for callIds in _localCallIds). Only real
+      // participation (initiate as caller / handoffToHere) records the call, so
+      // the caller-hangup pill flash stays suppressed.
       _session = CallSession(
         callId: callId,
         roomId: roomId,

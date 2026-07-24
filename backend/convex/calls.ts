@@ -194,37 +194,15 @@ export const initiate = mutation({
       consumed: false,
     });
 
-    // OneSignal alert-push fallback — wakes the callee with a banner when no
-    // native wake path exists. Skipped when every push-capable device (iOS /
-    // Android phone) already has a native VoIP/FCM token: those devices get
-    // the real full-screen call UI from sendVoip below, and the extra banner
-    // would just double-notify with no way to dismiss it on cancel/timeout.
-    // Any tokenless phone (fresh install, token cleared after a bad-token
-    // reply) keeps the banner as its only wake.
-    const calleeDevices = await ctx.db
-      .query("userDevices")
-      .withIndex("by_user", (q) => q.eq("userId", calleeId))
-      .collect();
-    const phones = calleeDevices.filter(
-      (d) => d.platform === "ios" || d.platform === "android",
-    );
-    const callee = await ctx.db.get(calleeId);
-    const allPhonesNative =
-      phones.length > 0
-        ? phones.every((d) => d.voipToken || d.fcmToken)
-        : // No per-device rows: legacy user-level tokens still get the direct
-          // push via _loadUserDevices' fallback row.
-          Boolean(callee?.voipToken || callee?.fcmToken);
-    if (!allPhonesNative) {
-      await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
-        callId,
-        calleeId,
-        callerId,
-        callerName,
-        type,
-        roomId,
-      });
-    }
+    // OneSignal alert-push fallback is NOT scheduled here anymore. It was
+    // user-targeted (include_aliases.external_id → EVERY device of the callee)
+    // but gated on a per-device "all phones native" check, so any tokenless
+    // sibling userDevices row (stale reinstall, Android without fcmToken, a
+    // not-yet-uploaded token) opened the gate and banner-notified the very
+    // iPhone that was already ringing via VoIP/CallKit — a double alert.
+    // The delivery-accurate rescue in voipPush.sendVoip below sends the same
+    // OneSignal banner ONLY when no device actually received a native push, so
+    // it covers the all-tokenless callee without ever duplicating CallKit.
 
     // Direct VoIP push (APNs PushKit + FCM data-only). This is what wakes a
     // *killed* app into the native CallKit / ConnectionService UI. Runs in
