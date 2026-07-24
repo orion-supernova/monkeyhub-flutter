@@ -157,7 +157,9 @@ class PushManager {
     // Upload native call tokens. Failures here are non-fatal — OneSignal
     // remains as a fallback on iOS/Android, and other platforms still
     // register their device row via [_registerNoPushDevice] below.
-    if (Platform.isIOS || Platform.isAndroid) {
+    // kIsWeb first so Platform.* (dart:io) is never evaluated on web, where it
+    // throws — web falls through to the no-push registration path.
+    if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
       await refreshTokens();
     } else {
       // macOS / Windows / Linux / Web — register the device row so the
@@ -254,6 +256,7 @@ class PushManager {
   /// exist. Called on app resume so a token the backend cleared (e.g. after
   /// a transient APNs error) is restored without waiting for a cold login.
   Future<void> refreshTokens() async {
+    if (!_pushSupported) return; // web/other: no VoIP/FCM tokens, no OneSignal
     if (_userId == null || _deviceId == null) return;
     // Covers the headless-login case: if the permission ask was skipped
     // because the app wasn't foregrounded, retry it now (resume path).

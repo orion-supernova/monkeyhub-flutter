@@ -423,7 +423,7 @@ class NativeCallHandler {
     required CallMediaKind kind,
     String? avatarUrl,
   }) async {
-    if (!Platform.isAndroid) return;
+    if (kIsWeb || !Platform.isAndroid) return;
     try {
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
       final already = active.any((c) =>
@@ -504,7 +504,7 @@ class NativeCallHandler {
   static const MethodChannel _voipChannel = MethodChannel('monkeyhub/voip');
 
   Future<void> _endIosFallbackCalls() async {
-    if (!Platform.isIOS) return;
+    if (kIsWeb || !Platform.isIOS) return;
     try {
       await _voipChannel.invokeMethod('endFallbackCalls');
     } catch (_) {}
@@ -515,7 +515,7 @@ class NativeCallHandler {
   /// Also flips AppDelegate to direct delivery for future ones. Runs at the
   /// top of [replayColdStartCalls]; idempotent (the native queue empties).
   Future<void> _drainPendingFallbackEvents() async {
-    if (!Platform.isIOS || _isIosSimulator) return;
+    if (kIsWeb || !Platform.isIOS || _isIosSimulator) return;
     List<dynamic> events;
     try {
       events =

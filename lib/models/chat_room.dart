@@ -11,6 +11,7 @@ class ChatRoom {
     this.description,
     this.lastMessage,
     this.lastMessageTime,
+    this.lastReadAt,
     this.passwordHash,
     this.hasPassword = false,
     this.type = RoomType.regular,
@@ -28,6 +29,9 @@ class ChatRoom {
   int memberCount;
   String? lastMessage;
   DateTime? lastMessageTime;
+  /// This user's own read cursor for the room (ms since epoch, from
+  /// roomMembers.lastReadAt). Null until the user has ever read the room.
+  DateTime? lastReadAt;
   String? passwordHash; // not sent to clients per backend; kept nullable
   bool hasPassword;
   RoomType type;
@@ -38,6 +42,14 @@ class ChatRoom {
   bool get isEphemeral => type == RoomType.secret;
   bool get isPublic => !isPrivate;
   bool get isDm => name.startsWith('dm:');
+
+  /// True when the room has a message newer than this user's read cursor.
+  /// Never read (lastReadAt == null) with any message counts as unread.
+  /// markRoomRead advances lastReadAt past your own sends while you're in the
+  /// room, so your own last message doesn't light this up.
+  bool get hasUnread =>
+      lastMessageTime != null &&
+      (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!));
 
   /// For DM rooms, returns the "other" participant id (the one that's not me).
   String? otherParticipantId(String myId) {
@@ -58,6 +70,7 @@ class ChatRoom {
         'memberCount': memberCount,
         if (lastMessage != null) 'lastMessage': lastMessage,
         if (lastMessageTime != null) 'lastMessageTime': lastMessageTime!.millisecondsSinceEpoch,
+        if (lastReadAt != null) 'lastReadAt': lastReadAt!.millisecondsSinceEpoch,
         'hasPassword': hasPassword,
         'type': type.wire,
         if (messageLifetime != null) 'messageLifetime': messageLifetime!.inSeconds,
@@ -78,6 +91,9 @@ class ChatRoom {
       lastMessage: j['lastMessage'] as String?,
       lastMessageTime: j['lastMessageTime'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['lastMessageTime'] as num).toInt())
+          : null,
+      lastReadAt: j['lastReadAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((j['lastReadAt'] as num).toInt())
           : null,
       hasPassword: (j['hasPassword'] ?? false) as bool,
       type: RoomTypeWire.parse(j['type'] as String?),

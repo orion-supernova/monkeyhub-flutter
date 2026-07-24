@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -38,6 +39,7 @@ class DeviceIdentity {
   /// to derive a friendly fallback label for the active-call pill when
   /// no deviceName is captured.
   static String platformTag() {
+    if (kIsWeb) return 'web';
     if (Platform.isIOS) {
       return Platform.resolvedExecutable.contains('/CoreSimulator/')
           ? 'ios-simulator'
@@ -87,7 +89,9 @@ class DeviceIdentity {
   static Future<String> displayName() async {
     String? raw;
     try {
-      if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
+      if (kIsWeb) {
+        raw = null; // no native device-name channel on web → 'Browser'
+      } else if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
         raw = await _deviceChannel.invokeMethod<String>('getDisplayName');
       } else if (Platform.isWindows || Platform.isLinux) {
         raw = Platform.localHostname;

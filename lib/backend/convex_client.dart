@@ -81,6 +81,12 @@ class ConvexBackend {
     void Function(Object error)? onError,
   }) async {
     await _ensureInitialized();
+    // The web client silently drops subscriptions registered before the
+    // WebSocket finishes connecting (native queues them and replays on
+    // connect). On a restored session, attach() subscribes before the socket
+    // is up, which left the room list empty until a fresh login. Wait
+    // (bounded) for the connection before registering.
+    await _awaitConnected();
     final handle = await _c.subscribe(
       name: name,
       args: args,
@@ -94,6 +100,25 @@ class ConvexBackend {
       onError: (msg, value) => onError?.call(ConvexError(msg, value)),
     );
     return Subscription._(handle);
+  }
+
+  /// Resolve once the socket is connected, or after [timeout] regardless — so
+  /// a still-down socket never blocks a subscription forever (the caller's
+  /// onError path and the client's own reconnect handle that case). No-op when
+  /// already connected, which is the steady state after the first connect.
+  ///
+  /// Polls [isConnected] rather than listening to [connectionState] so that the
+  /// concurrent attach() calls on boot (each subscribing several queries) can't
+  /// collide on a single-subscription stream.
+  Future<void> _awaitConnected({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    const step = Duration(milliseconds: 100);
+    var waited = Duration.zero;
+    while (!isConnected && waited < timeout) {
+      await Future.delayed(step);
+      waited += step;
+    }
   }
 
   Stream<bool> get connectionState =>

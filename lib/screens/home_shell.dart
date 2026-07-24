@@ -43,12 +43,15 @@ class _HomeShellState extends State<HomeShell> {
     // Without this the approvals badge would only update when something else
     // happened to rebuild the shell.
     widget.family.addListener(_onSettings);
+    // Keep the Chat tab's unread badge live as rooms gain/clear unread state.
+    widget.repo.addListener(_onSettings);
   }
 
   @override
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
+    widget.repo.removeListener(_onSettings);
     super.dispose();
   }
 
@@ -108,10 +111,12 @@ class _HomeShellState extends State<HomeShell> {
                 active: settings.section,
                 onSelect: _select,
                 items: [
-                  const RadialMenuItem(
-                      section: HomeSection.chat,
-                      icon: CupertinoIcons.bubble_left,
-                      label: 'CHAT'),
+                  RadialMenuItem(
+                    section: HomeSection.chat,
+                    icon: CupertinoIcons.bubble_left,
+                    label: 'CHAT',
+                    badgeCount: widget.repo.unreadRoomCount,
+                  ),
                   const RadialMenuItem(
                       section: HomeSection.feed,
                       icon: CupertinoIcons.sparkles,
@@ -129,6 +134,7 @@ class _HomeShellState extends State<HomeShell> {
             _PillBottomNav(
               active: settings.section,
               onSelect: _select,
+              chatBadge: widget.repo.unreadRoomCount,
               settingsBadge: widget.family.pendingCount,
             ),
         ],
@@ -141,10 +147,14 @@ class _PillBottomNav extends StatelessWidget {
   const _PillBottomNav({
     required this.active,
     required this.onSelect,
+    this.chatBadge = 0,
     this.settingsBadge = 0,
   });
   final HomeSection active;
   final ValueChanged<HomeSection> onSelect;
+
+  /// Rooms with unread messages. Rendered on the Chat segment.
+  final int chatBadge;
 
   /// Approvals waiting on this account. Rendered on the Settings segment,
   /// which is the only route to the family screen.
@@ -214,7 +224,8 @@ class _PillBottomNav extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat),
+                      _btn(theme, CupertinoIcons.bubble_left, 'Chat', HomeSection.chat,
+                          badge: chatBadge),
                       _btn(theme, CupertinoIcons.sparkles, 'Feed', HomeSection.feed),
                       _btn(theme, CupertinoIcons.gear, 'Settings', HomeSection.settings,
                           badge: settingsBadge),

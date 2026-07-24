@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
@@ -51,7 +53,7 @@ class _CaptureProtectionToggleState extends State<CaptureProtectionToggle> {
                       const SizedBox(height: 2),
                       Text(
                         on
-                            ? Platform.isAndroid
+                            ? (!kIsWeb && Platform.isAndroid)
                                 ? 'screenshots + screen recording show as black to the system.'
                                 : 'screen recording + mirroring drops a privacy shield over the app.'
                             : 'screenshots and recordings work normally outside ephemeral rooms.',

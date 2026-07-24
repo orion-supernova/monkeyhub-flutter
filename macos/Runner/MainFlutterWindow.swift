@@ -27,6 +27,26 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    // monkeyhub/badge — set or clear the Dock icon badge. Mirrors the iOS
+    // app-icon badge (see ios/Runner/AppDelegate.swift). Driven by
+    // BadgeManager's unread/request count.
+    let badgeChannel = FlutterMethodChannel(
+      name: "monkeyhub/badge",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    badgeChannel.setMethodCallHandler { call, result in
+      guard call.method == "set" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      let args = call.arguments as? [String: Any] ?? [:]
+      let count = (args["count"] as? Int) ?? 0
+      DispatchQueue.main.async {
+        NSApp.dockTile.badgeLabel = count > 0 ? String(count) : nil
+      }
+      result(nil)
+    }
+
     super.awakeFromNib()
   }
 }

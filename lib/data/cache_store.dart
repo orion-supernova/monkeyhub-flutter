@@ -40,6 +40,7 @@ class CacheStore {
   // ─────────────────────────────── rooms ───────────────────────────────
 
   Future<List<ChatRoom>> loadRooms(String userId) async {
+    if (kIsWeb) return const []; // no path_provider on web — live data only
     try {
       final dir = await _ensureDir(userId);
       final f = File('${dir.path}/rooms.json');
@@ -56,6 +57,7 @@ class CacheStore {
   }
 
   void scheduleSaveRooms(String userId, List<ChatRoom> rooms) {
+    if (kIsWeb) return; // no disk cache on web
     _debounce('rooms', () async {
       try {
         final dir = await _ensureDir(userId);
@@ -70,6 +72,7 @@ class CacheStore {
   // ─────────────────────────────── messages ───────────────────────────────
 
   Future<List<ChatMessage>> loadMessages(String userId, String roomId) async {
+    if (kIsWeb) return const []; // no path_provider on web — live data only
     try {
       final dir = await _ensureDir(userId);
       final f = File('${dir.path}/messages_$roomId.json');
@@ -91,6 +94,7 @@ class CacheStore {
     List<ChatMessage> messages,
   ) {
     // Cap at the last N to keep cache size bounded.
+    if (kIsWeb) return; // no disk cache on web
     final clipped = messages.length > _maxMessagesPerRoom
         ? messages.sublist(messages.length - _maxMessagesPerRoom)
         : messages;
@@ -111,6 +115,7 @@ class CacheStore {
 
   /// Drop all cached data for the given user. Called on signOut + deleteAccount.
   Future<void> clearFor(String userId) async {
+    if (kIsWeb) return; // nothing cached on disk on web
     try {
       final dir = await _ensureDir(userId);
       if (await dir.exists()) await dir.delete(recursive: true);

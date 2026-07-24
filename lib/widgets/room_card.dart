@@ -91,10 +91,26 @@ class RoomCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                 ],
+                if (room.hasUnread) ...[
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: theme.accent,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                ],
                 Expanded(
                   child: Text(
                     dmUser?.displayName ?? room.name,
-                    style: theme.displaySmall,
+                    style: room.hasUnread
+                        ? theme.displaySmall.copyWith(fontWeight: FontWeight.w700)
+                        : theme.displaySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

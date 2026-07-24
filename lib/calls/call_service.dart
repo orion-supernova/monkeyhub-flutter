@@ -466,7 +466,7 @@ class CallService extends ChangeNotifier {
   /// enable the right signal processing, and defaultToSpeaker makes video
   /// calls come up on the loudspeaker like every mainstream calling app.
   Future<void> _applyIosAudioConfig(CallMediaKind kind) async {
-    if (!Platform.isIOS) return;
+    if (kIsWeb || !Platform.isIOS) return;
     try {
       await Helper.setAppleAudioConfiguration(AppleAudioConfiguration(
         appleAudioCategory: AppleAudioCategory.playAndRecord,

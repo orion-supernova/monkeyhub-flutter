@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -30,7 +32,7 @@ class AndroidCallReliability {
 
   /// Fire-and-forget after login, once the navigator is mounted.
   Future<void> ensure() async {
-    if (!Platform.isAndroid || _ranThisSession) return;
+    if (kIsWeb || !Platform.isAndroid || _ranThisSession) return;
     // Don't latch the session flag while the navigator isn't ready — the
     // _onAuthChange path can land here a frame before the root navigator
     // mounts, and burning the attempt would skip the prompts entirely.

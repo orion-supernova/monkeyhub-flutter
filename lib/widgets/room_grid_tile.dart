@@ -71,6 +71,18 @@ class RoomGridTile extends StatelessWidget {
                     alignment: WrapAlignment.end,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
+                      if (room.hasUnread)
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: theme.accent,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
+                            ],
+                          ),
+                        ),
                       VisibilityBadge(isPublic: room.isPublic, dense: true),
                       if (room.hasPassword)
                         Container(
@@ -92,7 +104,10 @@ class RoomGridTile extends StatelessWidget {
                 children: [
                   Text(
                     dmUser?.displayName ?? room.name,
-                    style: theme.displaySmall.copyWith(fontSize: 16),
+                    style: theme.displaySmall.copyWith(
+                      fontSize: 16,
+                      fontWeight: room.hasUnread ? FontWeight.w700 : null,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

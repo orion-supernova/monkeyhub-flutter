@@ -251,7 +251,15 @@ export const listUserRooms = query({
           .collect();
         const participantIds = members.map((mem) => mem.userId.toString());
         const { passwordHash, ...rest } = room;
-        return { ...rest, participantIds, hasPassword: !!passwordHash };
+        // Surface the caller's own read cursor so the client can flag rooms
+        // with messages newer than lastReadAt as unread (m is this user's
+        // membership row). markRoomRead keeps lastReadAt current.
+        return {
+          ...rest,
+          participantIds,
+          hasPassword: !!passwordHash,
+          lastReadAt: m.lastReadAt ?? null,
+        };
       })
     );
 

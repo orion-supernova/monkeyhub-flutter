@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/family.dart';
@@ -46,7 +48,7 @@ class SessionStore {
   Future<String?> _read(String key) async {
     final value = await _storage.read(key: key);
     if (value != null) return value;
-    if (!Platform.isIOS) return null;
+    if (kIsWeb || !Platform.isIOS) return null; // no iOS keychain on web
     try {
       final legacy = await _legacyStorage.read(key: key);
       if (legacy != null) {

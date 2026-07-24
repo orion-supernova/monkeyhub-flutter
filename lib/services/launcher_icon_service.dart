@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
@@ -88,5 +90,6 @@ class LauncherIconService {
     }
   }
 
-  static bool get _supportedPlatform => Platform.isIOS || Platform.isAndroid;
+  static bool get _supportedPlatform =>
+      !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 }

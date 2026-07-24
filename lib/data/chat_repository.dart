@@ -32,6 +32,10 @@ class ChatRepository extends ChangeNotifier {
   List<ChatRoom> _rooms = [];
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
+  /// Number of rooms with messages newer than this user's read cursor —
+  /// drives the unread count on the Chat tab / ROOMS pill.
+  int get unreadRoomCount => _rooms.where((r) => r.hasUnread).length;
+
   /// Lookup a user by id from any cached source the repo currently knows
   /// (friends list). Returns null when the user isn't cached — callers may
   /// fall back to a placeholder.

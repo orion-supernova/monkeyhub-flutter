@@ -5,14 +5,75 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include <string.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 struct _MyApplication {
   GtkApplication parent_instance;
   char** dart_entrypoint_arguments;
+  // monkeyhub/badge channel — sets the launcher badge count. Kept alive for
+  // the process lifetime; cleared in dispose.
+  FlMethodChannel* badge_channel;
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
+
+// Push the unread count to the launcher icon via the Unity LauncherEntry DBus
+// protocol (honored by the Ubuntu dock, KDE, Dash-to-Dock, etc.). Listeners
+// key off the app_uri in the payload; the object path is a stable hash of it.
+static void update_launcher_count(int64_t count) {
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GDBusConnection) bus =
+      g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &error);
+  if (bus == nullptr) {
+    g_warning("badge: no session bus: %s", error->message);
+    return;
+  }
+
+  g_autofree gchar* app_uri =
+      g_strdup_printf("application://%s.desktop", APPLICATION_ID);
+  g_autofree gchar* object_path = g_strdup_printf(
+      "/com/canonical/unity/launcherentry/%u", g_str_hash(app_uri));
+
+  GVariantBuilder props;
+  g_variant_builder_init(&props, G_VARIANT_TYPE("a{sv}"));
+  g_variant_builder_add(&props, "{sv}", "count", g_variant_new_int64(count));
+  g_variant_builder_add(&props, "{sv}", "count-visible",
+                        g_variant_new_boolean(count > 0));
+
+  g_dbus_connection_emit_signal(
+      bus, nullptr, object_path, "com.canonical.Unity.LauncherEntry", "Update",
+      g_variant_new("(sa{sv})", app_uri, &props), &error);
+  if (error != nullptr) {
+    g_warning("badge: emit failed: %s", error->message);
+  }
+}
+
+// Handles monkeyhub/badge method calls from Dart (BadgeManager).
+static void badge_method_call_cb(FlMethodChannel* channel,
+                                 FlMethodCall* method_call, gpointer user_data) {
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (strcmp(fl_method_call_get_name(method_call), "set") == 0) {
+    int64_t count = 0;
+    FlValue* args = fl_method_call_get_args(method_call);
+    if (args != nullptr && fl_value_get_type(args) == FL_VALUE_TYPE_MAP) {
+      FlValue* v = fl_value_lookup_string(args, "count");
+      if (v != nullptr && fl_value_get_type(v) == FL_VALUE_TYPE_INT) {
+        count = fl_value_get_int(v);
+      }
+    }
+    update_launcher_count(count);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+
+  g_autoptr(GError) error = nullptr;
+  if (!fl_method_call_respond(method_call, response, &error)) {
+    g_warning("badge: failed to respond: %s", error->message);
+  }
+}
 
 // Called when first Flutter frame received.
 static void first_frame_cb(MyApplication* self, FlView* view) {
@@ -75,6 +136,15 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+  // monkeyhub/badge — launcher badge count (mirrors iOS/macOS app-icon badge).
+  FlEngine* engine = fl_view_get_engine(view);
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  self->badge_channel =
+      fl_method_channel_new(fl_engine_get_binary_messenger(engine),
+                            "monkeyhub/badge", FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      self->badge_channel, badge_method_call_cb, self, nullptr);
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -121,6 +191,7 @@ static void my_application_shutdown(GApplication* application) {
 static void my_application_dispose(GObject* object) {
   MyApplication* self = MY_APPLICATION(object);
   g_clear_pointer(&self->dart_entrypoint_arguments, g_strfreev);
+  g_clear_object(&self->badge_channel);
   G_OBJECT_CLASS(my_application_parent_class)->dispose(object);
 }
 

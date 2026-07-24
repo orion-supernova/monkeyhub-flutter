@@ -144,7 +144,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           activeId: _tab,
                           onChange: _setTab,
                           items: [
-                            const PillNavItem(id: 'rooms', label: 'ROOMS'),
+                            PillNavItem(
+                              id: 'rooms',
+                              label: 'ROOMS',
+                              badge: widget.repo.unreadRoomCount == 0
+                                  ? null
+                                  : '${widget.repo.unreadRoomCount}',
+                            ),
                             if (widget.family.canSeePublicRooms)
                               const PillNavItem(
                                   id: 'discover', label: 'DISCOVER'),
