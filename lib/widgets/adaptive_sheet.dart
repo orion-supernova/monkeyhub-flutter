@@ -11,6 +11,11 @@ import '../theme/layout.dart';
 /// `backgroundColor`/`isScrollControlled` arguments. The existing sheet content
 /// widgets already build their own themed, rounded container, which reads fine
 /// as a centered card too.
+///
+/// `isDismissible: false` (plus `enableDrag: false`) makes the sheet
+/// undismissable by tap-outside or drag in both forms — for the rare modal that
+/// has to be answered, like a mandatory update. Pair it with a
+/// `PopScope(canPop: false)` in the content to also block Android back and Esc.
 Future<T?> showAdaptiveSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
@@ -18,6 +23,8 @@ Future<T?> showAdaptiveSheet<T>(
   Color backgroundColor = Colors.transparent,
   bool useRootNavigator = false,
   double maxWidth = 460,
+  bool isDismissible = true,
+  bool enableDrag = true,
 }) {
   if (context.isCompact) {
     return showModalBottomSheet<T>(
@@ -25,12 +32,15 @@ Future<T?> showAdaptiveSheet<T>(
       isScrollControlled: isScrollControlled,
       backgroundColor: backgroundColor,
       useRootNavigator: useRootNavigator,
+      isDismissible: isDismissible,
+      enableDrag: enableDrag,
       builder: builder,
     );
   }
   return showDialog<T>(
     context: context,
     useRootNavigator: useRootNavigator,
+    barrierDismissible: isDismissible,
     barrierColor: Colors.black.withValues(alpha: 0.5),
     builder: (ctx) => Center(
       child: ConstrainedBox(

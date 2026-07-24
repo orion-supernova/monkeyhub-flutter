@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:crypto/crypto.dart';
 import 'dart:convert' show utf8;
 
+import '../models/app_release.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -1046,6 +1047,21 @@ class ChatApi {
     return ((res as List?) ?? const [])
         .map((e) => ChatMessage.fromJson((e as Map).cast<String, dynamic>()))
         .toList();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Releases
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// The latest build published for one distribution channel, or null when
+  /// nothing has been published for it yet.
+  ///
+  /// Unauthenticated on the backend on purpose — the update check runs before
+  /// the session is restored, so it works on the login screen too.
+  Future<AppRelease?> latestRelease(String channel) async {
+    final res = await _cv.query('releases:latest', {'channel': channel});
+    if (res == null) return null;
+    return AppRelease.fromJson((res as Map).cast<String, dynamic>());
   }
 }
 

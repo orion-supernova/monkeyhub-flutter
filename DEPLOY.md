@@ -29,6 +29,79 @@ Versioning: patch-only bump (`1.3.21+1 → 1.3.22+1`), the `+1` never changes.
 Android `versionCode` is derived in `android/app/build.gradle.kts`
 (`1.3.22 → 10322`) so Play/side-load upgrades always increase.
 
+## Update prompts (version check)
+
+Every cold start, the app asks the backend "what's the newest build on *my*
+channel?" and — if it's behind — offers LATER / UPDATE, where UPDATE opens the
+right place for how that copy was actually installed. Client lives in
+`lib/update/`, backend in `backend/convex/releases.ts` (`appReleases` table).
+
+deploy.sh announces each channel automatically, but only **after that channel's
+upload succeeds**, so a failed build never advertises a version nobody can get.
+
+| Channel | Who publishes it | How the app knows it's on that channel |
+|---|---|---|
+| `ios-testflight` | deploy.sh, after the ASC upload | its own receipt at runtime (`sandboxReceipt`) |
+| `ios-appstore` | **manual** — an ASC upload isn't a release | its own receipt at runtime |
+| `android-apk` | deploy.sh, after the VM rsync | `--dart-define`, and Play-vs-sideload at runtime |
+| `android-play` | deploy.sh, after the fastlane upload | same |
+| `web` | deploy.sh, after the web rsync | `--dart-define` |
+| `macos-dmg` / `macos-testflight` / `macos-appstore` | **manual** (no macOS build in deploy.sh yet) | `--dart-define` only — see caveat below |
+| `windows` / `linux` | **manual** (not built yet) | `--dart-define` only |
+
+The iOS build deliberately carries **no** `MH_CHANNEL` define: one binary serves
+both TestFlight and the App Store, so a stamped channel would be wrong for half
+its users. iOS resolves its own channel from its receipt instead. Android and web
+get the define because each artifact really does belong to one channel.
+
+**macOS caveat:** macOS reports no installer info at all, so DMG / TestFlight /
+Mac App Store can only be told apart by the define — and as on iOS, one ASC
+binary serves both TestFlight and the Mac App Store. When macOS ships, a DMG
+build gets `--dart-define=MH_CHANNEL=macos-dmg`; an ASC build has to pick one of
+the two ASC channels (or grow a receipt probe like iOS's).
+
+### Manual commands
+
+Publish a channel by hand (omitted fields keep their stored values, so this
+won't clobber a `minSupported` or a store link):
+
+```sh
+cd backend
+npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.30"}'
+```
+
+Point a channel at a store listing once it exists — this fixes **already
+installed** builds, which is the whole reason the URL lives server-side:
+
+```sh
+npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.30",
+  "updateUrl":"itms-apps://apps.apple.com/app/id<APPLE_ID>"}'
+```
+
+Make an update mandatory (LATER disappears, the sheet can't be dismissed). Use
+only when old clients are genuinely broken — anyone below this is locked out of
+the app until they update:
+
+```sh
+npx convex run releases:publish '{"channel":"android-apk","version":"1.3.30","minSupported":"1.3.28"}'
+```
+
+Clear it again by passing `null`:
+
+```sh
+npx convex run releases:publish '{"channel":"android-apk","version":"1.3.30","minSupported":null}'
+```
+
+Read back what a channel is currently serving:
+
+```sh
+npx convex run releases:latest '{"channel":"android-apk"}'
+```
+
+`publish` is an `internalMutation` on purpose — reachable from the CLI's admin
+credentials, but with no public write surface, since a public version would let
+anyone fake a mandatory-update prompt for every user.
+
 ## Android signing
 
 - Upload keystore: `~/keystores/monkeyhub_upload.jks` (alias `monkeyhub`).

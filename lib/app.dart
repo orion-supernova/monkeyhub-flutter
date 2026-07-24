@@ -38,6 +38,7 @@ import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/layout.dart';
 import 'theme/theme_scope.dart';
+import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
@@ -359,6 +360,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     // After the first frame so the dialogs have a mounted navigator.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_auth.session != null) AndroidCallReliability.instance.ensure();
+      // "You're behind" check, once per launch. Deliberately NOT gated on a
+      // session, unlike the prompts above: someone whose client is too old to
+      // talk to this backend can't get past the login screen, and they're
+      // exactly who needs to be told to update.
+      UpdateChecker.instance.ensure(_api);
     });
   }
 

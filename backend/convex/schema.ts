@@ -437,4 +437,28 @@ export default defineSchema({
     keyRef: v.string(),
     issuedAt: v.number(),
   }).index("by_provider", ["provider"]),
+
+  // Latest shipped build, one row per distribution channel. `channel` matches
+  // ReleaseChannel.wire on the client ("ios-testflight", "android-apk", …) —
+  // the same build goes to different channels at different times, so TestFlight
+  // being on 1.3.30 says nothing about what the App Store is serving.
+  //
+  // `updateUrl` is server-owned on purpose. A shipped 1.3.29 has to be able to
+  // send its user somewhere that didn't exist when it was compiled: the App
+  // Store and Play listings aren't live yet, and the hosted APK's filename
+  // changes every release. Setting this field fixes every already-installed
+  // build retroactively; the client only falls back to a compiled-in default
+  // when it's absent.
+  appReleases: defineTable({
+    channel: v.string(),
+    // Display version only, no "+N" build suffix — matches what the client
+    // reads from PackageInfo.version and compares.
+    version: v.string(),
+    // Below this, the client's update prompt loses its "Later" button. Leave
+    // unset unless old clients are actually broken.
+    minSupported: v.optional(v.string()),
+    updateUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    publishedAt: v.number(),
+  }).index("by_channel", ["channel"]),
 });

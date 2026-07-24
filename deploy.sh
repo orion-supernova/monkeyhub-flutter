@@ -465,6 +465,46 @@ if [ "$RUN_CONVEX" = true ]; then
     run_with_spinner "Deploying Convex backend" convex_deploy
 fi
 
+# ----- Release announcement -----
+# Records "the latest build on <channel> is <version>" so already-installed
+# clients learn they're behind (see lib/update/ and backend/convex/releases.ts).
+#
+# Called per channel AFTER that channel's upload succeeds — announcing a version
+# whose upload then failed would send every user to a store that doesn't have it.
+#
+# Two deliberate departures from the rest of this script:
+#   • Not run_with_spinner. That exits the script on failure, which here would
+#     abandon an already-uploaded build before the version-bump commit. A failed
+#     announcement is recoverable; the retry command is printed.
+#   • `convex run` reaches an internalMutation because the CLI carries admin
+#     credentials — which is the point, since a *public* publish endpoint would
+#     let anyone fake a mandatory-update prompt for every user.
+#
+# No --prod, deliberately: this backend is self-hosted (CONVEX_SELF_HOSTED_URL in
+# backend/.env.local), so there's one deployment and the CLI already targets the
+# same URL the app reads from env.local. --prod is a Convex-cloud concept and
+# does not apply here — adding it would break this call, not harden it.
+#
+# $2 (updateUrl) is optional; omitting it leaves whatever is already stored,
+# so a hand-set store link or minSupported survives the next deploy.
+publish_release() {   # $1 = channel, $2 = updateUrl (optional)
+    local channel="$1"
+    local update_url="${2:-}"
+    if [ "$RUN_CONVEX" = false ]; then
+        echo "  ⏭️  Not announcing $channel $DISPLAY_VERSION (--no-convex)"
+        return 0
+    fi
+    local payload="{\"channel\":\"$channel\",\"version\":\"$DISPLAY_VERSION\""
+    [ -n "$update_url" ] && payload="$payload,\"updateUrl\":\"$update_url\""
+    payload="$payload}"
+    if (cd backend && npx convex run releases:publish "$payload" >/dev/null 2>&1); then
+        echo "  ✅ Announced $DISPLAY_VERSION on $channel"
+    else
+        echo "  ⚠️  Could not announce $DISPLAY_VERSION on $channel — users won't be prompted."
+        echo "     Retry with:  (cd backend && npx convex run releases:publish '$payload')"
+    fi
+}
+
 # Nothing app-side selected → done after Convex.
 if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ]; then
     echo ""
@@ -532,6 +572,14 @@ if [ "$DEPLOY_IOS" = true ]; then
 
     # Refreshes Generated.xcconfig with the current pubspec version. Runtime
     # keys ride along via the bundled env.local asset — no --dart-define needed.
+    #
+    # Note there's deliberately no --dart-define=MH_CHANNEL here, unlike the
+    # Android and web builds. This ONE binary serves both TestFlight and (later)
+    # the App Store, so any channel stamped into it would be wrong for half its
+    # users. iOS is the case where runtime detection is strictly better: the app
+    # reads its own receipt at launch (package_info_plus installerStore →
+    # com.apple.testflight vs com.apple) and resolves its own channel. See
+    # lib/update/release_channel.dart.
     run_with_spinner "Building Flutter for iOS (release)" \
         flutter build ios --release --no-codesign
 
@@ -576,6 +624,11 @@ if [ "$DEPLOY_IOS" = true ]; then
                 --apiKey "$APP_STORE_CONNECT_KEY_ID" \
                 --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
                 --apiKeyPath "$P8_FILE_PATH"
+
+        # TestFlight only. An ASC upload is not a released App Store version, so
+        # the ios-appstore row stays where it is until a build is actually
+        # approved for sale — see DEPLOY.md for the one-liner that moves it.
+        publish_release ios-testflight
     else
         echo "⏭️  Skipping App Store Connect upload (--no-upload)"
     fi
@@ -594,7 +647,7 @@ if [ "$DEPLOY_ANDROID" = true ]; then
     if [ "$ANDROID_MODE" = "apk" ]; then
         echo "🤖 Starting Android build (APK → hosted download page)..."
         run_with_spinner "Building Flutter APK (release)" \
-            flutter build apk --release
+            flutter build apk --release --dart-define=MH_CHANNEL=android-apk
 
         APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
         if [ ! -f "$APK_PATH" ]; then
@@ -646,6 +699,9 @@ if [ "$DEPLOY_ANDROID" = true ]; then
             echo "Uploading download page to $VM_HOST (${APK_SIZE}B)..."
             if upload_apk; then
                 echo "  ✅ Hosted at $HOSTING_URL"
+                # The page always links the current versioned APK, so this URL
+                # stays correct without the client knowing the filename.
+                publish_release android-apk "$HOSTING_URL"
             else
                 echo "❌ Upload to $VM_USER@$VM_HOST failed."
                 echo "   Check: ssh -i $VM_SSH_KEY $VM_USER@$VM_HOST"
@@ -666,7 +722,7 @@ if [ "$DEPLOY_ANDROID" = true ]; then
     else
         echo "🤖 Starting Android build (AAB → Google Play)..."
         run_with_spinner "Building Flutter app bundle (release)" \
-            flutter build appbundle --release
+            flutter build appbundle --release --dart-define=MH_CHANNEL=android-play
 
         AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
         if [ ! -f "$AAB_PATH" ]; then
@@ -686,6 +742,9 @@ if [ "$DEPLOY_ANDROID" = true ]; then
                     --track internal \
                     --json_key "$PLAY_SERVICE_ACCOUNT_JSON" \
                     --skip_upload_metadata --skip_upload_images --skip_upload_screenshots
+            # run_with_spinner exits on failure, so reaching here means the
+            # internal track has the build.
+            publish_release android-play
         else
             echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
             echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
@@ -708,7 +767,7 @@ if [ "$DEPLOY_WEB" = true ]; then
     WEB_START_TIME=$(date +%s)
     echo "🌐 Starting web build..."
     run_with_spinner "Building Flutter web (release)" \
-        flutter build web --release
+        flutter build web --release --dart-define=MH_CHANNEL=web
 
     if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
         echo "❌ No web build output at build/web/"
@@ -720,6 +779,10 @@ if [ "$DEPLOY_WEB" = true ]; then
         if rsync -a --delete -e "ssh $WEB_SSH_OPTS" \
                 build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR/"; then
             echo "  ✅ Web app at $WEB_URL"
+            # A tab left open for days keeps running the build it loaded, so a
+            # long-lived session still needs telling. The prompt reloads rather
+            # than navigating anywhere.
+            publish_release web
         else
             echo "❌ Web upload to $VM_USER@$VM_HOST failed."
             exit 1
