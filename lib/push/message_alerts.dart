@@ -99,32 +99,17 @@ class MessageAlerts {
       final shouldAlert = isActive ? !focused : r.hasUnread;
       if (!shouldAlert) continue;
 
-      // One ping per notify tick even if several rooms advanced at once.
+      // One ping per notify tick even if several rooms advanced at once. This
+      // is the in-app awareness sound; the background BANNER is owned by
+      // OneSignal Web Push now (see web/index.html + onesignal_web.dart), which
+      // is the only thing that reaches a frozen/closed tab — and it suppresses
+      // itself while the page is focused. So we no longer call
+      // WebNotifier.showMessage here (that would double the banner on an
+      // alive-but-backgrounded tab).
       if (!pinged) {
         pinged = true;
         AlertSounds.instance.playPing();
       }
-      // Banner only when the app isn't focused — an OS banner over a focused
-      // window would double up with the in-app ping. (No-op off web.)
-      if (!focused) {
-        WebNotifier.showMessage(
-          title: _titleFor(repo, r),
-          body: (r.lastMessage?.isNotEmpty ?? false)
-              ? r.lastMessage!
-              : 'New message',
-          roomId: r.id,
-        );
-      }
     }
-  }
-
-  String _titleFor(ChatRepository repo, ChatRoom room) {
-    if (room.isDm) {
-      final other = repo.otherUserFor(room);
-      final n = other?.name ?? other?.username;
-      if (n != null && n.isNotEmpty) return n;
-      return 'New message';
-    }
-    return room.name.isNotEmpty ? room.name : 'New message';
   }
 }

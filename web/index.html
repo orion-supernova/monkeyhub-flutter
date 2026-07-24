@@ -33,6 +33,52 @@
   <link rel="manifest" href="manifest.json">
 
   <!--
+    OneSignal Web Push. Delivers incoming-message (and web-only-callee call)
+    notifications to a backgrounded/frozen/closed tab — the only channel that
+    reaches a tab whose WebSocket the browser has frozen. The web subscription
+    is tagged with external_id = userId (via OneSignal.login in the app), which
+    is exactly what the Convex backend already targets, so no backend change is
+    needed. Service worker lives at web/OneSignalSDKWorker.js (served at root).
+  -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: "c191a9f0-15cf-402a-8a04-dcc16108f4b0",
+        // Web Push only works on the deployed HTTPS origin, never localhost.
+        allowLocalhostAsSecureOrigin: false,
+      });
+    });
+
+    // Thin bridge the Flutter app calls via JS-interop (lib/push/onesignal_web_web.dart).
+    // Everything defers through OneSignalDeferred so it's safe to call before the SDK loads.
+    window.mhOneSignalLogin = function (userId) {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.login(userId); });
+    };
+    window.mhOneSignalLogout = function () {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.logout(); });
+    };
+    window.mhOneSignalPrompt = function () {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.Notifications.requestPermission(); });
+    };
+    window.mhOneSignalOnClick = function (cb) {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(function (OneSignal) {
+        OneSignal.Notifications.addEventListener('click', function (event) {
+          try {
+            var d = (event && event.notification && event.notification.additionalData) || {};
+            cb(d.roomId ? String(d.roomId) : '', d.type ? String(d.type) : '');
+          } catch (e) {}
+        });
+      });
+    };
+  </script>
+
+  <!--
     Opaque black host backdrop. Flutter-web composites platform views
     (flutter_webrtc's RTCVideoView / HtmlElementView) by punching a transparent
     hole through the Flutter canvas; without a background here the page behind

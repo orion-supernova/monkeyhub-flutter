@@ -830,4 +830,59 @@ class ChatRepository extends ChangeNotifier {
       }
     }
   }
+
+  /// Re-establish every subscription after a socket reconnect. The convex_flutter
+  /// web client resets its query set on reconnect but NEVER replays the
+  /// subscriptions, so rooms/messages/typing/friends/read-state all go silent
+  /// (the client thinks it's subscribed; the server sends nothing). Re-runs the
+  /// top-level subs via [attach] and, if a room is open, re-registers its
+  /// message/read/typing subs by re-opening it. Then flushes stuck sends.
+  Future<void> resubscribe() async {
+    final uid = _userId;
+    if (uid == null) return;
+    final open = _activeRoomId;
+    await attach(uid); // cancels + recreates rooms/friends/typing subs
+    if (open != null) {
+      _activeRoomId = null; // clear openRoom()'s same-room short-circuit
+      await openRoom(open); // recreates messages/read/typing subs for the room
+    }
+    await flushPending();
+  }
+
+  /// Retry optimistic sends stuck at pending/error — e.g. a message issued while
+  /// the socket was frozen whose ack never arrived. [_reconcilePending]'s
+  /// ±10-minute window collapses any duplicate the server already stored.
+  Future<void> flushPending() async {
+    final id = _userId;
+    if (id == null) return;
+    final retry = <(String, ChatMessage)>[];
+    for (final entry in _pending.entries) {
+      for (final m in entry.value) {
+        if (m.status == MessageStatus.pending ||
+            m.status == MessageStatus.error) {
+          retry.add((entry.key, m));
+        }
+      }
+    }
+    if (retry.isEmpty) return;
+    for (final (_, m) in retry) {
+      m.status = MessageStatus.pending;
+    }
+    notifyListeners();
+    for (final (roomId, m) in retry) {
+      try {
+        await api.sendMessage(
+          roomId: roomId,
+          userId: id,
+          content: m.content,
+          type: m.type,
+          mediaStorageId: m.mediaStorageId,
+          replyToId: m.replyToId,
+        );
+      } catch (_) {
+        m.status = MessageStatus.error;
+        notifyListeners();
+      }
+    }
+  }
 }

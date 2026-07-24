@@ -26,6 +26,7 @@ import 'push/android_call_reliability.dart';
 import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
 import 'push/message_alerts.dart';
+import 'push/onesignal_web.dart';
 import 'push/push_manager.dart';
 import 'push/web_notifier.dart';
 import 'push/web_presence.dart';
@@ -96,6 +97,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _alertsPrimed = true;
     AlertSounds.instance.unlock();
     WebNotifier.requestPermission();
+    // Subscribe to OneSignal Web Push (asks permission from this gesture) so a
+    // backgrounded/closed tab still gets message/call banners. No-op off web.
+    OneSignalWeb.promptPermission();
   }
 
   // Presence keepalive. Stamps `lastSeen` every 30s while signed in so the
@@ -122,6 +126,63 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _presenceHeartbeat = null;
   }
 
+  // ───────── connection healing (web background/freeze recovery) ─────────
+  //
+  // On WEB the socket can freeze while the tab is backgrounded. Two failure
+  // modes: (1) it dies and reconnects, but the convex_flutter web client resets
+  // its query set on reconnect and NEVER replays subscriptions → everything goes
+  // silent; (2) it freezes without an onclose → the client thinks it's still
+  // connected and never reconnects. We heal both: on resume, probe and force a
+  // rebuild if dead; and on any reconnect edge, re-register every subscription.
+  StreamSubscription<bool>? _connSub;
+  bool _wasConnectedApp = true;
+  bool _resubscribing = false;
+
+  /// Re-register every subscription (rooms/messages/typing/friends/read-state,
+  /// the cross-device call watch, and call signaling) and flush stuck sends.
+  /// Called on a reconnect edge because the web client does not replay subs.
+  Future<void> _resubscribeAll() async {
+    if (_resubscribing) return;
+    final s = _auth.session;
+    if (s == null) return;
+    _resubscribing = true;
+    try {
+      await _repo.resubscribe();
+      _callService.resubscribeWatch();
+      final deviceId = await DeviceIdentity.ensure();
+      await _signaling.stop();
+      await _signaling.start(s.userId, deviceId: deviceId);
+    } catch (e) {
+      debugPrint('_resubscribeAll: $e');
+    } finally {
+      _resubscribing = false;
+    }
+  }
+
+  /// Resume-time heal: reveal a frozen socket and rebuild it. A healthy socket
+  /// short-circuits (its subscriptions never dropped). A dead one is rebuilt via
+  /// reconnect(), then we re-register subs directly (in case reconnect() doesn't
+  /// emit a connection edge for [_connSub] to catch).
+  Future<void> _healConnection() async {
+    if (_auth.session == null) return;
+    final ok = await _cv.probeConnection();
+    if (ok) return;
+    await _cv.reconnect();
+    await _resubscribeAll();
+  }
+
+  void _startConnWatch() {
+    _connSub?.cancel();
+    _wasConnectedApp = _cv.isConnected;
+    _connSub = _cv.connectionState.listen((connected) {
+      // A genuine reconnect: the web client dropped all subs — re-register them.
+      if (connected && !_wasConnectedApp) {
+        _resubscribeAll();
+      }
+      _wasConnectedApp = connected;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,6 +195,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
     // Web message-banner clicks open the room, same as a push tap.
     MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
+    // OneSignal Web Push banner clicks (background/closed tab) open the room too.
+    OneSignalWeb.setOnOpenRoom(_openRoomFromPush);
     // Web only: a closing tab flips us offline immediately (best-effort; the
     // server staleness sweep is the backstop). No-op off web.
     WebPresence.registerOffline(() {
@@ -196,11 +259,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     // Fire-and-forget — network may be unavailable; status reconciles next foreground.
     _api.updateStatus(userId: session.userId, status: next).catchError((_) {});
     if (state == AppLifecycleState.resumed) {
-      // A long OS suspension can leave the Convex WebSocket silently dead with
-      // its connectionState wedged on "connecting". Probe now to reveal the
-      // real state and prod the native client to rebuild a stale socket, so we
-      // don't sit on a stuck "reconnecting…" banner. Fire-and-forget.
-      _cv.probeConnection();
+      // A backgrounded (esp. web) tab can return with a frozen/dead socket AND
+      // dropped subscriptions. Heal both: probe, force a rebuild if dead, and
+      // re-register every subscription + flush stuck sends. Fire-and-forget.
+      _healConnection();
       // Clear platform badge on foreground; OneSignal won't auto-clear on iOS.
       BadgeManager.instance.clear();
       // Re-assert the VoIP/FCM token. The backend clears a device's token
@@ -235,6 +297,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     await CaptureProtection.instance.setUserEnabled(SettingsStore.instance.captureProtection);
     await CaptureProtection.instance.ensureListening();
     final initErr = await _cv.initialize();
+    if (initErr == null) _startConnWatch();
     if (initErr != null) {
       // Convex couldn't initialize. Surface to the UI so the user sees
       // the real reason instead of a downstream "not initialized" error.
@@ -257,6 +320,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           // this lands, and every gate is enforced server-side anyway.
           _family.attach(s.userId);
           await PushManager.instance.login(s.userId);
+          OneSignalWeb.login(s.userId); // web push external_id; no-op off web
           // Respect the user's last notification preference.
           if (!SettingsStore.instance.pushEnabled) {
             await PushManager.instance.optOut();
@@ -307,6 +371,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         await _repo.attach(s.userId);
         _family.attach(s.userId);
         await PushManager.instance.login(s.userId);
+        OneSignalWeb.login(s.userId); // web push external_id; no-op off web
         // Mark online on first attach.
         _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
         BadgeManager.instance.bind(_repo);
@@ -329,6 +394,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         _family.detach();
         await _repo.detach();
         await PushManager.instance.logout();
+        OneSignalWeb.logout(); // drop web push external_id; no-op off web
         await _signaling.stop();
         await _callService.endCall();
         _callService.detachWatch();
@@ -347,6 +413,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   @override
   void dispose() {
     _stopPresenceHeartbeat();
+    _connSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
     _family.removeListener(_syncAccountType);

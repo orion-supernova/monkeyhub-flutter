@@ -181,6 +181,20 @@ class ConvexBackend {
     }
   }
 
+  /// Force the client to tear down and rebuild the socket. Needed on WEB: a
+  /// backgrounded tab's socket can freeze WITHOUT the browser firing `onclose`,
+  /// so the client's cached state stays stuck on `connected` and it never
+  /// auto-reconnects. `probeConnection` reveals the deadness; this heals it.
+  /// After a rebuild the caller must re-register subscriptions — the web client
+  /// resets its query set on reconnect but never replays them.
+  Future<bool> reconnect() async {
+    try {
+      return await _c.reconnect();
+    } catch (_) {
+      return false;
+    }
+  }
+
   dynamic _decode(String raw) {
     if (raw.isEmpty || raw == 'null') return null;
     return jsonDecode(raw);
