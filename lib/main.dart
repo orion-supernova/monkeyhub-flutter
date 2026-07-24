@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
@@ -19,14 +20,22 @@ Future<void> main() async {
   // briefly default to Midnight before bootstrap's async read replaces it —
   // visible as a flicker on hot restart.
   await SettingsStore.instance.load();
-  // Initialize OneSignal early so notification taps can route into the app.
-  // The onOpenRoom callback is resolved later by app.dart, which holds the
-  // repo + api; PushManager just stashes the callback until then.
-  await PushManager.instance.initialize();
-  // CallKit / ConnectionService event subscription. Listens for accept /
-  // decline / end events emitted by the native UI and dispatches into
-  // CallService. Safe to start before login — events are no-ops until a
-  // session is active.
-  NativeCallHandler.instance.start();
+  // OneSignal (push) and flutter_callkit_incoming (native call UI) are
+  // iOS/Android-only plugins backed by dart:io — touching them on web throws
+  // and blanks the whole app before the first frame. Skip both on web; the
+  // push/call paths already no-op there (see PushManager._pushSupported and
+  // NativeCallHandler's kIsWeb guards). Web push, if ever wanted, needs
+  // OneSignal's separate JS Web SDK, not this plugin.
+  if (!kIsWeb) {
+    // Initialize OneSignal early so notification taps can route into the app.
+    // The onOpenRoom callback is resolved later by app.dart, which holds the
+    // repo + api; PushManager just stashes the callback until then.
+    await PushManager.instance.initialize();
+    // CallKit / ConnectionService event subscription. Listens for accept /
+    // decline / end events emitted by the native UI and dispatches into
+    // CallService. Safe to start before login — events are no-ops until a
+    // session is active.
+    NativeCallHandler.instance.start();
+  }
   runApp(const MonkeyHubApp());
 }

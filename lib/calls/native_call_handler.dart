@@ -57,7 +57,9 @@ class NativeCallHandler {
   bool get isIosSimulator => _isIosSimulator;
 
   static bool _detectIosSimulator() {
-    if (!Platform.isIOS) return false;
+    // kIsWeb first: it's a const, so Platform.* (dart:io) is never touched on
+    // web, where evaluating it throws.
+    if (kIsWeb || !Platform.isIOS) return false;
     return Platform.resolvedExecutable.contains('/CoreSimulator/');
   }
 
@@ -76,6 +78,7 @@ class NativeCallHandler {
   }
 
   void start() {
+    if (kIsWeb) return; // flutter_callkit_incoming has no web implementation.
     if (_started) return;
     _started = true;
     FlutterCallkitIncoming.onEvent.listen(_onEvent);
@@ -226,6 +229,7 @@ class NativeCallHandler {
   ///      excluded from this entirely, which is exactly how stale ghost
   ///      ringers survived an app restart there.
   Future<void> replayColdStartCalls() async {
+    if (kIsWeb) return; // no CallKit on web — nothing to replay.
     final service = CallService.instance;
     await _drainPendingFallbackEvents();
     List<dynamic> calls;

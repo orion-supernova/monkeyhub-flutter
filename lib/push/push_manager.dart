@@ -46,7 +46,10 @@ class PushManager {
   /// OneSignal + native push tokens are only available on iOS / Android.
   /// Other platforms still participate in the device registry (for the
   /// "Move call here" pill) but skip the OneSignal path entirely.
-  bool get _pushSupported => Platform.isIOS || Platform.isAndroid;
+  ///
+  /// `kIsWeb` is a compile-time const, so on web the `&&` short-circuits
+  /// before `Platform.*` (dart:io) is touched — evaluating it on web throws.
+  bool get _pushSupported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
   /// Exposed so [CallService] can stamp the deviceId on accept/reject
   /// so the backend's `taken` signal includes a `byDeviceId` field —

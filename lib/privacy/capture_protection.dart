@@ -46,7 +46,10 @@ class CaptureProtection extends ChangeNotifier {
   /// Always false on Android (FLAG_SECURE pre-empts the need for it).
   bool get isBeingCaptured => _isBeingCaptured;
 
-  bool get _supported => Platform.isIOS || Platform.isAndroid;
+  // kIsWeb is const, so on web the `&&` short-circuits before Platform.*
+  // (dart:io) — which throws on web. Neutralizes the whole capture path
+  // (ensureListening / setUserEnabled / push/popScope all gate on _supported).
+  bool get _supported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
   /// Subscribe to native capture events. Safe to call multiple times.
   Future<void> ensureListening() async {
