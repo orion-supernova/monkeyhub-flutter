@@ -348,8 +348,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
     });
   }
 
-  void _armReply(ChatMessage m) {
-    HapticFeedback.heavyImpact();
+  void _armReply(ChatMessage m, {bool haptic = true}) {
+    // The swipe path opts out — it already buzzed at the threshold, and the
+    // reply now arms on release rather than 220ms later.
+    if (haptic) HapticFeedback.heavyImpact();
     setState(() => _target = m);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _composerFocus.requestFocus();
@@ -838,7 +840,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
         final bubble = SwipeToReply(
           enabled: canReply,
-          onReplyTriggered: () => _armReply(m),
+          onReplyTriggered: () => _armReply(m, haptic: false),
           child: _bubbleFor(
             m,
             author,
@@ -868,10 +870,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final room = widget.repo.roomById(widget.roomId);
     final ephemeral = room?.isEphemeral ?? false;
     final classic = SettingsStore.instance.chatStyle == ChatStyle.classic;
+    final theme = ThemeScope.of(context);
     // Same column as the thread transcript above it, so the composer lines up
     // with the conversation instead of running the full window width.
     return ChatColumn(
-      child: Column(
+      // Grows the reply card up out of the composer rather than snapping the
+      // whole bar taller when the user retargets an earlier message.
+      child: AnimatedSize(
+        duration: theme.motionFast,
+        curve: theme.motionEntrance,
+        alignment: Alignment.bottomCenter,
+        child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // No "REPLYING TO" banner in the normal case. In a room it earns its
@@ -917,6 +926,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           ),
       ],
+        ),
       ),
     );
   }

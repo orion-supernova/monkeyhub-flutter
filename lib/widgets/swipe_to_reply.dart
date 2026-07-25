@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +11,8 @@ import '../theme/theme_scope.dart';
 /// The child translates horizontally with rubber-band resistance as the user
 /// drags right. A small reply-arrow icon fades and scales in from the left
 /// edge. Once the cumulative pull crosses [_kThreshold], a medium haptic
-/// fires once and [onReplyTriggered] is invoked on release. Releasing before
+/// fires once; [onReplyTriggered] is then invoked the instant the finger
+/// lifts, while the bubble springs home in parallel. Releasing before
 /// threshold snaps back without triggering.
 ///
 /// Right-only and universal across sender/receiver bubbles — matches the
@@ -98,29 +101,54 @@ class _SwipeToReplyState extends State<SwipeToReply>
     setState(() => _drag = next);
   }
 
-  void _onEnd(DragEndDetails d) {
-    if (!_dragging) return;
-    _dragging = false;
-    if (_crossed) {
-      // Trigger AFTER the snap-back so the user sees the bubble slide home
-      // before the reply card slides in — the staged feel reads as cause →
-      // effect rather than a simultaneous jump.
-      _startDrag = _drag;
-      _snap.forward(from: 0).whenComplete(() {
-        if (!mounted) return;
-        widget.onReplyTriggered();
-      });
-    } else {
-      _startDrag = _drag;
-      _snap.forward(from: 0);
-    }
-  }
-
-  void _onCancel() {
-    if (!_dragging) return;
+  /// The single path back to rest. Returns whether this call was the one that
+  /// ended an in-flight drag (so only the real end fires the reply).
+  bool _settle() {
+    if (!_dragging) return false;
     _dragging = false;
     _startDrag = _drag;
     _snap.forward(from: 0);
+    return true;
+  }
+
+  void _onEnd(DragEndDetails d) {
+    final crossed = _crossed;
+    _crossed = false;
+    if (!_settle()) return;
+    // Fire at finger-lift, not after the snap-back. The medium haptic at the
+    // threshold already told the user the gesture committed, so the composer
+    // has to start moving on that same beat — waiting for the bubble to slide
+    // home first reads as lag, not as cause → effect. The snap runs in
+    // parallel with the reply card and keyboard.
+    if (crossed) widget.onReplyTriggered();
+  }
+
+  void _onCancel() {
+    _crossed = false;
+    _settle();
+  }
+
+  /// Safety net. [_onEnd]/[_onCancel] depend on the gesture arena delivering a
+  /// terminal callback; if that ever fails to arrive the bubble would stay
+  /// parked off-centre with no animation pending and no way to recover. The
+  /// pointer sequence itself is the one thing we can always observe, so we
+  /// settle from it too. GestureBinding reuses the down-event hit test for the
+  /// rest of the sequence, so this fires even when the finger drifts off the
+  /// bubble before lifting.
+  ///
+  /// Deferred to a microtask because the render tree's [Listener] callbacks are
+  /// dispatched *before* [GestureBinding] routes the same event to the
+  /// recognizers — settling synchronously here would clear `_dragging` and make
+  /// the real [_onEnd] no-op away the reply. By the time the microtask runs the
+  /// whole dispatch (including the arena sweep) is done, so this only ever
+  /// catches the case where nothing else settled.
+  void _onPointerRelease(PointerEvent _) {
+    if (!_dragging) return;
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      _crossed = false;
+      _settle();
+    });
   }
 
   @override
@@ -176,7 +204,11 @@ class _SwipeToReplyState extends State<SwipeToReply>
         // we win short horizontal motions outright).
         Transform.translate(
           offset: Offset(displayedX, 0),
-          child: RawGestureDetector(
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerUp: _onPointerRelease,
+            onPointerCancel: _onPointerRelease,
+            child: RawGestureDetector(
             behavior: HitTestBehavior.translucent,
             gestures: {
               _HorizontalRightDragRecognizer:
@@ -195,6 +227,7 @@ class _SwipeToReplyState extends State<SwipeToReply>
             },
             child: widget.child,
           ),
+          ),
         ),
       ],
     );
@@ -208,25 +241,37 @@ class _SwipeToReplyState extends State<SwipeToReply>
 class _HorizontalRightDragRecognizer extends HorizontalDragGestureRecognizer {
   double _accum = 0;
   bool _bailed = false;
+  bool _won = false;
 
   @override
   void addAllowedPointer(PointerDownEvent event) {
     _accum = 0;
     _bailed = false;
+    _won = false;
     super.addAllowedPointer(event);
   }
 
   @override
+  void acceptGesture(int pointer) {
+    _won = true;
+    super.acceptGesture(pointer);
+  }
+
+  @override
   void handleEvent(PointerEvent event) {
+    // Once bailed the arena really did reject us and the drag state is back to
+    // `ready`; forwarding anything would assert in `DragGestureRecognizer`.
     if (_bailed) return;
-    if (event is PointerMoveEvent) {
+    // Only bail before we've won the arena. Afterwards our arena entry is gone
+    // and `resolve(rejected)` is a documented no-op ("This arena has already
+    // resolved"), so `rejectGesture` never runs — bailing there would swallow
+    // the PointerUp that is the *only* source of `onEnd`, leaving the bubble
+    // parked off-screen forever with no snap-back pending.
+    if (!_won && event is PointerMoveEvent) {
       _accum += event.delta.dx;
       if (_accum < -8) {
-        // Net-leftward motion — bail out so vertical scroll / other
-        // gestures can claim the arena cleanly. `resolve(rejected)` resets
-        // the underlying drag state to `ready`, so any follow-up event
-        // would assert in `DragGestureRecognizer.handleEvent` — short-circuit
-        // here to prevent that.
+        // Net-leftward motion — bail out so vertical scroll / other gestures
+        // can claim the arena cleanly.
         _bailed = true;
         resolve(GestureDisposition.rejected);
         return;

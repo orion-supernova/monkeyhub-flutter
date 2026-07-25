@@ -587,8 +587,11 @@ class _RoomScreenState extends State<RoomScreen>
   /// composer card slides into view. Idempotent — re-arming against the
   /// same message just replaces the target. The composer is focused on
   /// the next frame so the keyboard appears without a second tap.
-  void _armReply(ChatMessage m) {
-    HapticFeedback.heavyImpact();
+  void _armReply(ChatMessage m, {bool haptic = true}) {
+    // The swipe path opts out: it already fired a medium impact when the pull
+    // crossed the threshold, and now that the reply arms on release the two
+    // would land on the same beat and read as one muddy buzz.
+    if (haptic) HapticFeedback.heavyImpact();
     setState(() => _replyingTo = m);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -907,6 +910,7 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
+    final theme = ThemeScope.of(context);
     return SafeArea(
       child: Column(
         children: [
@@ -947,7 +951,15 @@ class _RoomScreenState extends State<RoomScreen>
           // Same column as the messages above, so the composer lines up with
           // the conversation instead of running the full width of the window.
           ChatColumn(
-            child: Column(
+            // The reply card is a plain conditional child, so without this the
+            // bar's height would jump to make room while only the card's
+            // contents faded in. Bottom alignment keeps the composer planted
+            // and grows the card upward out of it.
+            child: AnimatedSize(
+              duration: theme.motionFast,
+              curve: theme.motionEntrance,
+              alignment: Alignment.bottomCenter,
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_replyingTo != null)
@@ -965,6 +977,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onAttach: _onAttach,
                 ),
               ],
+              ),
             ),
           ),
         ],
@@ -973,6 +986,7 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Widget _buildLiquid(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
+    final theme = ThemeScope.of(context);
     final topSafe = MediaQuery.paddingOf(context).top;
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     // Header: 8pt top + 44pt button + 8pt bottom = 60pt; composer: same.
@@ -1030,7 +1044,13 @@ class _RoomScreenState extends State<RoomScreen>
             left: 0,
             right: 0,
             child: ChatColumn(
-              child: Column(
+              // See the classic composer: grows the reply card up out of the
+              // bar instead of snapping the bar taller.
+              child: AnimatedSize(
+                duration: theme.motionFast,
+                curve: theme.motionEntrance,
+                alignment: Alignment.bottomCenter,
+                child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_replyingTo != null)
@@ -1048,6 +1068,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onAttach: _onAttach,
                 ),
               ],
+                ),
               ),
             ),
           ),
@@ -1387,7 +1408,7 @@ class _RoomScreenState extends State<RoomScreen>
                     child: SwipeToReply(
                       key: ValueKey('sw_${m.id}'),
                       enabled: canReply,
-                      onReplyTriggered: () => _armReply(m),
+                      onReplyTriggered: () => _armReply(m, haptic: false),
                       child: bubble,
                     ),
                     ),
