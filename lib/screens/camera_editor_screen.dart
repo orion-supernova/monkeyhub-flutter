@@ -3,13 +3,16 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 
-/// Post-capture drawing editor. Loads the image, lets the user draw colored
-/// strokes on top, then rasterizes drawings back into the image and returns
-/// the file path of the result.
+import '../media/image_raster.dart';
+import 'image_crop_screen.dart';
+
+/// Post-capture editor. Loads the image, optionally crops it, lets the user
+/// draw colored strokes on top, then rasterizes everything back down and pops
+/// the result as a [CroppedImage].
 ///
-/// Mirrors v02's CameraEditorView (drawing overlay; no crop/rotate).
+/// Crop is an opt-in button rather than a forced step: this screen is the choke
+/// point for both chat image entries, and most sends don't want a framing pass.
 class CameraEditorScreen extends StatefulWidget {
   const CameraEditorScreen({super.key, required this.source});
   final File source;
@@ -44,12 +47,23 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   ui.Image? _image;
   Object? _loadError;
   bool _saving = false;
+
+  /// Set once the user crops. Holds an already-encoded JPEG, which lets a
+  /// crop-only edit skip a second, pointless rasterize on save.
+  CroppedImage? _cropped;
+
   final GlobalKey _canvasKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _loadImage();
+  }
+
+  @override
+  void dispose() {
+    _image?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadImage() async {
@@ -89,9 +103,51 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     setState(() => _strokes.removeLast());
   }
 
+  /// Only reachable while [_strokes] is empty. Strokes are stored in
+  /// canvas-widget coordinates and mapped to image space at save time via
+  /// [_fittedRect], so replacing the image under them would silently relocate
+  /// every stroke. Crop first, then draw.
+  Future<void> _crop() async {
+    if (_saving || _strokes.isNotEmpty) return;
+    final result = await ImageCropScreen.open(
+      context,
+      source: _cropped?.file ?? widget.source,
+      shape: CropShape.rect,
+      maxOutputEdge: 2048,
+      confirmLabel: 'CROP',
+    );
+    if (result == null || !mounted) return;
+    try {
+      final codec = await ui.instantiateImageCodec(await result.file.readAsBytes());
+      final frame = await codec.getNextFrame();
+      codec.dispose();
+      if (!mounted) {
+        frame.image.dispose();
+        return;
+      }
+      setState(() {
+        _image?.dispose();
+        _image = frame.image;
+        _cropped = result;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadError = e);
+    }
+  }
+
   Future<void> _save() async {
     final img = _image;
     if (img == null) return;
+
+    // Crop-only edit: the crop screen already encoded exactly this image, so
+    // re-rasterizing it would only lose a generation of quality.
+    final cropped = _cropped;
+    if (_strokes.isEmpty && cropped != null) {
+      Navigator.of(context).pop(cropped);
+      return;
+    }
+
     final canvasBox =
         _canvasKey.currentContext?.findRenderObject() as RenderBox?;
     if (canvasBox == null) return;
@@ -106,6 +162,12 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, imgSize.width, imgSize.height));
+      // Opaque backdrop: rasterToJpegFile reads premultiplied rawRgba, which
+      // only equals straight RGBA where alpha is 255.
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, imgSize.width, imgSize.height),
+        Paint()..color = const Color(0xFF000000),
+      );
       // Draw original image first.
       canvas.drawImageRect(
         img,
@@ -133,22 +195,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         canvas.drawPath(path, paint);
       }
       final pic = recorder.endRecording();
-      final rendered =
-          await pic.toImage(img.width, img.height);
-      final pngData = await rendered.toByteData(format: ui.ImageByteFormat.png);
+      final rendered = await pic.toImage(img.width, img.height);
       pic.dispose();
-      rendered.dispose();
-      if (pngData == null) {
-        setState(() => _saving = false);
-        return;
-      }
-      final tmp = await getTemporaryDirectory();
-      final path =
-          '${tmp.path}/edit_${DateTime.now().millisecondsSinceEpoch}.png';
-      final file =
-          await File(path).writeAsBytes(pngData.buffer.asUint8List(), flush: true);
+      final result = await rasterToJpegFile(rendered, prefix: 'edit');
       if (!mounted) return;
-      Navigator.of(context).pop(file);
+      Navigator.of(context).pop(result);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -205,6 +256,18 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             icon: const Icon(Icons.close, color: Colors.white, size: 24),
           ),
           const Spacer(),
+          IconButton(
+            onPressed:
+                _image == null || _saving || _strokes.isNotEmpty ? null : _crop,
+            icon: Icon(
+              Icons.crop_rotate,
+              color: _image == null || _strokes.isNotEmpty
+                  ? Colors.white24
+                  : Colors.white,
+              size: 22,
+            ),
+            tooltip: _strokes.isEmpty ? 'crop' : 'crop before drawing',
+          ),
           IconButton(
             onPressed: _strokes.isEmpty || _saving ? null : _undo,
             icon: Icon(

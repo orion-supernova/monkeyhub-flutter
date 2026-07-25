@@ -13,6 +13,7 @@ import '../calls/call_button.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
+import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../privacy/capture_protection.dart';
 import '../models/chat_message.dart';
@@ -743,9 +744,11 @@ class _RoomScreenState extends State<RoomScreen>
       case AttachmentMenuChoice.camera:
         final captured = await nav.push<File>(MaterialPageRoute(builder: (_) => const CameraScreen()));
         if (captured == null || !mounted) break;
-        final edited = await nav.push<File>(MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)));
+        final edited = await nav.push<CroppedImage>(
+            MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)));
         if (edited != null) {
-          await _uploadAndSend(file: edited, type: MessageType.image, contentType: 'image/png');
+          await _uploadAndSend(
+              file: edited.file, type: MessageType.image, contentType: edited.contentType);
         }
         break;
       case AttachmentMenuChoice.voice:
@@ -765,11 +768,12 @@ class _RoomScreenState extends State<RoomScreen>
     // Route through the same editor the camera path uses — gives the user a
     // preview, optional annotation, and a deliberate "send" tap instead of
     // shipping the photo the moment they pick it.
-    final edited = await nav.push<File>(MaterialPageRoute(
+    final edited = await nav.push<CroppedImage>(MaterialPageRoute(
       builder: (_) => CameraEditorScreen(source: File(picked.path)),
     ));
     if (edited == null) return;
-    await _uploadAndSend(file: edited, type: MessageType.image, contentType: 'image/png');
+    await _uploadAndSend(
+        file: edited.file, type: MessageType.image, contentType: edited.contentType);
   }
 
   void _openProfile(ChatUser u) {

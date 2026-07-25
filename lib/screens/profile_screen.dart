@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../keyboard/focusable_tap.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -22,6 +23,8 @@ import '../widgets/report_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
+import 'fullscreen_image_viewer.dart';
+import 'image_crop_screen.dart';
 import 'profile_visibility_screen.dart';
 import 'release_device_screen.dart';
 import 'navigation/open_room.dart';
@@ -46,6 +49,13 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  static const double _avatarSize = 96;
+
+  /// How far the camera badge used to poke past the avatar's edge. Kept so the
+  /// badge lands on the same pixels now that it is positioned from a box that
+  /// is [_badgeOverhang] larger instead of at a negative offset.
+  static const double _badgeOverhang = 2;
+
   ChatUser? _user;
   bool _loading = false;
   bool _busy = false;
@@ -381,6 +391,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return 'couldn\'t complete that.';
   }
 
+  /// A gradient-initials placeholder is not worth a fullscreen route, so the
+  /// tap only arms once there is a real image behind it.
+  bool get _canViewAvatar =>
+      widget.api != null &&
+      _u.avatarStorageId != null &&
+      _u.avatarStorageId!.isNotEmpty;
+
+  void _openAvatarFullscreen() {
+    if (!_canViewAvatar) return;
+    FullscreenImageViewer.open(
+      context,
+      storageId: _u.avatarStorageId!,
+      api: widget.api!,
+    );
+  }
+
   Future<void> _openAvatarSheet() async {
     final action = await showAvatarActionSheet(
       context,
@@ -417,6 +443,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _busy = true;
       _changingAvatar = true;
     });
+    // imageQuality also normalizes EXIF orientation on Android, which the crop
+    // screen relies on — keep it even though the crop re-encodes anyway.
     final picked = await ImagePicker().pickImage(
       source: source,
       imageQuality: 88,
@@ -431,9 +459,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       return;
     }
+    if (!mounted) return;
+    // _busy/_changingAvatar stay set across the crop screen: the avatar keeps
+    // its spinner underneath and the sheet can't be reopened behind it.
+    final cropped = await ImageCropScreen.open(
+      context,
+      source: File(picked.path),
+      shape: CropShape.circle,
+    );
+    if (cropped == null) {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _changingAvatar = false;
+        });
+      }
+      return;
+    }
     try {
       final uploader = UploadService(api);
-      final storageId = await uploader.uploadXFile(file: File(picked.path), contentType: 'image/jpeg');
+      final storageId = await uploader.uploadXFile(
+        file: cropped.file,
+        contentType: cropped.contentType,
+      );
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
       await _refresh();
     } catch (_) {
@@ -601,48 +649,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: _isMe && !_busy ? _openAvatarSheet : null,
+                    // Sized to _avatarSize + _badgeOverhang rather than letting
+                    // the Stack take the avatar's 96×96: RenderBox.hitTest bails
+                    // before descending when the point is outside `size`, and
+                    // Clip.none only affects painting. The badge used to sit at
+                    // right/bottom -2, so its outer ~2px was unreachable.
+                    SizedBox(
+                      width: _avatarSize + _badgeOverhang,
+                      height: _avatarSize + _badgeOverhang,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          UserAvatar(user: _u, size: 96, api: widget.api),
-                          if (_changingAvatar)
-                            Positioned.fill(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black.withValues(alpha: 0.45),
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            width: _avatarSize,
+                            height: _avatarSize,
+                            child: FocusableTap(
+                              onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+                              shape: FocusRingShape.circle,
+                              semanticLabel: 'view profile picture',
+                              child: GestureDetector(
+                                onTap: _canViewAvatar ? _openAvatarFullscreen : null,
+                                child: UserAvatar(
+                                  user: _u,
+                                  size: _avatarSize,
+                                  api: widget.api,
+                                  // Own presence is never news, and the dot sits
+                                  // exactly where the camera badge goes.
+                                  showStatus: !_isMe,
                                 ),
-                                alignment: Alignment.center,
-                                child: SizedBox(
-                                  width: 26,
-                                  height: 26,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                    color: Colors.white.withValues(alpha: 0.95),
+                              ),
+                            ),
+                          ),
+                          if (_changingAvatar)
+                            Positioned(
+                              left: 0,
+                              top: 0,
+                              width: _avatarSize,
+                              height: _avatarSize,
+                              // Must not swallow taps meant for the badge.
+                              child: IgnorePointer(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black.withValues(alpha: 0.45),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.4,
+                                      color: Colors.white.withValues(alpha: 0.95),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                           if (_isMe)
                             Positioned(
-                              right: -2,
-                              bottom: -2,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: theme.accent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: theme.background, width: 2),
+                              right: 0,
+                              bottom: 0,
+                              child: FocusableTap(
+                                onTap: _busy ? null : _openAvatarSheet,
+                                shape: FocusRingShape.circle,
+                                semanticLabel: 'change profile picture',
+                                child: GestureDetector(
+                                  onTap: _busy ? null : _openAvatarSheet,
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: theme.accent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: theme.background, width: 2),
+                                    ),
+                                    child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
+                                  ),
                                 ),
-                                child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
                               ),
                             ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 18),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1143,17 +1234,24 @@ class _AvatarSheetTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return InkWell(
+    // Bare GestureDetector, never InkWell — this app renders no ink anywhere.
+    return FocusableTap(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: theme.accent),
-            const SizedBox(width: 14),
-            Expanded(child: Text(label, style: theme.label.copyWith(color: theme.ink))),
-            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-          ],
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: theme.accent),
+              const SizedBox(width: 14),
+              Expanded(child: Text(label, style: theme.label.copyWith(color: theme.ink))),
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
         ),
       ),
     );

@@ -16,6 +16,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
+import 'image_crop_screen.dart';
 import 'profile_screen.dart';
 
 class RoomInfoScreen extends StatefulWidget {
@@ -238,15 +239,25 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       source: ImageSource.gallery,
       imageQuality: 88,
     );
-    if (picked == null) return;
+    if (picked == null || !mounted) return;
+    // Crop before anything is marked in-flight, so cancelling here needs no
+    // state reset at all.
+    final cropped = await ImageCropScreen.open(
+      context,
+      source: File(picked.path),
+      shape: CropShape.circle,
+    );
+    if (cropped == null || !mounted) return;
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
       final uploader = UploadService(widget.api);
-      final storageId =
-          await uploader.uploadXFile(file: File(picked.path), contentType: 'image/jpeg');
+      final storageId = await uploader.uploadXFile(
+        file: cropped.file,
+        contentType: cropped.contentType,
+      );
       await widget.api.updateRoomAvatar(
         roomId: r.id,
         userId: me,

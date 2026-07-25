@@ -46,6 +46,12 @@ dependencies:
   http: ^1.2.2
   # Saves images to the system Photos/Gallery (used by avatar "download").
   gal: ^2.3.0
+  # JPEG encoding for cropped photos. dart:ui only encodes PNG, and a 1024²
+  # photographic PNG is ~2 MB against ~200 KB for JPEG q90 — which matters
+  # because RemoteImage uses plain Image.network, so avatars re-download on
+  # every cold start. Already resolved transitively at this version; listing it
+  # here only promotes it to a direct dependency.
+  image: ^4.8.0
 
   # Push notifications (OneSignal v5 SDK).
   onesignal_flutter: ^5.2.9
