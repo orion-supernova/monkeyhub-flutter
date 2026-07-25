@@ -7,6 +7,7 @@ import {
   childMayUseRoom,
   childPolicyOf,
 } from "./childGuard";
+import { deleteStored } from "./files";
 
 export const send = mutation({
   args: {
@@ -181,10 +182,10 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
     .collect();
   for (const r of reactions) await ctx.db.delete(r._id);
 
-  // Media.
-  if (msg.mediaStorageId) {
-    await ctx.storage.delete(msg.mediaStorageId);
-  }
+  // Media. Via `deleteStored` rather than a bare `ctx.storage.delete`, which
+  // throws on a file some other path already removed — and would abort the
+  // fanout below half-done, leaving children tethered to a deleted parent.
+  await deleteStored(ctx, msg.mediaStorageId);
 
   // Mark every child reply's denormalized preview as deleted so their inline
   // tether keeps rendering ("message removed") instead of pointing at a
@@ -196,8 +197,13 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   for (const child of children) {
     const existing = child.replyToPreview;
     if (!existing) continue;
+    // Drop the copied `mediaStorageId` too. It's a snapshot of the parent's id
+    // (see `send`), and the file it named was just deleted — leaving it set
+    // points the preview at a blob that no longer exists, and makes the file
+    // look referenced to `files.gcOrphanedFiles`.
+    const { mediaStorageId: _stale, ...rest } = existing;
     await ctx.db.patch(child._id, {
-      replyToPreview: { ...existing, contentPreview: "__DELETED__" },
+      replyToPreview: { ...rest, contentPreview: "__DELETED__" },
     });
   }
 

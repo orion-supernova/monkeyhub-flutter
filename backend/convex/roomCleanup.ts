@@ -11,9 +11,12 @@
  * Plain helpers, not Convex functions: callers pass their own `ctx`.
  */
 
+import { deleteStored } from "./files";
+
 /**
  * Deletes every trace of a room: messages, their reactions, their media in
- * `ctx.storage`, typing rows, memberships, and the room row itself.
+ * `ctx.storage`, typing rows, memberships, the room's own avatar, and the room
+ * row itself.
  *
  * This is destructive for EVERY member, not just the caller — a wiped DM is
  * gone for both people. Callers must have confirmed that with the user first.
@@ -57,6 +60,10 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
     .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const p of receipts) await ctx.db.delete(p._id);
+  // The room's own avatar. Easy to forget because it isn't a row — the room
+  // document is about to vanish, and with it the only pointer to the file.
+  const room = await ctx.db.get(roomId);
+  await deleteStored(ctx, room?.avatarStorageId);
   // The room itself
   await ctx.db.delete(roomId);
 }

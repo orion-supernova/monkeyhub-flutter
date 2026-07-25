@@ -1078,9 +1078,10 @@ class ChatApi {
     return res.toString();
   }
 
-  Future<void> deleteFile(String storageId) async {
-    await _cv.mutation('files:deleteFile', {'storageId': storageId});
-  }
+  // No deleteFile: freeing a stored file is the server's job, done in the same
+  // mutation that drops the reference (users:updateAvatar, rooms:deleteRoom,
+  // messages:deleteMessage, …). The old `files:deleteFile` endpoint let any
+  // client delete any file given its id, and nothing ever called it.
 
   // ─────────────────────────────────────────────────────────────────────────
   // Helpers

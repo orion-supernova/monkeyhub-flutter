@@ -51,4 +51,17 @@ crons.interval(
   {},
 );
 
+// Reclaim stored files nothing references any more. Every code path that drops
+// a storageId now deletes the blob with it, so this is the backstop for the one
+// case the backend can't reach: the client uploads, then the mutation that would
+// have referenced the file fails or the app is killed. Files under 24h old are
+// exempt — an upload still in flight is indistinguishable from an orphan.
+// See files.gcOrphanedFiles.
+crons.interval(
+  "files.gcOrphanedFiles",
+  { hours: 24 },
+  internal.files.gcOrphanedFiles,
+  {},
+);
+
 export default crons;

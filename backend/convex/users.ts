@@ -1,6 +1,7 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { effectiveStatus, PRESENCE_OFFLINE_MS } from "./presence";
+import { deleteStored } from "./files";
 import {
   ACCOUNT_ADULT,
   ACCOUNT_CHILD,
@@ -234,6 +235,14 @@ export const updateProfile = mutation({
   },
 });
 
+/**
+ * Points the user at a freshly uploaded avatar and frees the one it replaces.
+ *
+ * Convex bills for stored files, not for the rows referencing them, so dropping
+ * the old id without deleting the blob leaks it permanently — and invisibly,
+ * since `_storage` is a system table nothing in the app ever walks. Every
+ * avatar change used to cost another copy forever.
+ */
 export const updateAvatar = mutation({
   args: {
     userId: v.id("users"),
@@ -242,7 +251,13 @@ export const updateAvatar = mutation({
   handler: async (ctx, { userId, storageId }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    const previous = user.avatarStorageId;
     await ctx.db.patch(userId, { avatarStorageId: storageId });
+    // Guard against re-submitting the id already stored: that would delete the
+    // file the row now points at and leave the user with a broken avatar.
+    if (previous && previous !== storageId) {
+      await deleteStored(ctx, previous);
+    }
   },
 });
 

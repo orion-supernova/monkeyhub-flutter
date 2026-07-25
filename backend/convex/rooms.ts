@@ -9,6 +9,8 @@ import {
 } from "./childGuard";
 import { effectiveStatus } from "./presence";
 import { unreadForRoom } from "./badges";
+import { deleteStored } from "./files";
+import { wipeRoomCompletely } from "./roomCleanup";
 
 export const create = mutation({
   args: {
@@ -116,8 +118,7 @@ export const leave = mutation({
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
     if (remaining.length === 0) {
-      await _deleteRoomContents(ctx, roomId);
-      await ctx.db.delete(roomId);
+      await wipeRoomCompletely(ctx, roomId);
     }
   },
 });
@@ -129,8 +130,7 @@ export const deleteRoom = mutation({
     if (!room) throw new Error("ROOM_NOT_FOUND");
     if (room.createdBy.toString() !== userId.toString()) throw new Error("NOT_OWNER");
 
-    await _deleteRoomContents(ctx, roomId);
-    await ctx.db.delete(roomId);
+    await wipeRoomCompletely(ctx, roomId);
   },
 });
 
@@ -203,7 +203,14 @@ export const updateRoomAvatar = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
     if (!membership) throw new Error("NOT_AUTHORIZED"); // any member can update avatar
+    const previous = room.avatarStorageId;
     await ctx.db.patch(roomId, { avatarStorageId: storageId });
+    // Free the blob we just stopped pointing at, or it bills forever with
+    // nothing referencing it. Skip when the id is unchanged — deleting that
+    // file would leave the room with a broken avatar.
+    if (previous && previous !== storageId) {
+      await deleteStored(ctx, previous);
+    }
   },
 });
 
@@ -429,41 +436,6 @@ export const getMembership = query({
     return m ? { role: m.role } : null;
   },
 });
-
-// ─── Internal helpers ───────────────────────────────────────────────────────
-
-async function _deleteRoomContents(
-  ctx: { db: any },
-  roomId: string
-) {
-  // Delete all messages and their reactions
-  const msgs = await ctx.db
-    .query("messages")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const msg of msgs) {
-    const reactions = await ctx.db
-      .query("reactions")
-      .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
-      .collect();
-    for (const r of reactions) await ctx.db.delete(r._id);
-    await ctx.db.delete(msg._id);
-  }
-
-  // Delete all typing indicators
-  const typing = await ctx.db
-    .query("typingIndicators")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const t of typing) await ctx.db.delete(t._id);
-
-  // Delete all member records
-  const members = await ctx.db
-    .query("roomMembers")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const m of members) await ctx.db.delete(m._id);
-}
 
 /**
  * Returns the set of rooms both [userId] and [otherUserId] are members of,

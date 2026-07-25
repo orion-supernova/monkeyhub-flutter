@@ -2,6 +2,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { deleteStored } from "./files";
 
 export const signup = mutation({
   args: {
@@ -116,14 +117,6 @@ export const purgeAccount = internalMutation({
     await purgeUser(ctx, userId);
   },
 });
-
-/** Drops a stored file, tolerating one that's already gone. */
-async function deleteStored(ctx: any, storageId: any) {
-  if (!storageId) return;
-  try {
-    await ctx.storage.delete(storageId);
-  } catch (_) {/* already gone */}
-}
 
 /**
  * Deletes every row across the given groups, skipping ids already seen.
