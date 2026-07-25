@@ -14,6 +14,34 @@ import {
 import { effectiveStatus } from "./presence";
 
 /**
+ * The fields of a `users` row that another user is allowed to see.
+ *
+ * Exists because spreading a user document is a data leak, and this file did it
+ * twice. A `users` row carries `passwordHash` and `recoveryKeyHash`, the push
+ * routing tokens (`voipToken`, `fcmToken`, `deviceTokens`), `birthYear`, and
+ * the `visibility` / `childPolicy` blocks that are explicitly self-or-guardian
+ * only — none of which any caller here wants and all of which `{ ...user }`
+ * handed out. Convex sends whatever the handler returns, so with no `returns:`
+ * validator the shape of this object IS the access-control boundary.
+ *
+ * Add a field here only after asking whether every friend and every stranger
+ * who can address a request to you should have it. `status` is passed through
+ * `effectiveStatus` so a client that stopped heartbeating reads as offline;
+ * `lastSeen` backs the avatar dot's "fresh away" gate on the client.
+ */
+function publicUserView(user: any) {
+  return {
+    _id: user._id,
+    username: user.username,
+    name: user.name,
+    email: user.email,
+    avatarStorageId: user.avatarStorageId,
+    status: effectiveStatus(user.status, user.lastSeen),
+    lastSeen: user.lastSeen,
+  };
+}
+
+/**
  * Pings whoever now holds a request.
  *
  * Deliberately explicit about the audience: while a request sits at a
@@ -254,12 +282,15 @@ export const listFriends = query({
     const friends = await Promise.all(
       friendships.map((f) => ctx.db.get(f.friendId))
     );
-    return friends
-      .filter(Boolean)
-      .map((u) => ({ ...u!, status: effectiveStatus(u!.status, u!.lastSeen) }));
+    return friends.filter(Boolean).map((u) => publicUserView(u!));
   },
 });
 
+/**
+ * No current caller — the app subscribes to `listIncomingDirectRequests`
+ * instead. Kept (and fixed) rather than deleted because it stays callable by
+ * any build already in users' hands; delete it once that's no longer a concern.
+ */
 export const listPendingRequests = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -277,13 +308,7 @@ export const listPendingRequests = query({
     const requesters = await Promise.all(
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
-        return user
-          ? {
-              ...user,
-              friendshipId: f._id,
-              status: effectiveStatus(user.status, user.lastSeen),
-            }
-          : null;
+        return user ? { ...publicUserView(user), friendshipId: f._id } : null;
       })
     );
     return requesters.filter(Boolean);
