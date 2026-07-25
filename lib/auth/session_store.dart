@@ -26,11 +26,13 @@ class SessionStore {
   // without a restored userId). first_unlock keeps items readable from the
   // first unlock after boot onward, locked or not — same accessibility
   // class WhatsApp-tier VoIP apps use.
+  // No aOptions: `encryptedSharedPreferences` was the only one set, and v10
+  // deprecated it into a no-op — Jetpack Security is dead, so the plugin now
+  // uses its own ciphers and migrates existing items on first access.
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
   // Pre-existing installs wrote their items under `unlocked`; those may be
@@ -38,7 +40,6 @@ class SessionStore {
   // fall back to this legacy instance and migrate hits forward.
   static const _legacyStorage = FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
   /// Read [key], falling back to (and migrating from) the legacy

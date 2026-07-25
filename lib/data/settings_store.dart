@@ -29,7 +29,6 @@ class SettingsStore extends ChangeNotifier {
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
   String? _themeId;

@@ -102,7 +102,9 @@ class _InAppBrowserScreenState extends State<InAppBrowserScreen> {
   }
 
   Future<void> _share() async {
-    await Share.share(_currentUrl, subject: _title);
+    await SharePlus.instance.share(
+      ShareParams(text: _currentUrl, subject: _title),
+    );
   }
 
   bool get _isSecure {

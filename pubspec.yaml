@@ -25,7 +25,7 @@ dependencies:
   # favicon bubble + navigator.setAppBadge). Web-only via conditional import.
   web: ^1.1.1
 
-  google_fonts: ^6.2.1
+  google_fonts: ^8.2.0
 
   # Backend (Convex)
   convex_flutter: ^3.0.1
@@ -35,13 +35,13 @@ dependencies:
 
   # Reads env.local from the asset bundle at startup so `flutter run` works
   # without --dart-define-from-file. env.local is gitignored.
-  flutter_dotenv: ^5.2.1
+  flutter_dotenv: ^6.0.1
 
   # Media: gallery picker, in-app camera, voice recorder, audio + video playback.
   image_picker: ^1.1.2
-  camera: ^0.11.0
-  record: ^5.1.2
-  just_audio: ^0.9.42
+  camera: ^0.12.0+2
+  record: ^6.2.1
+  just_audio: ^0.10.6
   video_player: ^2.9.2
   http: ^1.2.2
   # Saves images to the system Photos/Gallery (used by avatar "download").
@@ -69,7 +69,7 @@ dependencies:
 
   # Auth / crypto
   crypto: ^3.0.3
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^10.3.1
 
   # Child-device pairing. The parent's phone renders a short-lived code as a
   # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
@@ -85,7 +85,7 @@ dependencies:
   shared_preferences: ^2.3.2
 
   # Reads pubspec.yaml at runtime so Settings can show "v$version".
-  package_info_plus: ^8.0.0
+  package_info_plus: ^10.2.1
   emoji_picker_flutter: ^4.4.0
 
   # URL handling: detection in text, opening externally, in-app webview.
@@ -93,7 +93,7 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   # OG-tag parser for link previews.
   html: ^0.15.4
-  share_plus: ^10.0.0
+  share_plus: ^13.3.0
 
   # Splash-screen plugin. MUST live in `dependencies`, not dev_dependencies:
   # its Android platform class ends up referenced in the generated plugin
