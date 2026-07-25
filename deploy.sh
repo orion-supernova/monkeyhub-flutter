@@ -1060,12 +1060,17 @@ fi
 # One standing limitation, not a caveat about maturity: the native call UI
 # (flutter_callkit_incoming) is mobile-only, so a browser gets no CallKit /
 # ConnectionService ringing.
+#
+# --no-wasm-dry-run: we compile to JS, not WasmGC, so the dry run only prints a
+# report on a build we do not make. It cannot pass anyway — flutter_secure_storage_web
+# is built on dart:html and flutter_rust_bridge trips a JS-interop lint, and
+# neither is ours to change. Drop the flag to see the report again.
 WEB_BUILD_TIME=0
 if [ "$DEPLOY_WEB" = true ]; then
     WEB_START_TIME=$(date +%s)
     echo "🌐 Starting web build..."
     run_with_spinner "Building Flutter web (release)" \
-        flutter build web --release --base-href /web/ --dart-define=MH_CHANNEL=web
+        flutter build web --release --base-href /web/ --dart-define=MH_CHANNEL=web --no-wasm-dry-run
 
     if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
         echo "❌ No web build output at build/web/"
@@ -1129,9 +1134,14 @@ if [ "$RUN_GIT" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
         git add pubspec.yaml
         git commit -m "chore: bump version to $NEW_VERSION"
         CURRENT_BRANCH=$(git branch --show-current)
-        echo "  • Pushing to origin/$CURRENT_BRANCH..."
-        if git push origin "$CURRENT_BRANCH"; then
-            echo "  ✅ Pushed"
+        # No remote is a setup gap, not a push failure, and `git push` reports it
+        # as a bare `fatal:` that reads like the deploy broke. The deploy is done
+        # by this point either way — the commit is safe on disk.
+        if ! git remote get-url origin >/dev/null 2>&1; then
+            echo "  ⚠️  No 'origin' remote — commit is local only."
+            echo "       Add one with:  git remote add origin <url>"
+        elif git push origin "$CURRENT_BRANCH"; then
+            echo "  ✅ Pushed to origin/$CURRENT_BRANCH"
         else
             echo "  ⚠️  git push failed. Commit is local; push manually with:"
             echo "       git push origin $CURRENT_BRANCH"
