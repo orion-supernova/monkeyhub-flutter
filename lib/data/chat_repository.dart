@@ -328,6 +328,29 @@ class ChatRepository extends ChangeNotifier {
     return null;
   }
 
+  /// Whether the signed-in user is already a member of [roomId].
+  ///
+  /// `_rooms` IS the membership list — it's fed by the `rooms:listUserRooms`
+  /// subscription, so this stays correct the moment a join or leave lands, with
+  /// no extra round trip. Discover and search both branch on this to open a
+  /// joined room directly instead of re-running the join flow against it.
+  ///
+  /// Returns false during the pre-hydration window on a cold start; prefer
+  /// [isJoined], which also consults the server's answer.
+  bool isMemberOf(String roomId) => roomById(roomId) != null;
+
+  /// The membership rule Discover and search branch on before deciding whether
+  /// to open [room] or run the join flow against it.
+  ///
+  /// Two sources because neither alone is complete: [isMemberOf] is live but
+  /// empty until the room subscription delivers, while [ChatRoom.isMember] is
+  /// a snapshot from `rooms:listPublic` that goes stale the moment you join
+  /// something. Either saying yes is enough.
+  bool isJoined(ChatRoom room) => isMemberOf(room.id) || room.isMember;
+
+  @visibleForTesting
+  void debugSeedRooms(List<ChatRoom> rooms) => _rooms = List.of(rooms);
+
   Future<String> createRoom({
     required String name,
     required bool isPrivate,

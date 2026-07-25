@@ -24,6 +24,7 @@ import 'data/settings_store.dart';
 import 'family/family_service.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'media/file_url_cache.dart';
 import 'audio/alert_sounds.dart';
 import 'privacy/capture_protection.dart';
 import 'push/android_call_reliability.dart';
@@ -442,6 +443,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await _repo.detach();
         await PushManager.instance.logout();
         OneSignalWeb.logout(); // drop web push external_id; no-op off web
+        // Storage URLs aren't secret, but the next account shouldn't inherit
+        // the previous one's working set — and a stale entry pointing at a file
+        // that got GC'd would just render a broken tile.
+        await FileUrlCache.instance.clear();
         await _signaling.stop();
         await _callService.endCall();
         _callService.detachWatch();

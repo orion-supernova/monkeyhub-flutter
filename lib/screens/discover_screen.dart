@@ -76,10 +76,17 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
     } catch (_) {/* tiles just won't show the pill */}
   }
 
+  /// Whether the viewer is already in [room], and can therefore just walk in.
+  bool _joined(ChatRoom room) => widget.repo.isJoined(room);
+
   /// A child tapping a room they don't have raises the request with their
   /// guardians instead of failing. Returns true when the join should proceed.
   Future<bool> _clearedToJoin(ChatRoom room) async {
     if (!widget.family.isChild) return true;
+    // A child already in the room needs no new grant — the guardian's decision
+    // is what put them there. Asking again would queue a second approval for
+    // access they demonstrably already have.
+    if (_joined(room)) return true;
     final uid = widget.repo.userId;
     if (uid == null) return false;
 
@@ -186,61 +193,86 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
             child: Center(child: Text('no public rooms', style: theme.bodySoft)),
           )
         else
-          Column(
-            children: [
-              for (final r in _rooms)
-                _DiscoverRoomTile(
-                  room: r,
-                  awaiting: _awaiting.contains(r.id),
-                  onTap: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    // Child gate first: no point previewing a room they can't
-                    // enter yet.
-                    if (!await _clearedToJoin(r)) return;
-                    if (!context.mounted) return;
-                    // Preview + confirm before joining; a locked room's password
-                    // field lives inside this same sheet.
-                    final result = await showJoinRoomSheet(context, r, widget.api);
-                    if (!mounted || result == null) return;
-                    try {
-                      await widget.repo
-                          .joinRoom(roomId: r.id, password: result.password);
-                      if (!context.mounted) return;
-                      openRoom(context,
-                          roomId: r.id, repo: widget.repo, api: widget.api);
-                    } catch (e) {
-                      // A child can still trip the server-side gate if a
-                      // grant was revoked between listing and tapping.
-                      if (isChildGateError(e)) {
-                        await _refreshAwaiting();
-                        return;
-                      }
-                      final msg = e.toString().contains('WRONG_PASSWORD')
-                          ? 'wrong password'
-                          : 'couldn\'t join — try again';
-                      messenger.showSnackBar(SnackBar(content: Text(msg)));
-                    }
-                  },
-                ),
-            ],
+          // Rebuilds on every repo change so a tile flips to JOINED the moment
+          // the `rooms:listUserRooms` subscription delivers the new membership
+          // — including when the join happened somewhere else entirely (a push
+          // tap, another device). Without this the badge would be stale until
+          // the next manual _refresh().
+          ListenableBuilder(
+            listenable: widget.repo,
+            builder: (context, _) => Column(children: _tiles(context)),
           ),
       ],
     ),
     );
   }
+
+  List<Widget> _tiles(BuildContext context) {
+    return [
+      for (final r in _rooms)
+        _DiscoverRoomTile(
+          key: ValueKey(r.id),
+          room: r,
+          awaiting: _awaiting.contains(r.id),
+          joined: _joined(r),
+          onTap: () => _onTapRoom(context, r),
+        ),
+    ];
+  }
+
+  Future<void> _onTapRoom(BuildContext context, ChatRoom r) async {
+    final messenger = ScaffoldMessenger.of(context);
+    // Already in it — just open it. Everything below is the flow for *getting*
+    // into a room, and running any of it against a room you're already in is
+    // the bug this guard exists to prevent: an approval gate for access you
+    // have, then a JOIN sheet that re-asks for a password you've already
+    // cleared, then a join the backend treats as a no-op.
+    if (_joined(r)) {
+      openRoom(context, roomId: r.id, repo: widget.repo, api: widget.api);
+      return;
+    }
+    // Child gate first: no point previewing a room they can't enter yet.
+    if (!await _clearedToJoin(r)) return;
+    if (!context.mounted) return;
+    // Preview + confirm before joining; a locked room's password field lives
+    // inside this same sheet.
+    final result = await showJoinRoomSheet(context, r, widget.api);
+    if (!mounted || result == null) return;
+    try {
+      await widget.repo.joinRoom(roomId: r.id, password: result.password);
+      if (!context.mounted) return;
+      openRoom(context, roomId: r.id, repo: widget.repo, api: widget.api);
+    } catch (e) {
+      // A child can still trip the server-side gate if a grant was revoked
+      // between listing and tapping.
+      if (isChildGateError(e)) {
+        await _refreshAwaiting();
+        return;
+      }
+      final msg = e.toString().contains('WRONG_PASSWORD')
+          ? 'wrong password'
+          : 'couldn\'t join — try again';
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
 }
 
 class _DiscoverRoomTile extends StatelessWidget {
   const _DiscoverRoomTile({
+    super.key,
     required this.room,
     required this.onTap,
     this.awaiting = false,
+    this.joined = false,
   });
   final ChatRoom room;
   final VoidCallback onTap;
 
   /// This child has already asked a grown-up about this room.
   final bool awaiting;
+
+  /// The viewer is already a member, so tapping opens it rather than joining.
+  final bool joined;
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -276,7 +308,9 @@ class _DiscoverRoomTile extends StatelessWidget {
                 ],
               ),
             ),
-            if (awaiting)
+            if (joined)
+              const JoinedBadge(dense: true)
+            else if (awaiting)
               const WaitingPill(label: 'asked')
             else
               VisibilityBadge(isPublic: room.isPublic, dense: true),

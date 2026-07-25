@@ -547,6 +547,11 @@ Widget buildMessageContent({
               storageId: id,
               api: api,
               heroTag: useHero ? 'msg-image-${message.id}' : null,
+              heroRadius: mediaRadius,
+              // The tile's decode is already warm, so the viewer can open on it
+              // immediately rather than shimmering while the full-resolution
+              // decode lands.
+              thumbnailDecodeWidth: thumbnailDecodeWidth(ctx, imageSize),
             ),
             child: useHero
                 ? Hero(tag: 'msg-image-${message.id}', child: remote)

@@ -19,6 +19,7 @@ class ChatRoom {
     this.avatarStorageId,
     this.unreadCount = 0,
     this.unreadCapped = false,
+    this.isMember = false,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -48,6 +49,13 @@ class ChatRoom {
   bool unreadCapped;
 
   final List<String> participantIds;
+
+  /// Whether the viewer is already a member. Only `rooms:listPublic` fills this
+  /// in — every other room source is *by definition* a list of rooms you're in,
+  /// so it stays false there and callers rely on
+  /// [ChatRepository.isMemberOf] instead. Exists so Discover can tell the two
+  /// apart during the cold-start window before the room list has hydrated.
+  final bool isMember;
 
   bool get isEphemeral => type == RoomType.secret;
   bool get isPublic => !isPrivate;
@@ -120,6 +128,7 @@ class ChatRoom {
       avatarStorageId: j['avatarStorageId'] as String?,
       unreadCount: ((j['unreadCount'] ?? 0) as num).toInt(),
       unreadCapped: (j['unreadCapped'] ?? false) as bool,
+      isMember: (j['isMember'] ?? false) as bool,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }

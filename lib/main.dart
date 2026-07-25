@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app.dart';
 import 'calls/native_call_handler.dart';
 import 'data/settings_store.dart';
+import 'media/file_url_cache.dart';
 import 'push/push_manager.dart';
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
@@ -21,6 +22,21 @@ Future<void> main() async {
   // briefly default to Midnight before bootstrap's async read replaces it —
   // visible as a flicker on hot restart.
   await SettingsStore.instance.load();
+  // Pre-load the storageId → URL map for the same reason: without it the first
+  // frame has no URL for any avatar and every one of them renders a shimmer
+  // while a `files:getFileUrl` round trip lands. Reads one SharedPreferences
+  // key, so it costs a single platform-channel hop.
+  await FileUrlCache.instance.load();
+  // Raise the ENTRY-count ceiling above its 1000 default, and leave the byte
+  // ceiling at 100 MiB.
+  //
+  // Every image now decodes to the size it's painted at (see RemoteImage), so a
+  // typical entry is tens of KB rather than the ~12 MiB a full-resolution photo
+  // used to cost. That inverts which limit binds first: 1000 small entries is
+  // nowhere near 100 MiB, so the count is what would start evicting on a busy
+  // account holding avatars, room icons, link previews and photos across several
+  // screens at once. The byte ceiling stays put as the real safety net.
+  PaintingBinding.instance.imageCache.maximumSize = 1500;
   if (kIsWeb) {
     // Hand right-click to Flutter instead of the browser.
     //

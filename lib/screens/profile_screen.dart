@@ -398,12 +398,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _u.avatarStorageId != null &&
       _u.avatarStorageId!.isNotEmpty;
 
+  /// Tag shared with the [Hero] around the avatar below. Keyed on the user, not
+  /// the storage id, so replacing your picture mid-session doesn't orphan it.
+  String get _avatarHeroTag => 'profile-avatar-${_u.id}';
+
   void _openAvatarFullscreen() {
     if (!_canViewAvatar) return;
     FullscreenImageViewer.open(
       context,
       storageId: _u.avatarStorageId!,
       api: widget.api!,
+      heroTag: _avatarHeroTag,
+      // The avatar is a circle; un-round it across the flight so it grows into
+      // the full picture instead of popping square at the end.
+      heroRadius: BorderRadius.circular(_avatarSize),
+      // Reuse the decode that's already on screen as the arrival backdrop, so
+      // the flight never lands on a placeholder.
+      thumbnailDecodeWidth: thumbnailDecodeWidth(context, _avatarSize),
     );
   }
 
@@ -671,14 +682,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               semanticLabel: 'view profile picture',
                               child: GestureDetector(
                                 onTap: _canViewAvatar ? _openAvatarFullscreen : null,
-                                child: UserAvatar(
-                                  user: _u,
-                                  size: _avatarSize,
-                                  api: widget.api,
-                                  // Own presence is never news, and the dot sits
-                                  // exactly where the camera badge goes.
-                                  showStatus: !_isMe,
-                                ),
+                                child: Builder(builder: (context) {
+                                  final avatar = UserAvatar(
+                                    user: _u,
+                                    size: _avatarSize,
+                                    api: widget.api,
+                                    // Own presence is never news, and the dot
+                                    // sits exactly where the camera badge goes.
+                                    showStatus: !_isMe,
+                                  );
+                                  // Only the real-image case flies — a gradient
+                                  // initials placeholder has nothing to fly to,
+                                  // and mounting a Hero for it would leave a
+                                  // tag with no counterpart.
+                                  if (!_canViewAvatar) return avatar;
+                                  return Hero(
+                                    tag: _avatarHeroTag,
+                                    child: avatar,
+                                  );
+                                }),
                               ),
                             ),
                           ),

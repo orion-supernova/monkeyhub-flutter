@@ -233,10 +233,28 @@ export const listPublic = query({
       .query("rooms")
       .withIndex("by_visibility", (q) => q.eq("isPrivate", false))
       .collect();
+
+    // Which of these the viewer is already in. Read once over `by_user` and
+    // held as a Set — a per-room `by_room_user` lookup would be one query per
+    // tile for something a single index scan answers.
+    //
+    // Without this, Discover has no way to tell a room you're in from one you
+    // aren't until `rooms:join` rejects it server-side, which is after the join
+    // sheet (and, for a child, the approval gate) has already been shown.
+    const joined = new Set<string>();
+    if (viewerUserId) {
+      const memberships = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_user", (q) => q.eq("userId", viewerUserId))
+        .collect();
+      for (const m of memberships) joined.add(m.roomId.toString());
+    }
+
     // Strip passwordHash for security — expose only a boolean indicator
     return rooms.map(({ passwordHash, ...rest }) => ({
       ...rest,
       hasPassword: !!passwordHash,
+      isMember: joined.has(rest._id.toString()),
     }));
   },
 });

@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../services/link_preview_service.dart';
@@ -302,40 +305,38 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.network(
-      url,
+    // OG images are arbitrary third-party URLs and routinely far larger than the
+    // 1.91:1 strip they're painted into, so the same decode cap that RemoteImage
+    // applies matters here too. Cached on disk for the same reason: a preview
+    // re-rendered on every scroll back through the room shouldn't re-fetch a
+    // stranger's server.
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final decodeWidth =
+        math.max(1, (MediaQuery.sizeOf(context).width * dpr).round());
+    return CachedNetworkImage(
+      imageUrl: url,
       fit: BoxFit.cover,
-      gaplessPlayback: true,
-      errorBuilder: (_, _, _) => Container(
+      memCacheWidth: decodeWidth,
+      fadeInDuration: const Duration(milliseconds: 240),
+      fadeOutDuration: Duration.zero,
+      errorWidget: (_, _, _) => Container(
         color: tone.surface,
         alignment: Alignment.center,
         child: Icon(Icons.image_not_supported_outlined,
             color: tone.inkMuted, size: 22),
       ),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return Container(
-          color: tone.surface,
-          alignment: Alignment.center,
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation(theme.accent),
-            ),
+      placeholder: (_, _) => Container(
+        color: tone.surface,
+        alignment: Alignment.center,
+        child: SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation(theme.accent),
           ),
-        );
-      },
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (wasSynchronouslyLoaded) return child;
-        return AnimatedOpacity(
-          opacity: frame == null ? 0 : 1,
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOut,
-          child: child,
-        );
-      },
+        ),
+      ),
     );
   }
 }

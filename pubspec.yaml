@@ -47,11 +47,18 @@ dependencies:
   # Saves images to the system Photos/Gallery (used by avatar "download").
   gal: ^2.3.0
   # JPEG encoding for cropped photos. dart:ui only encodes PNG, and a 1024²
-  # photographic PNG is ~2 MB against ~200 KB for JPEG q90 — which matters
-  # because RemoteImage uses plain Image.network, so avatars re-download on
-  # every cold start. Already resolved transitively at this version; listing it
-  # here only promotes it to a direct dependency.
+  # photographic PNG is ~2 MB against ~200 KB for JPEG q90. Already resolved
+  # transitively at this version; listing it here only promotes it to a direct
+  # dependency.
   image: ^4.8.0
+
+  # Disk + memory cache for remote images. `Image.network` has NO persistent
+  # cache on mobile (dart:io's HttpClient doesn't implement one), so every cold
+  # start re-downloaded every avatar — and Convex serves storage with
+  # `cache-control: private, max-age=2592000`, which this honors. See
+  # lib/widgets/remote_image.dart for the decode-sizing half of the fix, which
+  # is what actually stops the in-session thrashing.
+  cached_network_image: ^3.4.1
 
   # Push notifications (OneSignal v5 SDK).
   onesignal_flutter: ^5.2.9

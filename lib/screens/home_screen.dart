@@ -485,6 +485,12 @@ class _RoomsPanel extends StatelessWidget {
         itemCount: rooms.length,
         itemBuilder: (context, i) {
           return TweenAnimationBuilder<double>(
+            // Identity key, not position. Rooms are ordered by recency, so any
+            // incoming message reorders this list — and without a key Flutter
+            // re-matches elements by index, handing the tile at position i a
+            // DIFFERENT room. Its avatar then reloads (and briefly shows the
+            // wrong face) on every reorder. See the same fix on the list layout.
+            key: ValueKey(rooms[i].id),
             tween: Tween(begin: 0, end: 1),
             duration: theme.motionMed + Duration(milliseconds: i * 40),
             curve: theme.motionEntrance,
@@ -510,6 +516,10 @@ class _RoomsPanel extends StatelessWidget {
       children: [
         for (var i = 0; i < rooms.length; i++)
           TweenAnimationBuilder<double>(
+            // See the grid layout above: keyed by room id so a recency reorder
+            // moves the element rather than repurposing it, which is what made
+            // avatars reload and momentarily swap between rows.
+            key: ValueKey(rooms[i].id),
             tween: Tween(begin: 0, end: 1),
             duration: theme.motionMed + Duration(milliseconds: i * 60),
             curve: theme.motionEntrance,

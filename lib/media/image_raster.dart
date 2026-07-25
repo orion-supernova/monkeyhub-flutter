@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -26,6 +27,58 @@ class CroppedImage {
   final String contentType;
   final int width;
   final int height;
+}
+
+/// Decodes [file], optionally capping its longest edge at [maxEdge].
+///
+/// Two callers, two very different needs, one decoder:
+///
+///  * **Display** passes a cap. A 4032×3024 photo is ~48 MB of RGBA at full
+///    size and makes drawing stutter; 2048 is still well past any phone screen,
+///    so the cap is invisible and the interaction is smooth.
+///  * **Export** passes null. The file the user sends must be the resolution
+///    they gave us — a tall photo stays tall — so the composite is built from
+///    the real pixels, once, at save time.
+///
+/// Never upscales: a small source is decoded as-is.
+Future<ui.Image> decodeImageFile(File file, {int? maxEdge}) async {
+  final bytes = await file.readAsBytes();
+  final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+  final descriptor = await ui.ImageDescriptor.encoded(buffer);
+  try {
+    final longest = math.max(descriptor.width, descriptor.height);
+    final k =
+        (maxEdge != null && longest > maxEdge) ? maxEdge / longest : 1.0;
+    final codec = await descriptor.instantiateCodec(
+      targetWidth: (descriptor.width * k).round(),
+      targetHeight: (descriptor.height * k).round(),
+    );
+    try {
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } finally {
+      codec.dispose();
+    }
+  } finally {
+    descriptor.dispose();
+  }
+}
+
+/// The intrinsic pixel size of [file], without decoding it.
+///
+/// `ImageDescriptor.encoded` reads the header only, so this costs a file read
+/// rather than the tens of megabytes a full decode would allocate. Used to
+/// report the true dimensions of an image that is being passed through
+/// untouched, where no decode of it exists to ask.
+Future<ui.Size> imageFileSize(File file) async {
+  final bytes = await file.readAsBytes();
+  final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+  final descriptor = await ui.ImageDescriptor.encoded(buffer);
+  try {
+    return ui.Size(descriptor.width.toDouble(), descriptor.height.toDouble());
+  } finally {
+    descriptor.dispose();
+  }
 }
 
 /// Encodes a freshly rasterized [ui.Image] to a JPEG in the temp directory.

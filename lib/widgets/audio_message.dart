@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../backend/chat_api.dart';
+import '../media/file_url_cache.dart';
 import '../theme/theme_scope.dart';
 
 /// Inline audio bubble. Resolves [storageId] → URL via the API, lazy-loads
@@ -27,8 +28,6 @@ class _AudioMessageState extends State<AudioMessage> {
   bool _ready = false;
   Object? _error;
 
-  static final Map<String, String> _urlCache = {};
-
   @override
   void initState() {
     super.initState();
@@ -45,8 +44,10 @@ class _AudioMessageState extends State<AudioMessage> {
     final id = widget.storageId;
     if (id == null) return;
     try {
-      String url = _urlCache[id] ?? await widget.api.getFileUrl(id);
-      _urlCache[id] = url;
+      // Shared with every other attachment in the app, and persisted, so a
+      // re-opened room doesn't re-query a URL it already had.
+      final url =
+          await FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id));
       await _player.setUrl(url);
       if (mounted) setState(() => _ready = true);
     } catch (e) {

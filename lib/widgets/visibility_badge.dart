@@ -32,6 +32,44 @@ class VisibilityBadge extends StatelessWidget {
   }
 }
 
+/// Marks a room in Discover/search that the viewer is already a member of.
+///
+/// Sits in the same slot as [VisibilityBadge] and replaces it: once you're in a
+/// room, whether it's public is no longer the useful thing to say about it —
+/// that you can just walk in is. Filled rather than outlined so the "already
+/// yours" tiles read as a distinct group at a glance.
+class JoinedBadge extends StatelessWidget {
+  const JoinedBadge({super.key, this.dense = false});
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 6 : 10,
+        vertical: dense ? 3 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: theme.accentSoft,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: theme.accent.withValues(alpha: 0.32),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_rounded, size: dense ? 10 : 12, color: theme.accent),
+          SizedBox(width: dense ? 4 : 6),
+          Text('JOINED', style: theme.monoTiny.copyWith(color: theme.accent)),
+        ],
+      ),
+    );
+  }
+}
+
 class EphemeralBadge extends StatelessWidget {
   const EphemeralBadge({super.key, required this.ttl, this.dense = false});
   final Duration ttl;

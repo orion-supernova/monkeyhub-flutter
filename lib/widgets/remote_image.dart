@@ -1,12 +1,32 @@
+import 'dart:math' as math;
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../media/file_url_cache.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-/// Renders an image stored in Convex by [storageId]. Resolves the serving
-/// URL via `files.getFileUrl` and caches the resolved URL in-memory for the
-/// life of the app so we don't re-resolve every rebuild.
+/// Renders an image stored in Convex by [storageId].
+///
+/// Two layers of caching, because the old implementation had neither and images
+/// visibly reloaded on every screen entry:
+///
+///  * **Bytes** — [CachedNetworkImage] keeps them on disk across launches and
+///    honors the `cache-control: private, max-age=2592000` Convex already sends.
+///    Plain `Image.network` has no persistent cache at all on mobile, so a cold
+///    start re-downloaded every avatar.
+///  * **Decode size** — every load is capped to the pixels actually painted.
+///    This is the half that fixed the *in-session* reloading: stored photos run
+///    ~1200×2600, which decodes to ~12 MiB, and Flutter's default `ImageCache`
+///    budget is 100 MiB. Eight photos evicted the entire cache including every
+///    avatar, so going back to the chat list re-downloaded all of them. A 40 px
+///    avatar now costs ~0.03 MiB instead of 4 MiB.
+///
+/// The disk copy is deliberately left at full resolution (no `maxWidthDiskCache`)
+/// so the fullscreen viewer can decode the same file at screen resolution and
+/// stay sharp under zoom.
 class RemoteImage extends StatefulWidget {
   const RemoteImage({
     super.key,
@@ -16,6 +36,7 @@ class RemoteImage extends StatefulWidget {
     this.height,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.placeholderDecodeWidth,
   });
 
   final String storageId;
@@ -25,7 +46,17 @@ class RemoteImage extends StatefulWidget {
   final BoxFit fit;
   final BorderRadius? borderRadius;
 
-  static final Map<String, String> _urlCache = {};
+  /// Decode width, in device pixels, of a low-resolution stand-in to show while
+  /// the real one decodes — instead of the shimmer.
+  ///
+  /// Exists for the fullscreen viewer. Opening an image full-screen decodes it
+  /// at screen resolution, which is a *different* `ImageCache` key from the
+  /// thumbnail that was just on screen, so the destination of a Hero flight
+  /// would otherwise land on a placeholder despite the bytes already being
+  /// local. Pass the size the thumbnail used and that decode is reused as the
+  /// backdrop: the flight arrives on the picture, and the sharp version fades
+  /// in over it a frame or two later.
+  final int? placeholderDecodeWidth;
 
   @override
   State<RemoteImage> createState() => _RemoteImageState();
@@ -35,59 +66,82 @@ class _RemoteImageState extends State<RemoteImage> {
   String? _url;
   Object? _error;
 
+  /// True when the URL came back from the network this mount rather than from
+  /// the warm cache. Only then is a fade worth playing — fading in something
+  /// that was already on disk just reads as a flicker.
+  bool _wasCold = false;
+
   @override
   void initState() {
     super.initState();
-    // Synchronous hit on the warm URL cache so rebuilds don't flash a
-    // shimmer frame before the cached URL takes effect.
-    final cached = RemoteImage._urlCache[widget.storageId];
-    if (cached != null) {
-      _url = cached;
-    } else {
-      _resolve();
-    }
+    _bind();
   }
 
   @override
   void didUpdateWidget(RemoteImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.storageId != widget.storageId) {
-      _url = null;
       _error = null;
-      final cached = RemoteImage._urlCache[widget.storageId];
-      if (cached != null) {
-        _url = cached;
-      } else {
-        _resolve();
-      }
+      _bind();
     }
   }
 
-  Future<void> _resolve() async {
-    try {
-      final url = await widget.api.getFileUrl(widget.storageId);
-      RemoteImage._urlCache[widget.storageId] = url;
-      if (!mounted) return;
-      setState(() => _url = url);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = e);
+  /// Resolves the serving URL, synchronously when [FileUrlCache] already knows
+  /// it. The synchronous path matters: it's what stops a cached image from
+  /// rendering one placeholder frame before its URL arrives.
+  void _bind() {
+    final known = FileUrlCache.instance.peek(widget.storageId);
+    if (known != null) {
+      _url = known;
+      _wasCold = false;
+      return;
     }
+    _url = null;
+    _wasCold = true;
+    final id = widget.storageId;
+    final api = widget.api;
+    FileUrlCache.instance.resolve(id, () => api.getFileUrl(id)).then((url) {
+      // The widget may have been recycled onto a different image while this was
+      // in flight (list reorder, page swipe) — dropping a stale result here is
+      // what stops one row briefly showing another row's picture.
+      if (!mounted || widget.storageId != id) return;
+      setState(() => _url = url);
+    }).catchError((Object e) {
+      if (!mounted || widget.storageId != id) return;
+      setState(() => _error = e);
+    });
+  }
+
+  /// Target decode size in *device* pixels.
+  ///
+  /// Null on an axis means "no constraint from us" — `cached_network_image`
+  /// scales the other axis proportionally, so passing only one preserves the
+  /// image's aspect ratio. When neither is given (the fullscreen viewer) we
+  /// clamp to the screen's longest edge, since decoding a 12 MP photo to paint
+  /// a 1200 px-wide phone screen is wasted memory and a wasted decode.
+  ({int? width, int? height}) _decodeSize(BuildContext context) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    int? px(double? logical) =>
+        logical == null || !logical.isFinite ? null : math.max(1, (logical * dpr).round());
+
+    final w = px(widget.width);
+    final h = px(widget.height);
+    if (w != null || h != null) return (width: w, height: h);
+
+    final size = MediaQuery.sizeOf(context);
+    final longest = math.max(size.width, size.height);
+    final capped = math.max(1, (longest * dpr).round());
+    // Constrain the longer axis only, so portrait and landscape sources both
+    // keep their aspect ratio.
+    return (width: capped, height: null);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final radius = widget.borderRadius ?? BorderRadius.circular(theme.radiusMd);
-    if (_error != null) {
-      return Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(color: theme.surfaceSunken, borderRadius: radius),
-        alignment: Alignment.center,
-        child: Icon(Icons.broken_image_outlined, size: 24, color: theme.inkMuted),
-      );
-    }
+
+    if (_error != null) return _broken(theme, radius);
     if (_url == null) {
       return _ShimmerBox(
         width: widget.width,
@@ -95,38 +149,68 @@ class _RemoteImageState extends State<RemoteImage> {
         borderRadius: radius,
       );
     }
+
+    final decode = _decodeSize(context);
     return ClipRRect(
       borderRadius: radius,
-      child: Image.network(
-        _url!,
+      child: CachedNetworkImage(
+        imageUrl: _url!,
         width: widget.width,
         height: widget.height,
         fit: widget.fit,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded) return child;
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeOut,
-            child: frame == null
-                ? _ShimmerBox(
-                    key: const ValueKey('shim'),
-                    width: widget.width,
-                    height: widget.height,
-                    borderRadius: radius,
-                  )
-                : KeyedSubtree(key: const ValueKey('img'), child: child),
-          );
-        },
-        errorBuilder: (_, _, _) => Container(
-          width: widget.width,
-          height: widget.height,
-          color: theme.surfaceSunken,
-          alignment: Alignment.center,
-          child: Icon(Icons.broken_image_outlined, size: 24, color: theme.inkMuted),
-        ),
+        memCacheWidth: decode.width,
+        memCacheHeight: decode.height,
+        // A warm image is already decoded; fading it in would make a cache HIT
+        // look like a load. Only a genuinely cold fetch gets the fade.
+        fadeInDuration:
+            _wasCold ? const Duration(milliseconds: 180) : Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholder: (_, url) => _placeholder(url, radius),
+        errorWidget: (_, _, _) => _broken(theme, radius),
       ),
     );
   }
+
+  Widget _placeholder(String url, BorderRadius radius) {
+    final lowRes = widget.placeholderDecodeWidth;
+    if (lowRes != null) {
+      return CachedNetworkImage(
+        imageUrl: url,
+        width: widget.width,
+        height: widget.height,
+        fit: widget.fit,
+        memCacheWidth: lowRes,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        // No nested stand-in — one level of fallback, then the shimmer.
+        placeholder: (_, _) => _ShimmerBox(
+          width: widget.width,
+          height: widget.height,
+          borderRadius: radius,
+        ),
+        errorWidget: (_, _, _) => _ShimmerBox(
+          width: widget.width,
+          height: widget.height,
+          borderRadius: radius,
+        ),
+      );
+    }
+    return _ShimmerBox(
+      width: widget.width,
+      height: widget.height,
+      borderRadius: radius,
+    );
+  }
+
+  Widget _broken(AppTheme theme, BorderRadius radius) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration:
+            BoxDecoration(color: theme.surfaceSunken, borderRadius: radius),
+        alignment: Alignment.center,
+        child:
+            Icon(Icons.broken_image_outlined, size: 24, color: theme.inkMuted),
+      );
 }
 
 /// Animated gradient skeleton used while a remote image is resolving its
@@ -135,7 +219,6 @@ class _RemoteImageState extends State<RemoteImage> {
 /// blank.
 class _ShimmerBox extends StatefulWidget {
   const _ShimmerBox({
-    super.key,
     required this.width,
     required this.height,
     required this.borderRadius,

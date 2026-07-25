@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
+import '../media/file_url_cache.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 
@@ -34,8 +35,6 @@ class _VideoMessageState extends State<VideoMessage> {
   bool _resolving = false;
   Object? _error;
 
-  static final Map<String, String> _urlCache = {};
-
   @override
   void initState() {
     super.initState();
@@ -47,9 +46,10 @@ class _VideoMessageState extends State<VideoMessage> {
     if (id == null || id.isEmpty) return;
     setState(() => _resolving = true);
     try {
-      var url = _urlCache[id];
-      url ??= await widget.api.getFileUrl(id);
-      _urlCache[id] = url;
+      // Shared with every other attachment in the app, and persisted, so a
+      // re-opened room doesn't re-query a URL it already had.
+      final url =
+          await FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id));
       final c = VideoPlayerController.networkUrl(Uri.parse(url));
       await c.initialize();
       if (!mounted) {

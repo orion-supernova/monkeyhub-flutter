@@ -428,9 +428,18 @@ class _RoomRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Same rule Discover tiles use.
+    final joined = repo.isJoined(room);
     return GestureDetector(
       onTap: () async {
         final messenger = ScaffoldMessenger.of(context);
+        // Already a member — open it. The join sheet below would otherwise
+        // re-prompt for a password already cleared, to perform a join that the
+        // backend treats as a no-op.
+        if (joined) {
+          openRoom(context, roomId: room.id, repo: repo, api: api);
+          return;
+        }
         // Preview + confirm before joining; a locked room's password field
         // lives inside this same sheet.
         final result = await showJoinRoomSheet(context, room, api);
@@ -475,7 +484,10 @@ class _RoomRow extends StatelessWidget {
                 ],
               ),
             ),
-            VisibilityBadge(isPublic: room.isPublic, dense: true),
+            if (joined)
+              const JoinedBadge(dense: true)
+            else
+              VisibilityBadge(isPublic: room.isPublic, dense: true),
             const SizedBox(width: 8),
             Text('${room.memberCount}', style: theme.monoLarge),
           ],
