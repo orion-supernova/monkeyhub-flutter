@@ -151,7 +151,15 @@ void main() {
         greaterThan(4),
         reason: 'the loop must keep attempting, not stop after one',
       );
-      expect(probe.reconnectCalls, greaterThan(1));
+      expect(
+        probe.reconnectCalls,
+        0,
+        reason:
+            'reconnect() is web-only. On native convex_flutter implements it '
+            'as the same health-check query the probe just ran — it cannot '
+            'reach the socket — so calling it tripled the load, healed '
+            'nothing, and blocked this loop for up to 30s an attempt.',
+      );
       expect(health.phase, ConnectionPhase.stalled);
       expect(resubscribes, 0);
     });
@@ -278,6 +286,94 @@ void main() {
       probe.probeResult = true;
       await settle(const Duration(milliseconds: 200));
       expect(health.isRetrying, isFalse);
+    });
+
+    // Defect: this is what a "stuck reconnect" actually looked like. The native
+    // client's state enum has only `connected` and `connecting`, and it toggles
+    // between them on every lap of the Rust client's own reconnect backoff.
+    // Trusting the rising edge meant each lap marked us online, hid the banner,
+    // then immediately re-entered healing — so the banner cycled "reconnecting…"
+    // → "can't reach server · tap to retry" → gone → repeat, and fired a full
+    // 8-subscription resubscribe every pass at a server already too slow.
+    test('a connected event alone never marks us online', () async {
+      probe.probeResult = false;
+      build().start();
+
+      probe.emit(false);
+      await settle(_grace * 2);
+      expect(health.phase, ConnectionPhase.reconnecting);
+
+      probe.emit(true);
+      await settle(_grace * 2);
+
+      expect(
+        health.phase,
+        isNot(ConnectionPhase.online),
+        reason: 'nothing round-tripped, so nothing is verified',
+      );
+      expect(resubscribes, 0);
+    });
+
+    test('sustained socket flapping neither resubscribes nor resets the UI', () async {
+      probe.probeResult = false;
+      build().start();
+
+      for (var i = 0; i < 5; i++) {
+        probe.emit(false);
+        probe.emit(true);
+        await settle(const Duration(milliseconds: 12));
+      }
+      await settle(const Duration(milliseconds: 40));
+
+      expect(resubscribes, 0, reason: 'no probe ever succeeded');
+      expect(
+        health.phase,
+        ConnectionPhase.stalled,
+        reason: 'one continuous outage, not five short ones',
+      );
+    });
+
+    // Defect: "tap to retry" was dead. retryNow only completed the backoff
+    // sleeper, which is null while a probe is in flight — and a probe occupies
+    // most of the cycle — so the tap did nothing and the banner just sat there.
+    test('tap-to-retry abandons an attempt already in flight', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 150);
+      build(backoff: const [Duration(seconds: 30)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 20));
+      expect(health.isRetrying, isTrue);
+      final before = probe.probeCalls;
+
+      // Network is back, but the in-flight probe won't report for another
+      // ~130ms. The tap must not wait it out.
+      probe.probeDelay = Duration.zero;
+      probe.probeResult = true;
+      await health.retryNow();
+      await settle(const Duration(milliseconds: 30));
+
+      expect(probe.probeCalls, greaterThan(before));
+      expect(health.phase, ConnectionPhase.online);
+      expect(resubscribes, 1);
+    });
+
+    test('an interrupted attempt keeps the spinner up', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 150);
+      build(backoff: const [Duration(seconds: 30)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 20));
+
+      await health.retryNow();
+      await settle(const Duration(milliseconds: 10));
+
+      expect(
+        health.isRetrying,
+        isTrue,
+        reason: 'a new attempt started, so the banner must not blink to the dot',
+      );
     });
 
     test('disposing stops the loop', () async {

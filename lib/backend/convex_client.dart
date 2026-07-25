@@ -46,6 +46,12 @@ class ConvexBackend implements ConnectionProbe {
           // (see [probeConnection]) and by the client's own reconnect(). Its
           // `viewerUserId` arg is optional, so `{}` is valid and returns fast.
           healthCheckQuery: 'rooms:listPublic',
+          // Pinned rather than left at the package's 30s default. Dart's
+          // `.timeout()` does not cancel the future underneath it, so every
+          // probe [ConnectionHealth] abandons leaves a query running to
+          // completion here. At 30s an outage spent stacking orphaned queries
+          // against the very server it was waiting on.
+          operationTimeout: const Duration(seconds: 15),
         ),
       );
       _initError = null;
@@ -131,6 +137,16 @@ class ConvexBackend implements ConnectionProbe {
     return Subscription._(handle);
   }
 
+  /// When [probeConnection] last round-tripped successfully. Better evidence
+  /// than [isConnected], which reads the client's cached socket state and can
+  /// sit wedged on `connecting` after an OS suspension while queries work fine.
+  DateTime? _lastProbeOkAt;
+
+  /// How long a successful probe stands in for [isConnected] in
+  /// [_awaitConnected]. Short enough that it can't mask a socket that died
+  /// right after we checked.
+  static const _probeFreshness = Duration(seconds: 10);
+
   /// Resolve once the socket is connected, or after [timeout] regardless — so
   /// a still-down socket never blocks a subscription forever (the caller's
   /// onError path and the client's own reconnect handle that case). No-op when
@@ -139,9 +155,20 @@ class ConvexBackend implements ConnectionProbe {
   /// Polls [isConnected] rather than listening to [connectionState] so that the
   /// concurrent attach() calls on boot (each subscribing several queries) can't
   /// collide on a single-subscription stream.
+  ///
+  /// The timeout is short and the recent-probe short-circuit matters, because
+  /// this runs once per subscription and a reconnect re-registers eight of them
+  /// (see [ChatRepository.resubscribe]). With a 10s wait and a socket whose
+  /// cached state is wedged, resubscribing serialised into over a minute of
+  /// dead time — during which the app looked reconnected but received nothing.
+  /// [ConnectionHealth] only resubscribes after a probe has round-tripped, so
+  /// that path now skips the wait outright.
   Future<void> _awaitConnected({
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 3),
   }) async {
+    if (isConnected) return;
+    final ok = _lastProbeOkAt;
+    if (ok != null && DateTime.now().difference(ok) < _probeFreshness) return;
     const step = Duration(milliseconds: 100);
     var waited = Duration.zero;
     while (!isConnected && waited < timeout) {
@@ -179,6 +206,7 @@ class ConvexBackend implements ConnectionProbe {
   }) async {
     try {
       await query('rooms:listPublic', const {}).timeout(timeout);
+      _lastProbeOkAt = DateTime.now();
       return true;
     } catch (_) {
       return false;
@@ -191,6 +219,17 @@ class ConvexBackend implements ConnectionProbe {
   /// auto-reconnects. `probeConnection` reveals the deadness; this heals it.
   /// After a rebuild the caller must re-register subscriptions — the web client
   /// resets its query set on reconnect but never replays them.
+  ///
+  /// WEB ONLY in practice, and [ConnectionHealth] calls it only there. On
+  /// native, convex_flutter implements `reconnect()` as `checkConnection()` —
+  /// it re-runs `healthCheckQuery` and reports whether that succeeded, without
+  /// touching the socket. It cannot do otherwise: the Rust client keeps its
+  /// connection in a `OnceCell` and exposes no close/reconnect/dispose, and the
+  /// Dart singleton throws if re-initialized. So on iOS/Android there is no way
+  /// to rebuild a dead socket from here; recovery relies on the Rust client's
+  /// own internal reconnect loop, with `probeConnection` as the observer.
+  /// If a future convex_flutter release adds a real native reconnect, drop the
+  /// `kIsWeb` guard in `ConnectionHealth._loop`.
   @override
   Future<bool> reconnect() async {
     try {

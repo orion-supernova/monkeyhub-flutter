@@ -96,6 +96,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // finishes booting and a signed-in session exists.
   String? _pendingPushRoomId;
 
+  // Last presence status successfully handed to the server, so a lifecycle
+  // sequence that resolves to the same value twice doesn't write twice. Null
+  // means "unknown" — on sign-out, or after a failed write — and always sends.
+  String? _lastSentStatus;
+
   // Alert sounds and the web Notification permission both require a user
   // gesture to activate (browser autoplay policy / Notification.requestPermission
   // being ignored outside a gesture). Prime once, on the first pointer down.
@@ -121,10 +126,23 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // online after closing". See backend presence.ts / users:heartbeat.
   Timer? _presenceHeartbeat;
 
+  /// Deliberately still 30s, even though each beat used to patch the caller's
+  /// `users` row and Convex invalidates every subscription that read that
+  /// document — one beat recomputed the room list and friend list of everyone
+  /// sharing a room or friendship with that user. That storm is real, but the
+  /// fix belongs on the write, not the round-trip: `users.heartbeat` now skips
+  /// the patch while `lastSeen` is still fresh, so most beats are pure reads.
+  ///
+  /// Slowing this down instead would have cost detection latency for no gain —
+  /// [_beat] is also the connectivity canary, and at [heartbeatFailureThreshold]
+  /// consecutive failures a 60s period would take over two minutes to notice a
+  /// socket that froze while still reporting `connected`.
+  static const _heartbeatPeriod = Duration(seconds: 30);
+
   void _startPresenceHeartbeat(String userId) {
     _presenceHeartbeat?.cancel();
     _beat(userId);
-    _presenceHeartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
+    _presenceHeartbeat = Timer.periodic(_heartbeatPeriod, (_) {
       final s = _auth.session;
       if (s == null) {
         _stopPresenceHeartbeat();
@@ -141,7 +159,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _beat(String userId) {
     _api
         .heartbeat(userId: userId)
-        .timeout(const Duration(seconds: 8))
+        // Comfortably above ConnectionHealth.probeTimeout. A canary stricter
+        // than the probe it triggers just manufactures outages: it would call
+        // a merely-slow server dead, start a healing episode, and hand it to a
+        // probe willing to wait longer than the beat that raised the alarm.
+        // Still well inside the 30s period, so beats can't overlap.
+        .timeout(const Duration(seconds: 12))
         .then((_) => _health.noteRoundTrip(ok: true))
         .catchError((_) => _health.noteRoundTrip(ok: false));
   }
@@ -149,6 +172,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   void _stopPresenceHeartbeat() {
     _presenceHeartbeat?.cancel();
     _presenceHeartbeat = null;
+    // Next session starts with no assumption about the stored status.
+    _lastSentStatus = null;
   }
 
   // ───────── connection healing ─────────
@@ -288,13 +313,32 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       AppLifecycleState.hidden => 'away',
       AppLifecycleState.detached => 'offline',
     };
-    // Fire-and-forget — network may be unavailable; status reconciles next foreground.
-    _api.updateStatus(userId: session.userId, status: next).catchError((_) {});
+    // Only write on an actual change. A single lock/unlock walks through
+    // inactive → hidden → inactive → resumed, and three of those four map to
+    // the same 'away' — so the unguarded version fired a burst of mutations at
+    // the exact moment the radio is least able to carry them, at a deployment
+    // where this one-document patch has been seen exceeding Convex's 1s
+    // function limit.
+    if (next != _lastSentStatus) {
+      _lastSentStatus = next;
+      // Fire-and-forget — network may be unavailable; status reconciles next foreground.
+      _api.updateStatus(userId: session.userId, status: next).catchError((_) {
+        // Unknown server state now, so don't let the guard above suppress the
+        // next attempt at the same value.
+        _lastSentStatus = null;
+      });
+    }
     if (state == AppLifecycleState.resumed) {
-      // Socket healing is already under way — setForeground(true) above kicks
-      // ConnectionHealth into an immediate attempt, and unlike the old one-shot
-      // heal it keeps retrying if the radio isn't up yet.
+      // Ask for an attempt at the moment the network is actually back.
       //
+      // setForeground(true) above does kick one off, but on this path it has
+      // already fired — iOS sends `inactive` before `resumed`, both map to
+      // foreground, and ConnectionHealth ignores a setForeground call that
+      // doesn't change the flag. So the only attempt was the one made during
+      // the unlock animation, with the radio still reassociating. The backoff
+      // loop would eventually get there; this just stops us waiting it out.
+      _health.retryNow();
+
       // Re-assert the true badge on foreground. Not a clear — pushes now carry
       // an absolute count, so anything still unread must stay badged.
       BadgeManager.instance.sync();

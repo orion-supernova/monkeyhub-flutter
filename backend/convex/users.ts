@@ -1,6 +1,10 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { effectiveStatus, PRESENCE_OFFLINE_MS } from "./presence";
+import {
+  effectiveStatus,
+  PRESENCE_OFFLINE_MS,
+  PRESENCE_WRITE_INTERVAL_MS,
+} from "./presence";
 import { deleteStored } from "./files";
 import {
   ACCOUNT_ADULT,
@@ -128,9 +132,23 @@ export const updateStatus = mutation({
     if (!allowed.has(status)) return; // ignore unknown values silently
     const user = await ctx.db.get(userId);
     if (!user) return; // user gone — nothing to update
+    // Nothing changed and `lastSeen` is still fresh, so the write would only
+    // move the timestamp — and every write to a `users` row recomputes each
+    // subscription that read it. A lock/unlock cycle sends several transitions
+    // that collapse to the same status; the client suppresses the obvious
+    // repeats, this catches the rest (a second device, a resumed session).
+    // See presence.ts for why the write rate matters here.
+    const now = Date.now();
+    if (
+      user.status === status &&
+      user.lastSeen != null &&
+      now - user.lastSeen < PRESENCE_WRITE_INTERVAL_MS
+    ) {
+      return;
+    }
     await ctx.db.patch(userId, {
       status,
-      lastSeen: Date.now(),
+      lastSeen: now,
     });
   },
 });
@@ -148,7 +166,18 @@ export const heartbeat = mutation({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user || user.status === "offline") return;
-    await ctx.db.patch(userId, { lastSeen: Date.now() });
+    // Usually a pure read. Clients beat every 30s because the round-trip is
+    // also their connectivity canary, but `lastSeen` only needs to stay fresher
+    // than PRESENCE_OFFLINE_MS — and each write here recomputes every
+    // subscription that read this row. See presence.ts.
+    const now = Date.now();
+    if (
+      user.lastSeen != null &&
+      now - user.lastSeen < PRESENCE_WRITE_INTERVAL_MS
+    ) {
+      return;
+    }
+    await ctx.db.patch(userId, { lastSeen: now });
   },
 });
 
@@ -164,10 +193,16 @@ export const sweepStalePresence = internalMutation({
   args: {},
   handler: async (ctx) => {
     const cutoff = Date.now() - PRESENCE_OFFLINE_MS;
+    // Bounded on purpose. This is a backstop, not a deadline — readers already
+    // compute the right answer on the fly via effectiveStatus, so a backlog
+    // costs nothing but a few extra ticks. An unbounded .collect() over a
+    // growing users table is the opposite trade: it eventually exceeds the
+    // read limit or the 1s mutation budget and then the sweep stops working
+    // entirely, silently.
     const stale = await ctx.db
       .query("users")
       .withIndex("by_lastSeen", (q) => q.gt("lastSeen", 0).lt("lastSeen", cutoff))
-      .collect();
+      .take(200);
     for (const u of stale) {
       if (u.status !== "offline") {
         await ctx.db.patch(u._id, { status: "offline" });

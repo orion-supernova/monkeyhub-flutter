@@ -94,10 +94,12 @@ class CoalescingJob {
 ///    was still reassociating after a screen unlock left the app wedged on
 ///    "reconnecting…" until the next foreground — which never came, because the
 ///    app was already foreground.
-///  * **A successful probe is a reconnect edge**, always firing
+///  * **A successful probe is the ONLY reconnect edge**, and it always fires
 ///    [onReconnected]. Previously the banner's own watchdog hid itself on a
 ///    successful probe without telling anyone, so subscriptions stayed dead
-///    behind a healthy-looking UI.
+///    behind a healthy-looking UI. Conversely, a `connected` event on the
+///    stream used to mark us online on its own — see [_onSocketState] for why
+///    that produced a flapping banner and a resubscribe storm.
 ///  * **[onReconnected] only runs after a probe returned true.** That matters
 ///    because every `subscribe()` first waits (up to 10s) for the socket to
 ///    come up; re-subscribing while down would burn that timeout once per
@@ -108,9 +110,9 @@ class ConnectionHealth extends ChangeNotifier {
     required Future<void> Function() onReconnected,
     required bool Function() isActive,
     this.graceDelay = const Duration(milliseconds: 800),
-    this.stalledAfter = const Duration(milliseconds: 3500),
-    this.firstProbeTimeout = const Duration(seconds: 2),
-    this.probeTimeout = const Duration(seconds: 5),
+    this.stalledAfter = const Duration(seconds: 12),
+    this.firstProbeTimeout = const Duration(seconds: 4),
+    this.probeTimeout = const Duration(seconds: 10),
     this.backoff = const [
       Duration(seconds: 1),
       Duration(seconds: 2),
@@ -140,10 +142,20 @@ class ConnectionHealth extends ChangeNotifier {
   final Duration graceDelay;
 
   /// How long before "reconnecting…" escalates to the manual-retry state.
+  ///
+  /// Generous on purpose: "can't reach server" is an alarming thing to show for
+  /// what is often just a slow round-trip. This deployment is small enough that
+  /// a single-document mutation has been observed exceeding Convex's 1s
+  /// function limit under load, so a few seconds of silence is normal, not a
+  /// failure.
   final Duration stalledAfter;
 
-  /// The first probe of an outage is short: it is usually diagnosing an already
-  /// dead socket, and a fast answer gets us to the reconnect+retry cycle sooner.
+  /// The first probe of an outage is shorter than the rest: it is usually
+  /// diagnosing an already dead socket, and a fast answer gets us into the
+  /// retry cycle sooner. Both are sized for a server under load rather than an
+  /// idle one — too tight and the app reports itself offline whenever the
+  /// backend is merely slow, then spends the outage re-registering
+  /// subscriptions, which makes the backend slower still.
   final Duration firstProbeTimeout;
   final Duration probeTimeout;
 
@@ -222,20 +234,43 @@ class ConnectionHealth extends ChangeNotifier {
     _connectivitySub?.cancel();
     _graceTimer?.cancel();
     _stalledTimer?.cancel();
+    _interruptAttempt();
     _wake();
     super.dispose();
   }
 
   // ───────── inputs ─────────
 
+  /// The socket stream is a hint, never a verdict — in both directions.
+  ///
+  /// The native client's state enum has exactly two values, `connected` and
+  /// `connecting`, and it toggles between them every time the Rust client runs
+  /// a lap of its own internal reconnect backoff. Marking ourselves online on
+  /// the rising edge (as this used to) meant every one of those laps produced:
+  /// banner hides → grace → "reconnecting…" → "can't reach server · tap to
+  /// retry" → hides → repeat, with a full [_onReconnected] — 8 subscriptions
+  /// and a signaling restart — fired on each pass. That flap is what a stuck
+  /// reconnect looked like from the outside, and it hammered the server that
+  /// was already too slow to answer.
+  ///
+  /// So a `connected` edge now only means "worth checking again right now":
+  /// reset the backoff and wake the loop. [_markOnline] is reachable solely
+  /// from a probe that actually round-tripped.
   void _onSocketState(bool connected) {
     final wasUp = _socketUp;
     _socketUp = connected;
-    if (connected && !wasUp) {
-      // A genuine reconnect. The web client dropped every subscription.
-      _markOnline();
-    } else if (!connected) {
+    if (!connected) {
       _beginHealing();
+      return;
+    }
+    if (wasUp) return;
+    if (_healing) {
+      _attempt = 0;
+      _interruptAttempt();
+      _wake();
+    } else if (_phase != ConnectionPhase.online) {
+      // Not healing yet somehow reporting an outage — verify and reconcile.
+      unawaited(retryNow());
     }
   }
 
@@ -265,11 +300,17 @@ class ConnectionHealth extends ChangeNotifier {
   }
 
   /// Force an immediate attempt: reset the backoff and skip any pending wait.
-  /// Safe to call repeatedly — a probe already in flight is left to finish.
+  ///
+  /// This must interrupt an attempt already in flight, not wait it out. A
+  /// healing iteration can sit inside a probe for [probeTimeout], and this is
+  /// the method behind the banner's "tap to retry" — it previously only woke
+  /// the backoff sleep, so a tap that landed mid-probe (the likely case, since
+  /// that is most of the cycle) did nothing at all and the banner sat there.
   Future<void> retryNow() async {
     if (_disposed) return;
     _attempt = 0;
     if (_healing) {
+      _interruptAttempt();
       _wake();
       return;
     }
@@ -290,6 +331,34 @@ class ConnectionHealth extends ChangeNotifier {
   // ───────── the recovery loop ─────────
 
   int _attempt = 0;
+
+  /// Non-null only while an attempt is in flight. Completing it makes [_loop]
+  /// stop waiting on that attempt and start a fresh one immediately.
+  ///
+  /// The abandoned probe keeps running underneath — Dart cannot cancel a
+  /// future — but nothing waits on its answer, which is the whole point. A
+  /// probe can occupy [probeTimeout], and this is the path behind the banner's
+  /// "tap to retry": merely discarding the stale result afterwards would still
+  /// have left the user watching a spinner for the rest of the timeout.
+  Completer<void>? _interrupt;
+
+  void _interruptAttempt() {
+    final c = _interrupt;
+    _interrupt = null;
+    if (c != null && !c.isCompleted) c.complete();
+  }
+
+  /// Sentinel distinguishing "interrupted" from a real `false` result.
+  static final Object _interrupted = Object();
+
+  /// Await [work] unless [gate] fires first, in which case return null.
+  Future<bool?> _raceInterrupt(Future<bool> work, Completer<void> gate) async {
+    final r = await Future.any<Object?>([
+      work.then<Object?>((v) => v).catchError((Object _) => false),
+      gate.future.then<Object?>((_) => _interrupted),
+    ]);
+    return identical(r, _interrupted) ? null : r as bool;
+  }
 
   void _beginHealing() {
     if (_disposed || _healing) return;
@@ -314,24 +383,60 @@ class ConnectionHealth extends ChangeNotifier {
   Future<void> _loop() async {
     while (_healing && !_disposed) {
       if (!_foreground || !_isActive()) {
-        // Parked. setForeground(true) / retryNow() wakes us.
+        // Parked. setForeground(true) / retryNow() wakes us. Clear the spinner
+        // first: an interrupted attempt jumps straight back here with
+        // [_retrying] still set, and a parked loop is not retrying anything.
+        _setRetrying(false);
         await _sleep(null);
         continue;
       }
 
+      final gate = _interrupt = Completer<void>();
       _setRetrying(true);
       final quick = _attempt == 0 ? firstProbeTimeout : probeTimeout;
-      var ok = await _backend.probeConnection(timeout: quick);
-      if (!ok && _healing && !_disposed) {
-        // Prod the client into tearing down and rebuilding the socket, then ask
-        // again — reconnect() alone reports optimistically on some platforms.
-        await _backend.reconnect();
-        if (!_healing || _disposed) break;
-        ok = await _backend.probeConnection(timeout: probeTimeout);
+      var ok = await _raceInterrupt(
+        _backend.probeConnection(timeout: quick),
+        gate,
+      );
+
+      // Web only, and deliberately so. There, `reconnect()` is a genuine
+      // teardown and rebuild, which the platform needs: a backgrounded tab's
+      // socket can freeze WITHOUT the browser firing `onclose`, so the client
+      // never heals it on its own.
+      //
+      // On native it is not a reconnect at all. convex_flutter implements it as
+      // `checkConnection()` — the very same health-check query the probe above
+      // just ran, with the client's own 30s operation timeout. It cannot touch
+      // the socket even in principle: the Rust client holds its connection in a
+      // OnceCell and exposes no close, reconnect or dispose. Calling it here
+      // bought nothing, blocked this loop for up to 30s per attempt (which is
+      // what made "tap to retry" feel dead), and tripled the query load on a
+      // server we already suspect of being overloaded. The Rust client runs its
+      // own reconnect loop; the probe above is how we learn whether it worked.
+      if (ok == false && kIsWeb && _healing && !_disposed) {
+        final healed = await _raceInterrupt(
+          _backend.reconnect().timeout(probeTimeout, onTimeout: () => false),
+          gate,
+        );
+        ok = healed == null || healed
+            ? healed
+            // The rebuild claims nothing useful on its own — confirm.
+            : await _raceInterrupt(
+                _backend.probeConnection(timeout: probeTimeout),
+                gate,
+              );
+      }
+      if (_interrupt == gate) _interrupt = null;
+      if (_disposed) return;
+      if (ok == null) {
+        // A manual retry, a connectivity change or a `connected` event landed
+        // mid-attempt. Start over rather than sleep out the backoff. Stay in
+        // the retrying state across the hand-off so the tap that caused it
+        // keeps the spinner up instead of blinking back to the dot.
+        continue;
       }
       _setRetrying(false);
 
-      if (_disposed) return;
       if (ok) {
         _markOnline();
         return;
@@ -373,6 +478,14 @@ class ConnectionHealth extends ChangeNotifier {
   /// Verified online. Always re-registers subscriptions: we may have arrived
   /// here from a probe success that the socket stream never reported, and the
   /// web client does not replay subscriptions after a reconnect.
+  ///
+  /// Deliberately unthrottled. The repeated resubscribes that used to hammer
+  /// the server came from [_onSocketState] marking us online on an unverified
+  /// stream edge, and they are fixed there, at the source: reaching this method
+  /// now costs a full healing episode plus a probe that actually round-tripped,
+  /// which can happen at most once per outage. Rate-limiting the one call that
+  /// keeps subscriptions alive would only reintroduce this file's oldest bug —
+  /// a healthy-looking UI over dead subscriptions.
   void _markOnline() {
     _healing = false;
     _attempt = 0;

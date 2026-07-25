@@ -3,11 +3,20 @@ import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
+// A note on the intervals below. This runs on a small self-hosted box, and
+// every sweep here is an index scan plus a write loop. Several of them used to
+// fire every minute, which on its own is a steady background load competing
+// with the interactive path — a one-document mutation has been observed
+// exceeding Convex's 1s function limit under it. These are all backstops for
+// paths that already clean up after themselves inline, so the cost of running
+// them less often is a slightly longer tail of garbage, not incorrect
+// behaviour. The one exception is called out where it appears.
+
 // Sweep consumed callSignals older than 1 min. The subscription has already
 // delivered them; keeping the rows around bloats the by_to_unconsumed index.
 crons.interval(
   "calls.gcConsumedSignals",
-  { minutes: 1 },
+  { minutes: 2 },
   internal.calls.gcConsumedSignals,
   {},
 );
@@ -26,13 +35,16 @@ crons.interval(
 // edge case where it didn't (backend restart, scheduler glitch, etc.).
 crons.interval(
   "calls.gcStuckRinging",
-  { minutes: 2 },
+  { minutes: 5 },
   internal.calls.gcStuckRinging,
   {},
 );
 
 // Group calls: reap joined participants whose heartbeat went silent and end
 // emptied calls; sweep consumed pair signals. See groupCalls.ts.
+// Stays at 1 minute — the exception noted above. This one is not a garbage
+// collector: a participant whose heartbeat went silent keeps occupying the
+// roster until it runs, so slowing it down is directly visible in a live call.
 crons.interval(
   "groupCalls.gcStaleGroupParticipants",
   { minutes: 1 },
@@ -41,7 +53,7 @@ crons.interval(
 );
 crons.interval(
   "groupCalls.gcConsumedGroupSignals",
-  { minutes: 1 },
+  { minutes: 5 },
   internal.groupCalls.gcConsumedGroupSignals,
   {},
 );
@@ -51,7 +63,7 @@ crons.interval(
 // effectiveStatus; this keeps the stored value honest. See presence.ts.
 crons.interval(
   "users.sweepStalePresence",
-  { minutes: 2 },
+  { minutes: 5 },
   internal.users.sweepStalePresence,
   {},
 );
