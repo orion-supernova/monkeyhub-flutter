@@ -77,9 +77,15 @@ dependencies:
   # (keeps iOS bundle free of unused FirebaseCore/Installations frameworks).
   # The native Android Firebase SDK is pulled in by android/app/build.gradle.kts.
 
-  # WebRTC for 1:1 voice/video calls. Signaling rides on Convex; STUN is
-  # Google's public servers, optional TURN is self-hosted coturn.
-  flutter_webrtc: ^1.5.2
+  # WebRTC for 1:1 + mesh group voice/video calls. Signaling rides on Convex;
+  # STUN is Google's public servers, TURN is self-hosted coturn.
+  # PINNED to 1.4.1: 1.5.x hard-switches iOS to the AVAudioEngine audio
+  # device module with no opt-out and no CallKit coordination, which kills
+  # call audio on the CallKit path (upstream flutter-webrtc #2111, #1996,
+  # #2095, #2098 — confirmed workaround is this downgrade). Re-evaluate the
+  # bump only when upstream ships CallKit handoff for the new ADM, and
+  # device-test 1:1 VIDEO call audio both ways before shipping it.
+  flutter_webrtc: 1.4.1
 
   # Auth / crypto
   crypto: ^3.0.3

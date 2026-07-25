@@ -106,7 +106,10 @@ class _GroupCallBannerState extends State<GroupCallBanner>
     final theme = ThemeScope.of(context);
     final parts = ((call['participants'] as List?) ?? const [])
         .map((e) => (e as Map).cast<String, dynamic>())
-        .where((p) => p['status'] == 'joined')
+        // Only heartbeating participants count — a joined row whose app
+        // died must not advertise a call nobody is in. Missing `live`
+        // (older backend) is treated as live.
+        .where((p) => p['status'] == 'joined' && (p['live'] ?? true) == true)
         .toList(growable: false);
     if (parts.isEmpty) return const SizedBox.shrink();
     final names = parts
@@ -120,12 +123,12 @@ class _GroupCallBannerState extends State<GroupCallBanner>
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        // Opaque themed card — a translucent green wash reads as a glitch on
+        // dark themes. Green stays on the pulse icon and the JOIN pill only.
         decoration: BoxDecoration(
-          color: const Color(0xFF17C964).withValues(alpha: 0.10),
+          color: theme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFF17C964).withValues(alpha: 0.35),
-          ),
+          border: Border.all(color: theme.divider),
         ),
         child: Row(
           children: [
@@ -145,6 +148,7 @@ class _GroupCallBannerState extends State<GroupCallBanner>
                   Text(
                     isVideo ? 'Ongoing video call' : 'Ongoing voice call',
                     style: theme.body.copyWith(
+                      color: theme.ink,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),

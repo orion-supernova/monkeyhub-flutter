@@ -951,10 +951,15 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
     final svc = widget.service;
     if (svc.inCall && _pushedCallId != svc.groupCallId) {
       _pushedCallId = svc.groupCallId;
+      // This overlay sits ABOVE the navigator (MaterialApp.builder), so
+      // Navigator.of(context) finds nothing — route through the root
+      // navigator key, same as _CallOverlay.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.of(context, rootNavigator: true).push(
+        final nav = rootNavigatorKey.currentState;
+        if (nav == null) return;
+        nav.push(
           MaterialPageRoute(
+            fullscreenDialog: true,
             builder: (_) =>
                 GroupCallScreen(service: widget.service, api: widget.api),
           ),
@@ -972,11 +977,12 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
         !_ringerUp) {
       _ringerUp = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        if (!mounted) {
+        final nav = rootNavigatorKey.currentState;
+        if (nav == null) {
           _ringerUp = false;
           return;
         }
-        await Navigator.of(context, rootNavigator: true).push(
+        await nav.push(
           MaterialPageRoute(
             fullscreenDialog: true,
             builder: (_) => IncomingGroupCallScreen(service: widget.service),

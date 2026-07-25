@@ -19,7 +19,11 @@ export const MAX_GROUP_CALL_PARTICIPANTS = 6;
 // discovery surface after that.
 const INVITE_RING_WINDOW_MS = 60 * 1000;
 
-const HEARTBEAT_STALE_MS = 90 * 1000;
+// Joined clients ping every 15s; anything silent for 45s (3 missed beats)
+// counts as dead. The reaper cron formalizes it, but activeForRoom /
+// pendingInviteForUser already hide non-live participants immediately so a
+// killed app never leaves a lingering "ongoing call" banner.
+const HEARTBEAT_STALE_MS = 45 * 1000;
 
 const ONESIGNAL_APP_ID = "c191a9f0-15cf-402a-8a04-dcc16108f4b0";
 const ONESIGNAL_BASE = "https://api.onesignal.com";
@@ -61,6 +65,14 @@ async function joinedParticipants(ctx: any, groupCallId: any) {
     .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
     .collect();
   return rows.filter((r: any) => r.status === "joined");
+}
+
+// Joined AND heartbeating. A row the reaper hasn't flipped yet but whose
+// client is dead must not count toward any user-visible surface.
+function isLive(p: any, now: number): boolean {
+  return (
+    p.status === "joined" && (p.lastSeenAt ?? p.joinedAt ?? 0) > now - HEARTBEAT_STALE_MS
+  );
 }
 
 async function purgeGroupSignals(ctx: any, groupCallId: any) {
@@ -298,12 +310,16 @@ async function inflateParticipants(ctx: any, groupCallId: any) {
     .query("groupCallParticipants")
     .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
     .collect();
+  const now = Date.now();
   const out = [] as any[];
   for (const r of rows) {
     const u = await ctx.db.get(r.userId);
     out.push({
       userId: r.userId,
       status: r.status,
+      // False for a joined row whose client stopped heartbeating (killed
+      // app the reaper hasn't flipped yet) — UI surfaces must ignore it.
+      live: isLive(r, now),
       deviceId: r.deviceId ?? null,
       name: u?.name ?? u?.username ?? "Someone",
       avatarStorageId: u?.avatarStorageId?.toString() ?? null,
@@ -322,6 +338,9 @@ export const activeForRoom = query({
     const call = await activeCallForRoom(ctx, roomId);
     if (!call) return null;
     const participants = await inflateParticipants(ctx, call._id);
+    // A call whose every participant went silent is dead for UI purposes —
+    // hide it now; the reaper cron formalizes the end shortly after.
+    if (!participants.some((p) => p.live)) return null;
     return {
       groupCallId: call._id,
       roomId: call.roomId,
@@ -377,6 +396,9 @@ export const pendingInviteForUser = query({
     const starter = await ctx.db.get(best.call.startedBy);
     const room = await ctx.db.get(best.call.roomId);
     const joined = await joinedParticipants(ctx, best.call._id);
+    const live = joined.filter((p: any) => isLive(p, now));
+    // Everyone who was in the call is gone — nothing to join, don't ring.
+    if (live.length === 0) return null;
     return {
       groupCallId: best.call._id,
       roomId: best.call.roomId,
@@ -384,7 +406,7 @@ export const pendingInviteForUser = query({
       type: best.call.type,
       starterName: starter?.name ?? starter?.username ?? "Someone",
       invitedAt: best.inv.invitedAt,
-      joinedCount: joined.length,
+      joinedCount: live.length,
     };
   },
 });

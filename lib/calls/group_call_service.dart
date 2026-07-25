@@ -216,7 +216,9 @@ class GroupCallService extends ChangeNotifier {
     }
 
     _heartbeat?.cancel();
-    _heartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
+    // 15s beat against the server's 45s stale window (3 missed beats) —
+    // keeps the room banner honest within ~a minute of an app dying.
+    _heartbeat = Timer.periodic(const Duration(seconds: 15), (_) {
       final id = _groupCallId;
       if (id == null) return;
       unawaited(
