@@ -80,13 +80,31 @@ class ChatRepository extends ChangeNotifier {
   // four-subscription cascade.
   final Map<String, String?> _lastSeenNewestMsgId = {};
 
-  // Map of roomId → the users currently typing there (other users only).
-  // Full [ChatUser]s rather than bare names so the indicator can render real
-  // avatars for multi-person typing; the backend returns the same key shape
-  // `ChatUser.fromJson` expects.
+  // Map of roomId → the users currently typing there, from the global
+  // subscription. NAME-ONLY: `typing:getTypingForUser` returns bare strings,
+  // so these carry no id and no avatar. Good enough for the room list, which
+  // renders a label.
   final Map<String, List<ChatUser>> _typingByRoom = {};
-  List<ChatUser> typingIn(String roomId) =>
-      List.unmodifiable(_typingByRoom[roomId] ?? const []);
+
+  // The open room's typists, from `typing:getTypingUsers` — full [ChatUser]s
+  // with avatarStorageId, which is what the in-room indicator needs to draw
+  // real faces.
+  //
+  // Held apart from [_typingByRoom] rather than written into it: both
+  // subscriptions fire on the same keystroke, the global one rebuilds its
+  // whole map from scratch, and whichever landed last won. Half the time that
+  // was the name-only stream, which is why the in-room avatars kept falling
+  // back to initials.
+  String? _openTypingRoomId;
+  List<ChatUser> _openTypingUsers = const [];
+
+  List<ChatUser> typingIn(String roomId) => List.unmodifiable(
+        // The room's own subscription is authoritative for the room it covers,
+        // including when it says nobody is typing.
+        roomId == _openTypingRoomId
+            ? _openTypingUsers
+            : (_typingByRoom[roomId] ?? const []),
+      );
 
   Subscription? _roomsSub;
   Subscription? _friendsSub;
@@ -235,8 +253,8 @@ class ChatRepository extends ChangeNotifier {
               // This stream carries names only — the room list renders a
               // label, not avatars. Wrapped in a name-only [ChatUser] so the
               // shared typing widgets take one type regardless of which
-              // subscription filled the map. The open room's subscription
-              // (below) overwrites its entry with fully-populated users.
+              // subscription filled the map. [typingIn] prefers the open
+              // room's richer entry over anything written here.
               _typingByRoom[roomId.toString()] = names
                   .map((e) => e.toString())
                   .where((s) => s.isNotEmpty)
@@ -296,6 +314,8 @@ class ChatRepository extends ChangeNotifier {
     _pending.clear();
     _lastSeenNewestMsgId.clear();
     _typingByRoom.clear();
+    _openTypingRoomId = null;
+    _openTypingUsers = const [];
     notifyListeners();
   }
 
@@ -359,6 +379,11 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
+    // Dropped here rather than beside the new subscription below: several
+    // awaits separate the two, and until then the old room would keep serving
+    // whoever was typing in it when we left.
+    _openTypingRoomId = null;
+    _openTypingUsers = const [];
     _activeReadState.clear();
     _initialLoaded.remove(roomId);
     final me = _userId;
@@ -450,12 +475,13 @@ class ChatRepository extends ChangeNotifier {
     }
     final id = _userId;
     if (id != null) {
+      _openTypingRoomId = roomId;
       _activeTypingSub = await cv.subscribe(
         'typing:getTypingUsers',
         {'roomId': roomId, 'currentUserId': id},
         onData: (data) {
           final list = (data as List?) ?? const [];
-          _typingByRoom[roomId] = list
+          _openTypingUsers = list
               .whereType<Map>()
               .map((e) => ChatUser.fromJson(e.cast<String, dynamic>()))
               .toList();
@@ -475,6 +501,9 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub = null;
     _readStateSub = null;
     _activeRoomId = null;
+    // Hand the room back to the global stream's name-only entry.
+    _openTypingRoomId = null;
+    _openTypingUsers = const [];
     _activeReadState.clear();
     _loadingOlder.clear();
     _exhausted.clear();

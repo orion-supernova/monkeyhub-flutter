@@ -891,6 +891,9 @@ class _RoomScreenState extends State<RoomScreen>
               items,
               me,
               listPadding: const EdgeInsets.fromLTRB(20 - _kRailGutter, 12, 20, 24),
+              // Classic already says who's typing in its header — a second
+              // indicator at the bottom of the transcript would say it twice.
+              showTypingRow: false,
             ),
           ),
           // Same column as the messages above, so the composer lines up with
@@ -975,13 +978,6 @@ class _RoomScreenState extends State<RoomScreen>
               child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Floats above the composer rather than adding to `chromeH`,
-                // so the message list's padding stays correct and the pill
-                // simply hovers over the last message while it's showing.
-                TypingPill(
-                  typists: widget.repo.typingIn(room.id),
-                  api: widget.api,
-                ),
                 if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
@@ -1020,9 +1016,19 @@ class _RoomScreenState extends State<RoomScreen>
     List<RoomItem> items,
     String me, {
     required EdgeInsets listPadding,
+    bool showTypingRow = true,
   }) {
     final theme = ThemeScope.of(context);
     final initialLoaded = widget.repo.hasLoadedInitial(widget.roomId);
+    // Reserved unconditionally in the compact style: the row collapses to zero
+    // height on its own when nobody is typing, so the item count stays fixed
+    // and every index below shifts by exactly this much.
+    final typingRows = showTypingRow ? 1 : 0;
+    Widget typingRow() => TypingRow(
+          typists: widget.repo.typingIn(room.id),
+          api: widget.api,
+          showAvatars: !room.isDm,
+        );
     // Recorded for _recomputePositionState — must match the Positioned.top
     // applied to the chip below so the overlap math reflects the real rect.
     _chipRestingY = listPadding.top + 4;
@@ -1035,16 +1041,31 @@ class _RoomScreenState extends State<RoomScreen>
           ? null
           : () => FocusManager.instance.primaryFocus?.unfocus(),
       child: messages.isEmpty
-          ? (!initialLoaded
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: theme.accent,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : (room.isEphemeral
-                      ? _SecretSpaceWelcome(ttl: room.messageLifetime)
-                      : const _NoMessagesPlaceholder()))
+          ? Stack(
+              children: [
+                Positioned.fill(
+                  child: !initialLoaded
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: theme.accent,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : (room.isEphemeral
+                          ? _SecretSpaceWelcome(ttl: room.messageLifetime)
+                          : const _NoMessagesPlaceholder()),
+                ),
+                // There is no list to append to yet, but a DM where the other
+                // person types first is exactly the moment you want to see it.
+                if (showTypingRow)
+                  Positioned(
+                    left: listPadding.left + _kRailGutter,
+                    right: listPadding.right,
+                    bottom: listPadding.bottom,
+                    child: ChatColumn(child: typingRow()),
+                  ),
+              ],
+            )
           : Stack(
               children: [
                 // The conversation fills its pane and only caps out on very
@@ -1063,9 +1084,16 @@ class _RoomScreenState extends State<RoomScreen>
                   reverse: true,
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: listPadding,
-                  itemCount: items.length,
+                  itemCount: items.length + typingRows,
                   itemBuilder: (context, i) {
-                    final item = items[i];
+                    // reverse: true — index 0 is the bottom of the transcript,
+                    // which is where a message that hasn't been sent yet
+                    // belongs. Railed like every other row so it shares the
+                    // gutter and lands at the same left edge as the bubbles.
+                    if (typingRows == 1 && i == 0) {
+                      return _railed(const [], typingRow());
+                    }
+                    final item = items[i - typingRows];
                     if (item is IntroItem) {
                       return _railed(
                         const [],
@@ -1110,6 +1138,19 @@ class _RoomScreenState extends State<RoomScreen>
                     final showReplyTether = messageItem.showReplyTether;
                 final author = _members[m.senderId];
                 final isMine = m.senderId == me;
+                // A run is bracketed: name on the row that opens it, avatar on
+                // the row that closes it. A run of one keeps the avatar at the
+                // top, where it has always been — there is no block to close.
+                final showAvatar = messageItem.lastInRun;
+                final avatarAtBottom = messageItem.lastInRun && grouped;
+                // `author` is null until rooms:getMembers lands, and optimistic
+                // local sends carry an empty senderName — both mean "no name to
+                // show yet" rather than a blank line.
+                final senderName = (isMine || room.isDm || grouped)
+                    ? null
+                    : (author?.displayName.trim().isNotEmpty ?? false
+                        ? author!.displayName
+                        : (m.senderName.trim().isEmpty ? null : m.senderName));
                 final othersRead = widget.repo.latestOthersReadAt;
                 final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
                 final isPending = m.id.startsWith('tmp_');
@@ -1137,6 +1178,9 @@ class _RoomScreenState extends State<RoomScreen>
                       final parentAuthor = m.isReply
                           ? _members[m.replyToPreview?.senderId]
                           : null;
+                      // Same avatar/name geometry as the row it lifted off, so
+                      // the preview reads as that exact bubble rather than a
+                      // subtly different one.
                       return m.isEphemeral
                           ? EphemeralMessageBubble(
                               message: m,
@@ -1145,6 +1189,10 @@ class _RoomScreenState extends State<RoomScreen>
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
+                              showAvatarSlot: !room.isDm,
+                              showAvatar: showAvatar,
+                              avatarAtBottom: avatarAtBottom,
+                              senderName: senderName,
                             )
                           : MessageBubble(
                               message: m,
@@ -1154,6 +1202,10 @@ class _RoomScreenState extends State<RoomScreen>
                               author: author,
                               parentAuthor: parentAuthor,
                               seenByOthers: seenByOthers,
+                              showAvatarSlot: !room.isDm,
+                              showAvatar: showAvatar,
+                              avatarAtBottom: avatarAtBottom,
+                              senderName: senderName,
                             );
                     },
                   );
@@ -1239,6 +1291,10 @@ class _RoomScreenState extends State<RoomScreen>
                         seenByOthers: seenByOthers,
                         showReplyIndicator: showReplyTether,
                         grouped: grouped,
+                        showAvatarSlot: !room.isDm,
+                        showAvatar: showAvatar,
+                        avatarAtBottom: avatarAtBottom,
+                        senderName: senderName,
                       )
                     : MessageBubble(
                         key: ValueKey('s_${m.id}'),
@@ -1259,6 +1315,10 @@ class _RoomScreenState extends State<RoomScreen>
                         seenByOthers: seenByOthers,
                         showReplyIndicator: showReplyTether,
                         grouped: grouped,
+                        showAvatarSlot: !room.isDm,
+                        showAvatar: showAvatar,
+                        avatarAtBottom: avatarAtBottom,
+                        senderName: senderName,
                       );
                 return _trackedDate(
                   stableId: 'm_${m.id}',

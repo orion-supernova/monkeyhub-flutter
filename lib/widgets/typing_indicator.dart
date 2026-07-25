@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_user.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import 'liquid_glass.dart';
 import 'user_avatar.dart';
 
 /// Wording for "who is typing", shared by every surface that shows it — the
@@ -87,40 +85,59 @@ class _TypingDotsState extends State<TypingDots>
 }
 
 /// Overlapping avatars for everyone currently typing, newest-first, capped so
-/// a busy room doesn't push the label off screen.
+/// a busy room doesn't push the row off screen.
 class _TypistAvatars extends StatelessWidget {
   const _TypistAvatars({required this.typists, required this.api});
 
   final List<ChatUser> typists;
   final ChatApi? api;
 
-  static const size = 20.0;
+  /// The message row's own avatar size, so one person typing puts the dots
+  /// exactly where that person's next bubble will appear. Extra typists
+  /// overlap into the same slot and widen it from there.
+  static const size = 28.0;
 
   static const _max = 3;
+
+  /// Gap punched around a stacked avatar so it reads as separate from the one
+  /// behind it. Taken OUT of the avatar rather than added around it: a border
+  /// grows its box, and a 31px circle in a 28px slot got clipped square by the
+  /// Stack — flat top and bottom on every face.
+  static const _ring = 1.5;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final shown = typists.take(_max).toList();
     final overlap = size * 0.35;
+    final stacked = shown.length > 1;
+    // One typist needs no separator, and without it the avatar is pixel-for-
+    // pixel the one on their messages.
+    final inset = stacked ? _ring : 0.0;
     return SizedBox(
       width: size + (shown.length - 1) * (size - overlap),
       height: size,
       child: Stack(
+        // UserAvatar paints a soft glow outside its own box; the default hard
+        // edge would shave it off flat against the slot.
+        clipBehavior: Clip.none,
         children: [
           for (var i = 0; i < shown.length; i++)
             Positioned(
               left: i * (size - overlap),
               child: Container(
+                width: size,
+                height: size,
+                padding: EdgeInsets.all(inset),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  // A hairline ring in the surface colour separates stacked
-                  // avatars from each other rather than letting them smear.
-                  border: Border.all(color: theme.surface, width: 1.5),
+                  // Shows through the padding as a hairline ring, so stacked
+                  // avatars separate instead of smearing into each other.
+                  color: stacked ? theme.surface : null,
                 ),
                 child: UserAvatar(
                   user: shown[i],
-                  size: size,
+                  size: size - inset * 2,
                   api: api,
                   showStatus: false,
                 ),
@@ -132,31 +149,41 @@ class _TypistAvatars extends StatelessWidget {
   }
 }
 
-/// The compact-design in-room indicator: a frosted capsule that floats just
-/// above the composer, showing who's typing with stacked avatars and dots.
+/// The in-room indicator: a message row that hasn't arrived yet — the typist's
+/// avatar, then three dots inside an incoming bubble. It is the newest row of
+/// the transcript, so it lines up with the conversation above it and pushes it
+/// up exactly like a real message would.
 ///
 /// Renders nothing (and occupies no height) when nobody is typing, so it can
-/// be dropped straight into the compact chrome column without disturbing the
-/// message list's padding — it hovers over the conversation the same way
-/// `_FloatingDateChip` does.
-class TypingPill extends StatefulWidget {
-  const TypingPill({super.key, required this.typists, this.api});
+/// live permanently at the bottom of the list without a conditional item
+/// count.
+class TypingRow extends StatefulWidget {
+  const TypingRow({
+    super.key,
+    required this.typists,
+    this.api,
+    this.showAvatars = true,
+  });
 
   final List<ChatUser> typists;
   final ChatApi? api;
 
+  /// False in DMs, matching the bubbles above: with one other person in the
+  /// room, whose dots these are was never in question.
+  final bool showAvatars;
+
   @override
-  State<TypingPill> createState() => _TypingPillState();
+  State<TypingRow> createState() => _TypingRowState();
 }
 
-class _TypingPillState extends State<TypingPill> {
-  /// The last non-empty set of typists. Held so the pill can keep rendering
-  /// real names and avatars while it animates *out* — dropping straight to the
-  /// live (now empty) list would blank the text mid-fade.
+class _TypingRowState extends State<TypingRow> {
+  /// The last non-empty set of typists. Held so the row can keep rendering real
+  /// avatars while it animates *out* — dropping straight to the live (now
+  /// empty) list would blank them mid-fade.
   List<ChatUser> _last = const [];
 
   @override
-  void didUpdateWidget(TypingPill old) {
+  void didUpdateWidget(TypingRow old) {
     super.didUpdateWidget(old);
     if (widget.typists.isNotEmpty) _last = widget.typists;
   }
@@ -174,7 +201,7 @@ class _TypingPillState extends State<TypingPill> {
     final shown = visible ? widget.typists : _last;
     return IgnorePointer(
       // AnimatedSize collapses the reserved height once the fade-out finishes,
-      // so an idle room gives the composer back its space without the pill
+      // so an idle room gives the space back to the transcript without the row
       // popping out of existence.
       child: AnimatedSize(
         duration: const Duration(milliseconds: 220),
@@ -197,51 +224,33 @@ class _TypingPillState extends State<TypingPill> {
             child: shown.isEmpty
                 ? const SizedBox(width: double.infinity, height: 0)
                 : Padding(
-                    // 16 matches the compact composer's own inset rather than
-                    // the transcript's 20: the pill floats directly above the
-                    // composer, so a stagger against the capsule 8px below it
-                    // reads louder than a 4px offset from bubbles further up.
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      // The capsule hugs its row, so it is normally just wide
-                      // enough for "mom is typing…". The cap only bites when a
-                      // busy room produces a long label: it then ellipsizes at
-                      // the same width a message bubble would, instead of
-                      // running the full width of a desktop chat column.
-                      child: ConstrainedBox(
-                        constraints:
-                            BoxConstraints(maxWidth: messageMaxWidth(context)),
-                        child: LiquidGlass(
-                          shape: LiquidGlassShape.capsule,
-                          // Tight on the avatar side (a circle needs no help
-                          // from the stadium cap), roomier past the dots so
-                          // they don't crowd the curve.
-                          padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _TypistAvatars(typists: shown, api: widget.api),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  typingLabel(shown),
-                                  // Status, not content — reads as chrome
-                                  // beside the messages it sits over.
-                                  style: theme.monoTiny
-                                      .copyWith(color: theme.inkSoft),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // 4 to match TypingLine, and proportionate to
-                              // monoTiny — at 5 the dots outweighed the label.
-                              TypingDots(color: theme.accent, size: 4),
-                            ],
+                    // Matches MessageBubble's own vertical inset for an
+                    // ungrouped row, so the dots sit off the last bubble by
+                    // the same gap two messages sit off each other.
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      // The dots bubble is short enough that this rarely
+                      // differs from centre, but it keeps the avatar sitting
+                      // on the bubble's baseline the way a run's closing
+                      // avatar does.
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (widget.showAvatars) ...[
+                          _TypistAvatars(typists: shown, api: widget.api),
+                          const SizedBox(width: 8),
+                        ],
+                        Container(
+                          // The incoming-bubble decoration itself, so the row
+                          // inherits every theme's bubble treatment for free
+                          // and reads as a message that hasn't landed yet.
+                          decoration: theme.messageBubbleDecoration(
+                            isMine: false,
+                            ephemeral: false,
                           ),
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                          child: TypingDots(color: theme.inkSoft, size: 5),
                         ),
-                      ),
+                      ],
                     ),
                   ),
           ),

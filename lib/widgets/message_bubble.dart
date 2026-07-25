@@ -41,6 +41,10 @@ class MessageBubble extends StatelessWidget {
     this.showReplyIndicator = true,
     this.seenByOthers = false,
     this.grouped = false,
+    this.showAvatarSlot = true,
+    this.showAvatar = true,
+    this.avatarAtBottom = false,
+    this.senderName,
   });
 
   final ChatMessage message;
@@ -81,11 +85,29 @@ class MessageBubble extends StatelessWidget {
 
   final bool seenByOthers;
 
-  /// When true this message continues a run from the same sender: the avatar
-  /// slot renders empty (the space is still reserved so the left edge doesn't
-  /// shift) and the vertical gap tightens. Nothing collapses the run's meta
-  /// rows — SENDING / FAILED / SEEN stay per-message.
+  /// When true this message continues a run from the same sender: the vertical
+  /// gap tightens and [senderName] is left null by the caller. Nothing
+  /// collapses the run's meta rows — SENDING / FAILED / SEEN stay per-message.
   final bool grouped;
+
+  /// Whether the leading avatar column exists at all. False in DMs, where
+  /// there is only one other person and a face on every row is pure noise —
+  /// the bubble then starts at the transcript's left edge.
+  final bool showAvatarSlot;
+
+  /// Whether *this* row is the one that draws the avatar. False renders the
+  /// slot as empty space of the same size, so the bubble's left edge doesn't
+  /// shift between rows of a run — or while `author` is still resolving.
+  final bool showAvatar;
+
+  /// Aligns the avatar with the bubble's bottom edge instead of its top. Set
+  /// on the last row of a multi-message run, where the face closes a block
+  /// the sender's name opened.
+  final bool avatarAtBottom;
+
+  /// Rendered above the bubble when non-null. Callers pass it only on the
+  /// first row of a run, and never for the current user or in a DM.
+  final String? senderName;
 
   @override
   Widget build(BuildContext context) {
@@ -139,56 +161,42 @@ class MessageBubble extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
-      child: Row(
-        mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isMine) ...[
-            // Reserve the avatar slot unconditionally — when `author`
-            // arrives async (cold room entry, scroll-into-view, etc.),
-            // popping a 28+8 px chunk into the row would visibly nudge
-            // the bubble rightward by 36 px. Holding the space keeps the
-            // left edge stable.
-            _AvatarSlot(
-              author: author,
-              api: api,
-              onTap: onAuthorTap,
-              collapsed: grouped,
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onLongPress: onLongPress,
-                  onDoubleTap: onDoubleTap,
-                  // Desktop/trackpad right-click opens the same action menu,
-                  // anchored to the same bubble rect. No platform gate needed —
-                  // touch devices never produce a secondary tap.
-                  onSecondaryTap: onLongPress,
-                  child: bubbleArea,
+      child: _BubbleLayout(
+        isMine: isMine,
+        showAvatarSlot: showAvatarSlot,
+        avatarAtBottom: avatarAtBottom,
+        senderName: senderName,
+        avatar: _AvatarSlot(
+          author: author,
+          api: api,
+          onTap: onAuthorTap,
+          collapsed: !showAvatar,
+        ),
+        bubble: GestureDetector(
+          onLongPress: onLongPress,
+          onDoubleTap: onDoubleTap,
+          // Desktop/trackpad right-click opens the same action menu,
+          // anchored to the same bubble rect. No platform gate needed —
+          // touch devices never produce a secondary tap.
+          onSecondaryTap: onLongPress,
+          child: bubbleArea,
+        ),
+        reactions: message.reactions.isNotEmpty && onReactionTap != null
+            ? ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: ReactionRow(
+                  reactions: message.reactions,
+                  currentUserId: currentUserId,
+                  onToggle: onReactionTap!,
+                  alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
                 ),
-                if (message.reactions.isNotEmpty && onReactionTap != null)
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: ReactionRow(
-                      reactions: message.reactions,
-                      currentUserId: currentUserId,
-                      onToggle: onReactionTap!,
-                      alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
-                    ),
-                  ),
-                _MetaRow(
-                  message: message,
-                  isMine: isMine,
-                  seenByOthers: seenByOthers,
-                ),
-              ],
-            ),
-          ),
-        ],
+              )
+            : null,
+        meta: _MetaRow(
+          message: message,
+          isMine: isMine,
+          seenByOthers: seenByOthers,
+        ),
       ),
     );
   }
@@ -227,6 +235,10 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.showReplyIndicator = true,
     this.seenByOthers = false,
     this.grouped = false,
+    this.showAvatarSlot = true,
+    this.showAvatar = true,
+    this.avatarAtBottom = false,
+    this.senderName,
   });
   final ChatMessage message;
   final DateTime now;
@@ -245,11 +257,20 @@ class EphemeralMessageBubble extends StatelessWidget {
   final bool showReplyIndicator;
   final bool seenByOthers;
 
-  /// When true this message continues a run from the same sender: the avatar
-  /// slot renders empty (the space is still reserved so the left edge doesn't
-  /// shift) and the vertical gap tightens. Nothing collapses the run's meta
-  /// rows — SENDING / FAILED / SEEN stay per-message.
+  /// See [MessageBubble.grouped].
   final bool grouped;
+
+  /// See [MessageBubble.showAvatarSlot].
+  final bool showAvatarSlot;
+
+  /// See [MessageBubble.showAvatar].
+  final bool showAvatar;
+
+  /// See [MessageBubble.avatarAtBottom].
+  final bool avatarAtBottom;
+
+  /// See [MessageBubble.senderName].
+  final String? senderName;
 
   @override
   Widget build(BuildContext context) {
@@ -333,61 +354,144 @@ class EphemeralMessageBubble extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
       child: Transform.translate(
         offset: Offset(0, -dissolveT * 10),
-        child: Row(
-          mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isMine) ...[
-              Opacity(
-                opacity: 1 - dissolveT * 0.7,
-                child: _AvatarSlot(
-                  author: author,
-                  api: api,
-                  onTap: onAuthorTap,
-                  collapsed: grouped,
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Column(
-                crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onLongPress: onLongPress,
-                    onDoubleTap: onDoubleTap,
-                    // See MessageBubble above — right-click mirrors long-press.
-                    onSecondaryTap: onLongPress,
-                    child: bubbleArea,
-                  ),
-                  if (message.reactions.isNotEmpty && onReactionTap != null)
-                    Opacity(
-                      opacity: 1 - dissolveT,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxWidth),
-                        child: ReactionRow(
-                          reactions: message.reactions,
-                          currentUserId: currentUserId,
-                          onToggle: onReactionTap!,
-                          alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
-                        ),
-                      ),
-                    ),
-                  Opacity(
-                    opacity: 1 - dissolveT,
-                    child: _MetaRow(
-                      message: message,
-                      isMine: isMine,
-                      countdown: message.timeLeft(now),
-                      seenByOthers: seenByOthers,
-                    ),
-                  ),
-                ],
-              ),
+        child: _BubbleLayout(
+          isMine: isMine,
+          showAvatarSlot: showAvatarSlot,
+          avatarAtBottom: avatarAtBottom,
+          senderName: senderName,
+          nameOpacity: 1 - dissolveT,
+          avatar: Opacity(
+            opacity: 1 - dissolveT * 0.7,
+            child: _AvatarSlot(
+              author: author,
+              api: api,
+              onTap: onAuthorTap,
+              collapsed: !showAvatar,
             ),
-          ],
+          ),
+          bubble: GestureDetector(
+            onLongPress: onLongPress,
+            onDoubleTap: onDoubleTap,
+            // See MessageBubble above — right-click mirrors long-press.
+            onSecondaryTap: onLongPress,
+            child: bubbleArea,
+          ),
+          reactions: message.reactions.isNotEmpty && onReactionTap != null
+              ? Opacity(
+                  opacity: 1 - dissolveT,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: ReactionRow(
+                      reactions: message.reactions,
+                      currentUserId: currentUserId,
+                      onToggle: onReactionTap!,
+                      alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
+                    ),
+                  ),
+                )
+              : null,
+          meta: Opacity(
+            opacity: 1 - dissolveT,
+            child: _MetaRow(
+              message: message,
+              isMine: isMine,
+              countdown: message.timeLeft(now),
+              seenByOthers: seenByOthers,
+            ),
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// The row scaffold both bubble variants share: an optional sender name, the
+/// avatar-and-bubble row, then reactions and the meta row.
+///
+/// Reactions and the meta row deliberately sit OUTSIDE the row rather than in
+/// a column beside the avatar. That is what lets [avatarAtBottom] mean the
+/// bubble's bottom edge — inside the row, "bottom" would be the bottom of the
+/// timestamp, dropping the face a line and a half below the bubble it belongs
+/// to. Everything outside the row is instead indented by the avatar's width so
+/// it still lines up with the bubble.
+class _BubbleLayout extends StatelessWidget {
+  const _BubbleLayout({
+    required this.isMine,
+    required this.showAvatarSlot,
+    required this.avatarAtBottom,
+    required this.senderName,
+    required this.avatar,
+    required this.bubble,
+    required this.reactions,
+    required this.meta,
+    this.nameOpacity = 1,
+  });
+
+  final bool isMine;
+  final bool showAvatarSlot;
+  final bool avatarAtBottom;
+  final String? senderName;
+  final Widget avatar;
+  final Widget bubble;
+  final Widget? reactions;
+  final Widget meta;
+  final double nameOpacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final name = senderName;
+    // The avatar column exists only for incoming messages, and only outside a
+    // DM. When it does, everything below the bubble row shifts right by the
+    // same amount so the whole block reads as one left edge.
+    final leads = !isMine && showAvatarSlot;
+    final leadingIndent = leads ? _AvatarSlot._size + 8 : 0.0;
+    return Column(
+      crossAxisAlignment:
+          isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        if (name != null && name.isNotEmpty)
+          Padding(
+            // +4 matches _MetaRow's own inset, so the name and the timestamp
+            // bracketing the run sit on the same line.
+            padding: EdgeInsets.only(left: leadingIndent + 4, bottom: 2),
+            child: Opacity(
+              opacity: nameOpacity,
+              child: Text(
+                name,
+                // Deliberately NOT the uppercased monoTiny that reply
+                // indicators and the composer card use: those are labels, this
+                // is a person. mono has no letter-spacing and enough size to
+                // read as a name, and stays clear of the 9px timestamp below.
+                style: theme.mono.copyWith(
+                  color: theme.accent.withValues(alpha: 0.95),
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        Row(
+          mainAxisAlignment:
+              isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment:
+              avatarAtBottom ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            if (leads) ...[avatar, const SizedBox(width: 8)],
+            Flexible(child: bubble),
+          ],
+        ),
+        if (reactions != null)
+          Padding(
+            padding: EdgeInsets.only(left: leadingIndent),
+            child: reactions,
+          ),
+        Padding(
+          padding: EdgeInsets.only(left: leadingIndent),
+          child: meta,
+        ),
+      ],
     );
   }
 }
@@ -558,9 +662,9 @@ class _AvatarSlot extends StatelessWidget {
   final ChatApi api;
   final VoidCallback? onTap;
 
-  /// Renders empty at the same size — used for grouped runs, where repeating
-  /// the avatar on every bubble is what makes five consecutive messages read
-  /// as five separate cards.
+  /// Renders empty at the same size — every row of a run except the one that
+  /// closes it. Repeating the avatar on every bubble is what made five
+  /// consecutive messages read as five separate cards.
   final bool collapsed;
 
   static const double _size = 28;

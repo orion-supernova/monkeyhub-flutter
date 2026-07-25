@@ -45,16 +45,26 @@ class MessageItem extends RoomItem {
   MessageItem(
     this.message, {
     this.grouped = false,
+    this.lastInRun = true,
     this.showReplyTether = true,
     this.rails = const [],
   });
 
   final ChatMessage message;
 
-  /// Continues a run from the same sender: the avatar collapses to empty
-  /// space and the vertical gap tightens, so five replies in a row read as
-  /// one block instead of five separate cards.
+  /// Continues a run from the same sender: the sender's name is not repeated
+  /// and the vertical gap tightens, so five replies in a row read as one
+  /// block instead of five separate cards.
   final bool grouped;
+
+  /// Closes a run — nothing below it continues the same sender. This is the
+  /// row that carries the avatar, so a run is bracketed by its name at the
+  /// top and its face at the bottom. Not final: it can only be known once the
+  /// *next* row is emitted, so pass 2 flips it back on the row above.
+  ///
+  /// Note `lastInRun && !grouped` means a run of exactly one — the avatar
+  /// then stays top-aligned, since there is no run for it to close.
+  bool lastInRun;
 
   /// Whether to render the inline quoted parent. False when the parent is
   /// the bubble directly above — the quote would just duplicate a message
@@ -153,6 +163,22 @@ const int kMinFoldedMessages = 2;
 /// threads simply go without one, rather than crowding the gutter.
 const int kMaxRailLanes = 2;
 
+/// Whether [m] continues [prev]'s run: same sender, same day, close in time,
+/// and not interrupted by a visible quoted parent — a tether starts a new
+/// visual beat. Shared with the thread overlay, which renders the same bubbles
+/// against its own list and used to carry a hand-copied version of this rule.
+bool continuesRun(
+  ChatMessage? prev,
+  ChatMessage m, {
+  required bool showTether,
+  bool startsDay = false,
+}) =>
+    !startsDay &&
+    prev != null &&
+    prev.senderId == m.senderId &&
+    !showTether &&
+    m.createdAt.difference(prev.createdAt).inMinutes < 5;
+
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
   required List<ChatMessage> messages,
   required bool roomIsEphemeral,
@@ -233,6 +259,9 @@ const int kMaxRailLanes = 2;
 
   DateTime? lastDay;
   ChatMessage? prevVisible;
+  // The most recently emitted message row, so a grouped row can reach back and
+  // clear its predecessor's `lastInRun`.
+  MessageItem? prevRow;
 
   for (final m in messages) {
     final fold = foldAt[m.id];
@@ -277,16 +306,21 @@ const int kMaxRailLanes = 2;
     final showTether =
         m.isReply && (prevVisible == null || m.replyToId != prevVisible.id);
 
-    // A run is same sender, same day, close in time, and not interrupted by a
-    // tether — a visible quote starts a new visual beat. Folds don't need a
-    // clause here: they always emit a chip, and the chip clears prevVisible.
-    final grouped = !startsDay &&
-        prevVisible != null &&
-        prevVisible.senderId == m.senderId &&
-        !showTether &&
-        m.createdAt.difference(prevVisible.createdAt).inMinutes < 5;
+    // Folds don't need a clause here: they always emit a chip, and the chip
+    // clears prevVisible.
+    final grouped = continuesRun(
+      prevVisible,
+      m,
+      showTether: showTether,
+      startsDay: startsDay,
+    );
 
-    out.add(MessageItem(m, grouped: grouped, showReplyTether: showTether));
+    // The row above only stays a run's last once nothing continues it.
+    if (grouped) prevRow?.lastInRun = false;
+
+    final row = MessageItem(m, grouped: grouped, showReplyTether: showTether);
+    out.add(row);
+    prevRow = row;
     if (threads[m.threadKey]!.length > 1) {
       threadRows.putIfAbsent(m.threadKey, () => <int>[]).add(out.length - 1);
     }
@@ -375,6 +409,7 @@ RoomItem _withRails(RoomItem item, List<RailSegment> rails) {
     return MessageItem(
       item.message,
       grouped: item.grouped,
+      lastInRun: item.lastInRun,
       showReplyTether: item.showReplyTether,
       rails: rails,
     );

@@ -11,6 +11,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../screens/profile_screen.dart';
+import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'anchored_scroll.dart';
@@ -494,9 +495,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
     required bool showReplyIndicator,
     required bool interactive,
     bool grouped = false,
+    bool lastInRun = true,
     double highlightT = 0,
   }) {
     final me = widget.repo.userId ?? '';
+    final isDm = widget.repo.roomById(widget.roomId)?.isDm ?? false;
+    // Same bracketing as the room transcript — see room_screen's builder.
+    final name = (m.senderId == me || isDm || grouped)
+        ? null
+        : (author?.displayName.trim().isNotEmpty ?? false
+            ? author!.displayName
+            : (m.senderName.trim().isEmpty ? null : m.senderName));
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
         message: m,
@@ -506,6 +515,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
         author: author,
         useHero: false,
         grouped: grouped,
+        showAvatarSlot: !isDm,
+        showAvatar: lastInRun,
+        avatarAtBottom: lastInRun && grouped,
+        senderName: name,
         highlightT: highlightT,
         showReplyIndicator: showReplyIndicator,
         // Null hides the branch button — no thread-within-a-thread.
@@ -523,6 +536,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
       author: author,
       useHero: false,
       grouped: grouped,
+      showAvatarSlot: !isDm,
+      showAvatar: lastInRun,
+      avatarAtBottom: lastInRun && grouped,
+      senderName: name,
       highlightT: highlightT,
       showReplyIndicator: showReplyIndicator,
       onViewThread: null,
@@ -723,13 +740,24 @@ class _ThreadSheetState extends State<_ThreadSheet>
         final showIndicator = m.isReply &&
             (j == 0 || m.replyToId != messages[j - 1].id);
 
-        // Same run-grouping rule the room list uses, so a thread doesn't
-        // read as looser than the conversation it came from.
-        final prev = j == 0 ? null : messages[j - 1];
-        final grouped = prev != null &&
-            prev.senderId == m.senderId &&
-            !showIndicator &&
-            m.createdAt.difference(prev.createdAt).inMinutes < 5;
+        // The room list's own rule, so a thread doesn't read as looser than
+        // the conversation it came from. Note this deliberately has no
+        // day-boundary clause: a thread draws no date dividers.
+        final grouped = continuesRun(
+          j == 0 ? null : messages[j - 1],
+          m,
+          showTether: showIndicator,
+        );
+
+        // Whether anything below continues this run — the next message must
+        // be evaluated the same way, tether included.
+        final next = j + 1 < messages.length ? messages[j + 1] : null;
+        final lastInRun = next == null ||
+            !continuesRun(
+              m,
+              next,
+              showTether: next.isReply && next.replyToId != m.id,
+            );
 
         final canReply = !m.id.startsWith('tmp_') &&
             m.status == MessageStatus.sent &&
@@ -744,6 +772,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             showReplyIndicator: showIndicator,
             interactive: true,
             grouped: grouped,
+            lastInRun: lastInRun,
             highlightT: _highlightedId == m.id ? _pulse.value : 0.0,
           ),
         );

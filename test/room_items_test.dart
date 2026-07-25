@@ -280,6 +280,80 @@ void main() {
     });
   });
 
+  group('lastInRun brackets a run', () {
+    test('only the newest row of a run closes it', () {
+      final ms = [
+        msg('a', t: 0, sender: 'alice'),
+        msg('b', t: 1, sender: 'alice'),
+        msg('c', t: 2, sender: 'alice'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'a').lastInRun, isFalse);
+      expect(itemFor(r.items, 'b').lastInRun, isFalse);
+      expect(itemFor(r.items, 'c').lastInRun, isTrue,
+          reason: 'the avatar belongs on the row that ends the block');
+    });
+
+    test('a standalone message both opens and closes its run', () {
+      final r = build([msg('solo', t: 0, sender: 'alice')]);
+      final solo = itemFor(r.items, 'solo');
+      expect(solo.grouped, isFalse);
+      expect(solo.lastInRun, isTrue,
+          reason: 'lastInRun && !grouped is what keeps the avatar top-aligned');
+    });
+
+    test('a different sender ends the run above it', () {
+      final ms = [
+        msg('a', t: 0, sender: 'alice'),
+        msg('b', t: 1, sender: 'alice'),
+        msg('c', t: 2, sender: 'bob'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'b').lastInRun, isTrue);
+      expect(itemFor(r.items, 'c').lastInRun, isTrue);
+    });
+
+    test('a day boundary ends the run, even for the same sender', () {
+      final ms = [
+        msg('a', t: 0, sender: 'alice'),
+        // Next calendar day, so a divider lands between them.
+        msg('b', t: 60 * 20, sender: 'alice'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'b').grouped, isFalse);
+      expect(itemFor(r.items, 'a').lastInRun, isTrue);
+    });
+
+    test('a fold chip ends the run above it', () {
+      final ms = [
+        msg('a0', t: 0, sender: 'alice'),
+        msg('a1', t: 1, sender: 'alice', replyTo: 'a0', root: 'a0'),
+        msg('a2', t: 2, sender: 'alice', replyTo: 'a0', root: 'a0'),
+        msg('a3', t: 3, sender: 'alice', replyTo: 'a0', root: 'a0'),
+      ];
+      final r = build(ms);
+      expect(r.hidden, {'a1', 'a2'});
+      expect(itemFor(r.items, 'a0').lastInRun, isTrue,
+          reason: 'the chip below it is a new beat, so a0 closes its own run');
+      expect(itemFor(r.items, 'a3').lastInRun, isTrue);
+    });
+
+    test('rails do not drop the flag when they rebuild a row', () {
+      // Two visible members with a gap earns a rail, and _withRails replaces
+      // every row it touches — lastInRun has to survive that copy.
+      final ms = [
+        msg('r0', t: 0, sender: 'alice'),
+        msg('u1', t: 1, sender: 'bob'),
+        msg('r1', t: 2, sender: 'alice', replyTo: 'r0', root: 'r0'),
+        msg('r2', t: 3, sender: 'alice', root: 'r0'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'r1').rails, isNotEmpty);
+      expect(itemFor(r.items, 'r1').lastInRun, isFalse);
+      expect(itemFor(r.items, 'r2').lastInRun, isTrue);
+    });
+  });
+
   group('date dividers', () {
     test('a fully folded day still gets a divider for its chip', () {
       // Thread spans two days; the entire second day is interior and folds.

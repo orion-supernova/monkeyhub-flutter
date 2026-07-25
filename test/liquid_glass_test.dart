@@ -5,8 +5,8 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
 
 /// LiquidGlass is the shared chrome surface for the compact chat style — the
-/// header title capsule, the composer field, the round buttons and the typing
-/// pill all sit inside one. Its internal Stack sizes to the content child, so
+/// header title capsule, the composer field and the round buttons all sit
+/// inside one. Its internal Stack sizes to the content child, so
 /// whether that child expands decides whether a capsule hugs its label or
 /// paints a full-width slab. Getting that wrong is not subtle and it has
 /// regressed once already (the header capsule grew a defensive IntrinsicWidth),
