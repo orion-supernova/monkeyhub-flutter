@@ -5,6 +5,16 @@ platform :ios, '13.0'
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
+# Keeps OneSignalLocation out of the build. It links CoreLocation, which makes
+# Apple require NSLocationWhenInUseUsageDescription for a feature we don't ship.
+# onesignal_flutter's own podspec reads this flag and swaps its default
+# OneSignalComplete dependency for the OneSignal + OneSignalInAppMessages
+# subspecs — the same two we used to pin by hand here. Letting the plugin do it
+# means the OneSignalXCFramework version comes from the plugin instead of a
+# number in this file that goes stale on every plugin bump (it did: a 5.5.1 pin
+# against plugin 5.6.6, which requires exactly 5.5.5).
+ENV['ONESIGNAL_DISABLE_LOCATION'] = 'true'
+
 project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
@@ -26,6 +36,21 @@ end
 
 require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
 
+# The version onesignal_flutter's podspec pins OneSignalXCFramework to. Only the
+# notification service extension needs it spelled out — that target isn't a
+# Flutter target, so nothing hands it a version, and CocoaPods resolves one
+# OneSignalXCFramework version for the whole project, so a mismatch here fails
+# the entire install. Read it from the plugin rather than hardcoding.
+def onesignal_xcframework_version
+  podspec = File.expand_path('.symlinks/plugins/onesignal_flutter/ios/onesignal_flutter.podspec', __dir__)
+  version = File.exist?(podspec) ? File.read(podspec)[/onesignal_xcframework_version\s*=\s*['"]([\d.]+)['"]/, 1] : nil
+  version || raise(
+    "Could not read onesignal_xcframework_version from #{podspec}.\n" \
+    "Run 'flutter pub get' first. If it still fails, onesignal_flutter changed how it pins " \
+    "OneSignalXCFramework — check its podspec and update this Podfile."
+  )
+end
+
 flutter_ios_podfile_setup
 
 target 'Runner' do
@@ -33,13 +58,9 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
-  # Override onesignal_flutter's default (OneSignalComplete) to exclude
-  # OneSignalLocation, which references CoreLocation and triggers Apple's
-  # NSLocationWhenInUseUsageDescription requirement. We don't use location.
-  pod 'OneSignalXCFramework', '5.5.1', :subspecs => [
-    'OneSignal',
-    'OneSignalInAppMessages',
-  ]
+  # No OneSignalXCFramework pod here on purpose — onesignal_flutter declares it,
+  # and ONESIGNAL_DISABLE_LOCATION (set at the top of this file) already trims it
+  # to the OneSignal + OneSignalInAppMessages subspecs.
 
   target 'RunnerTests' do
     inherit! :search_paths
@@ -55,7 +76,7 @@ end
 if File.read(File.expand_path('Runner.xcodeproj/project.pbxproj', __dir__)).include?('OneSignalNotificationServiceExtension')
   target 'OneSignalNotificationServiceExtension' do
     use_frameworks!
-    pod 'OneSignalXCFramework', '5.5.1', :subspecs => ['OneSignalExtension']
+    pod 'OneSignalXCFramework', onesignal_xcframework_version, :subspecs => ['OneSignalExtension']
   end
 end
 

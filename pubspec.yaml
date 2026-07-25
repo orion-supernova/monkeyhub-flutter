@@ -179,6 +179,22 @@ flutter_native_splash:
 # The following section is specific to Flutter packages.
 flutter:
 
+  # Swift Package Manager stays off for this project. Flutter 3.44 turns it on
+  # by default and tries to migrate ios/Runner.xcodeproj on every build, which
+  # breaks us two ways:
+  #   1. onesignal_flutter's Package.swift pins OneSignal-XCFramework by exact
+  #      version, so a stale SwiftPM mirror in ~/Library/Caches/org.swift.swiftpm
+  #      fails the whole build with "no versions match <x>" even though the tag
+  #      exists upstream.
+  #   2. ios/Podfile already pins OneSignalXCFramework with explicit subspecs to
+  #      keep OneSignalLocation (and Apple's location-permission requirement) out
+  #      of the binary. SPM would link OneSignal a second time and drag
+  #      OneSignalLocation back in.
+  # Re-enable only as a deliberate migration: drop the Podfile pin and set
+  # ONESIGNAL_DISABLE_LOCATION=true, which onesignal_flutter's Package.swift reads.
+  config:
+    enable-swift-package-manager: false
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

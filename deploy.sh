@@ -368,7 +368,21 @@ echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 echo ""
 
 # ----- spinner helpers -----
-function finish { tput cnorm 2>/dev/null || true; }
+# Restores the cursor, and undoes the version bump when a run dies partway. A
+# build number that never shipped must not stay in pubspec.yaml: the next run
+# bumps from whatever it finds, so a failed deploy would silently burn a version
+# and leave the tree dirty. Set by the version-bump step and the git step below.
+VERSION_BUMP_APPLIED=false
+PREVIOUS_VERSION=""
+DEPLOY_COMPLETE=false
+function finish {
+    local rc=$?
+    tput cnorm 2>/dev/null || true
+    if [ $rc -ne 0 ] && [ "$VERSION_BUMP_APPLIED" = true ] && [ "$DEPLOY_COMPLETE" = false ]; then
+        sed -i '' "s/^version: .*/version: $PREVIOUS_VERSION/" "$SCRIPT_DIR/pubspec.yaml"
+        echo "  ↩︎  Reverted pubspec.yaml to $PREVIOUS_VERSION (deploy did not finish)"
+    fi
+}
 trap finish EXIT
 
 spinner() {
@@ -823,6 +837,8 @@ if [ "$SKIP_VERSION_BUMP" = false ]; then
 
     echo "  • New:     $NEW_VERSION"
     sed -i '' "s/^version: .*/version: $NEW_VERSION/" pubspec.yaml
+    PREVIOUS_VERSION="$VERSION"
+    VERSION_BUMP_APPLIED=true
     echo "  ✅ pubspec.yaml updated"
 else
     NEW_VERSION=$(grep "^version:" pubspec.yaml | sed 's/version: //')
@@ -840,24 +856,44 @@ if [ "$DEPLOY_IOS" = true ]; then
     echo "🍎 Starting iOS build..."
 
     echo "  • CocoaPods install"
-    (
-        cd ios
-        pod install >/tmp/monkeyhub_pod_install.log 2>&1
-        POD_STATUS=$?
-        if [ $POD_STATUS -ne 0 ]; then
-            echo "  ⚠️  pod install failed, retrying after 'pod repo update'..."
-            pod repo update >/tmp/monkeyhub_pod_repo_update.log 2>&1
-            pod install >/tmp/monkeyhub_pod_install_retry.log 2>&1
-            POD_STATUS=$?
+    # Three escalating attempts, because the ways this fails need different
+    # remedies — and each one is safe to reach for only after the cheaper one
+    # has been tried:
+    #   1. plain install    — the everyday case, uses the existing Podfile.lock.
+    #   2. --repo-update    — the spec repo is too old to see a pod version a
+    #                         freshly bumped plugin asks for.
+    #   3. drop the lock    — Podfile.lock pins a transitive version the bumped
+    #                         plugin no longer accepts (e.g. flutter_webrtc 1.4.0
+    #                         wanting WebRTC-SDK 144.7559.09 against a lock
+    #                         pinning .01). No amount of repo-updating resolves
+    #                         that; the stale pin itself has to go. Safe because
+    #                         every version this project deliberately controls is
+    #                         pinned in the Podfile, not the lock.
+    # NOTE: keep the status check OUTSIDE the subshell. `exit 1` inside `( … )`
+    # only leaves the subshell, which is how a failed install used to be followed
+    # by "✅ Pods installed" and a doomed flutter build.
+    pod_install_attempt() {
+        local log="$1"
+        shift
+        (cd ios && pod install "$@") >"$log" 2>&1
+    }
+    POD_STATUS=0
+    if ! pod_install_attempt /tmp/monkeyhub_pod_install.log; then
+        echo "  ⚠️  pod install failed, retrying with --repo-update..."
+        if ! pod_install_attempt /tmp/monkeyhub_pod_repo_update.log --repo-update; then
+            echo "  ⚠️  still failing — discarding ios/Podfile.lock and re-resolving..."
+            rm -f ios/Podfile.lock
+            pod_install_attempt /tmp/monkeyhub_pod_install_retry.log --repo-update || POD_STATUS=1
         fi
-        if [ $POD_STATUS -ne 0 ]; then
-            echo "❌ CocoaPods install failed. Logs:"
-            echo "   /tmp/monkeyhub_pod_install.log"
-            echo "   /tmp/monkeyhub_pod_repo_update.log"
-            echo "   /tmp/monkeyhub_pod_install_retry.log"
-            exit 1
-        fi
-    )
+    fi
+    if [ $POD_STATUS -ne 0 ]; then
+        echo "❌ CocoaPods install failed. Logs:"
+        echo "   /tmp/monkeyhub_pod_install.log"
+        echo "   /tmp/monkeyhub_pod_repo_update.log"
+        echo "   /tmp/monkeyhub_pod_install_retry.log"
+        echo "   ios/Podfile.lock was removed — 'cd ios && pod install' to rebuild it."
+        exit 1
+    fi
     echo "  ✅ Pods installed"
 
     # Refreshes Generated.xcconfig with the current pubspec version. Runtime
@@ -1163,6 +1199,9 @@ if [ "$DEPLOY_SITE" = true ]; then
 fi
 
 # ----- Git -----
+# Every build and upload is done by this point, so the bumped version has really
+# shipped — the EXIT trap must stop treating it as revertible.
+DEPLOY_COMPLETE=true
 if [ "$RUN_GIT" = true ] && [ "$SKIP_VERSION_BUMP" = false ]; then
     echo "🔄 Git commit + push..."
     if [ -n "$(git status --porcelain pubspec.yaml)" ]; then
