@@ -52,7 +52,11 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     setState(() {});
   }
 
-  Future<void> _ensureRenderer(String userId, MediaStream stream, int tick) async {
+  Future<void> _ensureRenderer(
+    String userId,
+    MediaStream stream,
+    int tick,
+  ) async {
     var r = _renderers[userId];
     if (r == null) {
       r = RTCVideoRenderer();
@@ -120,13 +124,12 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     super.dispose();
   }
 
-  ChatUser _asUser(String id, String name, String? avatarStorageId) =>
-      ChatUser(
-        id: id,
-        username: '',
-        name: name,
-        avatarStorageId: avatarStorageId,
-      );
+  ChatUser _asUser(String id, String name, String? avatarStorageId) => ChatUser(
+    id: id,
+    username: '',
+    name: name,
+    avatarStorageId: avatarStorageId,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -139,8 +142,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     final columns = tileCount <= 1
         ? 1
         : tileCount <= 4
-            ? 2
-            : 3;
+        ? 2
+        : 3;
 
     return PopScope(
       canPop: false,
@@ -159,23 +162,27 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                         Expanded(
                           child: Text(
                             isVideo ? 'Group video call' : 'Group voice call',
-                            style: theme.displaySmall
-                                .copyWith(color: Colors.white),
+                            style: theme.displaySmall.copyWith(
+                              color: Colors.white,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.10),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
                             '$tileCount in call',
-                            style: theme.monoTiny
-                                .copyWith(color: Colors.white70),
+                            style: theme.monoTiny.copyWith(
+                              color: Colors.white70,
+                            ),
                           ),
                         ),
                       ],
@@ -189,7 +196,9 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       child: GridView.count(
                         crossAxisCount: columns,
                         mainAxisSpacing: 8,
@@ -220,7 +229,9 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 14),
+                          horizontal: 10,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(30),
@@ -283,40 +294,41 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
   }
 
   Widget _chip(dynamic theme, String label) => Center(
-        child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.55),
-            borderRadius: BorderRadius.circular(999),
-            border:
-                Border.all(color: Colors.white.withValues(alpha: 0.15)),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: theme.monoTiny.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: theme.monoTiny.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   Widget _localTile(dynamic theme) {
     final svc = widget.service;
-    final showVideo = svc.mediaKind == CallMediaKind.video &&
+    final showVideo =
+        svc.mediaKind == CallMediaKind.video &&
         !svc.localVideoOff &&
         _localRenderer != null &&
         svc.localStream != null;
@@ -335,7 +347,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
 
   Widget _peerTile(dynamic theme, GroupPeer peer) {
     final renderer = _renderers[peer.userId];
-    final showVideo = widget.service.mediaKind == CallMediaKind.video &&
+    final showVideo =
+        widget.service.mediaKind == CallMediaKind.video &&
         peer.remoteStream != null &&
         renderer != null &&
         !peer.mediaState.videoOff;
@@ -369,7 +382,8 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     bool large = false,
   }) {
     final size = large ? 64.0 : 52.0;
-    final bg = background ??
+    final bg =
+        background ??
         (active
             ? Colors.white.withValues(alpha: 0.95)
             : Colors.white.withValues(alpha: 0.18));
@@ -379,12 +393,16 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
       children: [
         FocusableTap(
           onTap: onTap,
-          radius: size / 2,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-            child: Icon(icon, color: fg, size: large ? 30 : 22),
+          semanticLabel: label,
+          shape: FocusRingShape.circle,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+              child: Icon(icon, color: fg, size: large ? 30 : 22),
+            ),
           ),
         ),
         const SizedBox(height: 6),
@@ -418,8 +436,7 @@ class _TileFrame extends StatelessWidget {
         children: [
           Container(color: const Color(0xFF17181C)),
           ?child,
-          if (dimmed)
-            Container(color: Colors.black.withValues(alpha: 0.45)),
+          if (dimmed) Container(color: Colors.black.withValues(alpha: 0.45)),
           Positioned(
             left: 8,
             right: 8,

@@ -665,12 +665,18 @@ class _ControlButton extends StatelessWidget {
       children: [
         FocusableTap(
           onTap: onTap,
-          radius: size / 2,
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-            child: Icon(icon, color: fg, size: large ? 30 : 24),
+          semanticLabel: label,
+          shape: FocusRingShape.circle,
+          // FocusableTap adds keyboard focus/activation only — the child
+          // GestureDetector is what makes this tappable.
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+              child: Icon(icon, color: fg, size: large ? 30 : 24),
+            ),
           ),
         ),
         const SizedBox(height: 6),

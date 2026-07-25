@@ -51,23 +51,25 @@ class _GroupCallBannerState extends State<GroupCallBanner>
   }
 
   void _subscribe() {
-    unawaited(widget.api
-        .subscribeActiveForRoom(
-          roomId: widget.roomId,
-          userId: widget.userId,
-          onCall: (call) {
-            if (!mounted) return;
-            setState(() => _call = call);
-          },
-          onError: (e) => debugPrint('GroupCallBanner: $e'),
-        )
-        .then((s) {
-      if (!mounted) {
-        s.cancel();
-        return;
-      }
-      _sub = s;
-    }));
+    unawaited(
+      widget.api
+          .subscribeActiveForRoom(
+            roomId: widget.roomId,
+            userId: widget.userId,
+            onCall: (call) {
+              if (!mounted) return;
+              setState(() => _call = call);
+            },
+            onError: (e) => debugPrint('GroupCallBanner: $e'),
+          )
+          .then((s) {
+            if (!mounted) {
+              s.cancel();
+              return;
+            }
+            _sub = s;
+          }),
+    );
   }
 
   @override
@@ -88,8 +90,7 @@ class _GroupCallBannerState extends State<GroupCallBanner>
       final msg = e.toString().contains('CALL_FULL')
           ? 'That call is full (max 6 people)'
           : 'Could not join the call';
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -162,21 +163,27 @@ class _GroupCallBannerState extends State<GroupCallBanner>
             FocusableTap(
               onTap: svc.inCall ? null : _join,
               enabled: !svc.inCall,
-              radius: 999,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 18, vertical: 9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF17C964),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'JOIN',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    letterSpacing: 0.6,
+              semanticLabel: 'Join call',
+              shape: FocusRingShape.capsule,
+              child: GestureDetector(
+                onTap: svc.inCall ? null : _join,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF17C964),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'JOIN',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      letterSpacing: 0.6,
+                    ),
                   ),
                 ),
               ),

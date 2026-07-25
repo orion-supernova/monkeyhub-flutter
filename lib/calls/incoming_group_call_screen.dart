@@ -75,8 +75,7 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
       final msg = e.toString().contains('CALL_FULL')
           ? 'That call is full (max 6 people)'
           : 'Could not join the call';
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -120,7 +119,8 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
                     shape: BoxShape.circle,
                     color: Colors.white.withValues(alpha: 0.08),
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.25)),
+                      color: Colors.white.withValues(alpha: 0.25),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: accent.withValues(alpha: 0.4),
@@ -198,18 +198,26 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
         FocusableTap(
           onTap: _acting ? null : onTap,
           enabled: !_acting,
-          radius: 36,
-          child: Container(
-            width: 72,
-            height: 72,
-            decoration:
-                BoxDecoration(color: background, shape: BoxShape.circle),
-            child: Icon(icon, color: iconColor, size: 30),
+          semanticLabel: label,
+          shape: FocusRingShape.circle,
+          child: GestureDetector(
+            onTap: _acting ? null : onTap,
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: background,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 30),
+            ),
           ),
         ),
         const SizedBox(height: 10),
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
       ],
     );
   }

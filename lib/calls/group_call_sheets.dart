@@ -31,71 +31,97 @@ Future<void> showStartGroupCallSheet(
         builder: (sheetCtx, setSheetState) {
           Widget kindChip(CallMediaKind k, IconData icon, String label) {
             final selected = kind == k;
+            void select() => setSheetState(() => kind = k);
             return FocusableTap(
-              onTap: () => setSheetState(() => kind = k),
-              radius: 999,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? theme.accent
-                      : theme.ink.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon,
+              onTap: select,
+              semanticLabel: label,
+              shape: FocusRingShape.capsule,
+              child: GestureDetector(
+                onTap: select,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? theme.accent
+                        : theme.ink.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icon,
                         size: 16,
-                        color: selected ? theme.background : theme.ink),
-                    const SizedBox(width: 6),
-                    Text(
-                      label,
-                      style: theme.monoTiny.copyWith(
                         color: selected ? theme.background : theme.ink,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        label,
+                        style: theme.monoTiny.copyWith(
+                          color: selected ? theme.background : theme.ink,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
           }
 
-          Widget action(IconData icon, String title, String subtitle,
-              VoidCallback onTap) {
+          Widget action(
+            IconData icon,
+            String title,
+            String subtitle,
+            VoidCallback onTap,
+          ) {
             return FocusableTap(
               onTap: onTap,
+              semanticLabel: title,
               radius: 14,
-              child: Container(
-                margin: const EdgeInsets.only(top: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: theme.ink.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Icon(icon, color: theme.accent, size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title,
-                              style: theme.body
-                                  .copyWith(fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 2),
-                          Text(subtitle,
-                              style: theme.monoTiny
-                                  .copyWith(color: theme.inkMuted)),
-                        ],
+              child: GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: theme.ink.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(icon, color: theme.accent, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: theme.body.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: theme.monoTiny.copyWith(
+                                color: theme.inkMuted,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(Icons.chevron_right,
-                        color: theme.inkMuted, size: 18),
-                  ],
+                      Icon(
+                        Icons.chevron_right,
+                        color: theme.inkMuted,
+                        size: 18,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -164,13 +190,14 @@ void _startCall(
   service
       .startCall(roomId: roomId, kind: kind, inviteeIds: inviteeIds)
       .catchError((e) {
-    if (!context.mounted) return;
-    final msg = e.toString().contains('CALL_FULL')
-        ? 'That call is full (max 6 people)'
-        : 'Could not start the call';
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
-  });
+        if (!context.mounted) return;
+        final msg = e.toString().contains('CALL_FULL')
+            ? 'That call is full (max 6 people)'
+            : 'Could not start the call';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      });
 }
 
 /// Member multi-select. Returns the chosen userIds, or null on dismiss.
@@ -195,16 +222,19 @@ Future<List<String>?> _pickMembers(
       return StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
           if (members == null) {
-            api.getMembers(roomId).then((list) {
-              if (!sheetCtx.mounted) return;
-              setSheetState(() {
-                members = list
-                    .where((u) => u.id != myUserId)
-                    .toList(growable: false);
-              });
-            }).catchError((_) {
-              if (sheetCtx.mounted) setSheetState(() => members = const []);
-            });
+            api
+                .getMembers(roomId)
+                .then((list) {
+                  if (!sheetCtx.mounted) return;
+                  setSheetState(() {
+                    members = list
+                        .where((u) => u.id != myUserId)
+                        .toList(growable: false);
+                  });
+                })
+                .catchError((_) {
+                  if (sheetCtx.mounted) setSheetState(() => members = const []);
+                });
           }
           final list = members;
           return SafeArea(
@@ -227,8 +257,10 @@ Future<List<String>?> _pickMembers(
                   else if (list.isEmpty)
                     Padding(
                       padding: const EdgeInsets.all(24),
-                      child: Text('No other members here',
-                          style: theme.body.copyWith(color: theme.inkMuted)),
+                      child: Text(
+                        'No other members here',
+                        style: theme.body.copyWith(color: theme.inkMuted),
+                      ),
                     )
                   else
                     Flexible(
@@ -238,41 +270,51 @@ Future<List<String>?> _pickMembers(
                         itemBuilder: (_, i) {
                           final u = list[i];
                           final isOn = selected.contains(u.id);
+                          void toggle() => setSheetState(() {
+                            if (isOn) {
+                              selected.remove(u.id);
+                            } else {
+                              selected.add(u.id);
+                            }
+                          });
                           return FocusableTap(
-                            onTap: () => setSheetState(() {
-                              if (isOn) {
-                                selected.remove(u.id);
-                              } else {
-                                selected.add(u.id);
-                              }
-                            }),
+                            onTap: toggle,
+                            semanticLabel: u.displayName,
                             radius: 12,
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                              child: Row(
-                                children: [
-                                  UserAvatar(
+                            child: GestureDetector(
+                              onTap: toggle,
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  children: [
+                                    UserAvatar(
                                       user: u,
                                       api: api,
                                       size: 36,
-                                      showStatus: false),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(u.displayName,
+                                      showStatus: false,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        u.displayName,
                                         style: theme.body,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                  Icon(
-                                    isOn
-                                        ? Icons.check_circle
-                                        : Icons.radio_button_unchecked,
-                                    color: isOn
-                                        ? theme.accent
-                                        : theme.inkMuted,
-                                    size: 22,
-                                  ),
-                                ],
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Icon(
+                                      isOn
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color: isOn
+                                          ? theme.accent
+                                          : theme.inkMuted,
+                                      size: 22,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -280,36 +322,46 @@ Future<List<String>?> _pickMembers(
                       ),
                     ),
                   const SizedBox(height: 12),
-                  FocusableTap(
-                    onTap: selected.isEmpty
-                        ? null
-                        : () => Navigator.of(sheetCtx)
-                            .pop(selected.toList(growable: false)),
-                    radius: 14,
-                    enabled: selected.isNotEmpty,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      decoration: BoxDecoration(
-                        color: selected.isEmpty
-                            ? theme.ink.withValues(alpha: 0.08)
-                            : theme.accent,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Center(
-                        child: Text(
-                          selected.isEmpty
-                              ? 'Select people'
-                              : 'Start call (${selected.length})',
-                          style: theme.body.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: selected.isEmpty
-                                ? theme.inkMuted
-                                : theme.background,
+                  Builder(
+                    builder: (_) {
+                      final start = selected.isEmpty
+                          ? null
+                          : () => Navigator.of(
+                              sheetCtx,
+                            ).pop(selected.toList(growable: false));
+                      return FocusableTap(
+                        onTap: start,
+                        semanticLabel: 'Start call',
+                        radius: 14,
+                        enabled: selected.isNotEmpty,
+                        child: GestureDetector(
+                          onTap: start,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: selected.isEmpty
+                                  ? theme.ink.withValues(alpha: 0.08)
+                                  : theme.accent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Center(
+                              child: Text(
+                                selected.isEmpty
+                                    ? 'Select people'
+                                    : 'Start call (${selected.length})',
+                                style: theme.body.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: selected.isEmpty
+                                      ? theme.inkMuted
+                                      : theme.background,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
