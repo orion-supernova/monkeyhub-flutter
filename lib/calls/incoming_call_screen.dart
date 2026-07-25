@@ -36,6 +36,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   // null 400ms later). Without this guard both notifies would call pop()
   // and the second pop would dismiss the chatroom underneath.
   bool _popScheduled = false;
+  // pushReplacement to CallScreen must run exactly once; connecting/active
+  // notifies repeatedly while this route is still on top.
+  bool _movedToCall = false;
 
   @override
   void initState() {
@@ -61,14 +64,19 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
       return;
     }
-    if (s.status == CallStatus.connecting || s.status == CallStatus.active) {
-      // We've accepted — swap to the active call screen.
+    if (!_movedToCall &&
+        (s.status == CallStatus.connecting || s.status == CallStatus.active)) {
+      // We've accepted — swap to the active call screen. Guarded so the
+      // repeated notifies in this window can't stack CallScreen routes
+      // (each of which would allocate its own pair of video renderers).
+      _movedToCall = true;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) =>
               CallScreen(service: widget.service, api: widget.api),
         ),
       );
+      return;
     }
     setState(() {});
   }

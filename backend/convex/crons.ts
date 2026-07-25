@@ -31,6 +31,21 @@ crons.interval(
   {},
 );
 
+// Group calls: reap joined participants whose heartbeat went silent and end
+// emptied calls; sweep consumed pair signals. See groupCalls.ts.
+crons.interval(
+  "groupCalls.gcStaleGroupParticipants",
+  { minutes: 1 },
+  internal.groupCalls.gcStaleGroupParticipants,
+  {},
+);
+crons.interval(
+  "groupCalls.gcConsumedGroupSignals",
+  { minutes: 1 },
+  internal.groupCalls.gcConsumedGroupSignals,
+  {},
+);
+
 // Presence backstop: demote users who stopped heartbeating (closed tab, killed
 // app) to 'offline'. Readers already correct this on the fly via
 // effectiveStatus; this keeps the stored value honest. See presence.ts.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -9,16 +10,28 @@ import 'call_service.dart';
 /// Wraps the live Convex subscription to `calls:signalsForUser` and feeds
 /// each unconsumed signal into [CallService.handleRemoteSignal]. Marks each
 /// dispatched signal as consumed so the server query stops re-delivering it.
+///
+/// Dispatch is strictly FIFO in server `createdAt` order: one drain loop
+/// awaits each handler before the next signal runs, so a `bye` can never
+/// interleave with an in-flight offer's async setup and resurrect a
+/// torn-down call.
 class SignalingSubscriber {
   SignalingSubscriber({required this.api, required this.service});
 
   final CallApi api;
   final CallService service;
 
+  /// Oldest-first eviction cap for the dedupe set — signals are dispatched
+  /// at most once per subscription lifetime, and rows GC out server-side
+  /// within a minute, so 300 ids is plenty of memory.
+  static const _dispatchedCap = 300;
+
   Subscription? _sub;
   String? _userId;
   String? _deviceId;
-  final Set<String> _dispatched = {};
+  final LinkedHashSet<String> _dispatched = LinkedHashSet<String>();
+  final List<Map<String, dynamic>> _queue = [];
+  bool _draining = false;
 
   Future<void> start(String userId, {String? deviceId}) async {
     if (_userId == userId && _deviceId == deviceId && _sub != null) return;
@@ -38,40 +51,62 @@ class SignalingSubscriber {
     _userId = null;
     _deviceId = null;
     _dispatched.clear();
+    _queue.clear();
+  }
+
+  void _markDispatched(String id) {
+    _dispatched.add(id);
+    while (_dispatched.length > _dispatchedCap) {
+      _dispatched.remove(_dispatched.first);
+    }
   }
 
   void _onSignals(List<Map<String, dynamic>> signals) {
-    final me = _userId;
-    if (me == null) return;
+    if (_userId == null) return;
     final myDevice = _deviceId;
     for (final sig in signals) {
       final id = sig['_id']?.toString();
       if (id == null || _dispatched.contains(id)) continue;
+      _markDispatched(id);
       // Device-targeted filter: signals carrying a targetDeviceId only
       // apply to the device whose id matches. Siblings of the same
       // userId ignore them. Used during handoff. Still consume on the
-      // server so the row clears out.
+      // server (via the drain's batch) so the row clears out.
       final target = sig['targetDeviceId'] as String?;
-      if (target != null && myDevice != null && target != myDevice) {
-        _dispatched.add(id);
-        Future<void>(() async {
-          try {
-            await api.consumeCallSignal(signalId: id, userId: me);
-          } catch (_) {}
-        });
-        continue;
-      }
-      _dispatched.add(id);
-      // Fire-and-forget — dispatch into the service, then consume on the
-      // server so the next subscription tick drops it.
-      Future<void>(() async {
-        await service.handleRemoteSignal(sig);
-        try {
-          await api.consumeCallSignal(signalId: id, userId: me);
-        } catch (e) {
-          debugPrint('consumeCallSignal($id) failed: $e');
+      final mine = target == null || myDevice == null || target == myDevice;
+      _queue.add(mine ? sig : {'_id': id, '_skip': true});
+    }
+    unawaited(_drain());
+  }
+
+  Future<void> _drain() async {
+    if (_draining) return;
+    _draining = true;
+    try {
+      while (_queue.isNotEmpty) {
+        final me = _userId;
+        if (me == null) return;
+        final consumedIds = <String>[];
+        while (_queue.isNotEmpty) {
+          final sig = _queue.removeAt(0);
+          final id = sig['_id']?.toString();
+          if (sig['_skip'] != true) {
+            try {
+              await service.handleRemoteSignal(sig);
+            } catch (e, st) {
+              debugPrint('SignalingSubscriber dispatch failed: $e\n$st');
+            }
+          }
+          if (id != null) consumedIds.add(id);
         }
-      });
+        try {
+          await api.consumeCallSignals(signalIds: consumedIds, userId: me);
+        } catch (e) {
+          debugPrint('consumeCallSignals(${consumedIds.length}) failed: $e');
+        }
+      }
+    } finally {
+      _draining = false;
     }
   }
 }

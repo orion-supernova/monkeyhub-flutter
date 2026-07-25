@@ -7,7 +7,11 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
+import 'call_config.dart';
+import 'call_media.dart';
 import 'call_models.dart';
+import 'call_recovery.dart';
+import 'call_stats_monitor.dart';
 import 'native_call_handler.dart';
 
 /// Single-call peer-to-peer WebRTC manager.
@@ -153,6 +157,28 @@ class CallService extends ChangeNotifier {
   CallSession? get session => _session;
 
   RTCPeerConnection? _pc;
+
+  /// Bumped whenever a PeerConnection is created or disposed. Callbacks and
+  /// timers capture the value at install time and no-op once it has moved
+  /// on, so a replaced PC (handoff, redial, duplicate offer) can never act
+  /// on its successor's call.
+  int _pcGeneration = 0;
+
+  /// Owned backstop for the disconnected/closed grace window — cancelled on
+  /// teardown and invalidated by generation, unlike the old anonymous Timer.
+  Timer? _disconnectTimer;
+
+  // ICE-restart recovery state — see [_scheduleIceRestart].
+  Timer? _restartTimer;
+  int _restartAttempt = 0;
+  DateTime? _outageStart;
+
+  /// Live connection-quality readout for the active call — null between
+  /// calls and until the first stats poll lands. The call UI listens via
+  /// ValueListenableBuilder so quality updates don't rebuild the screen.
+  final ValueNotifier<CallQualitySnapshot?> callQuality = ValueNotifier(null);
+  CallStatsMonitor? _stats;
+
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   MediaStream? get localStream => _localStream;
@@ -228,9 +254,13 @@ class CallService extends ChangeNotifier {
   final List<RTCIceCandidate> _pendingRemoteIce = [];
   bool _remoteDescSet = false;
 
-  /// Local ICE candidates the PC produced before the [_session] was set up.
-  /// They're flushed onto the wire as soon as the session is ready.
-  final List<RTCIceCandidate> _pendingLocalIce = [];
+  /// Outbound ICE candidates coalesce here for ~120ms (or 8 entries) and
+  /// ship as one `ice-batch` signal — a gathering burst would otherwise
+  /// cost one Convex mutation per candidate. Doubles as the pre-session
+  /// buffer: candidates queued before [_session] exists stay here until
+  /// [_flushPendingLocalIce] runs.
+  final List<RTCIceCandidate> _iceOutBuffer = [];
+  Timer? _iceFlushTimer;
 
   /// Cached `getIceConfig` response — TURN creds expire in 60min so we
   /// refresh after 50min. Cached across calls (within one session).
@@ -563,29 +593,9 @@ class CallService extends ChangeNotifier {
     }
   }
 
-  /// Classify the AVAudioSession for calling BEFORE the callkit plugin's
-  /// generic playAndRecord/.default config wins: voiceChat/videoChat modes
-  /// enable the right signal processing, and defaultToSpeaker makes video
-  /// calls come up on the loudspeaker like every mainstream calling app.
-  Future<void> _applyIosAudioConfig(CallMediaKind kind) async {
-    if (kIsWeb || !Platform.isIOS) return;
-    try {
-      await Helper.setAppleAudioConfiguration(AppleAudioConfiguration(
-        appleAudioCategory: AppleAudioCategory.playAndRecord,
-        appleAudioCategoryOptions: {
-          AppleAudioCategoryOption.allowBluetooth,
-          AppleAudioCategoryOption.allowBluetoothA2DP,
-          if (kind == CallMediaKind.video)
-            AppleAudioCategoryOption.defaultToSpeaker,
-        },
-        appleAudioMode: kind == CallMediaKind.video
-            ? AppleAudioMode.videoChat
-            : AppleAudioMode.voiceChat,
-      ));
-    } catch (e) {
-      debugPrint('setAppleAudioConfiguration failed: $e');
-    }
-  }
+  /// See [applyIosCallAudioConfig] — shared with the group-call mesh.
+  Future<void> _applyIosAudioConfig(CallMediaKind kind) =>
+      applyIosCallAudioConfig(kind);
 
   // ───────── inbound signaling ─────────
 
@@ -636,7 +646,25 @@ class CallService extends ChangeNotifier {
         debugPrint('CallService: dropping stale invite callId=$callId');
         return;
       }
-      if (_session != null) {
+      final cur = _session;
+      if (cur != null &&
+          cur.status == CallStatus.outgoingRinging &&
+          cur.peerUserId == fromUserId) {
+        // Mutual-call glare: we're outgoing-ringing to the exact peer who
+        // is now calling us. Deterministic tiebreak so exactly one call
+        // survives — the winner keeps its outgoing and ignores this invite
+        // (the loser cancels it server-side); the loser cancels its own
+        // outgoing and rings for the winner's call instead.
+        if (winsGlare(myUserId: me, peerUserId: fromUserId)) {
+          unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
+          return;
+        }
+        try {
+          await api.cancelCall(callId: cur.callId, userId: me);
+        } catch (_) {}
+        await _teardown(CallStatus.ended);
+        // Fall through: ring for the winner's invite below.
+      } else if (cur != null) {
         // Already in a call — auto-reject as busy. The reject mutation
         // will broadcast `taken` so the caller learns immediately. The
         // `taken` push excludes THIS device (it's the rejecting one), so
@@ -733,8 +761,25 @@ class CallService extends ChangeNotifier {
       case 'ice':
         await _onRemoteIce(payload);
         break;
+      case 'ice-batch':
+        await _onRemoteIceBatch(payload);
+        break;
       case 'state':
         _onRemoteState(payload);
+        break;
+      case 'restart-request':
+        // Peer detected the outage first; only the caller role re-offers.
+        // Force past the connected-check — the outage may be asymmetric
+        // (peer broken while our side still reads Connected).
+        if (s.isCaller) {
+          _scheduleIceRestart(_pcGeneration, immediate: true, force: true);
+        }
+        break;
+      case 'restart-offer':
+        await _onRestartOffer(payload);
+        break;
+      case 'restart-answer':
+        await _onRestartAnswer(payload);
         break;
       case 'bye':
         await _teardown(CallStatus.ended);
@@ -1159,27 +1204,43 @@ class CallService extends ChangeNotifier {
   Future<void> _onRemoteIce(String payload) async {
     try {
       final parsed = jsonDecode(payload) as Map<String, dynamic>;
-      final raw = parsed['candidate'] as String? ?? '';
-      // Drop the peer's LAN candidates (typ host, incl. mDNS-obfuscated
-      // `.local` ones from older clients) — adding them would make our
-      // WebRTC run local-network connectivity checks, which is exactly
-      // what triggers iOS's Local Network permission prompt.
-      if (RegExp(r'\btyp\s+host\b').hasMatch(raw) || raw.contains('.local')) {
-        debugPrint('CallService._onRemoteIce: dropping remote host candidate');
-        return;
-      }
-      final cand = RTCIceCandidate(
-        parsed['candidate'] as String?,
-        parsed['sdpMid'] as String?,
-        (parsed['sdpMLineIndex'] as num?)?.toInt(),
-      );
-      if (_pc != null && _remoteDescSet) {
-        await _pc!.addCandidate(cand);
-      } else {
-        _pendingRemoteIce.add(cand);
-      }
+      await _addRemoteCandidate(parsed);
     } catch (e) {
       debugPrint('CallService._onRemoteIce failed: $e');
+    }
+  }
+
+  Future<void> _onRemoteIceBatch(String payload) async {
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final list = (parsed['candidates'] as List?) ?? const [];
+      for (final e in list) {
+        await _addRemoteCandidate((e as Map).cast<String, dynamic>());
+      }
+    } catch (e) {
+      debugPrint('CallService._onRemoteIceBatch failed: $e');
+    }
+  }
+
+  Future<void> _addRemoteCandidate(Map<String, dynamic> parsed) async {
+    final raw = parsed['candidate'] as String? ?? '';
+    // With LAN disabled, drop the peer's host candidates (incl.
+    // mDNS-obfuscated `.local` ones) — probing them is what triggers
+    // iOS's Local Network permission prompt.
+    if (!kAllowLanCandidates &&
+        (RegExp(r'\btyp\s+host\b').hasMatch(raw) || raw.contains('.local'))) {
+      debugPrint('CallService: dropping remote host candidate');
+      return;
+    }
+    final cand = RTCIceCandidate(
+      parsed['candidate'] as String?,
+      parsed['sdpMid'] as String?,
+      (parsed['sdpMLineIndex'] as num?)?.toInt(),
+    );
+    if (_pc != null && _remoteDescSet) {
+      await _pc!.addCandidate(cand);
+    } else {
+      _pendingRemoteIce.add(cand);
     }
   }
 
@@ -1203,37 +1264,53 @@ class CallService extends ChangeNotifier {
     _pendingRemoteIce.clear();
   }
 
-  Future<void> _sendLocalIce(CallSession s, RTCIceCandidate cand) async {
+  void _queueLocalIce(RTCIceCandidate cand) {
+    _iceOutBuffer.add(cand);
+    if (_iceOutBuffer.length >= 8) {
+      unawaited(_flushPendingLocalIce());
+      return;
+    }
+    _iceFlushTimer ??= Timer(const Duration(milliseconds: 120), () {
+      _iceFlushTimer = null;
+      unawaited(_flushPendingLocalIce());
+    });
+  }
+
+  Future<void> _flushPendingLocalIce() async {
+    _iceFlushTimer?.cancel();
+    _iceFlushTimer = null;
+    if (_iceOutBuffer.isEmpty) return;
+    final s = _session;
+    final me = _userId;
+    // No session yet — keep buffering; initiate/_onRemoteOffer re-flush
+    // once it exists.
+    if (s == null || me == null) return;
+    final batch = List<RTCIceCandidate>.of(_iceOutBuffer);
+    _iceOutBuffer.clear();
     try {
       await api.sendCallSignal(
         callId: s.callId,
-        fromUserId: _userId!,
+        fromUserId: me,
         toUserId: s.peerUserId,
         fromDeviceId: _deviceId,
         // Target the peer's specific device when known (post-handoff) so
         // siblings of the peer don't waste cycles parsing irrelevant
         // candidates. Pre-handoff this is null → broadcast as today.
         targetDeviceId: s.peerDeviceId,
-        kind: 'ice',
+        kind: 'ice-batch',
         payload: jsonEncode({
-          'candidate': cand.candidate,
-          'sdpMid': cand.sdpMid,
-          'sdpMLineIndex': cand.sdpMLineIndex,
+          'candidates': [
+            for (final c in batch)
+              {
+                'candidate': c.candidate,
+                'sdpMid': c.sdpMid,
+                'sdpMLineIndex': c.sdpMLineIndex,
+              },
+          ],
         }),
       );
     } catch (e) {
-      debugPrint('onIceCandidate send failed: $e');
-    }
-  }
-
-  Future<void> _flushPendingLocalIce() async {
-    if (_pendingLocalIce.isEmpty) return;
-    final s = _session;
-    if (s == null) return;
-    final pending = List<RTCIceCandidate>.of(_pendingLocalIce);
-    _pendingLocalIce.clear();
-    for (final c in pending) {
-      await _sendLocalIce(s, c);
+      debugPrint('ice-batch send failed: $e');
     }
   }
 
@@ -1257,60 +1334,45 @@ class CallService extends ChangeNotifier {
   }
 
   Future<RTCPeerConnection> _createPeerConnection() async {
-    final servers = await _iceServers();
-    // iOS shows the Local Network permission prompt the moment WebRTC runs
-    // connectivity checks against host (LAN) candidates. We avoid host
-    // candidates entirely:
-    //   - TURN configured → relay-only policy (no host gathering at all;
-    //     media relays through our TURN server; cross-network calls are
-    //     unaffected since they'd use srflx/relay anyway).
-    //   - STUN-only deployment → keep policy 'all' but filter host
-    //     candidates out of both directions (srflx paths still work,
-    //     including NAT hairpinning for same-network devices).
-    final hasTurn = servers.any((s) {
-      final u = s['urls'];
-      final list = u is List ? u : [u];
-      return list.any((x) {
-        final url = x.toString();
-        return url.startsWith('turn:') || url.startsWith('turns:');
-      });
-    });
-    if (!hasTurn) {
-      debugPrint(
-        'CallService: TURN not configured — filtering host candidates; '
-        'devices behind symmetric NATs may fail to connect (srflx only). '
-        'Deploy TURN (backend/turn/README.md) for production.',
-      );
+    // Replacing a live PC (duplicate offer, handoff, redial) must release
+    // its camera/encoder and invalidate its callbacks and timers first.
+    final old = _pc;
+    if (old != null) {
+      _pc = null;
+      try {
+        await old.close();
+      } catch (_) {}
     }
+    _pcGeneration++;
+    final gen = _pcGeneration;
+    _disconnectTimer?.cancel();
+    _restartTimer?.cancel();
+    _restartAttempt = 0;
+    _outageStart = null;
+    final servers = await _iceServers();
     final config = {
       'iceServers': servers,
       'sdpSemantics': 'unified-plan',
-      if (hasTurn) 'iceTransportPolicy': 'relay',
+      'bundlePolicy': 'max-bundle',
+      'rtcpMuxPolicy': 'require',
+      'iceCandidatePoolSize': 2,
+      // Full ICE — host > srflx > relay by priority, so TURN carries media
+      // only when no direct path exists. Host (LAN) probing triggers iOS's
+      // Local Network prompt; kAllowLanCandidates=false filters those out
+      // instead of forcing relay for everything.
     };
     final pc = await createPeerConnection(config, {});
 
     pc.onIceCandidate = (cand) async {
+      if (gen != _pcGeneration) return;
       if (cand.candidate == null) return;
       final typ = _candidateType(cand.candidate);
-      // Never ship host candidates — the peer probing our LAN address is
-      // what triggers iOS's Local Network prompt on THEIR side (and ours
-      // when we probe theirs). Relay policy already suppresses these; this
-      // filter covers the STUN-only path.
-      if (typ == 'host') {
+      if (!kAllowLanCandidates && typ == 'host') {
         debugPrint('CallService.onIceCandidate: dropping host candidate');
         return;
       }
-      final s = _session;
-      // Defensive buffer: if a candidate fires before _session is set
-      // (shouldn't happen with current ordering, but guards future regressions),
-      // park it and flush when the session arrives.
-      if (s == null) {
-        debugPrint('CallService.onIceCandidate: buffered ($typ) — no session yet');
-        _pendingLocalIce.add(cand);
-        return;
-      }
-      debugPrint('CallService.onIceCandidate: sending ($typ)');
-      await _sendLocalIce(s, cand);
+      debugPrint('CallService.onIceCandidate: queueing ($typ)');
+      _queueLocalIce(cand);
     };
 
     // NOTE: iOS Simulator's RTCMTLVideoView does not paint received video
@@ -1318,6 +1380,7 @@ class CallService extends ChangeNotifier {
     // Connected, but the remote view stays black. This is a plugin/renderer
     // limitation — test video on two physical devices, not the simulator.
     pc.onTrack = (event) {
+      if (gen != _pcGeneration) return;
       final kind = event.track.kind;
       final streamIds = event.streams.map((s) => s.id).join(',');
       debugPrint('CallService.onTrack: kind=$kind streams=[$streamIds]');
@@ -1331,29 +1394,55 @@ class CallService extends ChangeNotifier {
       notifyListeners();
     };
 
+    pc.onIceConnectionState = (state) {
+      if (gen != _pcGeneration) return;
+      if (state == RTCIceConnectionState.RTCIceConnectionStateFailed) {
+        _scheduleIceRestart(gen, immediate: true);
+      } else if (state ==
+              RTCIceConnectionState.RTCIceConnectionStateConnected ||
+          state == RTCIceConnectionState.RTCIceConnectionStateCompleted) {
+        _noteConnectionRestored();
+      }
+    };
+
     pc.onConnectionState = (state) async {
+      if (gen != _pcGeneration) return;
       debugPrint('RTC connection state: $state');
       final s = _session;
       if (s == null) return;
       if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
-        _session = s.copyWith(
+        _noteConnectionRestored();
+        final cur = _session;
+        if (cur == null) return;
+        _session = cur.copyWith(
           status: CallStatus.active,
-          connectedAt: DateTime.now(),
+          // Keep the original connect time across ICE-restart recoveries so
+          // the elapsed timer doesn't reset mid-call.
+          connectedAt: cur.connectedAt ?? DateTime.now(),
         );
         notifyListeners();
-        unawaited(NativeCallHandler.instance.markConnected(s.callId));
+        unawaited(NativeCallHandler.instance.markConnected(cur.callId));
         // Re-assert the output route now the iOS audio session is live,
         // and re-prime the mic in case its unit started before the
         // CallKit session activated (silent-capture race).
-        unawaited(_applyAudioRoute(speaker: s.speakerOn));
+        unawaited(_applyAudioRoute(speaker: cur.speakerOn));
         _reprimeLocalAudio();
+        // Start (or restart, post-handoff) stats polling against this PC.
+        _stats?.dispose();
+        _stats = CallStatsMonitor(pc: pc, target: callQuality)..start();
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
-        await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
+        // A network flip (Wi-Fi↔LTE) lands here — recover via ICE restart;
+        // teardown happens only once recovery is exhausted.
+        _scheduleIceRestart(gen, immediate: true);
       } else if (state ==
-              RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
-          state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
-        // Allow brief disconnects; only kill if we don't recover within 15s.
-        Timer(const Duration(seconds: 15), () async {
+          RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
+        _scheduleIceRestart(gen);
+      } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
+        // Closed never recovers and has no restart path. Grace window so a
+        // handoff's deliberate close (which swaps in a new PC) isn't killed.
+        _disconnectTimer?.cancel();
+        _disconnectTimer = Timer(const Duration(seconds: 15), () async {
+          if (gen != _pcGeneration) return;
           final pc2 = _pc;
           if (pc2 == null) return;
           final st = pc2.connectionState;
@@ -1369,25 +1458,162 @@ class CallService extends ChangeNotifier {
     return pc;
   }
 
+  /// Recovery succeeded (or the outage cleared on its own) — reset the
+  /// restart machinery and drop the "reconnecting" chip.
+  void _noteConnectionRestored() {
+    _restartTimer?.cancel();
+    _disconnectTimer?.cancel();
+    _restartAttempt = 0;
+    _outageStart = null;
+    final s = _session;
+    if (s != null && s.reconnecting) {
+      _session = s.copyWith(reconnecting: false);
+      notifyListeners();
+    }
+  }
+
+  /// Entry point of the recovery path — called on ICE/connection failure or
+  /// disconnect (and on a peer's `restart-request`). Debounces, tracks the
+  /// outage window, and drives [_attemptIceRestart]; gives up via
+  /// [_teardown] when [shouldAbandonRestart] says so.
+  void _scheduleIceRestart(int gen, {bool immediate = false, bool force = false}) {
+    final s = _session;
+    if (s == null) return;
+    if (s.status != CallStatus.active && s.status != CallStatus.connecting) {
+      return;
+    }
+    _outageStart ??= DateTime.now();
+    if (!s.reconnecting) {
+      _session = s.copyWith(reconnecting: true);
+      notifyListeners();
+    }
+    if (_restartTimer?.isActive ?? false) return;
+    _restartTimer = Timer(
+      immediate ? Duration.zero : const Duration(seconds: 2),
+      () => _attemptIceRestart(gen, force: force),
+    );
+  }
+
+  Future<void> _attemptIceRestart(int gen, {bool force = false}) async {
+    if (gen != _pcGeneration) return;
+    final s = _session;
+    final pc = _pc;
+    final me = _userId;
+    if (s == null || pc == null || me == null) return;
+    if (!force &&
+        pc.connectionState ==
+            RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
+      _noteConnectionRestored();
+      return;
+    }
+    if (shouldAbandonRestart(
+      outageStart: _outageStart,
+      now: DateTime.now(),
+      attemptsSoFar: _restartAttempt,
+    )) {
+      await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
+      return;
+    }
+    _restartAttempt++;
+    debugPrint(
+      'CallService: ICE restart attempt $_restartAttempt '
+      '(caller=${s.isCaller})',
+    );
+    try {
+      if (s.isCaller) {
+        await pc.restartIce();
+        // restartIce() flags the next offer natively; pass iceRestart too so
+        // the intent survives platform quirks.
+        final offer = await pc.createOffer({'iceRestart': true});
+        await pc.setLocalDescription(offer);
+        await api.sendCallSignal(
+          callId: s.callId,
+          fromUserId: me,
+          toUserId: s.peerUserId,
+          fromDeviceId: _deviceId,
+          targetDeviceId: s.peerDeviceId,
+          kind: 'restart-offer',
+          payload: jsonEncode({'sdp': offer.sdp, 'type': offer.type}),
+        );
+      } else {
+        // Only the caller role re-offers (single deterministic restarter —
+        // restart offers can never glare). Ask it to.
+        await api.sendCallSignal(
+          callId: s.callId,
+          fromUserId: me,
+          toUserId: s.peerUserId,
+          fromDeviceId: _deviceId,
+          targetDeviceId: s.peerDeviceId,
+          kind: 'restart-request',
+          payload: '{}',
+        );
+      }
+    } catch (e) {
+      debugPrint('CallService._attemptIceRestart failed: $e');
+    }
+    final delay = nextRestartDelay(_restartAttempt);
+    // A null delay means the schedule is spent — run one last pass that
+    // trips shouldAbandonRestart and tears down.
+    _restartTimer = Timer(
+      delay ?? const Duration(seconds: 8),
+      () => _attemptIceRestart(gen),
+    );
+  }
+
+  /// Peer's restart offer (caller role sent it after an outage). Applying
+  /// it re-runs ICE on the existing PC — [_remoteDescSet] stays true and
+  /// fresh candidates flow through the normal `ice` path.
+  Future<void> _onRestartOffer(String payload) async {
+    final me = _userId;
+    final s = _session;
+    final pc = _pc;
+    if (me == null || s == null || pc == null) return;
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final sdp = parsed['sdp'] as String?;
+      final type = parsed['type'] as String?;
+      if (sdp == null || type == null) return;
+      await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
+      final answer = await pc.createAnswer({});
+      await pc.setLocalDescription(answer);
+      await api.sendCallSignal(
+        callId: s.callId,
+        fromUserId: me,
+        toUserId: s.peerUserId,
+        fromDeviceId: _deviceId,
+        targetDeviceId: s.peerDeviceId,
+        kind: 'restart-answer',
+        payload: jsonEncode({'sdp': answer.sdp, 'type': answer.type}),
+      );
+    } catch (e, st) {
+      debugPrint('CallService._onRestartOffer failed: $e\n$st');
+    }
+  }
+
+  Future<void> _onRestartAnswer(String payload) async {
+    final pc = _pc;
+    if (pc == null) return;
+    // Only valid while our restart offer is pending — a stale answer after
+    // we've moved on (new offer, recovered, handoff) is dropped.
+    if (pc.signalingState !=
+        RTCSignalingState.RTCSignalingStateHaveLocalOffer) {
+      return;
+    }
+    try {
+      final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      final sdp = parsed['sdp'] as String?;
+      final type = parsed['type'] as String?;
+      if (sdp == null || type == null) return;
+      await pc.setRemoteDescription(RTCSessionDescription(sdp, type));
+    } catch (e, st) {
+      debugPrint('CallService._onRestartAnswer failed: $e\n$st');
+    }
+  }
+
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
     // Classify the audio session before getUserMedia starts the mic unit.
     await _applyIosAudioConfig(kind);
-    final constraints = <String, dynamic>{
-      'audio': true,
-      if (kind == CallMediaKind.video)
-        'video': {
-          'mandatory': {
-            'minWidth': 640,
-            'minHeight': 480,
-            'minFrameRate': 24,
-          },
-          'facingMode': 'user',
-          'optional': [],
-        }
-      else
-        'video': false,
-    };
-    _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    _localStream = await getCallUserMedia(kind);
     final localKinds =
         _localStream!.getTracks().map((t) => t.kind).join(',');
     debugPrint(
@@ -1397,6 +1623,8 @@ class CallService extends ChangeNotifier {
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
     }
+    await configureVideoSenders(_pc!);
+    await preferH264Codec(_pc!);
     // Default output route: loudspeaker for video, earpiece for voice — on
     // both platforms. iOS won't latch this until its audio session is active,
     // so onConnectionState (connected) re-asserts it.
@@ -1436,6 +1664,12 @@ class CallService extends ChangeNotifier {
   Future<void> _teardown(CallStatus terminal, {String? errorMessage}) async {
     _acceptWatchdog?.cancel();
     _acceptWatchdog = null;
+    _handoffWatchdog?.cancel();
+    _handoffWatchdog = null;
+    _restartTimer?.cancel();
+    _disconnectTimer?.cancel();
+    _restartAttempt = 0;
+    _outageStart = null;
     // Reset the native-accept latch SYNCHRONOUSLY — leaving it set through
     // the delayed null-out below opens a 400ms window where a new incoming
     // call would be mis-routed straight to CallScreen.
@@ -1449,7 +1683,11 @@ class CallService extends ChangeNotifier {
     await _disposePc();
     // Hold the terminal state for a moment so the UI can render "ended" /
     // toast the error before the screen pops itself.
+    final endedCallId = s?.callId;
     Future.delayed(const Duration(milliseconds: 400), () {
+      // A new call may have started inside this window — leave it alone.
+      final now = _session;
+      if (now != null && now.callId != endedCallId) return;
       _session = null;
       _remoteStream = null;
       _remoteStreamTick = 0;
@@ -1458,9 +1696,17 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> _disposePc() async {
+    // Invalidate every callback/timer captured against the dying PC.
+    _pcGeneration++;
+    _disconnectTimer?.cancel();
+    _restartTimer?.cancel();
+    _stats?.dispose();
+    _stats = null;
     _remoteDescSet = false;
     _pendingRemoteIce.clear();
-    _pendingLocalIce.clear();
+    _iceFlushTimer?.cancel();
+    _iceFlushTimer = null;
+    _iceOutBuffer.clear();
     try {
       final ls = _localStream;
       if (ls != null) {
@@ -1480,8 +1726,14 @@ class CallService extends ChangeNotifier {
   @override
   void dispose() {
     _acceptWatchdog?.cancel();
+    _handoffWatchdog?.cancel();
+    _disconnectTimer?.cancel();
+    _restartTimer?.cancel();
+    _activeCallSub?.cancel();
+    _activeCallSub = null;
     incomingTick.dispose();
     _disposePc();
+    callQuality.dispose();
     super.dispose();
   }
 }

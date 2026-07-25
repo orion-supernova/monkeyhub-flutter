@@ -6,11 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
+import '../keyboard/focusable_tap.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'call_service.dart';
+import 'call_stats_monitor.dart';
 
 /// Full-screen UI for the active call. Listens to [CallService] and pops
 /// itself once the session transitions to a terminal state.
@@ -29,8 +31,10 @@ class CallScreen extends StatefulWidget {
 class _CallScreenState extends State<CallScreen> {
   final _localRenderer = RTCVideoRenderer();
   final _remoteRenderer = RTCVideoRenderer();
-  Timer? _elapsedTicker;
   bool _renderersReady = false;
+  // Voice calls never touch the renderers — no GPU textures allocated and
+  // nothing to dispose. A call's media kind can't change mid-call.
+  bool _renderersUsed = false;
   // Mirrors CallService.remoteStreamTick — we re-bind the remote renderer
   // whenever the tick advances, even if the stream reference is unchanged,
   // because audio + video tracks arrive as separate onTrack events on the
@@ -41,15 +45,19 @@ class _CallScreenState extends State<CallScreen> {
   // each notify would schedule its own delayed pop and the second would
   // dismiss the chatroom beneath this screen.
   bool _popScheduled = false;
+  // Fingerprint of everything build() consumes — CallService notifies far
+  // more often than this screen visually changes, and a rebuild here means
+  // re-compositing two video views under a blur tray.
+  int? _lastBuiltKey;
 
   @override
   void initState() {
     super.initState();
-    _setupRenderers();
+    if (widget.service.session?.mediaKind == CallMediaKind.video) {
+      _renderersUsed = true;
+      _setupRenderers();
+    }
     widget.service.addListener(_onChanged);
-    _elapsedTicker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
@@ -75,6 +83,28 @@ class _CallScreenState extends State<CallScreen> {
     }
   }
 
+  int _buildKey() {
+    final svc = widget.service;
+    final s = svc.session;
+    return Object.hash(
+      s?.callId,
+      s?.status,
+      s?.peerName,
+      s?.peerAvatarStorageId,
+      s?.localMuted,
+      s?.localVideoOff,
+      s?.speakerOn,
+      s?.reconnecting,
+      s?.peerState.audioMuted,
+      s?.peerState.videoOff,
+      s?.errorMessage,
+      svc.localStream,
+      svc.remoteStream,
+      svc.remoteStreamTick,
+      _renderersReady,
+    );
+  }
+
   void _onChanged() {
     if (!mounted) return;
     final s = widget.service.session;
@@ -98,17 +128,21 @@ class _CallScreenState extends State<CallScreen> {
         });
       }
     }
+    final key = _buildKey();
+    if (key == _lastBuiltKey) return;
+    _lastBuiltKey = key;
     setState(() {});
   }
 
   @override
   void dispose() {
     widget.service.removeListener(_onChanged);
-    _elapsedTicker?.cancel();
-    _localRenderer.srcObject = null;
-    _remoteRenderer.srcObject = null;
-    _localRenderer.dispose();
-    _remoteRenderer.dispose();
+    if (_renderersUsed) {
+      _localRenderer.srcObject = null;
+      _remoteRenderer.srcObject = null;
+      _localRenderer.dispose();
+      _remoteRenderer.dispose();
+    }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -128,12 +162,7 @@ class _CallScreenState extends State<CallScreen> {
       case CallStatus.connecting:
         return '${_kindLabel(s)} · connecting…';
       case CallStatus.active:
-        final start = s.connectedAt ?? s.startedAt;
-        if (start == null) return 'connected';
-        final d = DateTime.now().difference(start);
-        final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-        final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-        return d.inHours > 0 ? '${d.inHours}:$mm:$ss' : '$mm:$ss';
+        return 'connected';
       case CallStatus.ended:
         return s.errorMessage ?? 'call ended';
       case CallStatus.failed:
@@ -145,6 +174,18 @@ class _CallScreenState extends State<CallScreen> {
       case CallStatus.idle:
         return '';
     }
+  }
+
+  /// Status line for the top overlay / audio backdrop. The active state
+  /// renders [_ElapsedLabel], which owns its own 1 Hz ticker — so the
+  /// per-second repaint is one Text, not this whole screen (which carries
+  /// two video views under a BackdropFilter).
+  Widget _statusWidget(CallSession s, TextStyle style) {
+    final start = s.connectedAt ?? s.startedAt;
+    if (s.status == CallStatus.active && start != null) {
+      return _ElapsedLabel(start: start, style: style);
+    }
+    return Text(_statusLabel(s), style: style);
   }
 
   /// The peer as a [ChatUser] so avatar widgets can render a real photo
@@ -212,7 +253,12 @@ class _CallScreenState extends State<CallScreen> {
             ] else
               _AudioBackdrop(
                 name: s.peerName,
-                status: _statusLabel(s),
+                status: _statusWidget(
+                  s,
+                  theme.monoTiny.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
                 peerMuted: s.peerState.audioMuted,
                 theme: theme,
                 user: _peerAsUser(s),
@@ -288,9 +334,9 @@ class _CallScreenState extends State<CallScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(
-                          _statusLabel(s),
-                          style: theme.monoTiny.copyWith(
+                        _statusWidget(
+                          s,
+                          theme.monoTiny.copyWith(
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
                         ),
@@ -305,17 +351,34 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
 
-            // Switching-device chip. Shown briefly while a WebRTC
-            // renegotiation runs after the peer (or this device) moves
-            // the call to another device. Auto-hides on `connecting` /
-            // `active`.
-            if (s.status == CallStatus.switching)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 80,
-                left: 0,
-                right: 0,
-                child: const _SwitchingChip(),
-              ),
+            // Status chip row: device-switching renegotiation, ICE-restart
+            // recovery, or (via its own listenable, so no screen rebuild)
+            // a degraded-connection warning.
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 80,
+              left: 0,
+              right: 0,
+              child: s.status == CallStatus.switching
+                  ? const _OverlayChip(label: 'switching device…')
+                  : s.reconnecting
+                      ? const _OverlayChip(label: 'reconnecting…')
+                      : ValueListenableBuilder<CallQualitySnapshot?>(
+                          valueListenable: widget.service.callQuality,
+                          builder: (context, q, _) {
+                            if (q == null ||
+                                q.quality == CallQuality.good) {
+                              return const SizedBox.shrink();
+                            }
+                            return _OverlayChip(
+                              label: q.quality == CallQuality.poor
+                                  ? 'poor connection'
+                                  : 'weak connection',
+                              spinner: false,
+                              tint: const Color(0xFFFFB74D),
+                            );
+                          },
+                        ),
+            ),
 
             // Bottom control bar — floating glass tray. The speaker toggle is
             // ALWAYS present (video defaults to loudspeaker, voice to earpiece,
@@ -408,7 +471,7 @@ class _AudioBackdrop extends StatefulWidget {
     this.peerMuted = false,
   });
   final String name;
-  final String status;
+  final Widget status;
   final bool peerMuted;
   final dynamic theme;
   final ChatUser user;
@@ -512,12 +575,7 @@ class _AudioBackdropState extends State<_AudioBackdrop>
                     const Icon(Icons.mic_off, size: 14, color: Colors.white70),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    widget.status,
-                    style: theme.monoTiny.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                  ),
+                  widget.status,
                 ],
               ),
             ],
@@ -605,17 +663,14 @@ class _ControlButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Material(
-          color: bg,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onTap,
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Icon(icon, color: fg, size: large ? 30 : 24),
-            ),
+        FocusableTap(
+          onTap: onTap,
+          radius: size / 2,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+            child: Icon(icon, color: fg, size: large ? 30 : 24),
           ),
         ),
         const SizedBox(height: 6),
@@ -628,15 +683,19 @@ class _ControlButton extends StatelessWidget {
   }
 }
 
-/// Small centered pill shown over the call view while a WebRTC
-/// renegotiation runs (the peer or this device moved the call to
-/// another device). Subtle by design — the call audio/video continues
-/// behind it.
-class _SwitchingChip extends StatelessWidget {
-  const _SwitchingChip();
+/// Small centered pill shown over the call view during a transient state —
+/// device-switch renegotiation, ICE-restart recovery, or a degraded
+/// connection. Subtle by design; the call audio/video continues behind it.
+class _OverlayChip extends StatelessWidget {
+  const _OverlayChip({required this.label, this.spinner = true, this.tint});
+  final String label;
+  final bool spinner;
+  final Color? tint;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final fg = tint ?? Colors.white;
     return Center(
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
@@ -645,25 +704,30 @@ class _SwitchingChip extends StatelessWidget {
           color: Colors.black.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: fg.withValues(alpha: 0.15),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Colors.white,
+            if (spinner) ...[
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: fg,
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
+              const SizedBox(width: 10),
+            ] else ...[
+              Icon(Icons.network_check, size: 14, color: fg),
+              const SizedBox(width: 8),
+            ],
             Text(
-              'switching device…',
+              label,
               style: theme.monoTiny.copyWith(
-                color: Colors.white,
+                color: fg,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.4,
               ),
@@ -672,5 +736,43 @@ class _SwitchingChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Self-ticking call-duration label. Owning the 1 Hz timer here confines the
+/// per-second rebuild to this one Text widget.
+class _ElapsedLabel extends StatefulWidget {
+  const _ElapsedLabel({required this.start, required this.style});
+  final DateTime start;
+  final TextStyle style;
+
+  @override
+  State<_ElapsedLabel> createState() => _ElapsedLabelState();
+}
+
+class _ElapsedLabelState extends State<_ElapsedLabel> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = DateTime.now().difference(widget.start);
+    final mm = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final ss = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final label = d.inHours > 0 ? '${d.inHours}:$mm:$ss' : '$mm:$ss';
+    return Text(label, style: widget.style);
   }
 }

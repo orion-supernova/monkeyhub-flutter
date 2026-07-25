@@ -109,6 +109,19 @@ class CallApi {
     });
   }
 
+  /// Batch variant — one mutation for a whole drain pass instead of one per
+  /// signal. Missing/foreign ids are skipped server-side.
+  Future<void> consumeCallSignals({
+    required List<String> signalIds,
+    required String userId,
+  }) async {
+    if (signalIds.isEmpty) return;
+    await _cv.mutation('calls:consumeSignals', {
+      'signalIds': signalIds,
+      'userId': userId,
+    });
+  }
+
   /// Live subscription to my current `ringing` or `active` call (if any).
   /// Backs the global "Move call here" pill and any other UI that needs
   /// to know "is there a call happening on one of my devices right now?".

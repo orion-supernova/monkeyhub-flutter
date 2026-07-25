@@ -401,7 +401,7 @@ export default defineSchema({
     callId: v.id("calls"),
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
-    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer"
+    kind: v.string(),            // "invite" | "offer" | "answer" | "ice" | "ice-batch" | "state" | "bye" | "reject" | "cancel" | "taken" | "handoff-prepare" | "handoff-takeover" | "handoff-offer" | "handoff-answer" | "restart-request" | "restart-offer" | "restart-answer"
     payload: v.string(),         // JSON-encoded (SDP, ICE candidate, state object, …)
     createdAt: v.number(),
     consumed: v.boolean(),
@@ -424,6 +424,53 @@ export default defineSchema({
     // them (which by_to_unconsumed can't reach without scanning both values).
     .index("by_from", ["fromUserId"])
     .index("by_to", ["toUserId"]),
+
+  // ── group calls (mesh, one active call per room) ──
+  // Each participant holds a P2P PeerConnection to every other joined
+  // participant; the backend is signaling + roster only, no media.
+  groupCalls: defineTable({
+    roomId: v.id("rooms"),
+    startedBy: v.id("users"),
+    type: v.string(),   // "audio" | "video"
+    status: v.string(), // "active" | "ended"
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+  })
+    .index("by_room_status", ["roomId", "status"])
+    .index("by_status", ["status", "startedAt"]),
+
+  groupCallParticipants: defineTable({
+    groupCallId: v.id("groupCalls"),
+    userId: v.id("users"),
+    status: v.string(), // "invited" | "joined" | "left" | "declined"
+    deviceId: v.optional(v.string()),
+    invitedAt: v.number(),
+    joinedAt: v.optional(v.number()),
+    leftAt: v.optional(v.number()),
+    // Heartbeat while joined — gcStaleGroupParticipants reaps rows whose
+    // app died without calling leave(), so ghost calls can't linger.
+    lastSeenAt: v.optional(v.number()),
+  })
+    .index("by_call", ["groupCallId"])
+    .index("by_call_user", ["groupCallId", "userId"])
+    .index("by_user_status", ["userId", "status"]),
+
+  // Pair-addressed signaling inside a group call. Same delivery contract as
+  // callSignals: subscribe by toUserId, consume after dispatch, GC sweeps.
+  groupCallSignals: defineTable({
+    groupCallId: v.id("groupCalls"),
+    fromUserId: v.id("users"),
+    toUserId: v.id("users"),
+    kind: v.string(), // "offer" | "answer" | "ice-batch" | "state" | "restart-request" | "restart-offer" | "restart-answer"
+    payload: v.string(),
+    createdAt: v.number(),
+    consumed: v.boolean(),
+    fromDeviceId: v.optional(v.string()),
+    targetDeviceId: v.optional(v.string()),
+  })
+    .index("by_to_unconsumed", ["toUserId", "consumed", "createdAt"])
+    .index("by_call", ["groupCallId"])
+    .index("by_consumed", ["consumed", "createdAt"]),
 
   // Cached push-provider auth tokens, one row per provider ("apns" | "fcm").
   // APNs REQUIRES the same provider JWT be reused for 20-60 minutes —

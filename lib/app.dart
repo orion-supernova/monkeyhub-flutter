@@ -8,11 +8,15 @@ import 'backend/call_api.dart';
 import 'backend/chat_api.dart';
 import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
+import 'backend/group_call_api.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
 import 'calls/call_service.dart';
+import 'calls/group_call_screen.dart';
+import 'calls/group_call_service.dart';
 import 'calls/incoming_call_screen.dart';
+import 'calls/incoming_group_call_screen.dart';
 import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
@@ -67,6 +71,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     api: _callApi,
     service: _callService,
   );
+  late final GroupCallApi _groupCallApi = GroupCallApi(_cv);
+  // Group calls mint the same time-limited TURN credentials via
+  // calls:getIceConfig, so both stacks share the coturn deployment.
+  late final GroupCallService _groupCallService =
+      GroupCallService.ensure(_groupCallApi)
+        ..iceConfigFetcher = _callApi.getIceConfig;
   // Cached merged listenable. Created exactly once so AnimatedBuilder's
   // listener subscription on _auth / _themeController is never re-bound
   // across parent rebuilds (each fresh Listenable.merge call would force
@@ -163,6 +173,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     try {
       await _repo.resubscribe();
       _callService.resubscribeWatch();
+      _groupCallService.resubscribe();
       final deviceId = await DeviceIdentity.ensure();
       await _signaling.stop();
       await _signaling.start(s.userId, deviceId: deviceId);
@@ -357,6 +368,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             displayName: s.name,
             deviceId: deviceId,
           );
+          _groupCallService.attach(userId: s.userId, deviceId: deviceId);
           await _signaling.start(s.userId, deviceId: deviceId);
           // A call accepted from the native UI while the app was dead lands
           // here (Android): the plugin persisted the accept; replay it now
@@ -417,6 +429,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           displayName: s.name,
           deviceId: deviceId,
         );
+        _groupCallService.attach(userId: s.userId, deviceId: deviceId);
         await _signaling.start(s.userId, deviceId: deviceId);
         await NativeCallHandler.instance.replayColdStartCalls();
         _consumePendingPushRoom();
@@ -432,6 +445,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await _signaling.stop();
         await _callService.endCall();
         _callService.detachWatch();
+        await _groupCallService.leaveCall();
         // Reset landing tab so the next sign-in starts on Chat instead of
         // wherever the previous session left off (e.g. Settings, which is
         // where Sign Out is reached from).
@@ -512,6 +526,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                       // the call service transitions to a non-idle state.
                       // Invisible.
                       _CallOverlay(service: _callService, api: _api),
+                      // Same job for group calls: pushes GroupCallScreen /
+                      // the group invite ringer. Invisible.
+                      _GroupCallOverlay(
+                        service: _groupCallService,
+                        api: _api,
+                      ),
                       // Sits above every other layer so it covers banners +
                       // overlays during a screen recording.
                       const CaptureShield(),
@@ -897,6 +917,80 @@ class _BootError extends StatelessWidget {
 /// Stable child of MaterialApp.home. Listens to AuthService internally so the
 /// LoginScreen → HomeShell swap happens via setState on a subtree we own,
 /// rather than by replacing MaterialApp.home (which the Navigator caches).
+/// Watches [GroupCallService] and drives the two group-call navigations:
+/// pushes [GroupCallScreen] the moment this device enters a call (started,
+/// joined from a banner, or joined from the ringer), and raises
+/// [IncomingGroupCallScreen] while a fresh invite is pending. Renders
+/// nothing itself — same pattern as [_CallOverlay] above.
+class _GroupCallOverlay extends StatefulWidget {
+  const _GroupCallOverlay({required this.service, required this.api});
+  final GroupCallService service;
+  final ChatApi api;
+  @override
+  State<_GroupCallOverlay> createState() => _GroupCallOverlayState();
+}
+
+class _GroupCallOverlayState extends State<_GroupCallOverlay> {
+  String? _pushedCallId;
+  bool _ringerUp = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.service.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.service.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (!mounted) return;
+    final svc = widget.service;
+    if (svc.inCall && _pushedCallId != svc.groupCallId) {
+      _pushedCallId = svc.groupCallId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                GroupCallScreen(service: widget.service, api: widget.api),
+          ),
+        );
+      });
+      return;
+    }
+    if (!svc.inCall) _pushedCallId = null;
+    // Ring for a fresh invite — never over an active 1:1 or group call
+    // (the room banner remains as the quiet join surface).
+    final busyOneToOne = CallService.maybeInstance?.inCall ?? false;
+    if (svc.pendingInvite != null &&
+        !svc.inCall &&
+        !busyOneToOne &&
+        !_ringerUp) {
+      _ringerUp = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) {
+          _ringerUp = false;
+          return;
+        }
+        await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => IncomingGroupCallScreen(service: widget.service),
+          ),
+        );
+        _ringerUp = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 class _AppHome extends StatefulWidget {
   const _AppHome({
     required this.auth,

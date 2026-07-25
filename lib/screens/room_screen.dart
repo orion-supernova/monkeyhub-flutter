@@ -9,7 +9,11 @@ import 'package:image_picker/image_picker.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
+import '../backend/group_call_api.dart';
 import '../calls/call_button.dart';
+import '../calls/group_call_banner.dart';
+import '../calls/group_call_button.dart';
+import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
@@ -887,6 +891,15 @@ class _RoomScreenState extends State<RoomScreen>
             },
             onOpenInfo: () => _openRoomInfo(room),
           ),
+          // Ongoing group call in this room → join affordance. Zero height
+          // when there is none (or in DMs, which use the 1:1 stack).
+          if (!room.isDm && GroupCallService.maybeInstance != null)
+            GroupCallBanner(
+              api: GroupCallApi(ConvexBackend.instance),
+              service: GroupCallService.instance,
+              roomId: room.id,
+              userId: me,
+            ),
           Expanded(
             child: _messageBody(
               context,
@@ -960,16 +973,28 @@ class _RoomScreenState extends State<RoomScreen>
             child: SafeArea(
               bottom: false,
               child: ChatColumn(
-                child: _LiquidHeader(
-                room: room,
-                dmUser: widget.repo.otherUserFor(room),
-                api: widget.api,
-                onTapDmUser: () {
-                  final u = widget.repo.otherUserFor(room);
-                  if (u == null) return;
-                  _openProfile(u);
-                },
-                onOpenInfo: () => _openRoomInfo(room),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _LiquidHeader(
+                      room: room,
+                      dmUser: widget.repo.otherUserFor(room),
+                      api: widget.api,
+                      onTapDmUser: () {
+                        final u = widget.repo.otherUserFor(room);
+                        if (u == null) return;
+                        _openProfile(u);
+                      },
+                      onOpenInfo: () => _openRoomInfo(room),
+                    ),
+                    if (!room.isDm && GroupCallService.maybeInstance != null)
+                      GroupCallBanner(
+                        api: GroupCallApi(ConvexBackend.instance),
+                        service: GroupCallService.instance,
+                        roomId: room.id,
+                        userId: me,
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -1517,7 +1542,9 @@ class _Header extends StatelessWidget {
               peerName: dmUser!.displayName,
               roomId: room.id,
               variant: CallButtonVariant.classic,
-            ),
+            )
+          else
+            GroupCallButton(roomId: room.id),
           IconButton(
             onPressed: onOpenInfo,
             icon: Icon(Icons.more_horiz, color: theme.inkSoft, size: 18),
@@ -2164,6 +2191,9 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
               roomId: widget.room.id,
               variant: CallButtonVariant.liquid,
             ),
+            const SizedBox(width: 12),
+          ] else ...[
+            GroupCallButton(roomId: widget.room.id, liquid: true),
             const SizedBox(width: 12),
           ],
           LiquidGlass(

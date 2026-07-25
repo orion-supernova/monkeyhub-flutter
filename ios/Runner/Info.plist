@@ -225,6 +225,10 @@
 	<true/>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>MonkeyHub uses the local network to connect calls directly between devices on the same Wi-Fi.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_mdns._udp</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

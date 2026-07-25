@@ -79,7 +79,7 @@ dependencies:
 
   # WebRTC for 1:1 voice/video calls. Signaling rides on Convex; STUN is
   # Google's public servers, optional TURN is self-hosted coturn.
-  flutter_webrtc: ^1.4.1
+  flutter_webrtc: ^1.5.2
 
   # Auth / crypto
   crypto: ^3.0.3

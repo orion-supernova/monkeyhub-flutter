@@ -71,6 +71,7 @@ class CallSession {
     this.connectedAt,
     this.errorMessage,
     this.peerDeviceId,
+    this.reconnecting = false,
   });
 
   final String callId;
@@ -92,6 +93,10 @@ class CallSession {
   final DateTime? startedAt;
   final DateTime? connectedAt;
   final String? errorMessage;
+
+  /// True while an ICE restart is recovering the media path after a network
+  /// change/outage. The call stays on screen with a "reconnecting" chip.
+  final bool reconnecting;
   /// Which device of the peer currently holds the call. Tracked so our
   /// outgoing signals (ICE, state, etc.) can be targeted post-handoff
   /// and siblings of the peer ignore them. Updated when an incoming
@@ -109,6 +114,7 @@ class CallSession {
     DateTime? connectedAt,
     String? errorMessage,
     String? peerDeviceId,
+    bool? reconnecting,
   }) {
     return CallSession(
       callId: callId,
@@ -127,6 +133,7 @@ class CallSession {
       connectedAt: connectedAt ?? this.connectedAt,
       errorMessage: errorMessage,
       peerDeviceId: peerDeviceId ?? this.peerDeviceId,
+      reconnecting: reconnecting ?? this.reconnecting,
     );
   }
 }

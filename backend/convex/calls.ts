@@ -576,6 +576,8 @@ export const signalsForUser = query({
       kind: r.kind,
       payload: r.payload,
       createdAt: r.createdAt,
+      targetDeviceId: r.targetDeviceId ?? null,
+      fromDeviceId: r.fromDeviceId ?? null,
     }));
   },
 });
@@ -589,6 +591,24 @@ export const consumeSignal = mutation({
       throw new Error("NOT_RECIPIENT");
     }
     await ctx.db.patch(signalId, { consumed: true });
+  },
+});
+
+export const consumeSignals = mutation({
+  args: {
+    signalIds: v.array(v.id("callSignals")),
+    userId: v.id("users"),
+  },
+  returns: v.null(),
+  handler: async (ctx, { signalIds, userId }) => {
+    for (const signalId of signalIds) {
+      const sig = await ctx.db.get(signalId);
+      // Missing rows are fine — GC or purge may have raced us.
+      if (!sig) continue;
+      if (sig.toUserId.toString() !== userId.toString()) continue;
+      if (sig.consumed) continue;
+      await ctx.db.patch(signalId, { consumed: true });
+    }
   },
 });
 
@@ -685,11 +705,18 @@ export const getIceConfig = action({
     const expiry = Math.floor(Date.now() / 1000) + ttlSeconds;
     const username = `${expiry}:${userId.toString()}`;
     const credential = await hmacSha1Base64(turnSecret, username);
+    // TURN_URL may be a comma-separated list, e.g.
+    // "turn:1.2.3.4:3478?transport=udp,turn:1.2.3.4:3478?transport=tcp"
+    // — the TCP variant reaches clients on UDP-blocked networks.
+    const urls = turnUrl
+      .split(",")
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0);
     return {
       iceServers: [
         ...stun,
         {
-          urls: turnUrl, // e.g. "turn:1.2.3.4:3478"
+          urls: urls.length === 1 ? urls[0] : urls,
           username,
           credential,
         },
