@@ -1,0 +1,8 @@
+# The landing page and the downloads page are the crawlable surface.
+# /web/ is a Flutter app: a multi-megabyte bundle that renders to canvas, so
+# there is nothing there for a crawler to read and a lot for it to download.
+
+User-agent: *
+Allow: /
+Allow: /downloads/
+Disallow: /web/

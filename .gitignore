@@ -56,9 +56,9 @@ app.*.map.json
 
 android/.kotlin/sessions/
 
-# Download-page staging area — hosting/public/ is regenerated from
-# hosting/index.template.html by deploy.sh and holds the (large) APK before it
-# is rsynced to the VM.
+# Page staging area — hosting/public/{site,downloads}/ is regenerated from the
+# templates in hosting/ by deploy.sh, and holds the (large) APK before it is
+# rsynced to the VM. The templates themselves ARE tracked.
 /hosting/public/
 /.firebase/
 firebase-debug.log

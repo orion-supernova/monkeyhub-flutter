@@ -10,11 +10,18 @@
 #   iOS      → flutter build ios → xcodebuild archive/export → App Store Connect
 #   Android  → APK mode:  flutter build apk → rsync to the Oracle VM, served by
 #                         Caddy behind cloudflared
-#                         (https://monkeyhub.walhallaa.com/download)
+#                         (https://monkeyhub.walhallaa.com/downloads/)
 #            → Play mode: flutter build appbundle → Google Play internal track
 #                         (needs verified Play account; see DEPLOY.md)
 #   Web      → --web: flutter build web → rsync to the same VM, served at
-#                     https://monkeyhub.walhallaa.com/
+#                     https://monkeyhub.walhallaa.com/web/
+#   Site     → --site: stamp the landing + downloads pages and push them. No
+#                      build, so it takes seconds.
+#
+# One host, three paths (see hosting/caddy-monkeyhub.conf):
+#   /            landing page      /srv/monkeyhub/site
+#   /downloads/  every platform    /srv/monkeyhub/downloads
+#   /web/        Flutter web app   /srv/monkeyhub/web
 #
 # The APK used to live on Firebase Hosting; the Spark (free) plan refuses to
 # serve executables ("Executable files are forbidden on the Spark billing plan"),
@@ -35,15 +42,22 @@ cd "$SCRIPT_DIR"
 
 ANDROID_PACKAGE="com.walhallaa.chattest20241220"
 
-# ----- self-hosted download page (Oracle VM + Caddy + cloudflared) -----
+# ----- self-hosted site (Oracle VM + Caddy + cloudflared) -----
 # Override any of these from .env.local if the box or key ever moves.
 VM_HOST="${VM_HOST:-79.76.54.204}"
 VM_USER="${VM_USER:-ubuntu}"
 VM_SSH_KEY="${VM_SSH_KEY:-$HOME/Documents/BelesMakinem/ssh-key-2024-12-04-2.key}"
-VM_APK_DIR="/srv/monkeyhub/download"
+VM_SITE_DIR="/srv/monkeyhub/site"
+VM_DL_DIR="/srv/monkeyhub/downloads"
 VM_WEB_DIR="/srv/monkeyhub/web"
-HOSTING_URL="https://monkeyhub.walhallaa.com/download"
-WEB_URL="https://monkeyhub.walhallaa.com"
+SITE_URL="https://monkeyhub.walhallaa.com"
+HOSTING_URL="https://monkeyhub.walhallaa.com/downloads"
+# Trailing slash matters: /web without it costs every visitor a redirect.
+WEB_URL="https://monkeyhub.walhallaa.com/web/"
+
+# What has actually shipped, per platform. Lives on the VM because it outlives
+# any one deploy — shipping Android must not erase the macOS row.
+DL_MANIFEST="$VM_DL_DIR/artifacts.json"
 
 # ----- flags -----
 SKIP_VERSION_BUMP=false
@@ -52,10 +66,13 @@ DEPLOY_IOS=""
 DEPLOY_ANDROID=""
 ANDROID_MODE="apk" # apk | play
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
+DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
 RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android APK / web: rsync to the VM.
 RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
+# Standalone actions: they do their one job and exit, never mixed with a build.
+ACTION=""          # "" | infra | rollback-web
 
 print_help() {
     cat <<EOF
@@ -67,11 +84,17 @@ No platform flags + no TTY     → legacy default: Convex + iOS.
 Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
   --android[=apk|play]  Ship Android. apk (default): signed APK + self-hosted
-                        download page. play: AAB for Google Play internal.
+                        downloads page. play: AAB for Google Play internal.
   --web                 Build Flutter web and publish it at $WEB_URL.
-  --all                 Convex + iOS + Android(apk) + web.
+  --site                Landing + downloads pages only. No build — seconds.
+  --all                 Convex + iOS + Android(apk) + web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
+
+Standalone actions (run alone and exit):
+  --rollback-web        Put the previous web build back. Run it twice to undo.
+  --infra               Install hosting/caddy-monkeyhub.conf on the VM. Validates
+                        the whole config first and won't reload if it fails.
 
 Behavior flags:
   --skip-version-bump   Re-ship the same version.
@@ -93,12 +116,15 @@ while [[ $# -gt 0 ]]; do
         --android=apk)       DEPLOY_ANDROID=true; ANDROID_MODE="apk";  PLATFORM_ARGS=true ;;
         --android=play)      DEPLOY_ANDROID=true; ANDROID_MODE="play"; PLATFORM_ARGS=true ;;
         --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
+        --site)              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
-                             PLATFORM_ARGS=true ;;
-        # Zeroes web too, so "backend only" holds even after --all or --web.
+                             DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
+        # Zeroes web and site too, so "backend only" holds even after --all.
         --convex-only)       RUN_CONVEX=true; DEPLOY_IOS=false; DEPLOY_ANDROID=false
-                             DEPLOY_WEB=false
+                             DEPLOY_WEB=false; DEPLOY_SITE=false
                              SKIP_VERSION_BUMP=true; PLATFORM_ARGS=true ;;
+        --rollback-web)      ACTION="rollback-web" ;;
+        --infra)             ACTION="infra" ;;
         --dry)
             DRY_RUN=true
             RUN_CONVEX=false
@@ -112,24 +138,115 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+# Every SSH/rsync call to the VM shares these. BatchMode so a missing key fails
+# fast instead of hanging on a password prompt nobody is there to type.
+VM_SSH_OPTS="-i $VM_SSH_KEY -o BatchMode=yes -o ConnectTimeout=15"
+
+vm_ssh() { ssh $VM_SSH_OPTS "$VM_USER@$VM_HOST" "$@"; }
+
+require_vm() {
+    if [ ! -f "$VM_SSH_KEY" ]; then
+        echo "❌ VM SSH key not found: $VM_SSH_KEY"
+        echo "   Set VM_SSH_KEY in .env.local if the key lives elsewhere."
+        exit 1
+    fi
+    if ! ssh $VM_SSH_OPTS -o StrictHostKeyChecking=accept-new "$VM_USER@$VM_HOST" true 2>/dev/null; then
+        echo "❌ Can't reach $VM_USER@$VM_HOST over SSH."
+        echo "   Check the box is up and the key is authorized, then re-run."
+        exit 1
+    fi
+}
+
+# ----- standalone actions -----
+# Both do one job and exit. Neither builds anything, so neither needs the
+# picker, a version bump, or the Flutter toolchain.
+
+# The live web build is swapped in as a whole directory, and the one it replaced
+# is kept next to it. Rolling back is therefore a rename, not a rebuild — and
+# because this swaps rather than restores, running it twice lands you back where
+# you started.
+rollback_web() {
+    require_vm
+    echo "↩️  Rolling back the web app..."
+    if ! vm_ssh "[ -d $VM_WEB_DIR.prev ]"; then
+        echo "❌ No previous build at $VM_WEB_DIR.prev — nothing to roll back to."
+        exit 1
+    fi
+    if vm_ssh "set -e
+               rm -rf $VM_WEB_DIR.swap
+               mv $VM_WEB_DIR $VM_WEB_DIR.swap
+               mv $VM_WEB_DIR.prev $VM_WEB_DIR
+               mv $VM_WEB_DIR.swap $VM_WEB_DIR.prev"; then
+        echo "  ✅ $WEB_URL now serves the previous build"
+        echo "     (run --rollback-web again to swap back)"
+    else
+        echo "❌ Rollback failed. Inspect by hand:"
+        echo "   ssh -i $VM_SSH_KEY $VM_USER@$VM_HOST 'ls -d $VM_WEB_DIR*'"
+        exit 1
+    fi
+}
+
+# The Caddy site block lives in this repo, not just on the box. Validation runs
+# against the WHOLE config (the file alone can't catch a clash with the
+# nestzone block), and a failure leaves the running config untouched.
+push_infra() {
+    require_vm
+    local conf="hosting/caddy-monkeyhub.conf"
+    [ -f "$conf" ] || { echo "❌ Missing $conf"; exit 1; }
+
+    echo "🧱 Installing $conf on $VM_HOST..."
+    scp $VM_SSH_OPTS "$conf" "$VM_USER@$VM_HOST:/tmp/monkeyhub.conf" >/dev/null || {
+        echo "❌ Copy failed."; exit 1; }
+
+    if ! vm_ssh "sudo cp /tmp/monkeyhub.conf /etc/caddy/monkeyhub.conf"; then
+        echo "❌ Could not write /etc/caddy/monkeyhub.conf."
+        exit 1
+    fi
+    if ! vm_ssh "grep -q 'import monkeyhub.conf' /etc/caddy/Caddyfile"; then
+        echo "❌ /etc/caddy/Caddyfile does not import monkeyhub.conf."
+        echo "   One-time fix on the box — replace the inline :8081 block with:"
+        echo "       import monkeyhub.conf"
+        echo "   See DEPLOY.md → 'Where it runs'."
+        exit 1
+    fi
+    if ! vm_ssh "sudo caddy validate --config /etc/caddy/Caddyfile >/dev/null 2>&1"; then
+        echo "❌ Caddy rejected the config — NOT reloading. The running site is untouched."
+        vm_ssh "sudo caddy validate --config /etc/caddy/Caddyfile 2>&1 | tail -5"
+        exit 1
+    fi
+    if vm_ssh "sudo systemctl reload caddy"; then
+        echo "  ✅ Caddy reloaded"
+    else
+        echo "❌ Reload failed: ssh … 'sudo journalctl -u caddy -n 30'"
+        exit 1
+    fi
+}
+
+case "$ACTION" in
+    rollback-web) rollback_web; exit 0 ;;
+    infra)        push_infra;   exit 0 ;;
+esac
+
 # ----- interactive platform picker -----
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
-    local labels=("Convex backend" "iOS  → App Store Connect" "Android" "Web  → $WEB_URL")
-    # Menu starts on Convex + iOS only. Unlike --all (which now ships web too),
-    # the picker leaves Android and Web unticked so a bare Enter stays cheap.
-    local selected=(1 1 0 0)
-    # Honor explicit --no-convex / --web even in interactive mode.
+    local labels=("Convex backend" "iOS  → App Store Connect" "Android"
+                  "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)")
+    # Menu starts on Convex + iOS only. Unlike --all (which ships everything),
+    # the picker leaves the rest unticked so a bare Enter stays cheap.
+    local selected=(1 1 0 0 0)
+    # Honor explicit --no-convex / --web / --site even in interactive mode.
     [ "$RUN_CONVEX" = false ] && selected[0]=0
     [ "$DEPLOY_WEB" = true ] && selected[3]=1
-    local cursor=0 count=4 key rest i marker arrow
+    [ "$DEPLOY_SITE" = true ] && selected[4]=1
+    local cursor=0 count=5 key rest i marker arrow
 
     exec 3</dev/tty
     tput civis 2>/dev/null || true
     echo "Select what to deploy  (↑/↓ move · space toggle · enter go)"
     while true; do
-        for i in 0 1 2 3; do
+        for i in $(seq 0 $((count - 1))); do
             [ "${selected[$i]}" = 1 ] && marker="◉" || marker="◯"
             [ "$i" = "$cursor" ] && arrow="❯" || arrow=" "
             printf "  %s %s %s\033[K\n" "$arrow" "$marker" "${labels[$i]}"
@@ -157,11 +274,13 @@ pick_platforms() {
     DEPLOY_IOS=$([ "${selected[1]}" = 1 ] && echo true || echo false)
     DEPLOY_ANDROID=$([ "${selected[2]}" = 1 ] && echo true || echo false)
     DEPLOY_WEB=$([ "${selected[3]}" = 1 ] && echo true || echo false)
+    DEPLOY_SITE=$([ "${selected[4]}" = 1 ] && echo true || echo false)
 
     if [ "$DEPLOY_ANDROID" = true ]; then
         pick_android_mode
     fi
-    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ]; then
+    if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
+       && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
         echo "Nothing selected — exiting."
         exit 0
     fi
@@ -207,12 +326,28 @@ if [ "$PLATFORM_ARGS" = false ]; then
         DEPLOY_ANDROID=false
     fi
 fi
+# A pages-only run is HTML and nothing else. Pushing the backend as a side
+# effect would turn a five-second copy-fix into a full deploy nobody asked for —
+# so --site on its own leaves Convex alone. Ask for both and you get both.
+if [ -z "$RUN_CONVEX" ] && [ "$DEPLOY_SITE" = true ] \
+   && [ "$DEPLOY_IOS" != true ] && [ "$DEPLOY_ANDROID" != true ] && [ "$DEPLOY_WEB" != true ]; then
+    RUN_CONVEX=false
+fi
 [ -z "$RUN_CONVEX" ] && RUN_CONVEX=true
 [ -z "$DEPLOY_IOS" ] && DEPLOY_IOS=false
 [ -z "$DEPLOY_ANDROID" ] && DEPLOY_ANDROID=false
 # Version bump only makes sense when an app ships.
 if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ]; then
     SKIP_VERSION_BUMP=true
+fi
+
+# Anything that publishes to the VM also refreshes the pages, because both of
+# them print the current version in their footer. Left to a separate flag that
+# footer would quietly rot one deploy at a time — and a stale version on the
+# front page is exactly the thing nobody notices.
+if [ "$RUN_UPLOAD" = true ] \
+   && { { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } || [ "$DEPLOY_WEB" = true ]; }; then
+    DEPLOY_SITE=true
 fi
 
 echo ""
@@ -226,6 +361,7 @@ else
     echo "  • Android build:    no"
 fi
 echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)"
+echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
 echo "  • Git commit/push:  $([ "$RUN_GIT" = true ] && echo yes || echo no)"
 [ "$DRY_RUN" = true ] && echo "  • Mode: DRY (no side effects)"
@@ -431,29 +567,35 @@ validate_environment() {
             echo "❌ Keystore not found: '${store_file:-<unset>}' (from android/key.properties)."
             exit 1
         fi
-        if [ "$ANDROID_MODE" = "apk" ]; then
-            if [ ! -f "hosting/index.template.html" ] || [ ! -f "hosting/root.template.html" ]; then
-                echo "❌ Page templates missing (hosting/index.template.html + hosting/root.template.html)."
-                exit 1
-            fi
+    fi
+
+    # The page templates are needed by every VM-publishing path, not just
+    # Android — the landing page now ships on its own.
+    if [ "$DEPLOY_SITE" = true ]; then
+        local missing="" f
+        for f in hosting/site.template.html hosting/downloads.template.html; do
+            [ -f "$f" ] || missing="$missing\n   $f"
+        done
+        if [ -n "$missing" ]; then
+            echo "❌ Page templates missing:"
+            printf "%b\n" "$missing"
+            exit 1
+        fi
+        # render_downloads() merges the per-platform manifest with jq. Finding
+        # this out after a 15-minute build would be a bad joke.
+        if ! command -v jq >/dev/null 2>&1; then
+            echo "❌ jq not found — needed to merge $DL_MANIFEST."
+            echo "   brew install jq"
+            exit 1
         fi
     fi
 
-    # The VM serves both the APK page and the web build — prove it's reachable
-    # BEFORE burning 15 minutes on a build we then can't publish.
-    if { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } || [ "$DEPLOY_WEB" = true ]; then
+    # The VM serves the pages, the downloads and the web build — prove it's
+    # reachable BEFORE burning 15 minutes on a build we then can't publish.
+    if { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } \
+       || [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_SITE" = true ]; then
         if [ "$RUN_UPLOAD" = true ]; then
-            if [ ! -f "$VM_SSH_KEY" ]; then
-                echo "❌ VM SSH key not found: $VM_SSH_KEY"
-                echo "   Set VM_SSH_KEY in .env.local if the key lives elsewhere."
-                exit 1
-            fi
-            if ! ssh -i "$VM_SSH_KEY" -o BatchMode=yes -o ConnectTimeout=10 \
-                     -o StrictHostKeyChecking=accept-new "$VM_USER@$VM_HOST" true 2>/dev/null; then
-                echo "❌ Can't reach $VM_USER@$VM_HOST over SSH."
-                echo "   Check the box is up and the key is authorized, then re-run."
-                exit 1
-            fi
+            require_vm
         fi
     fi
 
@@ -510,16 +652,156 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional)
     fi
 }
 
+# ----- the static pages -----
+# Two pages, one visual language, both generated from templates in hosting/:
+#   site.template.html      → /srv/monkeyhub/site      → the front door
+#   downloads.template.html → /srv/monkeyhub/downloads → every platform
+#
+# The downloads page is driven by artifacts.json ON THE VM rather than by this
+# script's variables, and that is the whole point: a deploy only knows about the
+# platform it just built. Rendering from local state would mean shipping Android
+# silently deleting the macOS row. Instead each deploy merges its own key into
+# whatever is already there.
+
+# Presentation per platform. The manifest carries facts (version, file, size,
+# date); this carries how they are shown. New platform = one line here.
+platform_meta() {   # $1 = platform key → sets PM_ICON / PM_NAME / PM_KIND / PM_BTN
+    case "$1" in
+        android-apk) PM_ICON="🤖"; PM_NAME="Android"; PM_KIND="APK"
+                     PM_BTN="Download the APK" ;;
+        macos-dmg)   PM_ICON="🖥️"; PM_NAME="macOS";   PM_KIND="DMG"
+                     PM_BTN="Download the DMG" ;;
+        windows)     PM_ICON="🪟"; PM_NAME="Windows"; PM_KIND="Installer"
+                     PM_BTN="Download for Windows" ;;
+        linux)       PM_ICON="🐧"; PM_NAME="Linux";   PM_KIND="AppImage"
+                     PM_BTN="Download the AppImage" ;;
+        *)           PM_ICON="📦"; PM_NAME="$1";      PM_KIND="File"
+                     PM_BTN="Download" ;;
+    esac
+}
+
+# Whatever the VM currently says has shipped. An absent or hand-mangled file
+# degrades to "nothing yet" rather than taking the deploy down with it.
+dl_manifest_fetch() {
+    local raw
+    raw=$(vm_ssh "cat $DL_MANIFEST 2>/dev/null" 2>/dev/null)
+    if [ -n "$raw" ] && printf '%s' "$raw" | jq -e 'type == "object"' >/dev/null 2>&1; then
+        printf '%s' "$raw"
+    else
+        echo '{}'
+    fi
+}
+
+vm_ensure_dirs() { vm_ssh "mkdir -p $VM_SITE_DIR $VM_DL_DIR $VM_WEB_DIR"; }
+
+# Each template opens with a note to whoever edits it next, explaining the token
+# names and this script's half of the bargain. Useful in the repo, no business
+# being downloaded by every visitor — so everything from MH:DOC to the end of
+# that comment is cut on the way out.
+strip_doc() { awk '/<!-- MH:DOC/ {d=1} d { if (/-->/) d=0; next } {print}'; }
+
+# Expand the template's repeat block once per manifest entry. With no entries
+# the MH:EMPTY block stands in, so the page is never a bare heading.
+render_downloads() {   # $1 = manifest file, $2 = output html
+    local manifest="$1" out="$2"
+    local tpl="hosting/downloads.template.html"
+    local cards="" key card ver file size updated meta tmp_cards
+
+    for key in $(jq -r 'keys[]' "$manifest"); do
+        file=$(jq -r --arg k "$key" '.[$k].file // ""' "$manifest")
+        [ -n "$file" ] || continue
+        ver=$(jq -r --arg k "$key" '.[$k].version // "?"' "$manifest")
+        size=$(jq -r --arg k "$key" '.[$k].size // "?"' "$manifest")
+        updated=$(jq -r --arg k "$key" '.[$k].updatedAt // "?"' "$manifest")
+        platform_meta "$key"
+        meta="$PM_KIND · $size · updated $updated"
+
+        card=$(awk '/<!-- MH:CARD -->/{f=1;next} /<!-- MH:\/CARD -->/{f=0} f' "$tpl")
+        # Parameter expansion, not sed: filenames and labels never have to be
+        # escaped for a regex they were never meant to be part of.
+        card=${card//__PLAT_ICON__/$PM_ICON}
+        card=${card//__PLAT_NAME__/$PM_NAME}
+        card=${card//__PLAT_VERSION__/$ver}
+        card=${card//__PLAT_HREF__/$file}
+        card=${card//__PLAT_BTN__/$PM_BTN}
+        card=${card//__PLAT_META__/$meta}
+        cards="$cards$card"$'\n'
+    done
+
+    tmp_cards=$(mktemp)
+    if [ -n "$cards" ]; then
+        printf '%s' "$cards" > "$tmp_cards"
+    else
+        awk '/<!-- MH:EMPTY -->/{f=1;next} /<!-- MH:\/EMPTY -->/{f=0} f' "$tpl" > "$tmp_cards"
+    fi
+
+    # Drop everything from MH:CARD to MH:/EMPTY and put the rendered cards there.
+    awk -v cardfile="$tmp_cards" '
+        /<!-- MH:CARD -->/     { skip=1
+                                 while ((getline line < cardfile) > 0) print line
+                                 close(cardfile); next }
+        /<!-- MH:\/EMPTY -->/  { skip=0; next }
+        !skip                  { print }
+    ' "$tpl" | sed -e "s/__UPDATED_AT__/$STAMP_DATE/g" | strip_doc > "$out"
+    rm -f "$tmp_cards"
+}
+
+# Stage and push both pages. Seconds, no build — which is why every VM-touching
+# deploy can afford to run it and keep the printed version honest.
+deploy_site() {
+    echo "🏠 Publishing landing + downloads pages..."
+    rm -rf hosting/public/site
+    mkdir -p hosting/public/site hosting/public/downloads
+
+    sed -e "s/__APP_VERSION__/$DISPLAY_VERSION/g" \
+        -e "s/__UPDATED_AT__/$STAMP_DATE/g" \
+        hosting/site.template.html | strip_doc > hosting/public/site/index.html
+    # robots.txt and the service-worker tombstone are served from the site root
+    # alongside the page — see hosting/static/flutter_service_worker.js.
+    cp hosting/static/* hosting/public/site/
+
+    if [ "$RUN_UPLOAD" = false ]; then
+        echo "⏭️  Skipping page upload (--no-upload). Staged in hosting/public/site/."
+        return 0
+    fi
+
+    vm_ensure_dirs || { echo "❌ Could not create the site directories on $VM_HOST."; return 1; }
+
+    # Render from what the VM says shipped, INCLUDING anything this run just
+    # added a moment ago (the Android block writes the manifest before we run).
+    dl_manifest_fetch > hosting/public/downloads/artifacts.json
+    render_downloads hosting/public/downloads/artifacts.json hosting/public/downloads/index.html
+
+    if ! rsync -a --delete -e "ssh $VM_SSH_OPTS" \
+            hosting/public/site/ "$VM_USER@$VM_HOST:$VM_SITE_DIR/"; then
+        echo "❌ Landing page upload to $VM_USER@$VM_HOST failed."
+        return 1
+    fi
+    # No --delete here: the artifacts themselves live in this directory.
+    if ! rsync -a -e "ssh $VM_SSH_OPTS" \
+            hosting/public/downloads/index.html \
+            "$VM_USER@$VM_HOST:$VM_DL_DIR/"; then
+        echo "❌ Downloads page upload to $VM_USER@$VM_HOST failed."
+        return 1
+    fi
+    echo "  ✅ $SITE_URL  and  $HOSTING_URL/"
+}
+
 # Nothing app-side selected → done after Convex.
-if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ]; then
+if [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] && [ "$DEPLOY_WEB" = false ] \
+   && [ "$DEPLOY_SITE" = false ]; then
     echo ""
     echo "✨ Backend-only deploy complete"
     exit 0
 fi
 
 # ----- Flutter prep -----
-run_with_spinner "Flutter clean" flutter clean
-run_with_spinner "Flutter pub get" flutter pub get
+# Skipped for a pages-only run: `--site` ships HTML, and a clean + pub get would
+# turn a five-second deploy into a two-minute one for nothing.
+if [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_ANDROID" = true ] || [ "$DEPLOY_WEB" = true ]; then
+    run_with_spinner "Flutter clean" flutter clean
+    run_with_spinner "Flutter pub get" flutter pub get
+fi
 
 # ----- Version bump -----
 # MonkeyHub bumps only the patch (1.3.11 → 1.3.12); the +B suffix stays pinned
@@ -547,6 +829,9 @@ else
     echo "⏭️  Skipping version bump — using $NEW_VERSION"
 fi
 DISPLAY_VERSION="${NEW_VERSION%%+*}"
+# One timestamp for the whole run, so the landing page, the downloads page and
+# the manifest entry all agree about when this shipped.
+STAMP_DATE=$(date '+%b %d, %Y')
 
 # ----- iOS build -----
 IOS_BUILD_TIME=0
@@ -671,57 +956,62 @@ if [ "$DEPLOY_ANDROID" = true ]; then
         echo "  ✅ Signed by: ${SIGNER_CERT#Owner: }"
 
         APK_SIZE=$(du -h "$APK_PATH" | cut -f1 | tr -d ' ')
-        STAMP_DATE=$(date '+%b %d, %Y')
+        APK_FILE="monkeyhub-$DISPLAY_VERSION.apk"
 
         # One APK copy only — the versioned filename is created server-side as a
         # hardlink, so the 163MB goes over the wire once.
-        echo "  • Staging download page (hosting/public)"
-        rm -rf hosting/public
-        mkdir -p hosting/public
-        cp "$APK_PATH" "hosting/public/monkeyhub-latest.apk"
-        sed -e "s/__APP_VERSION__/$DISPLAY_VERSION/g" \
-            -e "s/__APK_SIZE__/${APK_SIZE}B/g" \
-            -e "s/__UPDATED_AT__/$STAMP_DATE/g" \
-            -e "s/__APK_FILE__/monkeyhub-$DISPLAY_VERSION.apk/g" \
-            hosting/index.template.html > hosting/public/index.html
+        echo "  • Staging APK (hosting/public/downloads)"
+        mkdir -p hosting/public/downloads
+        cp "$APK_PATH" "hosting/public/downloads/monkeyhub-latest.apk"
 
         if [ "$RUN_UPLOAD" = true ]; then
-            SSH_OPTS="-i $VM_SSH_KEY -o BatchMode=yes -o ConnectTimeout=15"
+            # Read the manifest before writing it: it names the file this
+            # release supersedes, which is how retention stays scoped to
+            # Android instead of sweeping every binary in the directory.
+            OLD_MANIFEST=$(dl_manifest_fetch)
+            PREV_FILE=$(printf '%s' "$OLD_MANIFEST" | jq -r '."android-apk".file // empty')
+
+            printf '%s' "$OLD_MANIFEST" | jq \
+                --arg v "$DISPLAY_VERSION" --arg f "$APK_FILE" \
+                --arg s "${APK_SIZE}B" --arg d "$STAMP_DATE" \
+                '."android-apk" = {version: $v, file: $f, size: $s, updatedAt: $d}' \
+                > hosting/public/downloads/artifacts.json
+
             upload_apk() {
-                rsync -a --partial --progress -e "ssh $SSH_OPTS" \
-                    hosting/public/index.html hosting/public/monkeyhub-latest.apk \
-                    "$VM_USER@$VM_HOST:$VM_APK_DIR/" || return 1
-                # Retention: latest only. Drop previous versioned APKs, then
-                # hardlink the new one so /download/monkeyhub-<v>.apk works
-                # (versioned URL = cache-bust; Cloudflare overrides our
-                # no-cache on .apk with a 4h browser TTL).
-                ssh $SSH_OPTS "$VM_USER@$VM_HOST" \
-                    "cd $VM_APK_DIR \
-                     && find . -maxdepth 1 -name 'monkeyhub-*.apk' ! -name 'monkeyhub-latest.apk' -delete \
-                     && ln -f monkeyhub-latest.apk 'monkeyhub-$DISPLAY_VERSION.apk' \
-                     && chmod 644 *.apk index.html"
+                vm_ensure_dirs || return 1
+                # Artifact first, manifest second. The page is rendered from the
+                # manifest, so this ordering is what stops the page advertising
+                # a file that is still crossing the wire.
+                rsync -a --partial --progress -e "ssh $VM_SSH_OPTS" \
+                    hosting/public/downloads/monkeyhub-latest.apk \
+                    "$VM_USER@$VM_HOST:$VM_DL_DIR/" || return 1
+                # Versioned URL = cache-bust: Cloudflare overrides our no-cache
+                # on .apk with a 4h browser TTL, so a stable name could hand out
+                # the previous build. Retention is latest-only, per platform.
+                vm_ssh "set -e
+                        cd $VM_DL_DIR
+                        ln -f monkeyhub-latest.apk '$APK_FILE'
+                        if [ -n '$PREV_FILE' ] && [ '$PREV_FILE' != '$APK_FILE' ]; then
+                            rm -f '$PREV_FILE'
+                        fi
+                        chmod 644 *.apk" || return 1
+                scp $VM_SSH_OPTS hosting/public/downloads/artifacts.json \
+                    "$VM_USER@$VM_HOST:$DL_MANIFEST" >/dev/null || return 1
             }
-            echo "Uploading download page to $VM_HOST (${APK_SIZE}B)..."
+            echo "Uploading APK to $VM_HOST (${APK_SIZE}B)..."
             if upload_apk; then
-                echo "  ✅ Hosted at $HOSTING_URL"
+                echo "  ✅ Hosted at $HOSTING_URL/"
                 # The page always links the current versioned APK, so this URL
                 # stays correct without the client knowing the filename.
-                publish_release android-apk "$HOSTING_URL"
+                publish_release android-apk "$HOSTING_URL/"
             else
                 echo "❌ Upload to $VM_USER@$VM_HOST failed."
                 echo "   Check: ssh -i $VM_SSH_KEY $VM_USER@$VM_HOST"
                 echo "   Then re-run:   ./deploy.sh --android=apk --skip-version-bump --no-convex"
                 exit 1
             fi
-
-            # Keep the root landing page in place until a real web build exists.
-            # Match the web-build validation: modern Flutter web may emit
-            # flutter_bootstrap.js instead of main.dart.js.
-            ssh $SSH_OPTS "$VM_USER@$VM_HOST" "[ -f $VM_WEB_DIR/main.dart.js ] || [ -f $VM_WEB_DIR/flutter_bootstrap.js ]" 2>/dev/null \
-                || scp $SSH_OPTS hosting/root.template.html \
-                       "$VM_USER@$VM_HOST:$VM_WEB_DIR/index.html" > /dev/null
         else
-            echo "⏭️  Skipping VM upload (--no-upload). Page staged in hosting/public/."
+            echo "⏭️  Skipping VM upload (--no-upload). APK staged in hosting/public/downloads/."
         fi
 
     else
@@ -763,7 +1053,9 @@ if [ "$DEPLOY_ANDROID" = true ]; then
 fi
 
 # ----- Web build (--web, or as part of --all) -----
-# Replaces the placeholder landing page at $WEB_URL.
+# Published under /web/, with the landing page owning the root. --base-href is
+# what makes that work and it is baked in at build time, so a build made without
+# it will 404 on every asset.
 #
 # One standing limitation, not a caveat about maturity: the native call UI
 # (flutter_callkit_incoming) is mobile-only, so a browser gets no CallKit /
@@ -773,7 +1065,7 @@ if [ "$DEPLOY_WEB" = true ]; then
     WEB_START_TIME=$(date +%s)
     echo "🌐 Starting web build..."
     run_with_spinner "Building Flutter web (release)" \
-        flutter build web --release --dart-define=MH_CHANNEL=web
+        flutter build web --release --base-href /web/ --dart-define=MH_CHANNEL=web
 
     if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
         echo "❌ No web build output at build/web/"
@@ -781,9 +1073,26 @@ if [ "$DEPLOY_WEB" = true ]; then
     fi
 
     if [ "$RUN_UPLOAD" = true ]; then
-        WEB_SSH_OPTS="-i $VM_SSH_KEY -o BatchMode=yes -o ConnectTimeout=15"
-        if rsync -a --delete -e "ssh $WEB_SSH_OPTS" \
-                build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR/"; then
+        # Swap a whole directory rather than rsync over the live one. Syncing in
+        # place serves a mix of two builds for as long as it takes, and a failed
+        # sync leaves it that way with nothing to go back to. Here the visitor
+        # sees the old build until a single rename, then the new one — and the
+        # build it replaced stays put for --rollback-web.
+        upload_web() {
+            vm_ensure_dirs || return 1
+            # Hardlinks: seeding the staging copy costs no disk and no time, and
+            # rsync then only sends what actually changed.
+            vm_ssh "set -e
+                    rm -rf $VM_WEB_DIR.staging
+                    cp -al $VM_WEB_DIR $VM_WEB_DIR.staging" || return 1
+            rsync -a --delete -e "ssh $VM_SSH_OPTS" \
+                build/web/ "$VM_USER@$VM_HOST:$VM_WEB_DIR.staging/" || return 1
+            vm_ssh "set -e
+                    rm -rf $VM_WEB_DIR.prev
+                    mv $VM_WEB_DIR $VM_WEB_DIR.prev
+                    mv $VM_WEB_DIR.staging $VM_WEB_DIR" || return 1
+        }
+        if upload_web; then
             echo "  ✅ Web app at $WEB_URL"
             # A tab left open for days keeps running the build it loaded, so a
             # long-lived session still needs telling. The prompt reloads rather
@@ -791,6 +1100,8 @@ if [ "$DEPLOY_WEB" = true ]; then
             publish_release web
         else
             echo "❌ Web upload to $VM_USER@$VM_HOST failed."
+            echo "   The live build is untouched — the swap only happens after"
+            echo "   the sync succeeds. Retry: ./deploy.sh --web --skip-version-bump --no-convex"
             exit 1
         fi
     else
@@ -799,6 +1110,16 @@ if [ "$DEPLOY_WEB" = true ]; then
 
     WEB_END_TIME=$(date +%s)
     WEB_BUILD_TIME=$((WEB_END_TIME - WEB_START_TIME))
+fi
+
+# ----- Landing + downloads pages -----
+# Last, so the downloads page renders from a manifest that already includes
+# anything this run just shipped.
+if [ "$DEPLOY_SITE" = true ]; then
+    if ! deploy_site; then
+        echo "   Retry with:   ./deploy.sh --site"
+        exit 1
+    fi
 fi
 
 # ----- Git -----
@@ -834,7 +1155,7 @@ if [ "$DEPLOY_IOS" = true ]; then
     [ "$RUN_UPLOAD" = false ] && echo "  🍎 iOS IPA:        $IPA_PATH"
 fi
 if [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🤖 Android:        $HOSTING_URL  (share this link)"
+    [ "$RUN_UPLOAD" = true ]  && echo "  🤖 Android:        $HOSTING_URL/  (share this link)"
     [ "$RUN_UPLOAD" = false ] && echo "  🤖 Android APK:    $APK_PATH"
 fi
 if [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "play" ]; then
@@ -844,6 +1165,12 @@ if [ "$DEPLOY_WEB" = true ]; then
     [ "$RUN_UPLOAD" = true ]  && echo "  🌐 Web:            $WEB_URL"
     [ "$RUN_UPLOAD" = false ] && echo "  🌐 Web build:      build/web/"
 fi
+if [ "$DEPLOY_SITE" = true ]; then
+    [ "$RUN_UPLOAD" = true ]  && echo "  🏠 Landing page:   $SITE_URL"
+    [ "$RUN_UPLOAD" = false ] && echo "  🏠 Pages:          hosting/public/"
+fi
+[ "$DEPLOY_WEB" = true ] && [ "$RUN_UPLOAD" = true ] && \
+    echo "     ↩︎  Undo the web deploy with:  ./deploy.sh --rollback-web"
 echo ""
 echo "⏱️  Timing:"
 [ "$DEPLOY_IOS" = true ]     && echo "  🍎 iOS build:      ${IOS_BUILD_TIME}s"
