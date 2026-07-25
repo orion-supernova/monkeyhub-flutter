@@ -25,6 +25,7 @@ import '../platform.dart';
 import '../theme/layout.dart';
 import 'room_items.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/chat_composer.dart';
@@ -113,10 +114,23 @@ class _RoomScreenState extends State<RoomScreen>
   String? _highlightedMessageId;
   late final AnimationController _highlightCtrl;
 
+  // The message a jump is currently travelling towards. Held separately from
+  // _highlightedMessageId because the pulse only starts once we've landed,
+  // and the target has to be un-foldable for the whole flight — a jump that
+  // ends on a thread chip where the message used to be is a jump that failed.
+  String? _jumpTargetId;
+
   // ──── thread folding ────
   // Ids folded out of the list by the last _buildItems pass. Read from async
   // callbacks (scroll-to-parent) to tell "collapsed" apart from "not loaded".
   Set<String> _hiddenMessageIds = const {};
+
+  // The reversed item list the ListView renders, plus message id → row index,
+  // both derived from the _buildItems output and memoized on its identity.
+  // The index map is what lets a jump aim at a row that isn't built yet.
+  List<RoomItem>? _revSource;
+  List<RoomItem> _revItems = const [];
+  Map<String, int> _rowIndexOf = const {};
   // Memo for the item pass. _ticker rebuilds at 5Hz whether or not anything
   // changed, and messagesFor() hands back the same list instance while no
   // sends are pending, so identity is a cheap and correct cache key.
@@ -142,7 +156,10 @@ class _RoomScreenState extends State<RoomScreen>
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) {
           if (!mounted) return;
-          setState(() => _highlightedMessageId = null);
+          setState(() {
+            _highlightedMessageId = null;
+            _jumpTargetId = null;
+          });
           _highlightCtrl.reset();
         }
       });
@@ -218,6 +235,7 @@ class _RoomScreenState extends State<RoomScreen>
       m.status != MessageStatus.sent ||
       m.type == MessageType.system ||
       m.id == _highlightedMessageId ||
+      m.id == _jumpTargetId ||
       m.id == _replyingTo?.id ||
       _dateTracks.containsKey('m_${m.id}');
 
@@ -231,7 +249,8 @@ class _RoomScreenState extends State<RoomScreen>
     // highlight pulse would be computed against a stale fold set.
     final pinKey = '${_dateTracks.length}'
         '|${_replyingTo?.id ?? ''}'
-        '|${_highlightedMessageId ?? ''}';
+        '|${_highlightedMessageId ?? ''}'
+        '|${_jumpTargetId ?? ''}';
     final memo = _memoResult;
     if (memo != null &&
         identical(messages, _memoSource) &&
@@ -248,6 +267,24 @@ class _RoomScreenState extends State<RoomScreen>
     _memoPinKey = pinKey;
     _memoResult = result;
     return result;
+  }
+
+  /// The list the ListView actually renders — chronological items flipped so
+  /// index 0 is the newest (visually the bottom under `reverse: true`) — plus
+  /// the message id → index map a jump aims with. Memoized on the identity of
+  /// the pass it came from, since build runs at 5Hz off _ticker.
+  List<RoomItem> _reversedItems(List<RoomItem> chronological) {
+    if (identical(chronological, _revSource)) return _revItems;
+    final rev = chronological.reversed.toList();
+    final index = <String, int>{};
+    for (var i = 0; i < rev.length; i++) {
+      final item = rev[i];
+      if (item is MessageItem) index[item.message.id] = i;
+    }
+    _revSource = chronological;
+    _revItems = rev;
+    _rowIndexOf = index;
+    return rev;
   }
 
   String _humanDay(DateTime d) {
@@ -271,9 +308,18 @@ class _RoomScreenState extends State<RoomScreen>
     // (anchored from the bottom) is unaffected.
     final pos = _scroll.position;
     if (pos.pixels >= pos.maxScrollExtent - 220 &&
-        widget.repo.hasMoreOlder(widget.roomId) &&
-        !widget.repo.isLoadingOlder(widget.roomId)) {
-      widget.repo.loadOlder(widget.roomId);
+        widget.repo.hasMoreOlderTimeline(widget.roomId) &&
+        !widget.repo.isLoadingTimeline(widget.roomId)) {
+      widget.repo.loadOlderTimeline(widget.roomId);
+    }
+    // Reading a window of old history: the bottom of the list isn't the
+    // present, so scrolling down has to fetch forwards until it is. Once the
+    // window meets the live tail the repo merges it away and this stops
+    // firing — the reader has simply scrolled back to now.
+    if (pos.pixels <= 220 &&
+        widget.repo.inHistoryWindow(widget.roomId) &&
+        !widget.repo.isLoadingTimeline(widget.roomId)) {
+      widget.repo.loadNewerTimeline(widget.roomId);
     }
 
     // Floating date chip: show while scrolling, fade out 800ms after the
@@ -451,6 +497,10 @@ class _RoomScreenState extends State<RoomScreen>
     final replyTarget = _replyingTo;
     setState(() => _replyingTo = null);
     _composer.clear();
+    // Sending while reading old history: the optimistic bubble lands on the
+    // live tail, so come back to it rather than leaving the sender staring at
+    // a transcript their own message isn't in.
+    widget.repo.exitHistoryWindow(widget.roomId);
     await widget.repo.sendText(widget.roomId, text, replyToId: replyTarget?.id);
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just
@@ -558,59 +608,111 @@ class _RoomScreenState extends State<RoomScreen>
         },
       );
 
-  /// Smoothly scroll to the parent message identified by [messageId], then
-  /// fire a one-shot accent halo pulse on it. If the parent isn't currently
-  /// in the items list, attempts up to 3 older-page loads before giving up.
-  Future<void> _scrollToMessageAndHighlight(String messageId) async {
+  /// Land on the message identified by [messageId] and pulse it — the tap
+  /// target behind every reply tether. [from] is the reply that was tapped;
+  /// its thread is the fallback surface, and since `messages:send` propagates
+  /// `rootId`, a parent is always in the same thread as its child.
+  ///
+  /// Resolution order, first hit wins:
+  ///   1. folded into a thread chip → open that thread on it
+  ///   2. somewhere in the transcript → snap there, however far away it is
+  ///   3. not loaded → fetch a window of history around it and snap
+  ///   4. unreachable (deleted, or offline) → say so
+  Future<void> _jumpToMessage(String messageId, {required ChatMessage from}) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
 
-    // Folded out of the timeline: it has no row to scroll to, and no amount
-    // of paging will give it one. Open the thread on it instead — the same
-    // place the fold chip goes.
-    if (_hiddenMessageIds.contains(messageId)) {
-      final m = widget.repo.findMessageInRoom(widget.roomId, messageId);
-      if (m != null) {
-        await _openThread(m);
-        return;
-      }
+    // The pin exists to protect a jump in flight; handing the message over to
+    // the thread overlay ends the flight, so drop it or the row stays
+    // un-foldable for the rest of the session.
+    Future<void> handOffToThread() async {
+      if (!mounted) return;
+      setState(() => _jumpTargetId = null);
+      await _openThreadAt(rootId: from.threadKey, anchorMessageId: messageId);
     }
 
-    for (var attempt = 0; attempt < 4; attempt++) {
+    if (_hiddenMessageIds.contains(messageId)) return handOffToThread();
+    if (await _snapToRow(messageId)) return;
+    if (!mounted) return;
+
+    // Not in the transcript. Pin it before the fetch so the pass that brings
+    // it in can't immediately fold it away again.
+    setState(() => _jumpTargetId = messageId);
+    final reached = await widget.repo.jumpToMessage(widget.roomId, messageId);
+    if (!mounted) return;
+    if (reached) {
+      // One frame for the freshly-loaded window to lay out.
+      await WidgetsBinding.instance.endOfFrame;
       if (!mounted) return;
-      final track = _dateTracks['m_$messageId'];
-      final ctx = track?.key.currentContext;
-      if (ctx != null && ctx.mounted) {
-        await Scrollable.ensureVisible(
-          ctx,
-          duration: const Duration(milliseconds: 420),
-          curve: Curves.easeOutCubic,
-          alignment: 0.3,
-        );
-        if (!mounted) return;
-        setState(() => _highlightedMessageId = messageId);
-        _highlightCtrl.forward(from: 0);
+      if (!_hiddenMessageIds.contains(messageId) &&
+          await _snapToRow(messageId)) {
         return;
       }
-      // Only page when the message genuinely isn't loaded. An unmounted key
-      // also means "loaded, but scrolled outside the list's cacheExtent", and
-      // paging older history for that burns round-trips and then reports the
-      // message as missing when it was there all along.
-      if (widget.repo.findMessageInRoom(widget.roomId, messageId) != null) {
-        break;
-      }
-      if (!widget.repo.hasMoreOlder(widget.roomId)) break;
-      final got = await widget.repo.loadOlder(widget.roomId);
-      if (got == 0) break;
-      // Give the list one frame to mount the newly-prepended items.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Folded, or in the room but with no row of its own — either way the
+      // thread is where it can be seen.
+      return handOffToThread();
     }
-    if (!mounted) return;
+    setState(() => _jumpTargetId = null);
     messenger?.showSnackBar(
       const SnackBar(content: Text("couldn't jump to that message")),
     );
   }
 
+  /// Scroll to [messageId]'s row and pulse it. False when the message has no
+  /// row in the current transcript — the caller then has to go and get it.
+  Future<bool> _snapToRow(String messageId) async {
+    if (_rowIndexOf[messageId] == null) return false;
+    setState(() => _jumpTargetId = messageId);
+    final landed = await snapToIndex(
+      controller: _scroll,
+      // Re-read every hop: a message arriving mid-jump shifts every index.
+      targetIndex: () => _rowIndexOf[messageId],
+      itemCount: () => _revItems.length,
+      targetContext: () => _dateTracks['m_$messageId']?.key.currentContext,
+      probes: _mountedRowProbes,
+      alignment: 0.3,
+    );
+    if (!mounted) return landed;
+    if (!landed) {
+      setState(() => _jumpTargetId = null);
+      return false;
+    }
+    setState(() => _highlightedMessageId = messageId);
+    _highlightCtrl.forward(from: 0);
+    return true;
+  }
+
+  /// Every message row that's laid out right now, with its index — what
+  /// [snapToIndex] calibrates its extrapolation against. `_dateTracks` keeps
+  /// a key per row ever built this session; an unmounted one has no context.
+  List<ScrollProbe> _mountedRowProbes() {
+    final out = <ScrollProbe>[];
+    for (final entry in _dateTracks.entries) {
+      if (!entry.key.startsWith('m_')) continue;
+      final index = _rowIndexOf[entry.key.substring(2)];
+      if (index == null) continue;
+      final ctx = entry.value.key.currentContext;
+      if (ctx == null || !ctx.mounted) continue;
+      out.add((index: index, context: ctx));
+    }
+    return out;
+  }
+
+  /// Leave a history window and land on the newest message. Not animated: the
+  /// transcript swaps to an entirely different set of rows, so there's no
+  /// continuous path between here and there to animate along.
+  void _jumpToLatest() {
+    HapticFeedback.selectionClick();
+    widget.repo.exitHistoryWindow(widget.roomId);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
+
   void _scrollToBottom() {
+    // Reading history is the one state where "the bottom" isn't the newest
+    // message — drop the window first so it is.
+    if (widget.repo.inHistoryWindow(widget.roomId)) {
+      _jumpToLatest();
+      return;
+    }
     if (!_scroll.hasClients) return;
     // reverse:true → 0 is the bottom. Layout for the new bubble may not be
     // settled yet, but the bottom target is constant so the animation lands
@@ -719,7 +821,11 @@ class _RoomScreenState extends State<RoomScreen>
         body: Center(child: Text('room gone', style: theme.bodySoft)),
       );
     }
-    final messages = widget.repo.messagesFor(widget.roomId);
+    // timelineFor, not messagesFor: after a jump into old history the
+    // transcript renders a detached window of it until the reader scrolls
+    // back down to the present. Everything else — threads, receipts, the
+    // cache — still reads the live list.
+    final messages = widget.repo.timelineFor(widget.roomId);
     final me = widget.repo.userId ?? '';
     // ListView is rendered with reverse:true so the viewport naturally
     // anchors to the newest message at the bottom. The items list is built
@@ -730,10 +836,13 @@ class _RoomScreenState extends State<RoomScreen>
     if (messages.isEmpty) {
       items = const <RoomItem>[];
       _hiddenMessageIds = const {};
+      _revSource = null;
+      _revItems = const [];
+      _rowIndexOf = const {};
     } else {
       final built = _buildItems(room, messages);
       _hiddenMessageIds = built.hidden;
-      items = built.items.reversed.toList();
+      items = _reversedItems(built.items);
     }
     final chatStyle = SettingsStore.instance.chatStyle;
 
@@ -1122,7 +1231,8 @@ class _RoomScreenState extends State<RoomScreen>
                         onDoubleTap: isPending ? null : onLongPress,
                         onReactionTap: onReactionTap,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                        onReplyIndicatorTap: _scrollToMessageAndHighlight,
+                        onReplyIndicatorTap: (parentId) =>
+                            _jumpToMessage(parentId, from: m),
                         onViewThread: m.isReply ? onViewThread : null,
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
@@ -1141,7 +1251,8 @@ class _RoomScreenState extends State<RoomScreen>
                         onDoubleTap: isPending ? null : onLongPress,
                         onReactionTap: onReactionTap,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
-                        onReplyIndicatorTap: _scrollToMessageAndHighlight,
+                        onReplyIndicatorTap: (parentId) =>
+                            _jumpToMessage(parentId, from: m),
                         onViewThread: m.isReply ? onViewThread : null,
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
@@ -1201,6 +1312,18 @@ class _RoomScreenState extends State<RoomScreen>
                     ),
                   ),
                 ),
+                // Only while the transcript is showing a detached slice of
+                // history — otherwise the bottom of the list already is the
+                // present and there's nothing to return to.
+                if (widget.repo.inHistoryWindow(widget.roomId))
+                  Positioned(
+                    bottom: 12,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _JumpToLatestPill(onTap: _jumpToLatest),
+                    ),
+                  ),
               ],
             ),
     );
@@ -1627,6 +1750,54 @@ class _FloatingDateChip extends StatelessWidget {
               const SizedBox(width: 6),
               Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown while the transcript is parked on an old message the reader jumped
+/// to. Same glass pill as the floating date chip so the two read as one
+/// family of transient list chrome.
+class _JumpToLatestPill extends StatelessWidget {
+  const _JumpToLatestPill({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: theme.accentSoft,
+              border: Border.all(color: theme.divider, width: 1),
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.16),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.arrow_down, size: 11, color: theme.accent),
+                const SizedBox(width: 6),
+                Text(
+                  'JUMP TO LATEST',
+                  style: theme.monoTiny.copyWith(letterSpacing: 1.8),
+                ),
+              ],
+            ),
           ),
         ),
       ),

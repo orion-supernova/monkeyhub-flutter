@@ -479,6 +479,7 @@ class ChatRepository extends ChangeNotifier {
     _loadingOlder.clear();
     _exhausted.clear();
     _olderPrefix.clear();
+    _clearHistoryWindows();
   }
 
   /// Whether the first batch of messages (cache or server) has landed for
@@ -554,6 +555,236 @@ class ChatRepository extends ChangeNotifier {
       _loadingOlder.remove(roomId);
       notifyListeners();
     }
+  }
+
+  // ───────────── history window (jump to an old message) ─────────────
+  //
+  // Tapping a reply tether whose parent predates everything we hold can't be
+  // served by `loadOlder`: the parent may be thousands of messages back, and
+  // paging there 40 at a time is both slow and pointless — the reader doesn't
+  // want the gap, they want the message.
+  //
+  // So `jumpToMessage` fetches a window *centred* on the message and shows
+  // that instead of the live tail. The window is a detached but internally
+  // contiguous slice: never spliced into `_messages`, because there is a hole
+  // between the two and a hole would render as messages silently missing.
+  // Scrolling up extends the window with `listBefore`; scrolling down extends
+  // it with `listAfter` until it reaches the live tail, at which point the two
+  // halves are contiguous and merge back — the reader has caught up to the
+  // present and the window quietly stops existing.
+  //
+  // Only the room transcript reads through `timelineFor`. Threads, read
+  // receipts and the cache keep reading `messagesFor`, so nothing else in the
+  // app can observe that the transcript is looking at history.
+
+  final Map<String, List<ChatMessage>> _historyWindow = {};
+  final Set<String> _windowExhaustedOlder = {};
+  final Set<String> _windowExhaustedNewer = {};
+  final Set<String> _loadingWindow = {};
+
+  /// True while the transcript is showing detached history rather than the
+  /// live tail — the room screen offers a "jump to latest" affordance for it.
+  bool inHistoryWindow(String roomId) => _historyWindow.containsKey(roomId);
+
+  /// What the room transcript should render: the history window when one is
+  /// open, the live list otherwise.
+  List<ChatMessage> timelineFor(String roomId) =>
+      _historyWindow[roomId] ?? messagesFor(roomId);
+
+  bool isLoadingTimeline(String roomId) =>
+      _loadingWindow.contains(roomId) || _loadingOlder.contains(roomId);
+
+  bool hasMoreOlderTimeline(String roomId) =>
+      _historyWindow.containsKey(roomId)
+          ? !_windowExhaustedOlder.contains(roomId)
+          : hasMoreOlder(roomId);
+
+  /// Drop back to the live tail, discarding the window. The window's messages
+  /// are deliberately *not* retained: they aren't contiguous with the live
+  /// list, so keeping them would put a hole in the transcript.
+  void exitHistoryWindow(String roomId) {
+    if (_historyWindow.remove(roomId) == null) return;
+    _windowExhaustedOlder.remove(roomId);
+    _windowExhaustedNewer.remove(roomId);
+    notifyListeners();
+  }
+
+  void _clearHistoryWindows() {
+    _historyWindow.clear();
+    _windowExhaustedOlder.clear();
+    _windowExhaustedNewer.clear();
+    _loadingWindow.clear();
+  }
+
+  /// Make [messageId] renderable in [roomId]'s transcript, fetching a window
+  /// of history around it if it isn't loaded. Returns false only when the
+  /// message can't be had at all (deleted, wrong room, or offline).
+  Future<bool> jumpToMessage(String roomId, String messageId) async {
+    final win = _historyWindow[roomId];
+    if (win != null) {
+      if (win.any((m) => m.id == messageId)) return true;
+    } else if (findMessageInRoom(roomId, messageId) != null) {
+      return true;
+    }
+    if (_loadingWindow.contains(roomId)) return false;
+    _loadingWindow.add(roomId);
+    notifyListeners();
+    try {
+      final page = await api.listAround(
+        roomId: roomId,
+        messageId: messageId,
+        before: 30,
+        after: 30,
+      );
+      if (!page.found || page.messages.isEmpty) return false;
+
+      final live = _messages[roomId] ?? const <ChatMessage>[];
+      final liveIds = {for (final m in live) m.id};
+      // If the window already touches the live tail there's no hole to keep
+      // apart — splice it into the room's own history and stay in live mode.
+      final touchesTail =
+          !page.hasMoreNewer || page.messages.any(liveIds.contains);
+      if (live.isEmpty) {
+        _messages[roomId] = page.messages;
+        if (!page.hasMoreOlder) _exhausted.add(roomId);
+        _historyWindow.remove(roomId);
+        return true;
+      }
+      if (touchesTail) {
+        final oldest = live.first.createdAt;
+        final prefix = page.messages
+            .where((m) => !liveIds.contains(m.id) && m.createdAt.isBefore(oldest))
+            .toList()
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        if (prefix.isNotEmpty) {
+          _messages[roomId] = [...prefix, ...live];
+          _olderPrefix[roomId] = [
+            ...prefix,
+            ...(_olderPrefix[roomId] ?? const <ChatMessage>[]),
+          ];
+          if (!page.hasMoreOlder) _exhausted.add(roomId);
+        }
+        _historyWindow.remove(roomId);
+        _windowExhaustedOlder.remove(roomId);
+        _windowExhaustedNewer.remove(roomId);
+        return true;
+      }
+
+      _historyWindow[roomId] = page.messages;
+      _windowExhaustedOlder.remove(roomId);
+      _windowExhaustedNewer.remove(roomId);
+      if (!page.hasMoreOlder) _windowExhaustedOlder.add(roomId);
+      if (!page.hasMoreNewer) _windowExhaustedNewer.add(roomId);
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _loadingWindow.remove(roomId);
+      notifyListeners();
+    }
+  }
+
+  /// Older page for whatever the transcript is currently showing.
+  Future<int> loadOlderTimeline(String roomId, {int pageSize = 40}) async {
+    final win = _historyWindow[roomId];
+    if (win == null) return loadOlder(roomId, pageSize: pageSize);
+    if (_loadingWindow.contains(roomId)) return 0;
+    if (_windowExhaustedOlder.contains(roomId) || win.isEmpty) return 0;
+    _loadingWindow.add(roomId);
+    notifyListeners();
+    try {
+      final older = await api.listBefore(
+        roomId: roomId,
+        before: win.first.createdAt,
+        limit: pageSize,
+      );
+      // The window can be closed while the page is in flight.
+      final cur = _historyWindow[roomId];
+      if (cur == null) return 0;
+      if (older.length < pageSize) _windowExhaustedOlder.add(roomId);
+      final seen = {for (final m in cur) m.id};
+      final fresh = older.where((m) => !seen.contains(m.id)).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      if (fresh.isEmpty) return 0;
+      _historyWindow[roomId] = [...fresh, ...cur];
+      return fresh.length;
+    } catch (_) {
+      return 0;
+    } finally {
+      _loadingWindow.remove(roomId);
+      notifyListeners();
+    }
+  }
+
+  /// Newer page, extending the window back toward the present. Once it
+  /// reaches the newest message the live list holds, the two are contiguous
+  /// and the window is merged away — done here rather than on first overlap
+  /// so the bottom of the transcript never moves under the reader.
+  Future<int> loadNewerTimeline(String roomId, {int pageSize = 40}) async {
+    final win = _historyWindow[roomId];
+    if (win == null || win.isEmpty) return 0;
+    if (_loadingWindow.contains(roomId)) return 0;
+    if (_windowExhaustedNewer.contains(roomId)) {
+      _mergeHistoryWindow(roomId);
+      return 0;
+    }
+    _loadingWindow.add(roomId);
+    notifyListeners();
+    try {
+      final newer = await api.listAfter(
+        roomId: roomId,
+        after: win.last.createdAt,
+        limit: pageSize,
+      );
+      final cur = _historyWindow[roomId];
+      if (cur == null) return 0;
+      if (newer.length < pageSize) _windowExhaustedNewer.add(roomId);
+      final seen = {for (final m in cur) m.id};
+      final fresh = newer.where((m) => !seen.contains(m.id)).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final all = fresh.isEmpty ? cur : <ChatMessage>[...cur, ...fresh];
+      _historyWindow[roomId] = all;
+
+      final live = _messages[roomId] ?? const <ChatMessage>[];
+      final reachedTail =
+          live.isNotEmpty && all.any((m) => m.id == live.last.id);
+      if (reachedTail || _windowExhaustedNewer.contains(roomId)) {
+        _mergeHistoryWindow(roomId);
+      }
+      return fresh.length;
+    } catch (_) {
+      return 0;
+    } finally {
+      _loadingWindow.remove(roomId);
+      notifyListeners();
+    }
+  }
+
+  /// Fold an open window back into the room's history. Only called once the
+  /// window's newest message is the live list's newest too, so the transcript
+  /// keeps rendering exactly the same rows at exactly the same offsets.
+  void _mergeHistoryWindow(String roomId) {
+    final win = _historyWindow.remove(roomId);
+    _windowExhaustedOlder.remove(roomId);
+    _windowExhaustedNewer.remove(roomId);
+    if (win == null || win.isEmpty) return;
+    final live = _messages[roomId] ?? const <ChatMessage>[];
+    if (live.isEmpty) {
+      _messages[roomId] = win;
+      return;
+    }
+    final liveIds = {for (final m in live) m.id};
+    final oldest = live.first.createdAt;
+    final prefix = win
+        .where((m) => !liveIds.contains(m.id) && m.createdAt.isBefore(oldest))
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    if (prefix.isEmpty) return;
+    _messages[roomId] = [...prefix, ...live];
+    _olderPrefix[roomId] = [
+      ...prefix,
+      ...(_olderPrefix[roomId] ?? const <ChatMessage>[]),
+    ];
   }
 
   // ───────────── typing heartbeat ─────────────

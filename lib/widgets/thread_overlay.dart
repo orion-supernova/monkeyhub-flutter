@@ -12,8 +12,8 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../screens/profile_screen.dart';
 import '../keyboard/overlay_modal_scope.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'anchored_scroll.dart';
 import 'chat_composer.dart';
 import 'chat_pane.dart';
 import 'composer_reply_card.dart';
@@ -102,8 +102,15 @@ class _ThreadSheet extends StatefulWidget {
 }
 
 class _ThreadSheetState extends State<_ThreadSheet>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _ctrl;
+
+  /// Accent halo pulse on a message we've just scrolled to — the anchor the
+  /// overlay opened on, or a parent reached by tapping a reply tether. Same
+  /// one-shot 0→1→0 the room transcript fires, so "here it is" reads
+  /// identically on both surfaces.
+  late final AnimationController _pulse;
+  String? _highlightedId;
   final ScrollController _scroll = ScrollController();
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
@@ -144,6 +151,18 @@ class _ThreadSheetState extends State<_ThreadSheet>
       duration: const Duration(milliseconds: 240),
       reverseDuration: const Duration(milliseconds: 160),
     )..forward();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )
+      ..addListener(() {
+        if (_highlightedId != null && mounted) setState(() {});
+      })
+      ..addStatusListener((s) {
+        if (s != AnimationStatus.completed || !mounted) return;
+        setState(() => _highlightedId = null);
+        _pulse.reset();
+      });
 
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
@@ -169,6 +188,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _scroll.dispose();
     _composer.dispose();
     _composerFocus.dispose();
+    _pulse.dispose();
     _ctrl.dispose();
     super.dispose();
   }
@@ -209,55 +229,87 @@ class _ThreadSheetState extends State<_ThreadSheet>
     }
   }
 
-  /// Centers the anchor message. `ListView.builder` only builds near the
-  /// viewport, so if the anchor is far up the thread its key has no context
-  /// yet and `ensureVisible` would silently no-op — page back and retry a
-  /// bounded number of times before giving up, the same shape the room
-  /// screen uses for scroll-to-parent.
-  Future<void> _anchor({int attempt = 0}) async {
+  /// Centers the message the overlay was opened on and pulses it.
+  Future<void> _anchor() async {
     if (!mounted || _didAnchor) return;
-    final ctx = _keys[widget.anchorMessageId]?.currentContext;
-    if (ctx != null && ctx.mounted) {
-      _didAnchor = true;
-      await Scrollable.ensureVisible(
-        ctx,
-        alignment: 0.5,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-      return;
-    }
-    if (attempt >= 3 || !widget.repo.hasMoreThread(widget.rootId)) {
-      // Give up quietly — the thread still renders, just not centered.
-      _didAnchor = true;
-      return;
-    }
-    await widget.repo.loadOlderThread(
-      roomId: widget.roomId,
-      rootId: widget.rootId,
-      pageSize: kThreadPageSize,
-    );
-    if (!mounted) return;
-    await Future<void>.delayed(Duration.zero);
-    if (!mounted) return;
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _anchor(attempt: attempt + 1));
+    _didAnchor = true;
+    await _revealInThread(widget.anchorMessageId);
   }
 
-  /// Tapping a reply tether inside the thread scrolls to the quoted parent
-  /// rather than doing nothing.
-  void _jumpToParent(String parentId) {
-    final ctx = _keys[parentId]?.currentContext;
-    if (ctx == null || !ctx.mounted) {
-      _showToast('that message is further up the thread');
-      return;
+  /// Tapping a reply tether inside the thread goes to the quoted parent.
+  ///
+  /// A reply and its parent always share a `rootId` (see `messages:send`), so
+  /// the parent is always somewhere in this thread — it just may be older
+  /// than the pages fetched so far.
+  Future<void> _jumpToParent(String parentId) async {
+    final reached = await _revealInThread(parentId);
+    if (!reached && mounted) {
+      _showToast("couldn't find that message in this thread");
     }
-    Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.5,
-      duration: const Duration(milliseconds: 240),
-      curve: Curves.easeOutCubic,
+  }
+
+  /// Page the thread back until [messageId] is loaded, scroll to it however
+  /// far up it turns out to be, and pulse it.
+  Future<bool> _revealInThread(String messageId, {double alignment = 0.5}) async {
+    if (!await _pageUntilLoaded(messageId)) return false;
+    if (!mounted) return false;
+    // Let the newly-prepended page lay out before measuring against it.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return false;
+    final landed = await snapToIndex(
+      controller: _scroll,
+      targetIndex: () => _rowIndexOf(messageId),
+      // +1 for the loader/end slot the builder keeps at the top.
+      itemCount: () => _messages.length + 1,
+      targetContext: () => _keys[messageId]?.currentContext,
+      probes: _mountedRowProbes,
+      alignment: alignment,
     );
+    if (!mounted || !landed) return landed;
+    setState(() => _highlightedId = messageId);
+    _pulse.forward(from: 0);
+    return true;
+  }
+
+  /// Fetch older pages until [messageId] is in the thread. Bounded only by
+  /// the thread running out of history (or ~1000 messages of it).
+  Future<bool> _pageUntilLoaded(String messageId) async {
+    for (var i = 0; i < 40; i++) {
+      if (!mounted) return false;
+      if (_messages.any((m) => m.id == messageId)) return true;
+      if (!widget.repo.hasMoreThread(widget.rootId)) return false;
+      if (widget.repo.isLoadingThread(widget.rootId)) {
+        // A scroll-triggered page is already in flight; let it land.
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+        continue;
+      }
+      await widget.repo.loadOlderThread(
+        roomId: widget.roomId,
+        rootId: widget.rootId,
+        pageSize: kThreadPageSize,
+      );
+    }
+    return mounted && _messages.any((m) => m.id == messageId);
+  }
+
+  /// Row index of [id] in the reversed list the builder renders.
+  int? _rowIndexOf(String id) {
+    final msgs = _messages;
+    for (var j = 0; j < msgs.length; j++) {
+      if (msgs[j].id == id) return msgs.length - 1 - j;
+    }
+    return null;
+  }
+
+  List<ScrollProbe> _mountedRowProbes() {
+    final msgs = _messages;
+    final out = <ScrollProbe>[];
+    for (var j = 0; j < msgs.length; j++) {
+      final ctx = _keys[msgs[j].id]?.currentContext;
+      if (ctx == null || !ctx.mounted) continue;
+      out.add((index: msgs.length - 1 - j, context: ctx));
+    }
+    return out;
   }
 
   // ───────────── composing ─────────────
@@ -442,6 +494,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     required bool showReplyIndicator,
     required bool interactive,
     bool grouped = false,
+    double highlightT = 0,
   }) {
     final me = widget.repo.userId ?? '';
     if (m.isEphemeral) {
@@ -453,6 +506,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         author: author,
         useHero: false,
         grouped: grouped,
+        highlightT: highlightT,
         showReplyIndicator: showReplyIndicator,
         // Null hides the branch button — no thread-within-a-thread.
         onViewThread: null,
@@ -469,6 +523,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       author: author,
       useHero: false,
       grouped: grouped,
+      highlightT: highlightT,
       showReplyIndicator: showReplyIndicator,
       onViewThread: null,
       onReplyIndicatorTap: interactive ? _jumpToParent : null,
@@ -578,7 +633,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                         ),
                                       ),
                               )
-                            : _buildList(messages, theme, loading),
+                            : _buildList(messages, loading),
                       ),
                       if (target != null)
                         AnimatedPadding(
@@ -621,10 +676,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   Widget _buildList(
     List<ChatMessage> messages,
-    AppTheme theme,
     bool loading,
   ) {
-    final me = widget.repo.userId ?? '';
     // Reversed so the newest sits against the composer and so prepending an
     // older page preserves scroll position for free.
     final count = messages.length + 1; // +1 for the top loading//end slot
@@ -678,8 +731,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
             !showIndicator &&
             m.createdAt.difference(prev.createdAt).inMinutes < 5;
 
-        final isFocused = m.id == widget.anchorMessageId;
-        final isMine = m.senderId == me;
         final canReply = !m.id.startsWith('tmp_') &&
             m.status == MessageStatus.sent &&
             m.type != MessageType.system;
@@ -693,41 +744,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
             showReplyIndicator: showIndicator,
             interactive: true,
             grouped: grouped,
+            highlightT: _highlightedId == m.id ? _pulse.value : 0.0,
           ),
         );
 
-        final keyed = KeyedSubtree(
+        return KeyedSubtree(
           key: _keys.putIfAbsent(
             m.id,
             () => GlobalKey(debugLabel: 'thread-${m.id}'),
           ),
           child: bubble,
-        );
-        if (!isFocused) return keyed;
-
-        // Halo behind the anchor message so it stays findable after scroll.
-        return Stack(
-          alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: theme.accent.withValues(alpha: 0.45),
-                        blurRadius: 22,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            keyed,
-          ],
         );
       },
       ),

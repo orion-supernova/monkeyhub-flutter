@@ -322,6 +322,106 @@ export const listBefore = query({
   },
 });
 
+// Ascending counterpart to `listBefore`. Only used to walk *back down* toward
+// the present after a jump into old history — the newest end of the room is
+// owned by the live `list` subscription, so nothing subscribes to this.
+export const listAfter = query({
+  args: {
+    roomId: v.id("rooms"),
+    afterTimestamp: v.number(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { roomId, afterTimestamp, limit }) => {
+    const msgs = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) =>
+        q.eq("roomId", roomId).gt("createdAt", afterTimestamp)
+      )
+      .order("asc")
+      .take(limit ?? 30);
+
+    // Mirrors the no-user-doc-read pattern from `list` above.
+    return await Promise.all(
+      msgs.map(async (msg) => {
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
+          .collect();
+        return { ...msg, reactions };
+      })
+    );
+  },
+});
+
+// A window of history centred on one message, so tapping a reply tether can
+// land on a parent that was posted long before anything the client holds —
+// without paging the whole gap 40 messages at a time.
+//
+// Returns the anchor plus `before` older and `after` newer messages,
+// chronological, with a flag per side saying whether history continues there.
+// `found: false` means the message is gone (deleted) or not in this room.
+//
+// Messages sharing the anchor's exact `createdAt` fall outside both range
+// scans; at millisecond precision that's vanishingly rare, and the client
+// dedupes by id anyway.
+export const listAround = query({
+  args: {
+    roomId: v.id("rooms"),
+    messageId: v.id("messages"),
+    before: v.optional(v.number()),
+    after: v.optional(v.number()),
+  },
+  handler: async (ctx, { roomId, messageId, before, after }) => {
+    const anchor = await ctx.db.get(messageId);
+    if (!anchor || anchor.roomId.toString() !== roomId.toString()) {
+      return {
+        messages: [],
+        hasMoreOlder: true,
+        hasMoreNewer: true,
+        found: false,
+      };
+    }
+
+    const backCap = Math.min(before ?? 25, 100);
+    const fwdCap = Math.min(after ?? 25, 100);
+
+    const older = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) =>
+        q.eq("roomId", roomId).lt("createdAt", anchor.createdAt)
+      )
+      .order("desc")
+      .take(backCap);
+    const newer = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) =>
+        q.eq("roomId", roomId).gt("createdAt", anchor.createdAt)
+      )
+      .order("asc")
+      .take(fwdCap);
+
+    const collected = [...older.reverse(), anchor, ...newer];
+
+    // Reactions only. Do NOT read `users` here — same reason as `list`.
+    const enriched = await Promise.all(
+      collected.map(async (msg) => {
+        const reactions = await ctx.db
+          .query("reactions")
+          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
+          .collect();
+        return { ...msg, reactions };
+      })
+    );
+
+    return {
+      messages: enriched,
+      hasMoreOlder: older.length === backCap,
+      hasMoreNewer: newer.length === fwdCap,
+      found: true,
+    };
+  },
+});
+
 // MARK: - Chamber of Secrets: scheduled self-destruction
 
 export const expireMessage = internalMutation({

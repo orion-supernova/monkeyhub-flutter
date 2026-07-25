@@ -448,6 +448,55 @@ class ChatApi {
     return _decodeMessages(res);
   }
 
+  /// The ascending counterpart to [listBefore]. Only used to walk back down
+  /// toward the present after [listAround] dropped the reader into old
+  /// history — the newest end is covered by the live `messages:list`
+  /// subscription.
+  Future<List<ChatMessage>> listAfter({
+    required String roomId,
+    required DateTime after,
+    int limit = 30,
+  }) async {
+    final res = await _cv.query('messages:listAfter', {
+      'roomId': roomId,
+      'afterTimestamp': after.millisecondsSinceEpoch,
+      'limit': limit,
+    });
+    return _decodeMessages(res);
+  }
+
+  /// A window of history centred on [messageId] — the message itself plus
+  /// [before] older and [after] newer, chronological. Lets the UI jump
+  /// straight to a quoted message that predates everything it holds instead
+  /// of paging the whole gap. `found` is false when the message has been
+  /// deleted or doesn't belong to this room.
+  Future<
+      ({
+        List<ChatMessage> messages,
+        bool hasMoreOlder,
+        bool hasMoreNewer,
+        bool found,
+      })> listAround({
+    required String roomId,
+    required String messageId,
+    int before = 25,
+    int after = 25,
+  }) async {
+    final res = await _cv.query('messages:listAround', {
+      'roomId': roomId,
+      'messageId': messageId,
+      'before': before,
+      'after': after,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      messages: _decodeMessages(map['messages']),
+      hasMoreOlder: (map['hasMoreOlder'] as bool?) ?? false,
+      hasMoreNewer: (map['hasMoreNewer'] as bool?) ?? false,
+      found: (map['found'] as bool?) ?? false,
+    );
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Reactions
   // ─────────────────────────────────────────────────────────────────────────
