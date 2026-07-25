@@ -1061,20 +1061,35 @@ fi
 # (flutter_callkit_incoming) is mobile-only, so a browser gets no CallKit /
 # ConnectionService ringing.
 #
-# --no-wasm-dry-run: we compile to JS, not WasmGC, so the dry run only prints a
-# report on a build we do not make. It cannot pass anyway — flutter_secure_storage_web
-# is built on dart:html and flutter_rust_bridge trips a JS-interop lint, and
-# neither is ours to change. Drop the flag to see the report again.
+# --wasm compiles to WasmGC and ALSO emits the dart2js output; flutter_bootstrap.js
+# picks between them at runtime, so a browser without WasmGC quietly gets the JS
+# build and nothing breaks. It costs compatibility nothing and roughly doubles
+# build/web, since both artifacts ship.
+#
+# This only became possible once flutter_secure_storage 10 replaced its dart:html
+# web implementation with dart:js_interop — that was the one hard blocker. The
+# flutter_rust_bridge `is JSAny` lint the dry run still reports is a warning and
+# does not stop the compile, which is why the dry run stays on: it is now a
+# report about a build we actually make.
 WEB_BUILD_TIME=0
 if [ "$DEPLOY_WEB" = true ]; then
     WEB_START_TIME=$(date +%s)
     echo "🌐 Starting web build..."
-    run_with_spinner "Building Flutter web (release)" \
-        flutter build web --release --base-href /web/ --dart-define=MH_CHANNEL=web --no-wasm-dry-run
+    run_with_spinner "Building Flutter web (release, wasm)" \
+        flutter build web --wasm --release --base-href /web/ --dart-define=MH_CHANNEL=web
 
     if [ ! -f "build/web/main.dart.js" ] && [ ! -f "build/web/flutter_bootstrap.js" ]; then
         echo "❌ No web build output at build/web/"
         exit 1
+    fi
+
+    # A --wasm build that stops emitting WasmGC still produces a complete,
+    # working JS-only site, so the regression is invisible: same deploy, same
+    # green ticks, silently the slower build from then on. Warn rather than
+    # exit — the JS build is fine to ship, it just is not what was asked for.
+    if [ ! -f "build/web/main.dart.wasm" ]; then
+        echo "  ⚠️  --wasm emitted no main.dart.wasm. Shipping the dart2js build."
+        echo '     Check "flutter build web --wasm" output for a new hard blocker.'
     fi
 
     if [ "$RUN_UPLOAD" = true ]; then
@@ -1099,6 +1114,26 @@ if [ "$DEPLOY_WEB" = true ]; then
         }
         if upload_web; then
             echo "  ✅ Web app at $WEB_URL"
+            # WasmGC streaming-instantiates, which the browser only does for an
+            # `application/wasm` response — anything else and it falls back to
+            # the JS build without surfacing an error. nginx has shipped that
+            # mapping since 1.21, so this normally passes; it is here because
+            # when it does not, everything still looks perfectly fine.
+            if [ -f "build/web/main.dart.wasm" ]; then
+                wasm_ct=$(curl -fsSI "${WEB_URL}main.dart.wasm" 2>/dev/null \
+                    | tr -d '\r' \
+                    | awk -F': ' 'tolower($1) == "content-type" { print tolower($2) }')
+                case "$wasm_ct" in
+                    application/wasm*)
+                        echo "  ✅ Serving main.dart.wasm as application/wasm" ;;
+                    "")
+                        echo "  ⚠️  Could not read the Content-Type of main.dart.wasm." ;;
+                    *)
+                        echo "  ⚠️  main.dart.wasm serves as '$wasm_ct', not application/wasm."
+                        echo "     Browsers will silently run the JS build instead. Add to nginx:"
+                        echo "       types { application/wasm wasm; }" ;;
+                esac
+            fi
             # A tab left open for days keeps running the build it loaded, so a
             # long-lived session still needs telling. The prompt reloads rather
             # than navigating anywhere.
