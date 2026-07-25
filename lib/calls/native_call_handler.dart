@@ -98,17 +98,20 @@ class NativeCallHandler {
     // ignore any stray events it fires to avoid hijacking the in-app flow.
     if (!_nativeCallUi) return;
     final service = CallService.instance;
-    debugPrint('NativeCallHandler: ${event.event} body=${event.body}');
-    switch (event.event) {
-      case Event.actionCallAccept:
-        _captureNativeUuid(event.body);
+    debugPrint('NativeCallHandler: ${event.eventName}');
+    // 3.x replaced the `Event` enum + untyped `body` map with a sealed
+    // CallEvent hierarchy, so this matches on the variant and destructures
+    // the payload instead of string-keying into a map.
+    switch (event) {
+      case CallEventActionCallAccept(:final callKitParams):
+        _captureNativeUuidFromParams(callKitParams);
         // Ghost guard: a CallKit card can outlive its call (the caller
         // cancelled or the ring timed out while the app was locked/killed).
         // If Dart has no session for it, confirm with the backend that the
         // call is still live BEFORE latching the accept — a latched accept
         // for a dead call waits forever for an offer that can never come.
         if (service.session == null) {
-          final callId = _callIdFromEvent(event.body);
+          final callId = _callIdFromParams(callKitParams);
           if (callId != null && await _isCallLive(callId) == false) {
             debugPrint(
               'NativeCallHandler: stale CallKit accept callId=$callId — clearing',
@@ -138,8 +141,8 @@ class NativeCallHandler {
           await endAllNative();
         }
         break;
-      case Event.actionCallDecline:
-        final declinedCallId = _callIdFromEvent(event.body);
+      case CallEventActionCallDecline(:final callKitParams):
+        final declinedCallId = _callIdFromParams(callKitParams);
         final current = service.session;
         if (current != null &&
             declinedCallId != null &&
@@ -166,7 +169,7 @@ class NativeCallHandler {
           // would silently no-op, leaving backend state and the accept latch
           // untouched. Best-effort backend reject (harmless if the call is
           // already terminal), then make sure nothing native lingers.
-          final callId = _callIdFromEvent(event.body);
+          final callId = _callIdFromParams(callKitParams);
           final me = service.userId;
           if (callId != null && me != null) {
             try {
@@ -181,27 +184,25 @@ class NativeCallHandler {
           await endAllNative();
         }
         break;
-      case Event.actionCallEnded:
-      case Event.actionCallTimeout:
+      case CallEventActionCallEnded() || CallEventActionCallTimeout():
         // service.endCall() is idempotent — if this is the echo of our
         // own endNative() call, the session is already null and this is
         // a harmless no-op.
         await service.endCall();
         break;
-      case Event.actionCallToggleMute:
+      case CallEventActionCallToggleMute():
         await service.toggleMute();
         break;
-      case Event.actionCallToggleAudioSession:
+      case CallEventActionCallToggleAudioSession(:final isActive):
         // CallKit activated/deactivated the AVAudioSession. On activation
         // the callkit plugin re-runs its own audio-session config which
         // clobbers our route, and the WebRTC mic unit may have started too
         // early to capture — CallService re-asserts both.
-        final body = event.body;
-        if (body is Map && body['isActivate'] == true) {
+        if (isActive) {
           unawaited(service.onNativeAudioSessionActivated());
         }
         break;
-      case Event.actionCallToggleHold:
+      case CallEventActionCallToggleHold():
         // Not implemented — we don't expose hold yet.
         break;
       default:
@@ -214,6 +215,17 @@ class NativeCallHandler {
   /// CallFcmService.kt on Android) mint their UUID natively — Dart never
   /// sees it unless we lift it off the accept event. Capturing it here lets
   /// [markConnected] target the right native call so the system timer runs.
+  /// [CallKitParams] flavour of [_captureNativeUuid], for the sealed 3.x
+  /// events. The map version stays because `activeCalls()` still hands back
+  /// raw maps, which is what [replayColdStartCalls] reads.
+  void _captureNativeUuidFromParams(CallKitParams params) {
+    final uuid = params.id;
+    final callId = params.extra?['callId']?.toString();
+    if (uuid.isNotEmpty && callId != null && callId.isNotEmpty) {
+      _uuidByCallId[callId] = uuid;
+    }
+  }
+
   void _captureNativeUuid(dynamic body) {
     if (body is! Map) return;
     final uuid = body['id']?.toString();
@@ -360,12 +372,10 @@ class NativeCallHandler {
     await endAllNative();
   }
 
-  /// `extra.callId` from a plugin event body (the Convex callId that iOS /
+  /// `extra.callId` from a plugin event (the Convex callId that iOS /
   /// Android stashed when showing the native UI), or null.
-  String? _callIdFromEvent(dynamic body) {
-    if (body is! Map) return null;
-    final extra = body['extra'];
-    final callId = extra is Map ? extra['callId']?.toString() : null;
+  String? _callIdFromParams(CallKitParams params) {
+    final callId = params.extra?['callId']?.toString();
     return (callId != null && callId.isNotEmpty) ? callId : null;
   }
 

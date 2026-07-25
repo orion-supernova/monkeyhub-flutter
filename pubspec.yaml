@@ -56,7 +56,15 @@ dependencies:
   # PINNED: AppDelegate.swift (saveEndCall reason codes) and CallFcmService.kt
   # (FlutterCallkitIncomingPlugin.getInstance / showIncomingNotification) call
   # plugin internals — re-verify both before any bump.
-  flutter_callkit_incoming: 2.5.8
+  # Verified for 3.1.3: sharedInstance, saveEndCall(uuid, reason) with 4 still
+  # mapping to .answeredElsewhere, Data(id:nameCaller:handle:type:),
+  # getInstance/hasInstance, showIncomingNotification(Data), endCall(Data) and
+  # Kotlin `data class Data(Map)` are all unchanged. What 3.x DOES change is
+  # behaviour, not signatures: 3.1.0 added a self-managed Telecom
+  # ConnectionService on Android and reworked ringtone/foreground-service
+  # handling. Neither shows up in `flutter analyze` — they show up as a phone
+  # that does not ring, so device-test both platforms after touching this.
+  flutter_callkit_incoming: 3.1.3
 
   # FCM for Android VoIP-style data pushes is wired natively in MainActivity.kt
   # via the `monkeyhub/fcm` method channel — no Flutter Firebase plugin needed
