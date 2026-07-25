@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+// ScrollCacheExtent lives in rendering/, not re-exported by material.dart.
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
@@ -704,7 +706,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       reverse: true,
       // Build well beyond the viewport so `ensureVisible` finds anchor keys
       // and long-press works on off-screen bubbles.
-      cacheExtent: 1200,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
       itemCount: count,
