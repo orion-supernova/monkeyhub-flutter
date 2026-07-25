@@ -39,6 +39,7 @@ import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/scroll_to_latest.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/swipe_to_reply.dart';
@@ -81,6 +82,11 @@ class _RoomScreenState extends State<RoomScreen>
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocus = FocusNode();
   final ScrollController _scroll = ScrollController();
+  // Whether the transcript is parked away from the newest message. Kept in a
+  // notifier rather than a field: _onScroll runs on every scroll frame and this
+  // screen rebuilds at 5Hz off _ticker already, so a setState here would make
+  // the whole transcript pay for a pill.
+  final BottomProximity _scrolledUp = BottomProximity();
   final Map<String, ChatUser> _members = {}; // id → user (for sender names/avatars)
   Subscription? _membersSub;
   String _membersSig = '';
@@ -327,6 +333,10 @@ class _RoomScreenState extends State<RoomScreen>
       widget.repo.loadNewerTimeline(widget.roomId);
     }
 
+    // Scroll-to-latest pill. Hysteresis lives in BottomProximity and the
+    // notifier swallows the no-change case, so the common frame ends here.
+    _scrolledUp.update(pos);
+
     // Floating date chip: show while scrolling, fade out 800ms after the
     // last scroll event. Hidden when at the newest end (pixels < 8) since
     // the user already sees "TODAY" in the bottom-most divider there.
@@ -470,6 +480,14 @@ class _RoomScreenState extends State<RoomScreen>
       _room = room;
     });
     _maybePushCaptureScope(room);
+    // An emptied transcript has no scroll offset to be away from, and it can
+    // happen under the reader: an ephemeral room expires its last message
+    // while they are scrolled up. _onScroll can't clear this — there is no
+    // list left to scroll — so the pill would come back with the next message
+    // and hover over a transcript that is already at its bottom.
+    if (widget.repo.timelineFor(widget.roomId).isEmpty) {
+      _scrolledUp.value = false;
+    }
     // With reverse:true the viewport naturally starts at the bottom (newest
     // message). No initial jumpTo needed.
   }
@@ -483,6 +501,7 @@ class _RoomScreenState extends State<RoomScreen>
     _hideTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _scrolledUp.dispose();
     _membersSub?.cancel();
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
@@ -705,8 +724,11 @@ class _RoomScreenState extends State<RoomScreen>
   /// Leave a history window and land on the newest message. Not animated: the
   /// transcript swaps to an entirely different set of rows, so there's no
   /// continuous path between here and there to animate along.
+  ///
+  /// Deliberately silent — the haptic belongs to the affordance the reader
+  /// touched, and this also runs off the back of a send, where a second buzz
+  /// on top of the send's own would read as a stutter.
   void _jumpToLatest() {
-    HapticFeedback.selectionClick();
     widget.repo.exitHistoryWindow(widget.roomId);
     if (_scroll.hasClients) _scroll.jumpTo(0);
   }
@@ -718,11 +740,18 @@ class _RoomScreenState extends State<RoomScreen>
       _jumpToLatest();
       return;
     }
-    if (!_scroll.hasClients) return;
     // reverse:true → 0 is the bottom. Layout for the new bubble may not be
     // settled yet, but the bottom target is constant so the animation lands
-    // cleanly regardless.
-    _scroll.animateTo(0, duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic);
+    // cleanly regardless. See scrollToLatest for why a long hop teleports
+    // most of the way first.
+    scrollToLatest(_scroll);
+  }
+
+  /// The pill's own tap. Separate from [_scrollToBottom] because that is also
+  /// what a send calls, and only a deliberate tap earns a haptic.
+  void _onJumpToLatestTapped() {
+    HapticFeedback.selectionClick();
+    _scrollToBottom();
   }
 
   Future<void> _onAttach() async {
@@ -1401,18 +1430,30 @@ class _RoomScreenState extends State<RoomScreen>
                     ),
                   ),
                 ),
-                // Only while the transcript is showing a detached slice of
-                // history — otherwise the bottom of the list already is the
-                // present and there's nothing to return to.
-                if (widget.repo.inHistoryWindow(widget.roomId))
-                  Positioned(
-                    bottom: 12,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: _JumpToLatestPill(onTap: _jumpToLatest),
+                Positioned(
+                  // Clears the composer in both styles. In liquid the composer
+                  // floats OVER this stack, and listPadding.bottom is exactly
+                  // the room reserved for it; the old hardcoded 12 put the pill
+                  // behind the glass.
+                  bottom: math.max(8, listPadding.bottom - 8),
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    // Two reasons to be here: scrolled away from the newest
+                    // message, or parked on a detached slice of history where
+                    // the bottom of the list isn't the present at all. Both
+                    // want the same button, and _scrollToBottom already tells
+                    // them apart.
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: _scrolledUp,
+                      builder: (context, scrolledUp, _) => ScrollToLatestSlot(
+                        visible: scrolledUp ||
+                            widget.repo.inHistoryWindow(widget.roomId),
+                        onTap: _onJumpToLatestTapped,
+                      ),
                     ),
                   ),
+                ),
               ],
             ),
     );
@@ -1841,54 +1882,6 @@ class _FloatingDateChip extends StatelessWidget {
               const SizedBox(width: 6),
               Text(label, style: theme.monoTiny.copyWith(letterSpacing: 1.8)),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shown while the transcript is parked on an old message the reader jumped
-/// to. Same glass pill as the floating date chip so the two read as one
-/// family of transient list chrome.
-class _JumpToLatestPill extends StatelessWidget {
-  const _JumpToLatestPill({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: theme.accentSoft,
-              border: Border.all(color: theme.divider, width: 1),
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.16),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(CupertinoIcons.arrow_down, size: 11, color: theme.accent),
-                const SizedBox(width: 6),
-                Text(
-                  'JUMP TO LATEST',
-                  style: theme.monoTiny.copyWith(letterSpacing: 1.8),
-                ),
-              ],
-            ),
           ),
         ),
       ),

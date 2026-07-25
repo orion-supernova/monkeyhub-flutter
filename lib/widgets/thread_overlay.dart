@@ -15,6 +15,7 @@ import '../models/enums.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
+import '../platform.dart';
 import '../theme/theme_scope.dart';
 import 'anchored_scroll.dart';
 import 'chat_composer.dart';
@@ -24,6 +25,7 @@ import 'message_action_menu.dart';
 import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
 import 'report_sheet.dart';
+import 'scroll_to_latest.dart';
 import 'swipe_to_reply.dart';
 
 /// Page size for thread paging. Small on purpose — the overlay pages on
@@ -115,6 +117,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
   late final AnimationController _pulse;
   String? _highlightedId;
   final ScrollController _scroll = ScrollController();
+  // Same affordance as the room transcript: a pill that returns you to the
+  // newest reply. Notifier-backed so a scroll frame never rebuilds the overlay.
+  final BottomProximity _scrolledUp = BottomProximity();
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
 
@@ -189,6 +194,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
     _scroll.dispose();
+    _scrolledUp.dispose();
     _composer.dispose();
     _composerFocus.dispose();
     _pulse.dispose();
@@ -197,7 +203,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
   }
 
   void _onRepoChange() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    // A thread emptied under the reader (ephemeral replies expiring) leaves no
+    // list to scroll, so _onScroll can never clear this on its own — and the
+    // pill would reappear over the next reply while already at the bottom.
+    if (_messages.isEmpty) _scrolledUp.value = false;
+    setState(() {});
   }
 
   List<ChatMessage> get _messages =>
@@ -230,6 +241,18 @@ class _ThreadSheetState extends State<_ThreadSheet>
         ));
       }
     }
+    // Hysteresis lives in BottomProximity; the notifier swallows the
+    // no-change case, so the common scroll frame ends on one comparison.
+    _scrolledUp.update(p);
+  }
+
+  /// Return to the newest reply. See [scrollToLatest] for why a long hop
+  /// teleports most of the way before animating. A thread has no history
+  /// window, so unlike the room transcript the bottom of the list always is
+  /// the present.
+  void _scrollToBottom() {
+    HapticFeedback.selectionClick();
+    scrollToLatest(_scroll);
   }
 
   /// Centers the message the overlay was opened on and pulses it.
@@ -636,6 +659,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
                   child: Column(
                     children: [
                       Expanded(
+                        // Deliberately only the populated branch is wrapped.
+                        // An empty thread paints a bare Text/spinner, which
+                        // hit-tests through to the scrim behind — tapping the
+                        // middle of "thread unavailable" dismisses the overlay,
+                        // and swallowing that to unfocus a keyboard that isn't
+                        // up (there is no composer without a target) would be a
+                        // pure loss.
                         child: messages.isEmpty
                             ? Center(
                                 child: hasLoaded
@@ -652,7 +682,48 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                         ),
                                       ),
                               )
-                            : _buildList(messages, loading),
+                            : GestureDetector(
+                                // Tapping the transcript puts the keyboard
+                                // away — the same gesture the room screen
+                                // offers, and the companion to the list's own
+                                // drag-to-dismiss. Translucent so it wins the
+                                // arena ahead of the scrim: a tap in here
+                                // closes the keyboard and must NOT also close
+                                // the whole overlay. (No behaviour is lost —
+                                // Scrollable already hit-tests opaque, so these
+                                // taps never reached the scrim to begin with.)
+                                //
+                                // On desktop there is no soft keyboard to put
+                                // away, and stealing focus would silently break
+                                // Enter-to-send after any click in the thread.
+                                behavior: HitTestBehavior.translucent,
+                                onTap: isPhysicalKeyboardPlatform
+                                    ? null
+                                    : () => FocusManager.instance.primaryFocus
+                                        ?.unfocus(),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: _buildList(messages, loading),
+                                    ),
+                                    Positioned(
+                                      bottom: 12,
+                                      left: 0,
+                                      right: 0,
+                                      child: Center(
+                                        child: ValueListenableBuilder<bool>(
+                                          valueListenable: _scrolledUp,
+                                          builder: (context, scrolledUp, _) =>
+                                              ScrollToLatestSlot(
+                                            visible: scrolledUp,
+                                            onTap: _scrollToBottom,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                       ),
                       if (target != null)
                         AnimatedPadding(
