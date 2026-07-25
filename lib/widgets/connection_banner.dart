@@ -1,140 +1,149 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
-import '../backend/convex_client.dart';
+import '../backend/connection_health.dart';
+import '../keyboard/focusable_tap.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-/// Thin top-of-screen banner that appears only while the Convex socket is
-/// disconnected. Lives in the safe-area inset so it never collides with
-/// status bar or notch.
-class ConnectionBanner extends StatefulWidget {
-  const ConnectionBanner({super.key, required this.cv});
-  final ConvexBackend cv;
+/// Thin top-of-screen strip reflecting [ConnectionHealth]. Lives in the
+/// safe-area inset so it never collides with the status bar or notch.
+///
+/// Purely a view: every probe, timer and retry decision belongs to
+/// [ConnectionHealth]. This widget previously ran its own parallel watchdog and
+/// kept its own idea of `connected`, which meant it could hide itself on a
+/// successful probe without the app ever learning the socket had come back —
+/// leaving a healthy-looking UI over dead subscriptions.
+///
+/// Collapses to zero height when online: it shares a [Column] with
+/// [ActiveCallPill], so reserving space here would push the pill off-position.
+class ConnectionBanner extends StatelessWidget {
+  const ConnectionBanner({super.key, required this.health});
 
-  @override
-  State<ConnectionBanner> createState() => _ConnectionBannerState();
-}
-
-class _ConnectionBannerState extends State<ConnectionBanner> {
-  StreamSubscription<bool>? _sub;
-  bool _connected = true;
-  // Wait a beat before showing — momentary blips shouldn't flash a banner.
-  Timer? _showTimer;
-  bool _visible = false;
-
-  // Self-heal watchdog. While the client reports disconnected, actively probe
-  // real connectivity: the native connectionState stream can wedge on
-  // `connecting` after a long OS suspension and never re-emit `connected`,
-  // leaving this banner stuck forever even though the socket works (or can be
-  // revived by the probe itself). A successful probe hides the banner.
-  Timer? _watchdog;
-  bool _probing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _connected = widget.cv.isConnected;
-    _sub = widget.cv.connectionState.listen((c) {
-      if (!mounted) return;
-      _connected = c;
-      _showTimer?.cancel();
-      if (c) {
-        // Reconnected: hide immediately.
-        _stopWatchdog();
-        setState(() => _visible = false);
-      } else {
-        // Disconnected: start probing now (so a wedged stream can still
-        // self-heal), and hold 800ms before showing the banner.
-        _startWatchdog();
-        _showTimer = Timer(const Duration(milliseconds: 800), () {
-          if (!mounted || _connected) return;
-          setState(() => _visible = true);
-        });
-      }
-    });
-  }
-
-  void _startWatchdog() {
-    _watchdog ??=
-        Timer.periodic(const Duration(seconds: 6), (_) => _probe());
-    // Probe once up front rather than waiting a full interval.
-    _probe();
-  }
-
-  void _stopWatchdog() {
-    _watchdog?.cancel();
-    _watchdog = null;
-  }
-
-  Future<void> _probe() async {
-    if (_probing || _connected) return;
-    _probing = true;
-    final ok = await widget.cv.probeConnection();
-    _probing = false;
-    if (!mounted || !ok) return;
-    // The socket actually works — reconcile the stuck state and hide.
-    _connected = true;
-    _stopWatchdog();
-    _showTimer?.cancel();
-    setState(() => _visible = false);
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    _showTimer?.cancel();
-    _stopWatchdog();
-    super.dispose();
-  }
+  final ConnectionHealth health;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return AnimatedSlide(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      offset: _visible ? Offset.zero : const Offset(0, -1),
-      child: Material(
-        color: Colors.transparent,
-        child: SafeArea(
-          bottom: false,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.surfaceRaised,
-              borderRadius: BorderRadius.circular(theme.radiusMd),
-              border: Border.all(color: theme.divider),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.accent,
+    return AnimatedBuilder(
+      animation: health,
+      builder: (context, _) {
+        final phase = health.phase;
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: phase == ConnectionPhase.online
+              // Zero-height AND non-hit-testable. The old version stayed
+              // hit-testable across the top of every screen while hidden.
+              ? const SizedBox(width: double.infinity, height: 0)
+              : Material(
+                  color: Colors.transparent,
+                  // This subtree sits above the root navigator, outside any
+                  // Scaffold, so it inherits no text style. Without an explicit
+                  // one Flutter paints its debug yellow underlines.
+                  child: DefaultTextStyle(
+                    style: theme.body,
+                    child: SafeArea(
+                      bottom: false,
+                      child: _Strip(theme: theme, health: health, phase: phase),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  'reconnecting…',
-                  style: theme.monoTiny.copyWith(color: theme.inkSoft),
-                ),
-              ],
+        );
+      },
+    );
+  }
+}
+
+class _Strip extends StatelessWidget {
+  const _Strip({
+    required this.theme,
+    required this.health,
+    required this.phase,
+  });
+
+  final AppTheme theme;
+  final ConnectionHealth health;
+  final ConnectionPhase phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final stalled = phase == ConnectionPhase.stalled;
+    final body = Container(
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.surfaceRaised,
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+        border: Border.all(color: stalled ? theme.danger : theme.divider),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // While a retry is in flight the leading slot always spins, so a tap
+          // visibly does something even in the stalled state.
+          if (stalled && !health.isRetrying)
+            _Dot(color: theme.danger)
+          else
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: stalled ? theme.danger : theme.accent,
+              ),
+            ),
+          const SizedBox(width: 10),
+          Text(
+            stalled
+                ? (health.isRetrying
+                      ? 'retrying…'
+                      : "can't reach server · tap to retry")
+                : 'reconnecting…',
+            style: theme.monoTiny.copyWith(
+              color: stalled ? theme.ink : theme.inkSoft,
             ),
           ),
-        ),
+        ],
       ),
+    );
+
+    if (!stalled) return body;
+
+    // Bare GestureDetector, never InkWell: this app's tappables register no ink
+    // and no ripple (see FocusableTap's doc comment). FocusableTap adds the
+    // keyboard binding and semantics that a raw detector lacks.
+    return FocusableTap(
+      onTap: health.retryNow,
+      radius: theme.radiusMd,
+      semanticLabel: 'Retry connection',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: health.retryNow,
+        child: body,
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

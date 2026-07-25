@@ -5,6 +5,7 @@ import 'package:convex_flutter/convex_flutter.dart' as cv;
 import 'package:flutter/foundation.dart';
 
 import '../env.dart';
+import 'connection_health.dart' show ConnectionProbe;
 
 /// Thin wrapper around [cv.ConvexClient] that decodes JSON results and
 /// surfaces typed errors. v02's auth model does not use JWTs — every
@@ -13,7 +14,7 @@ import '../env.dart';
 /// Initialization is lazy and idempotent: every API call awaits
 /// [_ensureInitialized], so a sign-in tap will retry init if the boot-time
 /// attempt failed (e.g. transient network or FFI race).
-class ConvexBackend {
+class ConvexBackend implements ConnectionProbe {
   ConvexBackend._();
   static final ConvexBackend instance = ConvexBackend._();
 
@@ -149,9 +150,11 @@ class ConvexBackend {
     }
   }
 
+  @override
   Stream<bool> get connectionState =>
       _c.connectionState.map((s) => s == cv.WebSocketConnectionState.connected);
 
+  @override
   bool get isConnected {
     try {
       return _c.isConnected;
@@ -168,8 +171,9 @@ class ConvexBackend {
   /// `connecting`/`reconnecting` and never re-emits `connected`. That leaves
   /// the "reconnecting…" banner stuck even though a query would actually
   /// succeed. Issuing a real query both reveals the true state AND prods the
-  /// native client to rebuild a dead socket. Used by the connection banner's
-  /// self-heal watchdog and the app's resume handler.
+  /// native client to rebuild a dead socket. This is the ground truth that
+  /// [ConnectionHealth] drives its whole state machine from.
+  @override
   Future<bool> probeConnection({
     Duration timeout = const Duration(seconds: 5),
   }) async {
@@ -187,6 +191,7 @@ class ConvexBackend {
   /// auto-reconnects. `probeConnection` reveals the deadness; this heals it.
   /// After a rebuild the caller must re-register subscriptions — the web client
   /// resets its query set on reconnect but never replays them.
+  @override
   Future<bool> reconnect() async {
     try {
       return await _c.reconnect();
@@ -212,5 +217,6 @@ class ConvexError implements Exception {
   final String message;
   final String? value;
   @override
-  String toString() => 'ConvexError($message${value == null ? '' : ': $value'})';
+  String toString() =>
+      'ConvexError($message${value == null ? '' : ': $value'})';
 }

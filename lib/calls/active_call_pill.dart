@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import 'call_service.dart';
 
@@ -11,10 +12,7 @@ import 'call_service.dart';
 /// (the single source of truth) rather than holding its own subscription, so
 /// it can never show a call this device just ended.
 class ActiveCallPill extends StatefulWidget {
-  const ActiveCallPill({
-    super.key,
-    required this.service,
-  });
+  const ActiveCallPill({super.key, required this.service});
   final CallService service;
 
   @override
@@ -74,128 +72,130 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
     final type = (call?['type'] as String?) ?? 'audio';
     final isVideo = type == 'video';
 
-    // Reserve no space when hidden — AnimatedSlide animates the offset but
-    // we wrap in an IgnorePointer so taps don't fall on an invisible widget.
-    return IgnorePointer(
-      ignoring: !visible,
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-        offset: visible ? Offset.zero : const Offset(0, -1.6),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 220),
-          opacity: visible ? 1 : 0,
-          child: Material(
-            color: Colors.transparent,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(theme.radiusLg),
-                  onTap: _moveHere,
-                  child: Ink(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(theme.radiusLg),
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.accent,
-                          theme.accentSoft,
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: theme.accent.withValues(alpha: 0.32),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
+    // Genuinely occupy no space when hidden: this pill shares a Column with
+    // ConnectionBanner, so a translated-but-still-laid-out pill (the previous
+    // AnimatedSlide) would offset whatever sits above it.
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: !visible
+          ? const SizedBox(width: double.infinity, height: 0)
+          : Material(
+              color: Colors.transparent,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  // Bare GestureDetector, never InkWell — this app's tappables
+                  // register no ink and no ripple (see FocusableTap's doc).
+                  child: FocusableTap(
+                    onTap: _moveHere,
+                    radius: theme.radiusLg,
+                    semanticLabel: 'Move call to this device',
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _moveHere,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(theme.radiusLg),
+                          gradient: LinearGradient(
+                            colors: [theme.accent, theme.accentSoft],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: theme.accent.withValues(alpha: 0.32),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          _LiveDot(color: theme.accentInk),
-                          const SizedBox(width: 10),
-                          Icon(
-                            isVideo
-                                ? Icons.videocam_rounded
-                                : Icons.call_rounded,
-                            size: 18,
-                            color: theme.accentInk,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Call with $peerName',
-                                  style: theme.body.copyWith(
-                                    color: theme.accentInk,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                          child: Row(
+                            children: [
+                              _LiveDot(color: theme.accentInk),
+                              const SizedBox(width: 10),
+                              Icon(
+                                isVideo
+                                    ? Icons.videocam_rounded
+                                    : Icons.call_rounded,
+                                size: 18,
+                                color: theme.accentInk,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Call with $peerName',
+                                      style: theme.body.copyWith(
+                                        color: theme.accentInk,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      'On $label',
+                                      style: theme.monoTiny.copyWith(
+                                        color: theme.accentInk.withValues(
+                                          alpha: 0.82,
+                                        ),
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  'On $label',
-                                  style: theme.monoTiny.copyWith(
-                                    color: theme.accentInk
-                                        .withValues(alpha: 0.82),
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
                                 ),
-                              ],
-                            ),
+                                decoration: BoxDecoration(
+                                  color: theme.accentInk.withValues(
+                                    alpha: 0.20,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      'Move here',
+                                      style: theme.monoTiny.copyWith(
+                                        color: theme.accentInk,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.arrow_forward_rounded,
+                                      size: 14,
+                                      color: theme.accentInk,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  theme.accentInk.withValues(alpha: 0.20),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  'Move here',
-                                  style: theme.monoTiny.copyWith(
-                                    color: theme.accentInk,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 14,
-                                  color: theme.accentInk,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 

@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show kIsWeb, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 
 import 'auth/auth_service.dart';
 import 'backend/call_api.dart';
 import 'backend/chat_api.dart';
+import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/call_models.dart';
@@ -49,7 +49,8 @@ class MonkeyHubApp extends StatefulWidget {
   State<MonkeyHubApp> createState() => _MonkeyHubAppState();
 }
 
-class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver {
+class _MonkeyHubAppState extends State<MonkeyHubApp>
+    with WidgetsBindingObserver {
   // Seed the controller from the already-loaded SettingsStore (preloaded in
   // main.dart). Falls back to system-brightness-aware defaults on first
   // launch. Doing this synchronously means the first paint already uses the
@@ -62,16 +63,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   late final AuthService _auth = AuthService(_api);
   late final FamilyService _family = FamilyService.ensure(_api);
   late final CallService _callService = CallService.ensure(_callApi);
-  late final SignalingSubscriber _signaling =
-      SignalingSubscriber(api: _callApi, service: _callService);
+  late final SignalingSubscriber _signaling = SignalingSubscriber(
+    api: _callApi,
+    service: _callService,
+  );
   // Cached merged listenable. Created exactly once so AnimatedBuilder's
   // listener subscription on _auth / _themeController is never re-bound
   // across parent rebuilds (each fresh Listenable.merge call would force
   // AnimatedBuilder.didUpdateWidget into a remove-then-add cycle, which has
   // been observed to drop the subscription after a sign-out → sign-in
   // toggle and leave the LoginScreen → HomeShell swap stranded).
-  late final Listenable _appListenable =
-      Listenable.merge([_themeController, _auth]);
+  late final Listenable _appListenable = Listenable.merge([
+    _themeController,
+    _auth,
+  ]);
 
   bool _bootstrapped = false;
   Object? _bootError;
@@ -107,15 +112,27 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 
   void _startPresenceHeartbeat(String userId) {
     _presenceHeartbeat?.cancel();
-    _api.heartbeat(userId: userId).catchError((_) {});
+    _beat(userId);
     _presenceHeartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
       final s = _auth.session;
       if (s == null) {
         _stopPresenceHeartbeat();
         return;
       }
-      _api.heartbeat(userId: s.userId).catchError((_) {});
+      _beat(s.userId);
     });
+  }
+
+  /// The heartbeat doubles as a connectivity canary: it's already a real server
+  /// round-trip every 30s, so its outcome reveals a socket that has frozen while
+  /// still reporting `connected` — the one failure mode with no other detector
+  /// while the app stays foreground (no stream event, no resume event).
+  void _beat(String userId) {
+    _api
+        .heartbeat(userId: userId)
+        .timeout(const Duration(seconds: 8))
+        .then((_) => _health.noteRoundTrip(ok: true))
+        .catchError((_) => _health.noteRoundTrip(ok: false));
   }
 
   void _stopPresenceHeartbeat() {
@@ -123,26 +140,26 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     _presenceHeartbeat = null;
   }
 
-  // ───────── connection healing (web background/freeze recovery) ─────────
+  // ───────── connection healing ─────────
   //
-  // On WEB the socket can freeze while the tab is backgrounded. Two failure
-  // modes: (1) it dies and reconnects, but the convex_flutter web client resets
-  // its query set on reconnect and NEVER replays subscriptions → everything goes
-  // silent; (2) it freezes without an onclose → the client thinks it's still
-  // connected and never reconnects. We heal both: on resume, probe and force a
-  // rebuild if dead; and on any reconnect edge, re-register every subscription.
-  StreamSubscription<bool>? _connSub;
-  bool _wasConnectedApp = true;
-  bool _resubscribing = false;
+  // [ConnectionHealth] owns detection and recovery (see its class doc for the
+  // failure modes and the guarantees). This class only supplies the two things
+  // it can't know: how to re-register subscriptions, and whether there's a
+  // session worth healing for.
+  late final ConnectionHealth _health = ConnectionHealth(
+    backend: _cv,
+    onReconnected: _resubscribeAll.call,
+    isActive: () => _auth.session != null,
+  );
 
   /// Re-register every subscription (rooms/messages/typing/friends/read-state,
   /// the cross-device call watch, and call signaling) and flush stuck sends.
-  /// Called on a reconnect edge because the web client does not replay subs.
-  Future<void> _resubscribeAll() async {
-    if (_resubscribing) return;
+  /// Called on every verified reconnect because the web client does not replay
+  /// subs. Wrapped in [CoalescingJob] so overlapping reconnects collapse into a
+  /// re-run instead of being dropped.
+  late final CoalescingJob _resubscribeAll = CoalescingJob(() async {
     final s = _auth.session;
     if (s == null) return;
-    _resubscribing = true;
     try {
       await _repo.resubscribe();
       _callService.resubscribeWatch();
@@ -151,41 +168,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       await _signaling.start(s.userId, deviceId: deviceId);
     } catch (e) {
       debugPrint('_resubscribeAll: $e');
-    } finally {
-      _resubscribing = false;
     }
-  }
-
-  /// Resume-time heal: reveal a frozen socket and rebuild it. A healthy socket
-  /// short-circuits (its subscriptions never dropped). A dead one is rebuilt via
-  /// reconnect(), then we re-register subs directly (in case reconnect() doesn't
-  /// emit a connection edge for [_connSub] to catch).
-  Future<void> _healConnection() async {
-    if (_auth.session == null) return;
-    final ok = await _cv.probeConnection();
-    if (ok) return;
-    await _cv.reconnect();
-    await _resubscribeAll();
-  }
-
-  void _startConnWatch() {
-    _connSub?.cancel();
-    _wasConnectedApp = _cv.isConnected;
-    _connSub = _cv.connectionState.listen((connected) {
-      // A genuine reconnect: the web client dropped all subs — re-register them.
-      if (connected && !_wasConnectedApp) {
-        _resubscribeAll();
-      }
-      _wasConnectedApp = connected;
-    });
-  }
+  });
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
-    _auth.addListener(() => debugPrint('[app] auth listener fired, isSignedIn=${_auth.isSignedIn}'));
+    _auth.addListener(
+      () => debugPrint(
+        '[app] auth listener fired, isSignedIn=${_auth.isSignedIn}',
+      ),
+    );
     _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
@@ -200,7 +195,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     WebPresence.registerOffline(() {
       final s = _auth.session;
       if (s != null) {
-        _api.updateStatus(userId: s.userId, status: 'offline').catchError((_) {});
+        _api
+            .updateStatus(userId: s.userId, status: 'offline')
+            .catchError((_) {});
       }
     });
     _bootstrap();
@@ -237,9 +234,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       UiSelectionStore.instance.selectRoom(roomId);
       return;
     }
-    nav.push(MaterialPageRoute(
-      builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
-    ));
+    nav.push(
+      MaterialPageRoute(
+        builder: (_) => RoomScreen(roomId: roomId, repo: _repo, api: _api),
+      ),
+    );
   }
 
   void _consumePendingPushRoom() {
@@ -257,23 +256,33 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Above the session check on purpose: connection health must keep tracking
+    // foreground/background across a signed-out window, so a sign-in that lands
+    // right after a resume doesn't inherit a parked recovery loop.
+    //
+    // `inactive` counts as foreground: the app is still running with live timers
+    // and a live socket, and iOS fires it for every Control Centre swipe and
+    // app-switcher peek. Parking there would stall recovery mid-outage and burn
+    // a probe on the way back for something that never interrupted anything.
+    _health.setForeground(
+      state == AppLifecycleState.resumed || state == AppLifecycleState.inactive,
+    );
     final session = _auth.session;
     if (session == null) return;
     final next = switch (state) {
       AppLifecycleState.resumed => 'online',
       AppLifecycleState.inactive ||
       AppLifecycleState.paused ||
-      AppLifecycleState.hidden =>
-        'away',
+      AppLifecycleState.hidden => 'away',
       AppLifecycleState.detached => 'offline',
     };
     // Fire-and-forget — network may be unavailable; status reconciles next foreground.
     _api.updateStatus(userId: session.userId, status: next).catchError((_) {});
     if (state == AppLifecycleState.resumed) {
-      // A backgrounded (esp. web) tab can return with a frozen/dead socket AND
-      // dropped subscriptions. Heal both: probe, force a rebuild if dead, and
-      // re-register every subscription + flush stuck sends. Fire-and-forget.
-      _healConnection();
+      // Socket healing is already under way — setForeground(true) above kicks
+      // ConnectionHealth into an immediate attempt, and unlike the old one-shot
+      // heal it keeps retrying if the radio isn't up yet.
+      //
       // Re-assert the true badge on foreground. Not a clear — pushes now carry
       // an absolute count, so anything still unread must stay badged.
       BadgeManager.instance.sync();
@@ -306,10 +315,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
     // below). Nothing left to reconcile here.
     // Apply screen-capture protection setting on boot: Android enables
     // FLAG_SECURE immediately; iOS just primes the event stream.
-    await CaptureProtection.instance.setUserEnabled(SettingsStore.instance.captureProtection);
+    await CaptureProtection.instance.setUserEnabled(
+      SettingsStore.instance.captureProtection,
+    );
     await CaptureProtection.instance.ensureListening();
     final initErr = await _cv.initialize();
-    if (initErr == null) _startConnWatch();
+    if (initErr == null) _health.start();
     if (initErr != null) {
       // Convex couldn't initialize. Surface to the UI so the user sees
       // the real reason instead of a downstream "not initialized" error.
@@ -351,9 +362,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
           // here (Android): the plugin persisted the accept; replay it now
           // that CallService + signaling are live.
           await NativeCallHandler.instance.replayColdStartCalls();
-        } catch (_) {/* offline boot — reconcile on reconnect */}
+        } catch (_) {
+          /* offline boot — reconcile on reconnect */
+        }
       }
-    } catch (_) {/* secure storage may not be available in test harness */}
+    } catch (_) {
+      /* secure storage may not be available in test harness */
+    }
     if (mounted) setState(() => _bootstrapped = true);
     _consumePendingPushRoom();
     // One-time Android prompts (full-screen intent, battery exemption).
@@ -390,7 +405,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
         await PushManager.instance.login(s.userId);
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
         // Mark online on first attach.
-        _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {});
+        _api
+            .updateStatus(userId: s.userId, status: 'online')
+            .catchError((_) {});
         BadgeManager.instance.bind(_repo);
         MessageAlerts.instance.bind(_repo);
         _startPresenceHeartbeat(s.userId);
@@ -430,7 +447,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
   @override
   void dispose() {
     _stopPresenceHeartbeat();
-    _connSub?.cancel();
+    _health.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);
     _family.removeListener(_syncAccountType);
@@ -446,7 +463,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
       child: AnimatedBuilder(
         animation: _appListenable,
         builder: (context, _) {
-          debugPrint('[app] AnimatedBuilder rebuild, isSignedIn=${_auth.isSignedIn}, bootstrapped=$_bootstrapped, bootError=${_bootError != null}');
+          debugPrint(
+            '[app] AnimatedBuilder rebuild, isSignedIn=${_auth.isSignedIn}, bootstrapped=$_bootstrapped, bootError=${_bootError != null}',
+          );
           final theme = _themeController.theme;
           final isLight = theme.mood == ThemeMood.riso;
           return MaterialApp(
@@ -465,36 +484,39 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
                 // audio + request notification permission within a user gesture.
                 onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
                 child: _WindowClassProvider(
-                child: Stack(
-                  children: [
-                    ?child,
-                    if (_bootstrapped && _bootError == null)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: ConnectionBanner(cv: _cv),
-                      ),
-                    // Global "Move call here" pill — shows when an active
-                    // call exists on another of my devices. Tap to handoff.
-                    if (_bootstrapped && _bootError == null)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: ActiveCallPill(
-                          service: _callService,
+                  child: Stack(
+                    children: [
+                      ?child,
+                      // One top slot, stacked vertically. These used to be two
+                      // separate Positioned(top: 0) layers that overlapped
+                      // whenever both were showing — which would have buried the
+                      // connection banner's retry target under the call pill.
+                      // Both children collapse to zero height when hidden.
+                      if (_bootstrapped && _bootError == null)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ConnectionBanner(health: _health),
+                              // Global "Move call here" pill — shows when an
+                              // active call exists on another of my devices.
+                              // Tap to handoff.
+                              ActiveCallPill(service: _callService),
+                            ],
+                          ),
                         ),
-                      ),
-                    // Pushes call screens onto the root navigator the moment
-                    // the call service transitions to a non-idle state.
-                    // Invisible.
-                    _CallOverlay(service: _callService, api: _api),
-                    // Sits above every other layer so it covers banners +
-                    // overlays during a screen recording.
-                    const CaptureShield(),
-                  ],
-                ),
+                      // Pushes call screens onto the root navigator the moment
+                      // the call service transitions to a non-idle state.
+                      // Invisible.
+                      _CallOverlay(service: _callService, api: _api),
+                      // Sits above every other layer so it covers banners +
+                      // overlays during a screen recording.
+                      const CaptureShield(),
+                    ],
+                  ),
                 ),
               );
             },
@@ -504,12 +526,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp> with WidgetsBindingObserver
               textTheme: TextTheme(bodyMedium: theme.body),
               splashFactory: NoSplash.splashFactory,
               highlightColor: Colors.transparent,
-              colorScheme: (isLight ? const ColorScheme.light() : const ColorScheme.dark()).copyWith(
-                primary: theme.accent,
-                secondary: theme.accent,
-                surface: theme.surface,
-                onSurface: theme.ink,
-              ),
+              colorScheme:
+                  (isLight
+                          ? const ColorScheme.light()
+                          : const ColorScheme.dark())
+                      .copyWith(
+                        primary: theme.accent,
+                        secondary: theme.accent,
+                        surface: theme.surface,
+                        onSurface: theme.ink,
+                      ),
             ),
             // MaterialApp.home is a stable widget (_AppHome). Its identity
             // never changes across rebuilds, so the Navigator's initial route
@@ -646,7 +672,8 @@ class _CallOverlayState extends State<_CallOverlay> {
   /// call-state change directly, so it works even when a backgrounded web tab
   /// has stopped producing frames. See `_ringingCallId`.
   void _syncRingtone(CallSession? s) {
-    final ringing = s != null &&
+    final ringing =
+        s != null &&
         s.status == CallStatus.incomingRinging &&
         !s.isCaller &&
         !_nativeRinger &&
@@ -679,7 +706,8 @@ class _CallOverlayState extends State<_CallOverlay> {
       _enrichedCallId = null;
       return;
     }
-    final terminal = s.status == CallStatus.ended ||
+    final terminal =
+        s.status == CallStatus.ended ||
         s.status == CallStatus.failed ||
         s.status == CallStatus.handedOff;
     if (terminal) return;
@@ -693,7 +721,8 @@ class _CallOverlayState extends State<_CallOverlay> {
     //   - Callee still ringing → the NATIVE ringer owns the UI on phones
     //     (don't latch _activeCallId — a later accept must still route);
     //     in-app IncomingCallScreen only on simulator/desktop.
-    final goCallScreen = s.isCaller ||
+    final goCallScreen =
+        s.isCaller ||
         widget.service.acceptedNatively ||
         s.status != CallStatus.incomingRinging;
     if (!goCallScreen && _nativeRinger) return;
@@ -703,16 +732,21 @@ class _CallOverlayState extends State<_CallOverlay> {
       final nav = rootNavigatorKey.currentState;
       if (nav == null) return;
       if (goCallScreen) {
-        nav.push(MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => CallScreen(service: widget.service, api: widget.api),
-        ));
+        nav.push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) =>
+                CallScreen(service: widget.service, api: widget.api),
+          ),
+        );
       } else {
-        nav.push(MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) =>
-              IncomingCallScreen(service: widget.service, api: widget.api),
-        ));
+        nav.push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) =>
+                IncomingCallScreen(service: widget.service, api: widget.api),
+          ),
+        );
       }
     });
   }
@@ -732,16 +766,17 @@ class _CallOverlayState extends State<_CallOverlay> {
     widget.api
         .getProfile(s.peerUserId, viewerUserId: widget.service.userId)
         .then((profile) {
-      if (profile == null) return;
-      final current = widget.service.session;
-      if (current == null || current.callId != s.callId) return;
-      widget.service.updatePeerIdentity(
-        peerName: needsName ? profile.name : null,
-        avatarStorageId: profile.avatarStorageId,
-      );
-    }).catchError((Object e) {
-      debugPrint('_CallOverlay: profile enrichment failed: $e');
-    });
+          if (profile == null) return;
+          final current = widget.service.session;
+          if (current == null || current.callId != s.callId) return;
+          widget.service.updatePeerIdentity(
+            peerName: needsName ? profile.name : null,
+            avatarStorageId: profile.avatarStorageId,
+          );
+        })
+        .catchError((Object e) {
+          debugPrint('_CallOverlay: profile enrichment failed: $e');
+        });
   }
 
   @override
@@ -764,7 +799,10 @@ class _Splash extends StatelessWidget {
               children: [
                 const AppBrandMark(size: 56),
                 const SizedBox(height: 18),
-                Text('MONKEYHUB', style: theme.label.copyWith(letterSpacing: 4)),
+                Text(
+                  'MONKEYHUB',
+                  style: theme.label.copyWith(letterSpacing: 4),
+                ),
               ],
             ),
           ),
@@ -796,29 +834,52 @@ class _BootError extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('CAN’T REACH SERVER', style: theme.label.copyWith(color: theme.danger, letterSpacing: 2.4)),
+                      Text(
+                        'CAN’T REACH SERVER',
+                        style: theme.label.copyWith(
+                          color: theme.danger,
+                          letterSpacing: 2.4,
+                        ),
+                      ),
                       const SizedBox(height: 14),
-                      Text('Convex didn’t initialize.', style: theme.displayLarge),
+                      Text(
+                        'Convex didn’t initialize.',
+                        style: theme.displayLarge,
+                      ),
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: theme.surfaceSunken,
-                          border: Border(left: BorderSide(color: theme.danger, width: 2)),
+                          border: Border(
+                            left: BorderSide(color: theme.danger, width: 2),
+                          ),
                           borderRadius: BorderRadius.circular(theme.radiusMd),
                         ),
-                        child: Text(error.toString(), style: theme.mono.copyWith(color: theme.inkSoft)),
+                        child: Text(
+                          error.toString(),
+                          style: theme.mono.copyWith(color: theme.inkSoft),
+                        ),
                       ),
                       const SizedBox(height: 20),
                       GestureDetector(
                         onTap: onRetry,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 22),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                            horizontal: 22,
+                          ),
                           decoration: BoxDecoration(
                             color: theme.accent,
                             borderRadius: BorderRadius.circular(theme.radiusMd),
                           ),
-                          child: Text('RETRY', style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.4)),
+                          child: Text(
+                            'RETRY',
+                            style: theme.label.copyWith(
+                              color: theme.accentInk,
+                              letterSpacing: 2.4,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -890,14 +951,18 @@ class _AppHomeState extends State<_AppHome> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[app_home] build, isSignedIn=${widget.auth.isSignedIn}, bootstrapped=${widget.bootstrapped}, bootError=${widget.bootError != null}');
+    debugPrint(
+      '[app_home] build, isSignedIn=${widget.auth.isSignedIn}, bootstrapped=${widget.bootstrapped}, bootError=${widget.bootError != null}',
+    );
     if (!widget.bootstrapped) return const _Splash();
     if (widget.bootError != null) {
       return _BootError(error: widget.bootError!, onRetry: widget.onRetryBoot);
     }
     final theme = widget.themeController.theme;
     final signedIn = widget.auth.isSignedIn;
-    debugPrint('[app_home] selecting child: ${signedIn ? "HomeShell" : "LoginScreen"}');
+    debugPrint(
+      '[app_home] selecting child: ${signedIn ? "HomeShell" : "LoginScreen"}',
+    );
     return signedIn
         ? HomeShell(
             key: ValueKey('home_${theme.id}'),
@@ -906,9 +971,6 @@ class _AppHomeState extends State<_AppHome> {
             auth: widget.auth,
             family: widget.family,
           )
-        : LoginScreen(
-            key: ValueKey('login_${theme.id}'),
-            auth: widget.auth,
-          );
+        : LoginScreen(key: ValueKey('login_${theme.id}'), auth: widget.auth);
   }
 }

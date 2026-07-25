@@ -103,6 +103,13 @@ dependencies:
   # (`dart run flutter_native_splash:create` still works from here.)
   flutter_native_splash: ^2.4.1
 
+  # OS network-interface changes, used only to wake the reconnect loop early
+  # (see ConnectionHealth). Deliberately NOT treated as reachability truth: it
+  # reports interfaces, so it reads "connected" behind a captive portal or a
+  # dead VPN. Android's ACCESS_NETWORK_STATE ships in the plugin's own manifest
+  # and merges automatically; no iOS permission.
+  connectivity_plus: ^7.3.1
+
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
   # newer platform-interface contract; pin to the fixed line.
