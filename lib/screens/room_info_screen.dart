@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
+import '../keyboard/focusable_tap.dart';
 import '../media/upload_service.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -16,6 +17,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/user_avatar.dart';
+import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
 import 'profile_screen.dart';
 
@@ -657,16 +659,58 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
+  /// Diameter of the avatar at the top of this screen.
+  static const _avatarSize = 92.0;
+
+  /// How far the camera badge hangs past the avatar's circle.
+  static const _badgeOverhang = 2.0;
+
+  void _openAvatarFullscreen({
+    required String storageId,
+    required Object heroTag,
+  }) {
+    FullscreenImageViewer.openAvatar(
+      context,
+      storageId: storageId,
+      api: widget.api,
+      heroTag: heroTag,
+      sourceSize: _avatarSize,
+    );
+  }
+
   Widget _avatarBlock(AppTheme theme, ChatRoom r, ChatUser? peer) {
-    final size = 92.0;
+    const size = _avatarSize;
     // A DM shows the other person's avatar, and it isn't editable — you can't
     // rename or re-skin someone else.
     if (r.isDm) {
+      final peerStorageId = peer?.avatarStorageId;
+      // A gradient-initials placeholder isn't worth a fullscreen route, so the
+      // tap only arms once there's a real picture behind it.
+      final canViewPeer = peerStorageId != null && peerStorageId.isNotEmpty;
       return Center(
         child: Column(
           children: [
             if (peer != null)
-              UserAvatar(user: peer, size: size, api: widget.api)
+              Builder(builder: (context) {
+                final avatar = UserAvatar(user: peer, size: size, api: widget.api);
+                if (!canViewPeer) return avatar;
+                final heroTag = 'room-info-peer-avatar-${peer.id}';
+                return FocusableTap(
+                  onTap: () => _openAvatarFullscreen(
+                    storageId: peerStorageId,
+                    heroTag: heroTag,
+                  ),
+                  shape: FocusRingShape.circle,
+                  semanticLabel: 'view profile picture',
+                  child: GestureDetector(
+                    onTap: () => _openAvatarFullscreen(
+                      storageId: peerStorageId,
+                      heroTag: heroTag,
+                    ),
+                    child: Hero(tag: heroTag, child: avatar),
+                  ),
+                );
+              })
             else
               Container(
                 width: size,
@@ -687,36 +731,85 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       );
     }
     final hasAvatar = r.avatarStorageId != null && r.avatarStorageId!.isNotEmpty;
+    final heroTag = 'room-info-avatar-${r.id}';
+    final Widget picture = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: theme.surfaceSunken,
+        shape: BoxShape.circle,
+        border: Border.all(color: theme.divider),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: hasAvatar
+          ? Hero(
+              tag: heroTag,
+              child: RemoteImage(
+                storageId: r.avatarStorageId!,
+                api: widget.api,
+                width: size,
+                height: size,
+                borderRadius: BorderRadius.circular(size),
+              ),
+            )
+          : Center(
+              child: Icon(Icons.tag, color: theme.inkMuted, size: 32),
+            ),
+    );
     return Center(
-      child: GestureDetector(
-        onTap: _saving ? null : _changeAvatar,
-        child: Column(
+      // The picture is for looking at; editing lives on the badge. Tapping the
+      // image itself used to open the picker, which meant a room's avatar was
+      // the one picture in the app you could never actually see.
+      child: SizedBox(
+        width: size + _badgeOverhang,
+        height: size + _badgeOverhang,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: [
-            Container(
+            Positioned(
+              left: 0,
+              top: 0,
               width: size,
               height: size,
-              decoration: BoxDecoration(
-                color: theme.surfaceSunken,
-                shape: BoxShape.circle,
-                border: Border.all(color: theme.divider),
-              ),
-              clipBehavior: Clip.antiAlias,
               child: hasAvatar
-                  ? RemoteImage(
-                      storageId: r.avatarStorageId!,
-                      api: widget.api,
-                      width: size,
-                      height: size,
-                      borderRadius: BorderRadius.circular(size),
+                  ? FocusableTap(
+                      onTap: () => _openAvatarFullscreen(
+                        storageId: r.avatarStorageId!,
+                        heroTag: heroTag,
+                      ),
+                      shape: FocusRingShape.circle,
+                      semanticLabel: 'view room picture',
+                      child: GestureDetector(
+                        onTap: () => _openAvatarFullscreen(
+                          storageId: r.avatarStorageId!,
+                          heroTag: heroTag,
+                        ),
+                        child: picture,
+                      ),
                     )
-                  : Center(
-                      child: Icon(Icons.tag, color: theme.inkMuted, size: 32),
-                    ),
+                  : picture,
             ),
-            const SizedBox(height: 8),
-            Text(
-              hasAvatar ? 'CHANGE AVATAR' : 'ADD AVATAR',
-              style: theme.monoTiny.copyWith(color: theme.accent),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: FocusableTap(
+                onTap: _saving ? null : _changeAvatar,
+                shape: FocusRingShape.circle,
+                semanticLabel: hasAvatar ? 'change room picture' : 'add room picture',
+                child: GestureDetector(
+                  onTap: _saving ? null : _changeAvatar,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.background, width: 2),
+                    ),
+                    child: Icon(Icons.camera_alt_outlined, size: 14, color: theme.accentInk),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

@@ -17,6 +17,7 @@ import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/focusable_tap.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../privacy/capture_protection.dart';
@@ -50,6 +51,7 @@ import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
+import 'fullscreen_image_viewer.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
 import 'voice_recorder_screen.dart';
@@ -1009,11 +1011,6 @@ class _RoomScreenState extends State<RoomScreen>
                       room: room,
                       dmUser: widget.repo.otherUserFor(room),
                       api: widget.api,
-                      onTapDmUser: () {
-                        final u = widget.repo.otherUserFor(room);
-                        if (u == null) return;
-                        _openProfile(u);
-                      },
                       onOpenInfo: () => _openRoomInfo(room),
                     ),
                     if (!room.isDm && GroupCallService.maybeInstance != null)
@@ -2092,21 +2089,29 @@ class _LiquidHeader extends StatefulWidget {
     required this.api,
     required this.onOpenInfo,
     this.dmUser,
-    this.onTapDmUser,
   });
   final ChatRoom room;
   final ChatApi api;
   final VoidCallback onOpenInfo;
   final ChatUser? dmUser;
-  final VoidCallback? onTapDmUser;
 
   @override
   State<_LiquidHeader> createState() => _LiquidHeaderState();
 }
 
 class _LiquidHeaderState extends State<_LiquidHeader> {
+  /// Avatar diameter inside the title capsule.
+  static const _avatarSize = 32.0;
+
   bool _expanded = false;
   Timer? _collapseTimer;
+
+  /// Whether the title renders on one line at the width it currently has.
+  ///
+  /// Assigned during layout rather than through setState: nothing in the tree
+  /// depends on it, only [_handleTitleTap] reads it, so a setState here would be
+  /// a rebuild loop that changes no pixels.
+  bool _titleFits = true;
 
   void _expandTitle() {
     setState(() => _expanded = true);
@@ -2114,6 +2119,87 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
     _collapseTimer = Timer(const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _expanded = false);
     });
+  }
+
+  /// Expanding is only worth a tap when there is something hidden to reveal, and
+  /// only once — a second tap means "I've read it, now let me in".
+  void _handleTitleTap() {
+    if (!_titleFits && !_expanded) {
+      _expandTitle();
+      return;
+    }
+    _collapseTimer?.cancel();
+    // Collapse on the way out, so coming back from room info doesn't land on a
+    // chip still wrapped from a tap two screens ago.
+    setState(() => _expanded = false);
+    widget.onOpenInfo();
+  }
+
+  /// Storage id of the picture behind the capsule's avatar, or null when it is a
+  /// gradient-initials or `#` placeholder. Null means no fullscreen route and no
+  /// [Hero] — a tag with no counterpart is worse than no tag.
+  String? get _avatarStorageId {
+    // Which picture the capsule shows follows dmUser, so which picture opens has
+    // to follow it too. A `??` chain here would fall back to the room's avatar
+    // for a peer who has none, flying someone else's image out of a gradient
+    // placeholder.
+    final id = widget.dmUser != null
+        ? widget.dmUser!.avatarStorageId
+        : widget.room.avatarStorageId;
+    return (id == null || id.isEmpty) ? null : id;
+  }
+
+  void _openAvatarFullscreen() {
+    final storageId = _avatarStorageId;
+    if (storageId == null) return;
+    FullscreenImageViewer.openAvatar(
+      context,
+      storageId: storageId,
+      api: widget.api,
+      // Room-keyed: unique inside this route, and deliberately distinct from
+      // ProfileScreen's 'profile-avatar-$id' so a push can't collide.
+      heroTag: 'room-header-avatar-${widget.room.id}',
+      sourceSize: _avatarSize,
+    );
+  }
+
+  /// The capsule's avatar, wrapped in its own tap target when there is a real
+  /// picture behind it.
+  ///
+  /// The nesting is the point: the inner recognizer enters the gesture arena
+  /// first (hit testing runs child-first), so it beats the capsule's opaque
+  /// GestureDetector. With no picture nothing is mounted, and the tap falls
+  /// through to [_handleTitleTap] — a placeholder shouldn't swallow the chip.
+  Widget _buildAvatar() {
+    final Widget avatar = widget.dmUser != null
+        ? UserAvatar(user: widget.dmUser!, size: _avatarSize, api: widget.api)
+        : _RoomAvatar(room: widget.room, api: widget.api, size: _avatarSize);
+    if (_avatarStorageId == null) return avatar;
+    return FocusableTap(
+      onTap: _openAvatarFullscreen,
+      shape: FocusRingShape.circle,
+      semanticLabel: widget.dmUser != null ? 'view profile picture' : 'view room picture',
+      child: GestureDetector(
+        onTap: _openAvatarFullscreen,
+        child: Hero(
+          tag: 'room-header-avatar-${widget.room.id}',
+          child: avatar,
+        ),
+      ),
+    );
+  }
+
+  /// True when [title] needs more than one line at [maxWidth].
+  bool _overflows(String title, TextStyle style, double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(text: title, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout(maxWidth: maxWidth);
+    final exceeded = painter.didExceedMaxLines;
+    painter.dispose();
+    return exceeded;
   }
 
   @override
@@ -2148,7 +2234,7 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
               child: LiquidGlass(
                 shape: LiquidGlassShape.capsule,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                onTap: _expandTitle,
+                onTap: _handleTitleTap,
                 child: AnimatedSize(
                   duration: theme.motionMed,
                   curve: Curves.easeOutCubic,
@@ -2156,18 +2242,31 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (widget.dmUser != null)
-                        UserAvatar(user: widget.dmUser!, size: 32, api: widget.api)
-                      else
-                        _RoomAvatar(room: widget.room, api: widget.api, size: 32),
+                      _buildAvatar(),
                       const SizedBox(width: 8),
                       Flexible(
-                        child: Text(
-                          title,
-                          style: theme.body.copyWith(fontWeight: FontWeight.w600, color: theme.ink),
-                          overflow: _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
-                          softWrap: _expanded,
-                          maxLines: _expanded ? 3 : 1,
+                        // maxWidth here is exactly the width the title has — the
+                        // Row is mainAxisSize.min, so the avatar and its gap are
+                        // already subtracted. Measuring against it beats
+                        // re-deriving the capsule's padding by hand.
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final style = theme.body
+                                .copyWith(fontWeight: FontWeight.w600, color: theme.ink);
+                            // Always measured at one line, whatever the current
+                            // expansion state: the question is whether expanding
+                            // would reveal anything.
+                            _titleFits =
+                                !_overflows(title, style, constraints.maxWidth);
+                            return Text(
+                              title,
+                              style: style,
+                              overflow:
+                                  _expanded ? TextOverflow.fade : TextOverflow.ellipsis,
+                              softWrap: _expanded,
+                              maxLines: _expanded ? 3 : 1,
+                            );
+                          },
                         ),
                       ),
                     ],

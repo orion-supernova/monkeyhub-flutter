@@ -404,17 +404,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _openAvatarFullscreen() {
     if (!_canViewAvatar) return;
-    FullscreenImageViewer.open(
+    FullscreenImageViewer.openAvatar(
       context,
       storageId: _u.avatarStorageId!,
       api: widget.api!,
       heroTag: _avatarHeroTag,
-      // The avatar is a circle; un-round it across the flight so it grows into
-      // the full picture instead of popping square at the end.
-      heroRadius: BorderRadius.circular(_avatarSize),
-      // Reuse the decode that's already on screen as the arrival backdrop, so
-      // the flight never lands on a placeholder.
-      thumbnailDecodeWidth: thumbnailDecodeWidth(context, _avatarSize),
+      sourceSize: _avatarSize,
     );
   }
 

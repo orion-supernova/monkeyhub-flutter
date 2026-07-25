@@ -18,6 +18,7 @@ class FullscreenImageViewer extends StatefulWidget {
     this.heroTag,
     this.heroRadius,
     this.thumbnailDecodeWidth,
+    this.circular = false,
   });
 
   final String storageId;
@@ -42,6 +43,17 @@ class FullscreenImageViewer extends StatefulWidget {
   /// it the flight lands on a shimmer even though the bytes are already local.
   final int? thumbnailDecodeWidth;
 
+  /// Show the picture as a large centered circle instead of a full-bleed
+  /// rectangle. For avatars: they are cropped to a circle everywhere else in the
+  /// app, so un-rounding one on the way to fullscreen reveals crop corners
+  /// nobody chose. See [openAvatar].
+  final bool circular;
+
+  /// Fraction of the shorter screen edge the circle occupies in [circular] mode.
+  /// Big enough to read as "fullscreen", short of the edges so the round shape
+  /// stays legible against the barrier.
+  static const _circleFraction = 0.82;
+
   static Future<void> open(
     BuildContext context, {
     required String storageId,
@@ -49,6 +61,7 @@ class FullscreenImageViewer extends StatefulWidget {
     Object? heroTag,
     BorderRadius? heroRadius,
     int? thumbnailDecodeWidth,
+    bool circular = false,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -65,10 +78,33 @@ class FullscreenImageViewer extends StatefulWidget {
           heroTag: heroTag,
           heroRadius: heroRadius,
           thumbnailDecodeWidth: thumbnailDecodeWidth,
+          circular: circular,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
       ),
+    );
+  }
+
+  /// Opens [storageId] as a large centered circle flying from a [sourceSize]-wide
+  /// circular avatar. Wraps [open] so the avatar call sites — room header, room
+  /// info, profile — don't each repeat the same param soup.
+  static Future<void> openAvatar(
+    BuildContext context, {
+    required String storageId,
+    required ChatApi api,
+    required Object heroTag,
+    required double sourceSize,
+  }) {
+    return open(
+      context,
+      storageId: storageId,
+      api: api,
+      heroTag: heroTag,
+      circular: true,
+      // Reuse the decode that's already on screen as the arrival backdrop, so
+      // the flight never lands on a placeholder.
+      thumbnailDecodeWidth: _decodeWidth(context, sourceSize),
     );
   }
 
@@ -194,13 +230,30 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   @override
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
-    final image = RemoteImage(
-      storageId: widget.storageId,
-      api: widget.api,
-      fit: BoxFit.contain,
-      borderRadius: BorderRadius.zero,
-      placeholderDecodeWidth: widget.thumbnailDecodeWidth,
-    );
+    final diameter =
+        math.min(screen.width, screen.height) * FullscreenImageViewer._circleFraction;
+    // A circle destination has to be `cover` inside a fixed square, or the image
+    // letterboxes inside the oval and the clip cuts the padding instead of the
+    // picture. The rectangular destination stays `contain` — there the whole
+    // frame is the point.
+    final Widget image = widget.circular
+        ? ClipOval(
+            child: RemoteImage(
+              storageId: widget.storageId,
+              api: widget.api,
+              width: diameter,
+              height: diameter,
+              fit: BoxFit.cover,
+              placeholderDecodeWidth: widget.thumbnailDecodeWidth,
+            ),
+          )
+        : RemoteImage(
+            storageId: widget.storageId,
+            api: widget.api,
+            fit: BoxFit.contain,
+            borderRadius: BorderRadius.zero,
+            placeholderDecodeWidth: widget.thumbnailDecodeWidth,
+          );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -272,6 +325,12 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   Widget _maybeHero(Widget image) {
     final tag = widget.heroTag;
     if (tag == null) return image;
+    // In circular mode both ends of the flight are circles, so the default
+    // shuttle — which renders this destination subtree, already inside a
+    // ClipOval — stays round the whole way on its own. Both endpoints are
+    // square, so the interpolated rect is square too and the oval never
+    // squashes. No radius tween to run.
+    if (widget.circular) return Hero(tag: tag, child: image);
     final from = widget.heroRadius;
     return Hero(
       tag: tag,
@@ -307,4 +366,10 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
 /// Has to agree with what [RemoteImage] actually decoded at, or the viewer's
 /// backdrop is a different `ImageCache` entry and misses.
 int thumbnailDecodeWidth(BuildContext context, double logicalWidth) =>
+    _decodeWidth(context, logicalWidth);
+
+/// The implementation behind [thumbnailDecodeWidth], under a name that isn't
+/// shadowed by [FullscreenImageViewer.thumbnailDecodeWidth] — inside the class,
+/// the field wins the lookup and the function is unreachable.
+int _decodeWidth(BuildContext context, double logicalWidth) =>
     math.max(1, (logicalWidth * MediaQuery.devicePixelRatioOf(context)).round());
