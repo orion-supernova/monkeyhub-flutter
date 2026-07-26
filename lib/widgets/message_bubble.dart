@@ -635,7 +635,12 @@ class _BubbleLayout extends StatelessWidget {
 bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
   switch (message.type) {
     case MessageType.image:
-      return message.content.isNotEmpty || message.mediaStorageId != null;
+      // `viewOnce` is its own clause because a sealed photo never carries a
+      // storage id — the server strips it — and would otherwise be pushed out
+      // to an external timestamp row it has plenty of room to host itself.
+      return message.content.isNotEmpty ||
+          message.mediaStorageId != null ||
+          message.viewOnce;
     case MessageType.video:
     case MessageType.audio:
     case MessageType.system:
@@ -743,7 +748,11 @@ Widget buildMessageContent({
           isMine: isMine,
           width: imageSize,
           radius: mediaRadius,
-          stamp: hasCaption ? null : stampFor(StampTone.onMedia),
+          // `onBubble`, not `onMedia`: the sealed tile is a theme surface, so
+          // the dark lozenge `onMedia` wraps itself in — which exists to survive
+          // a photograph whose colour no theme knows — would be a black nub
+          // floating on a themed card.
+          stamp: hasCaption ? null : stampFor(StampTone.onBubble),
           onOpen: onOpenViewOnce,
         );
       } else if (id != null) {
@@ -922,6 +931,11 @@ Widget _captionBody(
 /// constant is the only way to avoid the one-frame resize those were built to
 /// prevent — and it keeps all three states on one silhouette, so the transcript
 /// never jumps when a bubble goes from sealed to opened to ghost.
+///
+/// Square, and smaller than a real photo tile. A wide short bar reads as a file
+/// attachment; a square in the media slot reads as a picture — which is what
+/// this is, minus the picture. It carries its own timestamp (see
+/// [messageStampsInline]) rather than paying for a second row underneath.
 class _ViewOnceTile extends StatefulWidget {
   const _ViewOnceTile({
     required this.theme,
@@ -933,9 +947,12 @@ class _ViewOnceTile extends StatefulWidget {
     required this.onOpen,
   });
 
-  /// Fixed geometry. Narrow enough to read as a marker rather than a photo.
-  static const double tileWidth = 190;
-  static const double tileHeight = 108;
+  /// Fixed geometry, one number: the tile is square at every size.
+  static const double tileSize = 152;
+
+  /// The seal's box. The numeral inside it is the same one the camera editor's
+  /// arm control and the fullscreen viewer's badge draw.
+  static const double _sealSize = 44;
 
   final AppTheme theme;
   final ChatMessage message;
@@ -988,97 +1005,134 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
   @override
   Widget build(BuildContext context) {
     final t = widget.theme;
-    final w = math.min(widget.width, _ViewOnceTile.tileWidth);
+    // Square at every size: a narrow pane shrinks the tile rather than
+    // squashing it into the bar it used to be.
+    final s = math.min(widget.width, _ViewOnceTile.tileSize);
     // Live and spent differ in weight, not in shape.
     final ink = _spent ? t.inkMuted : t.ink;
-    final ring = _spent ? t.inkMuted : t.accent;
+    final seal = _spent ? t.inkMuted : t.accent;
+    // Raised while there is still something to open, sunken once there isn't —
+    // a spent photo is a hole in the transcript, a sealed one is an object.
+    final base = _spent ? t.surfaceSunken : t.surfaceRaised;
 
     final tile = Container(
-      width: w,
-      height: _ViewOnceTile.tileHeight,
+      width: s,
+      height: s,
       decoration: BoxDecoration(
-        color: t.surfaceSunken,
-        borderRadius: widget.radius,
-        border: Border.all(
-          color: _spent ? t.divider : t.accent.withValues(alpha: 0.45),
-        ),
-        // A faint corner wash so a sealed photo reads as "something is in
-        // here", without implying anything about what.
+        // Blended into the gradient's stops rather than passed as `color`:
+        // `BoxDecoration` paints a gradient *instead of* a colour, so setting
+        // both silently drops the surface and washes the tile out.
+        color: _spent ? base : null,
         gradient: _spent
             ? null
             : LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  t.accent.withValues(alpha: 0.14),
-                  Colors.transparent,
+                  Color.alphaBlend(t.accent.withValues(alpha: 0.10), base),
+                  Color.alphaBlend(t.accent.withValues(alpha: 0.02), base),
                 ],
-                stops: const [0.0, 0.75],
               ),
-      ),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 38,
-            height: 38,
-            child: _busy
-                ? Center(
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(t.accent),
-                      ),
-                    ),
-                  )
-                : CustomPaint(
-                    painter: _ViewOnceRingPainter(
-                      color: ring,
-                      struck: _spent,
-                    ),
-                    child: Center(
-                      child: Text(
-                        '1',
-                        style: TextStyle(
-                          color: ring,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'PHOTO',
-                  style: t.label.copyWith(color: ink, letterSpacing: 2.0),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _caption,
-                  style: t.monoTiny.copyWith(
-                    color: _spent ? t.inkMuted : t.inkSoft,
-                  ),
+        borderRadius: widget.radius,
+        border: Border.all(
+          color: _spent ? t.divider : t.accent.withValues(alpha: 0.35),
+        ),
+        // One soft accent-tinted lift, and only while the photo is still there
+        // to be had. Nothing about a spent tile should catch the eye.
+        boxShadow: _spent
+            ? null
+            : [
+                BoxShadow(
+                  color: t.accent.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
+      ),
+      // No padding here: the stamp below measures from the tile's true edges,
+      // and a Container pad would push it inwards by that much again.
+      child: Stack(
+        children: [
+          Positioned.fill(
+            // The deep bottom pad reserves the stamp's strip, so the centred
+            // block sits clear of it rather than overlapping it. `Positioned`
+            // rather than a plain child because a Stack lays its non-positioned
+            // children out *loose* — a bare Center would shrink-wrap the column
+            // and park it in the top-left corner.
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 26),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: _ViewOnceTile._sealSize,
+                      height: _ViewOnceTile._sealSize,
+                      child: _busy
+                          ? Center(
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(t.accent),
+                                ),
+                              ),
+                            )
+                          : CustomPaint(
+                              painter: _ViewOnceSealPainter(
+                                color: seal,
+                                struck: _spent,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '1',
+                                  style: TextStyle(
+                                    color: seal,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Photo',
+                      style: t.label.copyWith(color: ink, letterSpacing: 0.6),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _caption,
+                      style: t.monoTiny.copyWith(
+                        color: _spent ? t.inkMuted : t.inkSoft,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
+          if (widget.stamp != null)
+            Positioned.directional(
+              textDirection: Directionality.of(context),
+              // Wider than `StampedMedia`'s 8: that inset is tuned for a fully
+              // rounded lozenge, and this stamp is bare text, which needs more
+              // clearance from a large corner radius to look inset at all.
+              end: 12,
+              bottom: 10,
+              // A timestamp is not a tap target; the tile owns the tap.
+              child: KeyedSubtree(
+                key: kVisibleStampKey,
+                child: IgnorePointer(child: widget.stamp!),
+              ),
+            ),
         ],
       ),
     );
 
-    final stamped = StampedMedia(tile: tile, stamp: widget.stamp);
-    if (!_openable) return stamped;
+    if (!_openable) return tile;
     return FocusableTap(
       onTap: _open,
       semanticLabel: 'view once photo, tap to view',
@@ -1086,15 +1140,16 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
       child: GestureDetector(
         onTap: _open,
         behavior: HitTestBehavior.opaque,
-        child: stamped,
+        child: tile,
       ),
     );
   }
 }
 
-/// The ring around the "1", struck through once the photo can't be opened.
-class _ViewOnceRingPainter extends CustomPainter {
-  const _ViewOnceRingPainter({required this.color, required this.struck});
+/// The seal: a ring around the "1", filled while the photo can still be opened
+/// and struck through once it can't.
+class _ViewOnceSealPainter extends CustomPainter {
+  const _ViewOnceSealPainter({required this.color, required this.struck});
 
   final Color color;
   final bool struck;
@@ -1103,24 +1158,39 @@ class _ViewOnceRingPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
     final r = math.min(size.width, size.height) / 2 - 1;
+    if (!struck) {
+      // A disc behind the numeral, so a live seal reads as a wax stamp rather
+      // than an outline waiting to be filled in.
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true
+          ..color = color.withValues(alpha: 0.12),
+      );
+    }
     final p = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6
+      ..strokeWidth = 1.4
       ..isAntiAlias = true
       ..color = color;
     canvas.drawCircle(c, r, p);
     if (!struck) return;
-    // Trailing-to-leading slash, the same direction a "no" symbol reads.
+    // Trailing-to-leading slash, the same direction a "no" symbol reads. Held
+    // back from full strength: spent is a state, not an error.
     final d = r * 0.72;
     canvas.drawLine(
       Offset(c.dx - d, c.dy + d),
       Offset(c.dx + d, c.dy - d),
-      p..strokeWidth = 1.4,
+      p
+        ..strokeWidth = 1.3
+        ..color = color.withValues(alpha: 0.7),
     );
   }
 
   @override
-  bool shouldRepaint(_ViewOnceRingPainter old) =>
+  bool shouldRepaint(_ViewOnceSealPainter old) =>
       old.color != color || old.struck != struck;
 }
 

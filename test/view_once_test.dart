@@ -7,6 +7,7 @@ import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/message_stamp.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
 
 /// View-once photos: the sealed bubble, and the model rules underneath it.
@@ -72,7 +73,7 @@ void main() {
       await tester.pump();
       // The disk-caching image path must not be anywhere near this bubble.
       expect(find.byType(RemoteImage), findsNothing);
-      expect(find.text('PHOTO'), findsOneWidget);
+      expect(find.text('Photo'), findsOneWidget);
     });
 
     testWidgets('unopened reads "tap to view"', (tester) async {
@@ -102,7 +103,7 @@ void main() {
         host(bubble(photo(), currentUserId: 'alice')),
       );
       expect(find.byType(RemoteImage), findsNothing);
-      expect(find.text('PHOTO'), findsOneWidget);
+      expect(find.text('Photo'), findsOneWidget);
       expect(find.text('view once'), findsOneWidget);
       expect(find.text('tap to view'), findsNothing);
     });
@@ -114,7 +115,7 @@ void main() {
       await tester.pumpWidget(
         host(bubble(photo(), onOpen: () async => opens++)),
       );
-      await tester.tap(find.text('PHOTO'));
+      await tester.tap(find.text('Photo'));
       await tester.pumpAndSettle();
       expect(opens, 1);
     });
@@ -124,7 +125,7 @@ void main() {
       await tester.pumpWidget(
         host(bubble(photo(opened: true), onOpen: () async => opens++)),
       );
-      await tester.tap(find.text('PHOTO'), warnIfMissed: false);
+      await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(opens, 0);
     });
@@ -137,7 +138,7 @@ void main() {
           onOpen: () async => opens++,
         )),
       );
-      await tester.tap(find.text('PHOTO'), warnIfMissed: false);
+      await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(opens, 0);
     });
@@ -151,7 +152,7 @@ void main() {
           onOpen: () async => opens++,
         )),
       );
-      await tester.tap(find.text('PHOTO'), warnIfMissed: false);
+      await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(opens, 0);
     });
@@ -163,7 +164,7 @@ void main() {
       await tester.pump();
       return tester.getSize(
         find.ancestor(
-          of: find.text('PHOTO'),
+          of: find.text('Photo'),
           matching: find.byType(Container),
         ).last,
       );
@@ -176,6 +177,42 @@ void main() {
     final ghost = await sizeOf(photo(burnedAt: DateTime(2026, 3, 15)));
     expect(spent, sealed);
     expect(ghost, sealed);
+    // Square, and pinned: a sealed photo is a picture-shaped placeholder, not
+    // the attachment bar it used to be.
+    expect(sealed, const Size(152, 152));
+  });
+
+  testWidgets('the tile carries its own timestamp', (tester) async {
+    // Before, a caption-less view-once photo failed `messageStampsInline` — it
+    // has no storage id by design — and paid for a whole external row to show
+    // four characters. The stamp now lives in the tile's own bottom corner.
+    await tester.pumpWidget(host(bubble(photo())));
+    await tester.pump();
+    expect(find.text('12:00'), findsOneWidget);
+
+    final tile = find.ancestor(
+      of: find.text('Photo'),
+      matching: find.byType(Container),
+    ).last;
+    expect(
+      find.descendant(of: tile, matching: find.byKey(kVisibleStampKey)),
+      findsOneWidget,
+    );
+
+    // And it sits in the tile's bottom-trailing corner, not floating in the
+    // middle of it. A Stack lays its non-positioned children out loose, so an
+    // un-filled content layer would shrink the box these are measured against
+    // and drag the stamp inwards with it.
+    final box = tester.getRect(tile);
+    final stamp = tester.getRect(find.byKey(kVisibleStampKey));
+    expect(stamp.right, greaterThan(box.center.dx));
+    expect(stamp.bottom, greaterThan(box.center.dy));
+    expect(box.right - stamp.right, lessThan(20));
+    expect(box.bottom - stamp.bottom, lessThan(20));
+
+    // The seal and its labels stay centred on the tile's own axis.
+    expect(tester.getRect(find.text('Photo')).center.dx,
+        moreOrLessEquals(box.center.dx, epsilon: 0.5));
   });
 
   group('model rules', () {
