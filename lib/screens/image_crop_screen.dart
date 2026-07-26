@@ -10,6 +10,7 @@ import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
+import '../widgets/photo_chrome.dart';
 
 /// Shape of the crop window. [circle] is for avatars — every avatar display
 /// site clips to a circle, so the ghost ring shows exactly what will survive.
@@ -396,16 +397,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
       builder: (context, constraints) {
         final img = _image;
         if (img == null) {
-          return Center(
-            child: SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: theme.accent,
-              ),
-            ),
-          );
+          return Center(child: PhotoSpinner(color: theme.accent));
         }
 
         final available = Size(

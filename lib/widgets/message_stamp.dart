@@ -114,7 +114,17 @@ class MessageStamp extends StatelessWidget {
           const SizedBox(width: 6),
         ],
         Text(formatClockTime(createdAt), style: style),
-        if (status == MessageStatus.pending) ...[
+        // Ahead of `pending`, and — more importantly — inside the same chain as
+        // `showSeen`, which it must pre-empt. `seenByOthers` is computed from
+        // another member's read cursor against this message's timestamp, and a
+        // cursor already ahead of "now" makes that true for a message created a
+        // moment ago. Left to fall through, an attachment still going up would
+        // draw `done_all` — "seen" — on a photo nobody has received.
+        if (status == MessageStatus.uploading) ...[
+          const SizedBox(width: 5),
+          Icon(Icons.arrow_upward,
+              size: 11, color: quiet, semanticLabel: 'uploading'),
+        ] else if (status == MessageStatus.pending) ...[
           const SizedBox(width: 5),
           Icon(Icons.schedule, size: 11, color: quiet, semanticLabel: 'sending'),
         ] else if (status == MessageStatus.error) ...[

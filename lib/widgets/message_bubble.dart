@@ -5,6 +5,7 @@ import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/pending_upload.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
@@ -18,6 +19,7 @@ import 'audio_message.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
 import 'message_stamp.dart';
+import 'photo_chrome.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
@@ -52,11 +54,18 @@ class MessageBubble extends StatelessWidget {
     this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
+    this.onRetrySend,
+    this.onDiscardSend,
   });
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
   final Future<void> Function()? onOpenViewOnce;
+
+  /// Re-run or throw away a send that failed. Null on everything except the
+  /// sender's own failed attachment, which is what makes the tile draw the pair.
+  final Future<void> Function()? onRetrySend;
+  final VoidCallback? onDiscardSend;
 
   final ChatMessage message;
   final DateTime now;
@@ -267,6 +276,8 @@ class MessageBubble extends StatelessWidget {
       lastInRun: lastInRun,
       seenByOthers: seenByOthers,
       onOpenViewOnce: onOpenViewOnce,
+      onRetrySend: onRetrySend,
+      onDiscardSend: onDiscardSend,
     );
   }
 }
@@ -298,11 +309,18 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
+    this.onRetrySend,
+    this.onDiscardSend,
   });
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
   final Future<void> Function()? onOpenViewOnce;
+
+  /// Re-run or throw away a send that failed. Null on everything except the
+  /// sender's own failed attachment, which is what makes the tile draw the pair.
+  final Future<void> Function()? onRetrySend;
+  final VoidCallback? onDiscardSend;
 
   final ChatMessage message;
   final DateTime now;
@@ -378,6 +396,8 @@ class EphemeralMessageBubble extends StatelessWidget {
       countdown: message.timeLeft(now),
       seenByOthers: seenByOthers,
       onOpenViewOnce: onOpenViewOnce,
+      onRetrySend: onRetrySend,
+      onDiscardSend: onDiscardSend,
     );
 
     final bubble = Stack(
@@ -638,9 +658,16 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
       // `viewOnce` is its own clause because a sealed photo never carries a
       // storage id — the server strips it — and would otherwise be pushed out
       // to an external timestamp row it has plenty of room to host itself.
+      //
+      // `upload` is its own clause for the same reason and a sharper symptom: an
+      // outgoing photo has no storage id until its bytes land, so a captionless
+      // one would start life with an external timestamp row, then have the row
+      // taken away the instant the upload finished. The bubble grew a line and
+      // then lost it, while the user watched.
       return message.content.isNotEmpty ||
           message.mediaStorageId != null ||
-          message.viewOnce;
+          message.viewOnce ||
+          message.upload != null;
     case MessageType.video:
     case MessageType.audio:
     case MessageType.system:
@@ -694,6 +721,17 @@ Widget buildMessageContent({
   /// where no repository is wired up (tests, previews), which leaves the sealed
   /// tile inert rather than half-working.
   Future<void> Function()? onOpenViewOnce,
+
+  /// Re-run a send that failed, and throw one away. Threaded the same way
+  /// [onOpenViewOnce] is, and null everywhere except a failed outgoing
+  /// attachment — the tile draws the pair only when it is handed them, so a
+  /// bubble that isn't failed cannot offer a retry.
+  ///
+  /// They live on the tile rather than in the action menu because an optimistic
+  /// bubble has no action menu: the row passes `onLongPress: null` while a
+  /// message is unconfirmed.
+  Future<void> Function()? onRetrySend,
+  VoidCallback? onDiscardSend,
 }) {
   final deco = theme.bubbleDecoration(
     isMine: isMine,
@@ -754,6 +792,23 @@ Widget buildMessageContent({
           // floating on a themed card.
           stamp: hasCaption ? null : stampFor(StampTone.onBubble),
           onOpen: onOpenViewOnce,
+          onRetrySend: onRetrySend,
+          onDiscardSend: onDiscardSend,
+        );
+      } else if (message.upload != null) {
+        // Ahead of the storage-id branch deliberately. For a moment after the
+        // upload succeeds the message has both a storage id and its bytes, and we
+        // would rather keep painting the pixels already in memory than resolve a
+        // URL and download back a picture we just finished sending.
+        imageTile = _UploadingImageTile(
+          theme: theme,
+          message: message,
+          upload: message.upload!,
+          width: imageSize,
+          radius: mediaRadius,
+          stamp: hasCaption ? null : stampFor(StampTone.onMedia),
+          onRetrySend: onRetrySend,
+          onDiscardSend: onDiscardSend,
         );
       } else if (id != null) {
         imageTile = _ImageTile(
@@ -797,11 +852,24 @@ Widget buildMessageContent({
         ],
       );
     case MessageType.audio:
-      final player = AudioMessage(
-        api: api,
-        storageId: message.mediaStorageId,
-        isMine: isMine,
-      );
+      // A voice note on its way up has no storage id, and `AudioMessage` renders
+      // a null one as the literal text "[audio missing]" — which is true of a
+      // broken message and alarmingly false of one that is uploading fine.
+      final audioUpload = message.upload;
+      final Widget player = audioUpload != null
+          ? _OutboundAudioRow(
+              theme: theme,
+              upload: audioUpload,
+              isMine: isMine,
+              failed: message.status == MessageStatus.error,
+              onRetry: onRetrySend,
+              onDiscard: onDiscardSend,
+            )
+          : AudioMessage(
+              api: api,
+              storageId: message.mediaStorageId,
+              isMine: isMine,
+            );
       final audioStamp = stampFor(bubbleTone);
       return Container(
         padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
@@ -825,15 +893,30 @@ Widget buildMessageContent({
               ),
       );
     case MessageType.video:
+      final videoUpload = message.upload;
       final videoTile = StampedMedia(
         tile: ClipRRect(
           borderRadius: mediaRadius,
-          child: VideoMessage(
-            api: api,
-            storageId: message.mediaStorageId,
-            isMine: isMine,
-            maxWidth: metrics?.videoMaxWidth,
-          ),
+          // Same reasoning as the audio row above: with no storage id there is
+          // nothing for `VideoMessage` to resolve, so it would sit on its own
+          // loading state forever. A placeholder at the tile's own size holds the
+          // geometry the finished video will take, so the transcript doesn't jump
+          // when the upload lands.
+          child: videoUpload != null
+              ? _OutboundVideoTile(
+                  theme: theme,
+                  upload: videoUpload,
+                  failed: message.status == MessageStatus.error,
+                  width: metrics?.videoMaxWidth ?? imageSize,
+                  onRetry: onRetrySend,
+                  onDiscard: onDiscardSend,
+                )
+              : VideoMessage(
+                  api: api,
+                  storageId: message.mediaStorageId,
+                  isMine: isMine,
+                  maxWidth: metrics?.videoMaxWidth,
+                ),
         ),
         stamp: hasCaption ? null : stampFor(StampTone.onMedia),
       );
@@ -945,6 +1028,8 @@ class _ViewOnceTile extends StatefulWidget {
     required this.radius,
     required this.stamp,
     required this.onOpen,
+    this.onRetrySend,
+    this.onDiscardSend,
   });
 
   /// Fixed geometry, one number: the tile is square at every size.
@@ -962,6 +1047,13 @@ class _ViewOnceTile extends StatefulWidget {
   final MessageStamp? stamp;
   final Future<void> Function()? onOpen;
 
+  /// Only ever non-null on the sender's own copy of a send that failed. A sealed
+  /// photo on its way up has no picture to show and no picture to show it *on* —
+  /// the whole point of the fixed silhouette — so the retry pair goes where the
+  /// seal goes, and everything about the tile's geometry stays put.
+  final Future<void> Function()? onRetrySend;
+  final VoidCallback? onDiscardSend;
+
   @override
   State<_ViewOnceTile> createState() => _ViewOnceTileState();
 }
@@ -969,9 +1061,15 @@ class _ViewOnceTile extends StatefulWidget {
 class _ViewOnceTileState extends State<_ViewOnceTile> {
   bool _busy = false;
 
+  /// This is the sender's own copy and it hasn't reached the server yet.
+  bool get _outbound => widget.message.upload != null;
+  bool get _sending => _outbound && widget.message.status != MessageStatus.error;
+  bool get _failed => _outbound && widget.message.status == MessageStatus.error;
+
   bool get _openable =>
       widget.onOpen != null &&
       !_busy &&
+      !_outbound &&
       widget.message.viewOnceOpenable(isMine: widget.isMine);
 
   Future<void> _open() async {
@@ -989,6 +1087,10 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
   /// can act on the difference (ask for it again vs. it's simply over).
   String get _caption {
     final m = widget.message;
+    // Outbound states first: a photo still going up has not been opened, has not
+    // expired, and is not yet "view once" — it is not anywhere yet.
+    if (_failed) return 'failed';
+    if (_sending) return 'sending…';
     if (m.viewOnceBurned) {
       return m.viewOnceOpened || widget.isMine ? 'opened' : 'expired';
     }
@@ -997,10 +1099,69 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
     return 'tap to view';
   }
 
+  /// Spent means "there is nothing left to open here", which drives the sunken,
+  /// struck-through treatment. An outbound photo is the opposite of spent — it
+  /// hasn't gone anywhere yet — so it keeps the raised, accent-tinted tile even
+  /// though `isMine` is true.
   bool get _spent =>
-      widget.message.viewOnceBurned ||
-      widget.message.viewOnceOpened ||
-      widget.isMine;
+      !_outbound &&
+      (widget.message.viewOnceBurned ||
+          widget.message.viewOnceOpened ||
+          widget.isMine);
+
+  /// What sits above the "Photo" label: the wax seal, or whatever has replaced it
+  /// for the moment.
+  ///
+  /// Every branch but one is pinned to the seal's own 44pt box, so the tile's
+  /// vertical rhythm cannot move as the state changes — a sealed photo that
+  /// resized itself on the way from sending to sent would undo the whole reason
+  /// this tile has a fixed silhouette. The retry pair is the exception: two 34pt
+  /// targets do not fit in 44pt of width, and shrinking them to fit would put a
+  /// destructive control under the recommended minimum touch size.
+  Widget _badge(AppTheme t, Color seal) {
+    if (_failed) {
+      return _UploadRetryControls(
+        onRetry: widget.onRetrySend,
+        onDiscard: widget.onDiscardSend,
+      );
+    }
+    final Widget inner;
+    if (_sending) {
+      inner = ValueListenableBuilder<double?>(
+        valueListenable: widget.message.upload!.progress,
+        builder: (context, value, _) => PhotoSpinner(
+          color: t.accent,
+          value: value?.clamp(0.0, _UploadingImageTile._arcCeiling),
+        ),
+      );
+    } else if (_busy) {
+      inner = PhotoSpinner(color: t.accent);
+    } else {
+      return SizedBox(
+        width: _ViewOnceTile._sealSize,
+        height: _ViewOnceTile._sealSize,
+        child: CustomPaint(
+          painter: _ViewOnceSealPainter(color: seal, struck: _spent),
+          child: Center(
+            child: Text(
+              '1',
+              style: TextStyle(
+                color: seal,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                height: 1,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      width: _ViewOnceTile._sealSize,
+      height: _ViewOnceTile._sealSize,
+      child: Center(child: inner),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1065,38 +1226,7 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
-                      width: _ViewOnceTile._sealSize,
-                      height: _ViewOnceTile._sealSize,
-                      child: _busy
-                          ? Center(
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(t.accent),
-                                ),
-                              ),
-                            )
-                          : CustomPaint(
-                              painter: _ViewOnceSealPainter(
-                                color: seal,
-                                struck: _spent,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '1',
-                                  style: TextStyle(
-                                    color: seal,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1,
-                                  ),
-                                ),
-                              ),
-                            ),
-                    ),
+                    _badge(t, seal),
                     const SizedBox(height: 12),
                     Text(
                       'Photo',
@@ -1301,6 +1431,316 @@ class _ImageTileState extends State<_ImageTile> {
             ? SteadyHero(tag: _heroTag, child: remote)
             : remote,
         stamp: _viewing ? null : widget.stamp,
+      ),
+    );
+  }
+}
+
+/// The sender's own photo, painted from the bytes in hand while they go up.
+///
+/// This is the bubble that used not to exist. The optimistic message was built
+/// only *after* the upload finished, so the sender tapped SEND, watched the
+/// editor pop, and got an unchanged transcript for however long the upload took —
+/// and then had the picture they had just sent fetched back down over the network
+/// to draw it.
+class _UploadingImageTile extends StatelessWidget {
+  const _UploadingImageTile({
+    required this.theme,
+    required this.message,
+    required this.upload,
+    required this.width,
+    required this.radius,
+    required this.stamp,
+    this.onRetrySend,
+    this.onDiscardSend,
+  });
+
+  final AppTheme theme;
+  final ChatMessage message;
+  final PendingUpload upload;
+  final double width;
+  final BorderRadius radius;
+  final MessageStamp? stamp;
+  final Future<void> Function()? onRetrySend;
+  final VoidCallback? onDiscardSend;
+
+  /// The arc stops here and waits.
+  ///
+  /// The byte counter runs ahead of the wire by whatever the socket's send buffer
+  /// holds, and even a truthful 100% would still be followed by the round trip of
+  /// the mutation. A ring that fills completely and then sits there is the same
+  /// broken promise as no feedback at all, so it holds just short and only
+  /// completes when the status changes under it.
+  static const _arcCeiling = 0.95;
+
+  @override
+  Widget build(BuildContext context) {
+    final failed = message.status == MessageStatus.error;
+    final height = ChatMetrics.mediaTileHeight(width, message.mediaAspectRatio);
+    // One axis only. `Image.memory` decodes the full source otherwise, and a
+    // 12-megapixel photo is ~48 MB of RGBA — enough to evict every avatar and
+    // thumbnail in the app to paint one tile. Which axis and why lives in
+    // `decodeSizeFor`; this reads it rather than guessing again.
+    final decode = decodeSizeFor(
+      width: width,
+      height: null,
+      dpr: MediaQuery.devicePixelRatioOf(context),
+      screen: MediaQuery.sizeOf(context),
+    );
+
+    final tile = ClipRRect(
+      borderRadius: radius,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.memory(
+              upload.bytes,
+              fit: BoxFit.cover,
+              cacheWidth: decode.width,
+              cacheHeight: decode.height,
+              // The bytes never change identity, so there is nothing to fade
+              // between — and a fade on every parent rebuild would flicker.
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
+              // A source the platform can't decode is still a real send that is
+              // still going up. Say so with a plate rather than an exception
+              // painted into the transcript.
+              errorBuilder: (_, _, _) => ColoredBox(
+                color: theme.surfaceSunken,
+                child: Center(
+                  child: Icon(Icons.image_outlined, color: theme.inkMuted),
+                ),
+              ),
+            ),
+            ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
+            Center(
+              child: _UploadIndicator(
+                upload: upload,
+                failed: failed,
+                color: Colors.white,
+                size: 30,
+                onRetry: onRetrySend,
+                onDiscard: onDiscardSend,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return StampedMedia(tile: tile, stamp: stamp);
+  }
+}
+
+/// A voice note on its way up, in the same silhouette the finished player takes.
+///
+/// The finished player is a 34pt round play button, a waveform and a duration.
+/// This is the button's ring where the button will be, and the word in place of
+/// the duration — so nothing moves when the real player replaces it.
+class _OutboundAudioRow extends StatelessWidget {
+  const _OutboundAudioRow({
+    required this.theme,
+    required this.upload,
+    required this.isMine,
+    required this.failed,
+    this.onRetry,
+    this.onDiscard,
+  });
+
+  final AppTheme theme;
+  final PendingUpload upload;
+  final bool isMine;
+  final bool failed;
+  final Future<void> Function()? onRetry;
+  final VoidCallback? onDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = isMine ? theme.accentInk : theme.ink;
+    final indicator = _UploadIndicator(
+      upload: upload,
+      failed: failed,
+      color: ink,
+      size: 22,
+      onRetry: onRetry,
+      onDiscard: onDiscard,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Pinned to the play button's own box while it is a ring, so the finished
+        // player slots in without anything moving. NOT pinned when it is the retry
+        // pair: two 34pt touch targets do not fit in 34pt of width, and shrinking
+        // them to fit would put a destructive control under the minimum tap size.
+        // The bubble is free to widen for those few seconds.
+        if (failed)
+          indicator
+        else
+          SizedBox(width: 34, height: 34, child: Center(child: indicator)),
+        const SizedBox(width: 10),
+        Text(
+          failed ? 'failed' : 'sending…',
+          style: theme.body.copyWith(color: ink),
+        ),
+      ],
+    );
+  }
+}
+
+/// A video on its way up: the tile it will occupy, with the ring in the middle.
+class _OutboundVideoTile extends StatelessWidget {
+  const _OutboundVideoTile({
+    required this.theme,
+    required this.upload,
+    required this.failed,
+    required this.width,
+    this.onRetry,
+    this.onDiscard,
+  });
+
+  final AppTheme theme;
+  final PendingUpload upload;
+  final bool failed;
+  final double width;
+  final Future<void> Function()? onRetry;
+  final VoidCallback? onDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      // 16:9, the shape most phone video actually is. There is no header to read
+      // the true ratio out of without decoding the container, and one guess that
+      // is usually right beats a square that never is.
+      height: width * 9 / 16,
+      color: Colors.black,
+      alignment: Alignment.center,
+      child: _UploadIndicator(
+        upload: upload,
+        failed: failed,
+        color: Colors.white,
+        size: 30,
+        onRetry: onRetry,
+        onDiscard: onDiscard,
+      ),
+    );
+  }
+}
+
+/// The state of one outgoing attachment, in one glyph: a filling ring while it
+/// goes up, RETRY and DISCARD once it has failed.
+///
+/// Shared by all three attachment kinds. A photo shows it over the picture, a
+/// video over its placeholder, a voice note beside its waveform — but the rule
+/// for what to draw is the same in every case, and it only wants writing once.
+class _UploadIndicator extends StatelessWidget {
+  const _UploadIndicator({
+    required this.upload,
+    required this.failed,
+    required this.color,
+    required this.size,
+    this.onRetry,
+    this.onDiscard,
+  });
+
+  final PendingUpload upload;
+  final bool failed;
+  final Color color;
+  final double size;
+  final Future<void> Function()? onRetry;
+  final VoidCallback? onDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    if (failed) {
+      return _UploadRetryControls(onRetry: onRetry, onDiscard: onDiscard);
+    }
+    // Listened to directly rather than read off a rebuild: progress ticks about
+    // ten times a second, and the repository's notifyListeners would rebuild the
+    // whole transcript for each one.
+    return ValueListenableBuilder<double?>(
+      valueListenable: upload.progress,
+      builder: (context, value, _) => PhotoSpinner(
+        size: size,
+        color: color,
+        value: value?.clamp(0.0, _UploadingImageTile._arcCeiling),
+      ),
+    );
+  }
+}
+
+/// RETRY and DISCARD over a send that failed.
+///
+/// Bare [GestureDetector] plus [FocusableTap], no `IconButton` and no ink —
+/// nothing in this app ripples. The dark lozenge is the same one [MessageStamp]
+/// wears over media, for the same reason: it sits on a photograph, whose colour
+/// no theme knows.
+class _UploadRetryControls extends StatelessWidget {
+  const _UploadRetryControls({required this.onRetry, required this.onDiscard});
+
+  final Future<void> Function()? onRetry;
+  final VoidCallback? onDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _UploadControl(
+              icon: Icons.refresh,
+              semanticLabel: 'retry sending',
+              onTap: onRetry == null ? null : () => onRetry!(),
+            ),
+            const SizedBox(width: 4),
+            _UploadControl(
+              icon: Icons.close,
+              semanticLabel: 'discard',
+              onTap: onDiscard,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadControl extends StatelessWidget {
+  const _UploadControl({
+    required this.icon,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String semanticLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Center(
+            child: Icon(icon, size: 19, color: Colors.white),
+          ),
+        ),
       ),
     );
   }

@@ -786,16 +786,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     }
     final img = _display;
     if (img == null) {
-      return const Center(
-        child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: PhotoChrome.inkDim,
-          ),
-        ),
-      );
+      return const Center(child: PhotoSpinner());
     }
 
     return LayoutBuilder(

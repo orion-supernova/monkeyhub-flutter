@@ -305,16 +305,7 @@ class _CameraScreenState extends State<CameraScreen>
   Widget _previewBody() {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) {
-      return const Center(
-        child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: PhotoChrome.inkDim,
-          ),
-        ),
-      );
+      return const Center(child: PhotoSpinner());
     }
 
     return LayoutBuilder(

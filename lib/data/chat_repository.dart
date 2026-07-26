@@ -4,14 +4,17 @@ import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
+import '../media/upload_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
+import '../models/pending_upload.dart';
 import '../push/push_manager.dart';
 import 'cache_store.dart';
+import 'pending_reconcile.dart';
 import 'settings_store.dart';
 
 /// Source of truth for chat data (rooms + open-room messages).
@@ -311,6 +314,15 @@ class ChatRepository extends ChangeNotifier {
     _incomingRequests = [];
     _outgoingRequests = [];
     _messages.clear();
+    // Abort and release anything still going up. Signing out has to take the
+    // bytes with it: they are one user's unsent photos, and the next account to
+    // sign in on this device has no business holding them in memory — quite
+    // apart from the megabytes.
+    for (final list in _pending.values) {
+      for (final m in list) {
+        m.upload?.dispose();
+      }
+    }
     _pending.clear();
     _lastSeenNewestMsgId.clear();
     _typingByRoom.clear();
@@ -1104,8 +1116,42 @@ class ChatRepository extends ChangeNotifier {
     String? replyToId,
     bool viewOnce = false,
   }) async {
+    final optimistic = _buildOptimistic(
+      roomId: roomId,
+      content: content,
+      type: type,
+      mediaStorageId: mediaStorageId,
+      mediaWidth: mediaWidth,
+      mediaHeight: mediaHeight,
+      replyToId: replyToId,
+      viewOnce: viewOnce,
+    );
+    if (optimistic == null) return;
+    _pending.putIfAbsent(roomId, () => []).add(optimistic);
+    notifyListeners();
+    await _postMessage(roomId, optimistic);
+  }
+
+  /// Builds the bubble that stands in for a message until the server confirms it,
+  /// and returns null when there is nobody signed in to send as.
+  ///
+  /// Split out of [_send] so an attachment can have its bubble on screen *before*
+  /// its bytes have finished uploading — which is the whole point of
+  /// [sendMediaLocal]. [_postMessage] is the other half.
+  ChatMessage? _buildOptimistic({
+    required String roomId,
+    required String content,
+    required MessageType type,
+    String? mediaStorageId,
+    double? mediaWidth,
+    double? mediaHeight,
+    String? replyToId,
+    bool viewOnce = false,
+    MessageStatus status = MessageStatus.pending,
+    PendingUpload? upload,
+  }) {
     final id = _userId;
-    if (id == null) return;
+    if (id == null) return null;
 
     // Build a local [ReplyPreview] from the cached parent so the inline
     // tether is visible on the pending bubble before the server confirms
@@ -1141,7 +1187,7 @@ class ChatRepository extends ChangeNotifier {
     }
 
     final tempId = 'tmp_${DateTime.now().microsecondsSinceEpoch}';
-    final optimistic = ChatMessage(
+    return ChatMessage(
       id: tempId,
       roomId: roomId,
       senderId: id,
@@ -1152,39 +1198,255 @@ class ChatRepository extends ChangeNotifier {
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
       createdAt: DateTime.now(),
-      status: MessageStatus.pending,
+      status: status,
       replyToId: optimisticPreview != null ? replyToId : null,
       replyToPreview: optimisticPreview,
       rootId: optimisticPreview != null ? optimisticRootId : null,
       viewOnce: viewOnce,
+      upload: upload,
     );
-    _pending.putIfAbsent(roomId, () => []).add(optimistic);
-    notifyListeners();
+  }
+
+  /// Posts [optimistic] to the server, reading every argument off the message.
+  ///
+  /// Reading off the message rather than taking them again as parameters is what
+  /// lets this one function serve the first attempt *and* both reconnect
+  /// sweepers, which used to carry their own near-identical copies of this call —
+  /// three places that had to be kept in step, and twice already hadn't been.
+  Future<void> _postMessage(String roomId, ChatMessage optimistic) async {
+    final id = _userId;
+    if (id == null) return;
     try {
       await api.sendMessage(
         roomId: roomId,
         userId: id,
-        content: content,
-        type: type,
-        mediaStorageId: mediaStorageId,
-        mediaWidth: mediaWidth,
-        mediaHeight: mediaHeight,
-        replyToId: replyToId,
-        viewOnce: viewOnce,
+        content: optimistic.content,
+        type: optimistic.type,
+        mediaStorageId: optimistic.mediaStorageId,
+        mediaWidth: optimistic.mediaWidth,
+        mediaHeight: optimistic.mediaHeight,
+        replyToId: optimistic.replyToId,
+        // Must ride along, or a view-once photo that happened to be sent while
+        // the socket was frozen comes back as an ordinary, permanent one — the
+        // flag dropped on the retry rather than on the send the user made.
+        viewOnce: optimistic.viewOnce,
       );
+      // Left as pending — the messages:list subscription delivers the
+      // server-confirmed copy and _reconcilePending drops this one.
     } catch (e) {
       // A child guard rejection is not a transient failure, so it must not
       // sit in the pending list waiting to be retried forever — the retry
       // would fail identically until a guardian acts. Drop the optimistic
       // bubble and surface it so the composer can explain.
       if (isChildGateError(e)) {
-        _pending[roomId]?.removeWhere((m) => m.id == tempId);
+        _pending[roomId]?.removeWhere((m) => m.id == optimistic.id);
+        // A refusal that cannot be retried must not sit on several megabytes for
+        // the rest of the session.
+        optimistic.upload?.dispose();
         _lastChildGateError = e.toString();
         notifyListeners();
         return;
       }
       optimistic.status = MessageStatus.error;
       notifyListeners();
+    }
+  }
+
+  // ───────────── outgoing attachments ─────────────
+
+  /// Total bytes this repository will hold on behalf of unfinished sends.
+  ///
+  /// A send whose bytes are still in memory is a send that can be retried, which
+  /// is worth real megabytes — but not unbounded ones. Five 12-megapixel photos
+  /// is already ~20 MB of retained `Uint8List` before their decodes, and a phone
+  /// that runs out of memory mid-conversation is a worse outcome than a send that
+  /// is honestly refused.
+  static const _maxRetainedUploadBytes = 48 * 1024 * 1024;
+
+  /// Uploads chained rather than raced. Bounds retained bytes, and lands
+  /// attachments in the order they were sent with one honest progress arc at a
+  /// time instead of five fighting over the same uplink.
+  Future<void> _uploadQueue = Future.value();
+
+  int get _retainedUploadBytes {
+    var total = 0;
+    for (final list in _pending.values) {
+      for (final m in list) {
+        final up = m.upload;
+        if (up != null && !up.disposed) total += up.bytes.length;
+      }
+    }
+    return total;
+  }
+
+  /// Puts an attachment in the transcript now and uploads it behind the bubble.
+  ///
+  /// The old shape awaited the upload and only then called [sendMedia], which is
+  /// where the optimistic bubble was built — so the bubble existed for the length
+  /// of the mutation (milliseconds) rather than the upload (seconds), and the
+  /// sender watched an unchanged transcript until their photo appeared fully
+  /// formed. Owning the upload here also means the send outlives the room screen:
+  /// walking out mid-upload no longer abandons it.
+  ///
+  /// Fire-and-forget by design — the returned future completes when the send has
+  /// settled, but nothing needs to await it. Failure is reported by the bubble,
+  /// not by an exception.
+  Future<void> sendMediaLocal({
+    required String roomId,
+    required Uint8List bytes,
+    required String contentType,
+    required MessageType type,
+    double? mediaWidth,
+    double? mediaHeight,
+    String? caption,
+    String? replyToId,
+    bool viewOnce = false,
+  }) async {
+    final upload = PendingUpload(bytes: bytes, contentType: contentType);
+    final optimistic = _buildOptimistic(
+      roomId: roomId,
+      content: caption ?? '',
+      type: type,
+      // Null until the upload hands one back. This is exactly why
+      // MessageStatus.uploading exists — see enums.dart.
+      mediaStorageId: null,
+      // The server drops these for an armed send — the sealed tile is a fixed
+      // size and the real ratio is a leak — so don't let the optimistic bubble
+      // claim otherwise either.
+      mediaWidth: viewOnce ? null : mediaWidth,
+      mediaHeight: viewOnce ? null : mediaHeight,
+      replyToId: replyToId,
+      viewOnce: viewOnce,
+      status: MessageStatus.uploading,
+      upload: upload,
+    );
+    if (optimistic == null) {
+      upload.dispose();
+      return;
+    }
+
+    if (_retainedUploadBytes + bytes.length > _maxRetainedUploadBytes) {
+      // Refused before it starts, and refused *without* keeping the bytes —
+      // holding them would defeat the cap, since a refusal that retains its
+      // payload just moves the memory rather than declining to spend it.
+      //
+      // Still shown, as a failed bubble, because a tap that silently does nothing
+      // is worse. It offers no retry: there is nothing left to re-upload, and
+      // [retryPending] refuses it for the same reason. Discard is the way out.
+      upload.dispose();
+      _pending.putIfAbsent(roomId, () => []).add(
+            _buildOptimistic(
+              roomId: roomId,
+              content: caption ?? '',
+              type: type,
+              replyToId: replyToId,
+              viewOnce: viewOnce,
+              status: MessageStatus.error,
+            )!,
+          );
+      notifyListeners();
+      return;
+    }
+
+    _pending.putIfAbsent(roomId, () => []).add(optimistic);
+    // The frame the picture appears on.
+    notifyListeners();
+    return _enqueueUpload(roomId, optimistic);
+  }
+
+  /// Retry a send that failed — either its upload or its mutation.
+  ///
+  /// Re-uploading is cheap to do freely: `files.gcOrphanedFiles` reclaims any
+  /// blob that was stored but never referenced by a message, after a grace
+  /// period, explicitly covering the case of a client dying between the upload
+  /// and the mutation. So a retry that duplicates a blob costs a day of storage,
+  /// not a leak.
+  Future<void> retryPending(String messageId) async {
+    for (final entry in _pending.entries) {
+      for (final m in entry.value) {
+        if (m.id != messageId) continue;
+        if (m.status != MessageStatus.error) return;
+        final up = m.upload;
+        if (up != null && !up.disposed && m.mediaStorageId == null) {
+          m.status = MessageStatus.uploading;
+          up.report(0);
+          notifyListeners();
+          return _enqueueUpload(entry.key, m);
+        }
+        // Nothing to re-upload and nothing to reference — the bytes are gone and
+        // no storage id ever arrived, so posting this would put an attachment
+        // message pointing at nothing into the room. Leave it failed; discard is
+        // the only honest way out.
+        if (m.isMedia && m.mediaStorageId == null) return;
+        // Bytes already up, or a text message: only the mutation is left.
+        m.status = MessageStatus.pending;
+        notifyListeners();
+        return _postMessage(entry.key, m);
+      }
+    }
+  }
+
+  /// Throw a failed send away, bytes and all.
+  void discardPending(String messageId) {
+    for (final list in _pending.values) {
+      final i = list.indexWhere((m) => m.id == messageId);
+      if (i < 0) continue;
+      list.removeAt(i).upload?.dispose();
+      notifyListeners();
+      return;
+    }
+  }
+
+  /// Chains [message]'s upload behind whatever is already going up.
+  ///
+  /// The `catchError` is load-bearing despite looking like belt-and-braces over a
+  /// `_runUpload` that already handles its own failures. A rejected future at the
+  /// tail of a `then` chain makes every subsequent callback skip, so one
+  /// unexpected throw — a listener raising inside `notifyListeners`, say — would
+  /// silently stop every attachment sent for the rest of the session, with nothing
+  /// anywhere to explain it. Anything arriving here is a bug rather than a send
+  /// failure, and a bug must not be able to wedge the queue.
+  Future<void> _enqueueUpload(String roomId, ChatMessage message) {
+    _uploadQueue = _uploadQueue
+        .then((_) => _runUpload(roomId, message))
+        .catchError((Object e) {
+      debugPrint('upload queue step threw (continuing): $e');
+    });
+    return _uploadQueue;
+  }
+
+  Future<void> _runUpload(String roomId, ChatMessage message) async {
+    final upload = message.upload;
+    if (upload == null || upload.disposed) return;
+    // Discarded while it sat in the queue.
+    if (!(_pending[roomId]?.contains(message) ?? false)) return;
+
+    final task = UploadTask();
+    upload.task = task;
+    try {
+      final storageId = await UploadService(api).uploadFile(
+        bytes: upload.bytes,
+        contentType: upload.contentType,
+        task: task,
+        onProgress: (sent, total) {
+          if (total <= 0) return;
+          upload.report(sent / total);
+        },
+      );
+      if (upload.disposed) return;
+      message.mediaStorageId = storageId;
+      message.status = MessageStatus.pending;
+      notifyListeners();
+      await _postMessage(roomId, message);
+    } on UploadCancelled {
+      // Nothing to report: whoever cancelled it already removed the bubble.
+    } catch (_) {
+      if (upload.disposed) return;
+      // Bytes and progress are kept: they are what makes retry possible.
+      message.status = MessageStatus.error;
+      notifyListeners();
+    } finally {
+      upload.task = null;
     }
   }
 
@@ -1298,20 +1560,25 @@ class ChatRepository extends ChangeNotifier {
   }
 
   /// Drop optimistic pending messages that the server now confirms exist.
-  /// Match by (senderId, content, createdAt within 10 minutes). The window is
-  /// generous so that a metro-tunnel send — where the server received the
-  /// message but the client got marked `error` because the ack never made it
-  /// — collapses into a single bubble once reconnect delivers the live row.
+  ///
+  /// The rule itself lives in `pending_reconcile.dart` — see there for what it
+  /// matches on and which bug the one-to-one claiming exists to fix.
   void _reconcilePending(String roomId) {
     final pend = _pending[roomId];
     if (pend == null || pend.isEmpty) return;
     final live = _messages[roomId] ?? const [];
-    pend.removeWhere((p) {
-      return live.any((l) =>
-          l.senderId == p.senderId &&
-          l.content == p.content &&
-          (l.createdAt.difference(p.createdAt).inMinutes).abs() < 10);
-    });
+    final keep = survivingPending(live, pend);
+    if (keep.length == pend.length) return;
+    // Release the bytes of everything that just landed, at the same moment the
+    // bubble holding them goes. A confirmed send has no use for its local copy,
+    // and several megapixels per message is not something to leak.
+    final kept = keep.toSet();
+    for (final m in pend) {
+      if (!kept.contains(m)) m.upload?.dispose();
+    }
+    pend
+      ..clear()
+      ..addAll(keep);
   }
 
   /// Iterate every room's optimistic queue and re-send anything still in
@@ -1327,7 +1594,7 @@ class ChatRepository extends ChangeNotifier {
     final retryList = <(String, ChatMessage)>[];
     for (final entry in _pending.entries) {
       for (final m in entry.value) {
-        if (m.status == MessageStatus.error) {
+        if (m.status == MessageStatus.error && _isPostable(m)) {
           retryList.add((entry.key, m));
         }
       }
@@ -1340,30 +1607,23 @@ class ChatRepository extends ChangeNotifier {
     }
     notifyListeners();
     for (final (roomId, m) in retryList) {
-      try {
-        await api.sendMessage(
-          roomId: roomId,
-          userId: id,
-          content: m.content,
-          type: m.type,
-          mediaStorageId: m.mediaStorageId,
-          mediaWidth: m.mediaWidth,
-          mediaHeight: m.mediaHeight,
-          replyToId: m.replyToId,
-          // Must ride along, or a view-once photo that happened to be sent
-          // while the socket was frozen comes back as an ordinary, permanent
-          // one — the flag dropped on the retry rather than on the send the
-          // user actually made.
-          viewOnce: m.viewOnce,
-        );
-        // Leave as pending — the messages:list subscription will deliver the
-        // server-confirmed copy and _reconcilePending will drop this one.
-      } catch (_) {
-        m.status = MessageStatus.error;
-        notifyListeners();
-      }
+      await _postMessage(roomId, m);
     }
   }
+
+  /// Whether a stuck optimistic message can be handed to `messages:send` as it
+  /// stands.
+  ///
+  /// Both belts are needed. The status says what state the message is in, so a
+  /// send whose bytes are still going up is left alone rather than posted with a
+  /// null storage id — which is what a reconnect mid-upload would otherwise do,
+  /// putting an image message pointing at nothing into the room. The second
+  /// clause catches the message that got as far as `error` *before* its bytes
+  /// landed: its status says retryable, but there is nothing yet to reference.
+  /// Those are recovered by [retryPending], which re-uploads first.
+  static bool _isPostable(ChatMessage m) =>
+      m.status != MessageStatus.uploading &&
+      !(m.isMedia && m.mediaStorageId == null);
 
   /// Re-establish every subscription after a socket reconnect. The convex_flutter
   /// web client resets its query set on reconnect but NEVER replays the
@@ -1392,8 +1652,9 @@ class ChatRepository extends ChangeNotifier {
     final retry = <(String, ChatMessage)>[];
     for (final entry in _pending.entries) {
       for (final m in entry.value) {
-        if (m.status == MessageStatus.pending ||
-            m.status == MessageStatus.error) {
+        if ((m.status == MessageStatus.pending ||
+                m.status == MessageStatus.error) &&
+            _isPostable(m)) {
           retry.add((entry.key, m));
         }
       }
@@ -1404,26 +1665,7 @@ class ChatRepository extends ChangeNotifier {
     }
     notifyListeners();
     for (final (roomId, m) in retry) {
-      try {
-        await api.sendMessage(
-          roomId: roomId,
-          userId: id,
-          content: m.content,
-          type: m.type,
-          mediaStorageId: m.mediaStorageId,
-          mediaWidth: m.mediaWidth,
-          mediaHeight: m.mediaHeight,
-          replyToId: m.replyToId,
-          // Must ride along, or a view-once photo that happened to be sent
-          // while the socket was frozen comes back as an ordinary, permanent
-          // one — the flag dropped on the retry rather than on the send the
-          // user actually made.
-          viewOnce: m.viewOnce,
-        );
-      } catch (_) {
-        m.status = MessageStatus.error;
-        notifyListeners();
-      }
+      await _postMessage(roomId, m);
     }
   }
 }

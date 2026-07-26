@@ -18,7 +18,6 @@ import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/image_raster.dart';
-import '../media/upload_service.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
 import '../models/chat_message.dart';
@@ -35,6 +34,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import '../widgets/busy_scrim.dart';
 import '../widgets/chat_composer.dart';
 import '../widgets/chat_pane.dart';
 import '../widgets/liquid_glass.dart';
@@ -118,6 +118,20 @@ class _RoomScreenState extends State<RoomScreen>
   // Set during build; used by _recomputePositionState to know where the
   // chip "lives" so it can compute overlap with divider RenderBoxes.
   double _chipRestingY = 16;
+
+  // ──── attachment state ────
+  // Guards the whole attach flow against a second tap. Spans the attachment
+  // sheet, the picker and the camera screen, none of which used to be guarded at
+  // all — a double-tap on `+` opened two sheets and then two pickers, and the
+  // second one's result overwrote the first's.
+  bool _attachInFlight = false;
+
+  // Drives [BusyScrim]. Set only for the phases where the app is working and
+  // there is nothing on screen to say so: the picker's own re-encode of the
+  // chosen asset, which happens after its sheet has dismissed, and the read of
+  // the resulting bytes over the platform channel. Not set for the camera, which
+  // is its own full-screen UI already saying what it does.
+  bool _mediaBusy = false;
 
   // ──── reply state ────
   // The message the composer is currently replying to. Cleared on cancel or
@@ -493,9 +507,40 @@ class _RoomScreenState extends State<RoomScreen>
     if (widget.repo.timelineFor(widget.roomId).isEmpty) {
       _scrolledUp.value = false;
     }
+    _drainChildGate();
     // With reverse:true the viewport naturally starts at the bottom (newest
     // message). No initial jumpTo needed.
   }
+
+  /// Surface a child-guard refusal that nobody was awaiting.
+  ///
+  /// [_send] consumes its own refusal synchronously, right where it can put the
+  /// composer's text back. An attachment can't: `sendMediaLocal` is
+  /// fire-and-forget by design and may be refused seconds later, possibly after
+  /// the user has left the room. So a refused media send used to be *completely*
+  /// silent — the bubble was dropped, the reason was stashed, and nothing ever
+  /// read it. This is the catch-all. `takeChildGateError` is read-and-clear, so
+  /// the text path still wins its own race.
+  void _drainChildGate() {
+    if (_gateSheetOpen) return;
+    final gate = widget.repo.takeChildGateError();
+    if (gate == null) return;
+    _gateSheetOpen = true;
+    // Deferred a frame. This runs from a `notifyListeners` callback, and
+    // `showApprovalGate` pushes a route — do that while a frame is building and
+    // Flutter asserts. Nothing here is time-critical to the millisecond.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        _gateSheetOpen = false;
+        return;
+      }
+      _handleSendGate(gate).whenComplete(() => _gateSheetOpen = false);
+    });
+  }
+
+  /// A burst of refusals — several photos queued behind one revoked grant —
+  /// must not stack a sheet per photo on top of each other.
+  bool _gateSheetOpen = false;
 
   @override
   void dispose() {
@@ -763,6 +808,9 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Future<void> _onAttach() async {
+    // Before the haptic, so a second tap during the flow is silent rather than
+    // buzzing back at a user whose first tap is still being honoured.
+    if (_attachInFlight) return;
     HapticFeedback.lightImpact();
     if (FamilyService.maybeInstance?.canSendMedia == false) {
       await showApprovalGate(
@@ -772,31 +820,41 @@ class _RoomScreenState extends State<RoomScreen>
       );
       return;
     }
-    final choice = await showAttachmentMenu(context);
-    if (choice == null || !mounted) return;
-    final nav = Navigator.of(context);
-    switch (choice) {
-      case AttachmentMenuChoice.gallery:
-        await _pickAndSendFromGallery();
-        break;
-      case AttachmentMenuChoice.video:
-        await _pickAndSendVideo();
-        break;
-      case AttachmentMenuChoice.camera:
-        await _captureAndSend();
-        break;
-      case AttachmentMenuChoice.voice:
-        final bytes = await nav.push<Uint8List>(
-          MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
-        );
-        if (bytes != null) {
-          await _uploadAndSend(
-            bytes: bytes,
-            type: MessageType.audio,
-            contentType: 'audio/m4a',
+    // Not `onAttach: _attachInFlight ? null : _onAttach` on the composers, which
+    // is the obvious-looking way to do this: both of them drop the button
+    // entirely when the callback is null, so the composer would visibly reflow
+    // the moment the sheet opened and reflow back when it closed. The guard
+    // belongs in here, where it costs no layout.
+    _attachInFlight = true;
+    try {
+      final choice = await showAttachmentMenu(context);
+      if (choice == null || !mounted) return;
+      final nav = Navigator.of(context);
+      switch (choice) {
+        case AttachmentMenuChoice.gallery:
+          await _pickAndSendFromGallery();
+          break;
+        case AttachmentMenuChoice.video:
+          await _pickAndSendVideo();
+          break;
+        case AttachmentMenuChoice.camera:
+          await _captureAndSend();
+          break;
+        case AttachmentMenuChoice.voice:
+          final bytes = await nav.push<Uint8List>(
+            MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
           );
-        }
-        break;
+          if (bytes != null) {
+            _sendMedia(
+              bytes: bytes,
+              type: MessageType.audio,
+              contentType: 'audio/m4a',
+            );
+          }
+          break;
+      }
+    } finally {
+      _attachInFlight = false;
     }
   }
 
@@ -816,7 +874,7 @@ class _RoomScreenState extends State<RoomScreen>
       );
       if (outcome == null) return; // discarded
       if (outcome is EditorSend) {
-        await _uploadAndSend(
+        _sendMedia(
           bytes: outcome.image.bytes,
           type: MessageType.image,
           contentType: outcome.image.contentType,
@@ -864,28 +922,48 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Future<void> _pickAndSendFromGallery() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: pickerImageQuality,
-    );
-    if (picked == null) return;
-    final bytes = await picked.readAsBytes();
-    if (!mounted) return;
-    // Route through the same editor the camera path uses — gives the user a
-    // preview, optional annotation, and a deliberate "send" tap instead of
-    // shipping the photo the moment they pick it. No retake: there is no
-    // camera behind this photo to go back to.
-    final outcome = await CameraEditorScreen.open(context, source: bytes);
-    if (outcome is! EditorSend) return;
-    final img = outcome.image;
-    await _uploadAndSend(
-      bytes: img.bytes,
-      type: MessageType.image,
-      contentType: img.contentType,
-      pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
-      viewOnce: outcome.viewOnce,
-    );
+    // Raised BEFORE the picker, not after it. `pickerImageQuality` forces the
+    // plugin to fully decode and re-encode the chosen asset — seconds for a
+    // 12 megapixel HEIC — and that work happens once the native sheet has
+    // already slid away, so the user used to be handed back an unchanged chat
+    // screen and left to guess whether their tap had landed.
+    //
+    // Held for the whole method rather than lowered at the handoff: the editor
+    // route paints over the scrim, and the editor raises a spinner of its own
+    // while it decodes, so there is no frame where nothing is spinning. One
+    // raise, one lower, no interleaving around a route push.
+    _setMediaBusy(true);
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: pickerImageQuality,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      // Route through the same editor the camera path uses — gives the user a
+      // preview, optional annotation, and a deliberate "send" tap instead of
+      // shipping the photo the moment they pick it. No retake: there is no
+      // camera behind this photo to go back to.
+      final outcome = await CameraEditorScreen.open(context, source: bytes);
+      if (outcome is! EditorSend) return;
+      final img = outcome.image;
+      _sendMedia(
+        bytes: img.bytes,
+        type: MessageType.image,
+        contentType: img.contentType,
+        pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
+        viewOnce: outcome.viewOnce,
+      );
+    } finally {
+      _setMediaBusy(false);
+    }
+  }
+
+  void _setMediaBusy(bool busy) {
+    if (!mounted || _mediaBusy == busy) return;
+    setState(() => _mediaBusy = busy);
   }
 
   void _openProfile(ChatUser u) {
@@ -896,24 +974,43 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
+  /// Same uncovered gap as the photo pick, and worse: there is no editor behind
+  /// this one to take over the spinner, and a video's bytes are tens of
+  /// megabytes to read across the platform channel. The scrim covers the pick
+  /// and the read; the pending bubble covers the upload.
   Future<void> _pickAndSendVideo() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickVideo(source: ImageSource.gallery);
-    if (picked == null) return;
-    await _uploadAndSend(
-      bytes: await picked.readAsBytes(),
-      type: MessageType.video,
-      contentType: 'video/mp4',
-    );
+    _setMediaBusy(true);
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickVideo(source: ImageSource.gallery);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      _sendMedia(
+        bytes: bytes,
+        type: MessageType.video,
+        contentType: 'video/mp4',
+      );
+    } finally {
+      _setMediaBusy(false);
+    }
   }
 
-  /// Uploads [bytes] and posts them as a [type] message.
+  /// Puts [bytes] in the transcript now and uploads them behind it.
   ///
   /// [pixelSize] is the attachment's intrinsic size when the caller knows it —
   /// the image editor hands back exactly that. It rides along on the message so
   /// nobody, sender included, has to decode the picture before they can lay out
   /// a bubble the right shape for it.
-  Future<void> _uploadAndSend({
+  ///
+  /// Synchronous, and that is the whole change. This used to `await` the upload
+  /// and only *then* call `sendMedia`, which is where the optimistic bubble is
+  /// built — so the bubble existed for the length of the mutation (milliseconds)
+  /// and not for the length of the upload (seconds). The user tapped SEND, the
+  /// editor popped, and the transcript sat there unchanged until the photo
+  /// appeared fully formed. Now the repository owns the upload, so the bubble is
+  /// on screen on this frame and the send outlives this screen: walk out of the
+  /// room mid-upload and it still lands.
+  void _sendMedia({
     required Uint8List bytes,
     required MessageType type,
     required String contentType,
@@ -921,34 +1018,33 @@ class _RoomScreenState extends State<RoomScreen>
     /// Armed with the circled "1" in the editor: one look per recipient, then
     /// the file is deleted from the server.
     bool viewOnce = false,
-  }) async {
-    // Snapshot and disarm up front — see _send. Restored if the upload or the
-    // send throws, so a failure doesn't silently lose the reply target.
+  }) {
+    // Snapshot and disarm up front — see _send. Deliberately NOT restored on
+    // failure the way this used to be: the failure now arrives long after the
+    // composer has moved on, and re-arming a reply target under a user who has
+    // started typing something else is worse than losing it. Nothing is lost
+    // anyway — the reply rides on the pending bubble, so retrying it keeps the
+    // tether.
     final replyTarget = _replyingTo;
     if (replyTarget != null) setState(() => _replyingTo = null);
-    try {
-      final uploader = UploadService(widget.api);
-      final storageId =
-          await uploader.uploadFile(bytes: bytes, contentType: contentType);
-      await widget.repo.sendMedia(
-        roomId: widget.roomId,
-        storageId: storageId,
-        type: type,
-        mediaWidth: pixelSize?.width,
-        mediaHeight: pixelSize?.height,
-        replyToId: replyTarget?.id,
-        viewOnce: viewOnce,
-      );
-      _scrollToBottom();
-    } catch (_) {
-      /* TODO surface as toast */
-      if (mounted && replyTarget != null) {
-        setState(() => _replyingTo = replyTarget);
-      }
-    }
+    // Same two lines the text send does, for the same two reasons: a send while
+    // reading old history has to drop the window or the sender is left looking
+    // at a transcript their photo isn't in, and the bubble to scroll to now
+    // exists by the time we ask.
+    widget.repo.exitHistoryWindow(widget.roomId);
+    widget.repo.sendMediaLocal(
+      roomId: widget.roomId,
+      bytes: bytes,
+      contentType: contentType,
+      type: type,
+      mediaWidth: pixelSize?.width,
+      mediaHeight: pixelSize?.height,
+      replyToId: replyTarget?.id,
+      viewOnce: viewOnce,
+    );
+    _scrollToBottom();
   }
 
-  @override
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -999,6 +1095,10 @@ class _RoomScreenState extends State<RoomScreen>
               _buildClassic(context, room, messages, items, me)
             else
               _buildLiquid(context, room, messages, items, me),
+            // Last, so it covers the header and the composer too — a scrim that
+            // dims the transcript but leaves a live attach button underneath it
+            // is an invitation to make the problem worse.
+            if (_mediaBusy) const BusyScrim(),
           ],
         ),
       ),
@@ -1330,6 +1430,14 @@ class _RoomScreenState extends State<RoomScreen>
                     m.status == MessageStatus.sent &&
                     m.type != MessageType.system;
                 final hasParent = m.isReply;
+                // Only a failed send gets handed live retry/discard callbacks.
+                // The tile draws the pair when it has them, so gating here is
+                // what keeps a healthy bubble from offering to resend itself.
+                final sendFailed =
+                    isPending && m.status == MessageStatus.error;
+                Future<void> onRetrySend() =>
+                    widget.repo.retryPending(m.id);
+                void onDiscardSend() => widget.repo.discardPending(m.id);
                 final highlightT = (_highlightedMessageId == m.id)
                     ? _highlightCtrl.value
                     : 0.0;
@@ -1490,6 +1598,8 @@ class _RoomScreenState extends State<RoomScreen>
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
+                        onRetrySend: sendFailed ? onRetrySend : null,
+                        onDiscardSend: sendFailed ? onDiscardSend : null,
                       )
                     : MessageBubble(
                         key: ValueKey('s_${m.id}'),
@@ -1517,6 +1627,8 @@ class _RoomScreenState extends State<RoomScreen>
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
+                        onRetrySend: sendFailed ? onRetrySend : null,
+                        onDiscardSend: sendFailed ? onDiscardSend : null,
                       );
                 return _trackedDate(
                   stableId: 'm_${m.id}',

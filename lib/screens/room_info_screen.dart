@@ -15,6 +15,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
+import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
@@ -54,6 +55,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   Duration? _ttl;
   bool _loaded = false;
   bool _saving = false;
+  /// Narrower than [_saving], which is also true while the form is being saved
+  /// and drives the spinner inside the SAVE button. This one says specifically
+  /// "a new picture is on its way", so the spinner can go where the user is
+  /// looking — on the avatar itself.
+  bool _changingAvatar = false;
   bool _leaving = false;
   bool _deleting = false;
   String? _error;
@@ -234,30 +240,40 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     }
   }
 
+  /// Pick, crop and upload a new room picture.
+  ///
+  /// Marked in-flight BEFORE the picker rather than after the crop screen
+  /// returns. The old order was defended as "cancelling here needs no state reset
+  /// at all", which was true and beside the point: `pickerImageQuality` forces
+  /// the plugin to decode and re-encode the chosen asset, which for a large photo
+  /// is seconds of work happening after its sheet has dismissed, and the only
+  /// spinner `_saving` drives lives inside the SAVE button at the far end of the
+  /// form. So the whole pick-and-crop happened with nothing on this screen
+  /// moving. Paying for the extra resets on the two cancel paths is the cheaper
+  /// half of that trade.
   Future<void> _changeAvatar() async {
     final r = _room;
     final me = widget.repo.userId;
     if (r == null || me == null) return;
-    final picked = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      imageQuality: pickerImageQuality,
-    );
-    if (picked == null) return;
-    final bytes = await picked.readAsBytes();
-    if (!mounted) return;
-    // Crop before anything is marked in-flight, so cancelling here needs no
-    // state reset at all.
-    final cropped = await ImageCropScreen.open(
-      context,
-      source: bytes,
-      shape: CropShape.circle,
-    );
-    if (cropped == null || !mounted) return;
     setState(() {
       _saving = true;
+      _changingAvatar = true;
       _error = null;
     });
     try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: pickerImageQuality,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      final cropped = await ImageCropScreen.open(
+        context,
+        source: bytes,
+        shape: CropShape.circle,
+      );
+      if (cropped == null || !mounted) return;
       final uploader = UploadService(widget.api);
       final storageId = await uploader.uploadFile(
         bytes: cropped.bytes,
@@ -268,14 +284,19 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         userId: me,
         storageId: storageId,
       );
-      if (!mounted) return;
-      setState(() => _saving = false);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _saving = false;
-        _error = _humanize(e);
-      });
+      setState(() => _error = _humanize(e));
+    } finally {
+      // One place that lowers both flags, for every path out — cancelled picker,
+      // cancelled crop, failed upload, success. The old version spelled the
+      // reset out three times and still missed the cancels.
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _changingAvatar = false;
+        });
+      }
     }
   }
 
@@ -792,6 +813,28 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                     )
                   : picture,
             ),
+            if (_changingAvatar)
+              Positioned(
+                left: 0,
+                top: 0,
+                width: size,
+                height: size,
+                // Must not swallow taps meant for the badge.
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withValues(alpha: 0.45),
+                    ),
+                    child: Center(
+                      child: PhotoSpinner(
+                        size: 26,
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               right: 0,
               bottom: 0,

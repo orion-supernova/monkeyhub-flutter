@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -6,6 +8,7 @@ import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/enums.dart';
+import 'package:monkeyhub/models/pending_upload.dart';
 import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -64,11 +67,17 @@ void main() {
         ),
       );
 
-  Widget bubble(ChatMessage m, {bool isMine = false}) => MessageBubble(
+  Widget bubble(
+    ChatMessage m, {
+    bool isMine = false,
+    bool seenByOthers = false,
+  }) =>
+      MessageBubble(
         message: m,
         now: DateTime(2026, 3, 1, 12, 4),
         currentUserId: isMine ? 'alice' : 'bob',
         api: api,
+        seenByOthers: seenByOthers,
         author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
       );
 
@@ -171,6 +180,59 @@ void main() {
     expect(find.byIcon(Icons.schedule), findsNothing);
   });
 
+  group('an attachment still going up', () {
+    testWidgets('shows the upload glyph rather than the pending clock',
+        (tester) async {
+      await tester
+          .pumpWidget(host(bubble(msg(status: MessageStatus.uploading))));
+
+      expect(
+        find.descendant(
+            of: visibleStamp, matching: find.byIcon(Icons.arrow_upward)),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.schedule), findsNothing);
+    });
+
+    testWidgets('is never marked seen, however far ahead the read cursor is',
+        (tester) async {
+      // `seenByOthers` is another member's read cursor measured against this
+      // message's timestamp, and a cursor already past "now" makes it true for a
+      // message created a moment ago. Left to fall through to the showSeen
+      // branch, an upload in flight would draw `done_all` — "seen" — on a photo
+      // nobody has received yet.
+      await tester.pumpWidget(host(bubble(
+        msg(status: MessageStatus.uploading),
+        isMine: true,
+        seenByOthers: true,
+      )));
+
+      expect(find.byIcon(Icons.done_all), findsNothing);
+      expect(
+        find.descendant(
+            of: visibleStamp, matching: find.byIcon(Icons.arrow_upward)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a sent message with the same cursor DOES read as seen',
+        (tester) async {
+      // The control for the test above: it must be pinning the uploading branch,
+      // not a broken seen path.
+      await tester.pumpWidget(host(bubble(
+        msg(),
+        isMine: true,
+        seenByOthers: true,
+      )));
+
+      expect(
+        find.descendant(
+            of: visibleStamp, matching: find.byIcon(Icons.done_all)),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('messageStampsInline', () {
     test('plain text carries its own stamp', () {
       expect(messageStampsInline(msg(), showLinkUrls: true), isTrue);
@@ -215,6 +277,29 @@ void main() {
             showLinkUrls: true),
         isFalse,
       );
+    });
+
+    test('an outgoing photo hosts its stamp before it has a storage id', () {
+      // Otherwise a captionless photo starts life with an external timestamp row
+      // and has the row taken away the instant the upload finishes — the bubble
+      // grows a line and then loses it, while the user watches.
+      final m = ChatMessage(
+        id: 'tmp_1',
+        roomId: 'r',
+        senderId: 'alice',
+        senderName: 'alice',
+        content: '',
+        createdAt: DateTime(2026, 3, 1, 12, 4),
+        type: MessageType.image,
+        status: MessageStatus.uploading,
+        upload: PendingUpload(
+          bytes: Uint8List.fromList(const [1, 2, 3]),
+          contentType: 'image/jpeg',
+        ),
+      );
+      addTearDown(m.upload!.dispose);
+
+      expect(messageStampsInline(m, showLinkUrls: true), isTrue);
     });
   });
 }

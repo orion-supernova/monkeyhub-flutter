@@ -1,6 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
+// Narrowed on purpose. Everything else here is built out of `widgets`, and the
+// one thing this file needs from Material is the spinner — there is no
+// widgets-level progress indicator. A `show` clause says that out loud instead
+// of quietly opening the whole library to whoever edits next.
+import 'package:flutter/material.dart' show CircularProgressIndicator;
 
 import '../keyboard/focusable_tap.dart';
 
@@ -39,6 +44,46 @@ class PhotoChrome {
     blurRadius: 14,
     offset: Offset(0, 4),
   );
+}
+
+/// The one spinner the photo screens use.
+///
+/// Was copy-pasted verbatim in three places — the camera preview, the post-
+/// capture editor and the avatar cropper — each spelling out the same
+/// `SizedBox(22, 22)` wrapping a `strokeWidth: 2` indicator. Three copies of a
+/// number is three chances for one of them to drift, and a spinner that is 22pt
+/// on one screen and 24 on the next is exactly the kind of difference nobody
+/// notices and everybody feels.
+///
+/// [value] is null for indeterminate — the usual case, where there is nothing to
+/// count. Pass 0..1 where the work reports itself honestly: an upload that knows
+/// how many bytes have gone out. Never pass a made-up number; a bar that moves
+/// on a timer is worse than one that admits it doesn't know.
+class PhotoSpinner extends StatelessWidget {
+  const PhotoSpinner({super.key, this.size = 22, this.color, this.value});
+
+  final double size;
+
+  /// Defaults to [PhotoChrome.inkDim] — legible over any photograph, quiet
+  /// enough not to compete with it. Pass `theme.accent` on the surfaces that
+  /// aren't over a photo.
+  final Color? color;
+
+  /// 0..1, or null for indeterminate.
+  final double? value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CircularProgressIndicator(
+        value: value,
+        strokeWidth: 2,
+        color: color ?? PhotoChrome.inkDim,
+      ),
+    );
+  }
 }
 
 /// A circular glass icon button.

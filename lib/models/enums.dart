@@ -4,7 +4,19 @@ enum RoomType { regular, secret }
 
 enum MessageType { text, image, video, audio, url, system }
 
-enum MessageStatus { pending, sent, error }
+/// Where an outgoing message is in its journey.
+///
+/// [uploading] is media-only and load-bearing rather than cosmetic. An
+/// attachment's bytes go up before the message that references them can be
+/// posted, so for a few seconds there is an optimistic message with no
+/// `mediaStorageId`. Both reconnect sweepers in `ChatRepository` re-issue
+/// `messages:send` for anything sitting in `pending` or `error` — so without a
+/// state that says "not sendable yet", the first socket reconnect during an
+/// upload would post an image message pointing at nothing.
+///
+/// Never serialized: `ChatMessage.toJson` omits it and `fromJson` defaults to
+/// [sent], which is why the order of these is free to change.
+enum MessageStatus { uploading, pending, sent, error }
 
 extension RoomTypeWire on RoomType {
   String get wire => this == RoomType.secret ? 'secret' : 'regular';

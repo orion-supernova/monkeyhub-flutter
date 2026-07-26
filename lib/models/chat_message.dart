@@ -1,5 +1,6 @@
 import 'enums.dart';
 import 'message_reaction.dart';
+import 'pending_upload.dart';
 
 /// Denormalized snapshot of the parent message a reply was made against.
 /// Stored alongside the child message at send time so the inline tether
@@ -68,6 +69,7 @@ class ChatMessage {
     this.viewOnce = false,
     this.viewOnceOpened = false,
     this.viewOnceBurnedAt,
+    this.upload,
   }) : reactions = reactions ?? [];
 
   final String id;
@@ -129,6 +131,16 @@ class ChatMessage {
   final DateTime? viewOnceBurnedAt;
 
   bool get viewOnceBurned => viewOnceBurnedAt != null;
+
+  /// The attachment's own bytes, present only on an optimistic message whose
+  /// upload has not been reconciled away yet. Non-null is what makes a bubble
+  /// paint the picture the sender chose instead of fetching back the one they
+  /// just sent.
+  ///
+  /// Never leaves the process: [toJson] enumerates its keys and this is not among
+  /// them, and the disk cache is only ever handed server-parsed messages — the
+  /// pending list has no path to it at all.
+  final PendingUpload? upload;
 
   /// Can this viewer still open it? False once burned, once spent, and on the
   /// sender's own copy — there is no reopen path for the sender, because with
@@ -250,5 +262,9 @@ class ChatMessage {
         viewOnce: viewOnce,
         viewOnceOpened: viewOnceOpened ?? this.viewOnceOpened,
         viewOnceBurnedAt: viewOnceBurnedAt,
+        // Carried, not droppable. A copyWith that quietly lost the bytes of an
+        // in-flight send would leave a bubble that can neither paint its picture
+        // nor be retried, and nothing about the call site would hint at it.
+        upload: upload,
       );
 }
