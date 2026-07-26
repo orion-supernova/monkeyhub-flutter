@@ -184,47 +184,54 @@ Future<ui.Size> imageBytesSize(Uint8List bytes) async {
   }
 }
 
-/// Mirrors [source] horizontally and re-encodes it as a JPEG.
+/// Reflects [src] about its vertical centre line. Does not dispose [src].
 ///
 /// Every camera mirrors its own front-lens *preview* — you see yourself the way
-/// a mirror shows you — but writes the file the way the lens saw it, which is
-/// reversed from what the user was just looking at. Applied at capture time on
-/// the front lens only, this makes the file agree with the preview.
+/// a mirror shows you — but records the frame the way the lens saw it, reversed
+/// from what you were just looking at. Neither iOS, Android nor the web plugin
+/// mirrors the capture, and none of them offers a switch, so a front-lens
+/// photograph has to be flipped somewhere before the user sees it again.
 ///
-/// Done eagerly, as one full-resolution re-encode, rather than carried as a
-/// flag through the editor: both the avatar cropper and the chat editor consume
-/// plain bytes, and the editor's "an untouched photo is passed through
-/// untouched" optimisation only works if what it was handed is already the
-/// picture the user means to send.
-Future<CroppedImage> mirrorImageBytes(Uint8List source, {int quality = 90}) async {
-  final img = await decodeImageBytes(source);
-  try {
-    final w = img.width;
-    final h = img.height;
-    final dst = ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble());
-    final recorder = ui.PictureRecorder();
-    final canvas = ui.Canvas(recorder, dst);
-    // Opaque backdrop: rasterToJpegBytes reads PREMULTIPLIED rawRgba, which
-    // only equals straight RGBA where alpha is 255.
-    canvas.drawRect(dst, ui.Paint()..color = const ui.Color(0xFF000000));
-    // Reflect about the vertical centre line: shift right by the full width,
-    // then negate x. Pure reflection at 1:1 — no resampling, so nothing softens.
-    canvas.translate(w.toDouble(), 0);
-    canvas.scale(-1, 1);
-    canvas.drawImage(
-      img,
-      ui.Offset.zero,
-      ui.Paint()
-        ..isAntiAlias = true
-        ..filterQuality = ui.FilterQuality.medium,
-    );
-    final picture = recorder.endRecording();
-    final raster = await picture.toImage(w, h);
-    picture.dispose();
-    return rasterToJpegBytes(raster, quality: quality);
-  } finally {
-    img.dispose();
-  }
+/// That "somewhere" is deliberately **not** at capture time. Flipping the
+/// encoded bytes means a full-resolution decode, rasterize, read-back and
+/// re-encode standing between the shutter and the next screen, which is exactly
+/// where a camera must not pause. Both screens downstream — the avatar cropper
+/// and the chat editor — already decode the photo to a [ui.Image] and already
+/// rasterize once on the way out. So they take a `mirrored` flag instead and
+/// call this on the image they were going to decode anyway; the flip rides
+/// along with work that was happening regardless, and the shutter returns
+/// immediately.
+///
+/// Pure reflection at 1:1, so no resampling and nothing softens.
+Future<ui.Image> flipImageHorizontally(ui.Image src) async {
+  final w = src.width;
+  final h = src.height;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(
+    recorder,
+    ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
+  );
+  mirrorCanvasHorizontally(canvas, w.toDouble());
+  canvas.drawImage(
+    src,
+    ui.Offset.zero,
+    ui.Paint()..filterQuality = ui.FilterQuality.medium,
+  );
+  final picture = recorder.endRecording();
+  final flipped = await picture.toImage(w, h);
+  picture.dispose();
+  return flipped;
+}
+
+/// Reflects everything drawn afterwards about the vertical centre line of a
+/// [width]-wide box: shift right by the full width, then negate x.
+///
+/// Shared so the on-screen flip and the one replayed at export cannot drift
+/// apart — the same reason the editor's stroke painter is a single function
+/// used by both its preview and its exporter.
+void mirrorCanvasHorizontally(ui.Canvas canvas, double width) {
+  canvas.translate(width, 0);
+  canvas.scale(-1, 1);
 }
 
 /// Encodes a freshly rasterized [ui.Image] to JPEG bytes.

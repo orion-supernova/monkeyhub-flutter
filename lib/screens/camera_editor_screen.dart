@@ -36,6 +36,7 @@ class CameraEditorScreen extends StatefulWidget {
     super.key,
     required this.source,
     this.canRetake = false,
+    this.mirrored = false,
   });
 
   /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
@@ -47,14 +48,30 @@ class CameraEditorScreen extends StatefulWidget {
   /// absent rather than disabled.
   final bool canRetake;
 
+  /// Whether [source] is a front-lens capture that still has to be reflected to
+  /// match the preview the user framed it in.
+  ///
+  /// Treated exactly like rotation: applied eagerly to the display decode so
+  /// what is on screen is the truth, and replayed against the full-resolution
+  /// decode at export. It costs nothing extra either way — the display decode
+  /// and the export rasterize both happen regardless — where flipping the
+  /// encoded bytes at capture time would stall the shutter on a full-resolution
+  /// re-encode.
+  final bool mirrored;
+
   static Future<EditorOutcome?> open(
     BuildContext context, {
     required Uint8List source,
     bool canRetake = false,
+    bool mirrored = false,
   }) {
     return Navigator.of(context).push<EditorOutcome>(
       MaterialPageRoute(
-        builder: (_) => CameraEditorScreen(source: source, canRetake: canRetake),
+        builder: (_) => CameraEditorScreen(
+          source: source,
+          canRetake: canRetake,
+          mirrored: mirrored,
+        ),
       ),
     );
   }
@@ -239,8 +256,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
   Future<void> _load() async {
     try {
-      final image =
-          await decodeImageBytes(widget.source, maxEdge: _maxDisplayEdge);
+      var image = await decodeImageBytes(widget.source, maxEdge: _maxDisplayEdge);
+      // Eagerly, like rotation, so what is on screen is always the truth and
+      // every stroke the user draws lands in the same frame the export uses.
+      if (widget.mirrored) {
+        final flipped = await flipImageHorizontally(image);
+        image.dispose();
+        image = flipped;
+      }
       if (!mounted) {
         image.dispose();
         return;
@@ -271,7 +294,13 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Rect get _viewport =>
       _tool == _Tool.crop ? const Rect.fromLTWH(0, 0, 1, 1) : _crop;
 
+  /// Whether the sent photo has to be rebuilt rather than passed through.
+  ///
+  /// `mirrored` counts: the bytes we were handed are the un-reflected capture,
+  /// so passing them through would send the selfie backwards — the exact bug
+  /// this flag exists to fix.
   bool get _hasEdits =>
+      widget.mirrored ||
       _strokes.isNotEmpty ||
       _rotations != 0 ||
       _crop != const Rect.fromLTWH(0, 0, 1, 1);
@@ -543,6 +572,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       // maths of its own — it is already expressed in the rotated frame.
       canvas.translate(-cropPx.left, -cropPx.top);
       _applyRotation(canvas, srcW, srcH);
+      // After the rotation the canvas is back in the image's own unrotated
+      // frame, which is where the display copy was flipped — so applying it
+      // here replays the same order the user saw: mirror, then rotate.
+      if (widget.mirrored) mirrorCanvasHorizontally(canvas, srcW);
       canvas.drawImage(
         full,
         Offset.zero,

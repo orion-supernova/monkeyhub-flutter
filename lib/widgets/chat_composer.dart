@@ -30,6 +30,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onAttach,
+    this.onCamera,
     this.padding,
   });
 
@@ -41,6 +42,14 @@ class ChatComposerClassic extends StatelessWidget {
 
   /// Pass null to hide the attach button entirely.
   final VoidCallback? onAttach;
+
+  /// Opens the camera in one tap, without going through the attachment sheet.
+  ///
+  /// Nullable for the same reason [onAttach] is, and it matters as much: the
+  /// thread overlay builds this composer inside a root `OverlayEntry`, and the
+  /// camera is a full-screen route that would fight it for layering. Pass null
+  /// and the button is absent rather than present and broken.
+  final VoidCallback? onCamera;
 
   /// Overrides the default outer padding. Only needed by hosts that own
   /// their own keyboard insets; leave null inside a `Scaffold`.
@@ -110,6 +119,35 @@ class ChatComposerClassic extends StatelessWidget {
               ),
             ),
           ),
+          // Built like the attach button, not like send: send carries a glow
+          // that marks it as the one primary action, and a second glowing
+          // circle beside it would read as a rival rather than a shortcut.
+          if (onCamera != null) ...[
+            const SizedBox(width: 10),
+            FocusableTap(
+              onTap: onCamera,
+              semanticLabel: 'Camera',
+              shape: FocusRingShape.circle,
+              child: GestureDetector(
+                onTap: onCamera,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.surfaceRaised,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.divider),
+                  ),
+                  child: Icon(
+                    Icons.photo_camera_outlined,
+                    color: theme.inkSoft,
+                    size: 18,
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(width: 10),
           FocusableTap(
             onTap: onSend,
@@ -151,6 +189,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onAttach,
+    this.onCamera,
     this.padding,
   });
 
@@ -162,6 +201,14 @@ class ChatComposerLiquid extends StatelessWidget {
 
   /// Pass null to hide the attach button entirely.
   final VoidCallback? onAttach;
+
+  /// Opens the camera in one tap, without going through the attachment sheet.
+  ///
+  /// Nullable for the same reason [onAttach] is, and it matters as much: the
+  /// thread overlay builds this composer inside a root `OverlayEntry`, and the
+  /// camera is a full-screen route that would fight it for layering. Pass null
+  /// and the button is absent rather than present and broken.
+  final VoidCallback? onCamera;
 
   /// Overrides the default outer padding, including the bottom safe area
   /// this widget would otherwise add. Only needed by hosts that own their
@@ -220,6 +267,23 @@ class ChatComposerLiquid extends StatelessWidget {
               ),
             ),
           ),
+          // Untinted, unlike send: `tinted: true` is what marks the one primary
+          // action, and a second tinted circle beside it would read as a rival
+          // rather than a shortcut. LiquidGlass supplies its own press animation
+          // and wraps itself in FocusableTap, so no extra wrapper here.
+          if (onCamera != null) ...[
+            const SizedBox(width: 12),
+            LiquidGlass(
+              shape: LiquidGlassShape.circle,
+              size: const Size(44, 44),
+              onTap: onCamera,
+              child: Icon(
+                Icons.photo_camera_outlined,
+                size: 18,
+                color: theme.accent,
+              ),
+            ),
+          ],
           const SizedBox(width: 12),
           LiquidGlass(
             shape: LiquidGlassShape.circle,

@@ -22,8 +22,8 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 ///
 /// Nothing here touches the export path. `Picture.toImage()` is real raster
 /// work that never resolves under flutter_test's fake-async binding — see the
-/// note in image_crop_geometry_test.dart — which also rules out a unit test for
-/// `mirrorImageBytes`; that one is verified on a device.
+/// note in image_crop_geometry_test.dart. The way around that is
+/// `tester.runAsync`, which image_mirror_test.dart uses to pin the selfie flip.
 void main() {
   /// A solid PNG for the screen to decode.
   ///

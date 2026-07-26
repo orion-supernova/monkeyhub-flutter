@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
@@ -7,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
-import '../media/image_raster.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
 
@@ -21,16 +21,15 @@ import '../widgets/photo_chrome.dart';
 ///    Retake / Use Photo step, and there is no flag to skip it. Both callers
 ///    then push a *second* review surface — the circle cropper for avatars, the
 ///    editor for chat — so the user confirmed the same photograph twice.
-///  * **Selfies came out reversed.** Every camera mirrors its front-lens
-///    preview and writes the file unmirrored. Correcting that needs to know
-///    which lens fired, and `image_picker` never says: it opens on the rear
-///    lens and the user can flip inside a UI we don't control.
+///  * **Selfies came out reversed.** Correcting that needs to know which lens
+///    fired, and `image_picker` never says: it opens on the rear lens and the
+///    user can flip inside a UI we don't control.
 ///
-/// Owning the preview fixes both at once. The lens is ours, so the mirror is
-/// applied exactly when it should be ([mirrorImageBytes]), and the shutter pops
-/// straight back to the caller.
+/// Owning the preview fixes both. It also means owning the failure modes, so
+/// [CameraUnavailable] exists: if the hardware or the plugin will not start,
+/// the caller falls back to the system camera rather than dead-ending.
 ///
-/// Pops the captured photo's bytes, or null if the user backed out.
+/// Pops a [CameraResult], or null if the user backed out.
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key, this.initialLens = CameraLensDirection.back});
 
@@ -38,11 +37,11 @@ class CameraScreen extends StatefulWidget {
   /// yourself; chat opens back.
   final CameraLensDirection initialLens;
 
-  static Future<Uint8List?> open(
+  static Future<CameraResult?> open(
     BuildContext context, {
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) {
-    return Navigator.of(context).push<Uint8List>(
+    return Navigator.of(context).push<CameraResult>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => CameraScreen(initialLens: initialLens),
@@ -50,28 +49,88 @@ class CameraScreen extends StatefulWidget {
     );
   }
 
+  /// Starts the camera-list lookup without opening anything.
+  ///
+  /// `availableCameras()` is a platform round-trip whose answer cannot change
+  /// during a session. Calling this when a camera button first appears on
+  /// screen takes it off the critical path of the tap that follows.
+  static void warmUp() {
+    if (kIsWeb) return; // Enumerating devices in a browser prompts for access.
+    unawaited(_CameraScreenState._availableCameras());
+  }
+
   @override
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-/// Why the camera isn't showing, when it isn't.
-enum _Fault { denied, unavailable, failed }
+/// How the camera screen finished.
+sealed class CameraResult {
+  const CameraResult();
+}
+
+/// A photograph.
+class CameraPhoto extends CameraResult {
+  const CameraPhoto({required this.bytes, required this.mirrored});
+
+  final Uint8List bytes;
+
+  /// Whether these bytes still need mirroring to match the preview the user was
+  /// looking at when they pressed the shutter.
+  ///
+  /// Carried rather than applied here on purpose. Mirroring costs a full
+  /// decode-rasterize-re-encode, and both screens downstream already rasterize
+  /// once — so the flip rides along with work that was happening anyway instead
+  /// of stalling the shutter. See `CameraEditorScreen` and `ImageCropScreen`.
+  final bool mirrored;
+}
+
+/// The user asked for the photo library instead. The caller owns the picker.
+class CameraPickLibrary extends CameraResult {
+  const CameraPickLibrary();
+}
+
+/// The camera could not be started, for a reason that is not the user saying
+/// no. Callers should fall back to `ImagePicker(source: camera)`.
+class CameraUnavailable extends CameraResult {
+  const CameraUnavailable();
+}
 
 class _CameraScreenState extends State<CameraScreen>
     with WidgetsBindingObserver {
-  /// Front-lens captures are mirrored to match the preview the user was just
-  /// looking at. Both platforms hand back the unmirrored sensor image today; if
-  /// one ever changes, this is the single line to flip.
-  static const _mirrorFrontCaptures = true;
-
-  /// Whether flash and tap-to-focus can be driven at all.
+  /// Front-lens *captures* come back un-mirrored on every platform: iOS gives
+  /// `AVCapturePhotoOutput` an auto-formed connection that `isVideoMirrored`
+  /// never touches, CameraX's `ImageCapture` defaults to `MIRROR_MODE_OFF`, and
+  /// `camera_web` mirrors the `<video>` element's CSS but not the grabbed frame.
   ///
-  /// `camera_web` implements neither, and signals that with a bare
+  /// The **preview** is the opposite — every platform mirrors it for you, at
+  /// its own layer (iOS on the video-data connection, web in CSS, Android in
+  /// the preview delegate or the surface producer depending on the rendering
+  /// backend). That asymmetry is the whole bug, and it is why there is no
+  /// `Transform` around [CameraPreview] below: an app-side flip cancels the
+  /// platform's and hands the user a preview that is backwards.
+  static const _captureNeedsMirroring = true;
+
+  /// Whether flash, focus and zoom can be driven at all.
+  ///
+  /// `camera_web` implements none of them, and signals that with a bare
   /// `UnimplementedError` — not the `CameraException` every catch on this
-  /// screen is written for. The unguarded `setFlashMode` in [_select] would
-  /// therefore escape and the camera would never open in a browser at all.
-  /// Both controls are simply absent there rather than present and inert.
+  /// screen is written for. An unguarded `setFlashMode` would therefore escape
+  /// and the camera would never open in a browser at all. The controls are
+  /// simply absent there rather than present and inert.
   static const _lensControls = !kIsWeb;
+
+  /// Memoized because the answer cannot change while the app is running, and
+  /// the round-trip is otherwise paid on every single open.
+  static Future<List<CameraDescription>>? _camerasOnce;
+
+  static Future<List<CameraDescription>> _availableCameras() {
+    return _camerasOnce ??= availableCameras().catchError((Object _) {
+      // Don't cache a failure: a denied permission can be granted in Settings
+      // and the next open should find the cameras.
+      _camerasOnce = null;
+      return <CameraDescription>[];
+    });
+  }
 
   List<CameraDescription> _cameras = const [];
   CameraController? _controller;
@@ -87,6 +146,18 @@ class _CameraScreenState extends State<CameraScreen>
   Offset? _focusPoint;
   int _focusToken = 0;
 
+  double _minZoom = 1;
+  double _maxZoom = 1;
+  double _zoom = 1;
+  double _zoomAtGestureStart = 1;
+  bool _zoomPillVisible = false;
+  int _zoomPillToken = 0;
+
+  /// Live pointer count. `onScaleUpdate` fires for one-finger drags too, where
+  /// `scale` is pinned at 1 — without this a pan would fight tap-to-focus for
+  /// the arena and neither would feel right.
+  int _pointers = 0;
+
   @override
   void initState() {
     super.initState();
@@ -98,13 +169,15 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();
     super.dispose();
   }
 
   /// Without this the preview freezes permanently the first time the app is
   /// backgrounded — the OS tears the capture session down underneath us and the
-  /// controller never notices.
+  /// controller never notices. This is the pattern the plugin's own README
+  /// prescribes; lifecycle has not been the plugin's job since 0.5.0.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final controller = _controller;
@@ -112,6 +185,7 @@ class _CameraScreenState extends State<CameraScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _controller = null;
+      controller.removeListener(_onControllerUpdate);
       controller.dispose();
       if (mounted) setState(() {});
     } else if (state == AppLifecycleState.resumed) {
@@ -122,17 +196,12 @@ class _CameraScreenState extends State<CameraScreen>
   // ------------------------------------------------------------------ startup
 
   Future<void> _boot() async {
-    try {
-      _cameras = await availableCameras();
-    } on CameraException catch (e) {
-      _fail(e);
-      return;
-    } catch (_) {
-      if (mounted) setState(() => _fault = _Fault.unavailable);
-      return;
-    }
+    _cameras = await _availableCameras();
+    if (!mounted) return;
     if (_cameras.isEmpty) {
-      if (mounted) setState(() => _fault = _Fault.unavailable);
+      // No cameras, or the enumeration itself failed. Either way this screen
+      // has nothing to show and the system camera might.
+      setState(() => _fault = _Fault.unavailable);
       return;
     }
     await _select(widget.initialLens);
@@ -151,26 +220,47 @@ class _CameraScreenState extends State<CameraScreen>
     final previous = _controller;
     _controller = null;
     if (mounted) setState(() {});
+    previous?.removeListener(_onControllerUpdate);
     await previous?.dispose();
 
     final controller = CameraController(
       description,
+      // The session preset caps the *photo* output too, and the plugin never
+      // uses AVCaptureSessionPreset.photo — so this is a 1920×1080 JPEG, which
+      // is the right size for a sent photo and leaves headroom for the 1024px
+      // avatar crop. `high` would be 720p; `max` would trade a full-sensor
+      // capture for materially worse shutter latency.
       ResolutionPreset.veryHigh,
       // Stills only. Requesting audio would trigger a microphone permission
-      // prompt the user has no reason to connect with taking a photo.
+      // prompt the user has no reason to connect with taking a photo, and adds
+      // a second capture session to start.
       enableAudio: false,
     );
 
     try {
       await controller.initialize();
-      // The flash mode does not survive a controller swap, so re-assert it.
-      if (_lensControls &&
-          description.lensDirection == CameraLensDirection.back) {
-        await controller.setFlashMode(_flash);
+      if (_lensControls) {
+        // The flash mode does not survive a controller swap, so re-assert it.
+        if (description.lensDirection == CameraLensDirection.back) {
+          await controller.setFlashMode(_flash);
+        }
+        // Fetched together, once: both are platform round-trips and neither
+        // changes for the life of this controller.
+        final range = await Future.wait([
+          controller.getMinZoomLevel(),
+          controller.getMaxZoomLevel(),
+        ]);
+        _minZoom = range[0];
+        _maxZoom = range[1];
       }
     } on CameraException catch (e) {
       await controller.dispose();
       _fail(e);
+      return;
+    } catch (_) {
+      // camera_web throws bare UnimplementedErrors rather than CameraException.
+      await controller.dispose();
+      if (mounted) setState(() => _fault = _Fault.failed);
       return;
     }
 
@@ -178,11 +268,23 @@ class _CameraScreenState extends State<CameraScreen>
       await controller.dispose();
       return;
     }
+    controller.addListener(_onControllerUpdate);
     setState(() {
       _controller = controller;
       _lens = description.lensDirection;
+      _zoom = _minZoom;
       _fault = null;
     });
+  }
+
+  /// A session can die mid-flight — thermal shutdown, another app seizing the
+  /// camera. Without this the preview simply freezes with no explanation.
+  void _onControllerUpdate() {
+    final controller = _controller;
+    if (!mounted || controller == null) return;
+    if (controller.value.hasError && _fault == null) {
+      setState(() => _fault = _Fault.failed);
+    }
   }
 
   void _fail(CameraException e) {
@@ -198,7 +300,8 @@ class _CameraScreenState extends State<CameraScreen>
     });
   }
 
-  bool get _mirrored => _lens == CameraLensDirection.front;
+  bool get _isFront => _lens == CameraLensDirection.front;
+  bool get _ready => _controller?.value.isInitialized ?? false;
 
   // ------------------------------------------------------------------ actions
 
@@ -206,7 +309,7 @@ class _CameraScreenState extends State<CameraScreen>
     if (_cameras.length < 2 || _capturing) return;
     HapticFeedback.selectionClick();
     await _select(
-      _mirrored ? CameraLensDirection.back : CameraLensDirection.front,
+      _isFront ? CameraLensDirection.back : CameraLensDirection.front,
     );
   }
 
@@ -227,6 +330,36 @@ class _CameraScreenState extends State<CameraScreen>
     if (mounted) setState(() => _flash = next);
   }
 
+  // --------------------------------------------------------------------- zoom
+
+  void _onScaleStart(ScaleStartDetails _) => _zoomAtGestureStart = _zoom;
+
+  Future<void> _onScaleUpdate(ScaleUpdateDetails d) async {
+    final controller = _controller;
+    if (controller == null || !_lensControls || _pointers != 2) return;
+    final next = (_zoomAtGestureStart * d.scale).clamp(_minZoom, _maxZoom);
+    if ((next - _zoom).abs() < 0.01) return;
+    _zoom = next;
+    _showZoomPill();
+    try {
+      await controller.setZoomLevel(next);
+    } catch (_) {
+      // Some browsers and some fixed-focal lenses simply don't zoom.
+    }
+  }
+
+  void _showZoomPill() {
+    final token = ++_zoomPillToken;
+    setState(() => _zoomPillVisible = true);
+    Future<void>.delayed(const Duration(milliseconds: 1100), () {
+      if (mounted && token == _zoomPillToken) {
+        setState(() => _zoomPillVisible = false);
+      }
+    });
+  }
+
+  // -------------------------------------------------------------------- focus
+
   /// Drives autofocus and metering at the tapped point, and shows a reticle
   /// there. [local] is in this widget's coordinates; [preview] is where the
   /// preview is actually painted, which after cover-cropping is larger than the
@@ -241,9 +374,10 @@ class _CameraScreenState extends State<CameraScreen>
     var nx = (local.dx - preview.left) / preview.width;
     final ny = (local.dy - preview.top) / preview.height;
     if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return;
-    // The preview is drawn flipped on the front lens, so a tap on the left of
-    // the screen is the sensor's right.
-    if (_mirrored && _mirrorFrontCaptures) nx = 1 - nx;
+    // The front preview is mirrored, so a tap on the left of the screen is the
+    // sensor's right — and the plugin will not do this for us. Its
+    // `cgPoint(for:withOrientation:)` compensates for device orientation only.
+    if (_isFront) nx = 1 - nx;
 
     HapticFeedback.selectionClick();
     final token = ++_focusToken;
@@ -261,6 +395,8 @@ class _CameraScreenState extends State<CameraScreen>
     if (mounted && token == _focusToken) setState(() => _focusPoint = null);
   }
 
+  // ------------------------------------------------------------------ capture
+
   Future<void> _capture() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized || _capturing) {
@@ -272,16 +408,26 @@ class _CameraScreenState extends State<CameraScreen>
       final shot = await controller.takePicture();
       // XFile.readAsBytes, not File(shot.path): on web `takePicture` hands back
       // a `blob:` URL, and cross_file fetches it. On mobile it reads the temp
-      // file the plugin just wrote, exactly as before.
-      var bytes = await shot.readAsBytes();
-      if (_mirrored && _mirrorFrontCaptures) {
-        bytes = (await mirrorImageBytes(bytes)).bytes;
-      }
+      // file the plugin just wrote.
+      final bytes = await shot.readAsBytes();
       if (!mounted) return;
-      Navigator.of(context).pop<Uint8List>(bytes);
+      Navigator.of(context).pop<CameraResult>(
+        CameraPhoto(
+          bytes: bytes,
+          // Not mirrored here — the screen that receives this rasterizes once
+          // anyway and folds the flip into that pass, so the shutter returns
+          // immediately instead of stalling on a full-resolution re-encode.
+          mirrored: _isFront && _captureNeedsMirroring,
+        ),
+      );
     } catch (_) {
       if (mounted) setState(() => _capturing = false);
     }
+  }
+
+  void _pop(CameraResult result) {
+    if (_capturing) return;
+    Navigator.of(context).pop<CameraResult>(result);
   }
 
   // --------------------------------------------------------------------- view
@@ -304,8 +450,12 @@ class _CameraScreenState extends State<CameraScreen>
 
   Widget _previewBody() {
     final controller = _controller;
+    // Deliberately not a centred spinner. `initialize()` is two platform
+    // round-trips ending in startRunning(), commonly a few hundred ms; black
+    // with live chrome over it reads as a camera warming up, where a spinner
+    // reads as a page that has not loaded.
     if (controller == null || !controller.value.isInitialized) {
-      return const Center(child: PhotoSpinner());
+      return const ColoredBox(color: Colors.black);
     }
 
     return LayoutBuilder(
@@ -313,46 +463,51 @@ class _CameraScreenState extends State<CameraScreen>
         final box = Size(constraints.maxWidth, constraints.maxHeight);
         final preview = _previewRect(controller, box);
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: (d) => _focusAt(d.localPosition, preview),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // ClipRect, because the cover-sized preview deliberately overflows
-              // this box on its longer axis.
-              ClipRect(
-                child: Stack(
-                  children: [
-                    Positioned.fromRect(
-                      rect: preview,
-                      child: Transform.scale(
-                        // A camera you hold up to your face should behave like
-                        // a mirror; the capture is flipped to match.
-                        scaleX: _mirrored ? -1 : 1,
-                        scaleY: 1,
+        return Listener(
+          onPointerDown: (_) => _pointers++,
+          onPointerUp: (_) => _pointers = math.max(0, _pointers - 1),
+          onPointerCancel: (_) => _pointers = math.max(0, _pointers - 1),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapUp: (d) => _focusAt(d.localPosition, preview),
+            onDoubleTap: _cameras.length < 2 ? null : _flip,
+            onScaleStart: _onScaleStart,
+            onScaleUpdate: _onScaleUpdate,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // ClipRect, because the cover-sized preview deliberately
+                // overflows this box on its longer axis.
+                ClipRect(
+                  child: Stack(
+                    children: [
+                      Positioned.fromRect(
+                        rect: preview,
+                        // No Transform. Every platform already mirrors the front
+                        // preview itself — flipping again here is what made the
+                        // selfie view come out backwards.
                         child: CameraPreview(controller),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              if (_focusPoint != null)
-                Positioned(
-                  left: _focusPoint!.dx - 36,
-                  top: _focusPoint!.dy - 36,
-                  child: const IgnorePointer(child: _FocusReticle()),
+                if (_focusPoint != null)
+                  Positioned(
+                    left: _focusPoint!.dx - 36,
+                    top: _focusPoint!.dy - 36,
+                    child: const IgnorePointer(child: _FocusReticle()),
+                  ),
+                // A brief white wash on the shutter, so the capture is felt as
+                // well as heard.
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _capturing ? 1 : 0,
+                    duration: const Duration(milliseconds: 110),
+                    child: const ColoredBox(color: Color(0x33FFFFFF)),
+                  ),
                 ),
-              // A brief white wash on the shutter, so the capture is felt as
-              // well as heard.
-              IgnorePointer(
-                child: AnimatedOpacity(
-                  opacity: _capturing ? 1 : 0,
-                  duration: const Duration(milliseconds: 110),
-                  child: const ColoredBox(color: Color(0x33FFFFFF)),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -374,7 +529,8 @@ class _CameraScreenState extends State<CameraScreen>
         ? Size(sensor.height, sensor.width)
         : Size(sensor.width, sensor.height);
 
-    final cover = math.max(box.width / natural.width, box.height / natural.height);
+    final cover =
+        math.max(box.width / natural.width, box.height / natural.height);
     final w = natural.width * cover;
     final h = natural.height * cover;
     return Rect.fromLTWH((box.width - w) / 2, (box.height - h) / 2, w, h);
@@ -384,9 +540,17 @@ class _CameraScreenState extends State<CameraScreen>
     final message = switch (_fault!) {
       _Fault.denied =>
         'camera access is off.\nturn it on in Settings to take a photo.',
-      _Fault.unavailable => 'no camera on this device.',
-      _Fault.failed => 'couldn\'t start the camera.',
+      _Fault.unavailable => 'opening the system camera…',
+      _Fault.failed => 'opening the system camera…',
     };
+    // Anything that is not the user saying no hands off to the system camera
+    // rather than stranding them on an error. Deferred a frame so this build
+    // completes before the route pops.
+    if (_fault != _Fault.denied) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop(const CameraUnavailable());
+      });
+    }
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -407,7 +571,6 @@ class _CameraScreenState extends State<CameraScreen>
   // ------------------------------------------------------------------- chrome
 
   Widget _chrome() {
-    final ready = _controller?.value.isInitialized ?? false;
     return Stack(
       children: [
         Positioned(
@@ -424,7 +587,7 @@ class _CameraScreenState extends State<CameraScreen>
               const Spacer(),
               // Front cameras have no flash unit; offering the control would be
               // offering something that cannot happen.
-              if (ready && !_mirrored && _lensControls)
+              if (_ready && !_isFront && _lensControls)
                 PhotoGlassButton(
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
@@ -441,19 +604,41 @@ class _CameraScreenState extends State<CameraScreen>
             ],
           ),
         ),
-        if (ready)
+        if (_fault == null) ...[
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 108,
+            child: Center(child: _zoomPill()),
+          ),
           Positioned(
             left: 12,
             right: 12,
             bottom: 22,
             child: Row(
               children: [
-                const SizedBox(width: 46),
+                SizedBox(
+                  width: 46,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: PhotoGlassButton(
+                      icon: CupertinoIcons.photo_on_rectangle,
+                      semanticLabel: 'choose from library',
+                      size: 38,
+                      iconSize: 17,
+                      onTap: _capturing
+                          ? null
+                          : () => _pop(const CameraPickLibrary()),
+                    ),
+                  ),
+                ),
                 Expanded(
                   child: Center(
                     child: _ShutterButton(
-                      onTap: _capturing ? null : _capture,
-                      busy: _capturing,
+                      // Present from the first frame, so the screen has a shape
+                      // while the session starts rather than appearing piecemeal.
+                      onTap: _ready && !_capturing ? _capture : null,
+                      busy: _capturing || !_ready,
                     ),
                   ),
                 ),
@@ -473,10 +658,39 @@ class _CameraScreenState extends State<CameraScreen>
               ],
             ),
           ),
+        ],
       ],
     );
   }
+
+  Widget _zoomPill() {
+    return AnimatedOpacity(
+      opacity: _zoomPillVisible ? 1 : 0,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      child: IgnorePointer(
+        child: PhotoGlassSurface(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Text(
+              '${_zoom.toStringAsFixed(1)}×',
+              style: const TextStyle(
+                color: PhotoChrome.ink,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
+
+/// Why the camera isn't showing, when it isn't.
+enum _Fault { denied, unavailable, failed }
 
 /// The shutter. A ring with an inner disc, the way every camera has looked
 /// since the first one shipped with a touchscreen — deliberately the one
@@ -536,14 +750,7 @@ class _ShutterButtonState extends State<_ShutterButton> {
                   ),
                 ),
                 if (widget.busy)
-                  const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.black54,
-                    ),
-                  ),
+                  const PhotoSpinner(size: 22, color: Colors.black54),
               ],
             ),
           ),

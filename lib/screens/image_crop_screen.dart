@@ -37,12 +37,23 @@ class ImageCropScreen extends StatefulWidget {
     this.maxOutputEdge = 1024,
     this.confirmLabel = 'USE PHOTO',
     this.title = 'adjust',
+    this.mirrored = false,
   });
 
   /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
   /// in a browser, where a picked image is a `blob:` URL with no file behind it.
   final Uint8List source;
   final CropShape shape;
+
+  /// Whether [source] is a front-lens capture that still has to be reflected to
+  /// match the preview the user framed it in.
+  ///
+  /// Applied to the decoded image in [_ImageCropScreenState._load], so it costs
+  /// one flip of an already-downscaled raster and nothing at all at export —
+  /// `_confirm()` draws from that same image. The alternative, flipping the
+  /// encoded bytes at capture time, would put a full-resolution re-encode
+  /// between the shutter and this screen.
+  final bool mirrored;
 
   /// Width/height of the crop window. Ignored (forced to 1) for [CropShape.circle];
   /// null in rect mode means "keep the image's own aspect ratio".
@@ -62,6 +73,7 @@ class ImageCropScreen extends StatefulWidget {
     int maxOutputEdge = 1024,
     String confirmLabel = 'USE PHOTO',
     String title = 'adjust',
+    bool mirrored = false,
   }) {
     return Navigator.of(context).push<CroppedImage>(
       MaterialPageRoute(
@@ -73,6 +85,7 @@ class ImageCropScreen extends StatefulWidget {
           maxOutputEdge: maxOutputEdge,
           confirmLabel: confirmLabel,
           title: title,
+          mirrored: mirrored,
         ),
       ),
     );
@@ -135,8 +148,16 @@ class _ImageCropScreenState extends State<ImageCropScreen>
       // bug: ImageDescriptor.width throws UnsupportedError in a browser, so the
       // avatar cropper failed on every photo too. One decoder now, so the next
       // platform difference is only found once.
-      final image =
-          await decodeImageBytes(widget.source, maxEdge: _maxDecodeEdge);
+      var image = await decodeImageBytes(widget.source, maxEdge: _maxDecodeEdge);
+      // A front-lens capture arrives the way the sensor saw it, reversed from
+      // the preview it was framed in. Flipped here, on the already-downscaled
+      // decode, rather than on the encoded bytes at capture time — `_confirm()`
+      // rasterizes from this same image, so the export costs nothing extra.
+      if (widget.mirrored) {
+        final flipped = await flipImageHorizontally(image);
+        image.dispose();
+        image = flipped;
+      }
       if (!mounted) {
         image.dispose();
         return;

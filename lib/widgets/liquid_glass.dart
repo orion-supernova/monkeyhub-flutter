@@ -13,9 +13,9 @@ enum LiquidGlassShape { circle, capsule, rounded }
 ///
 /// Performance note: the blur is rendered through `BackdropFilter.grouped`,
 /// which pairs with a `BackdropGroup` ancestor so all sibling glass surfaces
-/// share a single rasterization pass. With six instances per screen (header
-/// pill + two header buttons + composer attach + field + send) the cost
-/// drops from six full-screen blurs per frame to one.
+/// share a single rasterization pass. With seven instances per screen (header
+/// pill + two header buttons + composer attach + camera + field + send) the
+/// cost drops from seven full-screen blurs per frame to one.
 class LiquidGlass extends StatefulWidget {
   const LiquidGlass({
     super.key,

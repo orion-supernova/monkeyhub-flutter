@@ -171,6 +171,11 @@ class _RoomScreenState extends State<RoomScreen>
   @override
   void initState() {
     super.initState();
+    // A camera button is about to be on screen, and `availableCameras()` is a
+    // platform round-trip whose answer cannot change while the app runs. Asking
+    // now takes it off the critical path of the tap that follows; it neither
+    // opens a session nor prompts for anything.
+    CameraScreen.warmUp();
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -807,10 +812,24 @@ class _RoomScreenState extends State<RoomScreen>
     _scrollToBottom();
   }
 
-  Future<void> _onAttach() async {
-    // Before the haptic, so a second tap during the flow is silent rather than
-    // buzzing back at a user whose first tap is still being honoured.
-    if (_attachInFlight) return;
+  /// What every media entry point owes the user before it opens anything: not
+  /// firing twice, and not walking a supervised account into a camera it is not
+  /// allowed to use. Returns false when the caller should stop.
+  ///
+  /// Shared rather than repeated, because there are now two doors into the same
+  /// room — the attachment sheet and the composer's camera button — and a
+  /// parental gate that only guards one of them guards neither.
+  ///
+  /// Not `onAttach: _attachInFlight ? null : _onAttach` on the composers, which
+  /// is the obvious-looking way to do the in-flight half: both of them drop the
+  /// button entirely when the callback is null, so the composer would visibly
+  /// reflow the moment the sheet opened and reflow back when it closed. The
+  /// guard belongs here, where it costs no layout.
+  Future<bool> _claimMediaEntry() async {
+    // Checked before the haptic, so a second tap during the flow is silent
+    // rather than buzzing back at a user whose first tap is still being
+    // honoured.
+    if (_attachInFlight) return false;
     HapticFeedback.lightImpact();
     if (FamilyService.maybeInstance?.canSendMedia == false) {
       await showApprovalGate(
@@ -818,15 +837,28 @@ class _RoomScreenState extends State<RoomScreen>
         what: 'send pictures or voice notes',
         canAsk: false,
       );
-      return;
+      return false;
     }
-    // Not `onAttach: _attachInFlight ? null : _onAttach` on the composers, which
-    // is the obvious-looking way to do this: both of them drop the button
-    // entirely when the callback is null, so the composer would visibly reflow
-    // the moment the sheet opened and reflow back when it closed. The guard
-    // belongs in here, where it costs no layout.
     _attachInFlight = true;
+    return true;
+  }
+
+  /// The composer's camera button — the same flow the attachment sheet's Camera
+  /// entry reaches, one tap sooner.
+  Future<void> _onCamera() async {
+    if (!await _claimMediaEntry()) return;
     try {
+      if (!mounted) return;
+      await _captureAndSend();
+    } finally {
+      _attachInFlight = false;
+    }
+  }
+
+  Future<void> _onAttach() async {
+    if (!await _claimMediaEntry()) return;
+    try {
+      if (!mounted) return; // the `finally` still clears the in-flight flag
       final choice = await showAttachmentMenu(context);
       if (choice == null || !mounted) return;
       final nav = Navigator.of(context);
@@ -864,31 +896,74 @@ class _RoomScreenState extends State<RoomScreen>
   /// which is the same thing discarding does, so the button dropped the user
   /// back in the chat rather than back at the camera.
   Future<void> _captureAndSend() async {
-    var shot = await CameraScreen.open(context);
-    while (shot != null) {
+    var result = await CameraScreen.open(context);
+    while (result != null) {
       if (!mounted) return;
-      final outcome = await CameraEditorScreen.open(
-        context,
-        source: shot,
-        canRetake: true,
-      );
-      if (outcome == null) return; // discarded
-      if (outcome is EditorSend) {
-        _sendMedia(
-          bytes: outcome.image.bytes,
-          type: MessageType.image,
-          contentType: outcome.image.contentType,
-          pixelSize: Size(
-            outcome.image.width.toDouble(),
-            outcome.image.height.toDouble(),
-          ),
-          viewOnce: outcome.viewOnce,
-        );
-        return;
+
+      switch (result) {
+        case CameraPickLibrary():
+          // The camera's own shortcut into the photo library.
+          await _pickAndSendFromGallery();
+          return;
+
+        case CameraUnavailable():
+          // The in-app camera could not start for a reason that isn't the user
+          // saying no. Fall back to the system camera rather than leaving them
+          // with no way to take a picture at all. No mirroring on this path:
+          // `image_picker` never reports which lens fired, and reflecting a
+          // photo of a document would be worse than leaving a selfie unflipped.
+          final picked = await ImagePicker().pickImage(
+            source: ImageSource.camera,
+            imageQuality: pickerImageQuality,
+          );
+          if (picked == null || !mounted) return;
+          final bytes = await picked.readAsBytes();
+          if (!mounted) return;
+          await _editAndSend(bytes, canRetake: false, mirrored: false);
+          return;
+
+        case CameraPhoto(:final bytes, :final mirrored):
+          final retake = await _editAndSend(
+            bytes,
+            canRetake: true,
+            mirrored: mirrored,
+          );
+          if (!retake || !mounted) return;
+          result = await CameraScreen.open(context);
       }
-      if (!mounted) return;
-      shot = await CameraScreen.open(context);
     }
+  }
+
+  /// Runs the editor over [bytes] and sends what comes out.
+  ///
+  /// Returns true only when the user asked to retake, so the caller's loop
+  /// knows to reopen the camera. Discarding and sending both end the flow —
+  /// conflating those two is what made the old RETAKE button drop the user back
+  /// into the chat.
+  Future<bool> _editAndSend(
+    Uint8List bytes, {
+    required bool canRetake,
+    required bool mirrored,
+  }) async {
+    final outcome = await CameraEditorScreen.open(
+      context,
+      source: bytes,
+      canRetake: canRetake,
+      mirrored: mirrored,
+    );
+    if (outcome is EditorRetake) return true;
+    if (outcome is! EditorSend) return false;
+    _sendMedia(
+      bytes: outcome.image.bytes,
+      type: MessageType.image,
+      contentType: outcome.image.contentType,
+      pixelSize: Size(
+        outcome.image.width.toDouble(),
+        outcome.image.height.toDouble(),
+      ),
+      viewOnce: outcome.viewOnce,
+    );
+    return false;
   }
 
   /// Spends this viewer's one look at a view-once photo and shows it.
@@ -1171,6 +1246,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onSend: _send,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
+                  onCamera: _onCamera,
                 ),
               ],
               ),
@@ -1198,9 +1274,9 @@ class _RoomScreenState extends State<RoomScreen>
       20,
       chromeH + 16 + bottomSafe,
     );
-    // BackdropGroup batches the six BackdropFilters in the chrome (header
-    // pill + 2 buttons + composer attach + field + send) into a single
-    // rasterization pass — see lib/widgets/liquid_glass.dart for details.
+    // BackdropGroup batches the seven BackdropFilters in the chrome (header
+    // pill + 2 buttons + composer attach + camera + field + send) into a
+    // single rasterization pass — see lib/widgets/liquid_glass.dart.
     return BackdropGroup(
       child: Stack(
         children: [
@@ -1262,6 +1338,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onSend: _send,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
+                  onCamera: _onCamera,
                 ),
               ],
                 ),

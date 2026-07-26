@@ -451,11 +451,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _busy = true;
       _changingAvatar = true;
     });
-    final shot = await CameraScreen.open(
+    final result = await CameraScreen.open(
       context,
       initialLens: CameraLensDirection.front,
     );
-    await _cropAndUploadAvatar(shot);
+    if (!mounted) return;
+
+    switch (result) {
+      case CameraPhoto(:final bytes, :final mirrored):
+        await _cropAndUploadAvatar(bytes, mirrored: mirrored);
+      case CameraPickLibrary():
+        // The camera's own shortcut into the photo library. `_busy` is already
+        // raised, and the library path re-raises it harmlessly.
+        await _pickAndUploadAvatarFromLibrary();
+      case CameraUnavailable():
+        // The in-app camera could not start. Fall back to the system camera so
+        // there is still a way to set a picture. Not mirrored: `image_picker`
+        // never reports which lens fired, and we ask for the front one but
+        // cannot stop the user flipping inside a UI we don't control.
+        final picked = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+          imageQuality: pickerImageQuality,
+          preferredCameraDevice: CameraDevice.front,
+        );
+        await _cropAndUploadAvatar(await picked?.readAsBytes());
+      case null:
+        await _cropAndUploadAvatar(null); // cancelled — clears the spinner
+    }
   }
 
   Future<void> _pickAndUploadAvatarFromLibrary() async {
@@ -481,7 +503,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ///
   /// Assumes `_busy`/`_changingAvatar` are already set by the caller and owns
   /// clearing them on every path out.
-  Future<void> _cropAndUploadAvatar(Uint8List? source) async {
+  Future<void> _cropAndUploadAvatar(
+    Uint8List? source, {
+    bool mirrored = false,
+  }) async {
     final api = widget.api;
     final repo = widget.repo;
     if (source == null || api == null || repo?.userId == null) {
@@ -500,6 +525,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       source: source,
       shape: CropShape.circle,
+      mirrored: mirrored,
     );
     if (cropped == null) {
       if (mounted) {
