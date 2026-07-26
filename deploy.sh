@@ -625,6 +625,31 @@ if [ "$RUN_CONVEX" = true ]; then
     run_with_spinner "Deploying Convex backend" convex_deploy
 fi
 
+# ----- Android crash-symbol archive -----
+# Release Android builds are minified and obfuscated (the Flutter Gradle plugin
+# turns R8 on for release; android/app/build.gradle.kts never says so, which is
+# why this is easy to miss). Every build overwrites mapping.txt, so without this
+# a crash report from a shipped APK is permanently unreadable — the position we
+# were in when calls started crashing on 1.3.41.
+#
+# Kept OUT of hosting/public: these are build artifacts for our own diagnosis,
+# and the downloads directory is served to the internet.
+#
+# Retrace a trace later with:
+#   $ANDROID_HOME/cmdline-tools/latest/bin/retrace \
+#       build/symbols/<version>/mapping.txt crash.txt
+archive_android_symbols() {   # $1 = version
+    local version="$1"
+    local dest="build/symbols/$version"
+    local mapping="build/app/outputs/mapping/release/mapping.txt"
+    local natives="build/app/outputs/native-debug-symbols/release/native-debug-symbols.zip"
+    [ -f "$mapping" ] || [ -f "$natives" ] || return 0
+    mkdir -p "$dest"
+    [ -f "$mapping" ] && cp "$mapping" "$dest/mapping.txt"
+    [ -f "$natives" ] && cp "$natives" "$dest/native-debug-symbols.zip"
+    echo "  • Archived crash symbols → $dest"
+}
+
 # ----- Release announcement -----
 # Records "the latest build on <channel> is <version>" so already-installed
 # clients learn they're behind (see lib/update/ and backend/convex/releases.ts).
@@ -991,6 +1016,8 @@ if [ "$DEPLOY_ANDROID" = true ]; then
         fi
         echo "  ✅ Signed by: ${SIGNER_CERT#Owner: }"
 
+        archive_android_symbols "$DISPLAY_VERSION"
+
         APK_SIZE=$(du -h "$APK_PATH" | cut -f1 | tr -d ' ')
         APK_FILE="monkeyhub-$DISPLAY_VERSION.apk"
 
@@ -1061,6 +1088,8 @@ if [ "$DEPLOY_ANDROID" = true ]; then
             exit 1
         fi
         echo "  ✅ AAB at $AAB_PATH"
+
+        archive_android_symbols "$DISPLAY_VERSION"
 
         # Automated upload needs a verified Play account, the app created in
         # Play Console, a linked service account (PLAY_SERVICE_ACCOUNT_JSON in

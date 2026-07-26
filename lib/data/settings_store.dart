@@ -28,6 +28,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kShowLinkUrls = 'mh.showLinkUrls';
   static const _kFullScreenIntentPrompted = 'mh.fullScreenIntentPrompted';
   static const _kBatteryOptPrompted = 'mh.batteryOptPrompted';
+  static const _kMicPermissionPrompted = 'mh.micPermissionPrompted';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -48,6 +49,7 @@ class SettingsStore extends ChangeNotifier {
   bool _showLinkUrls = false;
   bool _fullScreenIntentPrompted = false;
   bool _batteryOptPrompted = false;
+  bool _micPermissionPrompted = false;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -80,6 +82,7 @@ class SettingsStore extends ChangeNotifier {
   /// once — both remain reachable from system settings if declined.
   bool get fullScreenIntentPrompted => _fullScreenIntentPrompted;
   bool get batteryOptPrompted => _batteryOptPrompted;
+  bool get micPermissionPrompted => _micPermissionPrompted;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -151,6 +154,8 @@ class SettingsStore extends ChangeNotifier {
           await _storage.read(key: _kFullScreenIntentPrompted) == 'true';
       _batteryOptPrompted =
           await _storage.read(key: _kBatteryOptPrompted) == 'true';
+      _micPermissionPrompted =
+          await _storage.read(key: _kMicPermissionPrompted) == 'true';
     } catch (_) {/* secure storage unavailable in test harness */}
     _loaded = true;
     notifyListeners();
@@ -252,6 +257,12 @@ class SettingsStore extends ChangeNotifier {
     if (_batteryOptPrompted) return;
     _batteryOptPrompted = true;
     await _storage.write(key: _kBatteryOptPrompted, value: 'true');
+  }
+
+  Future<void> markMicPermissionPrompted() async {
+    if (_micPermissionPrompted) return;
+    _micPermissionPrompted = true;
+    await _storage.write(key: _kMicPermissionPrompted, value: 'true');
   }
 
   Future<void> setManualLogoThemeId(String id) async {

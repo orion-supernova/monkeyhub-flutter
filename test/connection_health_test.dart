@@ -243,6 +243,77 @@ void main() {
       expect(probe.probeCalls, greaterThan(0));
     });
 
+    // Defect: the grace/stalled clocks were armed by _beginHealing and kept
+    // running through the park, so a signed-out app escalated to
+    // "reconnecting…" and then "can't reach server" on elapsed time alone —
+    // with zero probes behind it. That is what put a permanent, untappable
+    // banner over the login screen.
+    test('a parked loop never claims an outage it has not observed', () async {
+      active = false;
+      probe.probeResult = false;
+      build().start();
+
+      probe.emit(false);
+      // Well past stalledAfter: without evidence, neither clock may fire.
+      await settle(_stalled * 3);
+
+      expect(probe.probeCalls, 0, reason: 'signed out — nothing to probe');
+      expect(
+        health.phase,
+        ConnectionPhase.online,
+        reason: 'no probe ran, so there is no outage to report',
+      );
+    });
+
+    test('the banner returns once a parked loop resumes probing', () async {
+      active = false;
+      probe.probeResult = false;
+      build().start();
+
+      probe.emit(false);
+      await settle(_stalled * 2);
+      expect(health.phase, ConnectionPhase.online);
+
+      // Session appears: probing resumes, so the clocks re-arm and a genuine
+      // outage is back on screen within the grace window.
+      active = true;
+      unawaited(health.retryNow());
+      await settle(_grace * 3);
+      expect(health.phase, ConnectionPhase.reconnecting);
+    });
+
+    // Defect: clearing the phase was reachable only from a probe, so a
+    // heartbeat could round-trip successfully every 30s while the banner sat
+    // on "reconnecting…" indefinitely.
+    test('a successful round-trip clears a stale banner', () async {
+      probe.probeResult = false;
+      build().start();
+
+      probe.emit(false);
+      await settle(_grace * 3);
+      expect(health.phase, ConnectionPhase.reconnecting);
+
+      health.noteRoundTrip(ok: true);
+      expect(health.phase, ConnectionPhase.online);
+      expect(resubscribes, 1, reason: 'a verified reconnect re-registers subs');
+    });
+
+    test('reconciling on a round-trip fires exactly one reconnect', () async {
+      probe.probeResult = false;
+      build().start();
+
+      probe.emit(false);
+      await settle(_grace * 3);
+
+      // The heartbeat reconciles while the loop still has a probe in flight;
+      // that probe must not produce a second reconnect edge.
+      probe.probeResult = true;
+      health.noteRoundTrip(ok: true);
+      await settle(_grace * 4);
+
+      expect(resubscribes, 1);
+    });
+
     // Defect: a socket frozen while still reporting `connected` had no detector
     // at all while the app stayed foreground — no stream event, no resume event.
     test('consecutive failed round-trips reveal a frozen socket', () async {

@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
+import androidx.core.app.ActivityCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -15,6 +16,17 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+
+    companion object {
+        /// Arbitrary but must not collide with a plugin's own request codes.
+        private const val CALL_PERMISSION_REQUEST = 0x0CA1
+    }
+
+    /// The Dart future waiting on an open runtime-permission dialog, if any.
+    /// Held so [onRequestPermissionsResult] can answer it — a MethodChannel
+    /// result cannot be completed twice, so this is nulled the moment it is used.
+    private var pendingPermissionResult: MethodChannel.Result? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -144,9 +156,86 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }
+                    // Mic/camera grants for calling. These are a hard
+                    // precondition for showing any native call UI, not a
+                    // convenience — see CallPermissions for the crash they
+                    // prevent. Dart (CallPermissions in lib/calls/) checks
+                    // before starting or ringing a call.
+                    "hasCallPermissions" -> {
+                        val video = call.argument<Boolean>("video") ?: false
+                        result.success(CallPermissions.granted(this, video))
+                    }
+                    "requestCallPermissions" -> {
+                        val video = call.argument<Boolean>("video") ?: false
+                        val missing = CallPermissions.missing(this, video)
+                        when {
+                            missing.isEmpty() -> result.success(true)
+                            // One dialog at a time. Stacking requests makes the
+                            // framework drop all but the last, which would
+                            // strand the earlier Dart futures forever.
+                            pendingPermissionResult != null -> result.success(false)
+                            else -> {
+                                pendingPermissionResult = result
+                                ActivityCompat.requestPermissions(
+                                    this,
+                                    missing.toTypedArray(),
+                                    CALL_PERMISSION_REQUEST
+                                )
+                            }
+                        }
+                    }
+                    "openAppSettings" -> {
+                        try {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.parse("package:$packageName")
+                                )
+                            )
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            result.success(false)
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        // Plugins (camerax, mobile_scanner, webrtc) share this callback — always
+        // let them see it first.
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != CALL_PERMISSION_REQUEST) return
+        val pending = pendingPermissionResult ?: return
+        pendingPermissionResult = null
+        // An empty array means the prompt was cancelled, which is a denial. We
+        // requested exactly the permissions this call kind needs, so every one
+        // of them has to come back granted.
+        val allGranted = grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        try {
+            pending.success(allGranted)
+        } catch (_: Throwable) {
+            // Channel already torn down — nothing left to answer.
+        }
+    }
+
+    override fun onDestroy() {
+        // Never leave a Dart future hanging on a dialog this activity will no
+        // longer outlive; a stuck future would wedge the call it gates.
+        pendingPermissionResult?.let {
+            pendingPermissionResult = null
+            try {
+                it.success(false)
+            } catch (_: Throwable) {
+            }
+        }
+        super.onDestroy()
     }
 
     /// Aliases declared in AndroidManifest.xml. Keep in sync with the

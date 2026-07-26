@@ -88,6 +88,21 @@ class CallFcmService : FirebaseMessagingService() {
                         // calls.ts CALL_RING_TIMEOUT) — plugin auto-times-out
                         // and posts a missed-call notification after this.
                         "duration" to 60000L,
+                        // Whether the plugin may run its ongoing-call foreground
+                        // service once this call is answered. It types that
+                        // service microphone (+camera for video), which on
+                        // Android 14 throws SecurityException out of
+                        // Service.onStartCommand — killing the process — if the
+                        // grant is missing. The Accept tap starts that service
+                        // directly from the plugin's broadcast receiver, so this
+                        // flag, persisted with the call now, is the ONLY point
+                        // of control on the killed-app path: no Dart exists here
+                        // to check anything later. Mirrors
+                        // NativeCallHandler.showIncoming on the foreground path.
+                        "callingNotification" to mapOf(
+                            "showNotification" to
+                                CallPermissions.granted(applicationContext, isVideo),
+                        ),
                         "extra" to hashMapOf<String, Any?>(
                             "callId" to callId,
                             "callerId" to data["callerId"],

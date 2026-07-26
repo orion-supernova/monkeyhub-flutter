@@ -10,6 +10,7 @@ import '../backend/convex_client.dart';
 import 'call_config.dart';
 import 'call_media.dart';
 import 'call_models.dart';
+import 'call_permissions.dart';
 import 'call_recovery.dart';
 import 'call_stats_monitor.dart';
 import 'native_call_handler.dart';
@@ -314,6 +315,13 @@ class CallService extends ChangeNotifier {
     if (me == null) throw StateError('CallService not attached');
     if (inCall) throw StateError('Already in a call');
 
+    // Grants first, before anything observable exists. The native outgoing-call
+    // UI below starts a foreground service typed microphone (and camera, for
+    // video), which on Android 14 throws SecurityException out of the plugin's
+    // service and kills the process if the grant is missing. CallPermissions
+    // explains the refusal itself, so bailing silently here is correct.
+    if (!await CallPermissions.ensure(kind)) return;
+
     try {
       // 1. Reserve the call row first so we have a callId for every signal
       //    that follows. ICE starts gathering the moment setLocalDescription
@@ -344,6 +352,16 @@ class CallService extends ChangeNotifier {
       // Surface the native "outgoing call" affordance (green pill on iOS,
       // Recents entry, Bluetooth routing). Fire-and-forget — failure here
       // doesn't block the WebRTC handshake.
+      //
+      // This runs BEFORE [_attachLocalMedia] on purpose, even though on Android
+      // it starts a foreground service typed microphone/camera. Two reasons it
+      // is safe: the CallPermissions gate above has already established the
+      // grants that type requires, and `initiate` is only ever reached from a
+      // foreground tap, so the while-in-use start restriction is satisfied too.
+      // Deliberately NOT moved after media attach: the plugin re-runs its own
+      // audio-session config, which would then land after
+      // `applyIosCallAudioConfig` and clobber the iOS call route (see the
+      // flutter_webrtc pin note in pubspec.yaml).
       unawaited(NativeCallHandler.instance.showOutgoing(
         callId: callId,
         peerName: peerName,
@@ -922,6 +940,11 @@ class CallService extends ChangeNotifier {
     final iAmCaller = callerId == me;
     final peerUserId = iAmCaller ? calleeId : callerId;
     final mediaKind = CallMediaKindWire.parse(type);
+
+    // Taking over a call captures media on THIS device, so this device needs
+    // the grants — the one that had the call before proves nothing about this
+    // one. Bail before any session exists; CallPermissions shows the refusal.
+    if (!await CallPermissions.ensure(mediaKind)) return;
 
     _rememberLocalCall(callId);
     _session = CallSession(

@@ -1,5 +1,28 @@
 # Calling Mechanism Audit — MonkeyHub
 
+> **⚠️ Largely superseded (2026-07-26). Read as history, not current state.**
+>
+> Everything in §6's "re-enable Android Firebase" runbook has since been
+> implemented: `android/app/google-services.json` exists, the
+> `com.google.gms.google-services` plugin and `firebase-messaging` are wired in
+> `android/app/build.gradle.kts`, `monkeyhub/fcm#getToken` returns a real token,
+> and `CallFcmService.kt` is registered for `MESSAGING_EVENT`. The claim that
+> `USE_FULL_SCREEN_INTENT` is missing is also stale — it arrives via manifest
+> merge from `flutter_callkit_incoming`, along with `MANAGE_OWN_CALLS`,
+> `FOREGROUND_SERVICE_PHONE_CALL` and `FOREGROUND_SERVICE_CAMERA`. Two mechanisms
+> not described here are now live: the OneSignal rescue in `voipPush.sendVoip`
+> and the one-shot prompts in `AndroidCallReliability`.
+>
+> **New invariant this document predates**, and the one that matters most on
+> Android: *nothing may let `CallkitNotificationService` start without
+> RECORD_AUDIO (and CAMERA, for video) already granted.* callkit 3.1.0 changed
+> that service's foreground type from `phoneCall` alone to
+> `phoneCall|microphone|camera`, and on targetSdk 34 the new types require
+> runtime grants the old one did not — an ungranted start throws
+> `SecurityException` out of `Service.onStartCommand` and kills the process,
+> uncatchable from Dart. See `lib/calls/call_permissions.dart` and
+> `android/.../CallPermissions.kt`.
+
 **Scope:** 1:1 WebRTC calling and the push/wake pipeline that rings the callee.
 **Symptom under investigation:** incoming calls are supposed to ring the native UI
 (iOS CallKit / Android ConnectionService) *every time*, but they routinely "fall

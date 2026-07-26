@@ -8,6 +8,7 @@ import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 import 'call_models.dart';
+import 'call_permissions.dart';
 import 'call_service.dart';
 
 /// Bridges flutter_callkit_incoming (native iOS CallKit / Android
@@ -413,6 +414,13 @@ class NativeCallHandler {
       handle: peerName,
       type: kind == CallMediaKind.video ? 1 : 0,
       extra: {'callId': callId},
+      // Belt and braces. `CallService.initiate` already gates on
+      // CallPermissions.ensure, but a grant can be revoked between that check
+      // and here, and the cost of being wrong is the process rather than a
+      // notification. Ignored on iOS. See showIncoming for the full rationale.
+      callingNotification: NotificationParams(
+        showNotification: await CallPermissions.granted(kind),
+      ),
       ios: IOSParams(
         handleType: 'generic',
         supportsVideo: kind == CallMediaKind.video,
@@ -457,6 +465,18 @@ class NativeCallHandler {
         type: kind == CallMediaKind.video ? 1 : 0,
         duration: 60000,
         extra: {'callId': callId},
+        // Decided HERE, at ring time, because this is the last moment we get a
+        // say. When the user taps Accept, the plugin's own broadcast receiver
+        // starts a foreground service typed microphone/camera before any Dart
+        // of ours runs — and on Android 14 that throws SecurityException out of
+        // Service.onStartCommand and kills the process if the grant is missing.
+        // The flag rides along with the persisted call data and is replayed on
+        // accept, so setting it false here is what makes an ungranted answer
+        // survivable (in-app UI only, no foreground service). The Kotlin ring
+        // path does the same in CallFcmService.handleInvite.
+        callingNotification: NotificationParams(
+          showNotification: await CallPermissions.granted(kind),
+        ),
         android: const AndroidParams(isShowFullLockedScreen: true),
       ));
     } catch (e) {

@@ -480,6 +480,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await NativeCallHandler.instance.replayColdStartCalls();
         _consumePendingPushRoom();
         AndroidCallReliability.instance.ensure();
+        // A session now exists, so ConnectionHealth has something worth healing
+        // for. Its recovery loop parks while signed out and nothing else wakes
+        // it: the socket's `connected` edge has usually already been spent
+        // during the park, so without this nudge the phase could only be
+        // cleared by luck (a connectivity change, or a background round trip).
+        unawaited(_health.retryNow());
       } else if (s == null) {
         _stopPresenceHeartbeat();
         BadgeManager.instance.unbind();

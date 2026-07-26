@@ -10,6 +10,7 @@ import '../backend/group_call_api.dart';
 import 'call_config.dart';
 import 'call_media.dart';
 import 'call_models.dart';
+import 'call_permissions.dart';
 import 'call_recovery.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
@@ -194,6 +195,12 @@ class GroupCallService extends ChangeNotifier {
     required CallMediaKind kind,
   }) async {
     if (_groupCallId == groupCallId) return;
+    // The single choke point both start and join funnel through, so one gate
+    // covers every way into a mesh call. Group calls never touch the callkit
+    // bridge — no native UI, no foreground service — so this is not the crash
+    // guard the 1:1 path needs; it is here so a missing grant produces the same
+    // clear refusal instead of a raw getUserMedia throw below.
+    if (!await CallPermissions.ensure(kind)) return;
     final me = _userId!;
     _groupCallId = groupCallId;
     _roomId = roomId;

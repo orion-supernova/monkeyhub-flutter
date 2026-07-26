@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
+import '../calls/call_models.dart';
+import '../calls/call_permissions.dart';
 import '../data/settings_store.dart';
 import '../main.dart' show rootNavigatorKey;
 
@@ -38,8 +40,23 @@ class AndroidCallReliability {
     // mounts, and burning the attempt would skip the prompts entirely.
     if (rootNavigatorKey.currentContext == null) return;
     _ranThisSession = true;
+    await _ensureMicPermission();
     await _ensureFullScreenIntent();
     await _ensureBatteryExemption();
+  }
+
+  /// First, because it is the only one of the three whose absence can make a
+  /// call *crash* rather than merely ring badly — see [CallPermissions].
+  ///
+  /// No `_explain()` pre-dialog here: the other two jump the user out to a
+  /// system settings page, which is jarring without warning, whereas this is
+  /// the ordinary in-app permission prompt that needs no preamble.
+  Future<void> _ensureMicPermission() async {
+    final store = SettingsStore.instance;
+    if (store.micPermissionPrompted) return;
+    if (await CallPermissions.granted(CallMediaKind.audio)) return;
+    await store.markMicPermissionPrompted();
+    await CallPermissions.preGrantMicrophone();
   }
 
   Future<void> _ensureFullScreenIntent() async {

@@ -182,6 +182,11 @@ class ConnectionHealth extends ChangeNotifier {
   Timer? _graceTimer;
   Timer? _stalledTimer;
 
+  /// Whether the banner's clocks are currently running. Tracked separately from
+  /// the [Timer] handles because a fired timer stays non-null, so the handles
+  /// alone can't answer "are we armed?".
+  bool _uiTimersArmed = false;
+
   /// Last value seen from the socket stream, so we can spot rising edges.
   bool _socketUp = true;
 
@@ -232,8 +237,7 @@ class ConnectionHealth extends ChangeNotifier {
     _healing = false;
     _socketSub?.cancel();
     _connectivitySub?.cancel();
-    _graceTimer?.cancel();
-    _stalledTimer?.cancel();
+    _disarmUiTimers();
     _interruptAttempt();
     _wake();
     super.dispose();
@@ -282,6 +286,13 @@ class ConnectionHealth extends ChangeNotifier {
     if (_disposed) return;
     if (ok) {
       _consecutiveRoundTripFailures = 0;
+      // A round-trip that actually completed is the same class of evidence a
+      // probe gives us — stronger, even, since it rode the live socket rather
+      // than opening a query to test it. Reconcile on it. Without this the
+      // heartbeat could succeed every 30s while the banner sat on
+      // "reconnecting…", because clearing the phase was reachable ONLY from a
+      // probe, and the probe only runs when the loop is unparked.
+      if (_phase != ConnectionPhase.online) _markOnline();
       return;
     }
     _consecutiveRoundTripFailures++;
@@ -364,8 +375,27 @@ class ConnectionHealth extends ChangeNotifier {
     if (_disposed || _healing) return;
     _healing = true;
     _attempt = 0;
+    // Note the loop itself arms the UI clocks, and only once it is genuinely
+    // probing — see [_armUiTimers].
+    _loop();
+  }
 
-    // Hold off on any UI: most outages resolve inside the grace window.
+  /// Start the two clocks that escalate the banner: [graceDelay] → reconnecting,
+  /// [stalledAfter] → stalled. Holding off for the grace window keeps short
+  /// blips from flashing UI.
+  ///
+  /// These are armed by [_loop] when it starts an attempt, NOT by
+  /// [_beginHealing], because a healing episode does not imply an observation.
+  /// The loop parks whenever the app is backgrounded or signed out and issues no
+  /// probes at all; arming on `_beginHealing` meant the clocks ran straight
+  /// through that park, so the banner escalated to "reconnecting…" and then
+  /// "can't reach server" on nothing but elapsed time. That is exactly what put
+  /// a permanent, untappable "reconnecting…" over the login screen of an app
+  /// whose connection was fine — the loop parked before the first probe (no
+  /// session yet), and nothing could clear a phase that no probe had set.
+  void _armUiTimers() {
+    if (_uiTimersArmed) return;
+    _uiTimersArmed = true;
     _graceTimer?.cancel();
     _graceTimer = Timer(graceDelay, () {
       if (_disposed || !_healing) return;
@@ -376,8 +406,14 @@ class ConnectionHealth extends ChangeNotifier {
       if (_disposed || !_healing) return;
       _setPhase(ConnectionPhase.stalled);
     });
+  }
 
-    _loop();
+  void _disarmUiTimers() {
+    _uiTimersArmed = false;
+    _graceTimer?.cancel();
+    _graceTimer = null;
+    _stalledTimer?.cancel();
+    _stalledTimer = null;
   }
 
   Future<void> _loop() async {
@@ -387,9 +423,17 @@ class ConnectionHealth extends ChangeNotifier {
         // first: an interrupted attempt jumps straight back here with
         // [_retrying] still set, and a parked loop is not retrying anything.
         _setRetrying(false);
+        // Stop claiming an outage we are no longer looking for. Signed out or
+        // backgrounded, we issue no probes, so we hold no evidence either way —
+        // and an unverified "reconnecting…" is worse than silence. Both clocks
+        // re-arm below the moment probing resumes, so a real outage is back on
+        // screen within [graceDelay] of the app becoming interested again.
+        _disarmUiTimers();
+        _setPhase(ConnectionPhase.online);
         await _sleep(null);
         continue;
       }
+      _armUiTimers();
 
       final gate = _interrupt = Completer<void>();
       _setRetrying(true);
@@ -487,11 +531,14 @@ class ConnectionHealth extends ChangeNotifier {
   /// keeps subscriptions alive would only reintroduce this file's oldest bug —
   /// a healthy-looking UI over dead subscriptions.
   void _markOnline() {
+    // Idempotent. [noteRoundTrip] can reconcile while a probe is still in
+    // flight, and that probe then lands on this method too — one reconnect
+    // edge, so one [_onReconnected].
+    if (!_healing && _phase == ConnectionPhase.online) return;
     _healing = false;
     _attempt = 0;
     _consecutiveRoundTripFailures = 0;
-    _graceTimer?.cancel();
-    _stalledTimer?.cancel();
+    _disarmUiTimers();
     _wake();
     _setPhase(ConnectionPhase.online);
     // Fire-and-forget: a resubscribe failure must not stall the state machine,
