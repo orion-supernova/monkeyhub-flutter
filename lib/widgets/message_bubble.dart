@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
-import '../screens/in_app_browser_screen.dart';
+import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
@@ -764,7 +764,7 @@ class _LinkAwareBubble extends StatelessWidget {
                       url: url,
                       isMine: isMine,
                       insideBubble: false,
-                      onTap: (u) => InAppBrowserScreen.open(context, u),
+                      onTap: (u) => LinkOpener.open(context, u),
                     ),
                   ),
               ],
@@ -807,8 +807,7 @@ class _LinkAwareBubble extends StatelessWidget {
                       decoration: TextDecoration.underline,
                       decorationColor: linkAccent.withValues(alpha: 0.7),
                     ),
-                    onLinkTap: (url) =>
-                        InAppBrowserScreen.open(context, url),
+                    onLinkTap: (url) => LinkOpener.open(context, url),
                   ),
                 ),
               if (hasUrls)
@@ -817,7 +816,7 @@ class _LinkAwareBubble extends StatelessWidget {
                     url: url,
                     isMine: isMine,
                     insideBubble: true,
-                    onTap: (u) => InAppBrowserScreen.open(context, u),
+                    onTap: (u) => LinkOpener.open(context, u),
                   ),
             ],
           ),

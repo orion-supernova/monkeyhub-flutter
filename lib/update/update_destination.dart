@@ -88,8 +88,8 @@ List<String> _defaultsFor(ReleaseChannel channel) {
 }
 
 /// `LaunchMode.externalApplication` matches the app's only other launch site
-/// (in_app_browser_screen) and is what hands a store scheme to the store app
-/// rather than an in-app webview.
+/// (the fallback path in `services/link_opener.dart`) and is what hands a store
+/// scheme to the store app rather than to a browser surface.
 Future<bool> _tryLaunch(String url) async {
   try {
     final uri = Uri.tryParse(url);
