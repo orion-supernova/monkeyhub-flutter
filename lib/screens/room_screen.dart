@@ -786,7 +786,11 @@ class _RoomScreenState extends State<RoomScreen>
             MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)));
         if (edited != null) {
           await _uploadAndSend(
-              file: edited.file, type: MessageType.image, contentType: edited.contentType);
+            file: edited.file,
+            type: MessageType.image,
+            contentType: edited.contentType,
+            pixelSize: Size(edited.width.toDouble(), edited.height.toDouble()),
+          );
         }
         break;
       case AttachmentMenuChoice.voice:
@@ -811,7 +815,11 @@ class _RoomScreenState extends State<RoomScreen>
     ));
     if (edited == null) return;
     await _uploadAndSend(
-        file: edited.file, type: MessageType.image, contentType: edited.contentType);
+      file: edited.file,
+      type: MessageType.image,
+      contentType: edited.contentType,
+      pixelSize: Size(edited.width.toDouble(), edited.height.toDouble()),
+    );
   }
 
   void _openProfile(ChatUser u) {
@@ -829,7 +837,18 @@ class _RoomScreenState extends State<RoomScreen>
     await _uploadAndSend(file: File(picked.path), type: MessageType.video, contentType: 'video/mp4');
   }
 
-  Future<void> _uploadAndSend({required File file, required MessageType type, required String contentType}) async {
+  /// Uploads [file] and posts it as a [type] message.
+  ///
+  /// [pixelSize] is the attachment's intrinsic size when the caller knows it —
+  /// the image editor hands back exactly that. It rides along on the message so
+  /// nobody, sender included, has to decode the picture before they can lay out
+  /// a bubble the right shape for it.
+  Future<void> _uploadAndSend({
+    required File file,
+    required MessageType type,
+    required String contentType,
+    Size? pixelSize,
+  }) async {
     // Snapshot and disarm up front — see _send. Restored if the upload or the
     // send throws, so a failure doesn't silently lose the reply target.
     final replyTarget = _replyingTo;
@@ -841,6 +860,8 @@ class _RoomScreenState extends State<RoomScreen>
         roomId: widget.roomId,
         storageId: storageId,
         type: type,
+        mediaWidth: pixelSize?.width,
+        mediaHeight: pixelSize?.height,
         replyToId: replyTarget?.id,
       );
       _scrollToBottom();

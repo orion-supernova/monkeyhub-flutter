@@ -6,6 +6,7 @@ import 'app.dart';
 import 'calls/native_call_handler.dart';
 import 'data/settings_store.dart';
 import 'media/file_url_cache.dart';
+import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
 
 /// Root navigator key — exposed so non-widget code (push handlers, native
@@ -27,6 +28,10 @@ Future<void> main() async {
   // while a `files:getFileUrl` round trip lands. Reads one SharedPreferences
   // key, so it costs a single platform-channel hop.
   await FileUrlCache.instance.load();
+  // Same reasoning one layer up: the aspect ratio of every image message seen
+  // before, so a photo bubble lays out at its real height on the first frame
+  // instead of settling into it once the picture decodes.
+  await MediaAspectCache.instance.load();
   // Raise the ENTRY-count ceiling above its 1000 default, and leave the byte
   // ceiling at 100 MiB.
   //

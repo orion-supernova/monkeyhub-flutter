@@ -345,6 +345,10 @@ class ChatApi {
     required String content,
     MessageType type = MessageType.text,
     String? mediaStorageId,
+    /// Pixel size of [mediaStorageId] when the sender knows it, so receivers can
+    /// lay the bubble out at the picture's real ratio without decoding it first.
+    double? mediaWidth,
+    double? mediaHeight,
     String? senderName,
     String? replyToId,
   }) async {
@@ -354,6 +358,8 @@ class ChatApi {
       'content': content,
       'type': type.wire,
       'mediaStorageId': ?mediaStorageId,
+      'mediaWidth': ?mediaWidth,
+      'mediaHeight': ?mediaHeight,
       'senderName': ?senderName,
       'replyToId': ?replyToId,
     });

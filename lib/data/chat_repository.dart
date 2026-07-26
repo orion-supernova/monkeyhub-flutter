@@ -895,12 +895,20 @@ class ChatRepository extends ChangeNotifier {
     required MessageType type,
     String? caption,
     String? replyToId,
+    /// Pixel size of the attachment when the sender measured it. Carried so the
+    /// receiving bubble lays out at the picture's own ratio immediately, and so
+    /// the *sender's* optimistic bubble does too — without it the photo you just
+    /// sent is the one photo in the room that has to settle into shape.
+    double? mediaWidth,
+    double? mediaHeight,
   }) async {
     return _send(
       roomId: roomId,
       content: caption ?? '',
       type: type,
       mediaStorageId: storageId,
+      mediaWidth: mediaWidth,
+      mediaHeight: mediaHeight,
       replyToId: replyToId,
     );
   }
@@ -1039,6 +1047,8 @@ class ChatRepository extends ChangeNotifier {
     required String content,
     required MessageType type,
     String? mediaStorageId,
+    double? mediaWidth,
+    double? mediaHeight,
     String? replyToId,
   }) async {
     final id = _userId;
@@ -1081,6 +1091,8 @@ class ChatRepository extends ChangeNotifier {
       content: content,
       type: type,
       mediaStorageId: mediaStorageId,
+      mediaWidth: mediaWidth,
+      mediaHeight: mediaHeight,
       createdAt: DateTime.now(),
       status: MessageStatus.pending,
       replyToId: optimisticPreview != null ? replyToId : null,
@@ -1096,6 +1108,8 @@ class ChatRepository extends ChangeNotifier {
         content: content,
         type: type,
         mediaStorageId: mediaStorageId,
+        mediaWidth: mediaWidth,
+        mediaHeight: mediaHeight,
         replyToId: replyToId,
       );
     } catch (e) {
@@ -1273,6 +1287,8 @@ class ChatRepository extends ChangeNotifier {
           content: m.content,
           type: m.type,
           mediaStorageId: m.mediaStorageId,
+          mediaWidth: m.mediaWidth,
+          mediaHeight: m.mediaHeight,
           replyToId: m.replyToId,
         );
         // Leave as pending — the messages:list subscription will deliver the
@@ -1330,6 +1346,8 @@ class ChatRepository extends ChangeNotifier {
           content: m.content,
           type: m.type,
           mediaStorageId: m.mediaStorageId,
+          mediaWidth: m.mediaWidth,
+          mediaHeight: m.mediaHeight,
           replyToId: m.replyToId,
         );
       } catch (_) {

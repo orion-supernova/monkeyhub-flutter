@@ -16,10 +16,14 @@ export const send = mutation({
     content: v.string(),
     type: v.optional(v.string()),          // "text" | "image" | "video" | "audio" | "url" | "system"
     mediaStorageId: v.optional(v.id("_storage")),
+    // Pixel size of the attachment, so a receiver can lay the bubble out at the
+    // picture's real ratio before decoding it. See the schema comment.
+    mediaWidth: v.optional(v.number()),
+    mediaHeight: v.optional(v.number()),
     senderName: v.optional(v.string()),
     replyToId: v.optional(v.id("messages")),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, senderName, replyToId }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId }) => {
     // Verify membership
     const membership = await ctx.db
       .query("roomMembers")
@@ -129,6 +133,8 @@ export const send = mutation({
       createdAt: Date.now(),
       type: msgType,
       mediaStorageId,
+      mediaWidth,
+      mediaHeight,
       senderName: resolvedSenderName,
       expiresAt,
       ...(replyToPreview

@@ -37,6 +37,7 @@ class RemoteImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.placeholderDecodeWidth,
+    this.onAspectRatio,
   });
 
   final String storageId;
@@ -58,8 +59,64 @@ class RemoteImage extends StatefulWidget {
   /// in over it a frame or two later.
   final int? placeholderDecodeWidth;
 
+  /// Reports the picture's width÷height once it has decoded.
+  ///
+  /// Read off the decode that is already on screen rather than by measuring the
+  /// file again: [decodeSizeFor] constrains one axis, so the resized bitmap
+  /// carries the source's ratio, and asking for it costs an `ImageCache` lookup
+  /// against an entry this widget just populated. No second read, no second
+  /// decode, no full-resolution copy.
+  ///
+  /// Fires at most once per resolved URL, and only when the ratio is genuinely
+  /// new to this mount — a caller can drive layout from it without writing a
+  /// setState loop.
+  final ValueChanged<double>? onAspectRatio;
+
   @override
   State<RemoteImage> createState() => _RemoteImageState();
+}
+
+/// Target decode size in *device* pixels for a [RemoteImage] painted into a
+/// [width]×[height] logical box on a [dpr] screen.
+///
+/// **Exactly one axis is ever constrained, never both.** `memCacheWidth` and
+/// `memCacheHeight` reach `ResizeImage` through `octo_image`, and its default
+/// `ResizeImagePolicy.exact` resizes to precisely that width *and* height
+/// "regardless of whether it matches the source image's intrinsic aspect ratio
+/// — similar to [BoxFit.fill]". Passing both squashed the bitmap before [fit]
+/// ever ran, so a `cover` box had nothing left to crop and every non-square
+/// source rendered stretched. Every call site in this app paints into a square,
+/// so that hit avatars, message tiles, room cards and reply previews alike.
+///
+/// With one axis the other scales proportionally and the aspect ratio survives.
+/// The cost is that `cover` into a square from a landscape source now decodes
+/// short of the box's height and upscales to fill it; at thumbnail sizes that is
+/// invisible, and the one place it would show — the fullscreen avatar circle —
+/// deliberately passes no size at all so it lands on the screen cap below.
+///
+/// When neither axis is given (the fullscreen viewer) the decode is capped to
+/// the screen's longest edge: decoding a 12 MP photo to paint a 1200 px-wide
+/// phone screen is wasted memory and a wasted decode.
+({int? width, int? height}) decodeSizeFor({
+  required double? width,
+  required double? height,
+  required double dpr,
+  required Size screen,
+}) {
+  int? px(double? logical) =>
+      logical == null || !logical.isFinite ? null : math.max(1, (logical * dpr).round());
+
+  // Width wins when both are asked for, so the key agrees with the one
+  // `thumbnailDecodeWidth` builds for the fullscreen viewer's warm backdrop.
+  // Disagree and that backdrop is a different `ImageCache` entry and always
+  // misses, which is what used to land Hero flights on a shimmer.
+  final w = px(width);
+  if (w != null) return (width: w, height: null);
+  final h = px(height);
+  if (h != null) return (width: null, height: h);
+
+  final longest = math.max(screen.width, screen.height);
+  return (width: math.max(1, (longest * dpr).round()), height: null);
 }
 
 class _RemoteImageState extends State<RemoteImage> {
@@ -112,28 +169,73 @@ class _RemoteImageState extends State<RemoteImage> {
     });
   }
 
-  /// Target decode size in *device* pixels.
+  ({int? width, int? height}) _decodeSize(BuildContext context) => decodeSizeFor(
+        width: widget.width,
+        height: widget.height,
+        dpr: MediaQuery.devicePixelRatioOf(context),
+        screen: MediaQuery.sizeOf(context),
+      );
+
+  /// The (url, decode) pair whose ratio has already been reported, so a rebuild
+  /// — and a rebuild is what [RemoteImage.onAspectRatio] usually *causes* —
+  /// doesn't resolve and report all over again.
+  Object? _measured;
+
+  ImageStream? _measureStream;
+  ImageStreamListener? _measureListener;
+
+  /// Asks the `ImageCache` for the size of the decode this widget is painting.
   ///
-  /// Null on an axis means "no constraint from us" — `cached_network_image`
-  /// scales the other axis proportionally, so passing only one preserves the
-  /// image's aspect ratio. When neither is given (the fullscreen viewer) we
-  /// clamp to the screen's longest edge, since decoding a 12 MP photo to paint
-  /// a 1200 px-wide phone screen is wasted memory and a wasted decode.
-  ({int? width, int? height}) _decodeSize(BuildContext context) {
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    int? px(double? logical) =>
-        logical == null || !logical.isFinite ? null : math.max(1, (logical * dpr).round());
+  /// The provider is rebuilt to equal the one `CachedNetworkImage` makes
+  /// internally — same URL, same [ResizeImage] wrapper — so this resolves to the
+  /// entry that already exists instead of starting a second, unresized decode.
+  void _reportAspect(String url, ({int? width, int? height}) decode) {
+    if (widget.onAspectRatio == null) return;
+    final token = '$url|${decode.width}x${decode.height}';
+    if (_measured == token) return;
+    _measured = token;
+    _stopMeasuring();
 
-    final w = px(widget.width);
-    final h = px(widget.height);
-    if (w != null || h != null) return (width: w, height: h);
+    final provider = ResizeImage.resizeIfNeeded(
+      decode.width,
+      decode.height,
+      CachedNetworkImageProvider(url),
+    );
+    final stream = provider.resolve(ImageConfiguration.empty);
+    final listener = ImageStreamListener((info, _) {
+      final size = Size(info.image.width.toDouble(), info.image.height.toDouble());
+      // Hand the frame back immediately; holding it would keep a second
+      // reference to the bitmap alive for the life of this widget.
+      info.dispose();
+      _stopMeasuring();
+      if (!mounted || size.height <= 0) return;
+      final aspect = size.width / size.height;
+      // A warm entry completes the stream *synchronously* from `addListener`,
+      // which lands inside the build that started it. The whole point of this
+      // callback is to let a caller resize around the picture, so it has to
+      // arrive somewhere a setState is legal.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onAspectRatio?.call(aspect);
+      });
+    }, onError: (_, _) => _stopMeasuring());
 
-    final size = MediaQuery.sizeOf(context);
-    final longest = math.max(size.width, size.height);
-    final capped = math.max(1, (longest * dpr).round());
-    // Constrain the longer axis only, so portrait and landscape sources both
-    // keep their aspect ratio.
-    return (width: capped, height: null);
+    _measureStream = stream;
+    _measureListener = listener;
+    stream.addListener(listener);
+  }
+
+  void _stopMeasuring() {
+    final stream = _measureStream;
+    final listener = _measureListener;
+    _measureStream = null;
+    _measureListener = null;
+    if (stream != null && listener != null) stream.removeListener(listener);
+  }
+
+  @override
+  void dispose() {
+    _stopMeasuring();
+    super.dispose();
   }
 
   @override
@@ -151,6 +253,7 @@ class _RemoteImageState extends State<RemoteImage> {
     }
 
     final decode = _decodeSize(context);
+    _reportAspect(_url!, decode);
     return ClipRRect(
       borderRadius: radius,
       child: CachedNetworkImage(

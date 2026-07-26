@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../data/settings_store.dart';
+import '../media/media_aspect_cache.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
@@ -530,35 +531,14 @@ Widget buildMessageContent({
       final id = message.mediaStorageId;
       Widget imageTile;
       if (id != null) {
-        final imageChild = Builder(builder: (ctx) {
-          final remote = RemoteImage(
-            storageId: id,
-            api: api,
-            // Kept square: the BoxFit.cover crop and the Hero flight into
-            // FullscreenImageViewer both assume a stable aspect ratio.
-            // Growing the square is fine; changing the ratio distorts.
-            width: imageSize,
-            height: imageSize,
-            borderRadius: mediaRadius,
-          );
-          return GestureDetector(
-            onTap: () => FullscreenImageViewer.open(
-              ctx,
-              storageId: id,
-              api: api,
-              heroTag: useHero ? 'msg-image-${message.id}' : null,
-              heroRadius: mediaRadius,
-              // The tile's decode is already warm, so the viewer can open on it
-              // immediately rather than shimmering while the full-resolution
-              // decode lands.
-              thumbnailDecodeWidth: thumbnailDecodeWidth(ctx, imageSize),
-            ),
-            child: useHero
-                ? Hero(tag: 'msg-image-${message.id}', child: remote)
-                : remote,
-          );
-        });
-        imageTile = imageChild;
+        imageTile = _ImageTile(
+          message: message,
+          storageId: id,
+          api: api,
+          width: imageSize,
+          radius: mediaRadius,
+          useHero: useHero,
+        );
       } else {
         imageTile = Container(
           width: imageSize,
@@ -648,6 +628,110 @@ Widget buildMessageContent({
         isMine: isMine,
         decoration: deco,
       );
+  }
+}
+
+/// A photo in the transcript, shown at the picture's own aspect ratio.
+///
+/// The tile used to be a hard square. That was wrong in two ways at once: a
+/// portrait photo was displayed as the middle third of itself, and — because the
+/// square box drove a square *decode* — the bitmap was squashed rather than
+/// cropped, so it was the middle third of a distorted picture. Worse, the
+/// fullscreen viewer showed the real thing, so opening and closing one made the
+/// photo change shape twice on the way there and twice on the way back.
+///
+/// Now the width is fixed and the height follows the ratio, clamped by
+/// [ChatMetrics.mediaTileHeight]. Only a picture past the clamp is cropped, and
+/// the Hero flight has nothing left to reconcile: both ends show the same
+/// picture at the same ratio.
+///
+/// The ratio is known before the first frame in every case that matters — the
+/// message carries it, or [MediaAspectCache] remembers it from the last time
+/// this image was on screen. The one case that can't be pre-empted is an image
+/// this device has genuinely never seen, sent before senders recorded sizes;
+/// that stands on a square for one decode and then settles, once, ever.
+class _ImageTile extends StatefulWidget {
+  const _ImageTile({
+    required this.message,
+    required this.storageId,
+    required this.api,
+    required this.width,
+    required this.radius,
+    required this.useHero,
+  });
+
+  final ChatMessage message;
+  final String storageId;
+  final ChatApi api;
+  final double width;
+  final BorderRadius radius;
+  final bool useHero;
+
+  @override
+  State<_ImageTile> createState() => _ImageTileState();
+}
+
+class _ImageTileState extends State<_ImageTile> {
+  double? _aspect;
+
+  @override
+  void initState() {
+    super.initState();
+    _aspect = _known();
+  }
+
+  @override
+  void didUpdateWidget(_ImageTile old) {
+    super.didUpdateWidget(old);
+    // A recycled row can land on a different photo; the previous one's shape
+    // must not survive onto it.
+    if (old.storageId != widget.storageId) _aspect = _known();
+  }
+
+  double? _known() =>
+      widget.message.mediaAspectRatio ??
+      MediaAspectCache.instance.peek(widget.storageId);
+
+  /// Measured off the decode that is already on screen. Recorded even when it
+  /// matches what we laid out with, so a ratio that only the sender knew is
+  /// still there for this device next launch.
+  void _onAspect(double aspect) {
+    MediaAspectCache.instance.remember(widget.storageId, aspect);
+    if (!mounted || _aspect == aspect) return;
+    setState(() => _aspect = aspect);
+  }
+
+  String get _heroTag => 'msg-image-${widget.message.id}';
+
+  @override
+  Widget build(BuildContext context) {
+    final height = ChatMetrics.mediaTileHeight(widget.width, _aspect);
+    final Widget remote = RemoteImage(
+      storageId: widget.storageId,
+      api: widget.api,
+      width: widget.width,
+      height: height,
+      borderRadius: widget.radius,
+      onAspectRatio: _onAspect,
+    );
+    return GestureDetector(
+      onTap: () => FullscreenImageViewer.open(
+        context,
+        storageId: widget.storageId,
+        api: widget.api,
+        heroTag: widget.useHero ? _heroTag : null,
+        heroRadius: widget.radius,
+        // Hands the viewer the shape to reserve, so the flight lands on a box
+        // the picture actually fits rather than a full-screen one that snaps
+        // down a frame later.
+        aspectRatio: _aspect,
+        // The tile's decode is already warm, so the viewer can open on it
+        // immediately rather than shimmering while the full-resolution
+        // decode lands.
+        thumbnailDecodeWidth: thumbnailDecodeWidth(context, widget.width),
+      ),
+      child: widget.useHero ? Hero(tag: _heroTag, child: remote) : remote,
+    );
   }
 }
 

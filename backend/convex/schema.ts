@@ -275,6 +275,14 @@ export default defineSchema({
     // New fields
     type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "url" | "system"
     mediaStorageId: v.optional(v.id("_storage")),
+    // Pixel size of `mediaStorageId`, recorded by the sender who already holds
+    // it. A photo bubble lays out at the picture's own ratio, and without this
+    // the receiver can only learn that ratio by decoding the file — i.e. one
+    // frame *after* it has already laid the bubble out at a guess. Optional
+    // because every message sent before this field existed has neither, and
+    // those fall back to a client-side measurement cache.
+    mediaWidth: v.optional(v.number()),
+    mediaHeight: v.optional(v.number()),
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Reply support. `replyToId` points at the parent message; `replyToPreview`

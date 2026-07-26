@@ -179,6 +179,36 @@ class ChatMetrics {
   static const double mediaFraction = 0.62;
   static const double mediaMin = 240;
   static const double mediaMax = 360;
+
+  /// How tall a photo tile may get, as a multiple of its width.
+  ///
+  /// The tile is as wide as [mediaMaxWidth] and takes its height from the
+  /// picture's own ratio, so the thumbnail is the photograph rather than a
+  /// square guess at the middle of it. These bound how far that can go: a
+  /// 9:16 screenshot would otherwise be a column taller than the viewport and
+  /// push everything said around it off screen, and a panorama would be a
+  /// letterbox slit too short to read.
+  ///
+  /// Only a picture outside the range is cropped, and then only by the
+  /// overshoot — `BoxFit.cover` takes it out of the long axis, centred.
+  static const double mediaMinHeightFactor = 0.55;
+  static const double mediaMaxHeightFactor = 1.5;
+
+  /// Height of a [width]-wide photo tile showing a picture of ratio [aspect]
+  /// (width÷height), clamped to the factors above.
+  ///
+  /// Pass a null [aspect] for a picture whose ratio isn't known yet — the tile
+  /// stands on a square until one arrives, which is the middle of the range and
+  /// so the smallest reflow either way.
+  static double mediaTileHeight(double width, double? aspect) {
+    final natural = aspect == null || !aspect.isFinite || aspect <= 0
+        ? width
+        : width / aspect;
+    return natural.clamp(
+      width * mediaMinHeightFactor,
+      width * mediaMaxHeightFactor,
+    );
+  }
   static const double linkFraction = 0.80;
   static const double linkMin = 320;
   static const double linkMax = 460;

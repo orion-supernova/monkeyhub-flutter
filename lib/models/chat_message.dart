@@ -49,6 +49,8 @@ class ChatMessage {
     required this.createdAt,
     this.type = MessageType.text,
     this.mediaStorageId,
+    this.mediaWidth,
+    this.mediaHeight,
     this.expiresAt,
     this.status = MessageStatus.sent,
     this.edited = false,
@@ -66,6 +68,24 @@ class ChatMessage {
   final DateTime createdAt;
   MessageType type;
   String? mediaStorageId;
+
+  /// Pixel size of [mediaStorageId], recorded by the sender.
+  ///
+  /// Null on anything sent before the field existed, and on media the sender
+  /// couldn't measure. Read [mediaAspectRatio] rather than these directly.
+  final double? mediaWidth;
+  final double? mediaHeight;
+
+  /// Width÷height of the attachment, or null when it isn't knowable from the
+  /// message alone. A photo bubble sizes itself from this so it lays out at the
+  /// picture's real ratio on the first frame; callers fall back to
+  /// `MediaAspectCache` for messages that predate the field.
+  double? get mediaAspectRatio {
+    final w = mediaWidth, h = mediaHeight;
+    if (w == null || h == null || w <= 0 || h <= 0) return null;
+    return w / h;
+  }
+
   DateTime? expiresAt;
   MessageStatus status;
   bool edited;
@@ -113,6 +133,8 @@ class ChatMessage {
       createdAt: DateTime.fromMillisecondsSinceEpoch((j['createdAt'] as num).toInt()),
       type: MessageTypeWire.parse(j['type'] as String?),
       mediaStorageId: j['mediaStorageId'] as String?,
+      mediaWidth: (j['mediaWidth'] as num?)?.toDouble(),
+      mediaHeight: (j['mediaHeight'] as num?)?.toDouble(),
       expiresAt: ex is num ? DateTime.fromMillisecondsSinceEpoch(ex.toInt()) : null,
       edited: (j['edited'] ?? false) as bool,
       reactions: (j['reactions'] as List?)
@@ -136,6 +158,11 @@ class ChatMessage {
         'createdAt': createdAt.millisecondsSinceEpoch,
         'type': type.wire,
         if (mediaStorageId != null) 'mediaStorageId': mediaStorageId,
+        // Round-trip the size too, or a cached photo bubble would come back from
+        // a cold boot without the ratio it laid out with and settle all over
+        // again — the exact reflow this field exists to prevent.
+        if (mediaWidth != null) 'mediaWidth': mediaWidth,
+        if (mediaHeight != null) 'mediaHeight': mediaHeight,
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
         'edited': edited,
         'reactions': reactions.map((r) => r.toJson()).toList(),
@@ -163,6 +190,8 @@ class ChatMessage {
         createdAt: createdAt,
         type: type,
         mediaStorageId: mediaStorageId,
+        mediaWidth: mediaWidth,
+        mediaHeight: mediaHeight,
         expiresAt: expiresAt,
         status: status ?? this.status,
         edited: edited,

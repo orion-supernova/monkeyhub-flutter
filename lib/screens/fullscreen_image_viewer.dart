@@ -19,6 +19,7 @@ class FullscreenImageViewer extends StatefulWidget {
     this.heroRadius,
     this.thumbnailDecodeWidth,
     this.circular = false,
+    this.aspectRatio,
   });
 
   final String storageId;
@@ -33,9 +34,9 @@ class FullscreenImageViewer extends StatefulWidget {
   final Object? heroTag;
 
   /// Corner radius of the source thumbnail, un-rounded to zero across the
-  /// flight. Pass `BorderRadius.circular(size)` for a circular avatar so it
-  /// squares off on the way out and re-rounds on the way back, instead of
-  /// snapping between shapes at the endpoints.
+  /// flight so the picture's corners open out rather than snapping square at
+  /// whichever endpoint the shuttle happens to render. Rectangular mode only —
+  /// [circular] is round at both ends and has nothing to tween.
   final BorderRadius? heroRadius;
 
   /// Decode width in device pixels of the thumbnail this was opened from, used
@@ -48,6 +49,15 @@ class FullscreenImageViewer extends StatefulWidget {
   /// app, so un-rounding one on the way to fullscreen reveals crop corners
   /// nobody chose. See [openAvatar].
   final bool circular;
+
+  /// Width÷height of the picture, when the caller already knows it.
+  ///
+  /// Reserves the right box before a single byte has decoded. Without it the
+  /// resting image is whatever the placeholder measures — and a placeholder with
+  /// no intrinsic size fills the screen, so a Hero flight lands on a full-screen
+  /// rect and then jumps down to the photo's real one the moment it decodes.
+  /// Ignored in [circular] mode, where the box is a square by definition.
+  final double? aspectRatio;
 
   /// Fraction of the shorter screen edge the circle occupies in [circular] mode.
   /// Big enough to read as "fullscreen", short of the edges so the round shape
@@ -62,6 +72,7 @@ class FullscreenImageViewer extends StatefulWidget {
     BorderRadius? heroRadius,
     int? thumbnailDecodeWidth,
     bool circular = false,
+    double? aspectRatio,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -79,6 +90,7 @@ class FullscreenImageViewer extends StatefulWidget {
           heroRadius: heroRadius,
           thumbnailDecodeWidth: thumbnailDecodeWidth,
           circular: circular,
+          aspectRatio: aspectRatio,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -232,28 +244,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     final screen = MediaQuery.sizeOf(context);
     final diameter =
         math.min(screen.width, screen.height) * FullscreenImageViewer._circleFraction;
-    // A circle destination has to be `cover` inside a fixed square, or the image
-    // letterboxes inside the oval and the clip cuts the padding instead of the
-    // picture. The rectangular destination stays `contain` — there the whole
-    // frame is the point.
-    final Widget image = widget.circular
-        ? ClipOval(
-            child: RemoteImage(
-              storageId: widget.storageId,
-              api: widget.api,
-              width: diameter,
-              height: diameter,
-              fit: BoxFit.cover,
-              placeholderDecodeWidth: widget.thumbnailDecodeWidth,
-            ),
-          )
-        : RemoteImage(
-            storageId: widget.storageId,
-            api: widget.api,
-            fit: BoxFit.contain,
-            borderRadius: BorderRadius.zero,
-            placeholderDecodeWidth: widget.thumbnailDecodeWidth,
-          );
+    final Widget image = widget.circular ? _circleImage(diameter) : _rectImage();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -322,39 +313,106 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
     );
   }
 
+  /// The circle destination: a fixed square box, `cover`, clipped round.
+  ///
+  /// Deliberately no `width`/`height` on the [RemoteImage] — the [SizedBox]
+  /// supplies the box, and leaving the image unsized sends its decode down
+  /// `decodeSizeFor`'s screen-cap branch. That matters here: a circle crops a
+  /// non-square avatar hard, and decoding to the box's short edge would leave
+  /// the visible part upscaled and soft on the biggest view of it in the app.
+  Widget _circleImage(double diameter) => ClipOval(
+        child: SizedBox(
+          width: diameter,
+          height: diameter,
+          child: RemoteImage(
+            storageId: widget.storageId,
+            api: widget.api,
+            fit: BoxFit.cover,
+            borderRadius: BorderRadius.zero,
+            placeholderDecodeWidth: widget.thumbnailDecodeWidth,
+          ),
+        ),
+      );
+
+  /// The full-bleed destination: the whole frame, at its own ratio.
+  Widget _rectImage() {
+    final image = RemoteImage(
+      storageId: widget.storageId,
+      api: widget.api,
+      fit: BoxFit.contain,
+      borderRadius: BorderRadius.zero,
+      placeholderDecodeWidth: widget.thumbnailDecodeWidth,
+    );
+    final aspect = widget.aspectRatio;
+    if (aspect == null || !aspect.isFinite || aspect <= 0) return image;
+    // Pin the box to the picture's shape so the Hero has a stable destination
+    // from the first frame, decoded or not. `Center` hands down loose
+    // constraints, so this settles at the largest rect of that ratio which
+    // fits — exactly where the decoded image would have landed anyway.
+    return AspectRatio(aspectRatio: aspect, child: image);
+  }
+
+  /// Paints the picture `cover` inside whatever rect the flight is currently at.
+  ///
+  /// This is what makes an open and a close continuous. The thumbnail crops to
+  /// fill its box and the fullscreen view shows the whole frame, so the two ends
+  /// disagree about the crop — and a shuttle that paints `contain`, as this one
+  /// used to, letterboxes the picture inside the small end and then snaps to the
+  /// thumbnail's fill when it lands. `cover` reproduces the thumbnail's crop at
+  /// the small end, and at the big end the rect already has the picture's own
+  /// ratio, where `cover` and `contain` are the same thing. The crop animates
+  /// instead of cutting.
+  Widget _flightImage() => RemoteImage(
+        storageId: widget.storageId,
+        api: widget.api,
+        fit: BoxFit.cover,
+        borderRadius: BorderRadius.zero,
+        placeholderDecodeWidth: widget.thumbnailDecodeWidth,
+      );
+
   Widget _maybeHero(Widget image) {
     final tag = widget.heroTag;
     if (tag == null) return image;
-    // In circular mode both ends of the flight are circles, so the default
-    // shuttle — which renders this destination subtree, already inside a
-    // ClipOval — stays round the whole way on its own. Both endpoints are
-    // square, so the interpolated rect is square too and the oval never
-    // squashes. No radius tween to run.
-    if (widget.circular) return Hero(tag: tag, child: image);
+    if (widget.circular) {
+      // Render *this* subtree in both directions rather than letting the
+      // default shuttle pick up the destination's. On the way home the
+      // destination is the avatar as its own screen draws it — and those differ:
+      // room info clips with a 92 px radius, which at full size is a rounded
+      // rectangle, not a circle. Flying our own ClipOval keeps it round from end
+      // to end whichever way it is going.
+      return Hero(
+        tag: tag,
+        flightShuttleBuilder: (_, _, _, _, _) => image,
+        child: image,
+      );
+    }
     final from = widget.heroRadius;
     return Hero(
       tag: tag,
-      flightShuttleBuilder: from == null
-          ? null
-          : (_, animation, direction, _, _) {
-              // Un-round the source shape across the flight. Without this an
-              // avatar snaps from circle to rectangle at whichever endpoint the
-              // shuttle happens to render, which is the single most obvious
-              // tell that a flight is a cut and not a movement.
-              final tween = BorderRadiusTween(begin: from, end: BorderRadius.zero);
-              final curved = CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              );
-              return AnimatedBuilder(
-                animation: curved,
-                builder: (_, _) => ClipRRect(
-                  clipBehavior: Clip.antiAlias,
-                  borderRadius: tween.evaluate(curved) ?? BorderRadius.zero,
-                  child: image,
-                ),
-              );
-            },
+      flightShuttleBuilder: (_, animation, _, _, _) {
+        // Un-round the source shape across the flight. Without this a rounded
+        // thumbnail snaps to square corners at whichever endpoint the shuttle
+        // happens to render, which is the single most obvious tell that a
+        // flight is a cut and not a movement.
+        final tween = BorderRadiusTween(
+          begin: from ?? BorderRadius.zero,
+          end: BorderRadius.zero,
+        );
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOut,
+        );
+        final flight = _flightImage();
+        return AnimatedBuilder(
+          animation: curved,
+          builder: (_, child) => ClipRRect(
+            clipBehavior: Clip.antiAlias,
+            borderRadius: tween.evaluate(curved) ?? BorderRadius.zero,
+            child: child,
+          ),
+          child: flight,
+        );
+      },
       child: image,
     );
   }
