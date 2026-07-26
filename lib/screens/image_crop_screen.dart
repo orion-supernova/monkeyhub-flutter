@@ -130,24 +130,20 @@ class _ImageCropScreenState extends State<ImageCropScreen>
 
   Future<void> _load() async {
     try {
-      final buffer = await ui.ImmutableBuffer.fromUint8List(widget.source);
-      final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      final longest = math.max(descriptor.width, descriptor.height);
-      final k = longest > _maxDecodeEdge ? _maxDecodeEdge / longest : 1.0;
-      final codec = await descriptor.instantiateCodec(
-        targetWidth: (descriptor.width * k).round(),
-        targetHeight: (descriptor.height * k).round(),
-      );
-      final frame = await codec.getNextFrame();
-      descriptor.dispose();
-      codec.dispose();
+      // Was a hand-rolled copy of decodeImageBytes, and carried the same web
+      // bug: ImageDescriptor.width throws UnsupportedError in a browser, so the
+      // avatar cropper failed on every photo too. One decoder now, so the next
+      // platform difference is only found once.
+      final image =
+          await decodeImageBytes(widget.source, maxEdge: _maxDecodeEdge);
       if (!mounted) {
-        frame.image.dispose();
+        image.dispose();
         return;
       }
-      setState(() => _image = frame.image);
+      setState(() => _image = image);
       _fit();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[image_crop] decode failed: $e');
       if (mounted) setState(() => _loadFailed = true);
     }
   }

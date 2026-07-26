@@ -95,41 +95,92 @@ String sniffImageContentType(Uint8List bytes) {
 ///    the real pixels, once, at save time.
 ///
 /// Never upscales: a small source is decoded as-is.
+///
+/// The cap is applied through `instantiateImageCodecWithSize` rather than by
+/// reading `ImageDescriptor.width` ourselves, because on web that getter throws
+/// `UnsupportedError` outright — `ImageDescriptor.encoded` there is a bare
+/// wrapper around the bytes that never parses a header, so every field is null
+/// and every accessor throws (flutter_web_sdk/lib/ui/painting.dart). Asking for
+/// the width was the first thing this function did, so on web it failed for
+/// *every* image, not just an exotic one, and the editor blamed the photo.
+///
+/// The callback form is the API that hides the difference: on mobile it is
+/// handed the header dimensions, and on web the engine decodes once to learn
+/// them and re-decodes at the size we ask for. The second decode is the price
+/// of a browser having no header API at all — there is nothing cheaper to buy.
 Future<ui.Image> decodeImageBytes(Uint8List bytes, {int? maxEdge}) async {
   final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-  final descriptor = await ui.ImageDescriptor.encoded(buffer);
+  // Takes ownership of the buffer and disposes it.
+  final codec = await ui.instantiateImageCodecWithSize(
+    buffer,
+    getTargetSize: maxEdge == null
+        ? null
+        : (intrinsicWidth, intrinsicHeight) {
+            final longest = math.max(intrinsicWidth, intrinsicHeight);
+            if (longest <= maxEdge) return const ui.TargetImageSize();
+            final k = maxEdge / longest;
+            return ui.TargetImageSize(
+              width: math.max(1, (intrinsicWidth * k).round()),
+              height: math.max(1, (intrinsicHeight * k).round()),
+            );
+          },
+  );
   try {
-    final longest = math.max(descriptor.width, descriptor.height);
-    final k =
-        (maxEdge != null && longest > maxEdge) ? maxEdge / longest : 1.0;
-    final codec = await descriptor.instantiateCodec(
-      targetWidth: (descriptor.width * k).round(),
-      targetHeight: (descriptor.height * k).round(),
-    );
-    try {
-      final frame = await codec.getNextFrame();
-      return frame.image;
-    } finally {
-      codec.dispose();
-    }
+    final frame = await codec.getNextFrame();
+    return frame.image;
   } finally {
-    descriptor.dispose();
+    codec.dispose();
   }
 }
 
-/// The intrinsic pixel size of [bytes], without decoding them.
+/// The intrinsic pixel size of [bytes], without decoding them where possible.
 ///
-/// `ImageDescriptor.encoded` reads the header only, so this costs nothing
-/// against the tens of megabytes a full decode would allocate. Used to report
-/// the true dimensions of an image that is being passed through untouched,
-/// where no decode of it exists to ask.
+/// Used to report the true dimensions of an image that is being passed through
+/// untouched, where no decode of it exists to ask.
+///
+/// Two header readers, because neither one covers both platforms:
+///
+///  * Off web, `ImageDescriptor.encoded` reads the real header and understands
+///    every format the platform decoder does, HEIC included, for the cost of
+///    the read.
+///  * On web that same call parses nothing and its getters throw, so the header
+///    is parsed in pure Dart instead. This covers JPEG, PNG, GIF and WebP —
+///    which is everything `sniffImageContentType` can name and a browser can
+///    open.
+///
+/// A format neither reader knows falls back to a full decode, which is slow but
+/// always right, and is the only honest answer for something like AVIF that the
+/// browser can open and `package:image` cannot parse.
 Future<ui.Size> imageBytesSize(Uint8List bytes) async {
-  final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-  final descriptor = await ui.ImageDescriptor.encoded(buffer);
+  if (!kIsWeb) {
+    final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+    final descriptor = await ui.ImageDescriptor.encoded(buffer);
+    try {
+      return ui.Size(descriptor.width.toDouble(), descriptor.height.toDouble());
+    } finally {
+      descriptor.dispose();
+      buffer.dispose();
+    }
+  }
+
+  // Guarded, not just null-checked: a truncated or malformed file makes these
+  // parsers throw as readily as it makes them decline, and both mean the same
+  // thing here — this reader does not know what it is looking at.
+  img.DecodeInfo? info;
   try {
-    return ui.Size(descriptor.width.toDouble(), descriptor.height.toDouble());
+    info = img.findDecoderForData(bytes)?.startDecode(bytes);
+  } catch (_) {
+    info = null;
+  }
+  if (info != null) {
+    return ui.Size(info.width.toDouble(), info.height.toDouble());
+  }
+
+  final image = await decodeImageBytes(bytes);
+  try {
+    return ui.Size(image.width.toDouble(), image.height.toDouble());
   } finally {
-    descriptor.dispose();
+    image.dispose();
   }
 }
 

@@ -247,6 +247,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       }
       setState(() => _display = image);
     } catch (e) {
+      // Said out loud. Swallowed into _loadError alone, a decode that failed on
+      // every image in the browser looked identical in the console to one that
+      // never ran — which is how it survived a build and a deploy.
+      debugPrint('[camera_editor] decode failed: $e');
       if (!mounted) return;
       setState(() => _loadError = e);
     }
@@ -480,20 +484,29 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     if (!_hasEdits) {
       // The decoded image on screen is capped at _maxDisplayEdge, so its size
       // is not the source's size — read the real one from the header.
-      final size = await imageBytesSize(widget.source);
-      if (!mounted) return;
-      Navigator.of(context).pop(
-        EditorSend(
-          image: CroppedImage(
-            bytes: widget.source,
-            contentType: sniffImageContentType(widget.source),
-            width: size.width.round(),
-            height: size.height.round(),
+      //
+      // A header we cannot read is not a reason to lose the send. Falling
+      // through costs one re-encode of a picture we meant to pass through
+      // untouched, and the export path below takes its dimensions from a real
+      // decode, so the photo still goes out at the size the user gave us.
+      try {
+        final size = await imageBytesSize(widget.source);
+        if (!mounted) return;
+        Navigator.of(context).pop(
+          EditorSend(
+            image: CroppedImage(
+              bytes: widget.source,
+              contentType: sniffImageContentType(widget.source),
+              width: size.width.round(),
+              height: size.height.round(),
+            ),
+            viewOnce: _viewOnce,
           ),
-          viewOnce: _viewOnce,
-        ),
-      );
-      return;
+        );
+        return;
+      } catch (e) {
+        debugPrint('[camera_editor] header read failed, re-encoding: $e');
+      }
     }
 
     setState(() => _saving = true);
@@ -560,7 +573,8 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       Navigator.of(context).pop(
         EditorSend(image: result, viewOnce: _viewOnce),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[camera_editor] export failed: $e');
       if (!mounted) return;
       setState(() => _saving = false);
     } finally {
