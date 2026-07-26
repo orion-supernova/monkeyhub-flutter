@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
@@ -226,13 +227,9 @@ class MessageBubble extends StatelessWidget {
           onTap: onAuthorTap,
           collapsed: !showAvatar,
         ),
-        bubble: GestureDetector(
+        bubble: _BubbleGestureDetector(
           onLongPress: onLongPress,
           onDoubleTap: onDoubleTap,
-          // Desktop/trackpad right-click opens the same action menu,
-          // anchored to the same bubble rect. No platform gate needed —
-          // touch devices never produce a secondary tap.
-          onSecondaryTap: onLongPress,
           child: bubbleArea,
         ),
         reactions: message.reactions.isNotEmpty && onReactionTap != null
@@ -488,11 +485,9 @@ class EphemeralMessageBubble extends StatelessWidget {
               collapsed: !showAvatar,
             ),
           ),
-          bubble: GestureDetector(
+          bubble: _BubbleGestureDetector(
             onLongPress: onLongPress,
             onDoubleTap: onDoubleTap,
-            // See MessageBubble above — right-click mirrors long-press.
-            onSecondaryTap: onLongPress,
             child: bubbleArea,
           ),
           reactions: message.reactions.isNotEmpty && onReactionTap != null
@@ -526,6 +521,56 @@ class EphemeralMessageBubble extends StatelessWidget {
                 ),
         ),
       ),
+    );
+  }
+}
+
+/// Shorter than the platform default (500ms) so the reaction sheet feels
+/// responsive rather than sluggish to hold for.
+const Duration _reactionLongPressDuration = Duration(milliseconds: 150);
+
+/// Long-press-for-reactions, double-tap, and right-click-mirrors-long-press
+/// on a single [child], with a tuned (shorter) long-press duration. Plain
+/// [GestureDetector] has no hook for that duration, so this goes straight to
+/// the recognizers — see [_HorizontalRightDragRecognizer] in swipe_to_reply.dart
+/// for the same pattern.
+class _BubbleGestureDetector extends StatelessWidget {
+  const _BubbleGestureDetector({
+    required this.child,
+    this.onLongPress,
+    this.onDoubleTap,
+  });
+
+  final Widget child;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onDoubleTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      gestures: {
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+          () => LongPressGestureRecognizer(
+              duration: _reactionLongPressDuration),
+          (instance) => instance.onLongPress = onLongPress,
+        ),
+        if (onDoubleTap != null)
+          DoubleTapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<DoubleTapGestureRecognizer>(
+            () => DoubleTapGestureRecognizer(),
+            (instance) => instance.onDoubleTap = onDoubleTap,
+          ),
+        TapGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          () => TapGestureRecognizer(),
+          // Desktop/trackpad right-click opens the same action menu, anchored
+          // to the same bubble rect. No platform gate needed — touch devices
+          // never produce a secondary tap.
+          (instance) => instance.onSecondaryTap = onLongPress,
+        ),
+      },
+      child: child,
     );
   }
 }

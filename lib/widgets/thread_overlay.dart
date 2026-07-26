@@ -437,6 +437,22 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final anchor = _keys[m.id];
     if (anchor == null) return;
     HapticFeedback.mediumImpact();
+
+    // Same run geometry as the row this was lifted off — see the
+    // ListView.builder below. The overlay force-sizes the preview into the
+    // measured rect, so a wrong `grouped` here (default false, i.e. the wide
+    // between-runs gap) makes it taller than that rect and overflows.
+    final messages = _messages;
+    final j = messages.indexWhere((x) => x.id == m.id);
+    final grouped = j <= 0
+        ? false
+        : continuesRun(messages[j - 1], m,
+            showTether: m.isReply && m.replyToId != messages[j - 1].id);
+    final next = j == -1 || j + 1 >= messages.length ? null : messages[j + 1];
+    final lastInRun = next == null ||
+        !continuesRun(m, next,
+            showTether: next.isReply && next.replyToId != m.id);
+
     final result = await showMessageActionMenu(
       context: context,
       anchorKey: anchor,
@@ -452,6 +468,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
         author,
         showReplyIndicator: false,
         interactive: false,
+        grouped: grouped,
+        lastInRun: lastInRun,
       ),
     );
     if (!mounted || result == null) return;

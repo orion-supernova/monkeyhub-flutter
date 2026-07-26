@@ -1,7 +1,13 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+
+/// Shorter than the platform default (500ms) — see the matching constant in
+/// message_bubble.dart. Duplicated rather than shared because that file
+/// imports this one.
+const Duration _reactorsLongPressDuration = Duration(milliseconds: 150);
 
 class ReactionRow extends StatelessWidget {
   const ReactionRow({
@@ -77,12 +83,24 @@ class _ReactionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      // Desktop/trackpad right-click reaches the same list, matching how the
-      // bubble already treats a secondary tap as a long-press.
-      onSecondaryTap: onLongPress,
+    return RawGestureDetector(
+      gestures: {
+        TapGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          () => TapGestureRecognizer(),
+          (instance) => instance
+            ..onTap = onTap
+            // Desktop/trackpad right-click reaches the same list, matching
+            // how the bubble already treats a secondary tap as a long-press.
+            ..onSecondaryTap = onLongPress,
+        ),
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+          () => LongPressGestureRecognizer(
+              duration: _reactorsLongPressDuration),
+          (instance) => instance.onLongPress = onLongPress,
+        ),
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
