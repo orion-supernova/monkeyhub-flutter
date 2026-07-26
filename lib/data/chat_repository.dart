@@ -170,20 +170,24 @@ class ChatRepository extends ChangeNotifier {
       }
     } catch (_) {}
 
-    // 2) Seed from a single API hit before subscriptions take over.
+    // 2) Seed from parallel API hits before subscriptions take over.
     try {
-      _rooms = await api.listUserRooms(userId);
-      CacheStore.instance.scheduleSaveRooms(userId, _rooms);
-    } catch (_) {/* network down; cached rooms remain visible */}
-    try {
-      _friends = await api.listFriends(userId);
-    } catch (_) {}
-    try {
-      _incomingRequests = await api.listIncomingDirectRequests(userId);
-    } catch (_) {}
-    try {
-      _outgoingRequests = await api.listOutgoingDirectRequests(userId);
-    } catch (_) {}
+      final results = await Future.wait<dynamic>([
+        api.listUserRooms(userId).catchError((_) => <ChatRoom>[]),
+        api.listFriends(userId).catchError((_) => <ChatUser>[]),
+        api.listIncomingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
+        api.listOutgoingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
+      ]);
+      final roomsResult = results[0] as List<ChatRoom>;
+      if (roomsResult.isNotEmpty) {
+        _rooms = roomsResult;
+        CacheStore.instance.scheduleSaveRooms(userId, _rooms);
+      }
+      final friendsResult = results[1] as List<ChatUser>;
+      if (friendsResult.isNotEmpty) _friends = friendsResult;
+      _incomingRequests = results[2] as List<FriendRequest>;
+      _outgoingRequests = results[3] as List<FriendRequest>;
+    } catch (_) {/* network down; cached rooms/friends remain visible */}
     notifyListeners();
 
     _roomsSub?.cancel();

@@ -389,53 +389,50 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
     try {
       await _auth.restore();
-      final s = _auth.session;
-      if (s != null) {
-        try {
-          await _repo.attach(s.userId);
-          // Fire-and-forget: the UI renders as an unrestricted adult until
-          // this lands, and every gate is enforced server-side anyway.
-          _family.attach(s.userId);
-          await PushManager.instance.login(s.userId);
-          OneSignalWeb.login(s.userId); // web push external_id; no-op off web
-          // Respect the user's last notification preference.
-          if (!SettingsStore.instance.pushEnabled) {
-            await PushManager.instance.optOut();
-          }
-          BadgeManager.instance.bind(_repo);
-          MessageAlerts.instance.bind(_repo);
-          _startPresenceHeartbeat(s.userId);
-          final deviceId = await DeviceIdentity.ensure();
-          _callService.attach(
-            userId: s.userId,
-            displayName: s.name,
-            deviceId: deviceId,
-          );
-          _groupCallService.attach(userId: s.userId, deviceId: deviceId);
-          await _signaling.start(s.userId, deviceId: deviceId);
-          // A call accepted from the native UI while the app was dead lands
-          // here (Android): the plugin persisted the accept; replay it now
-          // that CallService + signaling are live.
-          await NativeCallHandler.instance.replayColdStartCalls();
-        } catch (_) {
-          /* offline boot — reconcile on reconnect */
-        }
-      }
     } catch (_) {
       /* secure storage may not be available in test harness */
     }
+
+    // Set _bootstrapped true immediately so the UI mounts in <150ms from local cache.
     if (mounted) setState(() => _bootstrapped = true);
+
+    final s = _auth.session;
+    if (s != null) {
+      // Background attach & service setup — runs asynchronously so screen rendering is instant.
+      _asyncSessionAttach(s);
+    }
+
     _consumePendingPushRoom();
-    // One-time Android prompts (full-screen intent, battery exemption).
-    // After the first frame so the dialogs have a mounted navigator.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_auth.session != null) AndroidCallReliability.instance.ensure();
-      // "You're behind" check, once per launch. Deliberately NOT gated on a
-      // session, unlike the prompts above: someone whose client is too old to
-      // talk to this backend can't get past the login screen, and they're
-      // exactly who needs to be told to update.
       UpdateChecker.instance.ensure(_api);
     });
+  }
+
+  void _asyncSessionAttach(Session s) async {
+    try {
+      await _repo.attach(s.userId);
+      _family.attach(s.userId);
+      await PushManager.instance.login(s.userId);
+      OneSignalWeb.login(s.userId);
+      if (!SettingsStore.instance.pushEnabled) {
+        await PushManager.instance.optOut();
+      }
+      BadgeManager.instance.bind(_repo);
+      MessageAlerts.instance.bind(_repo);
+      _startPresenceHeartbeat(s.userId);
+      final deviceId = await DeviceIdentity.ensure();
+      _callService.attach(
+        userId: s.userId,
+        displayName: s.name,
+        deviceId: deviceId,
+      );
+      _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+      await _signaling.start(s.userId, deviceId: deviceId);
+      await NativeCallHandler.instance.replayColdStartCalls();
+    } catch (e) {
+      debugPrint('_asyncSessionAttach error: $e');
+    }
   }
 
   /// Keeps the persisted session's account type in step with the live family

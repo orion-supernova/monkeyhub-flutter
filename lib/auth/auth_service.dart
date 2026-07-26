@@ -5,6 +5,7 @@ import '../data/cache_store.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
 import 'session_store.dart';
+export 'session_store.dart' show Session;
 
 /// AuthService = ConvexAuthService from v02. Wraps the Convex auth mutations
 /// and keeps the local session in sync with secure storage.
