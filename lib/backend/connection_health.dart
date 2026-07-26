@@ -110,6 +110,7 @@ class ConnectionHealth extends ChangeNotifier {
     required Future<void> Function() onReconnected,
     required bool Function() isActive,
     this.graceDelay = const Duration(milliseconds: 1200),
+    Duration? initialGraceDelay,
     this.stalledAfter = const Duration(seconds: 12),
     this.firstProbeTimeout = const Duration(seconds: 7),
     this.probeTimeout = const Duration(seconds: 10),
@@ -122,7 +123,8 @@ class ConnectionHealth extends ChangeNotifier {
     ],
     this.heartbeatFailureThreshold = 2,
     bool watchConnectivity = true,
-  }) : _backend = backend,
+  }) : initialGraceDelay = initialGraceDelay ?? (graceDelay == const Duration(milliseconds: 1200) ? const Duration(milliseconds: 2500) : graceDelay),
+       _backend = backend,
        _onReconnected = onReconnected,
        _isActive = isActive,
        _watchConnectivity = watchConnectivity;
@@ -140,6 +142,7 @@ class ConnectionHealth extends ChangeNotifier {
   /// How long the socket must be down before the banner appears at all — short
   /// blips shouldn't flash UI.
   final Duration graceDelay;
+  final Duration initialGraceDelay;
 
   /// How long before "reconnecting…" escalates to the manual-retry state.
   ///
@@ -404,7 +407,10 @@ class ConnectionHealth extends ChangeNotifier {
     if (_uiTimersArmed) return;
     _uiTimersArmed = true;
     _graceTimer?.cancel();
-    _graceTimer = Timer(graceDelay, () {
+    //Slightly longer grace (3s) for the initial handshake (attempt 0) on launch/resume
+    //so normal 1-2s WebSocket SSL handshakes never flash a false-alarm banner.
+    final delay = _attempt == 0 ? initialGraceDelay : graceDelay;
+    _graceTimer = Timer(delay, () {
       if (_disposed || !_healing) return;
       _setPhase(ConnectionPhase.reconnecting);
     });
