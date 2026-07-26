@@ -16,6 +16,7 @@ import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
@@ -247,12 +248,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
-                ),
+                // Meaningless once dismiss-by-drag isn't a thing — the
+                // desktop popover closes via barrier tap / Esc, not a drag
+                // gesture.
+                if (ctx.isCompact)
+                  Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
+                  ),
                 Text(title, style: theme.displaySmall),
                 const SizedBox(height: 14),
                 ThemedInput(
@@ -1226,17 +1231,22 @@ Future<AvatarAction?> showAvatarActionSheet(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.divider,
-                      borderRadius: BorderRadius.circular(2),
+                // Meaningless once dismiss-by-drag isn't a thing — the
+                // desktop popover closes via barrier tap / Esc, not a drag
+                // gesture.
+                if (ctx.isCompact) ...[
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.divider,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
+                  const SizedBox(height: 14),
+                ],
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text('PROFILE PICTURE', style: theme.label),

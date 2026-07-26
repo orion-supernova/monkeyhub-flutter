@@ -2,6 +2,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 
@@ -33,17 +34,20 @@ class ReactionPickerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(2),
+            // Meaningless once dismiss-by-drag isn't a thing — the desktop
+            // popover closes via barrier tap / Esc, not a drag gesture.
+            if (context.isCompact)
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.inkMuted.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
             Text(
               'REACT',
               textAlign: TextAlign.center,

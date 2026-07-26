@@ -681,9 +681,17 @@ class _WindowClassProvider extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wc = Breakpoints.classOf(constraints.maxWidth);
+        // Previous class, read before we overwrite the mirror below — the
+        // only signal available here for detecting a live crossing, since
+        // this LayoutBuilder reruns on every resize frame, not just on a
+        // class flip (unlike LayoutScope's dependents).
+        final prev = gLastWindowClass;
         // Mirror for code with no descendant context (push/call-overlay
         // routing in this file).
         gLastWindowClass = wc;
+        if (prev != WindowClass.expanded && wc == WindowClass.expanded) {
+          _reconcileNavigatorForExpanded();
+        }
         return LayoutScope(
           windowClass: wc,
           width: constraints.maxWidth,
@@ -692,6 +700,42 @@ class _WindowClassProvider extends StatelessWidget {
       },
     );
   }
+}
+
+/// Route name marking a root-navigator push that must survive
+/// [_reconcileNavigatorForExpanded] — i.e. it stays in front of [HomeShell] no
+/// matter what window class the app is in. Used for the active-call
+/// full-screen routes: losing an in-progress call to a live resize would be
+/// far worse than leaving a stale compact-only screen behind it unreconciled
+/// for one more resize.
+const String kProtectedRouteName = 'protected-route';
+
+/// Growing the window past [Breakpoints.expanded] while a compact-only screen
+/// is pushed on the root navigator (a room, a settings sub-screen, a
+/// profile, …) would otherwise leave it stranded on top of [HomeShell]
+/// forever: the shell flips to its route-free desktop layout underneath, but
+/// nothing ever pops the stale push to reveal it. This mirrors the cold-start
+/// reconciliation `_openRoomFromPush` (below, in `_MonkeyHubAppState`) already
+/// does for a push-notification tap, but triggered by a live resize instead.
+///
+/// Pops everything down to the shell except a route tagged
+/// [kProtectedRouteName] (an active call/group-call screen), which must never
+/// be yanked out from under the user by an incidental resize.
+void _reconcileNavigatorForExpanded() {
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final nav = rootNavigatorKey.currentState;
+    if (nav == null) return;
+    // A pending room selection means the stale push we're about to clear was
+    // (or led to) a room — land the desktop two-pane on Chat so it's already
+    // showing by the time the pop reveals it, exactly like the expanded
+    // branches of `openRoom`/`_openRoomFromPush` already do.
+    if (UiSelectionStore.instance.roomId != null) {
+      SettingsStore.instance.setSection(HomeSection.chat);
+    }
+    nav.popUntil(
+      (route) => route.isFirst || route.settings.name == kProtectedRouteName,
+    );
+  });
 }
 
 /// Watches [CallService] and pushes the right call screen onto the root
@@ -812,6 +856,7 @@ class _CallOverlayState extends State<_CallOverlay> {
         nav.push(
           MaterialPageRoute(
             fullscreenDialog: true,
+            settings: const RouteSettings(name: kProtectedRouteName),
             builder: (_) =>
                 CallScreen(service: widget.service, api: widget.api),
           ),
@@ -820,6 +865,7 @@ class _CallOverlayState extends State<_CallOverlay> {
         nav.push(
           MaterialPageRoute(
             fullscreenDialog: true,
+            settings: const RouteSettings(name: kProtectedRouteName),
             builder: (_) =>
                 IncomingCallScreen(service: widget.service, api: widget.api),
           ),
@@ -1017,6 +1063,7 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
         nav.push(
           MaterialPageRoute(
             fullscreenDialog: true,
+            settings: const RouteSettings(name: kProtectedRouteName),
             builder: (_) =>
                 GroupCallScreen(service: widget.service, api: widget.api),
           ),
@@ -1042,6 +1089,7 @@ class _GroupCallOverlayState extends State<_GroupCallOverlay> {
         await nav.push(
           MaterialPageRoute(
             fullscreenDialog: true,
+            settings: const RouteSettings(name: kProtectedRouteName),
             builder: (_) => IncomingGroupCallScreen(service: widget.service),
           ),
         );

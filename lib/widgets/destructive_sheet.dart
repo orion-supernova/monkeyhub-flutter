@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../keyboard/focusable_tap.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'remote_image.dart';
@@ -19,6 +20,9 @@ class SheetGrabber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Meaningless once dismiss-by-drag isn't a thing — the desktop popover
+    // closes via barrier tap / Esc, not a drag gesture.
+    if (!context.isCompact) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     return Center(
       child: Container(

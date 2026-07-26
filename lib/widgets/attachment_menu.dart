@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 
@@ -49,15 +50,19 @@ class _AttachmentSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 36,
-                height: 3.5,
-                decoration: BoxDecoration(
-                  color: theme.inkMuted.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+              // Meaningless once dismiss-by-drag isn't a thing — the desktop
+              // popover closes via barrier tap / Esc, not a drag gesture.
+              if (context.isCompact) ...[
+                Container(
+                  width: 36,
+                  height: 3.5,
+                  decoration: BoxDecoration(
+                    color: theme.inkMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

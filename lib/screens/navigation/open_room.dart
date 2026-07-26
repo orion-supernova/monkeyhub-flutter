@@ -28,6 +28,15 @@ void openRoom(
     UiSelectionStore.instance.selectRoom(roomId);
     return;
   }
+  // Mirror the selection even though nothing on compact/medium reads it today
+  // — so that if the window grows to expanded while this push is still
+  // showing, the desktop two-pane already has the right room queued up the
+  // instant the stale push gets reconciled away (see the window-class
+  // transition handler in app.dart). Deliberately NOT touching
+  // SettingsStore.section here: on compact that also drives which bottom-nav
+  // tab sits underneath this push, and forcing it to chat would strand the
+  // user there after backing out of a room opened from Feed/Settings.
+  UiSelectionStore.instance.selectRoom(roomId);
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),

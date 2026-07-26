@@ -549,6 +549,21 @@ class _RoomScreenState extends State<RoomScreen>
 
   @override
   void dispose() {
+    // Compact/medium `openRoom` mirrors this room into `UiSelectionStore` too
+    // (see open_room.dart), so a later resize to expanded can find it. Clear
+    // it back out on a normal compact dismissal so a stale roomId can't
+    // resurrect this (now-closed) room on some LATER, unrelated resize.
+    //
+    // Guarded on `gLastWindowClass != expanded` so this does NOT fire during
+    // the resize-triggered reconciliation pop itself (app.dart's
+    // `_reconcileNavigatorForExpanded`) — that pop runs after the window
+    // class has already flipped to expanded, and needs this exact selection
+    // to still be here for `_ChatTwoPane` to land on. Also guarded on
+    // identity so this never clobbers a newer selection already in flight.
+    if (UiSelectionStore.instance.roomId == widget.roomId &&
+        gLastWindowClass != WindowClass.expanded) {
+      UiSelectionStore.instance.selectRoom(null);
+    }
     _ticker.cancel();
     _composer.dispose();
     _composerFocus.dispose();

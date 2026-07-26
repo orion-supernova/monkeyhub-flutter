@@ -118,17 +118,21 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 18),
-                          width: 40,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: theme.inkMuted.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.circular(2),
+                      // Meaningless once dismiss-by-drag isn't a thing — the
+                      // desktop popover closes via barrier tap / Esc, not a
+                      // drag gesture.
+                      if (context.isCompact)
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 18),
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: theme.inkMuted.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
                         ),
-                      ),
                       Row(
                         children: [
                           Expanded(

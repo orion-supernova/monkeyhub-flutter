@@ -4,6 +4,7 @@ import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
 import 'group_call_service.dart';
@@ -20,12 +21,8 @@ Future<void> showStartGroupCallSheet(
   final theme = ThemeScope.of(context);
   var kind = CallMediaKind.audio;
 
-  await showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: theme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+  await showAdaptiveSheet<void>(
+    context,
     builder: (sheetCtx) {
       return StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
@@ -128,7 +125,8 @@ Future<void> showStartGroupCallSheet(
           }
 
           return SafeArea(
-            child: Padding(
+            child: Container(
+              decoration: theme.sheetDecoration(),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -211,13 +209,8 @@ Future<List<String>?> _pickMembers(
   List<ChatUser>? members;
   final selected = <String>{};
 
-  return showModalBottomSheet<List<String>>(
-    context: context,
-    backgroundColor: theme.surface,
-    isScrollControlled: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+  return showAdaptiveSheet<List<String>>(
+    context,
     builder: (sheetCtx) {
       return StatefulBuilder(
         builder: (sheetCtx, setSheetState) {
@@ -239,6 +232,7 @@ Future<List<String>?> _pickMembers(
           final list = members;
           return SafeArea(
             child: Container(
+              decoration: theme.sheetDecoration(),
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(sheetCtx).size.height * 0.7,
               ),
