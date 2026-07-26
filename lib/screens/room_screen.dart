@@ -39,6 +39,7 @@ import '../widgets/chat_pane.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
+import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/typing_indicator.dart';
@@ -1360,6 +1361,24 @@ class _RoomScreenState extends State<RoomScreen>
                   widget.repo.toggleReaction(messageId: m.id, emoji: e);
                 }
 
+                Future<void> onReactionLongPress(String e) async {
+                  HapticFeedback.mediumImpact();
+                  await showReactionDetailsSheet(
+                    context,
+                    repo: widget.repo,
+                    api: widget.api,
+                    roomId: room.id,
+                    messageId: m.id,
+                    fallback: m.reactions,
+                    currentUserId: me,
+                    initialEmoji: e,
+                    // The live member map is the only resolver that covers
+                    // people who aren't friends of ours.
+                    resolveUser: (id) => _members[id],
+                    onOpenProfile: _openProfile,
+                  );
+                }
+
                 void onAuthorTap() {
                   if (author == null || isMine) return;
                   _openProfile(author);
@@ -1380,6 +1399,7 @@ class _RoomScreenState extends State<RoomScreen>
                         onLongPress: isPending ? null : onLongPress,
                         onDoubleTap: isPending ? null : onLongPress,
                         onReactionTap: onReactionTap,
+                        onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
                         onReplyIndicatorTap: (parentId) =>
                             _jumpToMessage(parentId, from: m),
@@ -1405,6 +1425,7 @@ class _RoomScreenState extends State<RoomScreen>
                         onLongPress: isPending ? null : onLongPress,
                         onDoubleTap: isPending ? null : onLongPress,
                         onReactionTap: onReactionTap,
+                        onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
                         onReplyIndicatorTap: (parentId) =>
                             _jumpToMessage(parentId, from: m),
@@ -1656,7 +1677,7 @@ class _RoomIntro extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
+      margin: const EdgeInsets.only(top: MessageGap.aroundMarker),
       padding: const EdgeInsets.all(18),
       decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
       child: Column(
@@ -1789,7 +1810,9 @@ class _ThreadFoldChip extends StatelessWidget {
     return Padding(
       // Left-inset into the avatar gutter rather than centred: a centred pill
       // reads as a date marker, which this very much is not.
-      padding: const EdgeInsets.fromLTRB(36, 2, 0, 2),
+      // A fold sits inside a run of thread messages, so it takes the run's own
+      // gap. Top only — see [MessageGap].
+      padding: const EdgeInsets.fromLTRB(36, MessageGap.withinRun, 0, 0),
       child: Align(
         alignment: Alignment.centerLeft,
         child: GestureDetector(
@@ -1861,7 +1884,9 @@ class _DateDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      // Top only — see [MessageGap]. The air below a divider is the following
+      // message's own gap, which is the same number.
+      padding: const EdgeInsets.only(top: MessageGap.aroundMarker),
       child: Row(
         children: [
           Expanded(child: Container(height: 1, color: theme.divider)),

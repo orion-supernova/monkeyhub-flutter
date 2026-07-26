@@ -16,6 +16,7 @@ import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
+import 'message_stamp.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
 import 'steady_hero.dart';
@@ -34,6 +35,7 @@ class MessageBubble extends StatelessWidget {
     this.onLongPress,
     this.onDoubleTap,
     this.onReactionTap,
+    this.onReactionLongPress,
     this.onAuthorTap,
     this.onReplyIndicatorTap,
     this.onViewThread,
@@ -58,6 +60,10 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
+
+  /// Long-press a reaction chip to see who is behind that emoji.
+  final void Function(String emoji)? onReactionLongPress;
+
   final VoidCallback? onAuthorTap;
 
   /// Invoked when the user taps the inline reply indicator. Receives the
@@ -189,7 +195,10 @@ class MessageBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
+      // Top only — see [MessageGap]. A row owning half its gap at each end makes
+      // the space between two rows depend on which two rows they are.
+      padding: EdgeInsets.only(
+          top: grouped ? MessageGap.withinRun : MessageGap.betweenRuns),
       child: _BubbleLayout(
         isMine: isMine,
         showAvatarSlot: showAvatarSlot,
@@ -218,15 +227,19 @@ class MessageBubble extends StatelessWidget {
                   reactions: message.reactions,
                   currentUserId: currentUserId,
                   onToggle: onReactionTap!,
+                  onShowReactors: onReactionLongPress,
                   alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
                 ),
               )
             : null,
-        meta: _MetaRow(
-          message: message,
-          isMine: isMine,
-          seenByOthers: seenByOthers,
-        ),
+        meta: messageStampsInline(message,
+                showLinkUrls: SettingsStore.instance.showLinkUrls)
+            ? null
+            : _MetaRow(
+                message: message,
+                isMine: isMine,
+                seenByOthers: seenByOthers,
+              ),
       ),
     );
   }
@@ -246,6 +259,7 @@ class MessageBubble extends StatelessWidget {
       bubbleStyle: bubbleStyle,
       firstInRun: !grouped,
       lastInRun: lastInRun,
+      seenByOthers: seenByOthers,
     );
   }
 }
@@ -261,6 +275,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onLongPress,
     this.onDoubleTap,
     this.onReactionTap,
+    this.onReactionLongPress,
     this.onAuthorTap,
     this.onReplyIndicatorTap,
     this.onViewThread,
@@ -284,6 +299,10 @@ class EphemeralMessageBubble extends StatelessWidget {
   final VoidCallback? onLongPress;
   final VoidCallback? onDoubleTap;
   final void Function(String emoji)? onReactionTap;
+
+  /// Long-press a reaction chip to see who is behind that emoji.
+  final void Function(String emoji)? onReactionLongPress;
+
   final VoidCallback? onAuthorTap;
   final void Function(String parentId)? onReplyIndicatorTap;
   final VoidCallback? onViewThread;
@@ -343,6 +362,8 @@ class EphemeralMessageBubble extends StatelessWidget {
       bubbleStyle: bubbleStyle,
       firstInRun: !grouped,
       lastInRun: lastInRun,
+      countdown: message.timeLeft(now),
+      seenByOthers: seenByOthers,
     );
 
     final bubble = Stack(
@@ -411,7 +432,10 @@ class EphemeralMessageBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: grouped ? 1 : 6),
+      // Top only — see [MessageGap]. A row owning half its gap at each end makes
+      // the space between two rows depend on which two rows they are.
+      padding: EdgeInsets.only(
+          top: grouped ? MessageGap.withinRun : MessageGap.betweenRuns),
       child: Transform.translate(
         offset: Offset(0, -dissolveT * 10),
         child: _BubbleLayout(
@@ -446,20 +470,26 @@ class EphemeralMessageBubble extends StatelessWidget {
                       reactions: message.reactions,
                       currentUserId: currentUserId,
                       onToggle: onReactionTap!,
+                      onShowReactors: onReactionLongPress,
                       alignment: isMine ? WrapAlignment.end : WrapAlignment.start,
                     ),
                   ),
                 )
               : null,
-          meta: Opacity(
-            opacity: 1 - dissolveT,
-            child: _MetaRow(
-              message: message,
-              isMine: isMine,
-              countdown: message.timeLeft(now),
-              seenByOthers: seenByOthers,
-            ),
-          ),
+          // Only the fallback row needs its own dissolve fade — a stamp inside
+          // the bubble is already carried by the bubble's own blur and opacity.
+          meta: messageStampsInline(message,
+                  showLinkUrls: SettingsStore.instance.showLinkUrls)
+              ? null
+              : Opacity(
+                  opacity: 1 - dissolveT,
+                  child: _MetaRow(
+                    message: message,
+                    isMine: isMine,
+                    countdown: message.timeLeft(now),
+                    seenByOthers: seenByOthers,
+                  ),
+                ),
         ),
       ),
     );
@@ -496,7 +526,12 @@ class _BubbleLayout extends StatelessWidget {
   final Widget avatar;
   final Widget bubble;
   final Widget? reactions;
-  final Widget meta;
+
+  /// The external timestamp row — null for every message that carries its stamp
+  /// inside its own bubble, which is nearly all of them. Still `required` in the
+  /// constructor so both call sites have to state which it is: a missing
+  /// timestamp should never be an omission.
+  final Widget? meta;
 
   /// Width of the strip the bubble reserves on the sender's side for its tail.
   /// Everything below the bubble is inset by it so timestamps and reactions
@@ -562,16 +597,48 @@ class _BubbleLayout extends StatelessWidget {
             ),
             child: reactions,
           ),
-        Padding(
-          padding: EdgeInsets.only(
-            left: leadingIndent + (isMine ? 0 : tailGutter),
-            right: isMine ? tailGutter : 0,
+        if (meta != null)
+          Padding(
+            padding: EdgeInsets.only(
+              left: leadingIndent + (isMine ? 0 : tailGutter),
+              right: isMine ? tailGutter : 0,
+            ),
+            child: meta,
           ),
-          child: meta,
-        ),
       ],
     );
   }
+}
+
+/// Whether [message] renders a surface that can host its own timestamp: a text
+/// or caption block to tuck it into, or a media tile to lay it over.
+///
+/// Two shapes cannot. A URL-only message with URLs hidden *is* a link preview
+/// card — there is no bubble around it and nothing of ours inside it — and a
+/// photo whose storage id never arrived is a bare error plate. Both keep the
+/// external row they always had, which is why `_BubbleLayout.meta` is nullable
+/// rather than gone.
+bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
+  switch (message.type) {
+    case MessageType.image:
+      return message.content.isNotEmpty || message.mediaStorageId != null;
+    case MessageType.video:
+    case MessageType.audio:
+    case MessageType.system:
+      return true;
+    case MessageType.text:
+    case MessageType.url:
+      return !_isStandaloneLinkCard(message, showLinkUrls);
+  }
+}
+
+/// Exactly the condition [_LinkAwareBubble] picks its card-only mode on
+/// (`hasUrls && !hasText`). One reading of it, so the bubble and the row beneath
+/// it can never disagree about which of them owns the timestamp.
+bool _isStandaloneLinkCard(ChatMessage message, bool showLinkUrls) {
+  if (showLinkUrls) return false;
+  if (UrlDetector.extract(message.content).isEmpty) return false;
+  return _LinkAwareBubble._stripUrls(message.content).trim().isEmpty;
 }
 
 /// Builds the inner "bubble body" widget for any message type, applying the
@@ -596,6 +663,13 @@ Widget buildMessageContent({
   /// single bubble carries the tail.
   bool firstInRun = true,
   bool lastInRun = true,
+
+  /// Remaining life of an ephemeral message, for the stamp's countdown. Null on
+  /// everything else.
+  Duration? countdown,
+
+  /// Whether anyone else has read this yet. Drives the stamp's read receipt.
+  bool seenByOthers = false,
 }) {
   final deco = theme.bubbleDecoration(
     isMine: isMine,
@@ -613,6 +687,27 @@ Widget buildMessageContent({
   // as visual noise and clashes with whatever the photo's content is.
   final mediaRadius = BorderRadius.circular(theme.radiusLg);
 
+  // Reading SettingsStore here is reactive: both bubble variants already wrap
+  // their whole row in an AnimatedBuilder on it, for the bubble-shape
+  // preference.
+  final inline = messageStampsInline(
+    message,
+    showLinkUrls: SettingsStore.instance.showLinkUrls,
+  );
+  MessageStamp? stampFor(StampTone tone) => inline
+      ? MessageStamp(
+          createdAt: message.createdAt,
+          status: message.status,
+          countdown: countdown,
+          showSeen: isMine && seenByOthers,
+          tone: tone,
+        )
+      : null;
+  // Every branch that draws its own ink already maps mine→accentInk and
+  // theirs→ink; the stamp reads the same mapping, so it can never end up
+  // accent-on-accent.
+  final bubbleTone = isMine ? StampTone.onAccent : StampTone.onBubble;
+
   switch (message.type) {
     case MessageType.image:
       final id = message.mediaStorageId;
@@ -625,6 +720,9 @@ Widget buildMessageContent({
           width: imageSize,
           radius: mediaRadius,
           useHero: useHero,
+          // With a caption the stamp belongs to the caption bubble, not to the
+          // photograph.
+          stamp: hasCaption ? null : stampFor(StampTone.onMedia),
         );
       } else {
         imageTile = Container(
@@ -650,34 +748,51 @@ Widget buildMessageContent({
           const SizedBox(height: 4),
           Container(
             decoration: deco,
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            child: Text(
-              message.content,
-              style: theme.body
-                  .copyWith(color: isMine ? theme.accentInk : theme.ink),
-            ),
+            child: _captionBody(theme, message.content, isMine,
+                stamp: stampFor(bubbleTone)),
           ),
         ],
       );
     case MessageType.audio:
+      final player = AudioMessage(
+        api: api,
+        storageId: message.mediaStorageId,
+        isMine: isMine,
+      );
+      final audioStamp = stampFor(bubbleTone);
       return Container(
         padding: const EdgeInsets.fromLTRB(10, 8, 14, 8),
         decoration: deco,
-        child: AudioMessage(
-          api: api,
-          storageId: message.mediaStorageId,
-          isMine: isMine,
-        ),
+        child: audioStamp == null
+            ? player
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                // Lands on the same line as the player's own duration readout
+                // rather than starting a second row of tiny type — the 34pt
+                // play button sets the height, so this costs nothing.
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  player,
+                  const SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1),
+                    child: audioStamp,
+                  ),
+                ],
+              ),
       );
     case MessageType.video:
-      final videoTile = ClipRRect(
-        borderRadius: mediaRadius,
-        child: VideoMessage(
-          api: api,
-          storageId: message.mediaStorageId,
-          isMine: isMine,
-          maxWidth: metrics?.videoMaxWidth,
+      final videoTile = StampedMedia(
+        tile: ClipRRect(
+          borderRadius: mediaRadius,
+          child: VideoMessage(
+            api: api,
+            storageId: message.mediaStorageId,
+            isMine: isMine,
+            maxWidth: metrics?.videoMaxWidth,
+          ),
         ),
+        stamp: hasCaption ? null : stampFor(StampTone.onMedia),
       );
       if (!hasCaption) return videoTile;
       return Column(
@@ -689,23 +804,16 @@ Widget buildMessageContent({
           const SizedBox(height: 4),
           Container(
             decoration: deco,
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-            child: Text(
-              message.content,
-              style: theme.body
-                  .copyWith(color: isMine ? theme.accentInk : theme.ink),
-            ),
+            child: _captionBody(theme, message.content, isMine,
+                stamp: stampFor(bubbleTone)),
           ),
         ],
       );
     case MessageType.system:
       return Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
         decoration: deco,
-        child: Text(
-          message.content,
-          style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink),
-        ),
+        child: _captionBody(theme, message.content, isMine,
+            stamp: stampFor(bubbleTone)),
       );
     case MessageType.url:
     case MessageType.text:
@@ -714,8 +822,39 @@ Widget buildMessageContent({
         message: message,
         isMine: isMine,
         decoration: deco,
+        stamp: stampFor(bubbleTone),
       );
   }
+}
+
+/// A padded run of plain bubble text — an image or video caption, or a system
+/// notice — stamped when [stamp] is non-null.
+///
+/// The padding moves off the enclosing `Container` and in here, because the
+/// stamp's `Positioned` has to live *inside* the padded box to measure from the
+/// text's edge rather than the bubble's.
+Widget _captionBody(
+  AppTheme theme,
+  String text,
+  bool isMine, {
+  required MessageStamp? stamp,
+}) {
+  const pad = EdgeInsets.fromLTRB(14, 10, 14, 10);
+  final style = theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
+  if (stamp == null) {
+    return Padding(padding: pad, child: Text(text, style: style));
+  }
+  return StampedTextBlock(
+    stamp: stamp,
+    padding: pad,
+    child: Text.rich(TextSpan(
+      // trimRight so a caption ending in a newline doesn't push the stamp onto
+      // a line of its own.
+      text: text.trimRight(),
+      children: [stampSpacerSpan(stamp)],
+      style: style,
+    )),
+  );
 }
 
 /// A photo in the transcript, shown at the picture's own aspect ratio.
@@ -745,6 +884,7 @@ class _ImageTile extends StatefulWidget {
     required this.width,
     required this.radius,
     required this.useHero,
+    required this.stamp,
   });
 
   final ChatMessage message;
@@ -754,12 +894,21 @@ class _ImageTile extends StatefulWidget {
   final BorderRadius radius;
   final bool useHero;
 
+  /// Laid over the picture's bottom-trailing corner. Null when the message has
+  /// a caption to carry the stamp instead.
+  final MessageStamp? stamp;
+
   @override
   State<_ImageTile> createState() => _ImageTileState();
 }
 
 class _ImageTileState extends State<_ImageTile> {
   double? _aspect;
+
+  /// True for the length of the fullscreen round trip. The stamp is a sibling
+  /// of the hero rather than part of it, so without this it would hover over
+  /// the empty slot the photo leaves behind while it is away.
+  bool _viewing = false;
 
   @override
   void initState() {
@@ -790,6 +939,29 @@ class _ImageTileState extends State<_ImageTile> {
 
   String get _heroTag => 'msg-image-${widget.message.id}';
 
+  Future<void> _openViewer() async {
+    setState(() => _viewing = true);
+    try {
+      await FullscreenImageViewer.open(
+        context,
+        storageId: widget.storageId,
+        api: widget.api,
+        heroTag: widget.useHero ? _heroTag : null,
+        heroRadius: widget.radius,
+        // Hands the viewer the shape to reserve, so the flight lands on a box
+        // the picture actually fits rather than a full-screen one that snaps
+        // down a frame later.
+        aspectRatio: _aspect,
+        // The tile's decode is already warm, so the viewer can open on it
+        // immediately rather than shimmering while the full-resolution decode
+        // lands.
+        thumbnailDecodeWidth: thumbnailDecodeWidth(context, widget.width),
+      );
+    } finally {
+      if (mounted) setState(() => _viewing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = ChatMetrics.mediaTileHeight(widget.width, _aspect);
@@ -805,24 +977,13 @@ class _ImageTileState extends State<_ImageTile> {
       onAspectRatio: _aspect == null ? _onAspect : null,
     );
     return GestureDetector(
-      onTap: () => FullscreenImageViewer.open(
-        context,
-        storageId: widget.storageId,
-        api: widget.api,
-        heroTag: widget.useHero ? _heroTag : null,
-        heroRadius: widget.radius,
-        // Hands the viewer the shape to reserve, so the flight lands on a box
-        // the picture actually fits rather than a full-screen one that snaps
-        // down a frame later.
-        aspectRatio: _aspect,
-        // The tile's decode is already warm, so the viewer can open on it
-        // immediately rather than shimmering while the full-resolution
-        // decode lands.
-        thumbnailDecodeWidth: thumbnailDecodeWidth(context, widget.width),
+      onTap: _openViewer,
+      child: StampedMedia(
+        tile: widget.useHero
+            ? SteadyHero(tag: _heroTag, child: remote)
+            : remote,
+        stamp: _viewing ? null : widget.stamp,
       ),
-      child: widget.useHero
-          ? SteadyHero(tag: _heroTag, child: remote)
-          : remote,
     );
   }
 }
@@ -882,11 +1043,18 @@ class _LinkAwareBubble extends StatelessWidget {
     required this.message,
     required this.isMine,
     required this.decoration,
+    required this.stamp,
   });
 
   final AppTheme theme;
   final ChatMessage message;
   final bool isMine;
+
+  /// Tucked into the text block's bottom-trailing corner. Null for the
+  /// card-only mode below, which has no bubble of its own — see
+  /// [messageStampsInline], which reads the same condition so the external row
+  /// takes over for exactly those messages.
+  final MessageStamp? stamp;
 
   /// A `ShapeDecoration` in practice — the tail cannot be expressed by a
   /// `BoxDecoration`. `Container` still clips to it (`getClipPath`) and still
@@ -961,6 +1129,21 @@ class _LinkAwareBubble extends StatelessWidget {
                 ? theme.accent
                 : theme.ink);
 
+        final stamp = this.stamp;
+        final textPad = EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10);
+        final body = LinkifiedText(
+          // Trailing whitespace would push the stamp onto a line of its own.
+          text: displayText.trimRight(),
+          style: theme.body.copyWith(color: inkColor),
+          linkStyle: theme.body.copyWith(
+            color: linkAccent,
+            decoration: TextDecoration.underline,
+            decorationColor: linkAccent.withValues(alpha: 0.7),
+          ),
+          onLinkTap: (url) => LinkOpener.open(context, url),
+          trailing: stamp == null ? null : stampSpacerSpan(stamp),
+        );
+
         return Container(
           decoration: decoration,
           clipBehavior: Clip.antiAlias,
@@ -971,25 +1154,20 @@ class _LinkAwareBubble extends StatelessWidget {
             // a full-width bar with a screenful of empty space beside the
             // text. With `start` the bubble hugs its text and the max is what
             // it should always have been: the point where a long message
-            // wraps to a second line.
+            // wraps to a second line. The stamp lives INSIDE the text block
+            // precisely so it cannot break that — the Stack hugs the
+            // paragraph, and the paragraph now includes the room the stamp
+            // needs.
             crossAxisAlignment:
                 hasUrls ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               if (hasText)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10),
-                  child: LinkifiedText(
-                    text: displayText,
-                    style: theme.body.copyWith(color: inkColor),
-                    linkStyle: theme.body.copyWith(
-                      color: linkAccent,
-                      decoration: TextDecoration.underline,
-                      decorationColor: linkAccent.withValues(alpha: 0.7),
-                    ),
-                    onLinkTap: (url) => LinkOpener.open(context, url),
-                  ),
-                ),
+                if (stamp == null)
+                  Padding(padding: textPad, child: body)
+                else
+                  StampedTextBlock(
+                      stamp: stamp, padding: textPad, child: body),
               if (hasUrls)
                 for (final url in urls.take(_maxPreviews))
                   LinkPreviewCard(
@@ -1139,6 +1317,10 @@ class _PulseOutline extends CustomPainter {
       old.shape != shape || old.color != color;
 }
 
+/// The external timestamp row, kept for the two message shapes that have no
+/// bubble of their own to sit in — see [messageStampsInline]. Same cluster the
+/// bubbles use inside themselves; only the tone and the surrounding padding
+/// differ.
 class _MetaRow extends StatelessWidget {
   const _MetaRow({
     required this.message,
@@ -1151,75 +1333,19 @@ class _MetaRow extends StatelessWidget {
   final Duration? countdown;
   final bool seenByOthers;
 
-  String _fmtTime(DateTime t) {
-    final h = t.hour.toString().padLeft(2, '0');
-    final m = t.minute.toString().padLeft(2, '0');
-    return '$h:$m';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
     return Padding(
+      // The +4 is mirrored by _BubbleLayout's sender-name inset, so the name
+      // opening a run and the timestamp closing it sit on the same left edge.
       padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(_fmtTime(message.createdAt), style: theme.monoTiny),
-          if (message.status == MessageStatus.pending) ...[
-            const SizedBox(width: 8),
-            Text('· SENDING', style: theme.monoTiny.copyWith(color: theme.inkMuted)),
-          ],
-          if (message.status == MessageStatus.error) ...[
-            const SizedBox(width: 8),
-            Text('· FAILED', style: theme.monoTiny.copyWith(color: theme.danger)),
-          ],
-          if (countdown != null) ...[
-            const SizedBox(width: 8),
-            _Countdown(left: countdown!, theme: theme),
-          ],
-          if (isMine && seenByOthers && message.status == MessageStatus.sent) ...[
-            const SizedBox(width: 8),
-            Icon(Icons.done_all, size: 12, color: theme.accent),
-            const SizedBox(width: 3),
-            Text('SEEN', style: theme.monoTiny.copyWith(color: theme.accent)),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _Countdown extends StatelessWidget {
-  const _Countdown({required this.left, required this.theme});
-  final Duration left;
-  final AppTheme theme;
-
-  String _fmt() {
-    final s = left.inSeconds.clamp(0, 99999);
-    if (s < 60) return '${s}s';
-    final mins = s ~/ 60;
-    final rem = s % 60;
-    return '${mins}m ${rem.toString().padLeft(2, '0')}s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final urgency = left.inSeconds < 5;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: urgency ? theme.accent.withValues(alpha: 0.18) : theme.surfaceSunken,
-        border: Border.all(color: theme.accent.withValues(alpha: urgency ? 0.7 : 0.35), width: 0.8),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          theme.hourglassIcon(size: 9, color: theme.accent),
-          const SizedBox(width: 5),
-          Text(_fmt(), style: theme.monoTiny.copyWith(color: theme.accent)),
-        ],
+      child: MessageStamp(
+        key: kVisibleStampKey,
+        createdAt: message.createdAt,
+        status: message.status,
+        countdown: countdown,
+        showSeen: isMine && seenByOthers,
+        tone: StampTone.onSurface,
       ),
     );
   }

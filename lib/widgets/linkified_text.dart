@@ -13,12 +13,19 @@ class LinkifiedText extends StatefulWidget {
     required this.style,
     required this.linkStyle,
     required this.onLinkTap,
+    this.trailing,
   });
 
   final String text;
   final TextStyle style;
   final TextStyle linkStyle;
   final void Function(String url) onLinkTap;
+
+  /// Appended as the paragraph's last span. Used to reserve the room the
+  /// bubble's timestamp needs at the end of the text, so a full last line wraps
+  /// rather than running underneath it. Forces the rich path even when there
+  /// are no URLs to linkify.
+  final InlineSpan? trailing;
 
   @override
   State<LinkifiedText> createState() => _LinkifiedTextState();
@@ -44,7 +51,13 @@ class _LinkifiedTextState extends State<LinkifiedText> {
 
     final matches = UrlDetector.matches(widget.text);
     if (matches.isEmpty) {
-      return Text(widget.text, style: widget.style);
+      final trailing = widget.trailing;
+      if (trailing == null) return Text(widget.text, style: widget.style);
+      return Text.rich(TextSpan(
+        text: widget.text,
+        children: [trailing],
+        style: widget.style,
+      ));
     }
 
     final spans = <InlineSpan>[];
@@ -66,6 +79,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     if (cursor < widget.text.length) {
       spans.add(TextSpan(text: widget.text.substring(cursor)));
     }
+    if (widget.trailing != null) spans.add(widget.trailing!);
 
     return Text.rich(
       TextSpan(children: spans, style: widget.style),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message_reaction.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
 class ReactionRow extends StatelessWidget {
@@ -8,12 +9,19 @@ class ReactionRow extends StatelessWidget {
     required this.reactions,
     required this.currentUserId,
     required this.onToggle,
+    this.onShowReactors,
     this.alignment = WrapAlignment.start,
   });
 
   final List<MessageReaction> reactions;
   final String currentUserId;
   final void Function(String emoji) onToggle;
+
+  /// Long-press a chip to find out who is behind it. Free gesture: the chip's
+  /// recognizer is a descendant of the bubble's, so this never competes with
+  /// the message action menu.
+  final void Function(String emoji)? onShowReactors;
+
   final WrapAlignment alignment;
 
   @override
@@ -40,6 +48,9 @@ class ReactionRow extends StatelessWidget {
               count: entry.value.length,
               mine: entry.value.any((r) => r.userId == currentUserId),
               onTap: () => onToggle(entry.key),
+              onLongPress: onShowReactors == null
+                  ? null
+                  : () => onShowReactors!(entry.key),
               theme: theme,
             ),
         ],
@@ -54,18 +65,24 @@ class _ReactionChip extends StatelessWidget {
     required this.count,
     required this.mine,
     required this.onTap,
+    required this.onLongPress,
     required this.theme,
   });
   final String emoji;
   final int count;
   final bool mine;
   final VoidCallback onTap;
-  final dynamic theme;
+  final VoidCallback? onLongPress;
+  final AppTheme theme;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
+      // Desktop/trackpad right-click reaches the same list, matching how the
+      // bubble already treats a secondary tap as a long-press.
+      onSecondaryTap: onLongPress,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(

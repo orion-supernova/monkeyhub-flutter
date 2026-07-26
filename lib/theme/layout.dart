@@ -56,6 +56,38 @@ class Insets {
   static const double xxl = 40;
 }
 
+/// Vertical rhythm of the message transcript.
+///
+/// **Every row owns only the gap ABOVE it.** That is the whole system, and it is
+/// why these are used as `EdgeInsets.only(top:)` at every call site rather than
+/// `symmetric(vertical:)`.
+///
+/// The reason is that Flutter does not collapse adjacent padding, it adds it. So
+/// when each row contributes half of its own gap, the space between any two rows
+/// depends on which two rows they are: a run of four messages laid out with
+/// `vertical: grouped ? 1 : 6` reads 7, 2, 2 — the first boundary is three and a
+/// half times the others, for no reason a reader can see, and the same run
+/// preceded by a date divider opens wider still. With the gap owned by the row
+/// below, every boundary of the same kind measures the same number, and that
+/// number is stated in one place.
+///
+/// Nothing needs bottom padding: the transcript list supplies its own at both
+/// ends.
+class MessageGap {
+  MessageGap._();
+
+  /// Between two messages from the same sender. Tight on purpose — this is what
+  /// makes a run read as one block of speech instead of four separate cards.
+  static const double withinRun = 3;
+
+  /// Between runs: a new speaker, or the same one returning after a break.
+  static const double betweenRuns = 14;
+
+  /// Above a date divider or the room intro. Equal to [betweenRuns] so the air
+  /// above a marker matches the air below it — which the following row owns.
+  static const double aroundMarker = betweenRuns;
+}
+
 /// Max content widths for centered columns on wide screens.
 class ContentWidth {
   ContentWidth._();

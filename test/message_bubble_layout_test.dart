@@ -8,6 +8,7 @@ import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
+import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
@@ -17,10 +18,15 @@ import 'package:monkeyhub/widgets/user_avatar.dart';
 /// closes it. Both ends are geometry the widget owns and the call site cannot
 /// see, which is what these tests pin:
 ///
-///  * the avatar aligns with the *bubble's* bottom edge, not the timestamp's —
-///    the whole reason reactions and the meta row sit outside the bubble row;
+///  * the avatar aligns with the *bubble's* bottom edge, not with the bottom of
+///    whatever hangs below it — the whole reason the reaction row sits outside
+///    the bubble row;
 ///  * the name lines up with the bubble, not with the avatar column;
 ///  * a DM reclaims the avatar column entirely rather than reserving it empty.
+///
+/// Plus the transcript's vertical rhythm: every boundary of the same kind has to
+/// measure the same, which is only true while each row owns the gap above it and
+/// nothing below it. See [MessageGap].
 void main() {
   final api = ChatApi(ConvexBackend.instance);
 
@@ -168,5 +174,55 @@ void main() {
     expect(find.byType(UserAvatar), findsNothing);
     expect(bubbleRect(tester).left, 0,
         reason: 'nothing left to reserve space for');
+  });
+
+  group('vertical rhythm', () {
+    /// The decorated box of the i-th bubble in a stack of them.
+    Rect nthBubble(WidgetTester tester, int i) => tester.getRect(
+          find
+              .ancestor(
+                of: find.byType(LinkifiedText).at(i),
+                matching: find.byType(Container),
+              )
+              .first,
+        );
+
+    List<double> gapsBetween(WidgetTester tester, int count) => [
+          for (var i = 1; i < count; i++)
+            nthBubble(tester, i).top - nthBubble(tester, i - 1).bottom,
+        ];
+
+    testWidgets('every gap inside a run is the same gap', (tester) async {
+      await tester.pumpWidget(host(Column(children: [
+        bubble(content: 'one'),
+        bubble(content: 'two', grouped: true),
+        bubble(content: 'three', grouped: true),
+        bubble(content: 'four', grouped: true),
+      ])));
+
+      final gaps = gapsBetween(tester, 4);
+      for (final g in gaps) {
+        expect(g, moreOrLessEquals(MessageGap.withinRun, epsilon: 0.5),
+            reason: 'measured $gaps — a reader can see an uneven ladder, and '
+                'there is no reason for the first rung to differ');
+      }
+    });
+
+    testWidgets('a new run opens with the wider gap, and only one of it',
+        (tester) async {
+      await tester.pumpWidget(host(Column(children: [
+        bubble(content: 'one'),
+        bubble(content: 'two', grouped: true),
+        bubble(content: 'three'),
+        bubble(content: 'four'),
+      ])));
+
+      final gaps = gapsBetween(tester, 4);
+      expect(gaps[0], moreOrLessEquals(MessageGap.withinRun, epsilon: 0.5));
+      expect(gaps[1], moreOrLessEquals(MessageGap.betweenRuns, epsilon: 0.5));
+      expect(gaps[2], moreOrLessEquals(MessageGap.betweenRuns, epsilon: 0.5),
+          reason: 'two run boundaries in a row must measure the same, which is '
+              'exactly what summing two half-gaps got wrong');
+    });
   });
 }
