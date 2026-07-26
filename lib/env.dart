@@ -15,6 +15,19 @@ class Env {
   static String get convexUrl => _get('CONVEX_URL');
   static String get oneSignalAppId => _get('ONESIGNAL_APP_ID');
 
+  /// Origin serving Convex HTTP actions — currently just `/viewOnce`, which
+  /// streams a view-once photo against a single-use nonce.
+  ///
+  /// On this self-hosted deployment that is the same host as [convexUrl] (the
+  /// backend answers both on one origin), which is why the fallback is the
+  /// right default rather than a missing-key error. Convex Cloud splits them
+  /// (`.convex.cloud` vs `.convex.site`), so the key exists to make that
+  /// difference a config change rather than a code change.
+  static String get convexSiteUrl {
+    final explicit = _get('CONVEX_SITE_URL');
+    return explicit.isNotEmpty ? explicit : convexUrl;
+  }
+
   static const String clientId = 'monkeyhub-flutter';
 
   /// Returns missing required keys so the app can surface a clean error.

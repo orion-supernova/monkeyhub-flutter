@@ -22,6 +22,13 @@ class ReplyPreview {
 
   bool get isDeleted => contentPreview == '__DELETED__';
 
+  /// The parent was a view-once photo. `messages:send` writes this sentinel in
+  /// place of the parent's text and withholds its `mediaStorageId`, because a
+  /// reply preview is a permanent copy — quoting a burn-after-reading photo
+  /// must not be a way to keep it, or to learn the storage id the read path
+  /// takes such care to strip.
+  bool get isViewOnce => contentPreview == '__VIEW_ONCE__';
+
   factory ReplyPreview.fromJson(Map<String, dynamic> j) => ReplyPreview(
         senderId: (j['senderId']).toString(),
         senderName: (j['senderName'] ?? '') as String,
@@ -58,6 +65,9 @@ class ChatMessage {
     this.replyToId,
     this.replyToPreview,
     this.rootId,
+    this.viewOnce = false,
+    this.viewOnceOpened = false,
+    this.viewOnceBurnedAt,
   }) : reactions = reactions ?? [];
 
   final String id;
@@ -103,6 +113,30 @@ class ChatMessage {
   /// Two messages are in the same thread iff their [threadKey]s match.
   String get threadKey => rootId ?? id;
 
+  /// Burn-after-reading photo. The server never sends [mediaStorageId] for one
+  /// of these — the bytes come from `messages:openViewOnce` plus the
+  /// `/viewOnce` stream, exactly once — so this flag, not the storage id, is
+  /// what the bubble branches on.
+  final bool viewOnce;
+
+  /// Whether *this* viewer has already spent their look. Computed per-viewer by
+  /// the server, which is what makes it hold across devices: opening on the web
+  /// greys the bubble out on the phone.
+  final bool viewOnceOpened;
+
+  /// Set once the file has been deleted from the server. The message survives
+  /// as a ghost bubble; nobody can open it again, including people who never did.
+  final DateTime? viewOnceBurnedAt;
+
+  bool get viewOnceBurned => viewOnceBurnedAt != null;
+
+  /// Can this viewer still open it? False once burned, once spent, and on the
+  /// sender's own copy — there is no reopen path for the sender, because with
+  /// no authentication a "sender may always look" branch would be an oracle any
+  /// recipient could drive by passing the sender's id.
+  bool viewOnceOpenable({required bool isMine}) =>
+      viewOnce && !isMine && !viewOnceOpened && !viewOnceBurned;
+
   bool get isEphemeral => expiresAt != null;
   bool get isMedia =>
       type == MessageType.image || type == MessageType.video || type == MessageType.audio;
@@ -146,6 +180,12 @@ class ChatMessage {
           ? ReplyPreview.fromJson(rp.cast<String, dynamic>())
           : null,
       rootId: j['rootId']?.toString(),
+      viewOnce: (j['viewOnce'] ?? false) as bool,
+      viewOnceOpened: (j['viewOnceOpened'] ?? false) as bool,
+      viewOnceBurnedAt: j['viewOnceBurnedAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              (j['viewOnceBurnedAt'] as num).toInt())
+          : null,
     );
   }
 
@@ -171,6 +211,13 @@ class ChatMessage {
         // Round-trips through CacheStore — without it, cached messages lose
         // their thread membership on cold boot.
         if (rootId != null) 'rootId': rootId,
+        // These have to survive the disk cache too. Without them a cold boot
+        // would redraw a spent or burned photo as an unopened one, inviting a
+        // tap that can only ever be refused.
+        if (viewOnce) 'viewOnce': true,
+        if (viewOnceOpened) 'viewOnceOpened': true,
+        if (viewOnceBurnedAt != null)
+          'viewOnceBurnedAt': viewOnceBurnedAt!.millisecondsSinceEpoch,
       };
 
   ChatMessage copyWith({
@@ -181,6 +228,7 @@ class ChatMessage {
     String? replyToId,
     ReplyPreview? replyToPreview,
     String? rootId,
+    bool? viewOnceOpened,
   }) => ChatMessage(
         id: id ?? this.id,
         roomId: roomId,
@@ -199,5 +247,8 @@ class ChatMessage {
         replyToId: replyToId ?? this.replyToId,
         replyToPreview: replyToPreview ?? this.replyToPreview,
         rootId: rootId ?? this.rootId,
+        viewOnce: viewOnce,
+        viewOnceOpened: viewOnceOpened ?? this.viewOnceOpened,
+        viewOnceBurnedAt: viewOnceBurnedAt,
       );
 }

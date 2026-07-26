@@ -118,6 +118,11 @@ class ReplyIndicator extends StatelessWidget {
 // ─────────────────── shared bits ───────────────────
 
 String _previewLabel(ReplyPreview preview) {
+  // Ahead of the passthrough below, or the sentinel itself would be rendered
+  // as the quoted text. There is no thumbnail to sit beside it either —
+  // `_mediaThumb` drops the slot when the preview carries no storage id, which
+  // for a view-once parent it never does.
+  if (preview.isViewOnce) return 'photo · view once';
   if (preview.contentPreview.isNotEmpty) return preview.contentPreview;
   switch (preview.type) {
     case MessageType.image:

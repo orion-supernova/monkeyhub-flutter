@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../data/settings_store.dart';
+import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
@@ -50,7 +51,12 @@ class MessageBubble extends StatelessWidget {
     this.showAvatar = true,
     this.avatarAtBottom = false,
     this.senderName,
+    this.onOpenViewOnce,
   });
+
+  /// Spends this viewer's one look at a view-once photo and shows it. Null
+  /// leaves the sealed tile inert.
+  final Future<void> Function()? onOpenViewOnce;
 
   final ChatMessage message;
   final DateTime now;
@@ -260,6 +266,7 @@ class MessageBubble extends StatelessWidget {
       firstInRun: !grouped,
       lastInRun: lastInRun,
       seenByOthers: seenByOthers,
+      onOpenViewOnce: onOpenViewOnce,
     );
   }
 }
@@ -290,7 +297,13 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.showAvatar = true,
     this.avatarAtBottom = false,
     this.senderName,
+    this.onOpenViewOnce,
   });
+
+  /// Spends this viewer's one look at a view-once photo and shows it. Null
+  /// leaves the sealed tile inert.
+  final Future<void> Function()? onOpenViewOnce;
+
   final ChatMessage message;
   final DateTime now;
   final String currentUserId;
@@ -364,6 +377,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       lastInRun: lastInRun,
       countdown: message.timeLeft(now),
       seenByOthers: seenByOthers,
+      onOpenViewOnce: onOpenViewOnce,
     );
 
     final bubble = Stack(
@@ -670,6 +684,11 @@ Widget buildMessageContent({
 
   /// Whether anyone else has read this yet. Drives the stamp's read receipt.
   bool seenByOthers = false,
+
+  /// Spends this viewer's one look at a view-once photo and shows it. Null
+  /// where no repository is wired up (tests, previews), which leaves the sealed
+  /// tile inert rather than half-working.
+  Future<void> Function()? onOpenViewOnce,
 }) {
   final deco = theme.bubbleDecoration(
     isMine: isMine,
@@ -712,7 +731,22 @@ Widget buildMessageContent({
     case MessageType.image:
       final id = message.mediaStorageId;
       Widget imageTile;
-      if (id != null) {
+      // Checked BEFORE the storage-id branch on purpose. A view-once message
+      // never carries a storage id — the server strips it from every read path
+      // — so falling through would render the "broken image" placeholder, and
+      // more importantly would put a `RemoteImage` (and its persistent disk
+      // cache) anywhere near a photo that is supposed to leave no trace.
+      if (message.viewOnce) {
+        imageTile = _ViewOnceTile(
+          theme: theme,
+          message: message,
+          isMine: isMine,
+          width: imageSize,
+          radius: mediaRadius,
+          stamp: hasCaption ? null : stampFor(StampTone.onMedia),
+          onOpen: onOpenViewOnce,
+        );
+      } else if (id != null) {
         imageTile = _ImageTile(
           message: message,
           storageId: id,
@@ -876,6 +910,220 @@ Widget _captionBody(
 /// this image was on screen. The one case that can't be pre-empted is an image
 /// this device has genuinely never seen, sent before senders recorded sizes;
 /// that stands on a square for one decode and then settles, once, ever.
+/// The sealed bubble for a burn-after-reading photo.
+///
+/// It never shows the picture, and it never can: the server does not send the
+/// storage id, so there is nothing here to render even accidentally. The bytes
+/// arrive only through [ViewOnceViewer], into memory, once.
+///
+/// Fixed size, deliberately. Dropping `mediaWidth`/`mediaHeight` on an armed
+/// send (they would leak the photo's true shape) removes exactly what
+/// [ChatMetrics.mediaTileHeight] and `MediaAspectCache` exist to supply, so a
+/// constant is the only way to avoid the one-frame resize those were built to
+/// prevent — and it keeps all three states on one silhouette, so the transcript
+/// never jumps when a bubble goes from sealed to opened to ghost.
+class _ViewOnceTile extends StatefulWidget {
+  const _ViewOnceTile({
+    required this.theme,
+    required this.message,
+    required this.isMine,
+    required this.width,
+    required this.radius,
+    required this.stamp,
+    required this.onOpen,
+  });
+
+  /// Fixed geometry. Narrow enough to read as a marker rather than a photo.
+  static const double tileWidth = 190;
+  static const double tileHeight = 108;
+
+  final AppTheme theme;
+  final ChatMessage message;
+  final bool isMine;
+  final double width;
+  final BorderRadius radius;
+  final MessageStamp? stamp;
+  final Future<void> Function()? onOpen;
+
+  @override
+  State<_ViewOnceTile> createState() => _ViewOnceTileState();
+}
+
+class _ViewOnceTileState extends State<_ViewOnceTile> {
+  bool _busy = false;
+
+  bool get _openable =>
+      widget.onOpen != null &&
+      !_busy &&
+      widget.message.viewOnceOpenable(isMine: widget.isMine);
+
+  Future<void> _open() async {
+    if (!_openable) return;
+    setState(() => _busy = true);
+    try {
+      await widget.onOpen!();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// The one line under the title. Distinguishes "you had your look" from
+  /// "nobody gets one any more", because those are different facts and the user
+  /// can act on the difference (ask for it again vs. it's simply over).
+  String get _caption {
+    final m = widget.message;
+    if (m.viewOnceBurned) {
+      return m.viewOnceOpened || widget.isMine ? 'opened' : 'expired';
+    }
+    if (m.viewOnceOpened) return 'opened';
+    if (widget.isMine) return 'view once';
+    return 'tap to view';
+  }
+
+  bool get _spent =>
+      widget.message.viewOnceBurned ||
+      widget.message.viewOnceOpened ||
+      widget.isMine;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.theme;
+    final w = math.min(widget.width, _ViewOnceTile.tileWidth);
+    // Live and spent differ in weight, not in shape.
+    final ink = _spent ? t.inkMuted : t.ink;
+    final ring = _spent ? t.inkMuted : t.accent;
+
+    final tile = Container(
+      width: w,
+      height: _ViewOnceTile.tileHeight,
+      decoration: BoxDecoration(
+        color: t.surfaceSunken,
+        borderRadius: widget.radius,
+        border: Border.all(
+          color: _spent ? t.divider : t.accent.withValues(alpha: 0.45),
+        ),
+        // A faint corner wash so a sealed photo reads as "something is in
+        // here", without implying anything about what.
+        gradient: _spent
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  t.accent.withValues(alpha: 0.14),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.75],
+              ),
+      ),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 38,
+            height: 38,
+            child: _busy
+                ? Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(t.accent),
+                      ),
+                    ),
+                  )
+                : CustomPaint(
+                    painter: _ViewOnceRingPainter(
+                      color: ring,
+                      struck: _spent,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '1',
+                        style: TextStyle(
+                          color: ring,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'PHOTO',
+                  style: t.label.copyWith(color: ink, letterSpacing: 2.0),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _caption,
+                  style: t.monoTiny.copyWith(
+                    color: _spent ? t.inkMuted : t.inkSoft,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final stamped = StampedMedia(tile: tile, stamp: widget.stamp);
+    if (!_openable) return stamped;
+    return FocusableTap(
+      onTap: _open,
+      semanticLabel: 'view once photo, tap to view',
+      radius: widget.radius.topLeft.x,
+      child: GestureDetector(
+        onTap: _open,
+        behavior: HitTestBehavior.opaque,
+        child: stamped,
+      ),
+    );
+  }
+}
+
+/// The ring around the "1", struck through once the photo can't be opened.
+class _ViewOnceRingPainter extends CustomPainter {
+  const _ViewOnceRingPainter({required this.color, required this.struck});
+
+  final Color color;
+  final bool struck;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = math.min(size.width, size.height) / 2 - 1;
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..isAntiAlias = true
+      ..color = color;
+    canvas.drawCircle(c, r, p);
+    if (!struck) return;
+    // Trailing-to-leading slash, the same direction a "no" symbol reads.
+    final d = r * 0.72;
+    canvas.drawLine(
+      Offset(c.dx - d, c.dy + d),
+      Offset(c.dx + d, c.dy - d),
+      p..strokeWidth = 1.4,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ViewOnceRingPainter old) =>
+      old.color != color || old.struck != struck;
+}
+
 class _ImageTile extends StatefulWidget {
   const _ImageTile({
     required this.message,

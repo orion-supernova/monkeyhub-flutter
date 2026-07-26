@@ -91,4 +91,16 @@ crons.interval(
   {},
 );
 
+// Burn view-once photos past their 14-day deadline. Every armed send already
+// schedules its own `burnViewOnce` at exactly that moment, so this is purely a
+// repair sweep for the ones the scheduler lost (a restart mid-flight, say).
+// Cheap: `by_viewOnce_deadline` leads with the boolean, so the scan touches
+// only armed messages, not the whole table. See messages.gcExpiredViewOnce.
+crons.interval(
+  "messages.gcExpiredViewOnce",
+  { hours: 6 },
+  internal.messages.gcExpiredViewOnce,
+  {},
+);
+
 export default crons;

@@ -212,6 +212,14 @@ async function purgeUser(ctx: any, userId: any) {
       .collect();
     await deleteRows(ctx, rxns);
     await deleteStored(ctx, msg.mediaStorageId);
+    // View-once ledger for photos this user SENT.
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query("viewOnceViews")
+        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+        .collect(),
+    );
     await ctx.db.delete(msg._id);
   }
   await deleteStored(ctx, user?.avatarStorageId);
@@ -220,6 +228,17 @@ async function purgeUser(ctx: any, userId: any) {
   await deleteRows(
     ctx,
     await ctx.db.query("reactions").withIndex("by_user", byUser(userId)).collect(),
+  );
+
+  // View-once rows where this user was the VIEWER. These hang off other
+  // people's messages, so the loop above never reaches them — same shape as
+  // the reactions case directly overhead.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
   );
 
   // Push receipts addressed to this user. `by_user_room` is used as a

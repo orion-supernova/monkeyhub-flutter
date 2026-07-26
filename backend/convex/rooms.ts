@@ -1,4 +1,5 @@
 import { mutation, query, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import {
   ERR_APPROVAL_REQUIRED,
@@ -119,7 +120,19 @@ export const leave = mutation({
       .collect();
     if (remaining.length === 0) {
       await wipeRoomCompletely(ctx, roomId);
+      return;
     }
+
+    // Someone leaving can complete a view-once photo's audience: the people
+    // still here may all have opened it already, and were only waiting on the
+    // person who just walked out. Without this the blob idles until its 14-day
+    // deadline. Deferred rather than inline — this is repair work, and it has
+    // no business lengthening the mutation the user is waiting on.
+    await ctx.scheduler.runAfter(
+      0,
+      internal.messages.recountViewOnceRecipients,
+      { roomId },
+    );
   },
 });
 

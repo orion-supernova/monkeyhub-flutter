@@ -18,8 +18,8 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
-import '../media/image_raster.dart';
 import '../media/upload_service.dart';
+import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -30,6 +30,7 @@ import '../data/ui_selection_store.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
 import 'room_items.dart';
+import 'view_once_viewer.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
@@ -784,14 +785,16 @@ class _RoomScreenState extends State<RoomScreen>
       case AttachmentMenuChoice.camera:
         final captured = await nav.push<File>(MaterialPageRoute(builder: (_) => const CameraScreen()));
         if (captured == null || !mounted) break;
-        final edited = await nav.push<CroppedImage>(
+        final edited = await nav.push<EditorResult>(
             MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)));
         if (edited != null) {
+          final img = edited.image;
           await _uploadAndSend(
-            file: edited.file,
+            file: img.file,
             type: MessageType.image,
-            contentType: edited.contentType,
-            pixelSize: Size(edited.width.toDouble(), edited.height.toDouble()),
+            contentType: img.contentType,
+            pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
+            viewOnce: edited.viewOnce,
           );
         }
         break;
@@ -804,6 +807,36 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
+  /// Spends this viewer's one look at a view-once photo and shows it.
+  ///
+  /// The look is spent the moment the server hands back a ticket — not when the
+  /// picture is dismissed — so a failure after that point is reported plainly
+  /// rather than pretended away. Saying "that's gone" is more honest than a
+  /// silent retry that can't work.
+  Future<void> _openViewOnce(ChatMessage m) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final res = await fetchViewOnce(
+      repo: widget.repo,
+      roomId: widget.roomId,
+      messageId: m.id,
+    );
+    if (!mounted) return;
+    final bytes = res.bytes;
+    if (bytes != null) {
+      await ViewOnceViewer.open(context, bytes: bytes);
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(switch (res.failure!) {
+          ViewOnceFailure.alreadyViewed => 'you\'ve already opened this photo.',
+          ViewOnceFailure.gone => 'this photo is no longer available.',
+          ViewOnceFailure.network => 'couldn\'t load that photo.',
+        }),
+      ),
+    );
+  }
+
   Future<void> _pickAndSendFromGallery() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 88);
@@ -812,15 +845,17 @@ class _RoomScreenState extends State<RoomScreen>
     // Route through the same editor the camera path uses — gives the user a
     // preview, optional annotation, and a deliberate "send" tap instead of
     // shipping the photo the moment they pick it.
-    final edited = await nav.push<CroppedImage>(MaterialPageRoute(
+    final edited = await nav.push<EditorResult>(MaterialPageRoute(
       builder: (_) => CameraEditorScreen(source: File(picked.path)),
     ));
     if (edited == null) return;
+    final img = edited.image;
     await _uploadAndSend(
-      file: edited.file,
+      file: img.file,
       type: MessageType.image,
-      contentType: edited.contentType,
-      pixelSize: Size(edited.width.toDouble(), edited.height.toDouble()),
+      contentType: img.contentType,
+      pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
+      viewOnce: edited.viewOnce,
     );
   }
 
@@ -850,6 +885,9 @@ class _RoomScreenState extends State<RoomScreen>
     required MessageType type,
     required String contentType,
     Size? pixelSize,
+    /// Armed with the circled "1" in the editor: one look per recipient, then
+    /// the file is deleted from the server.
+    bool viewOnce = false,
   }) async {
     // Snapshot and disarm up front — see _send. Restored if the upload or the
     // send throws, so a failure doesn't silently lose the reply target.
@@ -865,6 +903,7 @@ class _RoomScreenState extends State<RoomScreen>
         mediaWidth: pixelSize?.width,
         mediaHeight: pixelSize?.height,
         replyToId: replyTarget?.id,
+        viewOnce: viewOnce,
       );
       _scrollToBottom();
     } catch (_) {
@@ -1292,6 +1331,7 @@ class _RoomScreenState extends State<RoomScreen>
                               showAvatar: showAvatar,
                               avatarAtBottom: avatarAtBottom,
                               senderName: senderName,
+                              onOpenViewOnce: () => _openViewOnce(m),
                             )
                           : MessageBubble(
                               message: m,
@@ -1305,6 +1345,7 @@ class _RoomScreenState extends State<RoomScreen>
                               showAvatar: showAvatar,
                               avatarAtBottom: avatarAtBottom,
                               senderName: senderName,
+                              onOpenViewOnce: () => _openViewOnce(m),
                             );
                     },
                   );
@@ -1414,6 +1455,7 @@ class _RoomScreenState extends State<RoomScreen>
                         showAvatar: showAvatar,
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
+                        onOpenViewOnce: () => _openViewOnce(m),
                       )
                     : MessageBubble(
                         key: ValueKey('s_${m.id}'),
@@ -1440,6 +1482,7 @@ class _RoomScreenState extends State<RoomScreen>
                         showAvatar: showAvatar,
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
+                        onOpenViewOnce: () => _openViewOnce(m),
                       );
                 return _trackedDate(
                   stableId: 'm_${m.id}',

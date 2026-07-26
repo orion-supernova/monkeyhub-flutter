@@ -33,11 +33,13 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
       .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
       .collect();
     for (const r of reactions) await ctx.db.delete(r._id);
-    if (msg.mediaStorageId) {
-      try {
-        await ctx.storage.delete(msg.mediaStorageId);
-      } catch (_) {/* already gone */}
-    }
+    await deleteStored(ctx, msg.mediaStorageId);
+    // View-once ledger. Empty index range for ordinary messages.
+    const views = await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+      .collect();
+    for (const vw of views) await ctx.db.delete(vw._id);
     await ctx.db.delete(msg._id);
   }
   // Memberships

@@ -8,10 +8,28 @@ export const generateUploadUrl = mutation({
   },
 });
 
-// Retrieve the serving URL for a stored file
+// Retrieve the serving URL for a stored file.
+//
+// This is a PUBLIC query over an id-shaped argument, and on a self-hosted
+// deployment the URL it returns is unsigned and never expires (see
+// lib/media/file_url_cache.dart). So it is, by construction, an oracle: name a
+// storage id, receive the bytes forever. That is fine for avatars and ordinary
+// attachments, whose ids are handed out with the message anyway.
+//
+// It is NOT fine for a view-once photo, whose entire promise is that the id is
+// never handed out. `sanitizeViewOnce` in messages.ts strips those ids from
+// every read path, so a well-behaved client can't name one — this check is the
+// second lock, for the case where an id leaks by some route we didn't foresee.
+// View-once bytes are served exclusively by the `/viewOnce` HTTP action against
+// a single-use nonce.
 export const getFileUrl = query({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, { storageId }) => {
+    const owner = await ctx.db
+      .query("messages")
+      .withIndex("by_media", (q) => q.eq("mediaStorageId", storageId))
+      .first();
+    if (owner?.viewOnce === true) return null;
     return await ctx.storage.getUrl(storageId);
   },
 });

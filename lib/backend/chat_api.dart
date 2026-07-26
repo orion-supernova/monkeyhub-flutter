@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:crypto/crypto.dart';
 import 'dart:convert' show utf8;
 
+import '../env.dart';
 import '../models/app_release.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -351,6 +352,9 @@ class ChatApi {
     double? mediaHeight,
     String? senderName,
     String? replyToId,
+    /// Burn-after-reading. The server drops [mediaWidth]/[mediaHeight] for one
+    /// of these and never hands the storage id back out again.
+    bool viewOnce = false,
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
@@ -362,8 +366,53 @@ class ChatApi {
       'mediaHeight': ?mediaHeight,
       'senderName': ?senderName,
       'replyToId': ?replyToId,
+      if (viewOnce) 'viewOnce': true,
     });
     return res.toString();
+  }
+
+  /// Spends this viewer's one look at a view-once photo and returns a ticket
+  /// for [viewOnceStreamUrl].
+  ///
+  /// The view is recorded server-side the moment this returns a nonce, NOT when
+  /// the picture is dismissed — a client that crashes mid-view has still used
+  /// its look, because it could not have got the ticket otherwise. Calling
+  /// again with the same nonce still live is a retry, not a second view.
+  ///
+  /// Returns a null [nonce] when the photo is spent, burned, or was never
+  /// armed; [alreadyViewed] distinguishes "you had your look" from "it's gone".
+  Future<({String? nonce, bool alreadyViewed, bool gone})> openViewOnce({
+    required String messageId,
+    required String userId,
+  }) async {
+    final res = await _cv.mutation('messages:openViewOnce', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+    final m = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      nonce: m['nonce'] as String?,
+      alreadyViewed: (m['alreadyViewed'] as bool?) ?? false,
+      gone: (m['gone'] as bool?) ?? false,
+    );
+  }
+
+  /// Where to fetch the bytes for a ticket minted by [openViewOnce].
+  ///
+  /// Deliberately not a Convex storage URL: those are unsigned and never
+  /// expire on this deployment, so one would be a permanent copy of a photo
+  /// that is supposed to stop existing. This URL dies with its nonce.
+  static Uri viewOnceStreamUrl({
+    required String messageId,
+    required String userId,
+    required String nonce,
+  }) {
+    final base = Env.convexSiteUrl.replaceAll(RegExp(r'/+$'), '');
+    return Uri.parse('$base/viewOnce').replace(queryParameters: {
+      'm': messageId,
+      'u': userId,
+      'n': nonce,
+    });
   }
 
   /// One page of the thread rooted at [rootId], walking *older*: pass the
@@ -411,8 +460,19 @@ class ChatApi {
     await _cv.mutation('messages:deleteMessage', {'messageId': messageId, 'userId': userId});
   }
 
-  Future<List<ChatMessage>> listMessages({required String roomId, int limit = 100}) async {
-    final res = await _cv.query('messages:list', {'roomId': roomId, 'limit': limit});
+  /// [viewerUserId] doesn't filter anything — it only lets the server say
+  /// whether *this* viewer has already spent their look at each view-once
+  /// photo. Omitting it costs the "Opened" state, not correctness.
+  Future<List<ChatMessage>> listMessages({
+    required String roomId,
+    int limit = 100,
+    String? viewerUserId,
+  }) async {
+    final res = await _cv.query('messages:list', {
+      'roomId': roomId,
+      'limit': limit,
+      'viewerUserId': ?viewerUserId,
+    });
     return _decodeMessages(res);
   }
 
@@ -445,11 +505,13 @@ class ChatApi {
     required String roomId,
     required DateTime before,
     int limit = 30,
+    String? viewerUserId,
   }) async {
     final res = await _cv.query('messages:listBefore', {
       'roomId': roomId,
       'beforeTimestamp': before.millisecondsSinceEpoch,
       'limit': limit,
+      'viewerUserId': ?viewerUserId,
     });
     return _decodeMessages(res);
   }
@@ -462,11 +524,13 @@ class ChatApi {
     required String roomId,
     required DateTime after,
     int limit = 30,
+    String? viewerUserId,
   }) async {
     final res = await _cv.query('messages:listAfter', {
       'roomId': roomId,
       'afterTimestamp': after.millisecondsSinceEpoch,
       'limit': limit,
+      'viewerUserId': ?viewerUserId,
     });
     return _decodeMessages(res);
   }
@@ -487,12 +551,14 @@ class ChatApi {
     required String messageId,
     int before = 25,
     int after = 25,
+    String? viewerUserId,
   }) async {
     final res = await _cv.query('messages:listAround', {
       'roomId': roomId,
       'messageId': messageId,
       'before': before,
       'after': after,
+      'viewerUserId': ?viewerUserId,
     });
     final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
     return (

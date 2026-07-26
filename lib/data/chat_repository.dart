@@ -422,7 +422,7 @@ class ChatRepository extends ChangeNotifier {
       } catch (_) {}
     }
     try {
-      _messages[roomId] = await api.listMessages(roomId: roomId);
+      _messages[roomId] = await api.listMessages(roomId: roomId, viewerUserId: me);
       if (me != null) {
         CacheStore.instance.scheduleSaveMessages(me, roomId, _messages[roomId]!);
       }
@@ -438,7 +438,11 @@ class ChatRepository extends ChangeNotifier {
     notifyListeners();
     _messagesSub = await cv.subscribe(
       'messages:list',
-      {'roomId': roomId, 'limit': 100},
+      // `viewerUserId` widens the subscription's read set by this viewer's OWN
+      // view-once ledger rows and nothing else, which is deliberate: opening a
+      // photo on another device refires this query here (so the bubble greys
+      // out live) without refiring it for anybody else in the room.
+      {'roomId': roomId, 'limit': 100, 'viewerUserId': ?me},
       onData: (data) {
         final list = (data as List?) ?? const [];
         final parsed = list
@@ -587,6 +591,7 @@ class ChatRepository extends ChangeNotifier {
         roomId: roomId,
         before: earliest,
         limit: pageSize,
+        viewerUserId: _userId,
       );
       if (older.isEmpty) {
         _exhausted.add(roomId);
@@ -687,6 +692,7 @@ class ChatRepository extends ChangeNotifier {
         messageId: messageId,
         before: 30,
         after: 30,
+        viewerUserId: _userId,
       );
       if (!page.found || page.messages.isEmpty) return false;
 
@@ -749,6 +755,7 @@ class ChatRepository extends ChangeNotifier {
         roomId: roomId,
         before: win.first.createdAt,
         limit: pageSize,
+        viewerUserId: _userId,
       );
       // The window can be closed while the page is in flight.
       final cur = _historyWindow[roomId];
@@ -787,6 +794,7 @@ class ChatRepository extends ChangeNotifier {
         roomId: roomId,
         after: win.last.createdAt,
         limit: pageSize,
+        viewerUserId: _userId,
       );
       final cur = _historyWindow[roomId];
       if (cur == null) return 0;
@@ -901,17 +909,61 @@ class ChatRepository extends ChangeNotifier {
     /// sent is the one photo in the room that has to settle into shape.
     double? mediaWidth,
     double? mediaHeight,
+    /// Burn-after-reading photo. Carried into the optimistic bubble too, or the
+    /// sender would watch their own picture sit in the transcript until the ack
+    /// arrived and replaced it with a sealed tile.
+    bool viewOnce = false,
   }) async {
     return _send(
       roomId: roomId,
       content: caption ?? '',
       type: type,
       mediaStorageId: storageId,
-      mediaWidth: mediaWidth,
-      mediaHeight: mediaHeight,
+      // The server drops these for an armed send — the sealed tile is a fixed
+      // size and the real ratio is a leak — so don't let the optimistic bubble
+      // claim otherwise either.
+      mediaWidth: viewOnce ? null : mediaWidth,
+      mediaHeight: viewOnce ? null : mediaHeight,
       replyToId: replyToId,
+      viewOnce: viewOnce,
     );
   }
+
+  /// Spends this viewer's one look at a view-once photo and returns a ticket.
+  ///
+  /// Marks the local copy opened on success so the bubble greys out without
+  /// waiting for the subscription to come back around. The server is the
+  /// authority either way — a stale local `false` just means the user taps and
+  /// is told no.
+  Future<({String? nonce, bool alreadyViewed, bool gone})> openViewOnce({
+    required String roomId,
+    required String messageId,
+  }) async {
+    final id = _userId;
+    if (id == null) return (nonce: null, alreadyViewed: false, gone: true);
+    final res = await api.openViewOnce(messageId: messageId, userId: id);
+    if (res.nonce != null || res.alreadyViewed) {
+      _markViewOnceOpenedLocally(roomId, messageId);
+    }
+    return res;
+  }
+
+  void _markViewOnceOpenedLocally(String roomId, String messageId) {
+    final list = _messages[roomId];
+    if (list == null) return;
+    final i = list.indexWhere((m) => m.id == messageId);
+    if (i < 0 || list[i].viewOnceOpened) return;
+    list[i] = list[i].copyWith(viewOnceOpened: true);
+    notifyListeners();
+  }
+
+  /// The URL that streams the bytes for a ticket from [openViewOnce].
+  Uri viewOnceStreamUrl({required String messageId, required String nonce}) =>
+      ChatApi.viewOnceStreamUrl(
+        messageId: messageId,
+        userId: _userId ?? '',
+        nonce: nonce,
+      );
 
   /// Locate a message by id within a room's live and pending caches.
   /// Used by the UI to (a) build a local [ReplyPreview] for optimistic
@@ -1050,6 +1102,7 @@ class ChatRepository extends ChangeNotifier {
     double? mediaWidth,
     double? mediaHeight,
     String? replyToId,
+    bool viewOnce = false,
   }) async {
     final id = _userId;
     if (id == null) return;
@@ -1072,11 +1125,16 @@ class ChatRepository extends ChangeNotifier {
             ? parent.content.substring(0, 140)
             : parent.content;
         optimisticPreview = ReplyPreview(
+          // Match the sentinel `messages:send` will denormalize server-side, so
+          // the optimistic tether doesn't render one thing and then flip to
+          // another when the ack lands. (`parent.mediaStorageId` is already
+          // null on a view-once parent — the server never sent it — so this is
+          // about the label, not about leaking the id.)
           senderId: parent.senderId,
           senderName: parent.senderName,
-          contentPreview: preview,
+          contentPreview: parent.viewOnce ? '__VIEW_ONCE__' : preview,
           type: parent.type,
-          mediaStorageId: parent.mediaStorageId,
+          mediaStorageId: parent.viewOnce ? null : parent.mediaStorageId,
         );
         optimisticRootId = parent.threadKey;
       }
@@ -1098,6 +1156,7 @@ class ChatRepository extends ChangeNotifier {
       replyToId: optimisticPreview != null ? replyToId : null,
       replyToPreview: optimisticPreview,
       rootId: optimisticPreview != null ? optimisticRootId : null,
+      viewOnce: viewOnce,
     );
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
     notifyListeners();
@@ -1111,6 +1170,7 @@ class ChatRepository extends ChangeNotifier {
         mediaWidth: mediaWidth,
         mediaHeight: mediaHeight,
         replyToId: replyToId,
+        viewOnce: viewOnce,
       );
     } catch (e) {
       // A child guard rejection is not a transient failure, so it must not
@@ -1290,6 +1350,11 @@ class ChatRepository extends ChangeNotifier {
           mediaWidth: m.mediaWidth,
           mediaHeight: m.mediaHeight,
           replyToId: m.replyToId,
+          // Must ride along, or a view-once photo that happened to be sent
+          // while the socket was frozen comes back as an ordinary, permanent
+          // one — the flag dropped on the retry rather than on the send the
+          // user actually made.
+          viewOnce: m.viewOnce,
         );
         // Leave as pending — the messages:list subscription will deliver the
         // server-confirmed copy and _reconcilePending will drop this one.
@@ -1349,6 +1414,11 @@ class ChatRepository extends ChangeNotifier {
           mediaWidth: m.mediaWidth,
           mediaHeight: m.mediaHeight,
           replyToId: m.replyToId,
+          // Must ride along, or a view-once photo that happened to be sent
+          // while the socket was frozen comes back as an ordinary, permanent
+          // one — the flag dropped on the retry rather than on the send the
+          // user actually made.
+          viewOnce: m.viewOnce,
         );
       } catch (_) {
         m.status = MessageStatus.error;

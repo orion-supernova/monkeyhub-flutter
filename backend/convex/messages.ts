@@ -9,6 +9,59 @@ import {
 } from "./childGuard";
 import { deleteStored } from "./files";
 
+// ── View-once tuning ────────────────────────────────────────────────────────
+
+/** Burn an armed photo this long after it was sent, opened or not. */
+const VIEW_ONCE_DEADLINE_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
+ * How long a download ticket stays valid. This is also the retry window: a
+ * client whose fetch dies on bad cellular asks `openViewOnce` again and gets
+ * the SAME nonce back, because re-minting would be indistinguishable from a
+ * second view. Long enough for a multi-megabyte photo on a bad connection.
+ */
+const VIEW_ONCE_NONCE_TTL_MS = 120_000;
+
+/**
+ * Delay between "the last recipient opened it" and deleting the blob. Must
+ * exceed the nonce TTL, or we would delete the file out from under the very
+ * download that triggered the burn.
+ */
+const VIEW_ONCE_BURN_GRACE_MS = VIEW_ONCE_NONCE_TTL_MS + 30_000;
+
+/**
+ * Strips a view-once message down to what a client is allowed to hold.
+ *
+ * This is the whole feature. `files:getFileUrl` is a public query, and on a
+ * self-hosted deployment `ctx.storage.getUrl` returns an unsigned URL with no
+ * expiry (see the comment in lib/media/file_url_cache.dart). So the storage id
+ * IS the picture: any client that learns one can fetch the bytes forever,
+ * without ever calling `openViewOnce`. Every read path therefore has to remove
+ * it — and remove it unconditionally, including for the sender, so no branch
+ * can leak it by being forgotten.
+ *
+ * `viewOnceOpened` costs one indexed lookup, and only for armed messages, so
+ * ordinary rooms pay nothing. Scoping it to the viewer's OWN ledger rows is
+ * also what keeps this safe in a subscribed query: inserting a row refires
+ * that viewer's `list` (which is how opening on web greys the bubble out on
+ * their phone) and nobody else's.
+ */
+async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
+  if (msg?.viewOnce !== true) return msg;
+  const { mediaStorageId: _id, mediaWidth: _w, mediaHeight: _h, ...rest } = msg;
+  let opened = false;
+  if (viewerUserId) {
+    const row = await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message_user", (q: any) =>
+        q.eq("messageId", msg._id).eq("userId", viewerUserId)
+      )
+      .first();
+    opened = row !== null;
+  }
+  return { ...rest, viewOnceOpened: opened };
+}
+
 export const send = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -22,8 +75,11 @@ export const send = mutation({
     mediaHeight: v.optional(v.number()),
     senderName: v.optional(v.string()),
     replyToId: v.optional(v.id("messages")),
+    // Burn-after-reading. Armed by the sender in the pre-send editor; see the
+    // schema comment on `messages.viewOnce`.
+    viewOnce: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce }) => {
     // Verify membership
     const membership = await ctx.db
       .query("roomMembers")
@@ -114,16 +170,46 @@ export const send = mutation({
       const parent = await ctx.db.get(replyToId);
       if (parent && parent.roomId.toString() === roomId.toString()) {
         const parentContent = parent.content ?? "";
+        // Quoting a view-once photo must not re-publish it. The preview is a
+        // permanent, un-burnable copy of the parent, so carrying the parent's
+        // `mediaStorageId` here would hand every reader the storage id the
+        // read path works so hard to withhold — and would keep the blob
+        // looking referenced to `files.gcOrphanedFiles` after the burn.
+        // Sentinel mirrors the "__DELETED__" one used by the fanout below.
+        const parentIsViewOnce = parent.viewOnce === true;
         replyToPreview = {
           senderId: parent.userId,
           senderName: parent.senderName ?? "unknown",
-          contentPreview: parentContent.slice(0, 140),
+          contentPreview: parentIsViewOnce
+            ? "__VIEW_ONCE__"
+            : parentContent.slice(0, 140),
           type: parent.type ?? "text",
-          mediaStorageId: parent.mediaStorageId,
+          mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
         };
         resolvedReplyToId = replyToId;
         resolvedRootId = parent.rootId ?? parent._id;
       }
+    }
+
+    // View-once bookkeeping, done once here rather than once per open. The
+    // roster walk is O(members), but only on an armed send.
+    const armed = viewOnce === true && mediaStorageId !== undefined;
+    let viewOnceFields: Record<string, any> = {};
+    if (armed) {
+      const roster = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect();
+      const recipients = roster.filter(
+        (m) => m.userId.toString() !== userId.toString()
+      ).length;
+      viewOnceFields = {
+        viewOnce: true,
+        viewOnceLive: true,
+        viewOnceRecipients: recipients,
+        viewOnceViewCount: 0,
+        viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
+      };
     }
 
     const messageId = await ctx.db.insert("messages", {
@@ -133,10 +219,15 @@ export const send = mutation({
       createdAt: Date.now(),
       type: msgType,
       mediaStorageId,
-      mediaWidth,
-      mediaHeight,
+      // Deliberately dropped on an armed send. The sealed tile is a fixed size,
+      // so the picture's true aspect ratio buys the receiver nothing and is one
+      // more thing leaking out of a message whose whole point is to leak
+      // nothing until it's opened.
+      mediaWidth: armed ? undefined : mediaWidth,
+      mediaHeight: armed ? undefined : mediaHeight,
       senderName: resolvedSenderName,
       expiresAt,
+      ...viewOnceFields,
       ...(replyToPreview
         ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
         : {}),
@@ -151,8 +242,33 @@ export const send = mutation({
       );
     }
 
+    // Hard deadline for an armed photo nobody ever opens. The per-message
+    // schedule is the primary mechanism — `gcExpiredViewOnce` is only a repair
+    // sweep for anything the scheduler dropped.
+    if (armed) {
+      await ctx.scheduler.runAfter(
+        VIEW_ONCE_DEADLINE_MS,
+        internal.messages.burnViewOnce,
+        { messageId }
+      );
+      // A room with exactly one member has no recipients at all, so the
+      // "everyone has seen it" condition is already true on arrival. Without
+      // this the blob would idle for the full deadline.
+      if ((viewOnceFields.viewOnceRecipients ?? 0) === 0) {
+        await ctx.scheduler.runAfter(
+          VIEW_ONCE_BURN_GRACE_MS,
+          internal.messages.burnViewOnce,
+          { messageId }
+        );
+      }
+    }
+
     // Update room's last message preview
-    const preview = msgType === "text" ? content.slice(0, 100) : `[${msgType}]`;
+    const preview = msgType === "text"
+      ? content.slice(0, 100)
+      : armed
+        ? "[photo]"
+        : `[${msgType}]`;
     await ctx.db.patch(roomId, {
       lastMessage: preview,
       lastMessageTime: Date.now(),
@@ -192,6 +308,10 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   // throws on a file some other path already removed — and would abort the
   // fanout below half-done, leaving children tethered to a deleted parent.
   await deleteStored(ctx, msg.mediaStorageId);
+
+  // View-once ledger. Also runs for messages that were never armed, where the
+  // scan is a single empty index range.
+  await purgeViewOnceViews(ctx, messageId);
 
   // Mark every child reply's denormalized preview as deleted so their inline
   // tether keeps rendering ("message removed") instead of pointing at a
@@ -276,8 +396,15 @@ export const deleteMessage = mutation({
 });
 
 export const list = query({
-  args: { roomId: v.id("rooms"), limit: v.optional(v.number()) },
-  handler: async (ctx, { roomId, limit }) => {
+  args: {
+    roomId: v.id("rooms"),
+    limit: v.optional(v.number()),
+    // Optional so already-shipped clients keep working. Without it a
+    // view-once message still comes back stripped — the viewer just can't be
+    // told whether they personally opened it.
+    viewerUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, { roomId, limit, viewerUserId }) => {
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
@@ -297,7 +424,8 @@ export const list = query({
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return { ...msg, reactions };
+        const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
+        return { ...safe, reactions };
       })
     );
     return enriched.reverse();
@@ -309,8 +437,9 @@ export const listBefore = query({
     roomId: v.id("rooms"),
     beforeTimestamp: v.number(),
     limit: v.optional(v.number()),
+    viewerUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, { roomId, beforeTimestamp, limit }) => {
+  handler: async (ctx, { roomId, beforeTimestamp, limit, viewerUserId }) => {
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) =>
@@ -327,7 +456,8 @@ export const listBefore = query({
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return { ...msg, reactions };
+        const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
+        return { ...safe, reactions };
       })
     );
     return enriched.reverse(); // chronological order
@@ -342,8 +472,9 @@ export const listAfter = query({
     roomId: v.id("rooms"),
     afterTimestamp: v.number(),
     limit: v.optional(v.number()),
+    viewerUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, { roomId, afterTimestamp, limit }) => {
+  handler: async (ctx, { roomId, afterTimestamp, limit, viewerUserId }) => {
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_room_time", (q) =>
@@ -359,7 +490,8 @@ export const listAfter = query({
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return { ...msg, reactions };
+        const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
+        return { ...safe, reactions };
       })
     );
   },
@@ -382,8 +514,9 @@ export const listAround = query({
     messageId: v.id("messages"),
     before: v.optional(v.number()),
     after: v.optional(v.number()),
+    viewerUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, { roomId, messageId, before, after }) => {
+  handler: async (ctx, { roomId, messageId, before, after, viewerUserId }) => {
     const anchor = await ctx.db.get(messageId);
     if (!anchor || anchor.roomId.toString() !== roomId.toString()) {
       return {
@@ -421,7 +554,8 @@ export const listAround = query({
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", msg._id))
           .collect();
-        return { ...msg, reactions };
+        const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
+        return { ...safe, reactions };
       })
     );
 
@@ -517,7 +651,8 @@ export const getThreadPage = query({
           .query("reactions")
           .withIndex("by_message", (ix) => ix.eq("messageId", msg._id))
           .collect();
-        return { ...msg, reactions };
+        const safe = await sanitizeViewOnce(ctx, msg, viewerUserId);
+        return { ...safe, reactions };
       })
     );
 
@@ -574,6 +709,11 @@ export const getThread = query({
     }
 
     // 3. Enrich + sort chronologically.
+    //
+    // Sanitized with no viewer: this function takes no user id and does no
+    // authorization at all, so it must never be the one path that hands out a
+    // view-once storage id. Clients old enough to still call this simply can't
+    // open view-once photos, which is the correct failure direction.
     const enriched = await Promise.all(
       collected.map(async (m) => {
         const user = await ctx.db.get(m.userId);
@@ -581,8 +721,9 @@ export const getThread = query({
           .query("reactions")
           .withIndex("by_message", (q) => q.eq("messageId", m._id))
           .collect();
+        const safe = await sanitizeViewOnce(ctx, m, undefined);
         return {
-          ...m,
+          ...safe,
           username: user?.username ?? "unknown",
           name: user?.name ?? user?.username ?? "unknown",
           reactions,
@@ -591,6 +732,302 @@ export const getThread = query({
     );
     enriched.sort((a, b) => a.createdAt - b.createdAt);
     return enriched;
+  },
+});
+
+// ─────────────────────────────── View-once photos ────────────────────────────
+
+/** Drops every ledger row for one message. Shared by all three delete paths. */
+export async function purgeViewOnceViews(ctx: any, messageId: any) {
+  const rows = await ctx.db
+    .query("viewOnceViews")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+  for (const r of rows) await ctx.db.delete(r._id);
+}
+
+/**
+ * A 32-hex-character ticket. `crypto.getRandomValues` is available in Convex's
+ * runtime; `Math.random` would not be acceptable here, since guessing a nonce
+ * is guessing a photo.
+ */
+function mintNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Hands out a download ticket for a view-once photo, spending the caller's one
+ * view in the same breath.
+ *
+ * The view is recorded at GRANT time rather than when the picture is dismissed.
+ * That ordering is the whole security property: a client that crashes, force
+ * quits, or simply lies about having closed the image has still spent its view,
+ * because it could not have obtained the ticket otherwise.
+ *
+ * Returns one of:
+ *   { nonce, expiresInMs } — go fetch it
+ *   { alreadyViewed: true } — spent, and past the retry window
+ *   { gone: true }          — burned, expired, deleted, or never armed
+ */
+export const openViewOnce = mutation({
+  args: { messageId: v.id("messages"), userId: v.id("users") },
+  handler: async (ctx, { messageId, userId }) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg) return { gone: true };
+
+    // Membership, and the child guard on top of it. `send` re-checks the child
+    // policy on every call because a guardian can revoke a grant while the
+    // child is still sitting in the room; opening media has to be re-checked
+    // for exactly the same reason, or revocation would only take effect for
+    // photos that haven't been sent yet.
+    const membership = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", msg.roomId).eq("userId", userId)
+      )
+      .first();
+    if (!membership) throw new Error("NOT_A_MEMBER");
+
+    const policy = await childPolicyOf(ctx, userId);
+    if (policy !== null) {
+      if (!(await childMayUseRoom(ctx, userId, msg.roomId))) {
+        throw new Error(ERR_APPROVAL_REQUIRED);
+      }
+      if (!policy.mediaEnabled) throw new Error(ERR_NOT_ALLOWED);
+    }
+
+    if (msg.viewOnce !== true || !msg.mediaStorageId) return { gone: true };
+
+    // The sender gets no reopen path, and this is a security decision rather
+    // than a UX one. There is no authentication here — `userId` is a plain
+    // argument — and a message's sender id is visible to everyone who receives
+    // it. A "the sender may always look again" branch is therefore an oracle
+    // any recipient can drive: pass the sender's id, get unlimited views.
+    if (msg.userId.toString() === userId.toString()) return { gone: true };
+
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message_user", (q) =>
+        q.eq("messageId", messageId).eq("userId", userId)
+      )
+      .first();
+
+    if (existing) {
+      // Same ticket, not a fresh one. Re-minting would be indistinguishable
+      // from granting a second view; handing back the still-live ticket is
+      // just letting the first download finish over a bad connection.
+      if (
+        existing.grantNonce &&
+        existing.grantExpiresAt &&
+        now < existing.grantExpiresAt
+      ) {
+        return {
+          nonce: existing.grantNonce,
+          expiresInMs: existing.grantExpiresAt - now,
+        };
+      }
+      return { alreadyViewed: true };
+    }
+
+    // Somebody who joined after the photo was sent may still open it, but must
+    // not be able to satisfy the burn condition on the real recipients' behalf.
+    const countsToward = membership.joinedAt <= msg.createdAt;
+
+    const nonce = mintNonce();
+    await ctx.db.insert("viewOnceViews", {
+      messageId,
+      roomId: msg.roomId,
+      userId,
+      viewedAt: now,
+      countsToward,
+      grantNonce: nonce,
+      grantExpiresAt: now + VIEW_ONCE_NONCE_TTL_MS,
+    });
+
+    if (countsToward) {
+      const seen = (msg.viewOnceViewCount ?? 0) + 1;
+      await ctx.db.patch(messageId, { viewOnceViewCount: seen });
+      if (seen >= (msg.viewOnceRecipients ?? 0)) {
+        // Everyone has had their look. Wait out the grace period before
+        // deleting, or we would pull the file out from under the download this
+        // very grant just authorized.
+        await ctx.scheduler.runAfter(
+          VIEW_ONCE_BURN_GRACE_MS,
+          internal.messages.burnViewOnce,
+          { messageId }
+        );
+      }
+    }
+
+    return { nonce, expiresInMs: VIEW_ONCE_NONCE_TTL_MS };
+  },
+});
+
+/**
+ * Validates a download ticket and reports which blob to stream. Internal, and
+ * called only by the `/viewOnce` HTTP action — the storage id it returns must
+ * never reach a client.
+ */
+export const resolveViewOnceGrant = internalQuery({
+  args: {
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    nonce: v.string(),
+  },
+  handler: async (ctx, { messageId, userId, nonce }) => {
+    const row = await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message_user", (q) =>
+        q.eq("messageId", messageId).eq("userId", userId)
+      )
+      .first();
+    if (!row || row.grantNonce !== nonce) return null;
+    if (!row.grantExpiresAt || Date.now() >= row.grantExpiresAt) return null;
+
+    const msg = await ctx.db.get(messageId);
+    if (!msg || msg.viewOnce !== true || !msg.mediaStorageId) return null;
+    return { storageId: msg.mediaStorageId };
+  },
+});
+
+/**
+ * Deletes the blob and leaves the message behind as a ghost.
+ *
+ * Idempotent, and deliberately so: it is reachable from the per-message
+ * deadline schedule, from the "everyone has seen it" schedule, and from the
+ * repair sweep, and any two of those can land on the same message.
+ */
+export const burnViewOnce = internalMutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg || msg.viewOnce !== true || !msg.mediaStorageId) return;
+
+    await deleteStored(ctx, msg.mediaStorageId);
+    // The ROW SURVIVES. Clearing these fields is what flips every client to the
+    // greyed ghost bubble, reactively, without deleting anyone's transcript.
+    await ctx.db.patch(messageId, {
+      mediaStorageId: undefined,
+      mediaWidth: undefined,
+      mediaHeight: undefined,
+      viewOnceBurnedAt: Date.now(),
+      viewOnceDeadline: undefined,
+      // Drops the row out of the sweep's index bucket entirely — see the
+      // `viewOnceLive` comment in schema.ts.
+      viewOnceLive: undefined,
+    });
+    // Tickets outlive their usefulness the moment the file is gone.
+    const rows = await ctx.db
+      .query("viewOnceViews")
+      .withIndex("by_message", (q) => q.eq("messageId", messageId))
+      .collect();
+    for (const r of rows) {
+      if (r.grantNonce !== undefined) {
+        await ctx.db.patch(r._id, {
+          grantNonce: undefined,
+          grantExpiresAt: undefined,
+        });
+      }
+    }
+  },
+});
+
+/**
+ * Repair sweep for armed photos past their deadline. The per-message
+ * `runAfter` scheduled in `send` is the primary mechanism — this only catches
+ * what the scheduler dropped (a restart mid-flight, a backfilled row), which is
+ * why six hours is frequent enough.
+ *
+ * The index leads with `viewOnce` on purpose: Convex has no sparse indexes and
+ * sorts `undefined` ahead of every number, so ranging on the deadline alone
+ * would walk every message in the deployment.
+ */
+export const gcExpiredViewOnce = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const SWEEP_LIMIT = 200;
+    const due = await ctx.db
+      .query("messages")
+      .withIndex("by_viewOnce_live_deadline", (q) =>
+        q.eq("viewOnceLive", true).lt("viewOnceDeadline", Date.now())
+      )
+      .take(SWEEP_LIMIT);
+
+    let burned = 0;
+    for (const msg of due) {
+      await deleteStored(ctx, msg.mediaStorageId);
+      await ctx.db.patch(msg._id, {
+        mediaStorageId: undefined,
+        mediaWidth: undefined,
+        mediaHeight: undefined,
+        viewOnceBurnedAt: Date.now(),
+        viewOnceDeadline: undefined,
+        viewOnceLive: undefined,
+      });
+      burned++;
+    }
+    return { scanned: due.length, burned };
+  },
+});
+
+/**
+ * Recomputes the recipient snapshot for a room's live view-once photos.
+ *
+ * Called when membership changes. Without it, someone leaving a room without
+ * opening a photo pins that blob until its 14-day deadline, even though every
+ * remaining recipient has already seen it. Bounded by design: only armed,
+ * unburned messages in one room.
+ */
+export const recountViewOnceRecipients = internalMutation({
+  args: { roomId: v.id("rooms") },
+  handler: async (ctx, { roomId }) => {
+    const roster = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .collect();
+    const memberIds = new Set(roster.map((m) => m.userId.toString()));
+
+    const recent = await ctx.db
+      .query("messages")
+      .withIndex("by_room_time", (q) => q.eq("roomId", roomId))
+      .order("desc")
+      .take(200);
+
+    for (const msg of recent) {
+      if (msg.viewOnce !== true || !msg.mediaStorageId) continue;
+      const recipients = roster.filter(
+        (m) => m.userId.toString() !== msg.userId.toString()
+      ).length;
+      // Only count views from people who are still here — a departed member's
+      // row would otherwise keep inflating the tally.
+      const rows = await ctx.db
+        .query("viewOnceViews")
+        .withIndex("by_message", (q) => q.eq("messageId", msg._id))
+        .collect();
+      const seen = rows.filter(
+        (r) => r.countsToward && memberIds.has(r.userId.toString())
+      ).length;
+
+      if (
+        recipients !== msg.viewOnceRecipients ||
+        seen !== msg.viewOnceViewCount
+      ) {
+        await ctx.db.patch(msg._id, {
+          viewOnceRecipients: recipients,
+          viewOnceViewCount: seen,
+        });
+      }
+      if (seen >= recipients) {
+        await ctx.scheduler.runAfter(
+          VIEW_ONCE_BURN_GRACE_MS,
+          internal.messages.burnViewOnce,
+          { messageId: msg._id }
+        );
+      }
+    }
   },
 });
 

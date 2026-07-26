@@ -311,12 +311,92 @@ export default defineSchema({
     // plain time-ordered range scan, exactly like `by_room_time` does for a
     // room. Never written without `replyToId` — see `messages:send`.
     rootId: v.optional(v.id("messages")),
+
+    // ── View-once photos ────────────────────────────────────────────────────
+    //
+    // Armed by the sender in the pre-send editor. The promise is that the blob
+    // leaves the server once every recipient has opened it (or after
+    // `viewOnceDeadline`), while THIS ROW SURVIVES as a greyed ghost bubble so
+    // the transcript keeps its shape.
+    //
+    // The enforcement is not in the bubble — it is in the read path. Every
+    // query that returns messages strips `mediaStorageId` from a view-once row
+    // (see `sanitizeViewOnce` in messages.ts), because `files:getFileUrl` is a
+    // public query and, on a self-hosted deployment, hands back an unsigned
+    // URL with no expiry. A client that learns the id has the picture forever,
+    // whether or not it ever called `openViewOnce`.
+    viewOnce: v.optional(v.boolean()),
+    // Eligible recipients (members other than the sender) snapshotted at send
+    // time, and how many of them have opened it. A counter rather than a
+    // per-open member scan: the room's roster is walked once on send instead
+    // of once per open, which matters on the box crons.ts:6-13 describes.
+    viewOnceRecipients: v.optional(v.number()),
+    viewOnceViewCount: v.optional(v.number()),
+    // Set when the blob is gone. The client renders the ghost off this.
+    viewOnceBurnedAt: v.optional(v.number()),
+    // Hard deadline — burn even if somebody never opens it.
+    viewOnceDeadline: v.optional(v.number()),
+    // True exactly while the blob still exists; UNSET (not `false`) on burn.
+    //
+    // This is what the repair sweep ranges over, and it is a separate field
+    // from `viewOnce` for a reason worth stating: Convex orders `undefined`
+    // ahead of every number, so a scan of `lt("viewOnceDeadline", now)` matches
+    // rows whose deadline has been cleared just as readily as rows that are
+    // genuinely overdue. Keyed on `viewOnce` alone, every photo ever burned
+    // would pile up at the head of the index and the sweep's row budget would
+    // be spent re-skipping them long before it reached anything due. Keying on
+    // a flag that is *removed* on burn takes those rows out of the bucket
+    // altogether, because `eq(true)` never matches an absent field.
+    viewOnceLive: v.optional(v.boolean()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_time", ["roomId", "createdAt"])
     .index("by_replyTo", ["replyToId"])
     .index("by_root_time", ["rootId", "createdAt"])
     // Account teardown walks every message a user ever sent.
+    .index("by_user", ["userId"])
+    // The expired-view-once sweep. `viewOnceLive` MUST lead: Convex has no
+    // sparse indexes and orders `undefined` before every number, so a lone
+    // `q.lt("viewOnceDeadline", now)` would range-scan every message in the
+    // deployment — precisely the >1s mutation crons.ts warns about. With the
+    // boolean in front the scan is `q.eq("viewOnceLive", true).lt(...)`, which
+    // touches only armed photos whose file is still there.
+    .index("by_viewOnce_live_deadline", ["viewOnceLive", "viewOnceDeadline"])
+    // Reverse lookup for `files:getFileUrl`, so it can refuse a storage id
+    // belonging to a view-once message. Defence in depth — after sanitizing,
+    // no client should be able to name one in the first place.
+    .index("by_media", ["mediaStorageId"]),
+
+  // Who has opened which view-once message. A side table rather than a
+  // `readBy` array on `messages`, for the reason the roomMembers comment gives:
+  // O(messages × members) fan-out is what this schema deliberately avoids. It
+  // also means a client's read set can be scoped to its OWN rows, so one person
+  // opening a photo doesn't refire every other member's message subscription.
+  //
+  // A row is created at GRANT time, not when the viewer closes the picture. A
+  // client that crashes mid-view has still spent its view — that is the whole
+  // point, and it's what stops a hostile client from fetching bytes for free.
+  viewOnceViews: defineTable({
+    messageId: v.id("messages"),
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    viewedAt: v.number(),
+    // Whether this view counts toward the burn. False for someone who joined
+    // the room after the message was sent: they may open it, but they can't
+    // release the blob on the real recipients' behalf.
+    countsToward: v.boolean(),
+    // Server-minted, single-purpose download ticket. The bytes are streamed by
+    // the `/viewOnce` HTTP action against this, so the storage URL itself never
+    // reaches a client. Reusable until `grantExpiresAt` — that window is the
+    // retry path for a download that dies on bad cellular, and it opens no
+    // cross-device hole because the nonce is ours, not the client's.
+    grantNonce: v.optional(v.string()),
+    grantExpiresAt: v.optional(v.number()),
+  })
+    .index("by_message", ["messageId"])
+    .index("by_message_user", ["messageId", "userId"])
+    .index("by_room_user", ["roomId", "userId"])
+    // Account teardown: rows where the departing user was the VIEWER.
     .index("by_user", ["userId"]),
 
   reactions: defineTable({

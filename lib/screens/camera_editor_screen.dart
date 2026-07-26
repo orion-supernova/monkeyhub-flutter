@@ -26,13 +26,29 @@ import '../media/image_raster.dart';
 ///  * **An unedited photo is passed through untouched.** No crop, no strokes, no
 ///    rotation means the caller gets the original file — not a re-encode of it.
 ///
-/// Pops a [CroppedImage] on confirm, `null` on cancel.
+/// Pops an [EditorResult] on confirm, `null` on cancel.
 class CameraEditorScreen extends StatefulWidget {
   const CameraEditorScreen({super.key, required this.source});
   final File source;
 
   @override
   State<CameraEditorScreen> createState() => _CameraEditorScreenState();
+}
+
+/// What the editor hands back: the picture, plus how it should be sent.
+///
+/// A wrapper rather than another field on [CroppedImage], because that type is
+/// shared with `ImageCropScreen` (the avatar cropper), where "view once" is
+/// meaningless. Keeping the send-time decision out here means the raster types
+/// stay about rasters.
+class EditorResult {
+  const EditorResult({required this.image, required this.viewOnce});
+
+  final CroppedImage image;
+
+  /// Armed with the circled "1": the recipient may open it exactly once, and
+  /// the file is deleted from the server afterwards.
+  final bool viewOnce;
 }
 
 /// A freehand stroke, in normalized image coordinates.
@@ -103,6 +119,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   ui.Image? _display;
   Object? _loadError;
   bool _saving = false;
+
+  /// Armed with the circled "1" in the action bar. Survives crop mode and every
+  /// edit — it is a decision about the *send*, not about the picture, so
+  /// nothing in the editing model touches it.
+  bool _viewOnce = false;
 
   /// Quarter-turns clockwise the user has applied. Replayed against the
   /// full-resolution decode at export; the display image is rotated eagerly so
@@ -382,11 +403,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       final size = await imageFileSize(widget.source);
       if (!mounted) return;
       Navigator.of(context).pop(
-        CroppedImage(
-          file: widget.source,
-          contentType: _contentTypeOf(widget.source),
-          width: size.width.round(),
-          height: size.height.round(),
+        EditorResult(
+          image: CroppedImage(
+            file: widget.source,
+            contentType: _contentTypeOf(widget.source),
+            width: size.width.round(),
+            height: size.height.round(),
+          ),
+          viewOnce: _viewOnce,
         ),
       );
       return;
@@ -453,7 +477,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
       final result = await rasterToJpegFile(raster, prefix: 'edit');
       if (!mounted) return;
-      Navigator.of(context).pop(result);
+      Navigator.of(context).pop(
+        EditorResult(image: result, viewOnce: _viewOnce),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -885,43 +911,143 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     return Container(
       color: Colors.black,
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: _Btn(
-              label: cropping ? 'CANCEL' : 'RETAKE',
-              onTap: _saving
-                  ? null
-                  : () => cropping
-                      ? _cancelCrop()
-                      : Navigator.of(context).pop(null),
-            ),
-          ),
-          const SizedBox(width: 10),
-          if (!cropping) ...[
-            Expanded(
-              child: _Btn(
-                label: 'CROP',
-                icon: Icons.crop_rotate,
-                onTap: _display == null || _saving
-                    ? null
-                    : () => _selectTool(_Tool.crop),
+          // Only while armed, and only outside crop mode — in crop mode the bar
+          // means "commit the frame", and a note about sending would be
+          // answering a question the user isn't asking yet.
+          if (_viewOnce && !cropping)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.local_fire_department_outlined,
+                      size: 13, color: _accent),
+                  const SizedBox(width: 6),
+                  Text(
+                    'disappears after it\'s opened once',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 11.5,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: _Btn(
-              label: cropping
-                  ? 'DONE'
-                  : (_saving ? 'SAVING…' : 'USE PHOTO'),
-              filled: true,
-              onTap: _saving || _display == null
-                  ? null
-                  : () => cropping ? _selectTool(_Tool.draw) : _save(),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: _Btn(
+                  label: cropping ? 'CANCEL' : 'RETAKE',
+                  onTap: _saving
+                      ? null
+                      : () => cropping
+                          ? _cancelCrop()
+                          : Navigator.of(context).pop(null),
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (!cropping) ...[
+                Expanded(
+                  child: _Btn(
+                    label: 'CROP',
+                    icon: Icons.crop_rotate,
+                    onTap: _display == null || _saving
+                        ? null
+                        : () => _selectTool(_Tool.crop),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Fixed width, so it reads as a mode switch sitting beside the
+                // commit button rather than a third equal choice.
+                _ViewOnceToggle(
+                  active: _viewOnce,
+                  onTap: _saving
+                      ? null
+                      : () => setState(() => _viewOnce = !_viewOnce),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: _Btn(
+                  label: cropping
+                      ? 'DONE'
+                      : (_saving ? 'SAVING…' : 'USE PHOTO'),
+                  filled: true,
+                  onTap: _saving || _display == null
+                      ? null
+                      : () => cropping ? _selectTool(_Tool.draw) : _save(),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The circled "1" — arms burn-after-reading for this photo.
+///
+/// Same 46pt height as [_Btn] so the action bar stays on one baseline. Bare
+/// [FocusableTap] + [GestureDetector], like every other control in this app:
+/// no ink, no ripple.
+class _ViewOnceToggle extends StatelessWidget {
+  const _ViewOnceToggle({required this.active, required this.onTap});
+
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final fg = active
+        ? Colors.white
+        : Colors.white.withValues(alpha: enabled ? 0.85 : 0.38);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: active ? 'view once: on' : 'view once: off',
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 46,
+          height: 46,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOut,
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: active
+                    ? _CameraEditorScreenState._accent
+                    : Colors.transparent,
+                border: Border.all(
+                  color: active
+                      ? _CameraEditorScreenState._accent
+                      : Colors.white.withValues(alpha: enabled ? 0.55 : 0.22),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '1',
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
