@@ -394,15 +394,31 @@ class ConnectionHealth extends ChangeNotifier {
   /// [stalledAfter] → stalled. Holding off for the grace window keeps short
   /// blips from flashing UI.
   ///
-  /// These are armed by [_loop] when it starts an attempt, NOT by
-  /// [_beginHealing], because a healing episode does not imply an observation.
-  /// The loop parks whenever the app is backgrounded or signed out and issues no
-  /// probes at all; arming on `_beginHealing` meant the clocks ran straight
-  /// through that park, so the banner escalated to "reconnecting…" and then
-  /// "can't reach server" on nothing but elapsed time. That is exactly what put
-  /// a permanent, untappable "reconnecting…" over the login screen of an app
-  /// whose connection was fine — the loop parked before the first probe (no
-  /// session yet), and nothing could clear a phase that no probe had set.
+  /// Armed by [_loop] only after a probe has actually FAILED — never by
+  /// [_beginHealing], and never merely because an attempt is starting.
+  ///
+  /// Two separate bugs live at this line, and both were "the banner is on and
+  /// the connection is fine":
+  ///
+  ///  * Arming in [_beginHealing] ran the clocks straight through the park the
+  ///    loop takes while backgrounded or signed out, so the banner escalated on
+  ///    nothing but elapsed time — a permanent, untappable "reconnecting…" over
+  ///    the login screen of an app whose connection was fine.
+  ///  * Arming when an attempt *starts* made every socket-state blip a banner,
+  ///    because the loop begins an attempt on a bare `connecting` edge. That
+  ///    edge is not evidence (see [_onSocketState]), and on native it is
+  ///    routine: convex-rs toggles `connecting` on each lap of its own internal
+  ///    reconnect, and it resends the whole query set when it comes back, so
+  ///    those laps are invisible to everything except this banner. A server
+  ///    hanging up periodically therefore produced a phone that showed
+  ///    "reconnecting…" more or less permanently while messages flowed
+  ///    normally. Four commits of grace-delay tuning were all attempts to hide
+  ///    this by making the window wider than the flap.
+  ///
+  /// The cost is that a genuine outage takes one probe timeout longer to
+  /// surface — which is the right trade. A banner that is wrong is worse than a
+  /// banner that is late, and the message a user just sent already shows its own
+  /// pending state meanwhile.
   void _armUiTimers() {
     if (_uiTimersArmed) return;
     _uiTimersArmed = true;
@@ -439,7 +455,6 @@ class ConnectionHealth extends ChangeNotifier {
         await _sleep(null);
         continue;
       }
-      _armUiTimers();
 
       final gate = _interrupt = Completer<void>();
       // When stalled, only reflect retrying spinner if this is an explicit
@@ -493,6 +508,10 @@ class ConnectionHealth extends ChangeNotifier {
         _markOnline();
         return;
       }
+
+      // Only now — with a probe that actually failed — is there anything worth
+      // telling the user about. See [_armUiTimers].
+      _armUiTimers();
 
       _attempt++;
       await _sleep(_backoffFor(_attempt));

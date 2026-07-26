@@ -229,8 +229,43 @@ class ConvexBackend implements ConnectionProbe {
   /// own internal reconnect loop, with `probeConnection` as the observer.
   /// If a future convex_flutter release adds a real native reconnect, drop the
   /// `kIsWeb` guard in `ConnectionHealth._loop`.
+  /// When [reconnect] last actually tore the socket down.
+  DateTime? _lastForcedReconnectAt;
+
+  /// Minimum spacing between forced teardowns. Sized to outlast the package's
+  /// own reconnect lap (a 1s scheduled retry plus the 2s settle its
+  /// `reconnect()` waits out) with room for the fresh socket to answer a probe.
+  static const _minForcedReconnectInterval = Duration(seconds: 12);
+
   @override
   Future<bool> reconnect() async {
+    // Rate-limited because the web client's `reconnect()` is destructive in a
+    // way that compounds: it closes the socket and immediately builds a new
+    // one, and the close it just caused fires `onclose` a moment later, whose
+    // handler schedules *another* reconnect that replaces the socket the manual
+    // call had built. One call, two sockets, and the second one lands ~1s after
+    // the first.
+    //
+    // That matters because a one-shot `query()` — which is exactly what
+    // [probeConnection] is — registers itself on whichever socket is current
+    // and waits up to `operationTimeout` for a Transition. Every probe issued
+    // during that churn was left on an abandoned socket and could only fail by
+    // timeout, which sent ConnectionHealth straight back here for another
+    // teardown. A single server-side hangup (`1011 InternalServerError`) was
+    // enough to start it, and nothing about it ever converged: the banner sat
+    // on "reconnecting…" while mutations, which need no query set, kept
+    // succeeding — which is precisely the split the logs show.
+    //
+    // So: heal at most once per [_minForcedReconnectInterval], and in between
+    // let the client's own backoff do its lap. Returning false is not a
+    // verdict; ConnectionHealth probes again on a false and marks itself
+    // online the moment one of those probes round-trips.
+    final last = _lastForcedReconnectAt;
+    if (last != null &&
+        DateTime.now().difference(last) < _minForcedReconnectInterval) {
+      return false;
+    }
+    _lastForcedReconnectAt = DateTime.now();
     try {
       return await _c.reconnect();
     } catch (_) {

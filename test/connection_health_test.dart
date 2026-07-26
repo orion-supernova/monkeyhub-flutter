@@ -120,6 +120,37 @@ void main() {
       expect(health.phase, ConnectionPhase.online);
     });
 
+    // The socket-state stream is a hint, and on native it is a NOISY one: the
+    // Rust client toggles `connecting` on every lap of its own reconnect and
+    // replays the query set when it returns, so those laps change nothing the
+    // user could observe — except that they used to raise a banner. This is the
+    // iPhone symptom: "reconnecting…" more or less permanently, over a session
+    // whose messages were arriving fine.
+    //
+    // A blip that outlasts the grace window must still show nothing, as long as
+    // probes keep round-tripping. Only a FAILED probe may start the clocks.
+    test(
+      'a long socket blip shows nothing while probes still round-trip',
+      () async {
+        probe.probeResult = true;
+        // Long enough that the old "arm on attempt start" behaviour would have
+        // escalated all the way to stalled before this probe even returned.
+        probe.probeDelay = _stalled * 2;
+        build().start();
+
+        probe.emit(false);
+        await settle(_grace * 2);
+        expect(
+          health.phase,
+          ConnectionPhase.online,
+          reason: 'no probe has failed, so there is nothing to report yet',
+        );
+
+        await settle(_stalled * 3);
+        expect(health.phase, ConnectionPhase.online);
+      },
+    );
+
     // Defect: the banner used to hide itself on a successful probe without
     // telling anyone, so subscriptions stayed dead behind a healthy-looking UI.
     test(
