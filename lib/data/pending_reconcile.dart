@@ -28,6 +28,22 @@ bool reconcilesWith(ChatMessage live, ChatMessage pending) {
   // definition. Without this check a burst of photos would reconcile each other
   // away mid-upload on the strength of an unrelated echo.
   if (pending.status == MessageStatus.uploading) return false;
+
+  // Best evidence: the server echoed the idempotency key this very bubble
+  // minted, so the row names its own origin. Decisive in BOTH directions — a
+  // row that carries someone else's key is not this bubble's, however alike the
+  // two look. This is also the only signal that works when the ack is the thing
+  // that went missing, because it arrives on the subscription rather than as
+  // the mutation's return value.
+  final echoed = live.clientId;
+  if (echoed != null) return echoed == pending.id;
+
+  // The send acked and told us exactly which row it created, so there is
+  // nothing to infer. Reachable when the deployment predates `clientId`.
+  final acked = pending.serverId;
+  if (acked != null) return live.id == acked;
+
+  // Neither key available: an old server and an unacked send. Infer.
   if (live.senderId != pending.senderId) return false;
   if (live.type != pending.type) return false;
   if (live.viewOnce != pending.viewOnce) return false;

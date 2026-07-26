@@ -178,6 +178,99 @@ void main() {
     });
   });
 
+  // A send that acked knows the id of the row it created, and after the ack the
+  // bubble is `sent` rather than `pending`. Matching on that id is what lets the
+  // bubble survive a socket rebuild honestly: it stops drawing "sending" the
+  // moment the mutation returns, and still collapses into exactly the right live
+  // row whenever the subscription is re-registered and the echo finally lands.
+  group('an acked send matches on its server id', () {
+    ChatMessage acked(String tmpId, String serverId) =>
+        msg(id: tmpId, status: MessageStatus.sent)..serverId = serverId;
+
+    test('the echo of the acked row removes it', () {
+      final pending = acked('tmp_1', 'srv_1');
+
+      expect(survivingPending([msg(id: 'srv_1')], [pending]), isEmpty);
+    });
+
+    test('a different row does not, however alike it looks', () {
+      // Same sender, same empty caption, same instant — everything the
+      // content-and-window rule matches on. The id says otherwise.
+      final pending = acked('tmp_1', 'srv_1');
+
+      expect(survivingPending([msg(id: 'srv_2')], [pending]), [pending]);
+    });
+
+    test('two acked sends claim their own rows, not each other\'s', () {
+      final a = acked('tmp_1', 'srv_1');
+      final b = acked('tmp_2', 'srv_2');
+      final live = [msg(id: 'srv_2')];
+
+      expect(survivingPending(live, [a, b]), [a]);
+    });
+  });
+
+  // The strongest signal, and the only one that survives a lost ack: the server
+  // stores the sender's idempotency key and hands it back on the live row, so
+  // the row says which bubble it came from. `messages:send` dedupes on the same
+  // key, so a retried send cannot produce a second row to reconcile against in
+  // the first place.
+  group('the server echoes the idempotency key', () {
+    test('the echo claims the bubble that minted the key', () {
+      final pending = msg(id: 'tmp_1');
+      final live = ChatMessage(
+        id: 'srv_1',
+        roomId: 'r',
+        senderId: 'alice',
+        senderName: '',
+        content: '',
+        createdAt: t0,
+        type: MessageType.image,
+        clientId: 'tmp_1',
+      );
+
+      expect(survivingPending([live], [pending]), isEmpty);
+    });
+
+    test('a row carrying another key is decisively not this bubble', () {
+      // Identical on every heuristic — same sender, caption, type and instant.
+      // The key overrules all of it.
+      final pending = msg(id: 'tmp_1', storageId: 'sA');
+      final live = ChatMessage(
+        id: 'srv_1',
+        roomId: 'r',
+        senderId: 'alice',
+        senderName: '',
+        content: '',
+        createdAt: t0,
+        type: MessageType.image,
+        mediaStorageId: 'sA',
+        clientId: 'tmp_OTHER',
+      );
+
+      expect(survivingPending([live], [pending]), [pending]);
+    });
+
+    test('it outranks an ack that named a different row', () {
+      // Both signals present and disagreeing. The echo is the later, more
+      // direct evidence: it came from the row itself.
+      final pending = msg(id: 'tmp_1', status: MessageStatus.sent)
+        ..serverId = 'srv_STALE';
+      final live = ChatMessage(
+        id: 'srv_1',
+        roomId: 'r',
+        senderId: 'alice',
+        senderName: '',
+        content: '',
+        createdAt: t0,
+        type: MessageType.image,
+        clientId: 'tmp_1',
+      );
+
+      expect(survivingPending([live], [pending]), isEmpty);
+    });
+  });
+
   test('nothing pending is a no-op', () {
     expect(survivingPending([msg(id: 'srv_1')], const []), isEmpty);
   });

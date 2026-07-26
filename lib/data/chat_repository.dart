@@ -1221,7 +1221,7 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     try {
-      await api.sendMessage(
+      final serverId = await api.sendMessage(
         roomId: roomId,
         userId: id,
         content: optimistic.content,
@@ -1234,9 +1234,28 @@ class ChatRepository extends ChangeNotifier {
         // the socket was frozen comes back as an ordinary, permanent one — the
         // flag dropped on the retry rather than on the send the user made.
         viewOnce: optimistic.viewOnce,
+        // The bubble's own local id, which is stable across every retry of this
+        // message — that stability is the entire mechanism. Two attempts at the
+        // same send carry the same key and collapse to one row; two genuinely
+        // different sends never share one.
+        clientId: optimistic.id,
       );
-      // Left as pending — the messages:list subscription delivers the
-      // server-confirmed copy and _reconcilePending drops this one.
+      // The ack is proof, so stop drawing "sending". The bubble stays in the
+      // pending list — the live copy is still what carries reactions, read
+      // state and the real id — but it is now marked `sent`, which is what
+      // [_reconcilePending] matches on by id and what keeps [flushPending] and
+      // [_retryPendingErrors] (both of which only touch pending/error) from
+      // posting it a second time.
+      //
+      // Waiting for the subscription instead is what left this bubble spinning
+      // on web while the recipient's phone already had the message: the socket
+      // had been rebuilt underneath us and the query set never replayed, so the
+      // echo that was supposed to clear it was never coming.
+      if (optimistic.status != MessageStatus.error) {
+        optimistic.serverId = serverId;
+        optimistic.status = MessageStatus.sent;
+        notifyListeners();
+      }
     } catch (e) {
       // A child guard rejection is not a transient failure, so it must not
       // sit in the pending list waiting to be retried forever — the retry

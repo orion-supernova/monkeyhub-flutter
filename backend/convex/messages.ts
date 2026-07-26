@@ -78,8 +78,29 @@ export const send = mutation({
     // Burn-after-reading. Armed by the sender in the pre-send editor; see the
     // schema comment on `messages.viewOnce`.
     viewOnce: v.optional(v.boolean()),
+    // Idempotency key. Optional so older clients keep working — they just get
+    // the old at-least-once behaviour. See the schema comment on
+    // `messages.clientId`.
+    clientId: v.optional(v.string()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce, clientId }) => {
+    // Idempotency, checked before anything else has a chance to happen twice.
+    //
+    // Everything below this line has side effects that must not be repeated:
+    // a second row, a second `rooms.lastMessage` bump, a second push, a second
+    // pair of view-once burn schedules. Returning the original id makes a retry
+    // indistinguishable from the send having succeeded the first time, which is
+    // exactly what the caller believes when it retries.
+    if (clientId !== undefined) {
+      const existing = await ctx.db
+        .query("messages")
+        .withIndex("by_room_user_client", (q) =>
+          q.eq("roomId", roomId).eq("userId", userId).eq("clientId", clientId)
+        )
+        .first();
+      if (existing) return existing._id;
+    }
+
     // Verify membership
     const membership = await ctx.db
       .query("roomMembers")
@@ -227,6 +248,8 @@ export const send = mutation({
       mediaHeight: armed ? undefined : mediaHeight,
       senderName: resolvedSenderName,
       expiresAt,
+      // Stored so the retry that arrives after this one commits can find it.
+      clientId,
       ...viewOnceFields,
       ...(replyToPreview
         ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }

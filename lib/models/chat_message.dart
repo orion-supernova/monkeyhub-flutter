@@ -70,6 +70,7 @@ class ChatMessage {
     this.viewOnceOpened = false,
     this.viewOnceBurnedAt,
     this.upload,
+    this.clientId,
   }) : reactions = reactions ?? [];
 
   final String id;
@@ -100,6 +101,32 @@ class ChatMessage {
 
   DateTime? expiresAt;
   MessageStatus status;
+
+  /// The id the server minted for an optimistic message, recorded the moment
+  /// `messages:send` acks. Only ever set on a `tmp_` bubble.
+  ///
+  /// A successful mutation is proof the message exists, and it has to be
+  /// treated as such independently of the subscription: the two travel over the
+  /// same socket but not the same machinery, and the web client resets its
+  /// query set on every reconnect without replaying subscriptions. So a send
+  /// that acked while the socket was churning left a bubble stuck on "sending"
+  /// for a message the recipient was already reading — and, worse, one that
+  /// `flushPending` would post a *second* time on the next reconnect, because
+  /// it re-posts anything still `pending`.
+  ///
+  /// With this recorded, [reconcilesWith] can drop the bubble on an exact id
+  /// match rather than guessing from content and a ±10-minute window.
+  String? serverId;
+
+  /// The idempotency key the sender minted for this message, echoed back by the
+  /// server on the live row. Present only on messages sent by a client new
+  /// enough to send one, against a deployment new enough to store it.
+  ///
+  /// On a live row this names the exact optimistic bubble that produced it, so
+  /// reconciliation needs no inference at all — and unlike [serverId] it is
+  /// known to the *receiver* of the echo before the sender's own ack comes
+  /// back, which is the case where the ack is the thing that got lost.
+  final String? clientId;
   bool edited;
   List<MessageReaction> reactions;
   final String? replyToId;
@@ -198,6 +225,7 @@ class ChatMessage {
           ? DateTime.fromMillisecondsSinceEpoch(
               (j['viewOnceBurnedAt'] as num).toInt())
           : null,
+      clientId: j['clientId'] as String?,
     );
   }
 

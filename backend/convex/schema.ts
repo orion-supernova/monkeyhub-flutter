@@ -348,9 +348,29 @@ export default defineSchema({
     // a flag that is *removed* on burn takes those rows out of the bucket
     // altogether, because `eq(true)` never matches an absent field.
     viewOnceLive: v.optional(v.boolean()),
+
+    // Idempotency key, minted by the sender before the first attempt and reused
+    // verbatim on every retry of that same message. `messages:send` returns the
+    // existing row instead of writing a second one when it sees a repeat.
+    //
+    // Needed because "did this send happen?" is genuinely unanswerable from the
+    // client. A socket that dies between the server committing and the ack
+    // arriving leaves the sender with a failed-looking message that in fact
+    // landed, and every recovery path — the user tapping retry, the reconnect
+    // sweep, the native client's own `resend_ongoing_queries_mutations` — then
+    // sends it again. Without a key each of those is a new row.
+    //
+    // Optional because every message written before this field existed has
+    // none, and Convex has no sparse indexes: `eq("clientId", <string>)` never
+    // matches a row where it is absent, so those are simply invisible to the
+    // dedupe lookup, which is the correct behaviour and needs no backfill.
+    clientId: v.optional(v.string()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_time", ["roomId", "createdAt"])
+    // The dedupe lookup. Scoped by sender as well as room so a client can only
+    // ever collide with — or discover — its own keys.
+    .index("by_room_user_client", ["roomId", "userId", "clientId"])
     .index("by_replyTo", ["replyToId"])
     .index("by_root_time", ["rootId", "createdAt"])
     // Account teardown walks every message a user ever sent.

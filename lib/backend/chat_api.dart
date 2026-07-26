@@ -355,12 +355,17 @@ class ChatApi {
     /// Burn-after-reading. The server drops [mediaWidth]/[mediaHeight] for one
     /// of these and never hands the storage id back out again.
     bool viewOnce = false,
+    /// Idempotency key — the optimistic message's local id, reused verbatim on
+    /// every retry of that message. The server returns the row it already wrote
+    /// rather than writing a second one.
+    String? clientId,
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
       'userId': userId,
       'content': content,
       'type': type.wire,
+      'clientId': ?clientId,
       'mediaStorageId': ?mediaStorageId,
       'mediaWidth': ?mediaWidth,
       'mediaHeight': ?mediaHeight,
