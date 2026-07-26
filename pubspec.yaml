@@ -143,6 +143,23 @@ dependency_overrides:
   # newer platform-interface contract; pin to the fixed line.
   record_linux: ^1.3.0
 
+  # convex_flutter 3.0.1 with five fixes to its WEB client, all of them in
+  # `lib/src/impl/convex_client_web.dart` and each marked `monkeyhub patch`.
+  # Nothing else is changed, so `git diff` against the pub version is the whole
+  # story. See third_party/convex_flutter/PATCHES.md.
+  #
+  # Upstream's socket handling could not converge after a single server-side
+  # hangup: closing a socket scheduled a reconnect that closed the next one,
+  # superseded sockets were left open and still routing messages by an id space
+  # that restarts per connection, and a reconnected client never re-registered
+  # its query set — so it reported `connected` while receiving nothing.
+  #
+  # When bumping convex_flutter, re-apply these against the new version (or drop
+  # them if upstream has fixed it) — pub will otherwise silently take the fixes
+  # away, and the symptom is a chat that quietly stops updating.
+  convex_flutter:
+    path: third_party/convex_flutter
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
