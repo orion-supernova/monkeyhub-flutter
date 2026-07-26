@@ -29,7 +29,7 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 1500;
 
   if (kIsWeb) {
-    unawaited(BrowserContextMenu.disableContextMenu());
+    await BrowserContextMenu.disableContextMenu();
   } else {
     // Initialize push and native call handler asynchronously without delaying runApp.
     PushManager.instance.initialize().then((_) {

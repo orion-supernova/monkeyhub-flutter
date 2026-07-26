@@ -121,15 +121,9 @@
           setTimeout(function() { if (s && s.parentNode) s.parentNode.removeChild(s); }, 350);
         }
       }
-      var obs = new MutationObserver(function() {
-        if (document.querySelector('flutter-view') || document.querySelector('flt-glass-pane') || document.querySelector('canvas')) {
-          obs.disconnect();
-          hideSplash();
-        }
-      });
-      obs.observe(document.body, { childList: true, subtree: true });
       window.addEventListener('flutter-first-frame', hideSplash);
-      setTimeout(hideSplash, 7000);
+      // Fallback timer in case event is fired before listener attaches
+      setTimeout(hideSplash, 4000);
     })();
   </script>
 
