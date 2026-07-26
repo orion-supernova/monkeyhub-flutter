@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,23 +20,20 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 ///
 /// Both failures look like a working screen in a screenshot, hence tests.
 void main() {
-  /// A solid PNG of the given size, written somewhere the screen can read it.
+  /// A solid PNG of the given size for the screen to decode.
   ///
   /// Encoded in pure Dart rather than via PictureRecorder: `Picture.toImage()`
   /// is real raster work that never resolves under flutter_test's fake-async
   /// binding, so calling it from a test body hangs forever — and hangs before
   /// the first test starts, which means even `--timeout` can't rescue it.
-  File makePng(int width, int height) {
+  Uint8List makePng(int width, int height) {
     final bitmap = img.Image(width: width, height: height);
     img.fill(bitmap, color: img.ColorRgb8(0x33, 0x66, 0xAA));
-    final file = File(
-      '${Directory.systemTemp.path}/crop_test_${width}x$height.png',
-    );
-    file.writeAsBytesSync(img.encodePng(bitmap), flush: true);
-    return file;
+    return img.encodePng(bitmap);
   }
 
-  Widget host(File source, {CropShape shape = CropShape.circle}) => MaterialApp(
+  Widget host(Uint8List source, {CropShape shape = CropShape.circle}) =>
+      MaterialApp(
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: ImageCropScreen(source: source, shape: shape),

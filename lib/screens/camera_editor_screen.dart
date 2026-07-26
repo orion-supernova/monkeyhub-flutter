@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -28,7 +28,7 @@ import '../widgets/photo_chrome.dart';
 ///    normalized data through the same mapping, instead of the painter using one
 ///    coordinate space and the exporter reconstructing another.
 ///  * **An unedited photo is passed through untouched.** No crop, no strokes, no
-///    rotation means the caller gets the original file — not a re-encode of it.
+///    rotation means the caller gets the original bytes — not a re-encode.
 ///
 /// Pops an [EditorOutcome] on send or retake, `null` on discard.
 class CameraEditorScreen extends StatefulWidget {
@@ -38,7 +38,9 @@ class CameraEditorScreen extends StatefulWidget {
     this.canRetake = false,
   });
 
-  final File source;
+  /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
+  /// in a browser, where a picked image is a `blob:` URL with no file behind it.
+  final Uint8List source;
 
   /// Whether there is a camera to go back to. False for a photo chosen from the
   /// library — "retake" would have nothing to retake — and the control is then
@@ -47,7 +49,7 @@ class CameraEditorScreen extends StatefulWidget {
 
   static Future<EditorOutcome?> open(
     BuildContext context, {
-    required File source,
+    required Uint8List source,
     bool canRetake = false,
   }) {
     return Navigator.of(context).push<EditorOutcome>(
@@ -238,7 +240,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Future<void> _load() async {
     try {
       final image =
-          await decodeImageFile(widget.source, maxEdge: _maxDisplayEdge);
+          await decodeImageBytes(widget.source, maxEdge: _maxDisplayEdge);
       if (!mounted) {
         image.dispose();
         return;
@@ -472,19 +474,19 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   Future<void> _save() async {
     if (_saving || _display == null) return;
 
-    // Untouched photo: hand back the original file. Re-encoding it would cost a
+    // Untouched photo: hand back the original bytes. Re-encoding would cost a
     // JPEG generation and a full-resolution rasterize to produce something
     // meant to be identical to what we were given.
     if (!_hasEdits) {
       // The decoded image on screen is capped at _maxDisplayEdge, so its size
-      // is not the file's size — read the real one from the header.
-      final size = await imageFileSize(widget.source);
+      // is not the source's size — read the real one from the header.
+      final size = await imageBytesSize(widget.source);
       if (!mounted) return;
       Navigator.of(context).pop(
         EditorSend(
           image: CroppedImage(
-            file: widget.source,
-            contentType: _contentTypeOf(widget.source),
+            bytes: widget.source,
+            contentType: sniffImageContentType(widget.source),
             width: size.width.round(),
             height: size.height.round(),
           ),
@@ -500,7 +502,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       // Full resolution, deliberately uncapped: the file the user sends is the
       // one they gave us, at the size they gave it to us. A tall photo stays
       // tall.
-      full = await decodeImageFile(widget.source);
+      full = await decodeImageBytes(widget.source);
       final srcW = full.width.toDouble();
       final srcH = full.height.toDouble();
       // Rotation swaps the axes an odd number of times.
@@ -518,7 +520,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder, dst);
-      // Opaque backdrop: rasterToJpegFile reads PREMULTIPLIED rawRgba, which
+      // Opaque backdrop: rasterToJpegBytes reads PREMULTIPLIED rawRgba, which
       // only equals straight RGBA where alpha is 255.
       canvas.drawRect(dst, Paint()..color = const Color(0xFF000000));
 
@@ -553,7 +555,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       final raster = await picture.toImage(outW, outH);
       picture.dispose();
 
-      final result = await rasterToJpegFile(raster, prefix: 'edit');
+      final result = await rasterToJpegBytes(raster);
       if (!mounted) return;
       Navigator.of(context).pop(
         EditorSend(image: result, viewOnce: _viewOnce),
@@ -582,14 +584,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       default:
         break;
     }
-  }
-
-  static String _contentTypeOf(File file) {
-    final path = file.path.toLowerCase();
-    if (path.endsWith('.png')) return 'image/png';
-    if (path.endsWith('.heic') || path.endsWith('.heif')) return 'image/heic';
-    if (path.endsWith('.webp')) return 'image/webp';
-    return 'image/jpeg';
   }
 
   /// Paints one stroke, mapping its normalized points into [stage].
@@ -757,10 +751,18 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
   Widget _stage() {
     if (_loadError != null) {
-      return const Center(
+      // No browser decodes HEIC, and image_picker_for_web hands the original
+      // blob straight through when its own canvas resize fails on one — so a
+      // HEIC picked on the web lands here every time. Naming the reason beats
+      // "couldn't open that image", which reads as our bug and leaves the user
+      // with nothing to try.
+      final heic = kIsWeb && sniffImageContentType(widget.source) == 'image/heic';
+      return Center(
         child: Text(
-          'couldn\'t open that image',
-          style: TextStyle(
+          heic
+              ? 'this browser can\'t open HEIC photos'
+              : 'couldn\'t open that image',
+          style: const TextStyle(
             color: PhotoChrome.inkDim,
             fontSize: 14,
             decoration: TextDecoration.none,

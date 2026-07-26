@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,7 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -469,9 +471,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // screen relies on — keep it even though the crop re-encodes anyway.
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      imageQuality: 88,
+      imageQuality: pickerImageQuality,
     );
-    await _cropAndUploadAvatar(picked == null ? null : File(picked.path));
+    await _cropAndUploadAvatar(await picked?.readAsBytes());
   }
 
   /// Frame [source] into a circle and upload it. Null means the user backed out
@@ -479,7 +481,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ///
   /// Assumes `_busy`/`_changingAvatar` are already set by the caller and owns
   /// clearing them on every path out.
-  Future<void> _cropAndUploadAvatar(File? source) async {
+  Future<void> _cropAndUploadAvatar(Uint8List? source) async {
     final api = widget.api;
     final repo = widget.repo;
     if (source == null || api == null || repo?.userId == null) {
@@ -510,8 +512,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     try {
       final uploader = UploadService(api);
-      final storageId = await uploader.uploadXFile(
-        file: cropped.file,
+      final storageId = await uploader.uploadFile(
+        bytes: cropped.bytes,
         contentType: cropped.contentType,
       );
       await api.updateAvatar(userId: repo!.userId!, storageId: storageId);
@@ -546,7 +548,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final url = await api.getFileUrl(storageId);
       final resp = await http.get(Uri.parse(url));
       if (resp.statusCode != 200) {
-        throw HttpException('status ${resp.statusCode}');
+        throw Exception('status ${resp.statusCode}');
       }
       await Gal.putImageBytes(resp.bodyBytes, name: 'avatar-${DateTime.now().millisecondsSinceEpoch}');
       if (!mounted) return;
@@ -1222,7 +1224,12 @@ Future<AvatarAction?> showAvatarActionSheet(
                   ),
                   child: Column(
                     children: [
-                      if (hasAvatar) ...[
+                      // Not in a browser: `gal` writes to the system photo
+                      // library and ships no web implementation, so the tile
+                      // would throw MissingPluginException the moment it was
+                      // tapped. A browser download is a different feature, not
+                      // this one.
+                      if (hasAvatar && !kIsWeb) ...[
                         _AvatarSheetTile(
                           icon: Icons.download_outlined,
                           label: 'SAVE TO PHOTOS',

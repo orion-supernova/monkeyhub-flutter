@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
@@ -18,6 +17,7 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
@@ -786,9 +786,15 @@ class _RoomScreenState extends State<RoomScreen>
         await _captureAndSend();
         break;
       case AttachmentMenuChoice.voice:
-        final file = await nav.push<File>(MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()));
-        if (file != null) {
-          await _uploadAndSend(file: file, type: MessageType.audio, contentType: 'audio/m4a');
+        final bytes = await nav.push<Uint8List>(
+          MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
+        );
+        if (bytes != null) {
+          await _uploadAndSend(
+            bytes: bytes,
+            type: MessageType.audio,
+            contentType: 'audio/m4a',
+          );
         }
         break;
     }
@@ -811,7 +817,7 @@ class _RoomScreenState extends State<RoomScreen>
       if (outcome == null) return; // discarded
       if (outcome is EditorSend) {
         await _uploadAndSend(
-          file: outcome.image.file,
+          bytes: outcome.image.bytes,
           type: MessageType.image,
           contentType: outcome.image.contentType,
           pixelSize: Size(
@@ -859,20 +865,22 @@ class _RoomScreenState extends State<RoomScreen>
 
   Future<void> _pickAndSendFromGallery() async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 88);
-    if (picked == null || !mounted) return;
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: pickerImageQuality,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
     // Route through the same editor the camera path uses — gives the user a
     // preview, optional annotation, and a deliberate "send" tap instead of
     // shipping the photo the moment they pick it. No retake: there is no
     // camera behind this photo to go back to.
-    final outcome = await CameraEditorScreen.open(
-      context,
-      source: File(picked.path),
-    );
+    final outcome = await CameraEditorScreen.open(context, source: bytes);
     if (outcome is! EditorSend) return;
     final img = outcome.image;
     await _uploadAndSend(
-      file: img.file,
+      bytes: img.bytes,
       type: MessageType.image,
       contentType: img.contentType,
       pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
@@ -892,17 +900,21 @@ class _RoomScreenState extends State<RoomScreen>
     final picker = ImagePicker();
     final picked = await picker.pickVideo(source: ImageSource.gallery);
     if (picked == null) return;
-    await _uploadAndSend(file: File(picked.path), type: MessageType.video, contentType: 'video/mp4');
+    await _uploadAndSend(
+      bytes: await picked.readAsBytes(),
+      type: MessageType.video,
+      contentType: 'video/mp4',
+    );
   }
 
-  /// Uploads [file] and posts it as a [type] message.
+  /// Uploads [bytes] and posts them as a [type] message.
   ///
   /// [pixelSize] is the attachment's intrinsic size when the caller knows it —
   /// the image editor hands back exactly that. It rides along on the message so
   /// nobody, sender included, has to decode the picture before they can lay out
   /// a bubble the right shape for it.
   Future<void> _uploadAndSend({
-    required File file,
+    required Uint8List bytes,
     required MessageType type,
     required String contentType,
     Size? pixelSize,
@@ -916,7 +928,8 @@ class _RoomScreenState extends State<RoomScreen>
     if (replyTarget != null) setState(() => _replyingTo = null);
     try {
       final uploader = UploadService(widget.api);
-      final storageId = await uploader.uploadXFile(file: file, contentType: contentType);
+      final storageId =
+          await uploader.uploadFile(bytes: bytes, contentType: contentType);
       await widget.repo.sendMedia(
         roomId: widget.roomId,
         storageId: storageId,

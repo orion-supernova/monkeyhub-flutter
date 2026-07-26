@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -7,6 +8,12 @@ import 'package:record/record.dart';
 
 import '../theme/theme_scope.dart';
 
+/// Records an AAC voice note and pops its bytes.
+///
+/// Mobile and desktop only — the attachment menu does not offer the voice tile
+/// in a browser. `getTemporaryDirectory` below has no web implementation, and
+/// `record_web` would hand back opus/webm rather than the AAC that the send
+/// path labels it as and the players downstream expect.
 class VoiceRecorderScreen extends StatefulWidget {
   const VoiceRecorderScreen({super.key});
   @override
@@ -88,13 +95,22 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
       } catch (_) {}
     }
     if (!mounted) return;
-    Navigator.of(context).pop<File?>(null);
+    Navigator.of(context).pop<Uint8List?>(null);
   }
 
-  void _confirm() {
+  /// Reads the recording off disk and hands back the bytes, so the caller never
+  /// has to know a temp file was involved — the upload path is bytes-only.
+  Future<void> _confirm() async {
     final p = _path;
     if (p == null) return;
-    Navigator.of(context).pop<File?>(File(p));
+    Uint8List bytes;
+    try {
+      bytes = await File(p).readAsBytes();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop<Uint8List?>(bytes);
   }
 
   String _fmt(Duration d) {

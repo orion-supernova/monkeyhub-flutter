@@ -1,35 +1,89 @@
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
-import 'package:path_provider/path_provider.dart';
 
-/// A rasterized image on disk, carried together with the content type it was
-/// actually encoded as.
+/// An encoded image held in memory, carried together with the content type it
+/// was actually encoded as.
 ///
 /// The upload path used to hardcode `contentType: 'image/jpeg'` at every call
 /// site, which was true only by accident (image_picker's `imageQuality` forces
 /// a JPEG re-encode). Convex serves the blob back with whatever type it was
 /// stored under, so a wrong one makes the browser mis-sniff it. Pairing the
-/// file with its type makes that class of mistake unrepresentable.
+/// bytes with their type makes that class of mistake unrepresentable.
+///
+/// Bytes rather than a `dart:io` File: on web a picked image is a `blob:` URL
+/// with no filesystem behind it, and every `File` call throws `UnsupportedError`
+/// there. Nothing was gained by the detour through disk anyway — the decoder
+/// read the whole file back into memory as its first act, and the uploader read
+/// it a second time.
 class CroppedImage {
   const CroppedImage({
-    required this.file,
+    required this.bytes,
     required this.contentType,
     required this.width,
     required this.height,
   });
 
-  final File file;
+  final Uint8List bytes;
   final String contentType;
   final int width;
   final int height;
 }
 
-/// Decodes [file], optionally capping its longest edge at [maxEdge].
+/// What to pass as `ImagePicker`'s `imageQuality`.
+///
+/// On mobile this is 88, and stays there for a reason unrelated to file size:
+/// it forces a re-encode that normalizes EXIF orientation, which
+/// `ImageCropScreen` and the chat editor both rely on — neither reads the
+/// orientation tag itself.
+///
+/// On web it is null. `image_picker_for_web` implements `imageQuality` by
+/// loading the blob into a canvas and re-encoding it, so the picture would be
+/// generation-lossed twice: once there, then again by our own q90 export. There
+/// is no EXIF benefit to buy with that, because the canvas round-trip drops the
+/// metadata anyway.
+const int? pickerImageQuality = kIsWeb ? null : 88;
+
+/// The content type of [bytes], read from the header rather than a filename.
+///
+/// This used to sniff the file extension, which does not exist on web — a
+/// picked image is a `blob:` URL with no `.jpg` on the end. Magic bytes are
+/// also simply more honest: a mislabelled `.jpg` that is really a PNG would
+/// have been uploaded as `image/jpeg` and mis-sniffed on the way back out.
+String sniffImageContentType(Uint8List bytes) {
+  bool match(int offset, List<int> magic) {
+    if (bytes.length < offset + magic.length) return false;
+    for (var i = 0; i < magic.length; i++) {
+      if (bytes[offset + i] != magic[i]) return false;
+    }
+    return true;
+  }
+
+  if (match(0, [0xFF, 0xD8, 0xFF])) return 'image/jpeg';
+  if (match(0, [0x89, 0x50, 0x4E, 0x47])) return 'image/png';
+  if (match(0, [0x47, 0x49, 0x46, 0x38])) return 'image/gif';
+  // RIFF....WEBP — the four bytes between are the chunk length.
+  if (match(0, [0x52, 0x49, 0x46, 0x46]) &&
+      match(8, [0x57, 0x45, 0x42, 0x50])) {
+    return 'image/webp';
+  }
+  // ISO-BMFF: `ftyp` at offset 4, brand immediately after.
+  if (match(4, [0x66, 0x74, 0x79, 0x70])) {
+    for (final brand in const [
+      [0x68, 0x65, 0x69, 0x63], // heic
+      [0x68, 0x65, 0x69, 0x78], // heix
+      [0x68, 0x65, 0x76, 0x63], // hevc
+      [0x6D, 0x69, 0x66, 0x31], // mif1
+    ]) {
+      if (match(8, brand)) return 'image/heic';
+    }
+  }
+  return 'image/jpeg';
+}
+
+/// Decodes [bytes], optionally capping the longest edge at [maxEdge].
 ///
 /// Two callers, two very different needs, one decoder:
 ///
@@ -41,8 +95,7 @@ class CroppedImage {
 ///    the real pixels, once, at save time.
 ///
 /// Never upscales: a small source is decoded as-is.
-Future<ui.Image> decodeImageFile(File file, {int? maxEdge}) async {
-  final bytes = await file.readAsBytes();
+Future<ui.Image> decodeImageBytes(Uint8List bytes, {int? maxEdge}) async {
   final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
   final descriptor = await ui.ImageDescriptor.encoded(buffer);
   try {
@@ -64,14 +117,13 @@ Future<ui.Image> decodeImageFile(File file, {int? maxEdge}) async {
   }
 }
 
-/// The intrinsic pixel size of [file], without decoding it.
+/// The intrinsic pixel size of [bytes], without decoding them.
 ///
-/// `ImageDescriptor.encoded` reads the header only, so this costs a file read
-/// rather than the tens of megabytes a full decode would allocate. Used to
-/// report the true dimensions of an image that is being passed through
-/// untouched, where no decode of it exists to ask.
-Future<ui.Size> imageFileSize(File file) async {
-  final bytes = await file.readAsBytes();
+/// `ImageDescriptor.encoded` reads the header only, so this costs nothing
+/// against the tens of megabytes a full decode would allocate. Used to report
+/// the true dimensions of an image that is being passed through untouched,
+/// where no decode of it exists to ask.
+Future<ui.Size> imageBytesSize(Uint8List bytes) async {
   final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
   final descriptor = await ui.ImageDescriptor.encoded(buffer);
   try {
@@ -90,19 +142,19 @@ Future<ui.Size> imageFileSize(File file) async {
 ///
 /// Done eagerly, as one full-resolution re-encode, rather than carried as a
 /// flag through the editor: both the avatar cropper and the chat editor consume
-/// plain files, and the editor's "an untouched photo is passed through
-/// untouched" optimisation only works if the file it was handed is already the
+/// plain bytes, and the editor's "an untouched photo is passed through
+/// untouched" optimisation only works if what it was handed is already the
 /// picture the user means to send.
-Future<CroppedImage> mirrorImageFile(File source, {int quality = 90}) async {
-  final img = await decodeImageFile(source);
+Future<CroppedImage> mirrorImageBytes(Uint8List source, {int quality = 90}) async {
+  final img = await decodeImageBytes(source);
   try {
     final w = img.width;
     final h = img.height;
     final dst = ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble());
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder, dst);
-    // Opaque backdrop: rasterToJpegFile reads PREMULTIPLIED rawRgba, which only
-    // equals straight RGBA where alpha is 255.
+    // Opaque backdrop: rasterToJpegBytes reads PREMULTIPLIED rawRgba, which
+    // only equals straight RGBA where alpha is 255.
     canvas.drawRect(dst, ui.Paint()..color = const ui.Color(0xFF000000));
     // Reflect about the vertical centre line: shift right by the full width,
     // then negate x. Pure reflection at 1:1 — no resampling, so nothing softens.
@@ -118,13 +170,13 @@ Future<CroppedImage> mirrorImageFile(File source, {int quality = 90}) async {
     final picture = recorder.endRecording();
     final raster = await picture.toImage(w, h);
     picture.dispose();
-    return rasterToJpegFile(raster, prefix: 'mirror', quality: quality);
+    return rasterToJpegBytes(raster, quality: quality);
   } finally {
     img.dispose();
   }
 }
 
-/// Encodes a freshly rasterized [ui.Image] to a JPEG in the temp directory.
+/// Encodes a freshly rasterized [ui.Image] to JPEG bytes.
 ///
 /// Takes ownership of [raster] and disposes it.
 ///
@@ -132,9 +184,8 @@ Future<CroppedImage> mirrorImageFile(File source, {int quality = 90}) async {
 /// 1024² photographic PNG runs 1.6–2.6 MB against 150–260 KB for JPEG q90.
 /// So we pull raw pixels out of the GPU image and hand them to the pure-Dart
 /// `image` encoder instead.
-Future<CroppedImage> rasterToJpegFile(
+Future<CroppedImage> rasterToJpegBytes(
   ui.Image raster, {
-  String prefix = 'crop',
   int quality = 90,
 }) async {
   final width = raster.width;
@@ -145,43 +196,56 @@ Future<CroppedImage> rasterToJpegFile(
   final byteData = await raster.toByteData(format: ui.ImageByteFormat.rawRgba);
   raster.dispose();
   if (byteData == null) {
-    throw StateError('rasterToJpegFile: toByteData returned null');
+    throw StateError('rasterToJpegBytes: toByteData returned null');
   }
   final rgba = byteData.buffer.asUint8List();
 
-  final jpeg = await _encodeJpeg(rgba, width, height, quality);
+  final jpeg = await compute(
+    _encodeJpegJob,
+    _JpegJob(rgba: rgba, width: width, height: height, quality: quality),
+  );
 
-  final tmp = await getTemporaryDirectory();
-  final path =
-      '${tmp.path}/${prefix}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-  final file = await File(path).writeAsBytes(jpeg, flush: true);
   return CroppedImage(
-    file: file,
+    bytes: jpeg,
     contentType: 'image/jpeg',
     width: width,
     height: height,
   );
 }
 
+/// Everything [_encodeJpegJob] needs, in one sendable message.
+class _JpegJob {
+  const _JpegJob({
+    required this.rgba,
+    required this.width,
+    required this.height,
+    required this.quality,
+  });
+
+  final Uint8List rgba;
+  final int width;
+  final int height;
+  final int quality;
+}
+
 /// Runs the encode off the UI isolate — `encodeJpg` is pure Dart and costs
 /// 200–400 ms at 1024², which is several dropped frames if done inline.
 ///
-/// The closure deliberately captures only sendable locals (never `this`, never
-/// a BuildContext), since `Isolate.run` has to ship them across.
-Future<Uint8List> _encodeJpeg(
-  Uint8List rgba,
-  int width,
-  int height,
-  int quality,
-) {
-  return Isolate.run(() {
-    final decoded = img.Image.fromBytes(
-      width: width,
-      height: height,
-      bytes: rgba.buffer,
-      numChannels: 4,
-      order: img.ChannelOrder.rgba,
-    );
-    return img.encodeJpg(decoded, quality: quality);
-  });
+/// `compute` rather than `Isolate.run`: the latter throws outright on web,
+/// where there are no isolates to spawn. `compute` keeps the isolate on
+/// mobile and desktop and falls back to running inline in the browser, which
+/// is the only thing available there.
+///
+/// Top-level and taking a single plain-data message, as `compute` requires —
+/// nothing here may capture `this` or a BuildContext, since the whole argument
+/// has to be shipped across.
+Uint8List _encodeJpegJob(_JpegJob job) {
+  final decoded = img.Image.fromBytes(
+    width: job.width,
+    height: job.height,
+    bytes: job.rgba.buffer,
+    numChannels: 4,
+    order: img.ChannelOrder.rgba,
+  );
+  return img.encodeJpg(decoded, quality: job.quality);
 }

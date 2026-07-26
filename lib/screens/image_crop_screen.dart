@@ -1,7 +1,7 @@
-import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -38,7 +38,9 @@ class ImageCropScreen extends StatefulWidget {
     this.title = 'adjust',
   });
 
-  final File source;
+  /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
+  /// in a browser, where a picked image is a `blob:` URL with no file behind it.
+  final Uint8List source;
   final CropShape shape;
 
   /// Width/height of the crop window. Ignored (forced to 1) for [CropShape.circle];
@@ -53,7 +55,7 @@ class ImageCropScreen extends StatefulWidget {
 
   static Future<CroppedImage?> open(
     BuildContext context, {
-    required File source,
+    required Uint8List source,
     CropShape shape = CropShape.circle,
     double? aspectRatio,
     int maxOutputEdge = 1024,
@@ -128,8 +130,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
 
   Future<void> _load() async {
     try {
-      final bytes = await widget.source.readAsBytes();
-      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+      final buffer = await ui.ImmutableBuffer.fromUint8List(widget.source);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
       final longest = math.max(descriptor.width, descriptor.height);
       final k = longest > _maxDecodeEdge ? _maxDecodeEdge / longest : 1.0;
@@ -303,7 +304,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
 
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder, dst);
-      // Opaque backdrop so every alpha is 255 — rasterToJpegFile reads
+      // Opaque backdrop so every alpha is 255 — rasterToJpegBytes reads
       // premultiplied rawRgba, which only equals straight RGBA at full alpha.
       canvas.drawRect(dst, Paint()..color = const Color(0xFF000000));
       canvas.drawImageRect(
@@ -322,7 +323,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
 
       // Deliberately NOT masked to a circle: every avatar display site already
       // clips, so transparent corners would buy nothing and forfeit JPEG.
-      final result = await rasterToJpegFile(raster, prefix: 'crop');
+      final result = await rasterToJpegBytes(raster);
       if (!mounted) return;
       Navigator.of(context).pop(result);
     } catch (_) {
@@ -382,9 +383,15 @@ class _ImageCropScreenState extends State<ImageCropScreen>
 
   Widget _stage(AppTheme theme) {
     if (_loadFailed) {
+      // Same reasoning as the chat editor: a HEIC picked in a browser cannot be
+      // decoded there, and saying so is more useful than a generic failure.
+      final heic =
+          kIsWeb && sniffImageContentType(widget.source) == 'image/heic';
       return Center(
         child: Text(
-          'couldn\'t open that image',
+          heic
+              ? 'this browser can\'t open HEIC photos'
+              : 'couldn\'t open that image',
           style: theme.body.copyWith(color: theme.inkSoft),
         ),
       );

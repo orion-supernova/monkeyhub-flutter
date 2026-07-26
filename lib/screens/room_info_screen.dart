@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -7,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -240,14 +240,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (r == null || me == null) return;
     final picked = await ImagePicker().pickImage(
       source: ImageSource.gallery,
-      imageQuality: 88,
+      imageQuality: pickerImageQuality,
     );
-    if (picked == null || !mounted) return;
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    if (!mounted) return;
     // Crop before anything is marked in-flight, so cancelling here needs no
     // state reset at all.
     final cropped = await ImageCropScreen.open(
       context,
-      source: File(picked.path),
+      source: bytes,
       shape: CropShape.circle,
     );
     if (cropped == null || !mounted) return;
@@ -257,8 +259,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     });
     try {
       final uploader = UploadService(widget.api);
-      final storageId = await uploader.uploadXFile(
-        file: cropped.file,
+      final storageId = await uploader.uploadFile(
+        bytes: cropped.bytes,
         contentType: cropped.contentType,
       );
       await widget.api.updateRoomAvatar(

@@ -1,8 +1,8 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,10 +27,10 @@ import '../widgets/photo_chrome.dart';
 ///    lens and the user can flip inside a UI we don't control.
 ///
 /// Owning the preview fixes both at once. The lens is ours, so the mirror is
-/// applied exactly when it should be ([mirrorImageFile]), and the shutter pops
+/// applied exactly when it should be ([mirrorImageBytes]), and the shutter pops
 /// straight back to the caller.
 ///
-/// Pops the captured [File], or null if the user backed out.
+/// Pops the captured photo's bytes, or null if the user backed out.
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key, this.initialLens = CameraLensDirection.back});
 
@@ -38,11 +38,11 @@ class CameraScreen extends StatefulWidget {
   /// yourself; chat opens back.
   final CameraLensDirection initialLens;
 
-  static Future<File?> open(
+  static Future<Uint8List?> open(
     BuildContext context, {
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) {
-    return Navigator.of(context).push<File>(
+    return Navigator.of(context).push<Uint8List>(
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => CameraScreen(initialLens: initialLens),
@@ -63,6 +63,15 @@ class _CameraScreenState extends State<CameraScreen>
   /// looking at. Both platforms hand back the unmirrored sensor image today; if
   /// one ever changes, this is the single line to flip.
   static const _mirrorFrontCaptures = true;
+
+  /// Whether flash and tap-to-focus can be driven at all.
+  ///
+  /// `camera_web` implements neither, and signals that with a bare
+  /// `UnimplementedError` — not the `CameraException` every catch on this
+  /// screen is written for. The unguarded `setFlashMode` in [_select] would
+  /// therefore escape and the camera would never open in a browser at all.
+  /// Both controls are simply absent there rather than present and inert.
+  static const _lensControls = !kIsWeb;
 
   List<CameraDescription> _cameras = const [];
   CameraController? _controller;
@@ -155,7 +164,8 @@ class _CameraScreenState extends State<CameraScreen>
     try {
       await controller.initialize();
       // The flash mode does not survive a controller swap, so re-assert it.
-      if (description.lensDirection == CameraLensDirection.back) {
+      if (_lensControls &&
+          description.lensDirection == CameraLensDirection.back) {
         await controller.setFlashMode(_flash);
       }
     } on CameraException catch (e) {
@@ -202,7 +212,7 @@ class _CameraScreenState extends State<CameraScreen>
 
   Future<void> _cycleFlash() async {
     final controller = _controller;
-    if (controller == null || _capturing) return;
+    if (controller == null || _capturing || !_lensControls) return;
     HapticFeedback.selectionClick();
     final next = switch (_flash) {
       FlashMode.off => FlashMode.auto,
@@ -224,6 +234,9 @@ class _CameraScreenState extends State<CameraScreen>
   Future<void> _focusAt(Offset local, Rect preview) async {
     final controller = _controller;
     if (controller == null || _capturing || preview.isEmpty) return;
+    // No reticle either: acknowledging a tap the hardware cannot act on is a
+    // promise the browser has no way to keep.
+    if (!_lensControls) return;
 
     var nx = (local.dx - preview.left) / preview.width;
     final ny = (local.dy - preview.top) / preview.height;
@@ -257,12 +270,15 @@ class _CameraScreenState extends State<CameraScreen>
     HapticFeedback.mediumImpact();
     try {
       final shot = await controller.takePicture();
-      var file = File(shot.path);
+      // XFile.readAsBytes, not File(shot.path): on web `takePicture` hands back
+      // a `blob:` URL, and cross_file fetches it. On mobile it reads the temp
+      // file the plugin just wrote, exactly as before.
+      var bytes = await shot.readAsBytes();
       if (_mirrored && _mirrorFrontCaptures) {
-        file = (await mirrorImageFile(file)).file;
+        bytes = (await mirrorImageBytes(bytes)).bytes;
       }
       if (!mounted) return;
-      Navigator.of(context).pop<File>(file);
+      Navigator.of(context).pop<Uint8List>(bytes);
     } catch (_) {
       if (mounted) setState(() => _capturing = false);
     }
@@ -417,7 +433,7 @@ class _CameraScreenState extends State<CameraScreen>
               const Spacer(),
               // Front cameras have no flash unit; offering the control would be
               // offering something that cannot happen.
-              if (ready && !_mirrored)
+              if (ready && !_mirrored && _lensControls)
                 PhotoGlassButton(
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -10,6 +9,12 @@ import '../backend/chat_api.dart';
 /// Flow (mirrors v02 ConvexChatAPI.uploadFile):
 ///   1. Ask backend for a short-lived upload URL.
 ///   2. POST the bytes there. Response body is JSON: `{ "storageId": "..." }`.
+///
+/// Bytes only, deliberately. There used to be a `uploadXFile(File)` wrapper
+/// whose entire body was `readAsBytes()` — which throws `UnsupportedError` on
+/// web, where a picked file is a `blob:` URL with no filesystem behind it.
+/// Callers that start from an `XFile` read it themselves; everything the media
+/// pipeline produces is already bytes.
 class UploadService {
   UploadService(this._api);
   final ChatApi _api;
@@ -17,7 +22,6 @@ class UploadService {
   Future<String> uploadFile({
     required Uint8List bytes,
     required String contentType,
-    String? filename,
   }) async {
     final url = await _api.generateUploadUrl();
     final resp = await http.post(
@@ -34,10 +38,5 @@ class UploadService {
       throw Exception('Upload succeeded but storageId missing: ${resp.body}');
     }
     return match.group(1)!;
-  }
-
-  Future<String> uploadXFile({required File file, required String contentType}) async {
-    final bytes = await file.readAsBytes();
-    return uploadFile(bytes: bytes, contentType: contentType, filename: file.path.split('/').last);
   }
 }

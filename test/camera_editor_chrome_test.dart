@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
@@ -23,23 +23,19 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 /// Nothing here touches the export path. `Picture.toImage()` is real raster
 /// work that never resolves under flutter_test's fake-async binding — see the
 /// note in image_crop_geometry_test.dart — which also rules out a unit test for
-/// `mirrorImageFile`; that one is verified on a device.
+/// `mirrorImageBytes`; that one is verified on a device.
 void main() {
-  /// A solid PNG on disk for the screen to decode.
+  /// A solid PNG for the screen to decode.
   ///
   /// Encoded in pure Dart for the same reason: a PictureRecorder round-trip
   /// would hang the suite before the first test ran.
-  File makePng(int width, int height) {
+  Uint8List makePng(int width, int height) {
     final bitmap = img.Image(width: width, height: height);
     img.fill(bitmap, color: img.ColorRgb8(0x44, 0x55, 0x77));
-    final file = File(
-      '${Directory.systemTemp.path}/editor_test_${width}x$height.png',
-    );
-    file.writeAsBytesSync(img.encodePng(bitmap), flush: true);
-    return file;
+    return img.encodePng(bitmap);
   }
 
-  Widget host(File source, {bool canRetake = false}) => MaterialApp(
+  Widget host(Uint8List source, {bool canRetake = false}) => MaterialApp(
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: CameraEditorScreen(source: source, canRetake: canRetake),

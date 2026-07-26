@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/theme_scope.dart';
@@ -31,7 +32,12 @@ class _AttachmentSheet extends StatelessWidget {
       (AttachmentMenuChoice.gallery, CupertinoIcons.photo, 'photo'),
       (AttachmentMenuChoice.video, CupertinoIcons.film, 'video'),
       (AttachmentMenuChoice.camera, CupertinoIcons.camera, 'camera'),
-      (AttachmentMenuChoice.voice, CupertinoIcons.mic, 'voice'),
+      // Absent in a browser. `record_web` writes an opus/webm blob rather than
+      // the AAC the send path and the players downstream both assume, and it
+      // ignores the temp-file path the recorder screen asks path_provider for —
+      // which has no web implementation to ask. Offering a tile that records
+      // something nobody can play back would be worse than not offering it.
+      if (!kIsWeb) (AttachmentMenuChoice.voice, CupertinoIcons.mic, 'voice'),
     ];
     return Material(
       type: MaterialType.transparency,
