@@ -2,12 +2,16 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
 import '../media/editor_geometry.dart';
 import '../media/image_raster.dart';
+import '../theme/app_theme.dart';
+import '../theme/theme_scope.dart';
+import '../widgets/photo_chrome.dart';
 
 /// Post-capture editor: draw on the photo, frame it, send it.
 ///
@@ -26,29 +30,64 @@ import '../media/image_raster.dart';
 ///  * **An unedited photo is passed through untouched.** No crop, no strokes, no
 ///    rotation means the caller gets the original file — not a re-encode of it.
 ///
-/// Pops an [EditorResult] on confirm, `null` on cancel.
+/// Pops an [EditorOutcome] on send or retake, `null` on discard.
 class CameraEditorScreen extends StatefulWidget {
-  const CameraEditorScreen({super.key, required this.source});
+  const CameraEditorScreen({
+    super.key,
+    required this.source,
+    this.canRetake = false,
+  });
+
   final File source;
+
+  /// Whether there is a camera to go back to. False for a photo chosen from the
+  /// library — "retake" would have nothing to retake — and the control is then
+  /// absent rather than disabled.
+  final bool canRetake;
+
+  static Future<EditorOutcome?> open(
+    BuildContext context, {
+    required File source,
+    bool canRetake = false,
+  }) {
+    return Navigator.of(context).push<EditorOutcome>(
+      MaterialPageRoute(
+        builder: (_) => CameraEditorScreen(source: source, canRetake: canRetake),
+      ),
+    );
+  }
 
   @override
   State<CameraEditorScreen> createState() => _CameraEditorScreenState();
 }
 
-/// What the editor hands back: the picture, plus how it should be sent.
-///
-/// A wrapper rather than another field on [CroppedImage], because that type is
-/// shared with `ImageCropScreen` (the avatar cropper), where "view once" is
-/// meaningless. Keeping the send-time decision out here means the raster types
-/// stay about rasters.
-class EditorResult {
-  const EditorResult({required this.image, required this.viewOnce});
+/// How the user left the editor.
+sealed class EditorOutcome {
+  const EditorOutcome();
+}
+
+/// Send this picture. The wrapper exists rather than another field on
+/// [CroppedImage] because that type is shared with `ImageCropScreen` (the
+/// avatar cropper), where "view once" is meaningless — keeping the send-time
+/// decision out here means the raster types stay about rasters.
+class EditorSend extends EditorOutcome {
+  const EditorSend({required this.image, required this.viewOnce});
 
   final CroppedImage image;
 
   /// Armed with the circled "1": the recipient may open it exactly once, and
   /// the file is deleted from the server afterwards.
   final bool viewOnce;
+}
+
+/// Throw this one away and open the camera again.
+///
+/// A distinct outcome rather than a null pop, because the two mean opposite
+/// things to the caller and the old screen conflated them — its RETAKE button
+/// popped null, which dropped the user back in the chat instead of back at the
+/// camera.
+class EditorRetake extends EditorOutcome {
+  const EditorRetake();
 }
 
 /// A freehand stroke, in normalized image coordinates.
@@ -101,20 +140,36 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   static const _maxDisplayEdge = 2048;
 
   static const _palette = <Color>[
-    Color(0xFFEF5350),
-    Color(0xFF42A5F5),
-    Color(0xFF66BB6A),
-    Color(0xFFFFCA28),
-    Color(0xFFFFA726),
-    Color(0xFFAB47BC),
-    Colors.white,
-    Colors.black,
+    Color(0xFFFFFFFF),
+    // Not pure black: at 0.045 of an image's width a #000 stroke over a dark
+    // photo reads as a hole punched in it rather than as ink.
+    Color(0xFF121212),
+    Color(0xFFFF3B30),
+    Color(0xFFFF9500),
+    Color(0xFFFFCC00),
+    Color(0xFF34C759),
+    Color(0xFF0A84FF),
+    Color(0xFFBF5AF2),
+    Color(0xFFFF2D95),
   ];
 
-  /// Brush sizes as a fraction of image width.
-  static const _widths = <double>[0.005, 0.010, 0.020, 0.035];
+  /// Brush size as a fraction of image width — continuous, so the slider can
+  /// land anywhere between a fine line and a marker.
+  static const _minWidth = 0.004;
+  static const _maxWidth = 0.045;
 
-  static const _accent = Color(0xFF2D7CF7);
+  /// Bends the slider so the thin half of the range gets most of the travel.
+  /// Linear, the bottom two thirds of the useful sizes live in the first tenth
+  /// of the track and cannot be picked apart with a thumb.
+  static const _widthGamma = 1.8;
+
+  static double _widthForSlider(double t) =>
+      _minWidth + (_maxWidth - _minWidth) * math.pow(t.clamp(0.0, 1.0), _widthGamma);
+
+  static double _sliderForWidth(double w) => math.pow(
+        ((w - _minWidth) / (_maxWidth - _minWidth)).clamp(0.0, 1.0),
+        1 / _widthGamma,
+      ).toDouble();
 
   ui.Image? _display;
   Object? _loadError;
@@ -135,9 +190,19 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   _EditorStroke? _current;
 
   Color _color = _palette.first;
-  double _width = _widths[1];
+  double _width = 0.010;
 
   _Tool _tool = _Tool.draw;
+
+  /// Whether the pen is out. The drawing gesture only exists while it is, which
+  /// is the whole reason the tray is a toggle: the old screen listened for pans
+  /// over the photo unconditionally, so every attempt to swipe the picture left
+  /// a scribble on it.
+  bool _penArmed = false;
+
+  /// True between the start and end of a stroke. Fades the chrome out of the
+  /// way so the picture is unobstructed while it is being drawn on.
+  bool _drawing = false;
 
   /// Normalized crop, in the image's current rotation. The unit rect means
   /// uncropped, and is compared exactly — it is only ever set by [_resetCrop].
@@ -220,10 +285,19 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       if (tool == _Tool.crop) {
         _cropOnEnter = _crop;
         _presetOnEnter = _preset;
+        // Framing and drawing are different jobs; carrying the pen into crop
+        // mode would only put a tray over the handles.
+        _penArmed = false;
       }
       _tool = tool;
       _activeHandle = null;
     });
+  }
+
+  void _togglePen() {
+    if (_saving) return;
+    HapticFeedback.selectionClick();
+    setState(() => _penArmed = !_penArmed);
   }
 
   void _cancelCrop() {
@@ -312,6 +386,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     if (_saving) return;
     if (!stage.contains(local)) return;
     HapticFeedback.selectionClick();
+    setState(() => _drawing = true);
     _current = _EditorStroke(
       color: _color,
       width: _width,
@@ -334,6 +409,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     final stroke = _current;
     _current = null;
     _liveRev.value++;
+    // Twice per stroke, not once per pointer move — the live stroke itself is
+    // still driven by the repaint notifier, not by rebuilding.
+    if (_drawing) setState(() => _drawing = false);
     if (stroke == null) return;
     _commit(stroke);
   }
@@ -403,7 +481,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       final size = await imageFileSize(widget.source);
       if (!mounted) return;
       Navigator.of(context).pop(
-        EditorResult(
+        EditorSend(
           image: CroppedImage(
             file: widget.source,
             contentType: _contentTypeOf(widget.source),
@@ -478,7 +556,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       final result = await rasterToJpegFile(raster, prefix: 'edit');
       if (!mounted) return;
       Navigator.of(context).pop(
-        EditorResult(image: result, viewOnce: _viewOnce),
+        EditorSend(image: result, viewOnce: _viewOnce),
       );
     } catch (_) {
       if (!mounted) return;
@@ -558,71 +636,122 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
   // -------------------------------------------------------------------- view
 
+  /// The photo is the screen. Chrome floats over it on glass rather than
+  /// sitting in bars beside it — the old layout stacked four rows of solid
+  /// black and left the picture in a letterbox in the middle of them.
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final cropping = _tool == _Tool.crop;
+    final safe = MediaQuery.paddingOf(context);
+
+    // Full-bleed while drawing. Crop is the exception: its handles live on the
+    // picture's edges, so the picture is pulled clear of the chrome for as long
+    // as the user is framing.
+    final stagePad = cropping
+        ? EdgeInsets.fromLTRB(24, safe.top + 64, 24, safe.bottom + 132)
+        : EdgeInsets.zero;
+
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
+      body: BackdropGroup(
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            _topBar(),
-            Expanded(child: _stage()),
-            if (_tool == _Tool.crop) _cropBar() else _drawBar(),
-            _actionBar(),
+            AnimatedPadding(
+              padding: stagePad,
+              duration: theme.motionMed,
+              curve: Curves.easeOutCubic,
+              child: _stage(),
+            ),
+            // Nothing here sets an opaque hit-test behaviour except the controls
+            // themselves, so the gaps between them stay drawable.
+            IgnorePointer(
+              ignoring: _drawing,
+              child: AnimatedOpacity(
+                opacity: _drawing ? 0.16 : 1,
+                duration: const Duration(milliseconds: 150),
+                curve: Curves.easeOut,
+                child: SafeArea(
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        top: 6,
+                        child: _topRail(theme, cropping),
+                      ),
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        bottom: 10,
+                        child: _bottomRail(theme, cropping),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _topBar() {
-    final cropping = _tool == _Tool.crop;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
-      child: Row(
-        children: [
-          _IconBtn(
-            icon: Icons.close,
-            label: 'discard',
-            onTap: _saving
-                ? null
-                : () => cropping
-                    ? _cancelCrop()
-                    : Navigator.of(context).pop(null),
+  Widget _topRail(AppTheme theme, bool cropping) {
+    final ready = _display != null && !_saving;
+    return Row(
+      children: [
+        PhotoGlassButton(
+          icon: CupertinoIcons.xmark,
+          semanticLabel: cropping ? 'cancel crop' : 'discard photo',
+          onTap: _saving
+              ? null
+              : () => cropping ? _cancelCrop() : Navigator.of(context).pop(),
+        ),
+        const Spacer(),
+        // Undo and redo earn their place only once there is history to move
+        // through; a permanently greyed pair is just noise over a photograph.
+        if (!cropping && _strokes.isNotEmpty) ...[
+          PhotoGlassButton(
+            icon: CupertinoIcons.arrow_uturn_left,
+            semanticLabel: 'undo',
+            onTap: _saving ? null : _undo,
           ),
-          const Spacer(),
-          if (cropping) ...[
-            _IconBtn(
-              icon: Icons.rotate_90_degrees_ccw_outlined,
-              label: 'rotate',
-              onTap: _display == null || _saving ? null : _rotate90,
-            ),
-            _IconBtn(
-              icon: Icons.settings_backup_restore,
-              label: 'reset crop',
-              onTap: _saving || _crop == const Rect.fromLTWH(0, 0, 1, 1)
-                  ? null
-                  : _resetCrop,
-            ),
-          ] else ...[
-            _IconBtn(
-              icon: Icons.undo,
-              label: 'undo',
-              onTap: _strokes.isEmpty || _saving ? null : _undo,
-            ),
-            _IconBtn(
-              icon: Icons.redo,
-              label: 'redo',
-              onTap: _redo.isEmpty || _saving ? null : _redoStroke,
-            ),
-            _IconBtn(
-              icon: Icons.layers_clear_outlined,
-              label: 'clear drawing',
-              onTap: _strokes.isEmpty || _saving ? null : _clearStrokes,
-            ),
-          ],
+          const SizedBox(width: 8),
         ],
-      ),
+        if (!cropping && _redo.isNotEmpty) ...[
+          PhotoGlassButton(
+            icon: CupertinoIcons.arrow_uturn_right,
+            semanticLabel: 'redo',
+            onTap: _saving ? null : _redoStroke,
+          ),
+          const SizedBox(width: 8),
+        ],
+        if (cropping && _crop != const Rect.fromLTWH(0, 0, 1, 1)) ...[
+          PhotoGlassButton(
+            icon: CupertinoIcons.arrow_2_circlepath,
+            semanticLabel: 'reset crop',
+            onTap: _saving ? null : _resetCrop,
+          ),
+          const SizedBox(width: 8),
+        ],
+        PhotoGlassButton(
+          icon: CupertinoIcons.rotate_left,
+          semanticLabel: 'rotate',
+          onTap: ready ? _rotate90 : null,
+        ),
+        // Crop lives up here, icon only, as the second of the two things you
+        // can do to the frame itself.
+        if (!cropping) ...[
+          const SizedBox(width: 8),
+          PhotoGlassButton(
+            icon: CupertinoIcons.crop,
+            semanticLabel: 'crop',
+            onTap: ready ? () => _selectTool(_Tool.crop) : null,
+          ),
+        ],
+      ],
     );
   }
 
@@ -631,7 +760,11 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       return const Center(
         child: Text(
           'couldn\'t open that image',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(
+            color: PhotoChrome.inkDim,
+            fontSize: 14,
+            decoration: TextDecoration.none,
+          ),
         ),
       );
     }
@@ -641,14 +774,15 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         child: SizedBox(
           width: 22,
           height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: PhotoChrome.inkDim,
+          ),
         ),
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: LayoutBuilder(
+    return LayoutBuilder(
         builder: (context, constraints) {
           final box = Size(constraints.maxWidth, constraints.maxHeight);
           final viewport = _viewport;
@@ -721,7 +855,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                 ),
               ),
               if (_tool == _Tool.crop) ..._cropLayers(stage, viewport),
-              if (_tool == _Tool.draw)
+              // Only while the pen is out. Mounted unconditionally, as it used
+              // to be, every stray swipe across the photo left a mark on it.
+              if (_tool == _Tool.draw && _penArmed)
                 Positioned.fill(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -735,7 +871,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             ],
           );
         },
-      ),
     );
   }
 
@@ -816,197 +951,262 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     return crop.contains(p) ? CropHandle.move : null;
   }
 
-  // ---------------------------------------------------------------- toolbars
+  // ------------------------------------------------------------ bottom chrome
 
-  Widget _cropBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-      color: Colors.black,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          for (final preset in _AspectPreset.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: _Chip(
-                label: preset.label,
-                selected: preset == _preset,
-                onTap: _saving ? null : () => _selectPreset(preset),
-              ),
-            ),
-        ],
-      ),
+  /// Everything along the bottom edge. [AnimatedSize] carries the height change
+  /// when the pen tray opens or the view-once note appears, so the rail rises
+  /// rather than jumping.
+  Widget _bottomRail(AppTheme theme, bool cropping) {
+    return AnimatedSize(
+      duration: theme.motionMed,
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.bottomCenter,
+      child: cropping ? _cropRail(theme) : _drawRail(theme),
     );
   }
 
-  Widget _drawBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-      color: Colors.black,
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final c in _palette)
-                    GestureDetector(
-                      onTap: _saving ? null : () => setState(() => _color = c),
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
-                        child: Container(
-                          width: 30,
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _color == c
-                                  ? Colors.white
-                                  : Colors.white24,
-                              width: _color == c ? 2.5 : 1,
-                            ),
-                          ),
-                        ),
-                      ),
+  Widget _cropRail(AppTheme theme) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PhotoGlassSurface(
+          radius: 22,
+          child: Padding(
+            padding: const EdgeInsets.all(6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final preset in _AspectPreset.values)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _Chip(
+                      label: preset.label,
+                      selected: preset == _preset,
+                      accent: theme.accent,
+                      accentInk: theme.accentInk,
+                      onTap: _saving ? null : () => _selectPreset(preset),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(width: 8),
-          Container(width: 1, height: 26, color: Colors.white24),
-          const SizedBox(width: 8),
-          for (final w in _widths)
-            GestureDetector(
-              onTap: _saving ? null : () => setState(() => _width = w),
-              behavior: HitTestBehavior.opaque,
-              child: SizedBox(
-                width: 26,
-                height: 30,
-                child: Center(
-                  child: Container(
-                    // Scaled to read as a size ladder, not to match the true
-                    // on-screen width — 0.035 of a photo is far wider than a
-                    // toolbar row.
-                    width: 4 + w * 240,
-                    height: 4 + w * 240,
-                    decoration: BoxDecoration(
-                      color: _width == w ? Colors.white : Colors.white38,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const Spacer(),
+            PhotoGlassPill(
+              label: 'DONE',
+              icon: CupertinoIcons.checkmark,
+              tint: theme.accent,
+              onTap: _saving || _display == null
+                  ? null
+                  : () => _selectTool(_Tool.draw),
             ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _actionBar() {
-    final cropping = _tool == _Tool.crop;
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Only while armed, and only outside crop mode — in crop mode the bar
-          // means "commit the frame", and a note about sending would be
-          // answering a question the user isn't asking yet.
-          if (_viewOnce && !cropping)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.local_fire_department_outlined,
-                      size: 13, color: _accent),
-                  const SizedBox(width: 6),
-                  Text(
-                    'disappears after it\'s opened once',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.72),
-                      fontSize: 11.5,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
+  Widget _drawRail(AppTheme theme) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Only while armed — in crop mode the rail means "commit the frame",
+        // and a note about sending would answer a question the user isn't
+        // asking yet.
+        if (_viewOnce) _viewOnceNote(theme),
+        if (_penArmed) _penTray(theme),
+        Row(
+          children: [
+            // Small and icon-only: it is the way back, not one of three equal
+            // choices, which is what the old full-width RETAKE button implied.
+            if (widget.canRetake) ...[
+              PhotoGlassButton(
+                icon: CupertinoIcons.arrow_counterclockwise,
+                semanticLabel: 'retake',
+                size: 38,
+                iconSize: 17,
+                onTap: _saving
+                    ? null
+                    : () => Navigator.of(context).pop(const EditorRetake()),
               ),
+              const SizedBox(width: 8),
+            ],
+            PhotoGlassButton(
+              icon: CupertinoIcons.scribble,
+              semanticLabel: _penArmed ? 'put the pen away' : 'draw on the photo',
+              size: 38,
+              iconSize: 18,
+              tint: _penArmed ? theme.accent : null,
+              iconColor: _penArmed ? theme.accentInk : null,
+              onTap: _saving ? null : _togglePen,
             ),
-          Row(
+            const SizedBox(width: 8),
+            _ViewOnceToggle(
+              active: _viewOnce,
+              accent: theme.accent,
+              accentInk: theme.accentInk,
+              onTap: _saving
+                  ? null
+                  : () => setState(() => _viewOnce = !_viewOnce),
+            ),
+            const Spacer(),
+            PhotoGlassPill(
+              label: _saving ? 'SENDING…' : 'SEND',
+              icon: _saving ? null : CupertinoIcons.arrow_up,
+              tint: theme.accent,
+              onTap: _saving || _display == null ? null : _save,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _viewOnceNote(AppTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PhotoGlassSurface(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _Btn(
-                  label: cropping ? 'CANCEL' : 'RETAKE',
-                  onTap: _saving
-                      ? null
-                      : () => cropping
-                          ? _cancelCrop()
-                          : Navigator.of(context).pop(null),
-                ),
-              ),
-              const SizedBox(width: 10),
-              if (!cropping) ...[
-                Expanded(
-                  child: _Btn(
-                    label: 'CROP',
-                    icon: Icons.crop_rotate,
-                    onTap: _display == null || _saving
-                        ? null
-                        : () => _selectTool(_Tool.crop),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Fixed width, so it reads as a mode switch sitting beside the
-                // commit button rather than a third equal choice.
-                _ViewOnceToggle(
-                  active: _viewOnce,
-                  onTap: _saving
-                      ? null
-                      : () => setState(() => _viewOnce = !_viewOnce),
-                ),
-                const SizedBox(width: 10),
-              ],
-              Expanded(
-                child: _Btn(
-                  label: cropping
-                      ? 'DONE'
-                      : (_saving ? 'SAVING…' : 'USE PHOTO'),
-                  filled: true,
-                  onTap: _saving || _display == null
-                      ? null
-                      : () => cropping ? _selectTool(_Tool.draw) : _save(),
+              Icon(CupertinoIcons.flame_fill, size: 12, color: theme.accent),
+              const SizedBox(width: 6),
+              const Text(
+                'disappears after it\'s opened once',
+                style: TextStyle(
+                  color: PhotoChrome.inkDim,
+                  fontSize: 11.5,
+                  letterSpacing: 0.2,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  /// Colours and brush size — hidden until the pen is out, which is the point:
+  /// the old screen showed the whole palette permanently, to a user who most of
+  /// the time only wanted to look at their photo and send it.
+  Widget _penTray(AppTheme theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: PhotoGlassSurface(
+        radius: 22,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 11, 12, 13),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final c in _palette)
+                            _Swatch(
+                              color: c,
+                              selected: _color == c,
+                              onTap: _saving
+                                  ? null
+                                  : () => setState(() => _color = c),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  PhotoGlassButton(
+                    // Not CupertinoIcons.clear — that is the same glyph as
+                    // xmark, which is the discard button at the top of the
+                    // screen. Two controls that throw away very different
+                    // amounts of work must not look identical.
+                    icon: CupertinoIcons.trash,
+                    semanticLabel: 'clear drawing',
+                    size: 32,
+                    iconSize: 15,
+                    onTap: _strokes.isEmpty || _saving ? null : _clearStrokes,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 13),
+              Row(
+                children: [
+                  // A live dot, at the colour and roughly the weight the stroke
+                  // will land at. Scaled to read as a preview, not to match the
+                  // true on-screen width — 0.045 of a photo is far wider than
+                  // this tray.
+                  SizedBox(
+                    width: 24,
+                    child: Center(
+                      child: Container(
+                        width: 5 + _width * 300,
+                        height: 5 + _width * 300,
+                        decoration: BoxDecoration(
+                          color: _color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: PhotoChrome.stroke,
+                            width: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _WidthSlider(
+                      value: _sliderForWidth(_width),
+                      accent: theme.accent,
+                      enabled: !_saving,
+                      onChanged: (t) =>
+                          setState(() => _width = _widthForSlider(t)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+
 /// The circled "1" — arms burn-after-reading for this photo.
 ///
-/// Same 46pt height as [_Btn] so the action bar stays on one baseline. Bare
-/// [FocusableTap] + [GestureDetector], like every other control in this app:
-/// no ink, no ripple.
+/// Sized to the 38pt glass buttons beside it so the rail sits on one baseline.
+/// Kept hand-drawn rather than swapped for an icon: nothing in any icon set
+/// says "they get one look at this", and the numeral does.
 class _ViewOnceToggle extends StatelessWidget {
-  const _ViewOnceToggle({required this.active, required this.onTap});
+  const _ViewOnceToggle({
+    required this.active,
+    required this.accent,
+    required this.accentInk,
+    required this.onTap,
+  });
 
   final bool active;
+  final Color accent;
+  final Color accentInk;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     final fg = active
-        ? Colors.white
-        : Colors.white.withValues(alpha: enabled ? 0.85 : 0.38);
+        ? accentInk
+        : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
     return FocusableTap(
       onTap: onTap,
       semanticLabel: active ? 'view once: on' : 'view once: off',
@@ -1014,28 +1214,13 @@ class _ViewOnceToggle extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 46,
-          height: 46,
-          child: Center(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
-              curve: Curves.easeOut,
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: active
-                    ? _CameraEditorScreenState._accent
-                    : Colors.transparent,
-                border: Border.all(
-                  color: active
-                      ? _CameraEditorScreenState._accent
-                      : Colors.white.withValues(alpha: enabled ? 0.55 : 0.22),
-                  width: 1.5,
-                ),
-              ),
-              alignment: Alignment.center,
+        child: PhotoGlassSurface(
+          shape: BoxShape.circle,
+          tint: active ? accent : null,
+          child: SizedBox(
+            width: 38,
+            height: 38,
+            child: Center(
               child: Text(
                 '1',
                 style: TextStyle(
@@ -1043,6 +1228,7 @@ class _ViewOnceToggle extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   height: 1,
+                  decoration: TextDecoration.none,
                 ),
               ),
             ),
@@ -1242,45 +1428,20 @@ class _CropOverlayPainter extends CustomPainter {
 
 // ------------------------------------------------------------------- controls
 
-/// Bare tappable icon. No `IconButton` anywhere in this screen — that widget
-/// renders an ink ripple, and this app renders no ink.
-class _IconBtn extends StatelessWidget {
-  const _IconBtn({required this.icon, required this.label, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      shape: FocusRingShape.circle,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(
-            icon,
-            size: 22,
-            color: enabled ? Colors.white : Colors.white24,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Aspect-ratio chip in the crop toolbar.
+/// Aspect-ratio chip in the crop rail.
 class _Chip extends StatelessWidget {
-  const _Chip({required this.label, required this.selected, required this.onTap});
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.accentInk,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
+  final Color accent;
+  final Color accentInk;
   final VoidCallback? onTap;
 
   @override
@@ -1292,21 +1453,22 @@ class _Chip extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
           decoration: BoxDecoration(
-            color: selected
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.12),
+            color: selected ? accent : PhotoChrome.fill,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.black : Colors.white,
+              color: selected ? accentInk : PhotoChrome.ink,
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
+              letterSpacing: 1,
+              decoration: TextDecoration.none,
             ),
           ),
         ),
@@ -1315,76 +1477,146 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// RETAKE / CROP / USE PHOTO.
-class _Btn extends StatefulWidget {
-  const _Btn({
-    required this.label,
+/// One ink colour.
+///
+/// [FocusableTap], unlike the bare `GestureDetector` this replaces — the
+/// swatches and the width control were the only two things on this screen a
+/// keyboard or a screen reader could not reach.
+class _Swatch extends StatelessWidget {
+  const _Swatch({
+    required this.color,
+    required this.selected,
     required this.onTap,
-    this.filled = false,
-    this.icon,
   });
 
-  final String label;
+  final Color color;
+  final bool selected;
   final VoidCallback? onTap;
-  final bool filled;
-  final IconData? icon;
-
-  @override
-  State<_Btn> createState() => _BtnState();
-}
-
-class _BtnState extends State<_Btn> {
-  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.onTap != null;
-    final fg = enabled ? Colors.white : Colors.white38;
     return FocusableTap(
-      onTap: widget.onTap,
-      semanticLabel: widget.label,
-      radius: 12,
+      onTap: onTap,
+      semanticLabel: 'ink colour',
+      shape: FocusRingShape.circle,
       child: GestureDetector(
-        onTap: widget.onTap,
-        onTapDown: enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: enabled ? () => setState(() => _pressed = false) : null,
+        onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: AnimatedScale(
-          scale: _pressed ? 0.96 : 1.0,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOut,
-          child: Container(
-            height: 46,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: widget.filled
-                  ? _CameraEditorScreenState._accent
-                      .withValues(alpha: enabled ? 1 : 0.35)
-                  : Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 38,
+          height: 34,
+          child: Center(
+            // The selected swatch grows and gains a ring, rather than only
+            // changing its border weight — at 28pt a 1px border difference is
+            // not a signal anyone reads.
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutBack,
+              width: selected ? 30 : 24,
+              height: selected ? 30 : 24,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? PhotoChrome.ink : PhotoChrome.stroke,
+                  width: selected ? 2.5 : 1,
+                ),
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Continuous brush-size control.
+///
+/// Hand-rolled rather than a Material [Slider]: that widget paints a hover and
+/// focus overlay and carries a theme this screen deliberately does not use.
+/// Reports a 0..1 position; the caller decides what width that means.
+class _WidthSlider extends StatelessWidget {
+  const _WidthSlider({
+    required this.value,
+    required this.accent,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final double value;
+  final Color accent;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  static const _track = 3.0;
+  static const _thumb = 18.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // The thumb's centre can only travel between its own two radii, so the
+        // position maps into that inner span rather than the full width.
+        final span = math.max(1.0, width - _thumb);
+
+        void report(double dx) {
+          if (!enabled) return;
+          onChanged(((dx - _thumb / 2) / span).clamp(0.0, 1.0));
+        }
+
+        final t = value.clamp(0.0, 1.0);
+        final centre = _thumb / 2 + span * t;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) => report(d.localPosition.dx),
+          onHorizontalDragStart: (d) => report(d.localPosition.dx),
+          onHorizontalDragUpdate: (d) => report(d.localPosition.dx),
+          child: SizedBox(
+            height: 34,
+            child: Stack(
+              alignment: Alignment.centerLeft,
               children: [
-                if (widget.icon != null) ...[
-                  Icon(widget.icon, size: 15, color: fg),
-                  const SizedBox(width: 6),
-                ],
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.4,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: _track,
+                    decoration: BoxDecoration(
+                      color: PhotoChrome.fill,
+                      borderRadius: BorderRadius.circular(_track),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  width: centre,
+                  child: Container(
+                    height: _track,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: enabled ? 1 : 0.4),
+                      borderRadius: BorderRadius.circular(_track),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: centre - _thumb / 2,
+                  child: Container(
+                    width: _thumb,
+                    height: _thumb,
+                    decoration: const BoxDecoration(
+                      color: PhotoChrome.ink,
+                      shape: BoxShape.circle,
+                      boxShadow: [PhotoChrome.shadow],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

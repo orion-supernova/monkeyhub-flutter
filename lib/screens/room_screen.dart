@@ -783,20 +783,7 @@ class _RoomScreenState extends State<RoomScreen>
         await _pickAndSendVideo();
         break;
       case AttachmentMenuChoice.camera:
-        final captured = await nav.push<File>(MaterialPageRoute(builder: (_) => const CameraScreen()));
-        if (captured == null || !mounted) break;
-        final edited = await nav.push<EditorResult>(
-            MaterialPageRoute(builder: (_) => CameraEditorScreen(source: captured)));
-        if (edited != null) {
-          final img = edited.image;
-          await _uploadAndSend(
-            file: img.file,
-            type: MessageType.image,
-            contentType: img.contentType,
-            pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
-            viewOnce: edited.viewOnce,
-          );
-        }
+        await _captureAndSend();
         break;
       case AttachmentMenuChoice.voice:
         final file = await nav.push<File>(MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()));
@@ -804,6 +791,39 @@ class _RoomScreenState extends State<RoomScreen>
           await _uploadAndSend(file: file, type: MessageType.audio, contentType: 'audio/m4a');
         }
         break;
+    }
+  }
+
+  /// Camera → editor → send, looping while the user keeps asking to retake.
+  ///
+  /// The loop is what makes RETAKE mean what it says. It used to pop null,
+  /// which is the same thing discarding does, so the button dropped the user
+  /// back in the chat rather than back at the camera.
+  Future<void> _captureAndSend() async {
+    var shot = await CameraScreen.open(context);
+    while (shot != null) {
+      if (!mounted) return;
+      final outcome = await CameraEditorScreen.open(
+        context,
+        source: shot,
+        canRetake: true,
+      );
+      if (outcome == null) return; // discarded
+      if (outcome is EditorSend) {
+        await _uploadAndSend(
+          file: outcome.image.file,
+          type: MessageType.image,
+          contentType: outcome.image.contentType,
+          pixelSize: Size(
+            outcome.image.width.toDouble(),
+            outcome.image.height.toDouble(),
+          ),
+          viewOnce: outcome.viewOnce,
+        );
+        return;
+      }
+      if (!mounted) return;
+      shot = await CameraScreen.open(context);
     }
   }
 
@@ -841,21 +861,22 @@ class _RoomScreenState extends State<RoomScreen>
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 88);
     if (picked == null || !mounted) return;
-    final nav = Navigator.of(context);
     // Route through the same editor the camera path uses — gives the user a
     // preview, optional annotation, and a deliberate "send" tap instead of
-    // shipping the photo the moment they pick it.
-    final edited = await nav.push<EditorResult>(MaterialPageRoute(
-      builder: (_) => CameraEditorScreen(source: File(picked.path)),
-    ));
-    if (edited == null) return;
-    final img = edited.image;
+    // shipping the photo the moment they pick it. No retake: there is no
+    // camera behind this photo to go back to.
+    final outcome = await CameraEditorScreen.open(
+      context,
+      source: File(picked.path),
+    );
+    if (outcome is! EditorSend) return;
+    final img = outcome.image;
     await _uploadAndSend(
       file: img.file,
       type: MessageType.image,
       contentType: img.contentType,
       pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
-      viewOnce: edited.viewOnce,
+      viewOnce: outcome.viewOnce,
     );
   }
 

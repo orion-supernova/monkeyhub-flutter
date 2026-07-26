@@ -17,8 +17,9 @@ enum CropShape { circle, rect }
 
 /// Pan/zoom/rotate an image into a fixed crop window before uploading it.
 ///
-/// Pops a [CroppedImage] on confirm, `null` on cancel — same contract as
-/// [CameraEditorScreen].
+/// Pops a [CroppedImage] on confirm, `null` on cancel. (The chat editor pops a
+/// richer `EditorOutcome`, because it also has to say whether the user asked to
+/// retake — there is nothing to retake here.)
 ///
 /// The whole screen rests on one invariant: **the child always covers the crop
 /// window**. It is cover-sized (its shorter axis exactly fills the window) and

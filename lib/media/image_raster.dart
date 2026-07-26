@@ -81,6 +81,49 @@ Future<ui.Size> imageFileSize(File file) async {
   }
 }
 
+/// Mirrors [source] horizontally and re-encodes it as a JPEG.
+///
+/// Every camera mirrors its own front-lens *preview* — you see yourself the way
+/// a mirror shows you — but writes the file the way the lens saw it, which is
+/// reversed from what the user was just looking at. Applied at capture time on
+/// the front lens only, this makes the file agree with the preview.
+///
+/// Done eagerly, as one full-resolution re-encode, rather than carried as a
+/// flag through the editor: both the avatar cropper and the chat editor consume
+/// plain files, and the editor's "an untouched photo is passed through
+/// untouched" optimisation only works if the file it was handed is already the
+/// picture the user means to send.
+Future<CroppedImage> mirrorImageFile(File source, {int quality = 90}) async {
+  final img = await decodeImageFile(source);
+  try {
+    final w = img.width;
+    final h = img.height;
+    final dst = ui.Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble());
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder, dst);
+    // Opaque backdrop: rasterToJpegFile reads PREMULTIPLIED rawRgba, which only
+    // equals straight RGBA where alpha is 255.
+    canvas.drawRect(dst, ui.Paint()..color = const ui.Color(0xFF000000));
+    // Reflect about the vertical centre line: shift right by the full width,
+    // then negate x. Pure reflection at 1:1 — no resampling, so nothing softens.
+    canvas.translate(w.toDouble(), 0);
+    canvas.scale(-1, 1);
+    canvas.drawImage(
+      img,
+      ui.Offset.zero,
+      ui.Paint()
+        ..isAntiAlias = true
+        ..filterQuality = ui.FilterQuality.medium,
+    );
+    final picture = recorder.endRecording();
+    final raster = await picture.toImage(w, h);
+    picture.dispose();
+    return rasterToJpegFile(raster, prefix: 'mirror', quality: quality);
+  } finally {
+    img.dispose();
+  }
+}
+
 /// Encodes a freshly rasterized [ui.Image] to a JPEG in the temp directory.
 ///
 /// Takes ownership of [raster] and disposes it.

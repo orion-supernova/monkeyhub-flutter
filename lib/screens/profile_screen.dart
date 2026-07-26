@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +24,7 @@ import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
+import 'camera_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
@@ -425,27 +427,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _downloadAvatar();
         break;
       case AvatarAction.capture:
-        await _pickAndUploadAvatarFrom(
-          source: ImageSource.camera,
-          preferredCameraDevice: CameraDevice.front,
-        );
+        await _captureAndUploadAvatar();
         break;
       case AvatarAction.library:
-        await _pickAndUploadAvatarFrom(source: ImageSource.gallery);
+        await _pickAndUploadAvatarFromLibrary();
         break;
     }
   }
 
-  Future<void> _pickAndUploadAvatarFrom({
-    required ImageSource source,
-    CameraDevice preferredCameraDevice = CameraDevice.rear,
-  }) async {
-    final api = widget.api;
-    final repo = widget.repo;
-    if (api == null || repo?.userId == null) return;
-    // Spinner covers BOTH phases: picker/camera spin-up (the native UI can
-    // take a beat to appear on cold launch) and the upload itself. Clear it
-    // on cancel so the avatar returns to normal immediately.
+  /// Take a new one. Opens on the front lens — you are photographing yourself —
+  /// and the shutter goes straight to the circle crop.
+  ///
+  /// This used to go through `ImagePicker(source: camera)`, which presents
+  /// iOS's own camera and its unskippable Retake / Use Photo step, so the user
+  /// confirmed the same photograph twice: once for iOS, then again on the crop
+  /// screen. Owning the preview removes the first of those, and lets the
+  /// selfie be mirrored to match what the user was actually looking at.
+  Future<void> _captureAndUploadAvatar() async {
+    if (widget.api == null || widget.repo?.userId == null) return;
+    setState(() {
+      _busy = true;
+      _changingAvatar = true;
+    });
+    final shot = await CameraScreen.open(
+      context,
+      initialLens: CameraLensDirection.front,
+    );
+    await _cropAndUploadAvatar(shot);
+  }
+
+  Future<void> _pickAndUploadAvatarFromLibrary() async {
+    if (widget.api == null || widget.repo?.userId == null) return;
+    // Spinner covers BOTH phases: picker spin-up (the native UI can take a beat
+    // to appear on cold launch) and the upload itself. Clear it on cancel so
+    // the avatar returns to normal immediately.
     setState(() {
       _busy = true;
       _changingAvatar = true;
@@ -453,11 +468,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // imageQuality also normalizes EXIF orientation on Android, which the crop
     // screen relies on — keep it even though the crop re-encodes anyway.
     final picked = await ImagePicker().pickImage(
-      source: source,
+      source: ImageSource.gallery,
       imageQuality: 88,
-      preferredCameraDevice: preferredCameraDevice,
     );
-    if (picked == null) {
+    await _cropAndUploadAvatar(picked == null ? null : File(picked.path));
+  }
+
+  /// Frame [source] into a circle and upload it. Null means the user backed out
+  /// before there was a picture, which is a cancel, not a failure.
+  ///
+  /// Assumes `_busy`/`_changingAvatar` are already set by the caller and owns
+  /// clearing them on every path out.
+  Future<void> _cropAndUploadAvatar(File? source) async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (source == null || api == null || repo?.userId == null) {
       if (mounted) {
         setState(() {
           _busy = false;
@@ -471,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // its spinner underneath and the sheet can't be reopened behind it.
     final cropped = await ImageCropScreen.open(
       context,
-      source: File(picked.path),
+      source: source,
       shape: CropShape.circle,
     );
     if (cropped == null) {
