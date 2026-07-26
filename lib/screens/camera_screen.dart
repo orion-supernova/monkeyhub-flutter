@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../media/preview_luminance.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
 
@@ -146,6 +147,33 @@ class _CameraScreenState extends State<CameraScreen>
   Offset? _focusPoint;
   int _focusToken = 0;
 
+  /// Whether *this* lens can drive a real flash.
+  ///
+  /// Probed rather than assumed. The plugin gates every flash mode on
+  /// `captureDevice.hasFlash` (`DefaultCamera.swift:1089`), and whether that is
+  /// true for a selfie camera is a per-device question — an iPhone with Retina
+  /// Flash may accept it, most Android front cameras will not. Asking the
+  /// device beats hardcoding a guess that is wrong on half the hardware.
+  bool _nativeFlash = false;
+
+  /// True while the screen is being used as the flash. See [_usesScreenFlash].
+  bool _screenFlash = false;
+
+  /// Whether the metered preview is dark enough that auto should fire.
+  bool _previewIsDark = false;
+  bool _metering = false;
+  DateTime? _lastMeterAt;
+
+  /// Exposure-compensation range this lens actually supports, in EV.
+  double _minEv = 0;
+  double _maxEv = 0;
+  bool _boost = false;
+
+  /// How far to push exposure when the boost is on. Deliberately modest: the
+  /// range a device reports often runs to +8 EV, which is a white rectangle,
+  /// not a photograph.
+  static const _boostEv = 1.5;
+
   double _minZoom = 1;
   double _maxZoom = 1;
   double _zoom = 1;
@@ -185,6 +213,9 @@ class _CameraScreenState extends State<CameraScreen>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
       _controller = null;
+      // The stream dies with the controller; leaving the flag set would make
+      // _syncMetering believe it was already running on the next resume.
+      _metering = false;
       controller.removeListener(_onControllerUpdate);
       controller.dispose();
       if (mounted) setState(() {});
@@ -219,6 +250,7 @@ class _CameraScreenState extends State<CameraScreen>
 
     final previous = _controller;
     _controller = null;
+    _metering = false; // dies with the controller below
     if (mounted) setState(() {});
     previous?.removeListener(_onControllerUpdate);
     await previous?.dispose();
@@ -240,18 +272,21 @@ class _CameraScreenState extends State<CameraScreen>
     try {
       await controller.initialize();
       if (_lensControls) {
-        // The flash mode does not survive a controller swap, so re-assert it.
-        if (description.lensDirection == CameraLensDirection.back) {
-          await controller.setFlashMode(_flash);
-        }
-        // Fetched together, once: both are platform round-trips and neither
-        // changes for the life of this controller.
+        // None of this survives a controller swap, so it is all re-asserted
+        // whenever a lens is bound — including on the flip, where the user
+        // expects their flash and boost choices to carry over.
+        _nativeFlash = await _trySetFlash(controller, _flash);
         final range = await Future.wait([
           controller.getMinZoomLevel(),
           controller.getMaxZoomLevel(),
+          controller.getMinExposureOffset(),
+          controller.getMaxExposureOffset(),
         ]);
         _minZoom = range[0];
         _maxZoom = range[1];
+        _minEv = range[2];
+        _maxEv = range[3];
+        await _applyBoost(controller);
       }
     } on CameraException catch (e) {
       await controller.dispose();
@@ -275,6 +310,7 @@ class _CameraScreenState extends State<CameraScreen>
       _zoom = _minZoom;
       _fault = null;
     });
+    await _syncMetering();
   }
 
   /// A session can die mid-flight — thermal shutdown, another app seizing the
@@ -313,6 +349,45 @@ class _CameraScreenState extends State<CameraScreen>
     );
   }
 
+  // -------------------------------------------------------------------- flash
+
+  /// Whether a flash control makes sense on this lens at all.
+  ///
+  /// A selfie camera almost never has a flash unit, but it always has a screen
+  /// pointed at the subject — which is the whole trick, and why the control is
+  /// offered on both lenses now instead of only the back one. The reverse does
+  /// not hold: a screen flash on the rear lens would light up the photographer,
+  /// so a back camera with no flash unit simply has no flash.
+  bool get _flashAvailable => _nativeFlash || _isFront;
+
+  /// Whether firing the flash means lighting the screen rather than asking the
+  /// platform. True exactly when the lens faces the user and has no flash of
+  /// its own to use.
+  bool get _usesScreenFlash => _isFront && !_nativeFlash;
+
+  /// Whether the flash should actually fire for the shot about to be taken.
+  /// Only consulted on the screen-flash path — where the platform owns the
+  /// flash, it decides `auto` for itself.
+  bool get _flashWillFire => switch (_flash) {
+        FlashMode.off => false,
+        FlashMode.auto => _previewIsDark,
+        _ => true,
+      };
+
+  /// Asks the platform for [mode] and reports whether it took.
+  ///
+  /// A device without a flash unit rejects every mode including `off`, so this
+  /// doubles as the capability probe — one call that both configures the lens
+  /// and tells us which kind of flash we have.
+  Future<bool> _trySetFlash(CameraController c, FlashMode mode) async {
+    try {
+      await c.setFlashMode(mode);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _cycleFlash() async {
     final controller = _controller;
     if (controller == null || _capturing || !_lensControls) return;
@@ -322,12 +397,100 @@ class _CameraScreenState extends State<CameraScreen>
       FlashMode.auto => FlashMode.always,
       _ => FlashMode.off,
     };
+    // Told to the platform whenever it will listen, even on the screen-flash
+    // path: a lens can gain a real flash on the next swap, and the mode should
+    // already be right when it does.
+    final took = await _trySetFlash(controller, next);
+    if (!mounted) return;
+    setState(() {
+      _flash = next;
+      if (took) _nativeFlash = true;
+    });
+    await _syncMetering();
+  }
+
+  // ------------------------------------------------------------- light meter
+
+  /// Starts or stops preview metering to match the current mode.
+  ///
+  /// Streaming preview frames is the single most expensive thing this screen
+  /// can do, so it runs in exactly one situation: a selfie lens, with no flash
+  /// of its own, set to auto — the only case where nothing else can answer "is
+  /// it dark in here". Every other mode leaves the stream stopped.
+  Future<void> _syncMetering() async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    final want = _lensControls &&
+        _usesScreenFlash &&
+        _flash == FlashMode.auto &&
+        !_capturing;
+    if (want == _metering) return;
     try {
-      await controller.setFlashMode(next);
-    } on CameraException {
-      return; // This lens has no flash. Leave the mode where it was.
+      if (want) {
+        await controller.startImageStream(_onPreviewFrame);
+      } else {
+        await controller.stopImageStream();
+      }
+      _metering = want;
+    } catch (_) {
+      // Not every platform streams. Auto then behaves as off, which is the
+      // conservative half of the choice.
+      _metering = false;
     }
-    if (mounted) setState(() => _flash = next);
+  }
+
+  void _onPreviewFrame(CameraImage image) {
+    // Frames arrive at the preview's frame rate; four readings a second is
+    // plenty for a decision about the light in a room, and the other twenty-six
+    // are dropped before anything is touched.
+    final now = DateTime.now();
+    final last = _lastMeterAt;
+    if (last != null && now.difference(last).inMilliseconds < 250) return;
+    _lastMeterAt = now;
+
+    final plane = image.planes.first;
+    final luminance = meanPreviewLuminance(
+      bytes: plane.bytes,
+      width: image.width,
+      height: image.height,
+      // yuv420's first plane is Y — luminance already. iOS delivers packed
+      // BGRA by default, which is four bytes a pixel and gets weighted.
+      bytesPerPixel: image.format.group == ImageFormatGroup.bgra8888 ? 4 : 1,
+      bytesPerRow: plane.bytesPerRow,
+    );
+
+    // Hysteresis: one threshold to become dark, a higher one to stop being it,
+    // so a reading sitting on the line doesn't strobe the icon.
+    final dark = _previewIsDark
+        ? luminance < darkExitLuminance
+        : luminance < darkEnterLuminance;
+    if (dark != _previewIsDark && mounted) {
+      setState(() => _previewIsDark = dark);
+    }
+  }
+
+  // ------------------------------------------------------------------- boost
+
+  /// Whether this lens reports any headroom to brighten into.
+  bool get _boostAvailable => _lensControls && _maxEv > 0;
+
+  Future<void> _applyBoost(CameraController c) async {
+    if (!_boostAvailable) return;
+    try {
+      await c.setExposureOffset(
+        _boost ? _boostEv.clamp(_minEv, _maxEv) : 0.0,
+      );
+    } catch (_) {
+      // Some lenses report a range and then refuse to move within it.
+    }
+  }
+
+  Future<void> _toggleBoost() async {
+    final controller = _controller;
+    if (controller == null || _capturing || !_boostAvailable) return;
+    HapticFeedback.selectionClick();
+    setState(() => _boost = !_boost);
+    await _applyBoost(controller);
   }
 
   // --------------------------------------------------------------------- zoom
@@ -404,6 +567,27 @@ class _CameraScreenState extends State<CameraScreen>
     }
     setState(() => _capturing = true);
     HapticFeedback.mediumImpact();
+
+    // Streaming frames and taking a still at the same time is a known way to
+    // make Android's capture fail, and the reading is not needed once the
+    // decision has been made.
+    if (_metering) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+      _metering = false;
+    }
+
+    final screenFlash = _usesScreenFlash && _flashWillFire;
+    if (screenFlash) {
+      setState(() => _screenFlash = true);
+      // The preview keeps running underneath, so auto-exposure sees the lit
+      // face and adapts. Firing the shutter immediately would capture the frame
+      // metered for the dark room and produce a blown-out white face.
+      await Future<void>.delayed(const Duration(milliseconds: 240));
+      if (!mounted) return;
+    }
+
     try {
       final shot = await controller.takePicture();
       // XFile.readAsBytes, not File(shot.path): on web `takePicture` hands back
@@ -421,7 +605,14 @@ class _CameraScreenState extends State<CameraScreen>
         ),
       );
     } catch (_) {
-      if (mounted) setState(() => _capturing = false);
+      if (!mounted) return;
+      // Back to a usable camera rather than a stuck shutter: drop the flash,
+      // clear the busy state, and put the light meter back if it was running.
+      setState(() {
+        _capturing = false;
+        _screenFlash = false;
+      });
+      await _syncMetering();
     }
   }
 
@@ -442,6 +633,14 @@ class _CameraScreenState extends State<CameraScreen>
           children: [
             if (_fault != null) _faultBody() else _previewBody(),
             SafeArea(child: _chrome()),
+            // Above everything, including the chrome: a selfie camera with no
+            // flash unit uses the screen itself as the light. Warm rather than
+            // pure white, which renders skin as a lamp does instead of as a
+            // fluorescent tube.
+            if (_screenFlash)
+              const IgnorePointer(
+                child: ColoredBox(color: Color(0xFFFFF1DE)),
+              ),
           ],
         ),
       ),
@@ -585,9 +784,26 @@ class _CameraScreenState extends State<CameraScreen>
                 onTap: _capturing ? null : () => Navigator.of(context).pop(),
               ),
               const Spacer(),
-              // Front cameras have no flash unit; offering the control would be
-              // offering something that cannot happen.
-              if (_ready && !_isFront && _lensControls)
+              // Brightens a dark scene by pushing exposure compensation. Not
+              // Apple's Night Mode — no plugin exposes that — so it is labelled
+              // for what it does rather than for what it resembles.
+              if (_ready && _boostAvailable) ...[
+                PhotoGlassButton(
+                  icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
+                  semanticLabel:
+                      _boost ? 'low-light boost: on' : 'low-light boost: off',
+                  onTap: _capturing ? null : _toggleBoost,
+                  tint: _boost
+                      ? const Color(0xFF7FA8FF).withValues(alpha: 0.85)
+                      : null,
+                  iconColor: _boost ? Colors.black : null,
+                ),
+                const SizedBox(width: 8),
+              ],
+              // Offered on the selfie lens too. It has no flash unit, but it
+              // has a screen pointed straight at the subject, which is what
+              // fires instead — see [_usesScreenFlash].
+              if (_ready && _lensControls && _flashAvailable)
                 PhotoGlassButton(
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
