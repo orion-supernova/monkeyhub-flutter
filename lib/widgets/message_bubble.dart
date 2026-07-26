@@ -43,6 +43,7 @@ class MessageBubble extends StatelessWidget {
     this.showReplyIndicator = true,
     this.seenByOthers = false,
     this.grouped = false,
+    this.lastInRun = true,
     this.showAvatarSlot = true,
     this.showAvatar = true,
     this.avatarAtBottom = false,
@@ -92,6 +93,13 @@ class MessageBubble extends StatelessWidget {
   /// collapses the run's meta rows — SENDING / FAILED / SEEN stay per-message.
   final bool grouped;
 
+  /// Whether this row closes its run. The bubble that closes a run is the one
+  /// that carries the tail — the rows above it keep their sender-side corners
+  /// tightened so the whole run reads as a single block of speech. Defaults to
+  /// true so a bubble rendered on its own (the lifted action-menu preview)
+  /// looks like the single message it is.
+  final bool lastInRun;
+
   /// Whether the leading avatar column exists at all. False in DMs, where
   /// there is only one other person and a face on every row is pure noise —
   /// the bubble then starts at the transcript's left edge.
@@ -113,6 +121,17 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The bubble's shape is a user preference, so the whole row rebuilds when
+    // it changes. Settings writes are rare and user-initiated, and this is
+    // what makes the picker's preview take effect everywhere at once.
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) =>
+          _build(context, SettingsStore.instance.bubbleStyle),
+    );
+  }
+
+  Widget _build(BuildContext context, BubbleStyle bubbleStyle) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
     // One lookup for the whole bubble. Null when this bubble is rendered
@@ -129,8 +148,16 @@ class MessageBubble extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: _HighlightPulse(
         t: highlightT,
-        isMine: isMine,
-        child: _bubbleContent(theme, isMine, ephemeral: false, metrics: metrics),
+        shape: pulseShapeFor(
+          theme: theme,
+          message: message,
+          isMine: isMine,
+          bubbleStyle: bubbleStyle,
+          firstInRun: !grouped,
+          lastInRun: lastInRun,
+        ),
+        child: _bubbleContent(theme, isMine,
+            ephemeral: false, metrics: metrics, bubbleStyle: bubbleStyle),
       ),
     );
 
@@ -168,6 +195,7 @@ class MessageBubble extends StatelessWidget {
         showAvatarSlot: showAvatarSlot,
         avatarAtBottom: avatarAtBottom,
         senderName: senderName,
+        tailGutter: theme.bubbleTailGutter(bubbleStyle),
         avatar: _AvatarSlot(
           author: author,
           api: api,
@@ -204,7 +232,9 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _bubbleContent(AppTheme theme, bool isMine,
-      {required bool ephemeral, ChatMetrics? metrics}) {
+      {required bool ephemeral,
+      required BubbleStyle bubbleStyle,
+      ChatMetrics? metrics}) {
     return buildMessageContent(
       theme: theme,
       message: message,
@@ -213,6 +243,9 @@ class MessageBubble extends StatelessWidget {
       api: api,
       useHero: useHero,
       metrics: metrics,
+      bubbleStyle: bubbleStyle,
+      firstInRun: !grouped,
+      lastInRun: lastInRun,
     );
   }
 }
@@ -237,6 +270,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.showReplyIndicator = true,
     this.seenByOthers = false,
     this.grouped = false,
+    this.lastInRun = true,
     this.showAvatarSlot = true,
     this.showAvatar = true,
     this.avatarAtBottom = false,
@@ -262,6 +296,9 @@ class EphemeralMessageBubble extends StatelessWidget {
   /// See [MessageBubble.grouped].
   final bool grouped;
 
+  /// See [MessageBubble.lastInRun].
+  final bool lastInRun;
+
   /// See [MessageBubble.showAvatarSlot].
   final bool showAvatarSlot;
 
@@ -276,6 +313,16 @@ class EphemeralMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // See MessageBubble.build — the shape is a preference, so the row rebuilds
+    // with it.
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) =>
+          _build(context, SettingsStore.instance.bubbleStyle),
+    );
+  }
+
+  Widget _build(BuildContext context, BubbleStyle bubbleStyle) {
     final theme = ThemeScope.of(context);
     final isMine = message.senderId == currentUserId;
     final progress = message.lifeProgress(now);
@@ -293,6 +340,9 @@ class EphemeralMessageBubble extends StatelessWidget {
       api: api,
       useHero: useHero,
       metrics: metrics,
+      bubbleStyle: bubbleStyle,
+      firstInRun: !grouped,
+      lastInRun: lastInRun,
     );
 
     final bubble = Stack(
@@ -318,7 +368,15 @@ class EphemeralMessageBubble extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: _HighlightPulse(
         t: highlightT,
-        isMine: isMine,
+        shape: pulseShapeFor(
+          theme: theme,
+          message: message,
+          isMine: isMine,
+          bubbleStyle: bubbleStyle,
+          ephemeral: true,
+          firstInRun: !grouped,
+          lastInRun: lastInRun,
+        ),
         child: bubbleWithEffect,
       ),
     );
@@ -361,6 +419,7 @@ class EphemeralMessageBubble extends StatelessWidget {
           showAvatarSlot: showAvatarSlot,
           avatarAtBottom: avatarAtBottom,
           senderName: senderName,
+          tailGutter: theme.bubbleTailGutter(bubbleStyle),
           nameOpacity: 1 - dissolveT,
           avatar: Opacity(
             opacity: 1 - dissolveT * 0.7,
@@ -426,6 +485,7 @@ class _BubbleLayout extends StatelessWidget {
     required this.bubble,
     required this.reactions,
     required this.meta,
+    this.tailGutter = 0,
     this.nameOpacity = 1,
   });
 
@@ -437,6 +497,12 @@ class _BubbleLayout extends StatelessWidget {
   final Widget bubble;
   final Widget? reactions;
   final Widget meta;
+
+  /// Width of the strip the bubble reserves on the sender's side for its tail.
+  /// Everything below the bubble is inset by it so timestamps and reactions
+  /// line up with the bubble's *body* edge rather than the tail's tip.
+  final double tailGutter;
+
   final double nameOpacity;
 
   @override
@@ -455,8 +521,12 @@ class _BubbleLayout extends StatelessWidget {
         if (name != null && name.isNotEmpty)
           Padding(
             // +4 matches _MetaRow's own inset, so the name and the timestamp
-            // bracketing the run sit on the same line.
-            padding: EdgeInsets.only(left: leadingIndent + 4, bottom: 2),
+            // bracketing the run sit on the same line. The tail gutter joins
+            // in for incoming bubbles, where the body starts a hook's width in.
+            padding: EdgeInsets.only(
+              left: leadingIndent + 4 + (isMine ? 0 : tailGutter),
+              bottom: 2,
+            ),
             child: Opacity(
               opacity: nameOpacity,
               child: Text(
@@ -486,11 +556,17 @@ class _BubbleLayout extends StatelessWidget {
         ),
         if (reactions != null)
           Padding(
-            padding: EdgeInsets.only(left: leadingIndent),
+            padding: EdgeInsets.only(
+              left: leadingIndent + (isMine ? 0 : tailGutter),
+              right: isMine ? tailGutter : 0,
+            ),
             child: reactions,
           ),
         Padding(
-          padding: EdgeInsets.only(left: leadingIndent),
+          padding: EdgeInsets.only(
+            left: leadingIndent + (isMine ? 0 : tailGutter),
+            right: isMine ? tailGutter : 0,
+          ),
           child: meta,
         ),
       ],
@@ -515,9 +591,19 @@ Widget buildMessageContent({
   /// with the bubble on wide panes; when null (or on a phone, where the
   /// clamps bottom out) every size below is exactly the literal it replaced.
   ChatMetrics? metrics,
+  required BubbleStyle bubbleStyle,
+  /// Position in the sender's run — drives which corners tighten and which
+  /// single bubble carries the tail.
+  bool firstInRun = true,
+  bool lastInRun = true,
 }) {
-  final deco =
-      theme.messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+  final deco = theme.bubbleDecoration(
+    isMine: isMine,
+    ephemeral: ephemeral,
+    style: bubbleStyle,
+    firstInRun: firstInRun,
+    lastInRun: lastInRun,
+  );
   final imageSize = metrics?.mediaMaxWidth ?? ChatMetrics.mediaMin;
 
   final hasCaption = message.content.isNotEmpty;
@@ -801,7 +887,11 @@ class _LinkAwareBubble extends StatelessWidget {
   final AppTheme theme;
   final ChatMessage message;
   final bool isMine;
-  final BoxDecoration decoration;
+
+  /// A `ShapeDecoration` in practice — the tail cannot be expressed by a
+  /// `BoxDecoration`. `Container` still clips to it (`getClipPath`) and still
+  /// adds its `padding`, which is where the tail's gutter comes from.
+  final Decoration decoration;
 
   static const int _maxPreviews = 2;
 
@@ -936,17 +1026,49 @@ class _LinkAwareBubble extends StatelessWidget {
   }
 }
 
+/// The outline the scroll-to-message halo should trace for [message]: the
+/// bubble's own shape, tail and all, or a plain rounded rect for the media
+/// types that render frameless.
+ShapeBorder pulseShapeFor({
+  required AppTheme theme,
+  required ChatMessage message,
+  required bool isMine,
+  required BubbleStyle bubbleStyle,
+  bool ephemeral = false,
+  bool firstInRun = true,
+  bool lastInRun = true,
+}) {
+  final bare =
+      message.type == MessageType.image || message.type == MessageType.video;
+  if (bare) {
+    return RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(theme.radiusLg),
+    );
+  }
+  return theme.bubbleShape(
+    isMine: isMine,
+    ephemeral: ephemeral,
+    style: bubbleStyle,
+    firstInRun: firstInRun,
+    lastInRun: lastInRun,
+  );
+}
+
 /// One-shot accent halo pulse around a bubble. Drives off a 0..1 progress
 /// value (typically a controller in 0..1 over ~1s) and maps it through
 /// `sin(t*pi)` so the pulse blooms then settles in a single rise-fall arc.
 class _HighlightPulse extends StatelessWidget {
   const _HighlightPulse({
     required this.t,
-    required this.isMine,
+    required this.shape,
     required this.child,
   });
   final double t;
-  final bool isMine;
+
+  /// The bubble's own outline, so the halo and the border pulse hug the tail
+  /// instead of cutting across it.
+  final ShapeBorder shape;
+
   final Widget child;
 
   @override
@@ -961,9 +1083,9 @@ class _HighlightPulse extends StatelessWidget {
         Positioned.fill(
           child: IgnorePointer(
             child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
+              decoration: ShapeDecoration(
+                shape: shape,
+                shadows: [
                   BoxShadow(
                     color: theme.accent.withValues(alpha: 0.55 * tCurve),
                     blurRadius: 28 * tCurve,
@@ -979,13 +1101,10 @@ class _HighlightPulse extends StatelessWidget {
         // halo is occluded by overlapping bubbles below in the stack.
         Positioned.fill(
           child: IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: theme.accent.withValues(alpha: 0.55 * tCurve),
-                  width: 2,
-                ),
+            child: CustomPaint(
+              painter: _PulseOutline(
+                shape: shape,
+                color: theme.accent.withValues(alpha: 0.55 * tCurve),
               ),
             ),
           ),
@@ -993,6 +1112,31 @@ class _HighlightPulse extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Strokes [shape]'s outline. A `ShapeDecoration` would paint the shape's own
+/// [BorderSide] — which is the theme's hairline, not this pulse — so the
+/// highlight draws its own stroke over the same path.
+class _PulseOutline extends CustomPainter {
+  const _PulseOutline({required this.shape, required this.color});
+
+  final ShapeBorder shape;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      shape.getOuterPath(Offset.zero & size),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_PulseOutline old) =>
+      old.shape != shape || old.color != color;
 }
 
 class _MetaRow extends StatelessWidget {

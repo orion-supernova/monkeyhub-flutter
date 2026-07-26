@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'bubble_shape.dart';
+
+export 'bubble_shape.dart' show BubbleStyle, BubbleShape;
+
 enum ThemeMood { vault, riso, aurora }
 
 abstract class AppTheme {
@@ -85,4 +89,72 @@ abstract class AppTheme {
 
   // Avatar gradient seeds (theme controls palette of generated avatars)
   List<Color> avatarGradient(int seed);
+}
+
+/// The geometry layer over [AppTheme.messageBubbleDecoration].
+///
+/// An extension rather than members on [AppTheme] because every theme
+/// *implements* the interface rather than extending it — so shared behaviour
+/// added to the class would land on all nine of them as an unimplemented
+/// member. This way no theme file changes at all: they keep authoring colour,
+/// border and shadow as a flat `BoxDecoration`, and this owns shape alone.
+extension BubbleGeometry on AppTheme {
+  /// The decoration a transcript should actually paint: whatever the theme
+  /// authored, re-shaped for the chosen [BubbleStyle] and for this row's
+  /// position in its run.
+  ///
+  /// A `BoxDecoration` cannot express a tail, so this returns a
+  /// [ShapeDecoration] wrapping a [BubbleShape].
+  Decoration bubbleDecoration({
+    required bool isMine,
+    required bool ephemeral,
+    required BubbleStyle style,
+    bool firstInRun = true,
+    bool lastInRun = true,
+  }) {
+    final base = messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+    return ShapeDecoration(
+      color: base.color,
+      gradient: base.gradient,
+      image: base.image,
+      // `ShapeDecoration` re-traces the outline per shadow, honouring both
+      // `offset` and `spreadRadius`, so Risograph's hard offset shadow and
+      // Bio-Organic's negative-spread glow both survive the move.
+      shadows: base.boxShadow,
+      shape: bubbleShapeFrom(
+        base,
+        style: style,
+        isMine: isMine,
+        firstInRun: firstInRun,
+        lastInRun: lastInRun,
+      ),
+    );
+  }
+
+  /// The same outline [bubbleDecoration] paints, for callers that need the
+  /// path itself — the scroll-to-message halo, which has to hug the tail
+  /// rather than cut across it.
+  BubbleShape bubbleShape({
+    required bool isMine,
+    required bool ephemeral,
+    required BubbleStyle style,
+    bool firstInRun = true,
+    bool lastInRun = true,
+  }) =>
+      bubbleShapeFrom(
+        messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral),
+        style: style,
+        isMine: isMine,
+        firstInRun: firstInRun,
+        lastInRun: lastInRun,
+      );
+
+  /// Width of the gutter [bubbleDecoration] reserves on the sender's side for
+  /// the tail. Callers that align siblings (timestamps, reactions) to the
+  /// bubble *body* rather than its tail tip need it; 0 for tail-less styles.
+  double bubbleTailGutter(BubbleStyle style) => bubbleShapeFrom(
+        messageBubbleDecoration(isMine: true, ephemeral: false),
+        style: style,
+        isMine: true,
+      ).tailWidth;
 }

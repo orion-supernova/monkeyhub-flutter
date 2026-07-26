@@ -766,7 +766,14 @@ class _PreviewPage extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 260),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: theme.messageBubbleDecoration(isMine: mine, ephemeral: false),
+        // The real transcript shape, so the carousel previews what the theme
+        // will actually look like in a room. Both samples are single messages,
+        // so both close their run.
+        decoration: theme.bubbleDecoration(
+          isMine: mine,
+          ephemeral: false,
+          style: SettingsStore.instance.bubbleStyle,
+        ),
         child: Text(
           text,
           style: theme.body.copyWith(

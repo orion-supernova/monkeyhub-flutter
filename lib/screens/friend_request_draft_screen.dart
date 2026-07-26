@@ -236,8 +236,10 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
                                   constraints: BoxConstraints(maxWidth: messageMaxWidth(context)),
                                   child: Container(
                                     padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                                    decoration: theme.messageBubbleDecoration(
-                                        isMine: isMine, ephemeral: _roomType == RoomType.secret),
+                                    decoration: theme.bubbleDecoration(
+                                        isMine: isMine,
+                                        ephemeral: _roomType == RoomType.secret,
+                                        style: SettingsStore.instance.bubbleStyle),
                                     child: Text(m.content,
                                         style: theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink)),
                                   ),

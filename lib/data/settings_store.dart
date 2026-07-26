@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/launcher_icon_service.dart';
+import '../theme/bubble_shape.dart';
 import '../theme/theme_scope.dart';
 
 /// User-selectable preferences persisted across launches.
@@ -20,6 +21,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kCaptureProtection = 'mh.captureProtection';
   static const _kChatStyle = 'mh.chatStyle';
   static const _kReplyStyle = 'mh.replyStyle';
+  static const _kBubbleStyle = 'mh.bubbleStyle';
   static const _kViewReadReceipts = 'mh.viewReadReceipts';
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
@@ -39,6 +41,7 @@ class SettingsStore extends ChangeNotifier {
   bool _captureProtection = false;
   ChatStyle _chatStyle = ChatStyle.compact;
   ReplyStyle _replyStyle = ReplyStyle.phantomEcho;
+  BubbleStyle _bubbleStyle = BubbleStyle.tailed;
   bool _viewReadReceipts = false;
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
@@ -54,6 +57,10 @@ class SettingsStore extends ChangeNotifier {
   bool get captureProtection => _captureProtection;
   ChatStyle get chatStyle => _chatStyle;
   ReplyStyle get replyStyle => _replyStyle;
+
+  /// The shape family every message bubble is drawn with. Defaults to
+  /// [BubbleStyle.tailed] — a run of messages closes with a curved tail.
+  BubbleStyle get bubbleStyle => _bubbleStyle;
   LogoMode get logoMode => _logoMode;
   String? get manualLogoThemeId => _manualLogoThemeId;
 
@@ -109,6 +116,20 @@ class SettingsStore extends ChangeNotifier {
           break;
         default:
           _replyStyle = ReplyStyle.phantomEcho;
+      }
+      final bs = await _storage.read(key: _kBubbleStyle);
+      switch (bs) {
+        case 'soft':
+          _bubbleStyle = BubbleStyle.soft;
+          break;
+        case 'pill':
+          _bubbleStyle = BubbleStyle.pill;
+          break;
+        case 'slab':
+          _bubbleStyle = BubbleStyle.slab;
+          break;
+        default:
+          _bubbleStyle = BubbleStyle.tailed;
       }
       final vrr = await _storage.read(key: _kViewReadReceipts);
       _viewReadReceipts = vrr == 'true'; // default false
@@ -190,6 +211,13 @@ class SettingsStore extends ChangeNotifier {
     _replyStyle = s;
     notifyListeners();
     await _storage.write(key: _kReplyStyle, value: s.name);
+  }
+
+  Future<void> setBubbleStyle(BubbleStyle s) async {
+    if (_bubbleStyle == s) return;
+    _bubbleStyle = s;
+    notifyListeners();
+    await _storage.write(key: _kBubbleStyle, value: s.name);
   }
 
   Future<void> setViewReadReceipts(bool v) async {

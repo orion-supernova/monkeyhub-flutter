@@ -9,6 +9,7 @@ import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../models/chat_user.dart';
 import '../push/push_manager.dart';
+import '../theme/bubble_shape.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/app_brand_mark.dart';
@@ -16,6 +17,7 @@ import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/user_avatar.dart';
 import 'approvals_screen.dart';
+import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
 import 'family_screen.dart';
 import 'reply_style_screen.dart';
@@ -100,6 +102,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String get _chatStyleLabel =>
       SettingsStore.instance.chatStyle == ChatStyle.classic ? 'Classic' : 'Compact';
+
+  String get _bubbleStyleLabel {
+    switch (SettingsStore.instance.bubbleStyle) {
+      case BubbleStyle.tailed:
+        return 'Tailed';
+      case BubbleStyle.soft:
+        return 'Soft';
+      case BubbleStyle.pill:
+        return 'Pill';
+      case BubbleStyle.slab:
+        return 'Slab';
+    }
+  }
 
   String get _replyStyleLabel {
     switch (SettingsStore.instance.replyStyle) {
@@ -243,6 +258,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => openSettingsDetail(context,
                     key: 'chatStyle',
                     builder: (_) => const ChatStyleScreen()),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: 'BUBBLE STYLE',
+                value: _bubbleStyleLabel,
+                selected: _isOpen('bubbleStyle'),
+                leading: Icon(Icons.chat_bubble_outline, size: 16, color: theme.inkSoft),
+                onTap: () => openSettingsDetail(context,
+                    key: 'bubbleStyle',
+                    builder: (_) => const BubbleStyleScreen()),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(

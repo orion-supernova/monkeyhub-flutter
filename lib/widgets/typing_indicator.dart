@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../models/chat_user.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'user_avatar.dart';
 
@@ -243,9 +245,12 @@ class _TypingRowState extends State<TypingRow> {
                           // The incoming-bubble decoration itself, so the row
                           // inherits every theme's bubble treatment for free
                           // and reads as a message that hasn't landed yet.
-                          decoration: theme.messageBubbleDecoration(
+                          decoration: theme.bubbleDecoration(
                             isMine: false,
                             ephemeral: false,
+                            // A tail is right here: the dots are one incoming
+                            // message that hasn't landed, not part of a run.
+                            style: SettingsStore.instance.bubbleStyle,
                           ),
                           padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                           child: TypingDots(color: theme.inkSoft, size: 5),

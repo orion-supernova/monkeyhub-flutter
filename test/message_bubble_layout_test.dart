@@ -4,7 +4,9 @@ import 'package:monkeyhub/backend/chat_api.dart';
 import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/enums.dart';
+import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
@@ -49,6 +51,8 @@ void main() {
     bool showAvatarSlot = true,
     bool showAvatar = true,
     bool avatarAtBottom = false,
+    bool grouped = false,
+    bool lastInRun = true,
     String? senderName,
     // Long enough to wrap, so a top-aligned avatar and a bottom-aligned one
     // are nowhere near each other.
@@ -64,6 +68,8 @@ void main() {
         showAvatarSlot: showAvatarSlot,
         showAvatar: showAvatar,
         avatarAtBottom: avatarAtBottom,
+        grouped: grouped,
+        lastInRun: lastInRun,
         senderName: senderName,
       );
 
@@ -77,6 +83,30 @@ void main() {
             )
             .first,
       );
+
+  /// The outline the bubble container actually paints.
+  BubbleShape shapeOf(WidgetTester tester) {
+    final container = tester.widget<Container>(
+      find
+          .ancestor(
+            of: find.byType(LinkifiedText),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    return (container.decoration as ShapeDecoration).shape as BubbleShape;
+  }
+
+  testWidgets('only the row that closes a run wears the tail', (tester) async {
+    await tester.pumpWidget(host(bubble(lastInRun: false)));
+    expect(shapeOf(tester).tail, isFalse,
+        reason: 'a run of five tails would be five times the noise');
+
+    await tester.pumpWidget(host(bubble(grouped: true)));
+    final closing = shapeOf(tester);
+    expect(closing.tail, isTrue);
+    expect(closing.isMine, isFalse, reason: 'alice is not the current user');
+  });
 
   testWidgets('a run-closing avatar sits on the bubble\'s bottom edge',
       (tester) async {
@@ -118,7 +148,12 @@ void main() {
     expect(name, findsOneWidget);
     final nameRect = tester.getRect(name);
     final bubble_ = bubbleRect(tester);
-    expect(nameRect.left, moreOrLessEquals(bubble_.left + 4, epsilon: 0.5));
+    // The bubble's box reserves a strip on the sender's side for its tail, so
+    // "lines up with the bubble" means with its body, not with that strip.
+    final gutter =
+        BasicTheme.midnight().bubbleTailGutter(SettingsStore.instance.bubbleStyle);
+    expect(nameRect.left,
+        moreOrLessEquals(bubble_.left + gutter + 4, epsilon: 0.5));
     expect(nameRect.bottom, lessThanOrEqualTo(bubble_.top));
   });
 
