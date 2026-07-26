@@ -20,6 +20,7 @@ import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/report_sheet.dart';
+import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
 import 'friend_request_draft_screen.dart';
@@ -691,7 +692,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   // and mounting a Hero for it would leave a
                                   // tag with no counterpart.
                                   if (!_canViewAvatar) return avatar;
-                                  return Hero(
+                                  return SteadyHero(
                                     tag: _avatarHeroTag,
                                     child: avatar,
                                   );

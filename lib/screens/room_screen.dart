@@ -43,6 +43,7 @@ import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/steady_hero.dart';
 import '../widgets/swipe_to_reply.dart';
 import '../widgets/thread_overlay.dart';
 import '../widgets/user_avatar.dart';
@@ -2223,7 +2224,7 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
       semanticLabel: widget.dmUser != null ? 'view profile picture' : 'view room picture',
       child: GestureDetector(
         onTap: _openAvatarFullscreen,
-        child: Hero(
+        child: SteadyHero(
           tag: 'room-header-avatar-${widget.room.id}',
           child: avatar,
         ),

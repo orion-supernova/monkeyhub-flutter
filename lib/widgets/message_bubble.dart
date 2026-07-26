@@ -18,6 +18,7 @@ import 'link_preview_card.dart';
 import 'linkified_text.dart';
 import 'reaction_bubble.dart';
 import 'remote_image.dart';
+import 'steady_hero.dart';
 import 'reply_indicator.dart';
 import 'user_avatar.dart';
 import 'video_message.dart';
@@ -712,7 +713,10 @@ class _ImageTileState extends State<_ImageTile> {
       width: widget.width,
       height: height,
       borderRadius: widget.radius,
-      onAspectRatio: _onAspect,
+      // Only when there is something to learn. Measuring resolves an image
+      // stream per tile, and a transcript full of photos would pay that on every
+      // one of them to be told what the sender already said.
+      onAspectRatio: _aspect == null ? _onAspect : null,
     );
     return GestureDetector(
       onTap: () => FullscreenImageViewer.open(
@@ -730,7 +734,9 @@ class _ImageTileState extends State<_ImageTile> {
         // decode lands.
         thumbnailDecodeWidth: thumbnailDecodeWidth(context, widget.width),
       ),
-      child: widget.useHero ? Hero(tag: _heroTag, child: remote) : remote,
+      child: widget.useHero
+          ? SteadyHero(tag: _heroTag, child: remote)
+          : remote,
     );
   }
 }

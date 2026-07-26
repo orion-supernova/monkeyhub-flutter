@@ -16,6 +16,7 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
@@ -707,7 +708,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                       storageId: peerStorageId,
                       heroTag: heroTag,
                     ),
-                    child: Hero(tag: heroTag, child: avatar),
+                    child: SteadyHero(tag: heroTag, child: avatar),
                   ),
                 );
               })
@@ -742,7 +743,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasAvatar
-          ? Hero(
+          ? SteadyHero(
               tag: heroTag,
               child: RemoteImage(
                 storageId: r.avatarStorageId!,

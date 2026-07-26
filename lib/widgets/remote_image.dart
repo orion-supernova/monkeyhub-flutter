@@ -37,6 +37,7 @@ class RemoteImage extends StatefulWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.placeholderDecodeWidth,
+    this.decodeWidth,
     this.onAspectRatio,
   });
 
@@ -58,6 +59,19 @@ class RemoteImage extends StatefulWidget {
   /// backdrop: the flight arrives on the picture, and the sharp version fades
   /// in over it a frame or two later.
   final int? placeholderDecodeWidth;
+
+  /// Decode width in device pixels, overriding what [decodeSizeFor] would work
+  /// out from the painted box.
+  ///
+  /// Exists so the fullscreen viewer can hold the *big* decode back until its
+  /// opening animation has finished. A full-screen decode is megabytes to
+  /// allocate and megabytes to hand the GPU, and starting it on the frame the
+  /// route is pushed puts all of that in direct competition with the flight —
+  /// which is the one moment the picture is moving and dropped frames are
+  /// unmissable. Pinned to the thumbnail's width the flight costs nothing at
+  /// all, because that decode is already resident; the sharp one is fetched
+  /// once the picture has landed and fades in over it.
+  final int? decodeWidth;
 
   /// Reports the picture's width÷height once it has decoded.
   ///
@@ -169,12 +183,16 @@ class _RemoteImageState extends State<RemoteImage> {
     });
   }
 
-  ({int? width, int? height}) _decodeSize(BuildContext context) => decodeSizeFor(
-        width: widget.width,
-        height: widget.height,
-        dpr: MediaQuery.devicePixelRatioOf(context),
-        screen: MediaQuery.sizeOf(context),
-      );
+  ({int? width, int? height}) _decodeSize(BuildContext context) {
+    final override = widget.decodeWidth;
+    if (override != null) return (width: math.max(1, override), height: null);
+    return decodeSizeFor(
+      width: widget.width,
+      height: widget.height,
+      dpr: MediaQuery.devicePixelRatioOf(context),
+      screen: MediaQuery.sizeOf(context),
+    );
+  }
 
   /// The (url, decode) pair whose ratio has already been reported, so a rebuild
   /// — and a rebuild is what [RemoteImage.onAspectRatio] usually *causes* —
