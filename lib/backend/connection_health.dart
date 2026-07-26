@@ -109,7 +109,7 @@ class ConnectionHealth extends ChangeNotifier {
     required ConnectionProbe backend,
     required Future<void> Function() onReconnected,
     required bool Function() isActive,
-    this.graceDelay = const Duration(milliseconds: 800),
+    this.graceDelay = const Duration(milliseconds: 2500),
     this.stalledAfter = const Duration(seconds: 12),
     this.firstProbeTimeout = const Duration(seconds: 7),
     this.probeTimeout = const Duration(seconds: 10),

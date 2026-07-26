@@ -331,23 +331,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
     if (state == AppLifecycleState.resumed) {
       // Ask for an attempt at the moment the network is actually back.
-      //
-      // setForeground(true) above kicks one off on `inactive`. Passing
-      // manual: false lets ConnectionHealth's 1.5s debounce guard prevent
-      // canceling a probe that was started milliseconds ago during the unlock animation.
       _health.retryNow(manual: false);
 
-      // Re-assert the true badge on foreground. Not a clear — pushes now carry
-      // an absolute count, so anything still unread must stay badged.
-      BadgeManager.instance.sync();
-      // Re-assert the VoIP/FCM token. The backend clears a device's token
-      // after an APNs/FCM bad-token reply, which otherwise silently kills
-      // native call rings for the rest of the session (only the in-app
-      // realtime path survives). Re-uploading on resume self-heals that.
-      PushManager.instance.refreshTokens();
-      // An approval may have been granted (or revoked) elsewhere while we
-      // were backgrounded — most likely on the parent's own other device.
-      _family.refresh();
+      // Stagger auxiliary background checks by 500ms so probeConnection gets
+      // first access to the waking network socket without request contention.
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        BadgeManager.instance.sync();
+        PushManager.instance.refreshTokens();
+        _family.refresh();
+      });
     }
   }
 
