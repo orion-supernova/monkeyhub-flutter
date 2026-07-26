@@ -42,10 +42,9 @@ class ConvexBackend implements ConnectionProbe {
         cv.ConvexConfig(
           deploymentUrl: Env.convexUrl,
           clientId: Env.clientId,
-          // A cheap, public, no-argument query used as the connectivity probe
-          // (see [probeConnection]) and by the client's own reconnect(). Its
-          // `viewerUserId` arg is optional, so `{}` is valid and returns fast.
-          healthCheckQuery: 'rooms:listPublic',
+          // A cheap, public, unauthenticated query used as the connectivity probe
+          // (see [probeConnection]) and by the client's own reconnect().
+          healthCheckQuery: 'releases:latest',
           // Pinned rather than left at the package's 30s default. Dart's
           // `.timeout()` does not cancel the future underneath it, so every
           // probe [ConnectionHealth] abandons leaves a query running to
@@ -205,7 +204,7 @@ class ConvexBackend implements ConnectionProbe {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     try {
-      await query('rooms:listPublic', const {}).timeout(timeout);
+      await query('releases:latest', const {'channel': 'stable'}).timeout(timeout);
       _lastProbeOkAt = DateTime.now();
       return true;
     } catch (_) {

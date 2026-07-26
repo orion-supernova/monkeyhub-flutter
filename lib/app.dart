@@ -332,13 +332,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     if (state == AppLifecycleState.resumed) {
       // Ask for an attempt at the moment the network is actually back.
       //
-      // setForeground(true) above does kick one off, but on this path it has
-      // already fired — iOS sends `inactive` before `resumed`, both map to
-      // foreground, and ConnectionHealth ignores a setForeground call that
-      // doesn't change the flag. So the only attempt was the one made during
-      // the unlock animation, with the radio still reassociating. The backoff
-      // loop would eventually get there; this just stops us waiting it out.
-      _health.retryNow();
+      // setForeground(true) above kicks one off on `inactive`. Passing
+      // manual: false lets ConnectionHealth's 1.5s debounce guard prevent
+      // canceling a probe that was started milliseconds ago during the unlock animation.
+      _health.retryNow(manual: false);
 
       // Re-assert the true badge on foreground. Not a clear — pushes now carry
       // an absolute count, so anything still unread must stay badged.

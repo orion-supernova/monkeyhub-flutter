@@ -459,6 +459,43 @@ void main() {
       await settle(const Duration(milliseconds: 80));
       expect(probe.probeCalls, after);
     });
+
+    test('non-manual retryNow debounces rapid interruptions within 1.5s', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 100);
+      build(backoff: const [Duration(seconds: 30)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 15));
+      expect(health.isRetrying, isTrue);
+      final initialCalls = probe.probeCalls;
+
+      // Automated non-manual retry (e.g. from resume) within 1.5s window does not interrupt
+      await health.retryNow(manual: false);
+      await settle(const Duration(milliseconds: 20));
+
+      expect(probe.probeCalls, initialCalls, reason: 'fresh probe <1.5s old must not be interrupted by automatic resume retry');
+    });
+
+    test('stalled phase automatic background retries do not toggle isRetrying unless manual', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 10);
+      build(backoff: const [Duration(milliseconds: 50)]).start();
+
+      probe.emit(false);
+      await settle(_stalled * 2);
+      expect(health.phase, ConnectionPhase.stalled);
+
+      // Settle past next background attempt
+      await settle(const Duration(milliseconds: 80));
+      // Background retry during stalled should not set isRetrying to true
+      expect(health.isRetrying, isFalse, reason: 'automatic background retry during stalled phase stays steady on tap-to-retry');
+
+      // Manual retry sets isRetrying to true
+      unawaited(health.retryNow(manual: true));
+      expect(health.isRetrying, isTrue, reason: 'manual tap sets isRetrying true so spinner displays');
+      await settle(const Duration(milliseconds: 30));
+    });
   });
 
   // Defect: overlapping resubscribes used to be dropped outright. When the

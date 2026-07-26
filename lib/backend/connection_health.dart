@@ -111,7 +111,7 @@ class ConnectionHealth extends ChangeNotifier {
     required bool Function() isActive,
     this.graceDelay = const Duration(milliseconds: 800),
     this.stalledAfter = const Duration(seconds: 12),
-    this.firstProbeTimeout = const Duration(seconds: 4),
+    this.firstProbeTimeout = const Duration(seconds: 7),
     this.probeTimeout = const Duration(seconds: 10),
     this.backoff = const [
       Duration(seconds: 1),
@@ -150,12 +150,9 @@ class ConnectionHealth extends ChangeNotifier {
   /// failure.
   final Duration stalledAfter;
 
-  /// The first probe of an outage is shorter than the rest: it is usually
-  /// diagnosing an already dead socket, and a fast answer gets us into the
-  /// retry cycle sooner. Both are sized for a server under load rather than an
-  /// idle one — too tight and the app reports itself offline whenever the
-  /// backend is merely slow, then spends the outage re-registering
-  /// subscriptions, which makes the backend slower still.
+  /// The first probe of an outage is sized for a server under load rather than an
+  /// idle one — too tight (e.g. 4s) and the app reports itself offline whenever
+  /// the Wi-Fi/cellular radio is merely re-associating after screen unlock.
   final Duration firstProbeTimeout;
   final Duration probeTimeout;
 
@@ -175,6 +172,13 @@ class ConnectionHealth extends ChangeNotifier {
   /// retry visibly does something.
   bool _retrying = false;
   bool get isRetrying => _retrying;
+
+  /// Tracks whether the current retry is user/resume initiated or an automatic
+  /// background attempt during [ConnectionPhase.stalled].
+  bool _isManualOrResumeRetry = false;
+
+  /// When the in-flight probe started, used to debounce rapid cancellation attempts.
+  DateTime? _lastProbeStartedAt;
 
   StreamSubscription<bool>? _socketSub;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
@@ -223,7 +227,7 @@ class ConnectionHealth extends ChangeNotifier {
       _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
         final usable =
             results.isNotEmpty && !results.contains(ConnectivityResult.none);
-        if (usable) retryNow();
+        if (usable) retryNow(manual: true);
       });
     } catch (_) {
       // Unsupported platform — the backoff loop is the backstop.
@@ -238,7 +242,7 @@ class ConnectionHealth extends ChangeNotifier {
     _socketSub?.cancel();
     _connectivitySub?.cancel();
     _disarmUiTimers();
-    _interruptAttempt();
+    _interruptAttempt(force: true);
     _wake();
     super.dispose();
   }
@@ -270,11 +274,11 @@ class ConnectionHealth extends ChangeNotifier {
     if (wasUp) return;
     if (_healing) {
       _attempt = 0;
-      _interruptAttempt();
+      _interruptAttempt(force: true);
       _wake();
     } else if (_phase != ConnectionPhase.online) {
       // Not healing yet somehow reporting an outage — verify and reconcile.
-      unawaited(retryNow());
+      unawaited(retryNow(manual: true));
     }
   }
 
@@ -307,30 +311,33 @@ class ConnectionHealth extends ChangeNotifier {
   void setForeground(bool foreground) {
     if (_disposed || _foreground == foreground) return;
     _foreground = foreground;
-    if (foreground) retryNow();
+    if (foreground) retryNow(manual: true);
   }
 
   /// Force an immediate attempt: reset the backoff and skip any pending wait.
   ///
-  /// This must interrupt an attempt already in flight, not wait it out. A
-  /// healing iteration can sit inside a probe for [probeTimeout], and this is
-  /// the method behind the banner's "tap to retry" — it previously only woke
-  /// the backoff sleep, so a tap that landed mid-probe (the likely case, since
-  /// that is most of the cycle) did nothing at all and the banner sat there.
-  Future<void> retryNow() async {
+  /// Pass [manual] = true when invoked by user tap or explicit resume event.
+  Future<void> retryNow({bool manual = true}) async {
     if (_disposed) return;
     _attempt = 0;
     if (_healing) {
-      _interruptAttempt();
+      if (manual) {
+        _isManualOrResumeRetry = true;
+        _setRetrying(true);
+      }
+      _interruptAttempt(force: manual);
       _wake();
       return;
     }
     // Reported healthy. Verify rather than trust — this is the path a manual
     // tap and a resume both take when the socket is frozen-but-"connected".
     if (_retrying) return;
+    if (manual) _isManualOrResumeRetry = true;
     _setRetrying(true);
+    _lastProbeStartedAt = DateTime.now();
     final ok = await _backend.probeConnection(timeout: probeTimeout);
     _setRetrying(false);
+    _isManualOrResumeRetry = false;
     if (_disposed) return;
     if (!ok) {
       _beginHealing();
@@ -345,15 +352,15 @@ class ConnectionHealth extends ChangeNotifier {
 
   /// Non-null only while an attempt is in flight. Completing it makes [_loop]
   /// stop waiting on that attempt and start a fresh one immediately.
-  ///
-  /// The abandoned probe keeps running underneath — Dart cannot cancel a
-  /// future — but nothing waits on its answer, which is the whole point. A
-  /// probe can occupy [probeTimeout], and this is the path behind the banner's
-  /// "tap to retry": merely discarding the stale result afterwards would still
-  /// have left the user watching a spinner for the rest of the timeout.
   Completer<void>? _interrupt;
 
-  void _interruptAttempt() {
+  void _interruptAttempt({bool force = false}) {
+    if (!force && _lastProbeStartedAt != null) {
+      final elapsed = DateTime.now().difference(_lastProbeStartedAt!);
+      // Debounce: do not cancel a probe that started less than 1.5s ago
+      // unless force is true (manual tap/socket state event).
+      if (elapsed < const Duration(milliseconds: 1500)) return;
+    }
     final c = _interrupt;
     _interrupt = null;
     if (c != null && !c.isCompleted) c.complete();
@@ -419,15 +426,8 @@ class ConnectionHealth extends ChangeNotifier {
   Future<void> _loop() async {
     while (_healing && !_disposed) {
       if (!_foreground || !_isActive()) {
-        // Parked. setForeground(true) / retryNow() wakes us. Clear the spinner
-        // first: an interrupted attempt jumps straight back here with
-        // [_retrying] still set, and a parked loop is not retrying anything.
         _setRetrying(false);
-        // Stop claiming an outage we are no longer looking for. Signed out or
-        // backgrounded, we issue no probes, so we hold no evidence either way —
-        // and an unverified "reconnecting…" is worse than silence. Both clocks
-        // re-arm below the moment probing resumes, so a real outage is back on
-        // screen within [graceDelay] of the app becoming interested again.
+        _isManualOrResumeRetry = false;
         _disarmUiTimers();
         _setPhase(ConnectionPhase.online);
         await _sleep(null);
@@ -436,7 +436,13 @@ class ConnectionHealth extends ChangeNotifier {
       _armUiTimers();
 
       final gate = _interrupt = Completer<void>();
-      _setRetrying(true);
+      // When stalled, only reflect retrying spinner if this is an explicit
+      // manual tap/resume attempt or attempt 0. Automatic background retries
+      // keep the stalled banner UI steady ("can't reach server · tap to retry").
+      final showRetrying = _phase != ConnectionPhase.stalled || _isManualOrResumeRetry || _attempt == 0;
+      if (showRetrying) _setRetrying(true);
+
+      _lastProbeStartedAt = DateTime.now();
       final quick = _attempt == 0 ? firstProbeTimeout : probeTimeout;
       var ok = await _raceInterrupt(
         _backend.probeConnection(timeout: quick),
@@ -464,7 +470,6 @@ class ConnectionHealth extends ChangeNotifier {
         );
         ok = healed == null || healed
             ? healed
-            // The rebuild claims nothing useful on its own — confirm.
             : await _raceInterrupt(
                 _backend.probeConnection(timeout: probeTimeout),
                 gate,
@@ -473,13 +478,10 @@ class ConnectionHealth extends ChangeNotifier {
       if (_interrupt == gate) _interrupt = null;
       if (_disposed) return;
       if (ok == null) {
-        // A manual retry, a connectivity change or a `connected` event landed
-        // mid-attempt. Start over rather than sleep out the backoff. Stay in
-        // the retrying state across the hand-off so the tap that caused it
-        // keeps the spinner up instead of blinking back to the dot.
         continue;
       }
       _setRetrying(false);
+      _isManualOrResumeRetry = false;
 
       if (ok) {
         _markOnline();
