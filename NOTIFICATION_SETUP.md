@@ -15,6 +15,14 @@ done from the repo.
 
 ## 1. Create the Firebase project (Android call pushes)
 
+> Already done, and there is only one right answer: **`monkeyhub-2b2c6`** (project
+> number `691782206017`), owned by **maymunpartisi0@gmail.com** — the same account
+> that owns the Google Cloud project and the Play publishing service account. All
+> three consumers below already point at it. Older MonkeyHub-named Firebase
+> projects on muratcankoc@gmail.com (`monkey-hub-fa2a8`, `monkeychat-d01f0`) hold
+> iOS-only apps, are wired to nothing, and must not be used. Re-do the steps below
+> only if the project is ever lost.
+
 1. https://console.firebase.google.com → **Add project** (name: anything, e.g.
    `monkeyhub`; Analytics optional — off is fine).
 2. In the project: **Add app → Android**, package name exactly:

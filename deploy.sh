@@ -581,6 +581,16 @@ validate_environment() {
             echo "❌ Keystore not found: '${store_file:-<unset>}' (from android/key.properties)."
             exit 1
         fi
+
+        # Play upload key — checked here rather than after the build, so a bad
+        # path fails in seconds instead of after a full AAB compile.
+        if [ "$ANDROID_MODE" = "play" ] && [ "$RUN_UPLOAD" = true ] \
+           && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && [ ! -f "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "❌ Play key not found: '$PLAY_SERVICE_ACCOUNT_JSON'"
+            echo "   (from PLAY_SERVICE_ACCOUNT_JSON in .env.local)."
+            echo "   Unset it to build the AAB and upload by hand instead."
+            exit 1
+        fi
     fi
 
     # The page templates are needed by every VM-publishing path, not just

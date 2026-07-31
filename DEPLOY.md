@@ -292,18 +292,36 @@ Note a web deploy reaches every user on their next page load, with no store
 review and nothing to install — so `--all` lands web well before the iOS build
 finishes review.
 
-## Switching Android to Google Play (once the account is verified)
+## Switching Android to Google Play
 
-1. Play Console → Create app (`MonkeyHub`, package
-   `com.walhallaa.chattest20241220`).
-2. First AAB upload is manual: `./deploy.sh --android=play` builds it, then
-   drag `build/app/outputs/bundle/release/app-release.aab` into
-   Internal testing → Create release. Google enrolls the app in Play App
-   Signing using our upload key automatically.
-3. Automate future uploads: Play Console → API access → link a Google Cloud
-   service account → download its JSON key → add to `.env.local`:
-   `PLAY_SERVICE_ACCOUNT_JSON=/path/to/play-key.json` and `brew install fastlane`.
-   From then on `--android=play` uploads to the internal track by itself.
+Everything on this machine is already in place: `fastlane` is installed, the
+publishing service account exists
+(`play-publisher@monkeyhub-2b2c6.iam.gserviceaccount.com`), its key is at
+`~/keystores/monkeyhub-play-key.json`, and `.env.local` points
+`PLAY_SERVICE_ACCOUNT_JSON` at it. The Play Developer API is enabled on
+`monkeyhub-2b2c6`. What remains is the Play Console side, which is browser-only:
+
+1. Play Console → **Create app**: name `MonkeyHub`, app (not game), free.
+   The package `com.walhallaa.chattest20241220` is fixed by the first upload —
+   it must match `ANDROID_PACKAGE` in `deploy.sh`, and it can never be changed
+   afterwards.
+2. Play Console → **Setup → API access** → link the Google Cloud project
+   `monkeyhub-2b2c6` (project number `691782206017`).
+3. Play Console → **Users & permissions → Invite new users** →
+   `play-publisher@monkeyhub-2b2c6.iam.gserviceaccount.com`, scoped to the
+   MonkeyHub app, with **Release to testing tracks** (plus *View app
+   information*). Nothing broader — this identity only needs to push AABs.
+4. First AAB upload is manual: `./deploy.sh --android=play` builds it, then drag
+   `build/app/outputs/bundle/release/app-release.aab` into Internal testing →
+   Create release. Google enrolls the app in Play App Signing using our upload
+   key automatically. The API refuses uploads until one release exists.
+5. From then on `--android=play` uploads to the internal track by itself.
+   Verify the link first with:
+   `fastlane run validate_play_store_json_key json_key:$HOME/keystores/monkeyhub-play-key.json`
+
+Note the service-account permission grant is per-app, so it must happen *after*
+step 1. Play propagates new permissions lazily — allow a few minutes before the
+first API upload.
 
 ## iOS
 
