@@ -42,7 +42,11 @@ android {
     defaultConfig {
         applicationId = "com.walhallaa.chattest20241220"
         minSdk = flutter.minSdkVersion
-        targetSdk = 34
+        // Play rejects the release outright below 35 ("Target SDK of artifact
+        // is too low"). 36 rather than 35 because the API 36 deadline is
+        // 2026-08-31 — a month out — and both levels enforce edge-to-edge
+        // anyway, so 35 would buy nothing but a second forced bump.
+        targetSdk = 36
         // pubspec pins the build suffix at +1 (project convention: the patch
         // IS the user-facing build number), but Play/side-load upgrades need
         // a strictly increasing versionCode — derive it from the version name
