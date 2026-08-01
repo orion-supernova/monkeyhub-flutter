@@ -8,11 +8,30 @@
      hosting/public/downloads/index.html. Don't edit the copy in public/, it is
      regenerated on every platform deploy.
 
+     THIS PAGE HAS TWO JOBS.
+
+     1. It is where the already-installed Android APKs are sent. Those builds
+        were stamped MH_CHANNEL=android-apk, and that define beats installerStore
+        forever (lib/update/release_channel.dart), so they ask the backend about
+        the android-apk channel for as long as they stay installed. deploy.sh
+        republishes that row on every Play release with updateUrl pointing here,
+        so the UPDATE button in the app lands on this page. It has to explain
+        the ONE thing that is not obvious: Play cannot install over a sideloaded
+        APK, because Play App Signing re-signs the bundle with Google's key and
+        Android refuses a signature change. Uninstall first. If you ever move
+        this page, fix that row's updateUrl too or those users go nowhere.
+
+     2. It is the download page for platforms we self-host. Android is no longer
+        one of them — the manifest-driven grid below is now for a future macOS
+        DMG or Windows build. That machinery is deliberately left intact.
+
      One card per entry in artifacts.json, which lives on the VM and is the
      source of truth for what has actually shipped. deploy.sh merges only the
-     key for the platform it just built, so releasing Android can never wipe the
-     macOS row. The block between MH:CARD markers is repeated once per entry;
-     the MH:EMPTY block replaces the grid when nothing has shipped yet.
+     key for the platform it just built, so releasing one can never wipe
+     another's row. The block between MH:CARD markers is repeated once per
+     entry; the MH:EMPTY block replaces it when nothing has shipped yet — which
+     is the normal state now that Android has left the manifest, so the fixed
+     cards below carry the page on their own.
 
      Card tokens: __PLAT_ICON__ __PLAT_NAME__ __PLAT_VERSION__ __PLAT_META__
                   __PLAT_HREF__ __PLAT_BTN__
@@ -20,15 +39,14 @@
 
      Download links point at the VERSIONED filename on purpose: Cloudflare
      overrides the origin's no-cache on binaries with a 4 h browser TTL, so a
-     stable monkeyhub-latest.apk link could hand out the previous build right
-     after a release. A new version = a new URL = no stale cache. The -latest
-     names still exist server-side (hardlinks) for casual sharing. -->
+     stable -latest link could hand out the previous build right after a
+     release. A new version = a new URL = no stale cache. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Download MonkeyHub</title>
-<meta name="description" content="Get MonkeyHub for Android, iPhone, or right in your browser.">
+<title>Get MonkeyHub</title>
+<meta name="description" content="Get MonkeyHub on Android through Google Play, on iPhone through TestFlight, or right in your browser.">
 <link rel="canonical" href="https://monkeyhub.walhallaa.com/downloads/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -135,6 +153,25 @@
     animation: rise .55s .4s ease-out both;
   }
   .hint b { color: var(--ink); }
+
+  /* The migration notice. Louder than .hint because most of this page's
+     traffic is now the UPDATE button inside an already-installed APK, and
+     "uninstall first" is the one step that isn't guessable. */
+  .moved {
+    margin-top: 28px; line-height: 1.6;
+    background: rgba(255,197,61,.07); border: 1px solid rgba(255,197,61,.28);
+    padding: 18px 20px; border-radius: 16px;
+    animation: rise .55s .26s ease-out both;
+  }
+  .moved h2 {
+    font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 1.1rem;
+    color: var(--banana);
+  }
+  .moved p { color: var(--ink-dim); font-size: .95rem; margin-top: 8px; }
+  .moved b { color: var(--ink); }
+  .moved ol { margin: 12px 0 0 20px; color: var(--ink-dim); font-size: .95rem; }
+  .moved li { margin-top: 6px; }
+  .moved li b { color: var(--ink); }
   footer {
     margin-top: 34px; text-align: center; color: var(--ink-dim); font-size: .85rem;
     line-height: 1.7; animation: rise .55s .5s ease-out both;
@@ -155,6 +192,22 @@
     <p class="tag">Pick your platform.</p>
   </header>
 
+  <!-- First, not buried: the app's own UPDATE button sends people here, and
+       every one of them is running the APK this explains how to leave. -->
+  <section class="moved">
+    <h2>Already have the Android APK?</h2>
+    <p>MonkeyHub now ships through Google Play, and that copy <b>can't update
+    itself</b> — Play signs the app with its own key, so Android won't install
+    the new version over the old one.</p>
+    <ol>
+      <li><b>Uninstall</b> the MonkeyHub you have now.</li>
+      <li><b>Install it again from Google Play</b> using the card below.</li>
+    </ol>
+    <p>Your chats, rooms and friends are on the server, so nothing is lost —
+    you'll just sign in again. If this phone is set up as a child's device,
+    ask whoever paired it to pair it once more afterwards.</p>
+  </section>
+
   <div class="grid">
 <!-- MH:CARD -->
     <div class="card">
@@ -168,17 +221,32 @@
 <!-- MH:/CARD -->
 <!-- MH:EMPTY -->
     <div class="card">
-      <span class="ico" aria-hidden="true">📦</span>
-      <h2>Nothing built yet</h2>
+      <span class="ico" aria-hidden="true">🖥️</span>
+      <h2>Desktop</h2>
       <span class="ver soon">coming soon</span>
-      <p class="note">No installable builds have shipped from this box yet. The
-      web app is ready now, and direct downloads land here as each platform
-      gets its first release.</p>
+      <p class="note">macOS, Windows and Linux builds land here when they ship.
+      Until then the web app runs the same MonkeyHub in any browser.</p>
     </div>
 <!-- MH:/EMPTY -->
 
     <!-- Store-delivered and browser platforms: always shown, never in the
-         manifest, because nothing is hosted here for them. -->
+         manifest, because nothing is hosted here for them. Android sits here
+         now too — it left the manifest when the APK was retired. -->
+    <div class="card">
+      <span class="ico" aria-hidden="true">🤖</span>
+      <h2>Android</h2>
+      <span class="ver soon">Google Play · invite only</span>
+      <div class="spacer"></div>
+      <p class="note">MonkeyHub is on Google Play, in closed testing while we
+      work towards a public listing. Testers are added by hand, so ask and
+      we'll set you up.</p>
+      <!-- mailto, not a form: this page is static HTML on Caddy with no
+           backend, and the ask is temporary — it retires the day the Play
+           listing goes public. A composer also hands us a real reply-to. -->
+      <a class="btn" href="mailto:info@walhallaa.com?subject=MonkeyHub%20closed%20testing%20invite&amp;body=Hi%2C%20I%27d%20like%20to%20join%20the%20MonkeyHub%20closed%20test%20on%20Google%20Play.%0A%0AMy%20Google%20account%20email%3A%20%0A%0A%28Google%20Play%20needs%20the%20address%20signed%20in%20on%20the%20phone%2C%20which%20may%20not%20be%20this%20one.%29%0A">Request an invite</a>
+      <p class="meta">Tell us the Google account you use on your phone</p>
+    </div>
+
     <div class="card">
       <span class="ico" aria-hidden="true">🍎</span>
       <h2>iPhone &amp; iPad</h2>
@@ -198,10 +266,9 @@
     </div>
   </div>
 
-  <p class="hint"><b>Installing an APK:</b> your phone will ask you to allow
-  installs from your browser the first time — tap
-  <b>Settings&nbsp;→&nbsp;Allow</b>, then open the file again. Updates install
-  right over the old version, so nothing is lost.</p>
+  <p class="hint"><b>Once you're on Play,</b> updates arrive on their own like
+  any other app — no download page, no reinstalling. This page is only here for
+  the move across, and for the desktop builds still to come.</p>
 
   <footer>
     updated __UPDATED_AT__ · <a href="/">monkeyhub.walhallaa.com</a>

@@ -4,8 +4,11 @@ import 'package:url_launcher/url_launcher.dart';
 import 'release_channel.dart';
 import 'web_reload.dart';
 
-/// The hosted download page — APK today, and the natural home for a DMG or a
-/// Windows/Linux build later. Mirrors HOSTING_URL in deploy.sh.
+/// The hosted download page. Two audiences share it: the retired Android APK,
+/// which is sent here to be told how to move to Play, and the DMG or
+/// Windows/Linux builds it is the natural home for later. Mirrors HOSTING_URL
+/// in deploy.sh; `/download` 301s to `/downloads/` and must answer forever,
+/// because installed APKs have this URL stored as their `updateUrl`.
 const String kDownloadPageUrl = 'https://monkeyhub.walhallaa.com/download';
 
 /// Android application id, from deploy.sh's ANDROID_PACKAGE.

@@ -7,25 +7,27 @@ in a terminal to get the interactive picker:
 Select what to deploy  (↑/↓ move · space toggle · enter go)
   ❯ ◉ Convex backend
     ◉ iOS  → App Store Connect
-    ◯ Android
+    ◯ Android → Google Play (internal track)
 ```
 
-Space toggles, enter ships. Selecting Android asks one more question: **APK**
-(signed APK published to the downloads page at https://monkeyhub.walhallaa.com/downloads/)
-or **AAB** (Google Play, internal testing track).
+Space toggles, enter ships. Android means one thing now: an AAB to the Play
+internal testing track. The self-hosted APK is retired — see
+[Retired: the APK](#retired-the-apk).
 
 ## One host, three paths
 
 ```
 monkeyhub.walhallaa.com/            landing page      /srv/monkeyhub/site
-monkeyhub.walhallaa.com/downloads/  every platform    /srv/monkeyhub/downloads
+monkeyhub.walhallaa.com/downloads/  get-the-app page  /srv/monkeyhub/downloads
 monkeyhub.walhallaa.com/web/        Flutter web app   /srv/monkeyhub/web
 monkeyhub.walhallaa.com/download    301 → /downloads/
 ```
 
 `/download` (singular) keeps answering forever. It was the link shared publicly,
 and it is stored server-side as the `android-apk` channel's `updateUrl`, so
-already-installed APKs ask for it until they next check in.
+already-installed APKs ask for it until they next check in. Retiring the APK
+made that redirect **more** important, not less: it is the entire route by which
+a sideloaded copy reaches the page explaining how to move to Play.
 
 ### Why /web/ and not web.monkeyhub.walhallaa.com
 
@@ -50,10 +52,10 @@ flag and nothing else.
 | Flag | Effect |
 |---|---|
 | `--ios` | iOS → App Store Connect |
-| `--android[=apk\|play]` | Android; `apk` (default) = self-hosted downloads page, `play` = Play internal |
+| `--android` | AAB → Google Play internal track (`--android=play` still works; `--android=apk` now errors out) |
 | `--web` | Flutter web build → https://monkeyhub.walhallaa.com/web/ |
 | `--site` | Landing + downloads pages only. No build, no Convex — seconds |
-| `--all` | Convex + iOS + Android(apk) + web + site |
+| `--all` | Convex + iOS + Android + web + site |
 | `--convex-only` | Backend only (no builds, no version bump) |
 | `--no-convex` / `--no-upload` / `--no-git` / `--skip-version-bump` / `--dry` | Same as before |
 
@@ -67,10 +69,12 @@ Standalone actions — they run alone and exit:
 Any deploy that publishes to the VM also refreshes the two pages, because both
 print the current version in their footer. Left to a separate flag that footer
 rots one deploy at a time, and nobody notices a stale version on a front page.
+`--android` is no longer one of those deploys: it ships to Play and puts nothing
+on the VM, so it has no page to refresh.
 
 Versioning: patch-only bump (`1.3.21+1 → 1.3.22+1`), the `+1` never changes.
 Android `versionCode` is derived in `android/app/build.gradle.kts`
-(`1.3.22 → 10322`) so Play/side-load upgrades always increase.
+(`1.3.22 → 10322`) so Play upgrades always increase.
 
 ## Update prompts (version check)
 
@@ -86,8 +90,8 @@ upload succeeds**, so a failed build never advertises a version nobody can get.
 |---|---|---|
 | `ios-testflight` | deploy.sh, after the ASC upload | its own receipt at runtime (`sandboxReceipt`) |
 | `ios-appstore` | **manual** — an ASC upload isn't a release | its own receipt at runtime |
-| `android-apk` | deploy.sh, after the VM rsync | `--dart-define`, and Play-vs-sideload at runtime |
-| `android-play` | deploy.sh, after the fastlane upload | same |
+| `android-apk` | deploy.sh, after each **Play** upload — it is a migration notice now, not a release. See [Retired: the APK](#retired-the-apk) | `--dart-define` baked into the retired APKs |
+| `android-play` | deploy.sh, after the fastlane upload | `--dart-define`, and Play-vs-sideload at runtime |
 | `web` | deploy.sh, after the web rsync | `--dart-define` |
 | `macos-dmg` / `macos-testflight` / `macos-appstore` | **manual** (no macOS build in deploy.sh yet) | `--dart-define` only — see caveat below |
 | `windows` / `linux` | **manual** (not built yet) | `--dart-define` only |
@@ -123,17 +127,21 @@ npx convex run releases:publish '{"channel":"ios-appstore","version":"1.3.30",
 
 Make an update mandatory (LATER disappears, the sheet can't be dismissed). Use
 only when old clients are genuinely broken — anyone below this is locked out of
-the app until they update:
+the app until they update, so it is only safe when the route out actually works
+for everyone it hits:
 
 ```sh
-npx convex run releases:publish '{"channel":"android-apk","version":"1.3.30","minSupported":"1.3.28"}'
+npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":"1.3.28"}'
 ```
 
 Clear it again by passing `null`:
 
 ```sh
-npx convex run releases:publish '{"channel":"android-apk","version":"1.3.30","minSupported":null}'
+npx convex run releases:publish '{"channel":"android-play","version":"1.3.30","minSupported":null}'
 ```
+
+Not on `android-apk` while the Play track is invite-only — see
+[Retired: the APK](#retired-the-apk).
 
 Read back what a channel is currently serving:
 
@@ -149,8 +157,8 @@ anyone fake a mandatory-update prompt for every user.
 
 - Upload keystore: `~/keystores/monkeyhub_upload.jks` (alias `monkeyhub`).
   **BACK THIS FILE UP** (plus `android/key.properties`, which holds its
-  passwords) — losing it means losing the ability to update the app for
-  side-load users, and it will be the permanent Play upload key.
+  passwords) — it is the permanent Play upload key, and losing it means an
+  identity-verification round-trip with Google to register a replacement.
 - `android/key.properties` is gitignored; on a new machine, restore both files
   before deploying Android.
 - Without `key.properties` the release build silently falls back to **debug**
@@ -161,10 +169,6 @@ anyone fake a mandatory-update prompt for every user.
 
 **Share link: https://monkeyhub.walhallaa.com/downloads/**
 
-Downloads used to be Firebase Hosting. The Spark (free) plan refuses to serve
-APKs (`Executable files are forbidden on the Spark billing plan`), so Android
-distribution moved to the Oracle VM.
-
 - Templates: `hosting/site.template.html` (landing) and
   `hosting/downloads.template.html`. Edit THESE, never the generated copies
   under `hosting/public/`. Each opens with an `MH:DOC` comment that is stripped
@@ -173,6 +177,11 @@ distribution moved to the Oracle VM.
   service-worker tombstone (below).
 - `./deploy.sh --site` stamps both pages and pushes them. No build, no Convex.
 
+The downloads page now has two jobs: it is the **migration notice** for the
+retired APK (the app's own UPDATE button sends people here), and it is the
+download page for platforms we self-host — which, since Android left, means the
+desktop builds still to come.
+
 ### The downloads manifest
 
 The downloads page is rendered from `/srv/monkeyhub/downloads/artifacts.json`
@@ -180,14 +189,16 @@ The downloads page is rendered from `/srv/monkeyhub/downloads/artifacts.json`
 
 ```json
 {
-  "android-apk": { "version": "1.3.31", "file": "monkeyhub-1.3.31.apk",
-                   "size": "157MB", "updatedAt": "Jul 24, 2026" }
+  "macos-dmg": { "version": "1.4.0", "file": "monkeyhub-1.4.0.dmg",
+                 "size": "120MB", "updatedAt": "Aug 01, 2026" }
 }
 ```
 
-Each deploy merges only its own key, so shipping Android can never erase the
-macOS row — which is exactly what a page stamped from one build's variables
-would do. One card per entry, plus fixed cards for iOS and the browser.
+Each deploy merges only its own key, so shipping one platform can never erase
+another's row — which is exactly what a page stamped from one build's variables
+would do. One card per entry, plus fixed cards for Android, iOS and the browser.
+**The manifest is empty today**; the `MH:EMPTY` block stands in for the grid, and
+the fixed cards carry the page.
 
 Adding a platform is one `case` line in `platform_meta()` in deploy.sh (icon,
 label, button text) and whatever builds the artifact. The template needs no edit.
@@ -195,12 +206,47 @@ label, button text) and whatever builds the artifact. The template needs no edit
 - Upload order is **artifact first, manifest second**, so the page can never
   advertise a file still crossing the wire.
 - **Retention is latest-only, per platform** — the manifest names the file the
-  new release supersedes, so a macOS build sitting next to it is never touched.
-- The download button points at `monkeyhub-<version>.apk`, not
-  `monkeyhub-latest.apk`, on purpose: Cloudflare overrides the origin's
-  `no-cache` on `.apk` with a 4 h browser TTL, so a stable URL could hand out
-  the previous build right after a release. A new version = a new URL.
-  `monkeyhub-latest.apk` still exists for casual sharing.
+  new release supersedes, so another platform's build sitting next to it is
+  never touched.
+- Download buttons point at `monkeyhub-<version>.<ext>`, never a stable
+  `-latest` name: Cloudflare overrides the origin's `no-cache` on binaries with
+  a 4 h browser TTL, so a fixed URL could hand out the previous build right
+  after a release. A new version = a new URL.
+
+### Retired: the APK
+
+Android shipped as a self-hosted APK until 1.3.44. It now ships through Play
+only. `--android=apk` errors out; `flutter build apk`, the VM rsync, the
+versioned-hardlink retention and the `android-apk` manifest key are all gone.
+
+What is deliberately **not** gone is the `android-apk` release channel, because
+it is the only way to reach the people still running one of those APKs:
+
+- Those builds were compiled with `--dart-define=MH_CHANNEL=android-apk`, and
+  that define beats `installerStore` in `resolveChannel()`, so they ask about
+  that channel for as long as they stay installed.
+- **They cannot update in place.** Play App Signing re-signs the AAB with
+  Google's key; their APK carries our upload key. Android refuses an install
+  when the signature changes, so migrating means uninstall → install from Play.
+  Chats live in Convex and survive; the Android encrypted store does not, so
+  they sign in again and any child-device pairing has to be redone.
+- So `deploy.sh` republishes `android-apk` after **every Play upload**, pointing
+  `updateUrl` at the downloads page with `APK_MIGRATION_NOTE` as `notes`. It is
+  re-announced each time rather than set once because `update_checker.dart`
+  bails when the installed version is `>=` the published one — a frozen row goes
+  quiet the moment someone's build catches up with it.
+- It is deliberately **not** mandatory. Setting `minSupported` while the Play
+  track is invite-only would lock people out of the app with no way back in.
+  Once the listing is public, this makes the sheet blocking:
+
+  ```sh
+  cd backend
+  npx convex run releases:publish '{"channel":"android-apk","version":"1.4.0","minSupported":"1.4.0"}'
+  ```
+
+The invite ask on the page is a `mailto:` to `info@walhallaa.com`, not a form:
+the page is static HTML on Caddy with no backend, and the whole ask retires the
+day the Play listing goes public.
 
 ### Where it runs
 
@@ -292,36 +338,38 @@ Note a web deploy reaches every user on their next page load, with no store
 review and nothing to install — so `--all` lands web well before the iOS build
 finishes review.
 
-## Switching Android to Google Play
+## Google Play
 
-Everything on this machine is already in place: `fastlane` is installed, the
-publishing service account exists
-(`play-publisher@monkeyhub-2b2c6.iam.gserviceaccount.com`), its key is at
-`~/keystores/monkeyhub-play-key.json`, and `.env.local` points
-`PLAY_SERVICE_ACCOUNT_JSON` at it. The Play Developer API is enabled on
-`monkeyhub-2b2c6`. What remains is the Play Console side, which is browser-only:
+The publishing pipeline is wired end to end: `fastlane` is installed, the
+service account `play-publisher@monkeyhub-2b2c6.iam.gserviceaccount.com` exists
+with **Release to testing tracks** scoped to this app, its key is at
+`~/keystores/monkeyhub-play-key.json`, `.env.local` points
+`PLAY_SERVICE_ACCOUNT_JSON` at it, and the Play Developer API is enabled on
+`monkeyhub-2b2c6` (project number `691782206017`). The package
+`com.walhallaa.chattest20241220` was fixed by the first upload and can never
+change; it must keep matching `ANDROID_PACKAGE` in `deploy.sh`.
 
-1. Play Console → **Create app**: name `MonkeyHub`, app (not game), free.
-   The package `com.walhallaa.chattest20241220` is fixed by the first upload —
-   it must match `ANDROID_PACKAGE` in `deploy.sh`, and it can never be changed
-   afterwards.
-2. Play Console → **Setup → API access** → link the Google Cloud project
-   `monkeyhub-2b2c6` (project number `691782206017`).
-3. Play Console → **Users & permissions → Invite new users** →
-   `play-publisher@monkeyhub-2b2c6.iam.gserviceaccount.com`, scoped to the
-   MonkeyHub app, with **Release to testing tracks** (plus *View app
-   information*). Nothing broader — this identity only needs to push AABs.
-4. First AAB upload is manual: `./deploy.sh --android=play` builds it, then drag
-   `build/app/outputs/bundle/release/app-release.aab` into Internal testing →
-   Create release. Google enrolls the app in Play App Signing using our upload
-   key automatically. The API refuses uploads until one release exists.
-5. From then on `--android=play` uploads to the internal track by itself.
-   Verify the link first with:
-   `fastlane run validate_play_store_json_key json_key:$HOME/keystores/monkeyhub-play-key.json`
+`./deploy.sh --android` builds the AAB and pushes it to the internal track by
+itself. Sanity-check the service-account link with:
 
-Note the service-account permission grant is per-app, so it must happen *after*
-step 1. Play propagates new permissions lazily — allow a few minutes before the
-first API upload.
+```sh
+fastlane run validate_play_store_json_key json_key:$HOME/keystores/monkeyhub-play-key.json
+```
+
+### Track progression
+
+Internal → closed → production. This matters beyond Play Console, because it is
+what the downloads page can honestly promise:
+
+| Track | Who can install | What the page says |
+|---|---|---|
+| **Internal** (today) | emails on the tester list, added by hand | "invite only", `mailto:` request button |
+| **Closed** | testers who opt in via a shared link | swap the `mailto:` for the opt-in URL |
+| **Production** | anyone | drop the invite card; `market://details?id=…` resolves for everyone, which `update_destination.dart` already falls back to |
+
+The `android-apk` migration notice stays non-mandatory until production — see
+[Retired: the APK](#retired-the-apk) for why, and for the one-liner that makes
+it blocking afterwards.
 
 ## iOS
 

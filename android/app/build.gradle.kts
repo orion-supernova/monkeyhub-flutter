@@ -13,7 +13,9 @@ plugins {
 // Upload-key signing (android/key.properties, gitignored; keystore lives
 // outside the repo at ~/keystores/monkeyhub_upload.jks). Absent file →
 // release falls back to debug signing so `flutter run --release` still works
-// on machines without the key. deploy.sh refuses to ship a debug-signed APK.
+// on machines without the key. deploy.sh won't start an Android build without
+// key.properties and the keystore it names, and Play rejects a debug-signed
+// bundle outright, so that fallback can't reach users.
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("key.properties")
     if (f.exists()) f.inputStream().use { load(it) }

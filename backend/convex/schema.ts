@@ -599,11 +599,16 @@ export default defineSchema({
   // being on 1.3.30 says nothing about what the App Store is serving.
   //
   // `updateUrl` is server-owned on purpose. A shipped 1.3.29 has to be able to
-  // send its user somewhere that didn't exist when it was compiled: the App
-  // Store and Play listings aren't live yet, and the hosted APK's filename
-  // changes every release. Setting this field fixes every already-installed
-  // build retroactively; the client only falls back to a compiled-in default
-  // when it's absent.
+  // send its user somewhere that didn't exist when it was compiled — the App
+  // Store listing isn't live yet, and Play was not even the delivery mechanism
+  // when the Android APKs were built. Setting this field fixes every
+  // already-installed build retroactively; the client only falls back to a
+  // compiled-in default when it's absent.
+  //
+  // That is exactly what retired the APK: the `android-apk` row now points at
+  // the migration page instead of a download, and carries the explanation in
+  // `notes`. No client release was needed to do it. See DEPLOY.md →
+  // "Retired: the APK".
   appReleases: defineTable({
     channel: v.string(),
     // Display version only, no "+N" build suffix — matches what the client

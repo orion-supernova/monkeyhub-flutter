@@ -12,6 +12,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 enum ReleaseChannel {
   iosTestflight('ios-testflight'),
   iosAppstore('ios-appstore'),
+
+  /// Retired as a delivery channel — nothing is built for it any more. It stays
+  /// because the APKs already out there were stamped with it and will keep
+  /// asking about it forever, which makes it the only way to reach them. Its
+  /// backend row is now a migration notice pointing at the download page. See
+  /// DEPLOY.md → "Retired: the APK".
   androidApk('android-apk'),
   androidPlay('android-play'),
   // macOS ships all three ways: a direct DMG download, and — once the bundle is

@@ -8,13 +8,11 @@
 # Pipelines:
 #   Convex   → npx convex deploy (from backend/)
 #   iOS      → flutter build ios → xcodebuild archive/export → App Store Connect
-#   Android  → APK mode:  flutter build apk → rsync to the Oracle VM, served by
-#                         Caddy behind cloudflared
-#                         (https://monkeyhub.walhallaa.com/downloads/)
-#            → Play mode: flutter build appbundle → Google Play internal track
-#                         (needs verified Play account; see DEPLOY.md)
-#   Web      → --web: flutter build web → rsync to the same VM, served at
-#                     https://monkeyhub.walhallaa.com/web/
+#   Android  → flutter build appbundle → Google Play internal track
+#              (needs a verified Play account; see DEPLOY.md)
+#   Web      → --web: flutter build web → rsync to the Oracle VM, served by
+#                     Caddy behind cloudflared
+#                     (https://monkeyhub.walhallaa.com/web/)
 #   Site     → --site: stamp the landing + downloads pages and push them. No
 #                      build, so it takes seconds.
 #
@@ -23,9 +21,11 @@
 #   /downloads/  every platform    /srv/monkeyhub/downloads
 #   /web/        Flutter web app   /srv/monkeyhub/web
 #
-# The APK used to live on Firebase Hosting; the Spark (free) plan refuses to
-# serve executables ("Executable files are forbidden on the Spark billing plan"),
-# so Android distribution moved to the self-hosted VM. See DEPLOY.md.
+# Android used to ship as a self-hosted APK from that /downloads/ page. It now
+# ships through Play only, and the page is the migration notice instead — see
+# "Release announcement" below for how the already-installed APKs are told.
+# /downloads/ still renders artifacts.json, which is how a future macOS DMG or
+# Windows build gets a card without touching this script's page code.
 #
 # IMPORTANT — two similarly-named files at project root:
 #   env.local   (no dot)  → runtime app secrets (CONVEX_URL, ONESIGNAL_APP_ID).
@@ -55,6 +55,14 @@ HOSTING_URL="https://monkeyhub.walhallaa.com/downloads"
 # Trailing slash matters: /web without it costs every visitor a redirect.
 WEB_URL="https://monkeyhub.walhallaa.com/web/"
 
+# Shown in the update sheet on already-installed APKs, which resolve the
+# android-apk channel forever (the MH_CHANNEL define beats installerStore — see
+# lib/update/release_channel.dart). They cannot update in place: Play App
+# Signing re-signs the AAB with Google's key, so the signature no longer matches
+# the upload key their APK carries and Android refuses the install. Hence
+# "remove it first" rather than "tap update".
+APK_MIGRATION_NOTE="Android now ships through Google Play. This sideloaded copy can't update itself — the download page has the two steps to move over. Your chats stay safe; you'll just sign in again."
+
 # What has actually shipped, per platform. Lives on the VM because it outlives
 # any one deploy — shipping Android must not erase the macOS row.
 DL_MANIFEST="$VM_DL_DIR/artifacts.json"
@@ -64,10 +72,9 @@ SKIP_VERSION_BUMP=false
 RUN_CONVEX=""      # ""=undecided (menu/default), true/false once resolved
 DEPLOY_IOS=""
 DEPLOY_ANDROID=""
-ANDROID_MODE="apk" # apk | play
 DEPLOY_WEB=false   # --web: flutter build web → VM. Also included by --all.
 DEPLOY_SITE=false  # --site: landing + downloads pages. No build. Also by --all.
-RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android APK / web: rsync to the VM.
+RUN_UPLOAD=true    # iOS: upload IPA to ASC. Android: AAB to Play. Web: to the VM.
 RUN_GIT=true
 DRY_RUN=false
 PLATFORM_ARGS=false
@@ -83,11 +90,10 @@ No platform flags + no TTY     → legacy default: Convex + iOS.
 
 Platform flags (any of these skips the picker):
   --ios                 Ship iOS to App Store Connect.
-  --android[=apk|play]  Ship Android. apk (default): signed APK + self-hosted
-                        downloads page. play: AAB for Google Play internal.
+  --android             Ship Android: AAB to the Google Play internal track.
   --web                 Build Flutter web and publish it at $WEB_URL.
   --site                Landing + downloads pages only. No build — seconds.
-  --all                 Convex + iOS + Android(apk) + web + site.
+  --all                 Convex + iOS + Android + web + site.
   --convex-only         Backend only — no builds, no version bump.
   --no-convex           Skip 'npx convex deploy'.
 
@@ -113,8 +119,16 @@ while [[ $# -gt 0 ]]; do
         --no-git)            RUN_GIT=false ;;
         --ios)               DEPLOY_IOS=true;  PLATFORM_ARGS=true ;;
         --android)           DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
-        --android=apk)       DEPLOY_ANDROID=true; ANDROID_MODE="apk";  PLATFORM_ARGS=true ;;
-        --android=play)      DEPLOY_ANDROID=true; ANDROID_MODE="play"; PLATFORM_ARGS=true ;;
+        # Kept so the old muscle memory and any saved command still work —
+        # Play is now the only Android target, so this says what it always did.
+        --android=play)      DEPLOY_ANDROID=true; PLATFORM_ARGS=true ;;
+        --android=apk)
+            echo "❌ --android=apk is gone: Android ships through Google Play only."
+            echo "   Use --android (AAB → Play internal track)."
+            echo "   Already-installed APKs are told where to go by the"
+            echo "   android-apk release row — see DEPLOY.md → 'Retired: the APK'."
+            exit 1
+            ;;
         --web)               DEPLOY_WEB=true; PLATFORM_ARGS=true ;;
         --site)              DEPLOY_SITE=true; PLATFORM_ARGS=true ;;
         --all)               DEPLOY_IOS=true; DEPLOY_ANDROID=true; DEPLOY_WEB=true
@@ -231,7 +245,8 @@ esac
 # Checkbox menu on the controlling terminal. Only used when the caller gave no
 # platform flags and we actually have a TTY to talk to.
 pick_platforms() {
-    local labels=("Convex backend" "iOS  → App Store Connect" "Android"
+    local labels=("Convex backend" "iOS  → App Store Connect"
+                  "Android → Google Play (internal track)"
                   "Web  → $WEB_URL" "Site → $SITE_URL  (pages only, no build)")
     # Menu starts on Convex + iOS only. Unlike --all (which ships everything),
     # the picker leaves the rest unticked so a bare Enter stays cheap.
@@ -276,45 +291,11 @@ pick_platforms() {
     DEPLOY_WEB=$([ "${selected[3]}" = 1 ] && echo true || echo false)
     DEPLOY_SITE=$([ "${selected[4]}" = 1 ] && echo true || echo false)
 
-    if [ "$DEPLOY_ANDROID" = true ]; then
-        pick_android_mode
-    fi
     if [ "$RUN_CONVEX" = false ] && [ "$DEPLOY_IOS" = false ] && [ "$DEPLOY_ANDROID" = false ] \
        && [ "$DEPLOY_WEB" = false ] && [ "$DEPLOY_SITE" = false ]; then
         echo "Nothing selected — exiting."
         exit 0
     fi
-}
-
-pick_android_mode() {
-    local labels=("APK  → hosted download page ($HOSTING_URL)"
-                  "AAB  → Google Play, internal testing track")
-    local cursor=0 key rest i arrow
-    [ "$ANDROID_MODE" = "play" ] && cursor=1
-
-    exec 3</dev/tty
-    tput civis 2>/dev/null || true
-    echo ""
-    echo "Android delivery  (↑/↓ move · enter select)"
-    while true; do
-        for i in 0 1; do
-            [ "$i" = "$cursor" ] && arrow="❯" || arrow=" "
-            printf "  %s %s\033[K\n" "$arrow" "${labels[$i]}"
-        done
-        IFS= read -rsn1 -u3 key
-        if [ "$key" = $'\x1b' ]; then
-            IFS= read -rsn2 -t 1 -u3 rest || rest=""
-            case "$rest" in
-                "[A"|"[B") cursor=$(( 1 - cursor )) ;;
-            esac
-        elif [ -z "$key" ] || [ "$key" = " " ]; then
-            break
-        fi
-        tput cuu 2 2>/dev/null
-    done
-    tput cnorm 2>/dev/null || true
-    exec 3<&-
-    ANDROID_MODE=$([ "$cursor" = 0 ] && echo apk || echo play)
 }
 
 if [ "$PLATFORM_ARGS" = false ]; then
@@ -345,8 +326,10 @@ fi
 # them print the current version in their footer. Left to a separate flag that
 # footer would quietly rot one deploy at a time — and a stale version on the
 # front page is exactly the thing nobody notices.
-if [ "$RUN_UPLOAD" = true ] \
-   && { { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } || [ "$DEPLOY_WEB" = true ]; }; then
+#
+# Android is deliberately NOT in here any more: it ships to Play and puts
+# nothing on the VM, so a Play deploy has no page to refresh.
+if [ "$RUN_UPLOAD" = true ] && [ "$DEPLOY_WEB" = true ]; then
     DEPLOY_SITE=true
 fi
 
@@ -355,11 +338,7 @@ echo "🐵 MonkeyHub deploy"
 echo "  • Convex deploy:    $([ "$RUN_CONVEX" = true ] && echo yes || echo no)"
 echo "  • Version bump:     $([ "$SKIP_VERSION_BUMP" = false ] && echo yes || echo no)"
 echo "  • iOS build:        $([ "$DEPLOY_IOS" = true ] && echo yes || echo no)"
-if [ "$DEPLOY_ANDROID" = true ]; then
-    echo "  • Android build:    yes ($ANDROID_MODE)"
-else
-    echo "  • Android build:    no"
-fi
+echo "  • Android build:    $([ "$DEPLOY_ANDROID" = true ] && echo "yes (AAB → Play)" || echo no)"
 echo "  • Web build:        $([ "$DEPLOY_WEB" = true ] && echo yes || echo no)"
 echo "  • Landing/downloads:$([ "$DEPLOY_SITE" = true ] && echo " yes" || echo " no")"
 echo "  • Upload/publish:   $([ "$RUN_UPLOAD" = true ] && echo yes || echo no)"
@@ -584,11 +563,20 @@ validate_environment() {
 
         # Play upload key — checked here rather than after the build, so a bad
         # path fails in seconds instead of after a full AAB compile.
-        if [ "$ANDROID_MODE" = "play" ] && [ "$RUN_UPLOAD" = true ] \
+        if [ "$RUN_UPLOAD" = true ] \
            && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && [ ! -f "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
             echo "❌ Play key not found: '$PLAY_SERVICE_ACCOUNT_JSON'"
             echo "   (from PLAY_SERVICE_ACCOUNT_JSON in .env.local)."
             echo "   Unset it to build the AAB and upload by hand instead."
+            exit 1
+        fi
+
+        # publish_release builds its JSON with jq, and the Android path is the
+        # one that passes prose ($APK_MIGRATION_NOTE) through it. Finding this
+        # out after a full AAB build would be a bad joke.
+        if [ "$RUN_UPLOAD" = true ] && ! command -v jq >/dev/null 2>&1; then
+            echo "❌ jq not found — needed to build the release-announcement payload."
+            echo "   brew install jq"
             exit 1
         fi
     fi
@@ -614,10 +602,10 @@ validate_environment() {
         fi
     fi
 
-    # The VM serves the pages, the downloads and the web build — prove it's
-    # reachable BEFORE burning 15 minutes on a build we then can't publish.
-    if { [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; } \
-       || [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_SITE" = true ]; then
+    # The VM serves the pages and the web build — prove it's reachable BEFORE
+    # burning 15 minutes on a build we then can't publish. Android is not in
+    # here: it goes to Play and never touches the VM.
+    if [ "$DEPLOY_WEB" = true ] || [ "$DEPLOY_SITE" = true ]; then
         if [ "$RUN_UPLOAD" = true ]; then
             require_vm
         fi
@@ -639,8 +627,12 @@ fi
 # Release Android builds are minified and obfuscated (the Flutter Gradle plugin
 # turns R8 on for release; android/app/build.gradle.kts never says so, which is
 # why this is easy to miss). Every build overwrites mapping.txt, so without this
-# a crash report from a shipped APK is permanently unreadable — the position we
-# were in when calls started crashing on 1.3.41.
+# a crash report from a shipped build is permanently unreadable — the position
+# we were in when calls started crashing on 1.3.41.
+#
+# Play deobfuscates its own crash reports from the mapping the AAB carries, but
+# this local copy is what makes a stack trace mailed in by a tester (or pulled
+# off a handset with adb) readable too.
 #
 # Kept OUT of hosting/public: these are build artifacts for our own diagnosis,
 # and the downloads directory is served to the internet.
@@ -680,24 +672,45 @@ archive_android_symbols() {   # $1 = version
 # same URL the app reads from env.local. --prod is a Convex-cloud concept and
 # does not apply here — adding it would break this call, not harden it.
 #
-# $2 (updateUrl) is optional; omitting it leaves whatever is already stored,
-# so a hand-set store link or minSupported survives the next deploy.
-publish_release() {   # $1 = channel, $2 = updateUrl (optional)
+# $2 (updateUrl) and $3 (notes) are optional; omitting either leaves whatever is
+# already stored, so a hand-set store link or minSupported survives the next
+# deploy. That is releases:publish's "undefined → leave as-is" contract, and it
+# is why the payload below omits keys rather than sending empty strings.
+#
+# jq builds the JSON rather than string interpolation: $3 is prose written for
+# humans (see APK_MIGRATION_NOTE), and one apostrophe or quote in it would
+# otherwise produce a payload the CLI rejects — or, worse, a valid one that says
+# something else.
+publish_release() {   # $1 = channel, $2 = updateUrl (optional), $3 = notes (optional)
     local channel="$1"
     local update_url="${2:-}"
+    local notes="${3:-}"
     # Deliberately NOT gated on --no-convex. That flag means "don't push backend
     # code", not "don't record what shipped" — and the retry line this script
     # prints after a failed upload recommends --no-convex, which is exactly when
     # a silent skip would hurt. Every call site already sits inside a
     # RUN_UPLOAD=true branch, so --no-upload and --dry never reach here.
-    local payload="{\"channel\":\"$channel\",\"version\":\"$DISPLAY_VERSION\""
-    [ -n "$update_url" ] && payload="$payload,\"updateUrl\":\"$update_url\""
-    payload="$payload}"
+    local payload
+    payload=$(jq -nc \
+        --arg channel "$channel" \
+        --arg version "$DISPLAY_VERSION" \
+        --arg updateUrl "$update_url" \
+        --arg notes "$notes" \
+        '{channel: $channel, version: $version}
+         + (if $updateUrl == "" then {} else {updateUrl: $updateUrl} end)
+         + (if $notes == "" then {} else {notes: $notes} end)')
     if (cd backend && npx convex run releases:publish "$payload" >/dev/null 2>&1); then
         echo "  ✅ Announced $DISPLAY_VERSION on $channel"
     else
+        # The retry line is meant to be copy-pasted, and $payload can contain an
+        # apostrophe (APK_MIGRATION_NOTE has two), which would close the shell's
+        # single-quoted string early and paste as something that doesn't run.
+        # jq's @sh emits the argument already correctly quoted for a shell —
+        # surrounding quotes included, hence no '…' around it below.
+        local quoted
+        quoted=$(printf '%s' "$payload" | jq -Rr @sh)
         echo "  ⚠️  Could not announce $DISPLAY_VERSION on $channel — users won't be prompted."
-        echo "     Retry with:  (cd backend && npx convex run releases:publish '$payload')"
+        echo "     Retry with:  (cd backend && npx convex run releases:publish $quoted)"
     fi
 }
 
@@ -714,10 +727,11 @@ publish_release() {   # $1 = channel, $2 = updateUrl (optional)
 
 # Presentation per platform. The manifest carries facts (version, file, size,
 # date); this carries how they are shown. New platform = one line here.
+#
+# No android-apk row any more: Android ships through Play, and the page carries
+# a fixed migration card for it instead of a download button.
 platform_meta() {   # $1 = platform key → sets PM_ICON / PM_NAME / PM_KIND / PM_BTN
     case "$1" in
-        android-apk) PM_ICON="🤖"; PM_NAME="Android"; PM_KIND="APK"
-                     PM_BTN="Download the APK" ;;
         macos-dmg)   PM_ICON="🖥️"; PM_NAME="macOS";   PM_KIND="DMG"
                      PM_BTN="Download the DMG" ;;
         windows)     PM_ICON="🪟"; PM_NAME="Windows"; PM_KIND="Installer"
@@ -1000,127 +1014,58 @@ fi
 
 # ----- Android build -----
 ANDROID_BUILD_TIME=0
-APK_PATH=""
 AAB_PATH=""
 if [ "$DEPLOY_ANDROID" = true ]; then
     ANDROID_START_TIME=$(date +%s)
 
-    if [ "$ANDROID_MODE" = "apk" ]; then
-        echo "🤖 Starting Android build (APK → hosted download page)..."
-        run_with_spinner "Building Flutter APK (release)" \
-            flutter build apk --release --dart-define=MH_CHANNEL=android-apk
+    echo "🤖 Starting Android build (AAB → Google Play)..."
+    run_with_spinner "Building Flutter app bundle (release)" \
+        flutter build appbundle --release --dart-define=MH_CHANNEL=android-play
 
-        APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
-        if [ ! -f "$APK_PATH" ]; then
-            echo "❌ No APK at $APK_PATH after build"
-            exit 1
-        fi
+    AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
+    if [ ! -f "$AAB_PATH" ]; then
+        echo "❌ No AAB at $AAB_PATH after build"
+        exit 1
+    fi
+    echo "  ✅ AAB at $AAB_PATH"
 
-        # Refuse to ship a debug-signed APK — build.gradle.kts silently falls
-        # back to the debug key when android/key.properties is missing.
-        SIGNER_CERT=$(keytool -printcert -jarfile "$APK_PATH" 2>/dev/null | grep -m1 "Owner:")
-        if echo "$SIGNER_CERT" | grep -q "Android Debug"; then
-            echo "❌ APK is DEBUG-signed ($SIGNER_CERT)."
-            echo "   Check android/key.properties + keystore, then rebuild."
-            exit 1
-        fi
-        echo "  ✅ Signed by: ${SIGNER_CERT#Owner: }"
+    archive_android_symbols "$DISPLAY_VERSION"
 
-        archive_android_symbols "$DISPLAY_VERSION"
+    # Automated upload needs a verified Play account, the app created in
+    # Play Console, a linked service account (PLAY_SERVICE_ACCOUNT_JSON in
+    # .env.local) and fastlane. Until then we hand over the AAB.
+    if [ "$RUN_UPLOAD" = true ] && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && command -v fastlane >/dev/null 2>&1; then
+        run_with_spinner "Uploading to Google Play (internal track)" \
+            fastlane supply \
+                --package_name "$ANDROID_PACKAGE" \
+                --aab "$AAB_PATH" \
+                --track internal \
+                --json_key "$PLAY_SERVICE_ACCOUNT_JSON" \
+                --skip_upload_metadata --skip_upload_images --skip_upload_screenshots
+        # run_with_spinner exits on failure, so reaching here means the
+        # internal track has the build.
+        publish_release android-play
 
-        APK_SIZE=$(du -h "$APK_PATH" | cut -f1 | tr -d ' ')
-        APK_FILE="monkeyhub-$DISPLAY_VERSION.apk"
-
-        # One APK copy only — the versioned filename is created server-side as a
-        # hardlink, so the 163MB goes over the wire once.
-        echo "  • Staging APK (hosting/public/downloads)"
-        mkdir -p hosting/public/downloads
-        cp "$APK_PATH" "hosting/public/downloads/monkeyhub-latest.apk"
-
-        if [ "$RUN_UPLOAD" = true ]; then
-            # Read the manifest before writing it: it names the file this
-            # release supersedes, which is how retention stays scoped to
-            # Android instead of sweeping every binary in the directory.
-            OLD_MANIFEST=$(dl_manifest_fetch)
-            PREV_FILE=$(printf '%s' "$OLD_MANIFEST" | jq -r '."android-apk".file // empty')
-
-            printf '%s' "$OLD_MANIFEST" | jq \
-                --arg v "$DISPLAY_VERSION" --arg f "$APK_FILE" \
-                --arg s "${APK_SIZE}B" --arg d "$STAMP_DATE" \
-                '."android-apk" = {version: $v, file: $f, size: $s, updatedAt: $d}' \
-                > hosting/public/downloads/artifacts.json
-
-            upload_apk() {
-                vm_ensure_dirs || return 1
-                # Artifact first, manifest second. The page is rendered from the
-                # manifest, so this ordering is what stops the page advertising
-                # a file that is still crossing the wire.
-                rsync -a --partial --progress -e "ssh $VM_SSH_OPTS" \
-                    hosting/public/downloads/monkeyhub-latest.apk \
-                    "$VM_USER@$VM_HOST:$VM_DL_DIR/" || return 1
-                # Versioned URL = cache-bust: Cloudflare overrides our no-cache
-                # on .apk with a 4h browser TTL, so a stable name could hand out
-                # the previous build. Retention is latest-only, per platform.
-                vm_ssh "set -e
-                        cd $VM_DL_DIR
-                        ln -f monkeyhub-latest.apk '$APK_FILE'
-                        if [ -n '$PREV_FILE' ] && [ '$PREV_FILE' != '$APK_FILE' ]; then
-                            rm -f '$PREV_FILE'
-                        fi
-                        chmod 644 *.apk" || return 1
-                scp $VM_SSH_OPTS hosting/public/downloads/artifacts.json \
-                    "$VM_USER@$VM_HOST:$DL_MANIFEST" >/dev/null || return 1
-            }
-            echo "Uploading APK to $VM_HOST (${APK_SIZE}B)..."
-            if upload_apk; then
-                echo "  ✅ Hosted at $HOSTING_URL/"
-                # The page always links the current versioned APK, so this URL
-                # stays correct without the client knowing the filename.
-                publish_release android-apk "$HOSTING_URL/"
-            else
-                echo "❌ Upload to $VM_USER@$VM_HOST failed."
-                echo "   Check: ssh -i $VM_SSH_KEY $VM_USER@$VM_HOST"
-                echo "   Then re-run:   ./deploy.sh --android=apk --skip-version-bump --no-convex"
-                exit 1
-            fi
-        else
-            echo "⏭️  Skipping VM upload (--no-upload). APK staged in hosting/public/downloads/."
-        fi
-
+        # …and tell the sideloaders, who are a separate audience with a separate
+        # problem. Their APK stamped MH_CHANNEL=android-apk at build time, and
+        # that define beats installerStore forever, so they will ask about this
+        # channel for as long as that copy is installed. It is the only line of
+        # communication we have with them.
+        #
+        # Re-announced on EVERY Play release rather than set once, because
+        # update_checker.dart bails when the installed version is >= the
+        # published one — a frozen row goes quiet the moment someone's build
+        # catches up with it.
+        #
+        # Not mandatory (no minSupported): the way out costs them a re-install
+        # and, while the track is invite-only, an invite they may not have.
+        # Locking them out of the app before that is a trap, not a prompt.
+        publish_release android-apk "$HOSTING_URL/" "$APK_MIGRATION_NOTE"
     else
-        echo "🤖 Starting Android build (AAB → Google Play)..."
-        run_with_spinner "Building Flutter app bundle (release)" \
-            flutter build appbundle --release --dart-define=MH_CHANNEL=android-play
-
-        AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
-        if [ ! -f "$AAB_PATH" ]; then
-            echo "❌ No AAB at $AAB_PATH after build"
-            exit 1
-        fi
-        echo "  ✅ AAB at $AAB_PATH"
-
-        archive_android_symbols "$DISPLAY_VERSION"
-
-        # Automated upload needs a verified Play account, the app created in
-        # Play Console, a linked service account (PLAY_SERVICE_ACCOUNT_JSON in
-        # .env.local) and fastlane. Until then we hand over the AAB.
-        if [ "$RUN_UPLOAD" = true ] && [ -n "${PLAY_SERVICE_ACCOUNT_JSON:-}" ] && command -v fastlane >/dev/null 2>&1; then
-            run_with_spinner "Uploading to Google Play (internal track)" \
-                fastlane supply \
-                    --package_name "$ANDROID_PACKAGE" \
-                    --aab "$AAB_PATH" \
-                    --track internal \
-                    --json_key "$PLAY_SERVICE_ACCOUNT_JSON" \
-                    --skip_upload_metadata --skip_upload_images --skip_upload_screenshots
-            # run_with_spinner exits on failure, so reaching here means the
-            # internal track has the build.
-            publish_release android-play
-        else
-            echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
-            echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
-            echo "    Upload manually: Play Console → MonkeyHub → Internal testing →"
-            echo "    Create release → drop in $AAB_PATH"
-        fi
+        echo "⏭️  No automated Play upload (needs PLAY_SERVICE_ACCOUNT_JSON in"
+        echo "    .env.local + fastlane + a verified Play account — see DEPLOY.md)."
+        echo "    Upload manually: Play Console → MonkeyHub → Internal testing →"
+        echo "    Create release → drop in $AAB_PATH"
     fi
 
     ANDROID_END_TIME=$(date +%s)
@@ -1277,12 +1222,9 @@ if [ "$DEPLOY_IOS" = true ]; then
     [ "$RUN_UPLOAD" = true ]  && echo "  🍎 iOS:            App Store Connect (TestFlight shows the build in a few minutes)"
     [ "$RUN_UPLOAD" = false ] && echo "  🍎 iOS IPA:        $IPA_PATH"
 fi
-if [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "apk" ]; then
-    [ "$RUN_UPLOAD" = true ]  && echo "  🤖 Android:        $HOSTING_URL/  (share this link)"
-    [ "$RUN_UPLOAD" = false ] && echo "  🤖 Android APK:    $APK_PATH"
-fi
-if [ "$DEPLOY_ANDROID" = true ] && [ "$ANDROID_MODE" = "play" ]; then
+if [ "$DEPLOY_ANDROID" = true ]; then
     echo "  🤖 Android AAB:    $AAB_PATH"
+    [ "$RUN_UPLOAD" = true ] && echo "     → Play internal track; sideloaders pointed at $HOSTING_URL/"
 fi
 if [ "$DEPLOY_WEB" = true ]; then
     [ "$RUN_UPLOAD" = true ]  && echo "  🌐 Web:            $WEB_URL"
