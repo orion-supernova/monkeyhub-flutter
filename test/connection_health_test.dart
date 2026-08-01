@@ -119,6 +119,27 @@ void main() {
 
   Future<void> settle(Duration d) => Future<void>.delayed(d);
 
+  /// Wait for the phase to ARRIVE at [want], polling rather than sleeping a
+  /// fixed span.
+  ///
+  /// The clocks here run at ~100x, which makes a grace window 20ms wide — tight
+  /// enough that a loaded machine can slip past a fixed `settle` and fail on
+  /// scheduling jitter rather than on behaviour. Polling is faster in the
+  /// common case and does not lie in the uncommon one. Use a plain `expect` for
+  /// the opposite claim (a phase that must NOT have been reached yet); this
+  /// helper can only prove arrival.
+  Future<void> expectPhase(
+    ConnectionPhase want, {
+    Duration budget = const Duration(milliseconds: 500),
+    String? reason,
+  }) async {
+    final deadline = DateTime.now().add(budget);
+    while (health.phase != want && DateTime.now().isBefore(deadline)) {
+      await settle(const Duration(milliseconds: 5));
+    }
+    expect(health.phase, want, reason: reason);
+  }
+
   group('ConnectionHealth', () {
     setUp(() {
       probe = FakeProbe();
@@ -147,11 +168,9 @@ void main() {
           reason: 'grace window suppresses UI for short blips',
         );
 
-        await settle(_grace * 2);
-        expect(health.phase, ConnectionPhase.reconnecting);
+        await expectPhase(ConnectionPhase.reconnecting);
 
-        await settle(_stalled);
-        expect(health.phase, ConnectionPhase.stalled);
+        await expectPhase(ConnectionPhase.stalled);
       },
     );
 
@@ -254,8 +273,7 @@ void main() {
       build().start();
 
       probe.emit(false);
-      await settle(const Duration(milliseconds: 80));
-      expect(health.phase, ConnectionPhase.stalled);
+      await expectPhase(ConnectionPhase.stalled);
 
       // Radio finally up. No new stream event — only the loop notices.
       probe.probeResult = true;
@@ -290,9 +308,7 @@ void main() {
         // No stream event at all — the frozen-socket case.
         expect(health.phase, ConnectionPhase.online);
         await health.retryNow();
-        await settle(_grace * 2);
-
-        expect(health.phase, ConnectionPhase.reconnecting);
+        await expectPhase(ConnectionPhase.reconnecting);
       },
     );
 
@@ -363,8 +379,7 @@ void main() {
       // outage is back on screen within the grace window.
       active = true;
       unawaited(health.retryNow());
-      await settle(_grace * 3);
-      expect(health.phase, ConnectionPhase.reconnecting);
+      await expectPhase(ConnectionPhase.reconnecting);
     });
 
     // Defect: clearing the phase was reachable only from a probe, so a
@@ -375,8 +390,7 @@ void main() {
       build().start();
 
       probe.emit(false);
-      await settle(_grace * 3);
-      expect(health.phase, ConnectionPhase.reconnecting);
+      await expectPhase(ConnectionPhase.reconnecting);
 
       health.noteRoundTrip(ok: true);
       expect(health.phase, ConnectionPhase.online);
@@ -414,8 +428,7 @@ void main() {
       );
 
       health.noteRoundTrip(ok: false);
-      await settle(_grace * 2);
-      expect(health.phase, ConnectionPhase.reconnecting);
+      await expectPhase(ConnectionPhase.reconnecting);
     });
 
     test('a successful round-trip resets the failure streak', () async {
@@ -456,8 +469,7 @@ void main() {
       build().start();
 
       probe.emit(false);
-      await settle(_grace * 2);
-      expect(health.phase, ConnectionPhase.reconnecting);
+      await expectPhase(ConnectionPhase.reconnecting);
 
       probe.emit(true);
       await settle(_grace * 2);
@@ -580,8 +592,7 @@ void main() {
       build(backoff: const [Duration(milliseconds: 50)]).start();
 
       probe.emit(false);
-      await settle(_stalled * 2);
-      expect(health.phase, ConnectionPhase.stalled);
+      await expectPhase(ConnectionPhase.stalled);
 
       // Settle past next background attempt
       await settle(const Duration(milliseconds: 80));
@@ -777,6 +788,67 @@ void main() {
 
       expect(probe.probeCalls, 2);
       await settle(const Duration(milliseconds: 150));
+    });
+
+    // A probe that outlives the episode that started it. The heartbeat can
+    // succeed mid-probe and take us online, so by the time the probe reports
+    // failure it is stale news — and acting on it used to poison everything
+    // after: `_armUiTimers` latched `_uiTimersArmed` with `_disarmUiTimers`
+    // already run, so the timers it created were dead on arrival and the latch
+    // then suppressed the *next* outage's banner entirely.
+    test('a probe that reports after we are already online cannot mute the '
+        'next outage', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 60);
+      build(backoff: const [Duration(milliseconds: 10)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 15));
+      expect(probe.probeCalls, 1, reason: 'still in flight');
+
+      // The heartbeat gets through while the probe is still parked.
+      health.noteRoundTrip(ok: true);
+      expect(health.phase, ConnectionPhase.online);
+      // Let the stale probe land and do whatever it is going to do.
+      await settle(const Duration(milliseconds: 80));
+
+      // Now a real outage.
+      probe.probeDelay = Duration.zero;
+      probe.reconnectResult = false;
+      probe.emit(false);
+      await settle(_grace * 3);
+
+      expect(
+        health.phase,
+        isNot(ConnectionPhase.online),
+        reason: 'the banner must still arm after a stale probe landed',
+      );
+    });
+
+    test('a tap during the uninterruptible floor is honoured, not dropped',
+        () async {
+      probe.probeResult = false;
+      // One long rung, so a dropped wake is unmistakable: without the fix the
+      // next probe is 30s away.
+      build(backoff: const [Duration(seconds: 30)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 20));
+      final before = probe.probeCalls;
+      expect(before, greaterThan(0));
+
+      // The floor is only 10ms here, so land the tap inside it: fire it in the
+      // same turn the probe fails.
+      health.retryNow(manual: true);
+      await settle(const Duration(milliseconds: 60));
+
+      expect(
+        probe.probeCalls,
+        greaterThan(before),
+        reason:
+            'the floor bounds how OFTEN we retry; it must not discard the '
+            'request, or the banner spins "retrying…" with nothing in flight',
+      );
     });
 
     test('an automatic retry during a verify defers instead of piling on',

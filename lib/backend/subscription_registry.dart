@@ -97,6 +97,30 @@ class SubscriptionRegistry {
     await Future.wait(stale.map((e) => e._bindOnce(generation)));
   }
 
+  /// Re-bind only the entries that have no live handle, because their bind
+  /// threw.
+  ///
+  /// A `subscribe()` issued while the socket is down does not always queue: the
+  /// web client throws `StateError('WebSocket not connected')` outright and
+  /// erases the record it would otherwise have replayed, so that subscription
+  /// is registered nowhere — not with the server, not in the client's own
+  /// replay map. The caller cannot tell, because it was handed a perfectly
+  /// ordinary [Subscription].
+  ///
+  /// Nothing else can heal that. A transport can only replay what it has, and
+  /// [rebindAll] runs solely after a forced rebuild — which on web never
+  /// happens, since its client replays for itself. So the app's own verified
+  /// reconnect calls this, and it is the only thing standing between a slow
+  /// handshake at sign-in and a room list that never updates again.
+  ///
+  /// Cheap when there is nothing to do, which is almost always.
+  Future<void> rebindFailed() async {
+    final broken =
+        _live.where((e) => !e._cancelled && e._handle == null).toList();
+    if (broken.isEmpty) return;
+    await Future.wait(broken.map((e) => e._bindOnce(_generation)));
+  }
+
   void _forget(RegisteredSub e) => _live.remove(e);
 }
 

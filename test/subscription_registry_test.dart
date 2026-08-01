@@ -148,6 +148,57 @@ void main() {
       expect(r.liveCount, 0);
     });
 
+    // A subscribe issued while the socket is down does not always queue — the
+    // web client throws outright and erases the record it would otherwise have
+    // replayed. Nothing else in the system can heal that: the transport has
+    // nothing to replay, and `rebindAll` only runs after a forced rebuild,
+    // which on web never happens. So `rebindFailed` is the only thing standing
+    // between a slow handshake at sign-in and a room list that never updates
+    // again — behind a UI that looks perfectly healthy.
+    test('rebindFailed re-binds an entry whose original bind threw', () async {
+      final t = FakeTransport();
+      final r = _registryFor(t);
+      t.failWith = StateError('WebSocket not connected');
+      Object? reported;
+      await r.add('rooms', const {}, onData: (_) {}, onError: (e) => reported = e);
+      expect(reported, isA<StateError>());
+      t.binds.clear();
+
+      await r.rebindFailed();
+
+      expect(t.binds, ['rooms']);
+      expect(r.liveCount, 1);
+    });
+
+    test('rebindFailed leaves healthy entries alone', () async {
+      final t = FakeTransport();
+      final r = _registryFor(t);
+      await r.add('rooms', const {}, onData: (_) {});
+      t.failWith = StateError('down');
+      await r.add('friends', const {}, onData: (_) {});
+      t.binds.clear();
+
+      await r.rebindFailed();
+
+      expect(
+        t.binds,
+        ['friends'],
+        reason: 'rebinding a live one would orphan its server-side copy',
+      );
+      expect(t.cancels, isEmpty);
+    });
+
+    test('rebindFailed is a no-op when everything is bound', () async {
+      final t = FakeTransport();
+      final r = _registryFor(t);
+      await r.add('rooms', const {}, onData: (_) {});
+      t.binds.clear();
+
+      await r.rebindFailed();
+
+      expect(t.binds, isEmpty);
+    });
+
     test('a cancelled entry is skipped by later rebinds', () async {
       final t = FakeTransport();
       final r = _registryFor(t);

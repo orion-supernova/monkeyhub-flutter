@@ -124,13 +124,16 @@ class _Strip extends StatelessWidget {
       onTap: health.retryNow,
       radius: theme.radiusMd,
       semanticLabel: 'Retry connection',
-      // The detector is here for its hit area only — the strip is mostly
-      // padding, and without `opaque` the gaps between the dot and the label
-      // are not tappable. It carries no `onTap`: FocusableTap already has one,
-      // and both firing meant one tap starting a probe and immediately
-      // interrupting it.
+      // BOTH handlers are required, and this is not belt-and-braces.
+      // FocusableTap registers NO gesture recognizer — it binds onTap to
+      // Enter/Space only — so without the detector's own onTap the banner is
+      // dead to touch, mouse and VoiceOver, and reachable solely by tabbing to
+      // it with a hardware keyboard. See the header of
+      // test/call_controls_tap_test.dart: this exact mistake has shipped once
+      // already. connection_banner_tap_test.dart pins it here.
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onTap: health.retryNow,
         child: body,
       ),
     );

@@ -211,12 +211,15 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   /// reconnect re-dispatched call signals the app had already handled — an
   /// incoming call could be offered twice for one caller.
   ///
-  /// What genuinely needs doing is the work that is not a subscription: sends
-  /// that failed while the socket was down.
+  /// What genuinely needs doing is the work no transport can replay: a
+  /// subscription whose `subscribe()` threw instead of queueing — the transport
+  /// never had it, so it has nothing to replay — and sends that failed while
+  /// the socket was down.
   late final CoalescingJob _resubscribeAll = CoalescingJob(() async {
     final s = _auth.session;
     if (s == null) return;
     try {
+      await _cv.repairSubscriptions();
       await _repo.flushPending();
     } catch (e) {
       debugPrint('_resubscribeAll: $e');

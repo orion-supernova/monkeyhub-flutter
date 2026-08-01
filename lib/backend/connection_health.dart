@@ -533,10 +533,23 @@ class ConnectionHealth extends ChangeNotifier {
     return identical(r, _interrupted) ? null : r as bool;
   }
 
+  /// Identifies the current healing episode. Bumped by every [_beginHealing].
+  ///
+  /// `_healing` alone cannot own this. A loop suspended on a probe does not
+  /// notice [_markOnline] clearing the flag — [noteRoundTrip] can clear it from
+  /// a heartbeat that succeeded mid-probe — so a fresh outage arriving before
+  /// that probe returns started a SECOND loop while the first was still live.
+  /// Both then probed on their own cadence, both incremented [_attempt] so the
+  /// backoff ladder skipped rungs, and each lap's gate orphaned the other's, so
+  /// a user's tap-to-retry cancelled only one of the two in-flight probes.
+  int _loopGen = 0;
+
   void _beginHealing() {
     if (_disposed || _healing) return;
     _healing = true;
+    _loopGen++;
     _attempt = 0;
+    _wakePending = false;
     // Note the loop itself arms the UI clocks, and only once it is genuinely
     // probing — see [_armUiTimers].
     _loop();
@@ -630,7 +643,8 @@ class ConnectionHealth extends ChangeNotifier {
   }
 
   Future<void> _loop() async {
-    while (_healing && !_disposed) {
+    final gen = _loopGen;
+    while (_healing && !_disposed && gen == _loopGen) {
       if (!_foreground || !_isActive()) {
         _setRetrying(false);
         _isManualOrResumeRetry = false;
@@ -728,6 +742,14 @@ class ConnectionHealth extends ChangeNotifier {
         return;
       }
 
+      // The world may have moved on during that probe: a heartbeat can succeed
+      // mid-flight and take us online, and a fresh episode can have started.
+      // Arming here regardless was worse than pointless — [_armUiTimers] latches
+      // `_uiTimersArmed`, and [_disarmUiTimers] had already run, so the latch
+      // stuck true with both timers dead. The NEXT genuine outage then armed
+      // neither clock and the banner never appeared at all.
+      if (!_healing || gen != _loopGen) return;
+
       // Only now — with a probe that actually failed — is there anything worth
       // telling the user about. See [_armUiTimers].
       _armUiTimers();
@@ -758,8 +780,24 @@ class ConnectionHealth extends ChangeNotifier {
     return i < backoff.length ? backoff[i] : backoff.last;
   }
 
+  /// A [_wake] arrived while nothing was sleeping. Held so the next wait can
+  /// honour it instead of dropping it.
+  ///
+  /// Without this, [_sleepAtLeast]'s uninterruptible floor swallowed wakes
+  /// outright: a tap on "tap to retry" landing in those 750ms found `_sleeper`
+  /// null, did nothing, and then the loop installed a fresh 14s sleeper that
+  /// nobody had woken. The banner flipped to "retrying…" and sat there with no
+  /// probe in flight — the exact symptom the interruptible verify elsewhere in
+  /// this class exists to remove. The floor is meant to bound how *often* we
+  /// retry, not to discard the request.
+  bool _wakePending = false;
+
   /// Interruptible wait. A null [d] waits indefinitely (parked), until [_wake].
   Future<void> _sleep(Duration? d) {
+    if (_wakePending) {
+      _wakePending = false;
+      return Future<void>.value();
+    }
     final c = Completer<void>();
     _sleeper = c;
     Timer? t;
@@ -777,7 +815,12 @@ class ConnectionHealth extends ChangeNotifier {
   void _wake() {
     final s = _sleeper;
     _sleeper = null;
-    if (s != null && !s.isCompleted) s.complete();
+    if (s != null && !s.isCompleted) {
+      s.complete();
+      return;
+    }
+    // Nothing was listening. Remember it — see [_wakePending].
+    _wakePending = true;
   }
 
   /// Verified online. Always re-registers subscriptions: we may have arrived
@@ -801,6 +844,7 @@ class ConnectionHealth extends ChangeNotifier {
     _consecutiveRoundTripFailures = 0;
     _interruptsInARow = 0;
     _wantRebuild = false;
+    _wakePending = false; // belongs to the episode that just ended
     _disarmUiTimers();
     _wake();
     _setPhase(ConnectionPhase.online);

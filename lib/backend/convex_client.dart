@@ -133,6 +133,14 @@ class ConvexBackend implements ConnectionProbe {
     return Subscription._(entry);
   }
 
+  /// Re-register any subscription whose original `subscribe()` threw.
+  ///
+  /// Call on every verified reconnect. A subscribe issued while the socket was
+  /// down can fail outright rather than queueing — see
+  /// [SubscriptionRegistry.rebindFailed], which is also where the reason it
+  /// cannot heal itself is written down. A no-op in the normal case.
+  Future<void> repairSubscriptions() => _registry.rebindFailed();
+
   Future<Object> _bindSubscription(
     String name,
     Map<String, dynamic> args,
