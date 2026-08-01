@@ -189,21 +189,35 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     isActive: () => _auth.session != null,
   );
 
-  /// Re-register every subscription (rooms/messages/typing/friends/read-state,
-  /// the cross-device call watch, and call signaling) and flush stuck sends.
-  /// Called on every verified reconnect because the web client does not replay
-  /// subs. Wrapped in [CoalescingJob] so overlapping reconnects collapse into a
-  /// re-run instead of being dropped.
+  /// Put the app back together after a verified reconnect. Wrapped in
+  /// [CoalescingJob] so overlapping reconnects collapse into a re-run instead
+  /// of being dropped.
+  ///
+  /// Subscriptions are NOT this method's job any more, on either platform:
+  ///
+  ///  * Native replays its own query set across convex-rs reconnects
+  ///    (`resend_ongoing_queries_mutations`), and `ConvexBackend`'s
+  ///    `SubscriptionRegistry` re-registers after a forced rebuild — the one
+  ///    case convex-rs cannot cover, because the client is brand new.
+  ///  * The vendored web client replays `_subscriptions` into every new socket
+  ///    (`_replaySubscriptions` in `onopen`).
+  ///
+  /// Both were already true; this method was doing the work a second time. On
+  /// web it kept a genuine job — its explicit replay was the only one — right
+  /// up until that patch landed, and nobody came back to delete it. The cost
+  /// was the whole felt latency of a reconnect: twelve subscriptions torn down
+  /// and rebuilt, five REST round-trips, a serial pending flush, and a
+  /// signaling stop/start whose `stop()` clears the dedupe set, so every
+  /// reconnect re-dispatched call signals the app had already handled — an
+  /// incoming call could be offered twice for one caller.
+  ///
+  /// What genuinely needs doing is the work that is not a subscription: sends
+  /// that failed while the socket was down.
   late final CoalescingJob _resubscribeAll = CoalescingJob(() async {
     final s = _auth.session;
     if (s == null) return;
     try {
-      await _repo.resubscribe();
-      _callService.resubscribeWatch();
-      _groupCallService.resubscribe();
-      final deviceId = await DeviceIdentity.ensure();
-      await _signaling.stop();
-      await _signaling.start(s.userId, deviceId: deviceId);
+      await _repo.flushPending();
     } catch (e) {
       debugPrint('_resubscribeAll: $e');
     }
@@ -342,8 +356,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       });
     }
     if (state == AppLifecycleState.resumed) {
-      // Ask for an attempt at the moment the network is actually back.
-      _health.retryNow(manual: false);
+      // No retry kicked from here. [setForeground] above already did it, and it
+      // is the better-informed of the two: it knows how long we were away, and
+      // past a threshold that means "rebuild the socket" rather than "probe it".
+      // Two triggers per resume only ever meant the second one interrupting the
+      // first one's probe.
 
       // Stagger auxiliary background checks by 500ms so probeConnection gets
       // first access to the waking network socket without request contention.

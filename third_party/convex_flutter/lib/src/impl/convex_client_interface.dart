@@ -140,7 +140,24 @@ abstract class IConvexClient {
   /// Manually triggers a reconnection attempt.
   ///
   /// Returns `true` if reconnection was successful, `false` otherwise.
+  ///
+  /// NOTE: on native this does NOT touch the socket — it re-runs
+  /// `healthCheckQuery` and reports whether that succeeded. Use
+  /// [forceReconnect] when you actually need the connection rebuilt.
   Future<bool> reconnect();
+
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Tear the transport down and build a fresh one. Unlike [reconnect] this is
+  /// a genuine rebuild on every platform.
+  ///
+  /// Returns `true` once a new transport exists — **not** once it is connected.
+  /// Verify with a real round-trip before believing anything.
+  ///
+  /// On native, every subscription registered before this call is dead and the
+  /// caller must re-register. On web the client replays its own subscription
+  /// map into each new socket, so they survive.
+  Future<bool> forceReconnect();
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
 
   // ============================================================================
   // Lifecycle Management

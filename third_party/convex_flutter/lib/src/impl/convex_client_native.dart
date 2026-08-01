@@ -252,6 +252,14 @@ class NativeConvexClient implements IConvexClient {
     }
   }
 
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// The real thing. Drops the Rust `ConvexClient`, which aborts its worker,
+  /// which aborts the socket worker and closes the TCP stream, then builds a
+  /// fresh client on the same runtime. See `MobileConvexClient::force_reconnect`.
+  @override
+  Future<bool> forceReconnect() => _rustClient.forceReconnect();
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
+
   // ============================================================================
   // IConvexClient Implementation - Lifecycle Management
   // ============================================================================

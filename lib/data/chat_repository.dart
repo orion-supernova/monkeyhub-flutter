@@ -138,8 +138,6 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _readStateSub;
   Timer? _typingHeartbeat;
   bool _typingActive = false;
-  StreamSubscription<bool>? _connStateSub;
-  bool _wasConnected = true;
 
   /// Read state for the currently-open room: userId → lastReadAt.
   final Map<String, DateTime> _activeReadState = {};
@@ -205,10 +203,22 @@ class ChatRepository extends ChangeNotifier {
     } catch (_) {/* network down; cached rooms/friends remain visible */}
     notifyListeners();
 
+    // All five, and nulled immediately — [attach] is re-entrant (resubscribe()
+    // calls it), and the global typing handle used to be missing from this
+    // block while still being reassigned below. Every reconnect therefore left
+    // one live `typing:getTypingForUser` subscription behind with no handle to
+    // cancel it, so the query set grew by one per reconnect and every
+    // subsequent replay cost more than the last.
     _roomsSub?.cancel();
     _friendsSub?.cancel();
     _incomingSub?.cancel();
     _outgoingSub?.cancel();
+    _globalTypingSub?.cancel();
+    _roomsSub = null;
+    _friendsSub = null;
+    _incomingSub = null;
+    _outgoingSub = null;
+    _globalTypingSub = null;
 
     _roomsSub = await cv.subscribe(
       'rooms:listUserRooms',
@@ -290,20 +300,13 @@ class ChatRepository extends ChangeNotifier {
       onError: (err) => debugPrint('typing(global) sub error: $err'),
     );
 
-    // Auto-retry failed sends on socket reconnect. When the user is in a
-    // tunnel and a send hits an `error` state, the message often actually
-    // reached the server before the socket dropped — but we don't know that
-    // locally. On reconnect we both retry (in case it didn't make it) and
-    // rely on the widened [_reconcilePending] window to dedupe against the
-    // server-delivered copy. See [_retryPendingErrors].
-    _wasConnected = cv.isConnected;
-    _connStateSub?.cancel();
-    _connStateSub = cv.connectionState.listen((connected) {
-      if (connected && !_wasConnected) {
-        _retryPendingErrors();
-      }
-      _wasConnected = connected;
-    });
+    // Stuck sends used to be retried from a raw `cv.connectionState` listener
+    // here — a second, independent reconnect trigger with none of
+    // [ConnectionHealth]'s verification. convex-rs toggles connecting/connected
+    // on every lap of its own internal backoff, so it fired on laps that were
+    // not reconnects at all, re-posting messages against a socket that had not
+    // come back. [ConnectionHealth] owns that edge now, and it hands it to
+    // [flushPending], of which the old handler was a strict subset.
   }
 
   Future<void> detach() async {
@@ -320,7 +323,6 @@ class ChatRepository extends ChangeNotifier {
     // for whoever signs in next.
     _readStateSub?.cancel();
     _typingHeartbeat?.cancel();
-    _connStateSub?.cancel();
     _roomsSub = null;
     _friendsSub = null;
     _incomingSub = null;
@@ -330,7 +332,6 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub = null;
     _readStateSub = null;
     _typingHeartbeat = null;
-    _connStateSub = null;
     _activeRoomId = null;
     _openOwner = null;
     // Any open still in flight belongs to the account being signed out.
@@ -1738,36 +1739,6 @@ class ChatRepository extends ChangeNotifier {
       ..addAll(keep);
   }
 
-  /// Iterate every room's optimistic queue and re-send anything still in
-  /// `error`. Triggered on socket reconnect. The bubble flips back to
-  /// `pending` (rendered as "SENDING") so the user sees the in-place
-  /// retry; on success the live subscription delivers the server copy and
-  /// [_reconcilePending] removes the optimistic. On a second failure the
-  /// bubble returns to `error` and waits for the next reconnect or a manual
-  /// resend.
-  Future<void> _retryPendingErrors() async {
-    final id = _userId;
-    if (id == null) return;
-    final retryList = <(String, ChatMessage)>[];
-    for (final entry in _pending.entries) {
-      for (final m in entry.value) {
-        if (m.status == MessageStatus.error && _isPostable(m)) {
-          retryList.add((entry.key, m));
-        }
-      }
-    }
-    if (retryList.isEmpty) return;
-    // Flip every target back to pending first so the UI batches a single
-    // "SENDING" frame instead of one per send.
-    for (final (_, m) in retryList) {
-      m.status = MessageStatus.pending;
-    }
-    notifyListeners();
-    for (final (roomId, m) in retryList) {
-      await _postMessage(roomId, m);
-    }
-  }
-
   /// Whether a stuck optimistic message can be handed to `messages:send` as it
   /// stands.
   ///
@@ -1782,12 +1753,21 @@ class ChatRepository extends ChangeNotifier {
       m.status != MessageStatus.uploading &&
       !(m.isMedia && m.mediaStorageId == null);
 
-  /// Re-establish every subscription after a socket reconnect. The convex_flutter
-  /// web client resets its query set on reconnect but NEVER replays the
-  /// subscriptions, so rooms/messages/typing/friends/read-state all go silent
-  /// (the client thinks it's subscribed; the server sends nothing). Re-runs the
-  /// top-level subs via [attach] and, if a room is open, re-registers its
-  /// message/read/typing subs by re-opening it. Then flushes stuck sends.
+  /// Rebuild every subscription this repository owns from scratch: the
+  /// top-level subs via [attach], the open room's message/read/typing subs by
+  /// re-opening it, then a flush of stuck sends.
+  ///
+  /// **No longer on the reconnect path.** Both transports replay their own
+  /// query set across a reconnect, and `ConvexBackend`'s `SubscriptionRegistry`
+  /// covers the one case they cannot — a forced native rebuild, where the
+  /// client is brand new. Doing it again from here cost twelve teardowns, five
+  /// REST round-trips and a serial flush on every reconnect, which was most of
+  /// what a reconnect felt like. See `_resubscribeAll` in app.dart.
+  ///
+  /// Kept because a full local rebuild is still a coherent operation, and
+  /// because its interleaving with [openRoom]/[closeRoom] is the sharpest test
+  /// of the `_openGen` generation guard that push taps and screen switches
+  /// depend on.
   Future<void> resubscribe() async {
     final uid = _userId;
     if (uid == null) return;

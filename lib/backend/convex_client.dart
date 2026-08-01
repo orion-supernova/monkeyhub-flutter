@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../env.dart';
 import 'connection_health.dart' show ConnectionProbe;
+import 'subscription_registry.dart';
 
 /// Thin wrapper around [cv.ConvexClient] that decodes JSON results and
 /// surfaces typed errors. v02's auth model does not use JWTs — every
@@ -108,6 +109,14 @@ class ConvexBackend implements ConnectionProbe {
         s.contains('No result in action response');
   }
 
+  /// Every live subscription, and how to put it back after [reconnect] throws
+  /// the transport away. See [SubscriptionRegistry] for why the list is derived
+  /// rather than hand-maintained.
+  late final SubscriptionRegistry _registry = SubscriptionRegistry(
+    bind: _bindSubscription,
+    cancel: (h) => (h as cv.SubscriptionHandle).cancel(),
+  );
+
   Future<Subscription> subscribe(
     String name,
     Map<String, dynamic> args, {
@@ -115,13 +124,30 @@ class ConvexBackend implements ConnectionProbe {
     void Function(Object error)? onError,
   }) async {
     await _ensureInitialized();
-    // The web client silently drops subscriptions registered before the
-    // WebSocket finishes connecting (native queues them and replays on
-    // connect). On a restored session, attach() subscribes before the socket
-    // is up, which left the room list empty until a fresh login. Wait
-    // (bounded) for the connection before registering.
-    await _awaitConnected();
-    final handle = await _c.subscribe(
+    final entry = await _registry.add(
+      name,
+      args,
+      onData: onData,
+      onError: onError,
+    );
+    return Subscription._(entry);
+  }
+
+  Future<Object> _bindSubscription(
+    String name,
+    Map<String, dynamic> args,
+    void Function(dynamic) onData,
+    void Function(Object error)? onError,
+  ) async {
+    // Web only. There the client silently drops subscriptions registered
+    // before the socket finishes connecting, so a restored session subscribed
+    // into the void and the room list stayed empty until a fresh login. The
+    // native client has no such window: `ConvexClient::subscribe` pushes into
+    // an unbounded queue its worker drains once the socket is up. Waiting there
+    // was pure cost — up to 3s per subscription, and a rebind re-registers
+    // fifteen of them.
+    if (kIsWeb) await _awaitConnected();
+    return await _c.subscribe(
       name: name,
       args: args,
       onUpdate: (raw) {
@@ -133,7 +159,6 @@ class ConvexBackend implements ConnectionProbe {
       },
       onError: (msg, value) => onError?.call(ConvexError(msg, value)),
     );
-    return Subscription._(handle);
   }
 
   /// When [probeConnection] last round-tripped successfully. Better evidence
@@ -155,13 +180,12 @@ class ConvexBackend implements ConnectionProbe {
   /// concurrent attach() calls on boot (each subscribing several queries) can't
   /// collide on a single-subscription stream.
   ///
-  /// The timeout is short and the recent-probe short-circuit matters, because
-  /// this runs once per subscription and a reconnect re-registers eight of them
-  /// (see [ChatRepository.resubscribe]). With a 10s wait and a socket whose
-  /// cached state is wedged, resubscribing serialised into over a minute of
-  /// dead time — during which the app looked reconnected but received nothing.
-  /// [ConnectionHealth] only resubscribes after a probe has round-tripped, so
-  /// that path now skips the wait outright.
+  /// Web only — see [_bindSubscription]. The timeout is short and the
+  /// recent-probe short-circuit matters even there, because this runs once per
+  /// subscription and a rebind re-registers fifteen of them. With a 10s wait
+  /// and a socket whose cached state is wedged, resubscribing serialised into
+  /// over a minute of dead time — during which the app looked reconnected but
+  /// received nothing.
   Future<void> _awaitConnected({
     Duration timeout = const Duration(seconds: 3),
   }) async {
@@ -212,63 +236,76 @@ class ConvexBackend implements ConnectionProbe {
     }
   }
 
-  /// Force the client to tear down and rebuild the socket. Needed on WEB: a
-  /// backgrounded tab's socket can freeze WITHOUT the browser firing `onclose`,
-  /// so the client's cached state stays stuck on `connected` and it never
-  /// auto-reconnects. `probeConnection` reveals the deadness; this heals it.
-  /// After a rebuild the caller must re-register subscriptions — the web client
-  /// resets its query set on reconnect but never replays them.
-  ///
-  /// WEB ONLY in practice, and [ConnectionHealth] calls it only there. On
-  /// native, convex_flutter implements `reconnect()` as `checkConnection()` —
-  /// it re-runs `healthCheckQuery` and reports whether that succeeded, without
-  /// touching the socket. It cannot do otherwise: the Rust client keeps its
-  /// connection in a `OnceCell` and exposes no close/reconnect/dispose, and the
-  /// Dart singleton throws if re-initialized. So on iOS/Android there is no way
-  /// to rebuild a dead socket from here; recovery relies on the Rust client's
-  /// own internal reconnect loop, with `probeConnection` as the observer.
-  /// If a future convex_flutter release adds a real native reconnect, drop the
-  /// `kIsWeb` guard in `ConnectionHealth._loop`.
   /// When [reconnect] last actually tore the socket down.
   DateTime? _lastForcedReconnectAt;
 
-  /// Minimum spacing between forced teardowns. Sized to outlast the package's
-  /// own reconnect lap (a 1s scheduled retry plus the 2s settle its
-  /// `reconnect()` waits out) with room for the fresh socket to answer a probe.
-  static const _minForcedReconnectInterval = Duration(seconds: 12);
+  /// Minimum spacing between forced teardowns. Enough to outlast a handshake
+  /// and let the fresh socket answer a probe, and no more.
+  ///
+  /// Was 12s, sized around the web client's self-inflicted double-socket churn
+  /// (one `reconnect()` producing two connections a second apart). That churn
+  /// is fixed at the source now — on web by `_abandonSocket`, and on native it
+  /// never existed: `force_reconnect` holds a build lock across the whole
+  /// teardown-and-rebuild, so there is no window for a second socket.
+  static const _minForcedReconnectInterval = Duration(seconds: 5);
 
+  /// Bumped by each successful rebuild; stamps registry entries so a
+  /// subscribe that was in flight across the rebuild still gets re-bound.
+  int _generation = 0;
+
+  /// Whether a forced rebuild orphans the subscriptions we are holding.
+  ///
+  /// Native: yes. A fresh Rust `ConvexClient` starts with an empty query set
+  /// and the old handles' peer tasks have already exited, so every subscription
+  /// must be re-registered from here.
+  ///
+  /// Web: no. The vendored client replays its own `_subscriptions` map into
+  /// each new socket (`_replaySubscriptions`), so re-registering would create a
+  /// second live copy of every query and orphan the first.
+  static const _rebuildOrphansSubscriptions = !kIsWeb;
+
+  /// Tear the socket down and build a new one, then put every subscription back.
+  ///
+  /// This is the only way to recover a socket that has gone silent without
+  /// closing — the ordinary outcome of a phone resuming after a long sleep,
+  /// where the NAT binding expired or the interface changed and nothing was
+  /// sent to find out. Left alone, convex-rs notices only via a 30s
+  /// `SERVER_INACTIVITY_THRESHOLD` measured on a monotonic clock, which does
+  /// not advance while the device is asleep and so effectively restarts at
+  /// resume; every probe in that window parks on the dead socket for its full
+  /// timeout and tells us nothing. That is the whole "stuck on reconnecting for
+  /// half a minute" report.
+  ///
+  /// Returns true when a fresh transport exists. **That is not a verdict about
+  /// connectivity** — `force_reconnect` returns as soon as the socket worker is
+  /// spawned, not once it has handshaken. [ConnectionHealth] must still probe.
+  ///
+  /// Rate-limited: without a floor, a server that is merely down would get a
+  /// teardown per backoff rung, and each rebuild throws away a query set that
+  /// then has to be re-registered. Returning false when suppressed is not a
+  /// verdict either; the caller falls through to its normal failure path.
   @override
   Future<bool> reconnect() async {
-    // Rate-limited because the web client's `reconnect()` is destructive in a
-    // way that compounds: it closes the socket and immediately builds a new
-    // one, and the close it just caused fires `onclose` a moment later, whose
-    // handler schedules *another* reconnect that replaces the socket the manual
-    // call had built. One call, two sockets, and the second one lands ~1s after
-    // the first.
-    //
-    // That matters because a one-shot `query()` — which is exactly what
-    // [probeConnection] is — registers itself on whichever socket is current
-    // and waits up to `operationTimeout` for a Transition. Every probe issued
-    // during that churn was left on an abandoned socket and could only fail by
-    // timeout, which sent ConnectionHealth straight back here for another
-    // teardown. A single server-side hangup (`1011 InternalServerError`) was
-    // enough to start it, and nothing about it ever converged: the banner sat
-    // on "reconnecting…" while mutations, which need no query set, kept
-    // succeeding — which is precisely the split the logs show.
-    //
-    // So: heal at most once per [_minForcedReconnectInterval], and in between
-    // let the client's own backoff do its lap. Returning false is not a
-    // verdict; ConnectionHealth probes again on a false and marks itself
-    // online the moment one of those probes round-trips.
     final last = _lastForcedReconnectAt;
     if (last != null &&
         DateTime.now().difference(last) < _minForcedReconnectInterval) {
       return false;
     }
     _lastForcedReconnectAt = DateTime.now();
+    // A brand-new socket has proved nothing, so the subscribe path must not
+    // skip its connectivity wait on the strength of a probe that round-tripped
+    // over the socket we just destroyed.
+    _lastProbeOkAt = null;
     try {
-      return await _c.reconnect();
-    } catch (_) {
+      await _ensureInitialized();
+      final ok = await _c.forceReconnect();
+      if (!ok) return false;
+      if (_rebuildOrphansSubscriptions) {
+        await _registry.rebindAll(++_generation);
+      }
+      return true;
+    } catch (e) {
+      debugPrint('ConvexBackend.reconnect: $e');
       return false;
     }
   }
@@ -280,9 +317,12 @@ class ConvexBackend implements ConnectionProbe {
 }
 
 class Subscription {
-  Subscription._(this._handle);
-  final cv.SubscriptionHandle _handle;
-  void cancel() => _handle.cancel();
+  Subscription._(this._entry);
+  final RegisteredSub _entry;
+
+  /// Deregisters and cancels. Idempotent, and safe on a subscription whose
+  /// transport was rebuilt out from under it.
+  void cancel() => _entry.cancel();
 }
 
 class ConvexError implements Exception {

@@ -2,7 +2,7 @@ mod frb_generated;
 use std::{
     collections::{BTreeMap, HashMap},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
         Arc,
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -10,7 +10,6 @@ use std::{
 
 #[cfg(debug_assertions)]
 use android_logger::Config;
-use async_once_cell::OnceCell;
 use convex::{
     ConvexClient,
     ConvexClientBuilder,
@@ -139,7 +138,15 @@ impl SubscriptionHandle {
     #[frb(sync)]
     pub fn cancel(&self) {
         if let Some(sender) = self.cancel_sender.lock().take() {
-            sender.send(()).unwrap();
+            // ── monkeyhub patch ──────────────────────────────────────────────
+            // Was `.unwrap()`. The receiver lives in the per-subscription task,
+            // which exits on its own the moment the client's subscription
+            // stream ends — which is exactly what `force_reconnect` causes. A
+            // Dart-side `cancel()` after that (any screen disposing after a
+            // socket rebuild) then sent on a closed channel and panicked across
+            // FFI. Cancelling something already gone is not an error.
+            let _ = sender.send(());
+            // ── end monkeyhub patch ──────────────────────────────────────────
         }
     }
 }
@@ -200,13 +207,52 @@ impl QuerySubscriber for CallbackSubscriberDartFn {
 /// Main Convex client struct, opaque to Dart, managing connections and operations.
 #[frb(opaque)]
 pub struct MobileConvexClient {
-    deployment_url: String,         // URL of the Convex deployment
-    client_id: String,              // Client ID for authentication
-    client: OnceCell<ConvexClient>, // Lazy-initialized Convex client
-    rt: tokio::runtime::Runtime,    // Tokio runtime for async operations
+    deployment_url: String,      // URL of the Convex deployment
+    client_id: String,           // Client ID for authentication
+    rt: tokio::runtime::Runtime, // Tokio runtime for async operations
+    // ── monkeyhub patch ──────────────────────────────────────────────────────
+    // Was `client: OnceCell<ConvexClient>`, which by construction could never
+    // be replaced — and the `ConvexClient` behind it exposes no close,
+    // reconnect or dispose. So a socket that had gone silent without closing
+    // (the ordinary outcome of a phone resuming from a long sleep: the NAT
+    // binding expired, or the interface changed, and nothing was ever sent to
+    // find out) could only be healed by convex-rs's own detector — a 30s
+    // `SERVER_INACTIVITY_THRESHOLD` measured on a MONOTONIC clock, which does
+    // not advance while the device is asleep and therefore effectively
+    // restarts at resume. Meanwhile every one-shot query is
+    // `subscribe().next()` and parks rather than failing fast, so each probe
+    // cost its full timeout and told us nothing.
+    //
+    // A replaceable slot is the whole fix. Dropping the last `ConvexClient`
+    // clone aborts its worker, which drops the `WebSocketManager`, whose
+    // `Drop` aborts the socket worker and closes the stream. See
+    // [force_reconnect].
+    /// Current client. `None` only between the take and the re-insert inside
+    /// [force_reconnect]; racing callers block on [build_lock] and never see it.
+    client: Arc<tokio::sync::RwLock<Option<ConvexClient>>>,
+    /// Serialises *building*. Held across the whole of [force_reconnect], so
+    /// concurrent [connected_client] callers wait and then find the fresh
+    /// client rather than racing to build a second one.
+    build_lock: tokio::sync::Mutex<()>,
+    /// Bumped on every successful build. The state-change forwarder stamps its
+    /// generation, so a dying old socket cannot emit `Connecting`/`Connected`
+    /// into the app's stream after the swap.
+    generation: Arc<AtomicU64>,
+    // ── end monkeyhub patch ──────────────────────────────────────────────────
     // Channel sender for WebSocket state change notifications
     state_change_sender: Arc<Mutex<Option<tokio::sync::mpsc::Sender<ConvexWebSocketState>>>>,
 }
+
+/// Ceiling on a single Rust-side operation.
+///
+/// monkeyhub patch. Deliberately LONGER than `ConvexConfig.operationTimeout`
+/// (15s) so the Dart timeout still wins in normal operation — this exists only
+/// to stop a leak. Dart's `.timeout()` does not cancel the future underneath
+/// it, so an op parked on a dead socket kept a `ConvexClient` clone alive, and
+/// `ConvexClient::drop` only aborts the worker when the LAST clone goes. One
+/// stuck mutation could therefore keep the old socket open indefinitely after a
+/// rebuild had already opened a new one.
+const RUST_OP_TIMEOUT: Duration = Duration::from_secs(20);
 
 impl MobileConvexClient {
     /// Creates a new MobileConvexClient instance with the given deployment URL and client ID.
@@ -221,7 +267,9 @@ impl MobileConvexClient {
         MobileConvexClient {
             deployment_url,
             client_id,
-            client: OnceCell::new(),
+            client: Arc::new(tokio::sync::RwLock::new(None)),
+            build_lock: tokio::sync::Mutex::new(()),
+            generation: Arc::new(AtomicU64::new(0)),
             rt,
             state_change_sender: Arc::new(Mutex::new(None)),
         }
@@ -253,8 +301,12 @@ impl MobileConvexClient {
     ) -> Result<(), ClientError> {
         println!("RUST: on_websocket_state_change() called");
 
-        // Create tokio mpsc channel for receiving state changes from convex client
-        let (state_tx, mut state_rx) = tokio::sync::mpsc::channel::<ConvexWebSocketState>(10);
+        // Create tokio mpsc channel for receiving state changes from convex client.
+        // monkeyhub patch: was 10. Every emitter uses `try_send`, so a full
+        // channel drops state changes silently — and the Dart side caches the
+        // last value it saw as `isConnected`, so a dropped `Connected` left the
+        // client reporting `connecting` forever while queries worked fine.
+        let (state_tx, mut state_rx) = tokio::sync::mpsc::channel::<ConvexWebSocketState>(64);
         println!("RUST: Created mpsc channel for state changes");
 
         // Store sender for use when initializing the client
@@ -287,40 +339,131 @@ impl MobileConvexClient {
     }
 
     /// Retrieves or initializes a connected Convex client.
+    ///
+    /// monkeyhub patch: double-checked around [build_lock] so the common case
+    /// is a read-lock and nothing else, while a concurrent build (or a
+    /// [force_reconnect]) is waited out exactly once instead of racing into a
+    /// second client.
     async fn connected_client(&self) -> anyhow::Result<ConvexClient> {
-        let url = self.deployment_url.clone();
+        if let Some(c) = self.client.read().await.as_ref() {
+            return Ok(c.clone());
+        }
+        let _guard = self.build_lock.lock().await;
+        if let Some(c) = self.client.read().await.as_ref() {
+            return Ok(c.clone());
+        }
+        self.build_locked().await
+    }
+
+    /// Build a fresh client and install it. **Caller must hold [build_lock].**
+    ///
+    /// monkeyhub patch. Never holds the `RwLock` write guard across the build —
+    /// that would park every reader for the whole of it.
+    async fn build_locked(&self) -> anyhow::Result<ConvexClient> {
+        let gen = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         let state_sender = self.state_change_sender.lock().clone();
+        println!("RUST: build_locked() gen={} sender={:?}", gen, state_sender.is_some());
+        let gen_sender = state_sender.map(|out| self.spawn_state_forwarder(out, gen));
 
-        println!("RUST: connected_client() called with sender: {:?}", state_sender.is_some());
+        let url = self.deployment_url.clone();
+        let client_id = self.client_id.to_owned();
 
-        self.client
-            .get_or_try_init(async {
-                let client_id = self.client_id.to_owned();
-
-                // Build client directly without spawning a task
-                // This ensures callback is registered BEFORE connection starts
+        // Spawned on `self.rt` on purpose. `build()` calls bare `tokio::spawn`
+        // internally for the client worker and the socket worker, so this pins
+        // both to the runtime this struct owns rather than whatever executor
+        // flutter_rust_bridge happened to run us on. That is what makes
+        // abort-on-drop deterministic, and abort-on-drop is the entire
+        // mechanism behind [force_reconnect].
+        let fresh = self
+            .rt
+            .spawn(async move {
                 println!("RUST: Building ConvexClient directly (no task spawn)");
-                let mut builder = ConvexClientBuilder::new(url.as_str())
-                    .with_client_id(&client_id);
-
-                // Register state change callback BEFORE building
-                if let Some(sender) = state_sender {
-                    println!("RUST: Registering state change callback with builder");
+                let mut builder =
+                    ConvexClientBuilder::new(url.as_str()).with_client_id(&client_id);
+                // Register the state change callback BEFORE building.
+                if let Some(sender) = gen_sender {
                     builder = builder.with_on_state_change(sender);
                 } else {
                     println!("RUST WARNING: No sender available - state changes will not be emitted");
                 }
-
                 println!("RUST: Calling builder.build() - connection will start now");
-                let result = builder.build().await;
-                match &result {
-                    Ok(_) => println!("RUST: ConvexClient built successfully"),
-                    Err(e) => println!("RUST ERROR: Failed to build ConvexClient: {:?}", e),
-                }
-                result
+                builder.build().await
             })
-            .await
-            .map(|client_ref| client_ref.clone())
+            .await??;
+
+        println!("RUST: ConvexClient built successfully (gen={})", gen);
+        *self.client.write().await = Some(fresh.clone());
+        Ok(fresh)
+    }
+
+    /// Tear the socket down and build a fresh client, on the same runtime and
+    /// the same state channel.
+    ///
+    /// monkeyhub patch — the whole reason this file was touched. Dropping the
+    /// last `ConvexClient` clone aborts its worker (`ConvexClient::drop` →
+    /// `Arc::try_unwrap(listen_handle).abort()`), which drops the
+    /// `WebSocketManager`, whose own `Drop` aborts the socket worker and closes
+    /// the TCP stream. That is the only way to close this socket; the client
+    /// exposes nothing else.
+    ///
+    /// Two things the caller must know:
+    ///
+    ///  * **`true` does not mean "connected".** `build()` returns as soon as
+    ///    the socket worker is spawned — it does not await the handshake. It
+    ///    means "a fresh client exists". Verify with a real round-trip.
+    ///  * **Every existing subscription is gone.** Their streams end and the
+    ///    per-subscription tasks exit through the `None` arm in
+    ///    [internal_subscribe]. The Dart side owns re-registration (see
+    ///    `SubscriptionRegistry`); replaying here would require Rust to hold
+    ///    the Dart callbacks, which it does not.
+    ///
+    /// The tokio runtime is NOT dropped — only the client in the slot is
+    /// replaced. Dropping a multi-thread `Runtime` from an FFI drop context
+    /// blocks the calling thread and can panic outright, which is why the
+    /// alternative of rebuilding the whole `MobileConvexClient` from Dart was
+    /// rejected.
+    #[frb]
+    pub async fn force_reconnect(&self) -> Result<bool, ClientError> {
+        let _guard = self.build_lock.lock().await;
+        println!("RUST: force_reconnect() tearing down current client");
+        // Take first, then drop with no lock held.
+        let old = self.client.write().await.take();
+        drop(old);
+        self.build_locked().await?;
+        Ok(true)
+    }
+
+    /// Wrap the app-facing state channel in a generation-stamped forwarder.
+    ///
+    /// monkeyhub patch. An aborted socket worker can still have a
+    /// `Connecting`/`Connected` in flight; without this stamp it would land in
+    /// the app's stream after the swap and be read as news about the new
+    /// socket.
+    fn spawn_state_forwarder(
+        &self,
+        out: tokio::sync::mpsc::Sender<ConvexWebSocketState>,
+        gen: u64,
+    ) -> tokio::sync::mpsc::Sender<ConvexWebSocketState> {
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<ConvexWebSocketState>(64);
+        let current = self.generation.clone();
+        self.rt.spawn(async move {
+            while let Some(state) = rx.recv().await {
+                if current.load(Ordering::SeqCst) != gen {
+                    continue; // a client that is no longer ours
+                }
+                let _ = out.try_send(state);
+            }
+            // Ends when the aborted worker drops its sender.
+        });
+        tx
+    }
+
+    /// Snapshot the current client without building one. Used by long-lived
+    /// loops that must not pin a stale client across a rebuild.
+    async fn current_client(
+        slot: &tokio::sync::RwLock<Option<ConvexClient>>,
+    ) -> Option<ConvexClient> {
+        slot.read().await.clone()
     }
 
     /// Executes a query on the Convex backend.
@@ -330,11 +473,34 @@ impl MobileConvexClient {
         name: String,
         args: HashMap<String, String>,
     ) -> Result<String, ClientError> {
-        let mut client = self.connected_client().await?;
-        debug!("got the client");
-        let result = client.query(name.as_str(), parse_json_args(args)).await?;
+        let result = self.internal_query(name, args).await?;
         debug!("got the result");
         handle_direct_function_result(result)
+    }
+
+    /// Internal method for query logic.
+    ///
+    /// monkeyhub patch: spawned on our runtime and bounded. A one-shot query in
+    /// convex-rs is `subscribe().next()`, so on a dead socket it parks rather
+    /// than failing — and the clone it holds defers the worker abort that
+    /// [force_reconnect] depends on. See [RUST_OP_TIMEOUT].
+    async fn internal_query(
+        &self,
+        name: String,
+        args: HashMap<String, String>,
+    ) -> anyhow::Result<FunctionResult> {
+        let mut client = self.connected_client().await?;
+        debug!("got the client");
+        self.rt
+            .spawn(async move {
+                tokio::time::timeout(
+                    RUST_OP_TIMEOUT,
+                    client.query(name.as_str(), parse_json_args(args)),
+                )
+                .await
+            })
+            .await?
+            .map_err(|_| anyhow::anyhow!("QueryTimeout"))?
     }
 
     /// Subscribes to real-time updates from a Convex query.
@@ -427,9 +593,17 @@ impl MobileConvexClient {
         args: HashMap<String, String>,
     ) -> anyhow::Result<FunctionResult> {
         let mut client = self.connected_client().await?;
+        // monkeyhub patch: bounded — see [RUST_OP_TIMEOUT].
         self.rt
-            .spawn(async move { client.mutation(&name, parse_json_args(args)).await })
+            .spawn(async move {
+                tokio::time::timeout(
+                    RUST_OP_TIMEOUT,
+                    client.mutation(&name, parse_json_args(args)),
+                )
+                .await
+            })
             .await?
+            .map_err(|_| anyhow::anyhow!("MutationTimeout"))?
     }
 
     /// Executes an action on the Convex backend.
@@ -453,9 +627,14 @@ impl MobileConvexClient {
     ) -> anyhow::Result<FunctionResult> {
         let mut client = self.connected_client().await?;
         debug!("Running action: {}", name);
+        // monkeyhub patch: bounded — see [RUST_OP_TIMEOUT].
         self.rt
-            .spawn(async move { client.action(&name, parse_json_args(args)).await })
+            .spawn(async move {
+                tokio::time::timeout(RUST_OP_TIMEOUT, client.action(&name, parse_json_args(args)))
+                    .await
+            })
             .await?
+            .map_err(|_| anyhow::anyhow!("ActionTimeout"))?
     }
 
     /// Sets authentication token for the client.
@@ -491,7 +670,17 @@ impl MobileConvexClient {
         let is_authenticated = Arc::new(AtomicBool::new(false));
         let (cancel_sender, cancel_receiver) = oneshot::channel::<()>();
 
-        let client = self.connected_client().await?;
+        // ── monkeyhub patch ──────────────────────────────────────────────────
+        // Was `let client = self.connected_client().await?;` — a `ConvexClient`
+        // clone captured for the life of the refresh loop, i.e. forever. Since
+        // `ConvexClient::drop` only aborts the worker when the LAST clone goes,
+        // that one capture would have kept every torn-down socket alive across
+        // every [force_reconnect]. Hold the slot instead and re-read the
+        // current client at each use. (monkeyhub does not call this today; the
+        // trap is removed rather than left armed.)
+        self.connected_client().await?; // ensure one exists before we start
+        let client_slot = self.client.clone();
+        // ── end monkeyhub patch ──────────────────────────────────────────────
         let is_auth_clone = is_authenticated.clone();
 
         let fetch_token = Arc::new(fetch_token);
@@ -518,8 +707,9 @@ impl MobileConvexClient {
                     _ = cancel_fut => {
                         // Cancelled - clear auth and exit
                         debug!("Auth refresh cancelled");
-                        let mut client = client.clone();
-                        let _ = client.set_auth(None).await;
+                        if let Some(mut client) = Self::current_client(&client_slot).await {
+                            let _ = client.set_auth(None).await;
+                        }
                         if was_authenticated {
                             let on_auth_change_clone = on_auth_change.clone();
                             let future = (on_auth_change_clone)(false);
@@ -538,8 +728,9 @@ impl MobileConvexClient {
                 match token_result {
                     Some(token) => {
                         // Set the token
-                        let mut client = client.clone();
-                        client.set_auth(Some(token.clone())).await;
+                        if let Some(mut client) = Self::current_client(&client_slot).await {
+                            client.set_auth(Some(token.clone())).await;
+                        }
 
                         // Notify state change if needed
                         if !was_authenticated {
@@ -575,8 +766,9 @@ impl MobileConvexClient {
                         select_biased! {
                             _ = cancel_fut => {
                                 debug!("Auth refresh cancelled during sleep");
-                                let mut client = client.clone();
-                                let _ = client.set_auth(None).await;
+                                if let Some(mut client) = Self::current_client(&client_slot).await {
+                                    let _ = client.set_auth(None).await;
+                                }
                                 if was_authenticated {
                                     let on_auth_change_clone = on_auth_change.clone();
                                     let future = (on_auth_change_clone)(false);
@@ -592,8 +784,9 @@ impl MobileConvexClient {
                     None => {
                         // No token - clear auth
                         debug!("Token fetcher returned None, clearing auth");
-                        let mut client = client.clone();
-                        let _ = client.set_auth(None).await;
+                        if let Some(mut client) = Self::current_client(&client_slot).await {
+                            let _ = client.set_auth(None).await;
+                        }
 
                         if was_authenticated {
                             is_auth_clone.store(false, Ordering::SeqCst);

@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'lib.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `connected_client`, `decode_jwt_expiry`, `handle_direct_function_result`, `internal_action`, `internal_mutation`, `internal_set_auth`, `internal_subscribe`, `new`, `new`, `parse_json_args`
+// These functions are ignored because they are not marked as `pub`: `build_locked`, `connected_client`, `current_client`, `decode_jwt_expiry`, `handle_direct_function_result`, `internal_action`, `internal_mutation`, `internal_query`, `internal_set_auth`, `internal_subscribe`, `new`, `new`, `parse_json_args`, `spawn_state_forwarder`
 // These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `JwtClaims`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`, `fmt`, `fmt`, `from`, `from`
 
@@ -49,6 +49,34 @@ abstract class MobileConvexClient implements RustOpaqueInterface {
     required String name,
     required Map<String, String> args,
   });
+
+  /// Tear the socket down and build a fresh client, on the same runtime and
+  /// the same state channel.
+  ///
+  /// monkeyhub patch — the whole reason this file was touched. Dropping the
+  /// last `ConvexClient` clone aborts its worker (`ConvexClient::drop` →
+  /// `Arc::try_unwrap(listen_handle).abort()`), which drops the
+  /// `WebSocketManager`, whose own `Drop` aborts the socket worker and closes
+  /// the TCP stream. That is the only way to close this socket; the client
+  /// exposes nothing else.
+  ///
+  /// Two things the caller must know:
+  ///
+  ///  * **`true` does not mean "connected".** `build()` returns as soon as
+  ///    the socket worker is spawned — it does not await the handshake. It
+  ///    means "a fresh client exists". Verify with a real round-trip.
+  ///  * **Every existing subscription is gone.** Their streams end and the
+  ///    per-subscription tasks exit through the `None` arm in
+  ///    [internal_subscribe]. The Dart side owns re-registration (see
+  ///    `SubscriptionRegistry`); replaying here would require Rust to hold
+  ///    the Dart callbacks, which it does not.
+  ///
+  /// The tokio runtime is NOT dropped — only the client in the slot is
+  /// replaced. Dropping a multi-thread `Runtime` from an FFI drop context
+  /// blocks the calling thread and can panic outright, which is why the
+  /// alternative of rebuilding the whole `MobileConvexClient` from Dart was
+  /// rejected.
+  Future<bool> forceReconnect();
 
   /// Executes a mutation on the Convex backend.
   Future<String> mutation({

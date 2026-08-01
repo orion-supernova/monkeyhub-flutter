@@ -124,9 +124,13 @@ class _Strip extends StatelessWidget {
       onTap: health.retryNow,
       radius: theme.radiusMd,
       semanticLabel: 'Retry connection',
+      // The detector is here for its hit area only — the strip is mostly
+      // padding, and without `opaque` the gaps between the dot and the label
+      // are not tappable. It carries no `onTap`: FocusableTap already has one,
+      // and both firing meant one tap starting a probe and immediately
+      // interrupting it.
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: health.retryNow,
         child: body,
       ),
     );

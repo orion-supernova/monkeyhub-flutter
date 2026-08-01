@@ -6,11 +6,20 @@ Vendored from `pub.dev/convex_flutter-3.0.1` and wired up through
 except the changes below, each bracketed by `monkeyhub patch` comments so the
 whole delta is greppable.
 
-Every change is in **`lib/src/impl/convex_client_web.dart`**. The native client
-(`convex_client_native.dart`) needs none of them — it is a thin bridge to the
-official `convex` Rust crate, which owns the socket and its query set and
-maintains both across reconnects. There is no Dart-side socket, reconnect timer
-or subscription registry on that path to get any of this wrong.
+There are two independent patch sets, for two unrelated bugs:
+
+1. **The web reconnect loop** — five defects in
+   `lib/src/impl/convex_client_web.dart`, described below.
+2. **The native zombie socket** — `rust/src/lib.rs` plus the thin Dart shims
+   that expose it, described in [Native: a real reconnect](#native-a-real-reconnect).
+
+Regenerate after touching `rust/src/lib.rs`:
+
+```sh
+cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+cd third_party/convex_flutter && flutter_rust_bridge_codegen generate
+flutter clean          # see the warning in the native section
+```
 
 ## Why
 
@@ -143,10 +152,86 @@ ceiling is the app's loop, which does not give up, rather than this counter.
 
 Worth knowing that the native path has no equivalent cliff: convex-rs runs an
 uncapped `loop` with backoff capped at 15s (`client/worker.rs:90`), resets on
-success, and resends queries and mutations after every reconnect. That is why
-`ConnectionHealth` only calls `reconnect()` under `kIsWeb` — on native the
-client's own loop is the recovery mechanism, and `reconnect()` there is not a
-reconnect at all (it runs `healthCheckQuery` and reports the result).
+success, and resends queries and mutations after every reconnect. What it cannot
+do is notice a socket that never closed — see below.
+
+## Native: a real reconnect
+
+Files: **`rust/src/lib.rs`**, plus `forceReconnect` shims in
+`lib/src/impl/convex_client_interface.dart`, `convex_client_native.dart`,
+`convex_client_web.dart` and `lib/src/convex_client.dart`.
+
+### Why
+
+A resumed phone very often holds a socket that is open and dead: the NAT binding
+expired or the interface changed while the app was suspended, and nothing was
+sent to find out. convex-rs detects this only in `web_socket_manager.rs`:
+
+```rust
+_ = self.ping_ticker.tick().fuse() => {
+    if Instant::now() - internal.last_server_response > SERVER_INACTIVITY_THRESHOLD {
+        anyhow::bail!("InactiveServer");
+    }
+},
+```
+
+Two properties of that make it useless on a phone. It only *checks* — it never
+sends a ping, so it is waiting on server traffic that a black-holed socket will
+never deliver. And `Instant` is monotonic, which does not advance while the
+device sleeps, so the 30s countdown effectively restarts at resume rather than
+having elapsed during the night.
+
+Meanwhile a one-shot `query` in convex-rs is `subscribe().next()`
+(`client/mod.rs:234`), so on a dead socket it parks instead of failing. Every
+probe cost its full timeout and reported nothing. The app had no lever: the
+client lived in a `OnceCell` and exposes no close, reconnect or dispose, so
+`convex_client_native.dart`'s `reconnect()` could only re-run `healthCheckQuery`
+and report the result — a health check wearing a reconnect's name.
+
+### What changed
+
+- **`client: OnceCell<ConvexClient>` → `Arc<RwLock<Option<ConvexClient>>>`**,
+  with a `build_lock` serialising builds and a `generation` counter. Dropping
+  the last `ConvexClient` clone aborts its worker (`ConvexClient::drop` →
+  `Arc::try_unwrap(listen_handle).abort()`), which drops the
+  `WebSocketManager`, whose `Drop` aborts the socket worker and closes the
+  stream. That drop is the only way to close this socket.
+- **`force_reconnect()`** does exactly that, then rebuilds. It returns as soon
+  as the new socket worker is spawned — *not* once connected, since `build()`
+  does not await the handshake. The caller must verify with a round-trip.
+- **Builds are spawned on the struct's own runtime.** `build()` calls bare
+  `tokio::spawn` internally, so this pins the client worker and socket worker to
+  a runtime we control, which is what makes abort-on-drop deterministic. The
+  runtime itself is never dropped — only the client in the slot is replaced.
+- **`SubscriptionHandle::cancel` no longer `unwrap()`s.** The receiver lives in
+  the per-subscription task, which exits the moment the client's stream ends —
+  i.e. on every rebuild. A Dart-side `cancel()` after that (any screen disposing
+  after a reconnect) sent on a closed channel and panicked across FFI.
+- **The state channel went from 10 slots to 64.** Every emitter uses `try_send`,
+  so a full channel drops state changes silently, and the Dart side caches the
+  last value it saw as `isConnected` — a dropped `Connected` left the client
+  reporting `connecting` forever while queries worked fine.
+- **`set_auth_with_refresh` no longer captures a `ConvexClient`** for the life
+  of its loop. One such capture would have kept every torn-down socket alive
+  forever, since the worker abort needs the *last* clone to go.
+- **`query`/`mutation`/`action` are bounded by `RUST_OP_TIMEOUT` (20s)**,
+  deliberately longer than `ConvexConfig.operationTimeout` so Dart still wins
+  normally. Dart's `.timeout()` does not cancel the future underneath it, so
+  without this an op parked on a dead socket held a clone and deferred the abort.
+
+Subscriptions do **not** survive a native rebuild — the fresh client starts with
+an empty query set. `ConvexBackend`'s `SubscriptionRegistry` re-registers them;
+Rust cannot, because it does not own the Dart callbacks. On web they *do*
+survive (`_replaySubscriptions` in `onopen`), which is why
+`ConvexBackend._rebuildOrphansSubscriptions` is native-only.
+
+### After editing `rust/src/lib.rs`
+
+Re-run codegen (command at the top of this file) and then **`flutter clean` plus
+a full native rebuild**. Adding a `pub` method shifts every FRB dispatch index
+after it and changes `rustContentHash`. Against a stale `.a`/`.so` that either
+throws at `RustLib.init()` or, worse, silently dispatches one function into
+another.
 
 ## Upgrading
 

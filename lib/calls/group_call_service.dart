@@ -115,12 +115,20 @@ class GroupCallService extends ChangeNotifier {
     _resubscribe();
   }
 
-  /// Re-establish the per-user subscriptions after a socket reconnect.
-  void resubscribe() => _resubscribe();
+  // `resubscribe()` used to live here, called on every socket reconnect.
+  // Removed: both transports replay their own query set, and `ConvexBackend`'s
+  // SubscriptionRegistry covers a forced rebuild. These two go through it like
+  // every other subscription.
+
+  /// Bumped on every [_resubscribe]. Two overlapping calls each land a handle
+  /// in the same two fields, so without this the loser was orphaned live with
+  /// nothing left to cancel it. Same shape as the guard in [_enterCall].
+  int _subGen = 0;
 
   void _resubscribe() {
     final me = _userId;
     if (me == null) return;
+    final gen = ++_subGen;
     _signalsSub?.cancel();
     _signalsSub = null;
     _inviteSub?.cancel();
@@ -131,7 +139,13 @@ class GroupCallService extends ChangeNotifier {
           onSignals: _onSignals,
           onError: (e) => debugPrint('GroupCallService signals error: $e'),
         )
-        .then((s) => _signalsSub = s));
+        .then((s) {
+      if (gen != _subGen || _userId != me) {
+        s.cancel();
+        return;
+      }
+      _signalsSub = s;
+    }));
     unawaited(api
         .subscribePendingInvite(
           userId: me,
@@ -141,7 +155,13 @@ class GroupCallService extends ChangeNotifier {
           },
           onError: (e) => debugPrint('GroupCallService invite error: $e'),
         )
-        .then((s) => _inviteSub = s));
+        .then((s) {
+      if (gen != _subGen || _userId != me) {
+        s.cancel();
+        return;
+      }
+      _inviteSub = s;
+    }));
   }
 
   // ───────── lifecycle ─────────

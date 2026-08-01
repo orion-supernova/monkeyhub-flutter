@@ -89,15 +89,10 @@ class CallService extends ChangeNotifier {
     if (callId.isNotEmpty) _localCallIds.add(callId);
   }
 
-  /// Re-establish the cross-device active-call watch after a socket reconnect
-  /// (the web client drops subscriptions on reconnect and never replays them).
-  /// Forces a fresh subscription even for the same user.
-  void resubscribeWatch() {
-    final uid = _userId;
-    if (uid == null) return;
-    _activeCallWatchUserId = null; // bypass the same-user short-circuit
-    _watchActiveCall(uid);
-  }
+  // `resubscribeWatch()` used to live here, to re-register this watch after a
+  // socket reconnect. Removed: both transports replay their own query set, and
+  // `ConvexBackend`'s SubscriptionRegistry covers a forced rebuild — this
+  // subscription goes through it like every other one.
 
   void _watchActiveCall(String userId) {
     if (_activeCallWatchUserId == userId && _activeCallSub != null) return;

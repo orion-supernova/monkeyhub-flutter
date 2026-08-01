@@ -916,6 +916,16 @@ class WebConvexClient implements IConvexClient {
   }
 
   @override
+  Future<bool> forceReconnect() async {
+    // monkeyhub patch: on web `reconnect()` already IS a genuine teardown and
+    // rebuild — it is the native one that was a health check in disguise. The
+    // one behavioural difference from native is that `onopen` replays this
+    // client's own `_subscriptions` map (see `_replaySubscriptions`), so
+    // subscriptions survive a rebuild here and the caller need not re-register.
+    return reconnect();
+  }
+
+  @override
   Future<bool> reconnect() async {
     debugPrint('=== [WebConvexClient] Manual reconnect requested ===');
 

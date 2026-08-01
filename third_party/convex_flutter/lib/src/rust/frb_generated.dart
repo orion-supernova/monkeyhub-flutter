@@ -64,7 +64,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 1095084362;
+  int get rustContentHash => -392724412;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -105,6 +105,10 @@ abstract class RustLibApi extends BaseApi {
     required MobileConvexClient that,
     required String name,
     required Map<String, String> args,
+  });
+
+  Future<bool> crateMobileConvexClientForceReconnect({
+    required MobileConvexClient that,
   });
 
   Future<String> crateMobileConvexClientMutation({
@@ -455,6 +459,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<bool> crateMobileConvexClientForceReconnect({
+    required MobileConvexClient that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerMobileConvexClient(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_client_error,
+        ),
+        constMeta: kCrateMobileConvexClientForceReconnectConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateMobileConvexClientForceReconnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "MobileConvexClient_force_reconnect",
+        argNames: ["that"],
+      );
+
+  @override
   Future<String> crateMobileConvexClientMutation({
     required MobileConvexClient that,
     required String name,
@@ -473,7 +513,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -505,7 +545,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(deploymentUrl, serializer);
           sse_encode_String(clientId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -544,7 +584,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -584,7 +624,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 12,
             port: port_,
           );
         },
@@ -622,7 +662,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 13,
             port: port_,
           );
         },
@@ -668,7 +708,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 14,
             port: port_,
           );
         },
@@ -719,7 +759,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 15,
             port: port_,
           );
         },
@@ -751,7 +791,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2134,6 +2174,35 @@ class MobileConvexClientImpl extends RustOpaque implements MobileConvexClient {
     name: name,
     args: args,
   );
+
+  /// Tear the socket down and build a fresh client, on the same runtime and
+  /// the same state channel.
+  ///
+  /// monkeyhub patch — the whole reason this file was touched. Dropping the
+  /// last `ConvexClient` clone aborts its worker (`ConvexClient::drop` →
+  /// `Arc::try_unwrap(listen_handle).abort()`), which drops the
+  /// `WebSocketManager`, whose own `Drop` aborts the socket worker and closes
+  /// the TCP stream. That is the only way to close this socket; the client
+  /// exposes nothing else.
+  ///
+  /// Two things the caller must know:
+  ///
+  ///  * **`true` does not mean "connected".** `build()` returns as soon as
+  ///    the socket worker is spawned — it does not await the handshake. It
+  ///    means "a fresh client exists". Verify with a real round-trip.
+  ///  * **Every existing subscription is gone.** Their streams end and the
+  ///    per-subscription tasks exit through the `None` arm in
+  ///    [internal_subscribe]. The Dart side owns re-registration (see
+  ///    `SubscriptionRegistry`); replaying here would require Rust to hold
+  ///    the Dart callbacks, which it does not.
+  ///
+  /// The tokio runtime is NOT dropped — only the client in the slot is
+  /// replaced. Dropping a multi-thread `Runtime` from an FFI drop context
+  /// blocks the calling thread and can panic outright, which is why the
+  /// alternative of rebuilding the whole `MobileConvexClient` from Dart was
+  /// rejected.
+  Future<bool> forceReconnect() =>
+      RustLib.instance.api.crateMobileConvexClientForceReconnect(that: this);
 
   /// Executes a mutation on the Convex backend.
   Future<String> mutation({

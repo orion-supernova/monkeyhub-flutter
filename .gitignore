@@ -40,6 +40,13 @@ backend/node_modules/**
 /third_party/convex_flutter/android/.gradle/
 /third_party/convex_flutter/android/build/
 
+# Cargo scratch from building the vendored plugin's Rust crate, and the lockfile
+# `flutter_rust_bridge_codegen generate` drops while resolving the package. The
+# crate's Cargo.lock IS tracked — it pins the convex crate the socket behaviour
+# in ConnectionHealth is reasoned against.
+/third_party/convex_flutter/rust/target/
+/third_party/convex_flutter/pubspec.lock
+
 # Symbolication related
 app.*.symbols
 

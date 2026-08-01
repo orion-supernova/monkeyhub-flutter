@@ -71,20 +71,25 @@ class CoalescingJob {
 /// A socket can stop working in two ways, and the client's own
 /// `connectionState` is unreliable for both:
 ///
-///   1. **It dies and reconnects.** The convex_flutter web client resets its
-///      query set on reconnect and NEVER replays subscriptions, so
-///      rooms/messages/typing/friends all go silent while the client believes
-///      it is subscribed.
+///   1. **It dies and reconnects.** Both clients replay their own query set
+///      across this now (convex-rs `resend_ongoing_queries_mutations`; the
+///      vendored web client's `_replaySubscriptions`), so data comes back on its
+///      own — but the stream reports it as a `connecting`/`connected` pair, and
+///      convex-rs emits that pair on every lap of its internal backoff whether
+///      or not anything was wrong.
 ///   2. **It freezes with no `onclose`.** Nothing is emitted at all, so the
-///      client reports `connected` forever and never reconnects. Conversely,
-///      after a long OS suspension the native stream can wedge on
-///      `connecting`/`reconnecting` and never re-emit `connected` even though
-///      queries work fine.
+///      client reports `connected` forever and never reconnects. This is the
+///      common case after a long background: the NAT binding expired or the
+///      interface changed while the device slept, and nothing on either side
+///      has any reason to notice. convex-rs's own detector for it is a 30s
+///      inactivity check on a MONOTONIC clock — which does not advance during
+///      sleep, so it has learned nothing by the time we resume.
 ///
 /// So the stream is a hint, not truth. Ground truth is a real round-trip
-/// ([ConnectionProbe.probeConnection], which also prods the native client into
-/// rebuilding a dead socket). This class treats the stream as one input among
-/// several, and a successful probe as authoritative.
+/// ([ConnectionProbe.probeConnection]) — and when even that cannot get through,
+/// [ConnectionProbe.reconnect] tears the transport down and builds a new one,
+/// which is the only exit from case 2. This class treats the stream as one
+/// input among several, and a successful probe as authoritative.
 ///
 /// ───────── the guarantees ─────────
 ///
@@ -100,10 +105,14 @@ class CoalescingJob {
 ///    behind a healthy-looking UI. Conversely, a `connected` event on the
 ///    stream used to mark us online on its own — see [_onSocketState] for why
 ///    that produced a flapping banner and a resubscribe storm.
-///  * **[onReconnected] only runs after a probe returned true.** That matters
-///    because every `subscribe()` first waits (up to 10s) for the socket to
-///    come up; re-subscribing while down would burn that timeout once per
-///    subscription. Confirming first keeps resubscribe fast.
+///  * **[onReconnected] only runs after a probe returned true.** It is cheap
+///    now — subscriptions restore themselves (see above, and
+///    `SubscriptionRegistry` for the forced-rebuild case), so all that is left
+///    is flushing sends that failed while the socket was down. Confirming
+///    first still matters: re-posting into a dead socket just re-fails them.
+///  * **A successful rebuild is not a verdict either.** [ConnectionProbe.reconnect]
+///    returns once a fresh transport exists, not once it has connected — see
+///    `ConvexBackend.reconnect`. It buys a socket worth probing, nothing more.
 class ConnectionHealth extends ChangeNotifier {
   ConnectionHealth({
     required ConnectionProbe backend,
@@ -122,11 +131,21 @@ class ConnectionHealth extends ChangeNotifier {
       Duration(seconds: 15),
     ],
     this.heartbeatFailureThreshold = 2,
+    this.backgroundRebuildThreshold = const Duration(seconds: 20),
+    this.rebuildAfterAttempt = 2,
+    this.rebuildTimeout = const Duration(seconds: 6),
+    this.connectivityRetryThrottle = const Duration(seconds: 3),
+    this.maxStalledRearms = 2,
+    this.minLoopInterval = const Duration(milliseconds: 750),
+    DateTime Function() now = DateTime.now,
+    Stream<bool>? connectivity,
     bool watchConnectivity = true,
   }) : initialGraceDelay = initialGraceDelay ?? (graceDelay == const Duration(milliseconds: 1200) ? const Duration(milliseconds: 2500) : graceDelay),
        _backend = backend,
        _onReconnected = onReconnected,
        _isActive = isActive,
+       _now = now,
+       _connectivity = connectivity,
        _watchConnectivity = watchConnectivity;
 
   final ConnectionProbe _backend;
@@ -166,6 +185,42 @@ class ConnectionHealth extends ChangeNotifier {
   /// socket is frozen despite reporting `connected`.
   final int heartbeatFailureThreshold;
 
+  /// A background gap at least this long means the socket is presumed dead and
+  /// gets rebuilt on sight, without spending a probe timeout confirming it.
+  ///
+  /// Measured on the WALL clock, deliberately. The failure this targets is a
+  /// socket whose NAT binding expired or whose interface changed while the
+  /// device slept, and convex-rs's own detector for that is monotonic — it does
+  /// not advance during sleep, so it has learned nothing by the time we resume.
+  final Duration backgroundRebuildThreshold;
+
+  /// How many failed probes before the loop escalates to a rebuild. Above zero
+  /// so a merely slow server does not get its socket torn down on one miss.
+  final int rebuildAfterAttempt;
+
+  /// Ceiling on a rebuild. A rebuild that is taking this long has stopped being
+  /// the fast path it exists to be, so fall through and probe.
+  final Duration rebuildTimeout;
+
+  /// Minimum spacing between retries triggered by OS interface changes. Both
+  /// platforms emit several of these per unlock.
+  final Duration connectivityRetryThrottle;
+
+  /// How many times one healing episode may push the "can't reach server"
+  /// alarm back on evidence of progress. Capped because uncapped, a socket
+  /// flapping every few seconds would defer the alarm forever — a permanently
+  /// broken connection that never says so.
+  final int maxStalledRearms;
+
+  /// The part of a backoff wait that no wake may cut short. See [_sleepAtLeast].
+  final Duration minLoopInterval;
+
+  /// Injectable wall clock. Tests advance it instantly instead of waiting.
+  final DateTime Function() _now;
+
+  /// Injectable connectivity signal (true = a usable interface exists).
+  final Stream<bool>? _connectivity;
+
   final bool _watchConnectivity;
 
   ConnectionPhase _phase = ConnectionPhase.online;
@@ -183,8 +238,30 @@ class ConnectionHealth extends ChangeNotifier {
   /// When the in-flight probe started, used to debounce rapid cancellation attempts.
   DateTime? _lastProbeStartedAt;
 
+  /// True while the non-healing "verify" probe in [retryNow] is in flight.
+  /// Separate from [_retrying], which is a UI flag: using the UI flag as a
+  /// mutex is what made tap-to-retry a no-op for up to a full probe timeout.
+  bool _verifying = false;
+
   StreamSubscription<bool>? _socketSub;
-  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<Object?>? _connectivitySub;
+
+  /// When the app last went to the background, or null while foreground.
+  DateTime? _backgroundedAt;
+
+  /// Set when we already know the socket is probably dead — rebuild before
+  /// wasting a probe timeout on it. Consumed by [_loop].
+  bool _wantRebuild = false;
+
+  DateTime? _lastConnectivityRetryAt;
+
+  /// Consecutive interrupted attempts. Guards against a socket edge storm
+  /// spinning [_loop] with neither backoff nor progress.
+  int _interruptsInARow = 0;
+
+  /// How many times [_noteProgress] has already pushed the stalled alarm back
+  /// this episode.
+  int _stalledRearms = 0;
 
   Timer? _graceTimer;
   Timer? _stalledTimer;
@@ -215,10 +292,17 @@ class ConnectionHealth extends ChangeNotifier {
   // ───────── lifecycle ─────────
 
   /// Begin watching. Call once, after the backend has initialized successfully.
+  ///
+  /// Re-entrant: `_bootstrap()` re-runs from the boot-error RETRY button, and
+  /// leaving the old subscriptions attached doubled every socket edge and every
+  /// interface change — including the retries they trigger.
   void start() {
+    if (_disposed) return;
     _socketUp = _backend.isConnected;
     _socketSub?.cancel();
     _socketSub = _backend.connectionState.listen(_onSocketState);
+    _connectivitySub?.cancel();
+    _connectivitySub = null;
     if (_watchConnectivity) _startConnectivityWatch();
     if (!_socketUp) _beginHealing();
   }
@@ -227,10 +311,26 @@ class ConnectionHealth extends ChangeNotifier {
   /// waiting out the backoff. Never a verdict — see the class doc.
   void _startConnectivityWatch() {
     try {
-      _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
-        final usable =
-            results.isNotEmpty && !results.contains(ConnectivityResult.none);
-        if (usable) retryNow(manual: true);
+      final stream = _connectivity ??
+          Connectivity().onConnectivityChanged.map(
+                (results) => results.isNotEmpty &&
+                    !results.contains(ConnectivityResult.none),
+              );
+      _connectivitySub = stream.listen((usable) {
+        if (!usable) return;
+        // Throttled, and non-manual. Both matter. iOS and Android each emit a
+        // burst of interface transitions per unlock, and `manual: true` forces
+        // an interrupt — so unthrottled manual retries killed the in-flight
+        // probe over and over and the loop never got an answer out of any of
+        // them.
+        final n = _now();
+        final last = _lastConnectivityRetryAt;
+        if (last != null && n.difference(last) < connectivityRetryThrottle) {
+          return;
+        }
+        _lastConnectivityRetryAt = n;
+        _noteProgress();
+        retryNow(manual: false);
       });
     } catch (_) {
       // Unsupported platform — the backoff loop is the backstop.
@@ -277,8 +377,16 @@ class ConnectionHealth extends ChangeNotifier {
     if (wasUp) return;
     if (_healing) {
       _attempt = 0;
-      _interruptAttempt(force: true);
+      _noteProgress();
       _wake();
+      // Deliberately NOT [_interruptAttempt]. An edge is a hint that whatever
+      // is already in flight is now worth waiting for, and the probe in flight
+      // is registered in the very query set convex-rs resends on reconnect —
+      // so it is about to resolve. Killing it threw away exactly the evidence
+      // the edge was telling us to gather, and since convex-rs emits an edge at
+      // the top of every internal backoff lap, edges arriving faster than a
+      // probe resolves spun [_loop] on `ok == null` forever: no backoff, no UI,
+      // no answer.
     } else if (_phase != ConnectionPhase.online) {
       // Not healing yet somehow reporting an outage — verify and reconcile.
       unawaited(retryNow(manual: true));
@@ -311,10 +419,25 @@ class ConnectionHealth extends ChangeNotifier {
 
   /// Park recovery in the background; on return to the foreground, retry at
   /// once — a suspended app almost always wakes with a stale socket.
+  ///
+  /// And past [backgroundRebuildThreshold], "stale" is the wrong word: the
+  /// socket is very likely open and dead, with nothing on either side that will
+  /// notice. Rebuild it on sight rather than spending a probe timeout learning
+  /// what the length of the gap already told us.
   void setForeground(bool foreground) {
     if (_disposed || _foreground == foreground) return;
     _foreground = foreground;
-    if (foreground) retryNow(manual: true);
+    if (!foreground) {
+      _backgroundedAt = _now();
+      return;
+    }
+    final since = _backgroundedAt;
+    _backgroundedAt = null;
+    if (since != null &&
+        _now().difference(since) >= backgroundRebuildThreshold) {
+      _wantRebuild = true;
+    }
+    retryNow(manual: true);
   }
 
   /// Force an immediate attempt: reset the backoff and skip any pending wait.
@@ -332,16 +455,45 @@ class ConnectionHealth extends ChangeNotifier {
       _wake();
       return;
     }
+    // A pending rebuild belongs to the loop, which is the only path that knows
+    // how to rebuild and then probe. Without this the resume case fell straight
+    // through to the verify below and spent a probe timeout on the very socket
+    // the background gap already told us was dead — which is the whole bug.
+    // Note the socket almost always still claims `connected` here: nothing on
+    // either side of a NAT-expired connection has any reason to say otherwise.
+    if (_wantRebuild) {
+      _beginHealing();
+      return;
+    }
+
     // Reported healthy. Verify rather than trust — this is the path a manual
-    // tap and a resume both take when the socket is frozen-but-"connected".
-    if (_retrying) return;
+    // tap takes when the socket is frozen-but-"connected".
+    //
+    // The verify is interruptible and guarded by its own flag. It used to bail
+    // on `_retrying`, which is the *banner's* spinner flag, so a user tapping
+    // "tap to retry" during an in-flight verify did nothing at all for up to a
+    // full probe timeout — on the one screen whose entire purpose is to make
+    // something happen.
+    if (_verifying) {
+      if (!manual) return; // an automatic nudge defers to the one in flight
+      _interruptAttempt(force: true);
+    }
+    _verifying = true;
     if (manual) _isManualOrResumeRetry = true;
     _setRetrying(true);
-    _lastProbeStartedAt = DateTime.now();
-    final ok = await _backend.probeConnection(timeout: probeTimeout);
+    final gate = _interrupt = Completer<void>();
+    _lastProbeStartedAt = _now();
+    final ok = await _raceInterrupt(
+      _backend.probeConnection(timeout: firstProbeTimeout),
+      gate,
+    );
+    if (_interrupt == gate) _interrupt = null;
+    _verifying = false;
+    if (_disposed) return;
+    // Superseded: the successor owns the outcome, including the spinner.
+    if (ok == null) return;
     _setRetrying(false);
     _isManualOrResumeRetry = false;
-    if (_disposed) return;
     if (!ok) {
       _beginHealing();
     } else if (_phase != ConnectionPhase.online) {
@@ -359,7 +511,7 @@ class ConnectionHealth extends ChangeNotifier {
 
   void _interruptAttempt({bool force = false}) {
     if (!force && _lastProbeStartedAt != null) {
-      final elapsed = DateTime.now().difference(_lastProbeStartedAt!);
+      final elapsed = _now().difference(_lastProbeStartedAt!);
       // Debounce: do not cancel a probe that started less than 1.5s ago
       // unless force is true (manual tap/socket state event).
       if (elapsed < const Duration(milliseconds: 1500)) return;
@@ -439,10 +591,42 @@ class ConnectionHealth extends ChangeNotifier {
 
   void _disarmUiTimers() {
     _uiTimersArmed = false;
+    _stalledRearms = 0;
     _graceTimer?.cancel();
     _graceTimer = null;
     _stalledTimer?.cancel();
     _stalledTimer = null;
+  }
+
+  /// Something happened that is genuine evidence recovery is moving: a socket
+  /// `connected` edge, or the OS reporting a usable interface. Notably NOT a
+  /// successful rebuild — that only says a fresh transport exists, and it says
+  /// it just as confidently on a phone in airplane mode.
+  ///
+  /// None of these are verdicts, so none of them clears the banner. But pushing
+  /// the "can't reach server · tap to retry" alarm back is right, because that
+  /// alarm is a claim that nothing is happening — and it used to be on a fixed
+  /// clock from the first failed probe, so it fired on schedule no matter how
+  /// much progress had been made since.
+  ///
+  /// Capped at [maxStalledRearms] per episode: uncapped, a socket flapping
+  /// every few seconds would defer the alarm forever, which is the opposite
+  /// failure — a connection that is genuinely broken and never says so.
+  ///
+  /// [_uiTimersArmed] stays latched. That latch correctly stops the *grace*
+  /// clock re-running on every failure; only the stalled leg is resettable.
+  void _noteProgress() {
+    if (_disposed || !_uiTimersArmed) return;
+    if (_stalledRearms >= maxStalledRearms) return;
+    _stalledRearms++;
+    _stalledTimer?.cancel();
+    _stalledTimer = Timer(stalledAfter, () {
+      if (_disposed || !_healing) return;
+      _setPhase(ConnectionPhase.stalled);
+    });
+    if (_phase == ConnectionPhase.stalled) {
+      _setPhase(ConnectionPhase.reconnecting);
+    }
   }
 
   Future<void> _loop() async {
@@ -463,44 +647,79 @@ class ConnectionHealth extends ChangeNotifier {
       final showRetrying = _phase != ConnectionPhase.stalled || _isManualOrResumeRetry || _attempt == 0;
       if (showRetrying) _setRetrying(true);
 
-      _lastProbeStartedAt = DateTime.now();
+      // Rebuild BEFORE the first probe when the gap we just came back from
+      // already tells us the socket is dead (see [setForeground]). Probing a
+      // zombie costs a full [firstProbeTimeout] to learn something we can
+      // predict, and that wasted 7s is most of what a user experiences as
+      // "stuck on reconnecting".
+      if (_wantRebuild && _healing && !_disposed) {
+        _wantRebuild = false;
+        await _raceInterrupt(
+          _backend.reconnect().timeout(rebuildTimeout, onTimeout: () => false),
+          gate,
+        );
+        // Deliberately not [_noteProgress] and deliberately not inspected. A
+        // rebuild reports that a fresh transport EXISTS, not that it reached
+        // anything — it does not await the handshake. On a phone with no
+        // network at all it succeeds every time, so treating it as progress
+        // would defer the "can't reach server" alarm for precisely the user who
+        // most needs to see it. The handshake that follows announces itself on
+        // the socket stream, and that edge is real evidence.
+      }
+
+      _lastProbeStartedAt = _now();
       final quick = _attempt == 0 ? firstProbeTimeout : probeTimeout;
       var ok = await _raceInterrupt(
         _backend.probeConnection(timeout: quick),
         gate,
       );
 
-      // Web only, and deliberately so. There, `reconnect()` is a genuine
-      // teardown and rebuild, which the platform needs: a backgrounded tab's
-      // socket can freeze WITHOUT the browser firing `onclose`, so the client
-      // never heals it on its own.
+      // Escalation, on every platform. `reconnect()` is now a genuine teardown
+      // and rebuild on native too (see `ConvexBackend.reconnect`), which is the
+      // only way to recover a socket that went silent without closing — the
+      // ordinary result of a long background, and one convex-rs itself notices
+      // only after 30s on a clock that does not run while the device sleeps.
       //
-      // On native it is not a reconnect at all. convex_flutter implements it as
-      // `checkConnection()` — the very same health-check query the probe above
-      // just ran, with the client's own 30s operation timeout. It cannot touch
-      // the socket even in principle: the Rust client holds its connection in a
-      // OnceCell and exposes no close, reconnect or dispose. Calling it here
-      // bought nothing, blocked this loop for up to 30s per attempt (which is
-      // what made "tap to retry" feel dead), and tripled the query load on a
-      // server we already suspect of being overloaded. The Rust client runs its
-      // own reconnect loop; the probe above is how we learn whether it worked.
-      if (ok == false && kIsWeb && _healing && !_disposed) {
+      // Gated on the attempt count so a merely slow server does not get its
+      // socket torn down on the first miss: a rebuild throws away a query set
+      // that then has to be re-registered, which is not free.
+      if (ok == false &&
+          _attempt >= rebuildAfterAttempt &&
+          _healing &&
+          !_disposed) {
         final healed = await _raceInterrupt(
-          _backend.reconnect().timeout(probeTimeout, onTimeout: () => false),
+          _backend.reconnect().timeout(rebuildTimeout, onTimeout: () => false),
           gate,
         );
-        ok = healed == null || healed
-            ? healed
-            : await _raceInterrupt(
-                _backend.probeConnection(timeout: probeTimeout),
-                gate,
-              );
+        if (healed == true) {
+          // Re-probe at once — the point of the rebuild is that the next probe
+          // rides a socket that can actually carry it. The backoff ladder is
+          // NOT reset: it measures how long this outage has lasted, and a
+          // rebuild does not shorten that. Resetting it left a phone with no
+          // network oscillating on the first two rungs forever instead of
+          // settling at one attempt per 15s.
+          ok = await _raceInterrupt(
+            _backend.probeConnection(timeout: probeTimeout),
+            gate,
+          );
+        } else {
+          // null → interrupted. false → rate-limited or failed, which is not a
+          // second probe failure; carry the one we already have.
+          ok = healed;
+        }
       }
       if (_interrupt == gate) _interrupt = null;
       if (_disposed) return;
       if (ok == null) {
+        // Insurance against any interrupt source arriving faster than a probe
+        // can resolve. Without a floor this branch is an unbounded busy loop
+        // that issues a fresh query per lap.
+        if (++_interruptsInARow >= 3) {
+          await _sleep(const Duration(milliseconds: 250));
+        }
         continue;
       }
+      _interruptsInARow = 0;
       _setRetrying(false);
       _isManualOrResumeRetry = false;
 
@@ -514,8 +733,23 @@ class ConnectionHealth extends ChangeNotifier {
       _armUiTimers();
 
       _attempt++;
-      await _sleep(_backoffFor(_attempt));
+      await _sleepAtLeast(_backoffFor(_attempt));
     }
+  }
+
+  /// Wait out [d], of which the first [minLoopInterval] cannot be cut short.
+  ///
+  /// A wake — a socket edge, an interface change, a tap — should shorten a long
+  /// wait. It should never remove it. convex-rs emits a `connected` edge at the
+  /// top of every lap of its own internal reconnect backoff, and each one both
+  /// wakes this loop and resets its ladder, so a flapping socket could drive
+  /// this into an unbounded source of server queries — against the server whose
+  /// slowness started the flapping. The floor is what stops the feedback.
+  Future<void> _sleepAtLeast(Duration d) async {
+    final floor = d < minLoopInterval ? d : minLoopInterval;
+    await Future<void>.delayed(floor);
+    if (_disposed || !_healing) return;
+    if (d > floor) await _sleep(d - floor);
   }
 
   Duration _backoffFor(int attempt) {
@@ -565,6 +799,8 @@ class ConnectionHealth extends ChangeNotifier {
     _healing = false;
     _attempt = 0;
     _consecutiveRoundTripFailures = 0;
+    _interruptsInARow = 0;
+    _wantRebuild = false;
     _disarmUiTimers();
     _wake();
     _setPhase(ConnectionPhase.online);

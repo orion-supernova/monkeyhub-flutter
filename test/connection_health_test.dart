@@ -12,8 +12,18 @@ class FakeProbe implements ConnectionProbe {
   bool probeResult = true;
   Duration probeDelay = Duration.zero;
 
+  /// Independent of [probeResult]: a rebuild can succeed onto a socket that
+  /// still cannot reach the server, which is exactly the case the loop has to
+  /// keep probing through.
+  bool reconnectResult = true;
+  Duration reconnectDelay = Duration.zero;
+
   int probeCalls = 0;
   int reconnectCalls = 0;
+
+  /// Ordered log of every call. Some claims are about sequence, not counts —
+  /// "rebuilt before it probed" is not the same as "rebuilt and probed".
+  final List<String> calls = [];
 
   @override
   bool get isConnected => connected;
@@ -26,6 +36,7 @@ class FakeProbe implements ConnectionProbe {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     probeCalls++;
+    calls.add('probe');
     if (probeDelay > Duration.zero) await Future<void>.delayed(probeDelay);
     return probeResult;
   }
@@ -33,7 +44,11 @@ class FakeProbe implements ConnectionProbe {
   @override
   Future<bool> reconnect() async {
     reconnectCalls++;
-    return probeResult;
+    calls.add('reconnect');
+    if (reconnectDelay > Duration.zero) {
+      await Future<void>.delayed(reconnectDelay);
+    }
+    return reconnectResult;
   }
 
   /// Emit a socket-state event. Also updates [isConnected] so the two agree,
@@ -46,7 +61,21 @@ class FakeProbe implements ConnectionProbe {
   Future<void> close() => _ctrl.close();
 }
 
+/// A wall clock the test moves by hand.
+///
+/// The background-gap and connectivity-throttle rules are stated in wall-clock
+/// seconds because that is what they are actually about — how long the device
+/// was asleep, how fast the OS emits interface changes. Waiting those out for
+/// real would put minutes into a suite that runs in twenty seconds.
+class FakeClock {
+  DateTime _now = DateTime.utc(2026);
+  DateTime call() => _now;
+  void advance(Duration d) => _now = _now.add(d);
+}
+
 /// Real timers at ~100x speed, so the tests exercise the actual async paths.
+/// Anything measured in wall-clock seconds goes through [FakeClock] instead.
+/// No test may await more than 250ms of real time.
 const _grace = Duration(milliseconds: 20);
 const _stalled = Duration(milliseconds: 60);
 const _probe = Duration(milliseconds: 5);
@@ -54,11 +83,16 @@ const _probe = Duration(milliseconds: 5);
 void main() {
   late FakeProbe probe;
   late ConnectionHealth health;
+  late FakeClock clock;
+  late StreamController<bool> connectivity;
   late int resubscribes;
   var active = true;
 
   ConnectionHealth build({
     List<Duration> backoff = const [Duration(milliseconds: 10)],
+    int rebuildAfterAttempt = 2,
+    int maxStalledRearms = 2,
+    bool watchConnectivity = false,
   }) {
     return health = ConnectionHealth(
       backend: probe,
@@ -69,8 +103,17 @@ void main() {
       firstProbeTimeout: _probe,
       probeTimeout: _probe,
       backoff: backoff,
-      // Connectivity() needs a platform channel; the loop is what we're testing.
-      watchConnectivity: false,
+      rebuildAfterAttempt: rebuildAfterAttempt,
+      rebuildTimeout: _probe,
+      maxStalledRearms: maxStalledRearms,
+      // Scaled with the rest of the clocks. In production this is 750ms; here
+      // it is the floor no wake may cut off a 10ms backoff rung.
+      minLoopInterval: const Duration(milliseconds: 10),
+      now: clock.call,
+      connectivity: connectivity.stream,
+      // Connectivity() needs a platform channel; the injected stream stands in
+      // where a test drives interface changes on purpose.
+      watchConnectivity: watchConnectivity,
     );
   }
 
@@ -79,6 +122,8 @@ void main() {
   group('ConnectionHealth', () {
     setUp(() {
       probe = FakeProbe();
+      clock = FakeClock();
+      connectivity = StreamController<bool>.broadcast();
       resubscribes = 0;
       active = true;
     });
@@ -86,6 +131,7 @@ void main() {
     tearDown(() async {
       health.dispose();
       await probe.close();
+      await connectivity.close();
     });
 
     test(
@@ -184,12 +230,20 @@ void main() {
       );
       expect(
         probe.reconnectCalls,
-        0,
+        greaterThan(0),
         reason:
-            'reconnect() is web-only. On native convex_flutter implements it '
-            'as the same health-check query the probe just ran — it cannot '
-            'reach the socket — so calling it tripled the load, healed '
-            'nothing, and blocked this loop for up to 30s an attempt.',
+            'a socket that never answers is the case a rebuild exists for — on '
+            'native it is the ONLY way to close one, since convex-rs notices a '
+            'silent socket solely via a 30s monotonic timer that does not run '
+            'while the device sleeps.',
+      );
+      expect(
+        probe.reconnectCalls,
+        lessThan(probe.probeCalls),
+        reason:
+            'but it is an escalation, not the loop. A rebuild throws away a '
+            'query set that has to be re-registered; a merely slow server must '
+            'not get one per attempt.',
       );
       expect(health.phase, ConnectionPhase.stalled);
       expect(resubscribes, 0);
@@ -418,6 +472,7 @@ void main() {
 
     test('sustained socket flapping neither resubscribes nor resets the UI', () async {
       probe.probeResult = false;
+      probe.reconnectResult = false;
       build().start();
 
       for (var i = 0; i < 5; i++) {
@@ -430,9 +485,20 @@ void main() {
       expect(resubscribes, 0, reason: 'no probe ever succeeded');
       expect(
         health.phase,
-        ConnectionPhase.stalled,
+        isNot(ConnectionPhase.online),
         reason: 'one continuous outage, not five short ones',
       );
+
+      // Each edge is evidence of progress, so the alarm gets pushed back — but
+      // only [maxStalledRearms] times. Past that the flapping is the outage,
+      // and a connection that is genuinely broken has to say so.
+      await settle(_stalled * 4);
+      expect(
+        health.phase,
+        ConnectionPhase.stalled,
+        reason: 'the alarm cannot be deferred forever by flapping',
+      );
+      expect(resubscribes, 0);
     });
 
     // Defect: "tap to retry" was dead. retryNow only completed the backoff
@@ -526,6 +592,213 @@ void main() {
       unawaited(health.retryNow(manual: true));
       expect(health.isRetrying, isTrue, reason: 'manual tap sets isRetrying true so spinner displays');
       await settle(const Duration(milliseconds: 30));
+    });
+
+    // ───────── rebuilding the socket ─────────
+    //
+    // The reported bug: a phone unlocked after minutes away sat on
+    // "reconnecting…", escalated to "can't reach server · tap to retry", and
+    // took twenty to thirty seconds to clear — while the same app on a fresh
+    // launch connected instantly. The socket was open and dead (NAT binding
+    // expired, or the interface changed while asleep) and nothing could close
+    // it: convex-rs notices only via a 30s inactivity check on a MONOTONIC
+    // clock, which does not advance during sleep and so effectively restarts at
+    // resume, and every probe meanwhile parks on the dead socket for its full
+    // timeout. These tests pin the way out.
+
+    test('a long background gap rebuilds the socket before probing', () async {
+      build().start();
+
+      health.setForeground(false);
+      clock.advance(const Duration(minutes: 5));
+      health.setForeground(true);
+      await settle(const Duration(milliseconds: 30));
+
+      expect(
+        probe.calls.first,
+        'reconnect',
+        reason:
+            'the length of the gap is already the answer — spending a probe '
+            'timeout confirming it is the delay users report',
+      );
+      expect(health.phase, ConnectionPhase.online);
+      expect(resubscribes, 1, reason: 'a fresh socket needs its subs put back');
+    });
+
+    test('a short background gap does not rebuild', () async {
+      build().start();
+
+      health.setForeground(false);
+      clock.advance(const Duration(seconds: 2));
+      health.setForeground(true);
+      await settle(const Duration(milliseconds: 30));
+
+      expect(
+        probe.reconnectCalls,
+        0,
+        reason:
+            'an app-switcher peek leaves a working socket; tearing it down '
+            'would cost a handshake and every subscription for nothing',
+      );
+      expect(probe.probeCalls, greaterThan(0));
+      expect(health.phase, ConnectionPhase.online);
+    });
+
+    test('the rebuild escalation waits for rebuildAfterAttempt failures', () async {
+      probe.probeResult = false;
+      probe.reconnectResult = false;
+      build(backoff: const [Duration(milliseconds: 10)]).start();
+
+      probe.emit(false);
+      // Two attempts in: still probing only.
+      await settle(const Duration(milliseconds: 25));
+      expect(
+        probe.calls.take(2),
+        everyElement('probe'),
+        reason: 'a merely slow server must not lose its socket on one miss',
+      );
+
+      await settle(const Duration(milliseconds: 120));
+      expect(probe.reconnectCalls, greaterThan(0));
+    });
+
+    test('a rebuild is re-probed at once and does not reset the backoff', () async {
+      probe.probeResult = false;
+      build(backoff: const [
+        Duration(milliseconds: 10),
+        Duration(milliseconds: 10),
+        Duration(seconds: 30),
+      ]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 60));
+
+      final i = probe.calls.indexOf('reconnect');
+      expect(i, greaterThanOrEqualTo(0));
+      expect(
+        probe.calls[i + 1],
+        'probe',
+        reason: 'the point of a rebuild is the probe that rides the new socket',
+      );
+
+      // The ladder measures how long the outage has lasted, which a rebuild
+      // does not shorten. Resetting it left an offline phone oscillating on the
+      // first two rungs instead of settling at one attempt per 15s.
+      final settled = probe.probeCalls;
+      await settle(const Duration(milliseconds: 80));
+      expect(probe.probeCalls, settled, reason: 'parked on the 30s rung');
+    });
+
+    test('a connected edge no longer cancels an in-flight probe', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 60);
+      build(backoff: const [Duration(seconds: 30)]).start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 15));
+      expect(probe.probeCalls, 1);
+
+      // The socket comes back mid-probe. That probe is registered in the very
+      // query set convex-rs resends on reconnect, so it is about to resolve —
+      // and convex-rs emits this edge on every lap of its own backoff, so
+      // killing the probe on it meant edges arriving faster than a probe could
+      // resolve spun the loop forever without ever getting an answer.
+      probe.probeResult = true;
+      probe.emit(true);
+      await settle(const Duration(milliseconds: 80));
+
+      expect(
+        probe.probeCalls,
+        1,
+        reason: 'the edge said "wait for it", not "start over"',
+      );
+      expect(health.phase, ConnectionPhase.online);
+      expect(resubscribes, 1);
+    });
+
+    test('an interrupt storm cannot spin the loop', () async {
+      probe.probeResult = false;
+      probe.reconnectResult = false;
+      build(backoff: const [Duration(milliseconds: 10)]).start();
+
+      probe.emit(false);
+      for (var i = 0; i < 50; i++) {
+        probe.emit(false);
+        probe.emit(true);
+      }
+      await settle(const Duration(milliseconds: 100));
+
+      expect(
+        probe.probeCalls,
+        lessThan(15),
+        reason: 'a busy loop here issues a fresh server query per lap',
+      );
+    });
+
+    test('connectivity storms produce at most one retry per throttle window',
+        () async {
+      probe.probeResult = false;
+      build(backoff: const [Duration(seconds: 30)], watchConnectivity: true)
+          .start();
+
+      probe.emit(false);
+      await settle(const Duration(milliseconds: 30));
+      final before = probe.probeCalls;
+
+      // Both platforms emit a burst of interface transitions per unlock.
+      for (var i = 0; i < 8; i++) {
+        connectivity.add(true);
+      }
+      await settle(const Duration(milliseconds: 30));
+
+      expect(
+        probe.probeCalls - before,
+        lessThanOrEqualTo(1),
+        reason: 'unthrottled, each one killed the probe the last one started',
+      );
+    });
+
+    test('tap-to-retry during a verify starts a fresh probe', () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 120);
+      build().start();
+
+      // Not healing — the socket claims to be fine.
+      unawaited(health.retryNow(manual: true));
+      await settle(const Duration(milliseconds: 20));
+      expect(probe.probeCalls, 1);
+
+      // The user taps again. This used to bail on the banner's own spinner
+      // flag, so the tap did nothing at all for a full probe timeout — on the
+      // one control whose entire purpose is to make something happen.
+      clock.advance(const Duration(seconds: 5)); // past the interrupt debounce
+      unawaited(health.retryNow(manual: true));
+      await settle(const Duration(milliseconds: 20));
+
+      expect(probe.probeCalls, 2);
+      await settle(const Duration(milliseconds: 150));
+    });
+
+    test('an automatic retry during a verify defers instead of piling on',
+        () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(milliseconds: 100);
+      build().start();
+
+      unawaited(health.retryNow(manual: true));
+      await settle(const Duration(milliseconds: 20));
+      expect(probe.probeCalls, 1);
+
+      clock.advance(const Duration(seconds: 5));
+      await health.retryNow(manual: false);
+      await settle(const Duration(milliseconds: 20));
+
+      expect(
+        probe.probeCalls,
+        1,
+        reason: 'an OS nudge has no more to say than the probe already running',
+      );
+      await settle(const Duration(milliseconds: 120));
     });
   });
 

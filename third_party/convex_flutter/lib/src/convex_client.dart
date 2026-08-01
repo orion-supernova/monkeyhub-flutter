@@ -376,6 +376,13 @@ class ConvexClient {
   /// ```
   Future<bool> reconnect() => _impl.reconnect();
 
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Tear the transport down and build a fresh one. Unlike [reconnect] this is
+  /// a genuine rebuild on every platform — see [IConvexClient.forceReconnect]
+  /// for what the return value does and does not promise.
+  Future<bool> forceReconnect() => _impl.forceReconnect();
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
+
   // ============================================================================
   // Lifecycle Management API
   // ============================================================================
