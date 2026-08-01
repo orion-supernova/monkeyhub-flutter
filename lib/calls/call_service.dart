@@ -203,7 +203,13 @@ class CallService extends ChangeNotifier {
   /// Reset by `_teardown` along with the rest of the session state.
   bool _acceptedNatively = false;
   bool get acceptedNatively => _acceptedNatively;
-  void markAcceptedNatively() {
+
+  /// The call the latch was set for, when the caller knew it. Lets the
+  /// watchdog dismiss precisely that card instead of every card on the device.
+  String? _latchedAcceptCallId;
+
+  void markAcceptedNatively({String? callId}) {
+    _latchedAcceptCallId = callId ?? _latchedAcceptCallId ?? _session?.callId;
     _armAcceptWatchdog();
     if (_acceptedNatively) return;
     _acceptedNatively = true;
@@ -233,8 +239,17 @@ class CallService extends ChangeNotifier {
       if (s != null) {
         await _teardown(CallStatus.failed, errorMessage: 'Call unavailable');
       } else {
+        // No session of ours, so there is nothing here to tear down — and
+        // crucially nothing to justify `endAllCalls()`. That is a
+        // process-wide, call-agnostic sledgehammer: it broadcasts ENDED to
+        // every isolate in the process, which is exactly how a stray isolate
+        // used to hang up a call it knew nothing about. Dismiss only the card
+        // we latched on, and only if we know which one it was.
+        final latched = _latchedAcceptCallId;
         clearNativeAccept();
-        unawaited(NativeCallHandler.instance.endAllNative());
+        if (latched != null) {
+          unawaited(NativeCallHandler.instance.endNativeByCallId(latched));
+        }
       }
     });
   }
@@ -245,6 +260,7 @@ class CallService extends ChangeNotifier {
   void clearNativeAccept() {
     _acceptWatchdog?.cancel();
     _acceptWatchdog = null;
+    _latchedAcceptCallId = null;
     if (!_acceptedNatively) return;
     _acceptedNatively = false;
     notifyListeners();
@@ -429,7 +445,7 @@ class CallService extends ChangeNotifier {
       // will auto-fire `acceptIncoming()` the moment the offer lands and
       // the PC is set up. This is the same flag CallKit uses when the
       // user taps Accept before the offer signal arrives.
-      markAcceptedNatively();
+      markAcceptedNatively(callId: s.callId);
       return;
     }
 
@@ -1697,6 +1713,7 @@ class CallService extends ChangeNotifier {
     // the delayed null-out below opens a 400ms window where a new incoming
     // call would be mis-routed straight to CallScreen.
     _acceptedNatively = false;
+    _latchedAcceptCallId = null;
     final s = _session;
     if (s != null) {
       _session = s.copyWith(status: terminal, errorMessage: errorMessage);

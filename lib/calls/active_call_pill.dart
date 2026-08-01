@@ -48,7 +48,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
     _busy = true;
     // Mark accepted-natively so _CallOverlay routes to CallScreen (not
     // IncomingCallScreen) when the new session appears.
-    widget.service.markAcceptedNatively();
+    widget.service.markAcceptedNatively(callId: call['_id']?.toString());
     try {
       await widget.service.handoffToHere(call);
     } catch (e) {

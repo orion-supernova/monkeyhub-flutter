@@ -46,6 +46,11 @@ class CallFcmService : FirebaseMessagingService() {
 
         /// The plugin's static singleton is null in a freshly-spawned process
         /// until some engine registers it. MUST be called on the main thread.
+        ///
+        /// The `hasInstance` guard is also what keeps this from standing up a
+        /// third engine alongside MainActivity's cached one: if the UI engine
+        /// is alive it has already registered the plugin, so we reuse that
+        /// registration rather than building our own.
         fun ensureCallkitPlugin(context: Context) {
             if (FlutterCallkitIncomingPlugin.hasInstance()) return
             headlessEngine = FlutterEngine(context.applicationContext)

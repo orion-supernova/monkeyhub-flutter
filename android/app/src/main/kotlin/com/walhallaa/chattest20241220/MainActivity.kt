@@ -1,6 +1,7 @@
 package com.walhallaa.chattest20241220
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -12,6 +13,7 @@ import androidx.core.app.ActivityCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
@@ -20,7 +22,30 @@ class MainActivity : FlutterActivity() {
     companion object {
         /// Arbitrary but must not collide with a plugin's own request codes.
         private const val CALL_PERMISSION_REQUEST = 0x0CA1
+
+        /// Cache key for the one and only Dart isolate this process runs.
+        const val ENGINE_ID = "monkeyhub.main"
     }
+
+    /// Reuse the process's existing Dart isolate instead of booting a second
+    /// one. Returning null (first launch) falls back to the normal path where
+    /// the delegate creates the engine; [configureFlutterEngine] then adopts it.
+    ///
+    /// This is defence in depth for calls. Answering goes through
+    /// flutter_callkit_incoming's TransparentActivity, which relaunches us via
+    /// `getLaunchIntentForPackage` — and that resolves to whichever
+    /// <activity-alias> is currently enabled (see [applyAlternateIcon]), a
+    /// different ComponentName than the running instance, which no launchMode
+    /// can dedupe. A second MainActivity is therefore always possible; sharing
+    /// the engine makes it harmless, because a second CallService in a second
+    /// isolate will happily tear down the call the first one is running.
+    override fun provideFlutterEngine(context: Context): FlutterEngine? =
+        FlutterEngineCache.getInstance().get(ENGINE_ID)
+
+    /// The isolate outlives any single activity — finishing one must not take
+    /// a live call down with it. Also required: attaching a cached engine to a
+    /// second activity asserts against hosts that claim engine ownership.
+    override fun shouldDestroyEngineWithHost(): Boolean = false
 
     /// The Dart future waiting on an open runtime-permission dialog, if any.
     /// Held so [onRequestPermissionsResult] can answer it — a MethodChannel
@@ -28,7 +53,18 @@ class MainActivity : FlutterActivity() {
     private var pendingPermissionResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
+        val cache = FlutterEngineCache.getInstance()
+        if (cache.get(ENGINE_ID) !== flutterEngine) {
+            // First activity to see this engine: register the plugins and
+            // adopt it for the rest of the process's life.
+            super.configureFlutterEngine(flutterEngine)
+            cache.put(ENGINE_ID, flutterEngine)
+        }
+
+        // The handlers below capture `this`, so they are re-bound on EVERY
+        // attach — not just the first. When a second activity takes the engine
+        // over, the old activity is evicted and destroyed; handlers still
+        // pointing at its window would be talking to a corpse.
 
         // monkeyhub/capture — toggles FLAG_SECURE on the window. With
         // FLAG_SECURE set, Android blocks screenshots AND screen-recording at
@@ -269,6 +305,15 @@ class MainActivity : FlutterActivity() {
 
         // Enable MainActivity if target is null; otherwise disable it so two
         // launcher entries don't appear.
+        //
+        // Side effect worth knowing about: while an alias is the enabled
+        // launcher entry, `getLaunchIntentForPackage` resolves to THAT
+        // component, not `.MainActivity`. flutter_callkit_incoming relaunches
+        // us through exactly that call when a call is answered, and its
+        // SINGLE_TOP|CLEAR_TOP reuse matches on component name — so a running
+        // `.MainActivity` is not found and Android builds a second one. The
+        // engine cache in [provideFlutterEngine] is what keeps that survivable;
+        // don't remove it.
         pm.setComponentEnabledSetting(
             mainComponent,
             if (target == null) PackageManager.COMPONENT_ENABLED_STATE_ENABLED

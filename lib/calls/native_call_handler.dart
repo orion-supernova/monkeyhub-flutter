@@ -1,7 +1,8 @@
 import 'dart:async' show unawaited;
+import 'dart:convert' show utf8;
 import 'dart:io' show Platform;
-import 'dart:math';
 
+import 'package:crypto/crypto.dart' show md5;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
@@ -28,16 +29,24 @@ class NativeCallHandler {
 
   // CallKit (iOS) force-unwraps `UUID(uuidString: data.uuid)` in
   // CallManager.swift:26 — passing anything that isn't a proper RFC-4122
-  // UUID crashes the app. Our Convex callIds are not UUIDs, so we mint a
-  // UUIDv4 the first time we see each callId and reuse it across lifecycle
-  // events (start → connected → end).
+  // UUID crashes the app. Our Convex callIds are not UUIDs, so we derive one
+  // and reuse it across lifecycle events (start → connected → end).
+  //
+  // The derivation is DETERMINISTIC and byte-for-byte identical to Kotlin's
+  // `UUID.nameUUIDFromBytes(callId.toByteArray(UTF_8))` in
+  // CallFcmService.uuidForCallId. That matters: on Android a card can be
+  // raised by CallFcmService (background/killed) and later driven from Dart.
+  // With independently minted random ids the two sides disagreed, so
+  // `setCallConnected` addressed a call the plugin had never heard of and
+  // silently no-opped — leaving the card stuck in its "incoming" state, still
+  // armed with the delete/timeout intent that ends the call.
   final Map<String, String> _uuidByCallId = {};
-  final Random _random = Random.secure();
 
-  // When we ourselves call `FlutterCallkitIncoming.endAllCalls()` (driven
-  // by WebRTC teardown), the package fires ACTION_CALL_ENDED back. We
-  // rely on CallService.endCall() being idempotent — calling it again
-  // after teardown is a no-op, so we don't need to dedup the echo.
+  // When we ourselves dismiss a card (driven by WebRTC teardown), the package
+  // fires ACTION_CALL_ENDED back at us. `_endNamedCall` drops that echo by
+  // checking the session's status — "endCall() is idempotent" was never quite
+  // true, because `_teardown` holds the session for 400ms after going
+  // terminal, leaving a window where the echo fired a second `calls:end`.
 
   // iOS Simulator's CallKit is unreliable: it fires CXEndCallAction
   // spuriously right after CXStartCallAction, which our listener used to
@@ -72,13 +81,20 @@ class NativeCallHandler {
     return Platform.resolvedExecutable.contains('/CoreSimulator/');
   }
 
+  /// The native id for [callId] — the one a native path already used, if we
+  /// captured it, otherwise the deterministic derivation both sides compute.
   String _uuidFor(String callId) =>
-      _uuidByCallId.putIfAbsent(callId, _mintUuidV4);
+      _uuidByCallId.putIfAbsent(callId, () => derivedUuid(callId));
 
-  String _mintUuidV4() {
-    final b = List<int>.generate(16, (_) => _random.nextInt(256));
-    b[6] = (b[6] & 0x0f) | 0x40; // version 4
-    b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+  /// Dart port of `java.util.UUID.nameUUIDFromBytes` — MD5 of the name, with
+  /// the version-3 and IETF-variant bits patched in. Keep in step with
+  /// CallFcmService.uuidForCallId; the two MUST agree, which is what
+  /// test/call_native_uuid_test.dart pins.
+  @visibleForTesting
+  static String derivedUuid(String callId) {
+    final b = md5.convert(utf8.encode(callId)).bytes.toList();
+    b[6] = (b[6] & 0x0f) | 0x30; // version 3 (name-based, MD5)
+    b[8] = (b[8] & 0x3f) | 0x80; // IETF variant
     String h(int i, int j) => b
         .sublist(i, j)
         .map((x) => x.toRadixString(16).padLeft(2, '0'))
@@ -106,18 +122,20 @@ class NativeCallHandler {
     switch (event) {
       case CallEventActionCallAccept(:final callKitParams):
         _captureNativeUuidFromParams(callKitParams);
+        final acceptedCallId = _callIdFromParams(callKitParams);
         // Ghost guard: a CallKit card can outlive its call (the caller
         // cancelled or the ring timed out while the app was locked/killed).
         // If Dart has no session for it, confirm with the backend that the
         // call is still live BEFORE latching the accept — a latched accept
         // for a dead call waits forever for an offer that can never come.
         if (service.session == null) {
-          final callId = _callIdFromParams(callKitParams);
-          if (callId != null && await _isCallLive(callId) == false) {
+          if (acceptedCallId != null &&
+              await _isCallLive(acceptedCallId) == false) {
             debugPrint(
-              'NativeCallHandler: stale CallKit accept callId=$callId — clearing',
+              'NativeCallHandler: stale CallKit accept '
+              'callId=$acceptedCallId — clearing',
             );
-            await endAllNative();
+            await endNativeByCallId(acceptedCallId);
             break;
           }
         }
@@ -130,7 +148,7 @@ class NativeCallHandler {
         // The accept watchdog inside markAcceptedNatively covers the case
         // where the liveness probe couldn't run (offline) and no offer ever
         // arrives.
-        service.markAcceptedNatively();
+        service.markAcceptedNatively(callId: acceptedCallId);
         try {
           await service.acceptIncoming();
         } catch (e) {
@@ -139,7 +157,9 @@ class NativeCallHandler {
           // card instead of leaving a dead ringer on screen.
           debugPrint('NativeCallHandler: acceptIncoming failed: $e');
           service.clearNativeAccept();
-          await endAllNative();
+          if (acceptedCallId != null) {
+            await endNativeByCallId(acceptedCallId);
+          }
         }
         break;
       case CallEventActionCallDecline(:final callKitParams):
@@ -169,27 +189,55 @@ class NativeCallHandler {
           // Ghost card: no Dart session to reject through — service.reject()
           // would silently no-op, leaving backend state and the accept latch
           // untouched. Best-effort backend reject (harmless if the call is
-          // already terminal), then make sure nothing native lingers.
-          final callId = _callIdFromParams(callKitParams);
+          // already terminal), then dismiss that card — and only that card.
           final me = service.userId;
-          if (callId != null && me != null) {
+          if (declinedCallId != null && me != null) {
             try {
               await service.api.rejectCall(
-                callId: callId,
+                callId: declinedCallId,
                 userId: me,
                 acceptingDeviceId: service.deviceId,
               );
             } catch (_) {}
           }
           service.clearNativeAccept();
-          await endAllNative();
+          if (declinedCallId != null) {
+            await endNativeByCallId(declinedCallId);
+          } else {
+            // Identity-less decline and no session to protect — nothing can
+            // be running that a blanket clear would harm.
+            await endAllNative();
+          }
         }
         break;
-      case CallEventActionCallEnded() || CallEventActionCallTimeout():
-        // service.endCall() is idempotent — if this is the echo of our
-        // own endNative() call, the session is already null and this is
-        // a harmless no-op.
-        await service.endCall();
+      case CallEventActionCallEnded(:final callKitParams):
+        await _endNamedCall(
+          service,
+          _callIdFromParams(callKitParams),
+          event.eventName,
+        );
+        break;
+      case CallEventActionCallTimeout(:final id):
+        // A timeout is only ever meaningful while the call is still RINGING.
+        // Past that it is spurious, and there are two ways to get one: the
+        // plugin wires the incoming notification's `deleteIntent` to the
+        // timeout intent (so swiping the leftover card after answering fires
+        // one), and a card whose `setCallConnected` didn't land keeps counting
+        // down to its own 60s auto-timeout. Both used to hang up a healthy
+        // call.
+        final live = service.session;
+        if (live != null &&
+            live.status != CallStatus.incomingRinging &&
+            live.status != CallStatus.outgoingRinging) {
+          debugPrint('NativeCallHandler: ignoring timeout for $id — '
+              'call ${live.callId} is ${live.status.name}');
+          break;
+        }
+        await _endNamedCall(
+          service,
+          _callIdForUuid(id, live?.callId),
+          event.eventName,
+        );
         break;
       case CallEventActionCallToggleMute():
         await service.toggleMute();
@@ -301,7 +349,7 @@ class NativeCallHandler {
         _captureNativeUuid(c);
         debugPrint('NativeCallHandler: replaying cold-start accept '
             'for ${c['extra']}');
-        service.markAcceptedNatively();
+        service.markAcceptedNatively(callId: callId);
         try {
           await service.acceptIncoming();
           handled = true;
@@ -322,7 +370,23 @@ class NativeCallHandler {
     if (!handled && !service.inCall) {
       // Stale card(s) with nothing behind them — clear so the user isn't
       // left staring at (or answering) a dead ringer after reopening.
-      await endAllNative();
+      //
+      // Card by card, never `endAllCalls()`. This runs on EVERY session
+      // attach, off a 4-second-timeout backend read, and `activeCalls()` on
+      // Android only reports the last call — far too weak a basis for a
+      // process-wide clear that broadcasts ENDED into every isolate.
+      final stale = calls
+          .whereType<Map>()
+          .map((c) {
+            final extra = c['extra'];
+            return extra is Map ? extra['callId']?.toString() : null;
+          })
+          .whereType<String>()
+          .toSet();
+      for (final id in stale) {
+        await endNativeByCallId(id);
+      }
+      if (stale.isEmpty) await endAllNative();
       if (backendReachable && live == null) service.clearNativeAccept();
     }
   }
@@ -338,16 +402,16 @@ class NativeCallHandler {
     if (service.session == null && await _isCallLive(callId) == false) {
       debugPrint(
           'NativeCallHandler: fallback answer for dead call $callId — clearing');
-      await endAllNative();
+      await endNativeByCallId(callId);
       return;
     }
-    service.markAcceptedNatively();
+    service.markAcceptedNatively(callId: callId);
     try {
       await service.acceptIncoming();
     } catch (e) {
       debugPrint('NativeCallHandler: fallback accept failed: $e');
       service.clearNativeAccept();
-      await endAllNative();
+      await endNativeByCallId(callId);
     }
   }
 
@@ -370,7 +434,58 @@ class NativeCallHandler {
       } catch (_) {}
     }
     service.clearNativeAccept();
-    await endAllNative();
+    await endNativeByCallId(callId);
+  }
+
+  /// Hand a native end/timeout to [CallService] only when it names the call we
+  /// are actually running. A native card can outlive its call, a sibling
+  /// device's card can be ended independently, and — on Android — a second
+  /// isolate can broadcast into ours (see MainActivity's engine cache), so an
+  /// unqualified `endCall()` here is a loaded gun.
+  ///
+  /// A null [callId] means the event carried no identity at all (e.g. the
+  /// Hang up button on the ongoing-call notification). That still ends the
+  /// live call — refusing would break the one control the user has left.
+  Future<void> _endNamedCall(
+    CallService service,
+    String? callId,
+    String eventName,
+  ) async {
+    final live = service.session;
+    if (live == null) {
+      // Nothing of ours to end. Drop any accept latch so a dead call can't
+      // poison the routing of the next one.
+      service.clearNativeAccept();
+      return;
+    }
+    if (callId != null && callId != live.callId) {
+      debugPrint('NativeCallHandler: ignoring $eventName for $callId — '
+          'live call is ${live.callId}');
+      return;
+    }
+    // Our own teardown dismisses the card, and the plugin echoes that back as
+    // an ENDED event. `_teardown` keeps the session around for 400ms so the UI
+    // can animate out, so without this the echo re-enters endCall() and fires
+    // a second `calls:end` at the backend.
+    if (live.status == CallStatus.ended ||
+        live.status == CallStatus.failed ||
+        live.status == CallStatus.handedOff) {
+      return;
+    }
+    await service.endCall();
+  }
+
+  /// Reverse of [_uuidFor], for the events that carry only the native id.
+  /// Checks the captured map first (a natively-minted iOS UUID is only ever
+  /// knowable that way), then the deterministic derivation of [liveCallId].
+  String? _callIdForUuid(String uuid, String? liveCallId) {
+    for (final e in _uuidByCallId.entries) {
+      if (e.value == uuid) return e.key;
+    }
+    if (liveCallId != null && derivedUuid(liveCallId) == uuid) {
+      return liveCallId;
+    }
+    return null;
   }
 
   /// `extra.callId` from a plugin event (the Convex callId that iOS /
@@ -484,31 +599,27 @@ class NativeCallHandler {
     }
   }
 
-  /// Dismiss whichever native UI is currently showing. We use
-  /// `endAllCalls()` instead of targeting by UUID because PushKit-driven
-  /// incoming calls have their UUID minted in AppDelegate.swift and Dart
-  /// never sees it — so a UUID-targeted dismiss would miss those.
-  /// We only ever have one active call at a time, so clearing everything
-  /// is the right behavior.
-  Future<void> endNative(String callId) async {
-    if (!_nativeCallUi) return;
-    _uuidByCallId.remove(callId);
-    try {
-      await FlutterCallkitIncoming.endAllCalls();
-    } catch (e) {
-      debugPrint('NativeCallHandler.endNative failed: $e');
-    }
-    await _endIosFallbackCalls();
-  }
+  /// Dismiss the native UI for a call we were running. Named call, named
+  /// dismissal — [endNativeByCallId] resolves a PushKit-minted id through the
+  /// plugin's own records and clears AppDelegate's fallback provider too, so
+  /// there is nothing the old blanket `endAllCalls()` reached that this misses.
+  Future<void> endNative(String callId) => endNativeByCallId(callId);
 
-  /// End ONLY the native card whose `extra.callId` matches — safe while a
-  /// different call is live on this device (busy scenario: dismissing the
-  /// second card must not kill the active call's native session, which
-  /// endAllCalls would).
+  /// End ONLY the native card for [callId] — safe while a different call is
+  /// live on this device (busy scenario: dismissing the second card must not
+  /// kill the active call's native session, which endAllCalls would).
+  ///
+  /// This is the default way to clear a card. `endAllCalls()` is reserved for
+  /// the cases where we genuinely cannot name what we're clearing, because it
+  /// broadcasts ENDED to every isolate in the process — which on Android is
+  /// how a stray isolate once hung up a healthy call.
   Future<void> endNativeByCallId(String callId) async {
     if (!_nativeCallUi) return;
-    _uuidByCallId.remove(callId);
+    final known = _uuidByCallId.remove(callId);
     try {
+      // Prefer the plugin's own record so a natively-minted id (iOS PushKit)
+      // is matched exactly.
+      var ended = false;
       final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
       for (final c in active) {
         if (c is Map &&
@@ -516,16 +627,30 @@ class NativeCallHandler {
           final uuid = c['id']?.toString();
           if (uuid != null && uuid.isNotEmpty) {
             await FlutterCallkitIncoming.endCall(uuid);
+            ended = true;
           }
         }
+      }
+      if (!ended && Platform.isAndroid) {
+        // `activeCalls()` on Android only reports the last call, so a card we
+        // know about can be missing from that list. Both Android ring paths
+        // derive the id from the callId, so we can still address it.
+        // Android-only on purpose: an iOS card the plugin doesn't list is
+        // either gone or on AppDelegate's fallback provider (cleared below),
+        // and handing CallKit a UUID it has never issued is not worth the risk.
+        await FlutterCallkitIncoming.endCall(known ?? derivedUuid(callId));
       }
     } catch (e) {
       debugPrint('NativeCallHandler.endNativeByCallId failed: $e');
     }
+    // AppDelegate's last-resort ringer lives on a CXProvider the plugin can't
+    // see, and it holds at most one card, so there is nothing finer to target.
+    await _endIosFallbackCalls();
   }
 
-  /// [endNative] without a callId — for clearing ghost/stale cards where
-  /// Dart never had a session.
+  /// Last resort: clear every card, for the paths where the event carried no
+  /// identity at all so there is nothing to target. Prefer
+  /// [endNativeByCallId] — this broadcasts ENDED process-wide.
   Future<void> endAllNative() async {
     if (!_nativeCallUi) return;
     try {

@@ -23,11 +23,20 @@
         android:label="MonkeyHub"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- launchMode/taskAffinity are load-bearing for calls. Accepting a
+             call relaunches us through flutter_callkit_incoming's
+             TransparentActivity, which starts our launch intent with
+             SINGLE_TOP|CLEAR_TOP and no NEW_TASK — so it can only find this
+             activity if the two share a task affinity. An empty affinity
+             matches nothing, which spawned a SECOND MainActivity (and a
+             second Dart isolate) on every answer; the duplicate's accept
+             watchdog then hung up the real call. Leave the affinity at the
+             package default and keep singleTask so one instance exists no
+             matter which path launches us. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:launchMode="singleTask"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"

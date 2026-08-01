@@ -244,11 +244,15 @@ export const sendVoipTaken = internalAction({
     const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
       userId: args.calleeId,
     });
+    // Any device with a native token, exactly like the invite fan-out in
+    // sendVoip — pushToDevice picks APNs or FCM per device and skips
+    // simulators itself. This used to require `voipToken`, which quietly
+    // excluded every Android handset: their ringer was never dismissed after
+    // the call was answered elsewhere, and CallFcmService.handleTaken (which
+    // exists solely to service this push) was dead code.
     const targets = devices.filter(
       (d) =>
-        d.voipToken &&
-        d.platform !== "ios-simulator" &&
-        d.deviceId !== args.excludeDeviceId,
+        (d.voipToken || d.fcmToken) && d.deviceId !== args.excludeDeviceId,
     );
     if (targets.length === 0) return;
     const payload = {
