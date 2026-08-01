@@ -46,7 +46,7 @@ class MessageBubble extends StatelessWidget {
     this.parentAuthor,
     this.highlightT = 0,
     this.useHero = true,
-    this.showReplyIndicator = true,
+    this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
     this.grouped = false,
     this.lastInRun = true,
@@ -102,11 +102,17 @@ class MessageBubble extends StatelessWidget {
   /// be displayed inside an overlay without colliding with the in-list Hero.
   final bool useHero;
 
-  /// When false, the inline reply indicator is suppressed and the leading-
-  /// top corner stays full radius. Callers pass `message.isReply` — the flag
-  /// exists for previews and other chrome that need a bubble without its
-  /// quote, not to make a reply look like a plain message.
-  final bool showReplyIndicator;
+  /// How much of the quoted parent to draw above the bubble — the full card,
+  /// a one-line [ReplyMarkerLine], or nothing. Transcripts pass what
+  /// `buildRoomItems` decided; the default draws the full card so a bubble
+  /// rendered standalone still shows its context.
+  ///
+  /// [ReplyMarker.none] is for previews and chrome that want a bare bubble.
+  /// It is not a way to make a reply look like a plain message: a lifted
+  /// preview passing it disagrees with the row it lifted off, which is both a
+  /// visual lie and, since the action menu force-sizes the preview into the
+  /// measured rect, an overflow.
+  final ReplyMarker replyMarker;
 
   final bool seenByOthers;
 
@@ -183,31 +189,48 @@ class MessageBubble extends StatelessWidget {
       ),
     );
 
+    // `isReply` is the veto: a marker can only draw when there is a preview to
+    // draw it from, and that is exactly what `isReply` asserts.
+    final marker = message.isReply ? replyMarker : ReplyMarker.none;
     final Widget bubbleArea;
-    if (message.isReply && showReplyIndicator) {
+    if (marker == ReplyMarker.none) {
+      bubbleArea = bubble;
+    } else {
       bubbleArea = Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment:
             isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          ReplyIndicator(
-            preview: message.replyToPreview!,
-            isMine: isMine,
-            parentIsMine:
-                message.replyToPreview!.senderId == currentUserId,
-            api: api,
-            parentAuthor: parentAuthor,
-            onTap: () {
-              final id = message.replyToId;
-              if (id != null) onReplyIndicatorTap?.call(id);
-            },
-            onViewThread: onViewThread,
-          ),
+          if (marker == ReplyMarker.compact)
+            ReplyTether(
+              preview: message.replyToPreview!,
+              isMine: isMine,
+              parentIsMine:
+                  message.replyToPreview!.senderId == currentUserId,
+              parentGutter: showAvatarSlot ? _AvatarSlot._size + 8 : 0,
+              onTap: () {
+                final id = message.replyToId;
+                if (id != null) onReplyIndicatorTap?.call(id);
+              },
+              onViewThread: onViewThread,
+            )
+          else
+            ReplyIndicator(
+              preview: message.replyToPreview!,
+              isMine: isMine,
+              parentIsMine:
+                  message.replyToPreview!.senderId == currentUserId,
+              api: api,
+              parentAuthor: parentAuthor,
+              onTap: () {
+                final id = message.replyToId;
+                if (id != null) onReplyIndicatorTap?.call(id);
+              },
+              onViewThread: onViewThread,
+            ),
           bubble,
         ],
       );
-    } else {
-      bubbleArea = bubble;
     }
 
     return Padding(
@@ -297,7 +320,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.parentAuthor,
     this.highlightT = 0,
     this.useHero = true,
-    this.showReplyIndicator = true,
+    this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
     this.grouped = false,
     this.lastInRun = true,
@@ -337,7 +360,10 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ChatUser? parentAuthor;
   final double highlightT;
   final bool useHero;
-  final bool showReplyIndicator;
+
+  /// See [MessageBubble.replyMarker].
+  final ReplyMarker replyMarker;
+
   final bool seenByOthers;
 
   /// See [MessageBubble.grouped].
@@ -433,33 +459,49 @@ class EphemeralMessageBubble extends StatelessWidget {
       ),
     );
 
+    // See the twin in [MessageBubble] — same rule, same veto.
+    final marker = message.isReply ? replyMarker : ReplyMarker.none;
     final Widget bubbleArea;
-    if (message.isReply && showReplyIndicator) {
+    if (marker == ReplyMarker.none) {
+      bubbleArea = innerBubble;
+    } else {
       bubbleArea = Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment:
             isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // Indicator sits OUTSIDE the dissolve effect — its own identity,
+          // Marker sits OUTSIDE the dissolve effect — its own identity,
           // its own fade if we add one later.
-          ReplyIndicator(
-            preview: message.replyToPreview!,
-            isMine: isMine,
-            parentIsMine:
-                message.replyToPreview!.senderId == currentUserId,
-            api: api,
-            parentAuthor: parentAuthor,
-            onTap: () {
-              final id = message.replyToId;
-              if (id != null) onReplyIndicatorTap?.call(id);
-            },
-            onViewThread: onViewThread,
-          ),
+          if (marker == ReplyMarker.compact)
+            ReplyTether(
+              preview: message.replyToPreview!,
+              isMine: isMine,
+              parentIsMine:
+                  message.replyToPreview!.senderId == currentUserId,
+              parentGutter: showAvatarSlot ? _AvatarSlot._size + 8 : 0,
+              onTap: () {
+                final id = message.replyToId;
+                if (id != null) onReplyIndicatorTap?.call(id);
+              },
+              onViewThread: onViewThread,
+            )
+          else
+            ReplyIndicator(
+              preview: message.replyToPreview!,
+              isMine: isMine,
+              parentIsMine:
+                  message.replyToPreview!.senderId == currentUserId,
+              api: api,
+              parentAuthor: parentAuthor,
+              onTap: () {
+                final id = message.replyToId;
+                if (id != null) onReplyIndicatorTap?.call(id);
+              },
+              onViewThread: onViewThread,
+            ),
           innerBubble,
         ],
       );
-    } else {
-      bubbleArea = innerBubble;
     }
 
     return Padding(

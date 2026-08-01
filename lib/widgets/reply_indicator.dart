@@ -115,6 +115,278 @@ class ReplyIndicator extends StatelessWidget {
   }
 }
 
+/// Height the marker block always occupies, branch button or not.
+///
+/// It is [_BranchButton]'s own hit box, and holding it even when the button is
+/// absent is deliberate: the action menu force-sizes its lifted preview into
+/// the rect it measured off the live row, so a marker whose height depended on
+/// whether `onViewThread` happened to be null would overflow that rect in the
+/// thread overlay. Geometry here answers to layout, not to a callback.
+const double _kMarkerBlock = 44.0;
+
+/// How far the tether stops short of the bubble edge it points at, so the
+/// stroke lands beside a rounded corner rather than into it.
+const double _kTetherEdgeInset = 14.0;
+
+/// Where a [ReplyTether]'s connector runs, in the tether block's own
+/// coordinates. Pure geometry — no widgets, no context, no theme — so the
+/// routing can be tested exactly rather than eyeballed, the same way
+/// `buildRoomItems` keeps the transcript's row logic testable.
+typedef TetherPath = ({
+  /// Under the parent bubble's near edge, on the block's top line.
+  Offset start,
+
+  /// At this bubble's near edge, on the block's bottom line.
+  Offset end,
+
+  /// Middle of the horizontal run — where the branch button rides.
+  Offset elbow,
+
+  /// Corner rounding for the two turns. Zero when the run has no length, in
+  /// which case the connector is a straight drop and there are no corners.
+  double radius,
+});
+
+/// Routes the connector from the parent's bubble edge to this one's.
+///
+/// [parentGutter] is the width of the avatar column an incoming row reserves —
+/// 0 in a DM, where no row reserves one. It only shifts the anchor when the
+/// parent's row has that column and ours does not, i.e. when they are incoming
+/// and we are outgoing: our slot starts at the row's edge, theirs starts past
+/// the avatar. Every other combination shares an origin and needs no shift.
+/// Skip it and the anchor dot floats a whole avatar column left of the bubble
+/// it is supposed to be hanging off.
+TetherPath replyTetherPath({
+  required double width,
+  required double height,
+  required bool isMine,
+  required bool parentIsMine,
+  required double parentGutter,
+}) {
+  final parentInset = (isMine && !parentIsMine) ? parentGutter : 0.0;
+  final startX =
+      parentIsMine ? width - _kTetherEdgeInset : parentInset + _kTetherEdgeInset;
+  final endX = isMine ? width - _kTetherEdgeInset : _kTetherEdgeInset;
+  final mid = height / 2;
+  final span = (endX - startX).abs();
+  // Below a couple of pixels the two turns would be drawing over each other.
+  // Same side means no run to make, so the connector is just a drop.
+  final radius = span < 2 ? 0.0 : math.min(14.0, span / 2);
+  return (
+    start: Offset(startX, 0),
+    end: Offset(endX, height),
+    elbow: Offset((startX + endX) / 2, mid),
+    radius: radius,
+  );
+}
+
+/// The compact form of [ReplyIndicator]: a routed connector from the quoted
+/// parent's bubble to this one, with the same branch button the full styles
+/// draw riding on it. No card, no name, no text.
+///
+/// Used when the parent is the content row directly above
+/// ([ReplyMarker.compact]). The four [ReplyStyle] designs exist to give an
+/// off-screen parent a body you can read — which, when the body is already on
+/// screen one row up, only puts a second copy of the same message in the
+/// transcript. A name doesn't help either: it labels a bubble that is right
+/// there, beside its own avatar and its own sender label.
+///
+/// What is actually missing in that situation is not information, it is a
+/// *line*. A reply sits at one margin and its parent often at the other, with
+/// nothing between them saying they belong together. So this draws the
+/// relationship instead of writing it.
+///
+/// Routed, not freehand: down off the parent's edge, a level run at mid-height,
+/// down again into this bubble. A sweep across the full transcript flattened
+/// into 44px would read as a stray hairline; two elbows and a level run read as
+/// deliberate. Same side is the same drawing with a zero-length run.
+class ReplyTether extends StatelessWidget {
+  const ReplyTether({
+    super.key,
+    required this.preview,
+    required this.isMine,
+    required this.parentIsMine,
+    required this.parentGutter,
+    required this.onTap,
+    this.onViewThread,
+  });
+
+  /// Carried for [ReplyPreview.isDeleted] and the semantic label only —
+  /// nothing in it is ever rendered.
+  final ReplyPreview preview;
+
+  /// Whether the *replying* message is the current user's: which margin the
+  /// connector lands on.
+  final bool isMine;
+
+  /// Whether the *quoted parent* is: which margin it leaves from.
+  final bool parentIsMine;
+
+  /// Width of the avatar column an incoming row reserves, or 0 where rows
+  /// reserve none (a DM). Supplied by the caller because the slot's size lives
+  /// with the bubble, not here; only used when the parent's row has that column
+  /// and ours does not.
+  final double parentGutter;
+
+  /// Jump to the quoted parent.
+  final VoidCallback onTap;
+
+  /// Open the thread overlay. Null inside the overlay itself — no
+  /// thread-within-a-thread — which is the only case that drops the button.
+  final VoidCallback? onViewThread;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final deleted = preview.isDeleted;
+    final tone = deleted ? theme.inkMuted.withValues(alpha: 0.55) : theme.accent;
+    final branch = onViewThread;
+    final showBranch = branch != null && !deleted;
+
+    return SizedBox(
+      width: double.infinity,
+      height: _kMarkerBlock,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final path = replyTetherPath(
+            width: width,
+            height: _kMarkerBlock,
+            isMine: isMine,
+            parentIsMine: parentIsMine,
+            parentGutter: parentGutter,
+          );
+          // The tap target is the connector's own bounding box, not the block.
+          // A full-width invisible target for a 30px drop would be a lie about
+          // where the control is.
+          final bandLeft = math.min(path.start.dx, path.end.dx) - 12;
+          final bandRight = math.max(path.start.dx, path.end.dx) + 12;
+
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _ReplyTetherPainter(
+                      path: path,
+                      color: tone,
+                      anchored: !deleted,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                bottom: 0,
+                left: bandLeft.clamp(0.0, width),
+                width: (bandRight - bandLeft).clamp(0.0, width),
+                child: Semantics(
+                  // The name leaves the screen; it must not leave the
+                  // accessibility tree with it.
+                  label: 'in reply to ${preview.senderName}',
+                  button: !deleted,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: deleted ? null : onTap,
+                  ),
+                ),
+              ),
+              if (showBranch)
+                Positioned(
+                  // Clamped: on a same-side reply the elbow sits 14px from the
+                  // margin, and the button's 44px hit box would hang off it.
+                  left: (path.elbow.dx - _kMarkerBlock / 2)
+                      .clamp(0.0, math.max(0.0, width - _kMarkerBlock)),
+                  top: 0,
+                  child: _BranchButton(onTap: branch, theme: theme, size: 24),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Strokes a [TetherPath]: down, across, down, with rounded turns and a dot at
+/// the origin so the top end reads as an anchor rather than a cut line. Alpha
+/// climbs along the run, so the line arrives at this bubble rather than merely
+/// passing it.
+class _ReplyTetherPainter extends CustomPainter {
+  const _ReplyTetherPainter({
+    required this.path,
+    required this.color,
+    required this.anchored,
+  });
+
+  final TetherPath path;
+  final Color color;
+
+  /// False for a deleted parent: no dot, since there is nothing left to anchor
+  /// to. The line still draws — the reply is still a reply.
+  final bool anchored;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final start = path.start;
+    final end = path.end;
+    final mid = size.height / 2;
+    final r = path.radius;
+
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      // Vertical, over the whole box — deliberately not a gradient laid along
+      // start→end. A same-side reply has start.dx == end.dx, which makes that
+      // rect zero-width and the shader degenerate on the single commonest case
+      // there is. Top-to-bottom is also what the line means: it fades in under
+      // the parent and arrives at full strength on this bubble.
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          color.withValues(alpha: 0.25),
+          color.withValues(alpha: 0.95),
+        ],
+      ).createShader(Offset.zero & size);
+
+    final wire = Path()..moveTo(start.dx, start.dy);
+    if (r == 0) {
+      // Same margin: a straight drop, bowed a little so it reads as drawn
+      // rather than as a border someone forgot to remove.
+      wire.quadraticBezierTo(
+        start.dx + (path.elbow.dx > size.width / 2 ? -6 : 6),
+        mid,
+        end.dx,
+        end.dy,
+      );
+    } else {
+      final dir = end.dx > start.dx ? 1.0 : -1.0;
+      wire
+        ..lineTo(start.dx, mid - r)
+        ..quadraticBezierTo(start.dx, mid, start.dx + dir * r, mid)
+        ..lineTo(end.dx - dir * r, mid)
+        ..quadraticBezierTo(end.dx, mid, end.dx, mid + r)
+        ..lineTo(end.dx, end.dy);
+    }
+    canvas.drawPath(wire, stroke);
+
+    if (anchored) {
+      canvas.drawCircle(
+        Offset(start.dx, start.dy + 2),
+        2.5,
+        Paint()..color = color.withValues(alpha: 0.9),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReplyTetherPainter old) =>
+      old.path != path || old.color != color || old.anchored != anchored;
+}
+
 // ─────────────────── shared bits ───────────────────
 
 String _previewLabel(ReplyPreview preview) {

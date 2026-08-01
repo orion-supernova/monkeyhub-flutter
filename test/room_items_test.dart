@@ -228,15 +228,15 @@ void main() {
     });
   });
 
-  group('grouping and tethers interact correctly with folds', () {
-    test('the row after a fold shows its tether and does not group', () {
+  group('grouping and markers interact correctly with folds', () {
+    test('the row after a fold shows the full card and does not group', () {
       // Use the contiguous variant so the fold lands immediately before the
       // tail; in the interleaved one m10 follows an unrelated message.
       final contiguous = build(
         interleavedThread().where((m) => !m.id.startsWith('u')).toList(),
       );
       final tail = itemFor(contiguous.items, 'm10');
-      expect(tail.showReplyTether, isTrue,
+      expect(tail.replyMarker, ReplyMarker.full,
           reason: 'its parent was folded away, so context must be restored');
       expect(tail.grouped, isFalse, reason: 'a fold is a new visual beat');
     });
@@ -254,38 +254,53 @@ void main() {
       expect(r.hidden, {'a1', 'a2'});
       expect(itemFor(r.items, 'a3').grouped, isFalse,
           reason: 'grouping here would erase the evidence of the fold');
-      expect(itemFor(r.items, 'a3').showReplyTether, isTrue,
+      expect(itemFor(r.items, 'a3').replyMarker, ReplyMarker.full,
           reason: 'its parent is folded away, so context must be restored');
     });
 
-    test('a reply keeps its tether even when the parent is the row above', () {
-      // The reported bug: swipe-to-reply targets the newest message, so this
-      // is the commonest shape there is. Suppressing the quote here made the
-      // act of replying look like it had done nothing.
+    test('a reply to the row directly above is marked, but compactly', () {
+      // The reported bug in both directions: swipe-to-reply targets the
+      // newest message, so this is the commonest shape there is. Drawing
+      // nothing made replying look like it had done nothing; drawing the full
+      // card put a second copy of the bubble above on screen.
       final ms = [
         msg('p', t: 0),
         msg('c', t: 1, sender: 'bob', replyTo: 'p', root: 'p'),
       ];
       final r = build(ms);
-      expect(itemFor(r.items, 'c').showReplyTether, isTrue);
+      expect(itemFor(r.items, 'c').replyMarker, ReplyMarker.compact);
     });
 
-    test('a reply to your own last message still tethers, and breaks the run',
-        () {
-      // Same sender inside the 5-minute window — the one case that used to
-      // group. A quote card cannot live in the tight within-run gap.
+    test('a compact marker still groups with the run it continues', () {
+      // Same sender inside the 5-minute window. One accent line fits the
+      // tight within-run gap; a quote card would not.
       final ms = [
         msg('p', t: 0, sender: 'alice'),
         msg('c', t: 1, sender: 'alice', replyTo: 'p', root: 'p'),
       ];
       final r = build(ms);
-      expect(itemFor(r.items, 'c').showReplyTether, isTrue);
-      expect(itemFor(r.items, 'c').grouped, isFalse);
+      expect(itemFor(r.items, 'c').replyMarker, ReplyMarker.compact);
+      expect(itemFor(r.items, 'c').grouped, isTrue);
     });
 
-    test('a plain message carries no tether', () {
+    test('a reply to an older message gets the full card and breaks the run',
+        () {
+      // An unrelated message sits between parent and reply, so the parent is
+      // no longer the row above and the quote earns its space.
+      final ms = [
+        msg('p', t: 0, sender: 'alice'),
+        msg('u', t: 1, sender: 'alice'),
+        msg('c', t: 2, sender: 'alice', replyTo: 'p', root: 'p'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'c').replyMarker, ReplyMarker.full);
+      expect(itemFor(r.items, 'c').grouped, isFalse,
+          reason: 'the card needs a beat of its own');
+    });
+
+    test('a plain message carries no marker', () {
       final r = build([msg('x1', t: 0), msg('x2', t: 1, sender: 'bob')]);
-      expect(itemFor(r.items, 'x2').showReplyTether, isFalse);
+      expect(itemFor(r.items, 'x2').replyMarker, ReplyMarker.none);
     });
 
     test('normal grouping still works with no threads involved', () {

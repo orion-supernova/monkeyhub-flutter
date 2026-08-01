@@ -21,6 +21,8 @@ import 'anchored_scroll.dart';
 import 'chat_composer.dart';
 import 'chat_pane.dart';
 import 'composer_reply_card.dart';
+import 'glass_pill.dart';
+import 'jump_back.dart';
 import 'message_action_menu.dart';
 import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
@@ -120,6 +122,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
   // Same affordance as the room transcript: a pill that returns you to the
   // newest reply. Notifier-backed so a scroll frame never rebuilds the overlay.
   final BottomProximity _scrolledUp = BottomProximity();
+
+  // …and the same reply trail, for the same reason: a thread can be long, and
+  // following a tether up it strands the reader just as thoroughly as it does
+  // in the room. Its own instance, not the room's — the two surfaces scroll
+  // independently and a hop in one means nothing in the other.
+  final JumpBackStack _jumpBack = JumpBackStack();
   final TextEditingController _composer = TextEditingController();
   final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
 
@@ -174,6 +182,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
+    _scrolledUp.addListener(_onBottomProximity);
+    // Pushes, pops and the idle expiry all change whether the back pill is
+    // there and what it says.
+    _jumpBack.addListener(_onJumpBackChanged);
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -194,12 +206,30 @@ class _ThreadSheetState extends State<_ThreadSheet>
     widget.repo.removeListener(_onRepoChange);
     widget.repo.closeThread(widget.rootId);
     _scroll.dispose();
+    _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
+    _jumpBack.removeListener(_onJumpBackChanged);
+    _jumpBack.dispose();
     _composer.dispose();
     _composerFocus.dispose();
     _pulse.dispose();
     _ctrl.dispose();
     super.dispose();
+  }
+
+  void _onJumpBackChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Coming to rest on the newest reply retires the trail behind it — see the
+  /// room screen's `_onBottomProximity` for why [BottomProximity]'s hysteresis
+  /// and transition-only notifications are the whole of the rule.
+  ///
+  /// One extra path here: `_onRepoChange` forces the notifier false when the
+  /// thread empties under the reader. A trail into messages that no longer
+  /// exist is exactly one worth throwing away, so that firing this is correct.
+  void _onBottomProximity() {
+    if (!_scrolledUp.value) _jumpBack.clear();
   }
 
   void _onRepoChange() {
@@ -250,8 +280,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// teleports most of the way before animating. A thread has no history
   /// window, so unlike the room transcript the bottom of the list always is
   /// the present.
+  ///
+  /// Only ever reached by a deliberate tap on the pill, so it also abandons the
+  /// reply trail: going back to now is the one move that says the reader is
+  /// done with where they've been.
   void _scrollToBottom() {
     HapticFeedback.selectionClick();
+    _jumpBack.clear();
     scrollToLatest(_scroll);
   }
 
@@ -262,16 +297,33 @@ class _ThreadSheetState extends State<_ThreadSheet>
     await _revealInThread(widget.anchorMessageId);
   }
 
-  /// Tapping a reply tether inside the thread goes to the quoted parent.
+  /// Tapping a reply tether inside the thread goes to the quoted parent, and
+  /// remembers [from] — the reply that was tapped — as somewhere to come back
+  /// to.
   ///
   /// A reply and its parent always share a `rootId` (see `messages:send`), so
   /// the parent is always somewhere in this thread — it just may be older
   /// than the pages fetched so far.
-  Future<void> _jumpToParent(String parentId) async {
-    final reached = await _revealInThread(parentId);
-    if (!reached && mounted) {
-      _showToast("couldn't find that message in this thread");
+  Future<void> _jumpToParent(String parentId, {required ChatMessage from}) async {
+    if (await _revealInThread(parentId)) {
+      _jumpBack.push(from);
+      return;
     }
+    if (mounted) _showToast("couldn't find that message in this thread");
+  }
+
+  /// Walk one hop back down the trail, to the reply we last jumped away from.
+  ///
+  /// Pops before travelling so an entry that has since expired out of the
+  /// thread takes itself off the trail rather than parking a dead pill. Unlike
+  /// [_jumpToParent] this pushes nothing, or the two ends would bounce off each
+  /// other forever.
+  Future<void> _jumpBackOneHop() async {
+    final origin = _jumpBack.pop();
+    if (origin == null) return;
+    HapticFeedback.selectionClick();
+    if (await _revealInThread(origin.id)) return;
+    if (mounted) _showToast("couldn't find that message in this thread");
   }
 
   /// Page the thread back until [messageId] is loaded, scroll to it however
@@ -444,11 +496,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // between-runs gap) makes it taller than that rect and overflows.
     final messages = _messages;
     final j = messages.indexWhere((x) => x.id == m.id);
-    final grouped =
-        j <= 0 ? false : continuesRun(messages[j - 1], m, showTether: m.isReply);
+    final prev = j <= 0 ? null : messages[j - 1];
+    final grouped = continuesRun(prev, m);
     final next = j == -1 || j + 1 >= messages.length ? null : messages[j + 1];
-    final lastInRun =
-        next == null || !continuesRun(m, next, showTether: next.isReply);
+    final lastInRun = next == null || !continuesRun(m, next);
 
     final result = await showMessageActionMenu(
       context: context,
@@ -463,11 +514,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
       bubbleBuilder: (_) => _bubbleFor(
         m,
         author,
-        // Must match the row this lifted off, indicator included — the
-        // overlay force-sizes the preview into the measured rect, so a
-        // hardcoded false is exactly the overflow the comment above warns
-        // about now that every reply draws its quote.
-        showReplyIndicator: m.isReply,
+        // Must match the row this lifted off, marker included — the overlay
+        // force-sizes the preview into the measured rect, so anything but the
+        // row's own marker is exactly the overflow the comment above warns
+        // about.
+        replyMarker: replyMarkerFor(prev, m),
         interactive: false,
         grouped: grouped,
         lastInRun: lastInRun,
@@ -538,7 +589,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
   Widget _bubbleFor(
     ChatMessage m,
     ChatUser? author, {
-    required bool showReplyIndicator,
+    required ReplyMarker replyMarker,
     required bool interactive,
     bool grouped = false,
     bool lastInRun = true,
@@ -567,10 +618,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
         avatarAtBottom: lastInRun && grouped,
         senderName: name,
         highlightT: highlightT,
-        showReplyIndicator: showReplyIndicator,
+        replyMarker: replyMarker,
         // Null hides the branch button — no thread-within-a-thread.
         onViewThread: null,
-        onReplyIndicatorTap: interactive ? _jumpToParent : null,
+        onReplyIndicatorTap:
+            interactive ? (parentId) => _jumpToParent(parentId, from: m) : null,
         onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
         onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
       );
@@ -589,9 +641,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
       avatarAtBottom: lastInRun && grouped,
       senderName: name,
       highlightT: highlightT,
-      showReplyIndicator: showReplyIndicator,
+      replyMarker: replyMarker,
       onViewThread: null,
-      onReplyIndicatorTap: interactive ? _jumpToParent : null,
+      onReplyIndicatorTap:
+          interactive ? (parentId) => _jumpToParent(parentId, from: m) : null,
       onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
       onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
     );
@@ -734,13 +787,32 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                       left: 0,
                                       right: 0,
                                       child: Center(
-                                        child: ValueListenableBuilder<bool>(
-                                          valueListenable: _scrolledUp,
-                                          builder: (context, scrolledUp, _) =>
-                                              ScrollToLatestSlot(
-                                            visible: scrolledUp,
-                                            onTap: _scrollToBottom,
-                                          ),
+                                        // Back pill above the jump-to-latest
+                                        // one, same order as the room, so the
+                                        // fixture stays in the slot the reader
+                                        // already knows and the transient one
+                                        // floats over it.
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            TransientPillSlot(
+                                              visible: _jumpBack.isNotEmpty,
+                                              child: JumpBackPill(
+                                                depth: _jumpBack.depth,
+                                                onTap: _jumpBackOneHop,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ValueListenableBuilder<bool>(
+                                              valueListenable: _scrolledUp,
+                                              builder:
+                                                  (context, scrolledUp, _) =>
+                                                      ScrollToLatestSlot(
+                                                visible: scrolledUp,
+                                                onTap: _scrollToBottom,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
@@ -828,26 +900,23 @@ class _ThreadSheetState extends State<_ThreadSheet>
               name: m.senderName,
             );
 
-        // Every reply tethers to its parent, matching the room list. A linear
-        // chain therefore quotes on every row — the redundancy is the point:
-        // without it a branch and a straight continuation look identical, and
-        // that ambiguity is the whole reason threads are hard to read.
-        final showIndicator = m.isReply;
-
         // The room list's own rule, so a thread doesn't read as looser than
-        // the conversation it came from. Note this deliberately has no
-        // day-boundary clause: a thread draws no date dividers.
-        final grouped = continuesRun(
-          j == 0 ? null : messages[j - 1],
-          m,
-          showTether: showIndicator,
-        );
+        // the conversation it came from. A linear chain is the common shape
+        // here, which means most rows quote the row above them and so get the
+        // compact marker — the name alone is enough to tell a branch from a
+        // straight continuation, and that ambiguity is the whole reason
+        // threads are hard to read.
+        final prev = j == 0 ? null : messages[j - 1];
+        final marker = replyMarkerFor(prev, m);
+
+        // Note this deliberately has no day-boundary clause: a thread draws
+        // no date dividers.
+        final grouped = continuesRun(prev, m);
 
         // Whether anything below continues this run — the next message must
-        // be evaluated the same way, tether included.
+        // be evaluated the same way, marker included.
         final next = j + 1 < messages.length ? messages[j + 1] : null;
-        final lastInRun = next == null ||
-            !continuesRun(m, next, showTether: next.isReply);
+        final lastInRun = next == null || !continuesRun(m, next);
 
         final canReply = !m.id.startsWith('tmp_') &&
             m.status == MessageStatus.sent &&
@@ -859,7 +928,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
           child: _bubbleFor(
             m,
             author,
-            showReplyIndicator: showIndicator,
+            replyMarker: marker,
             interactive: true,
             grouped: grouped,
             lastInRun: lastInRun,

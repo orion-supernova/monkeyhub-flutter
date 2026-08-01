@@ -1,4 +1,5 @@
 import '../models/chat_message.dart';
+import '../models/enums.dart';
 
 /// Flattening of a room's message list into renderable rows.
 ///
@@ -46,7 +47,7 @@ class MessageItem extends RoomItem {
     this.message, {
     this.grouped = false,
     this.lastInRun = true,
-    this.showReplyTether = true,
+    this.replyMarker = ReplyMarker.full,
     this.rails = const [],
   });
 
@@ -66,15 +67,9 @@ class MessageItem extends RoomItem {
   /// then stays top-aligned, since there is no run for it to close.
   bool lastInRun;
 
-  /// Whether to render the inline quoted parent. True for every reply.
-  ///
-  /// This used to be false when the parent was the bubble directly above, on
-  /// the theory that the quote would duplicate a message already on screen.
-  /// It suppressed the quote in the single most common case there is —
-  /// swipe-to-reply targets the newest message in one gesture — so a reply
-  /// read as an ordinary message and the act of replying looked like it had
-  /// done nothing. Duplicating one line is the price of the signal.
-  final bool showReplyTether;
+  /// How much of the quoted parent this row draws — see [replyMarkerFor] for
+  /// the rule and [ReplyMarker] for why it is not a bool.
+  final ReplyMarker replyMarker;
 
   @override
   final List<RailSegment> rails;
@@ -167,20 +162,40 @@ const int kMinFoldedMessages = 2;
 /// threads simply go without one, rather than crowding the gutter.
 const int kMaxRailLanes = 2;
 
+/// How much of [m]'s quoted parent to draw, given the content row directly
+/// above it ([prev], null when nothing precedes it or a fold intervenes).
+///
+/// The parent being the row above is the one case where the full card repeats
+/// a bubble already on screen; every other case has the parent somewhere off
+/// in the scrollback, where repeating it is the entire point. A fold clearing
+/// [prev] therefore restores the full card, which is right — the fold is what
+/// took the parent away.
+ReplyMarker replyMarkerFor(ChatMessage? prev, ChatMessage m) {
+  if (!m.isReply) return ReplyMarker.none;
+  if (prev != null && m.replyToId == prev.id) return ReplyMarker.compact;
+  return ReplyMarker.full;
+}
+
 /// Whether [m] continues [prev]'s run: same sender, same day, close in time,
-/// and not interrupted by a visible quoted parent — a tether starts a new
-/// visual beat. Shared with the thread overlay, which renders the same bubbles
-/// against its own list and used to carry a hand-copied version of this rule.
+/// and not interrupted by a full quote card — that card is tall enough to
+/// need a beat of its own, whereas the compact marker is one line and sits
+/// happily inside a run. Shared with the thread overlay, which renders the
+/// same bubbles against its own list and used to carry a hand-copied version
+/// of this rule.
+///
+/// The marker is derived here rather than passed in. It is a function of the
+/// same [prev] and [m] the rest of the rule already has, and every caller that
+/// had to supply it separately was one stale expression away from geometry
+/// that disagreed with what got rendered.
 bool continuesRun(
   ChatMessage? prev,
   ChatMessage m, {
-  required bool showTether,
   bool startsDay = false,
 }) =>
     !startsDay &&
     prev != null &&
     prev.senderId == m.senderId &&
-    !showTether &&
+    replyMarkerFor(prev, m) != ReplyMarker.full &&
     m.createdAt.difference(prev.createdAt).inMinutes < 5;
 
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
@@ -301,24 +316,16 @@ bool continuesRun(
       startsDay = true;
     }
 
-    // Every reply shows its quoted parent — see [MessageItem.showReplyTether]
-    // for why this is unconditional rather than skipping the parent-directly-
-    // above case.
-    final showTether = m.isReply;
+    final marker = replyMarkerFor(prevVisible, m);
 
     // Folds don't need a clause here: they always emit a chip, and the chip
     // clears prevVisible.
-    final grouped = continuesRun(
-      prevVisible,
-      m,
-      showTether: showTether,
-      startsDay: startsDay,
-    );
+    final grouped = continuesRun(prevVisible, m, startsDay: startsDay);
 
     // The row above only stays a run's last once nothing continues it.
     if (grouped) prevRow?.lastInRun = false;
 
-    final row = MessageItem(m, grouped: grouped, showReplyTether: showTether);
+    final row = MessageItem(m, grouped: grouped, replyMarker: marker);
     out.add(row);
     prevRow = row;
     if (threads[m.threadKey]!.length > 1) {
@@ -424,7 +431,7 @@ RoomItem _withRails(RoomItem item, List<RailSegment> rails) {
       item.message,
       grouped: item.grouped,
       lastInRun: item.lastInRun,
-      showReplyTether: item.showReplyTether,
+      replyMarker: item.replyMarker,
       rails: rails,
     );
   }

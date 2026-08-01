@@ -18,6 +18,27 @@ enum MessageType { text, image, video, audio, url, system }
 /// [sent], which is why the order of these is free to change.
 enum MessageStatus { uploading, pending, sent, error }
 
+/// How much of a reply's quoted parent a row draws.
+///
+/// Three states rather than a bool because "always quote" and "never quote
+/// the row above" are both wrong. Suppressing entirely made replying to the
+/// newest message — the commonest action there is, one swipe — look like it
+/// had done nothing. Quoting in full restated the bubble one row up, so the
+/// transcript grew a second copy of a message already on screen.
+enum ReplyMarker {
+  /// Not a reply, or a context that deliberately wants a bare bubble (the
+  /// style picker's samples, chrome that borrows the bubble for a preview).
+  none,
+
+  /// A single accent line naming the parent's sender. Used when the parent
+  /// is the content row directly above: the relationship still needs saying,
+  /// but the content does not need repeating.
+  compact,
+
+  /// The parent's full quote card, in whichever [ReplyStyle] is selected.
+  full,
+}
+
 extension RoomTypeWire on RoomType {
   String get wire => this == RoomType.secret ? 'secret' : 'regular';
   static RoomType parse(String? raw) =>

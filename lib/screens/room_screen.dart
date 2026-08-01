@@ -38,6 +38,8 @@ import '../widgets/attachment_menu.dart';
 import '../widgets/busy_scrim.dart';
 import '../widgets/chat_composer.dart';
 import '../widgets/chat_pane.dart';
+import '../widgets/glass_pill.dart';
+import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/message_bubble.dart';
@@ -151,6 +153,12 @@ class _RoomScreenState extends State<RoomScreen>
   // ends on a thread chip where the message used to be is a jump that failed.
   String? _jumpTargetId;
 
+  // Every reply we've jumped away from, newest last — what the BACK TO REPLY
+  // pill walks off one hop at a time. A plain setState here where _scrolledUp
+  // needed a notifier: this changes on taps and one expiry timer, not on every
+  // scroll frame.
+  final JumpBackStack _jumpBack = JumpBackStack();
+
   // ──── thread folding ────
   // Ids folded out of the list by the last _buildItems pass. Read from async
   // callbacks (scroll-to-parent) to tell "collapsed" apart from "not loaded".
@@ -207,11 +215,37 @@ class _RoomScreenState extends State<RoomScreen>
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
+    _scrolledUp.addListener(_onBottomProximity);
+    _jumpBack.addListener(_onJumpBackChanged);
     SettingsStore.instance.addListener(_onSettings);
     // If the room is already in the rooms cache from the subscription, we
     // can push the capture scope immediately. Otherwise _onRepoChange will
     // pick it up on the first notification.
     _maybePushCaptureScope(widget.repo.roomById(widget.roomId));
+  }
+
+  // Pushes, pops and the idle expiry all change whether the back pill is there
+  // and what it says.
+  void _onJumpBackChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Coming to rest on the newest message retires the reply trail behind it —
+  /// however the reader got there, tapping the pill or scrolling by hand.
+  ///
+  /// Two lines rather than a state machine because [BottomProximity] is already
+  /// exactly this signal:
+  ///   * its hysteresis band is tuned for this, so a reader parked on the
+  ///     threshold — or an iOS rubber-band settle crossing it several times in
+  ///     one gesture — can't strobe the trail away;
+  ///   * it notifies on transitions only, so a jump that never left the bottom
+  ///     band never fires and its pill waits out the idle timer instead. The
+  ///     degenerate case fails safe;
+  ///   * [JumpBackStack.clear] is silent on an empty trail, so the ordinary
+  ///     scroll-to-bottom with nothing pending costs one comparison and
+  ///     rebuilds nothing — which is the whole reason _scrolledUp is a notifier.
+  void _onBottomProximity() {
+    if (!_scrolledUp.value) _jumpBack.clear();
   }
 
   void _onSettings() {
@@ -576,7 +610,10 @@ class _RoomScreenState extends State<RoomScreen>
     _hideTimer?.cancel();
     _scroll.removeListener(_onScroll);
     _scroll.dispose();
+    _scrolledUp.removeListener(_onBottomProximity);
     _scrolledUp.dispose();
+    _jumpBack.removeListener(_onJumpBackChanged);
+    _jumpBack.dispose();
     _membersSub?.cancel();
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
@@ -710,44 +747,73 @@ class _RoomScreenState extends State<RoomScreen>
         },
       );
 
+  /// Follow a reply tether up to the message it quotes, and remember where we
+  /// came from so the reader can get back.
+  ///
+  /// The trail push happens here rather than in [_travelTo] because [_travelTo]
+  /// is also how the back pill returns, and a return trip that pushed its own
+  /// origin would leave the two ends bouncing off each other forever.
+  Future<void> _jumpToMessage(String messageId, {required ChatMessage from}) async {
+    if (await _travelTo(messageId, from: from)) _jumpBack.push(from);
+  }
+
+  /// Walk one hop back down the trail, to the reply we last jumped away from.
+  ///
+  /// Pops before travelling, so an entry that has since become unreachable
+  /// takes itself off the trail instead of parking a dead pill on screen — the
+  /// next tap then tries the hop below it.
+  Future<void> _jumpBackOneHop() async {
+    final origin = _jumpBack.pop();
+    if (origin == null) return;
+    HapticFeedback.selectionClick();
+    // Its own context: a message's threadKey is the thread it lives in, which
+    // is exactly the fallback surface to open if it has been folded away.
+    await _travelTo(origin.id, from: origin);
+  }
+
   /// Land on the message identified by [messageId] and pulse it — the tap
-  /// target behind every reply tether. [from] is the reply that was tapped;
-  /// its thread is the fallback surface, and since `messages:send` propagates
-  /// `rootId`, a parent is always in the same thread as its child.
+  /// target behind every reply tether. [from] is the message the trip is
+  /// anchored to; its thread is the fallback surface, and since `messages:send`
+  /// propagates `rootId`, a parent is always in the same thread as its child.
   ///
   /// Resolution order, first hit wins:
   ///   1. folded into a thread chip → open that thread on it
   ///   2. somewhere in the transcript → snap there, however far away it is
   ///   3. not loaded → fetch a window of history around it and snap
   ///   4. unreachable (deleted, or offline) → say so
-  Future<void> _jumpToMessage(String messageId, {required ChatMessage from}) async {
+  ///
+  /// True only for 2 and 3 — a landing in this transcript, which is the only
+  /// outcome worth a back-pill. The thread hand-off has the overlay's own close
+  /// button as its way back, and a failure went nowhere to come back from.
+  Future<bool> _travelTo(String messageId, {required ChatMessage from}) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
 
     // The pin exists to protect a jump in flight; handing the message over to
     // the thread overlay ends the flight, so drop it or the row stays
     // un-foldable for the rest of the session.
-    Future<void> handOffToThread() async {
-      if (!mounted) return;
+    Future<bool> handOffToThread() async {
+      if (!mounted) return false;
       setState(() => _jumpTargetId = null);
       await _openThreadAt(rootId: from.threadKey, anchorMessageId: messageId);
+      return false;
     }
 
     if (_hiddenMessageIds.contains(messageId)) return handOffToThread();
-    if (await _snapToRow(messageId)) return;
-    if (!mounted) return;
+    if (await _snapToRow(messageId)) return true;
+    if (!mounted) return false;
 
     // Not in the transcript. Pin it before the fetch so the pass that brings
     // it in can't immediately fold it away again.
     setState(() => _jumpTargetId = messageId);
     final reached = await widget.repo.jumpToMessage(widget.roomId, messageId);
-    if (!mounted) return;
+    if (!mounted) return false;
     if (reached) {
       // One frame for the freshly-loaded window to lay out.
       await WidgetsBinding.instance.endOfFrame;
-      if (!mounted) return;
+      if (!mounted) return false;
       if (!_hiddenMessageIds.contains(messageId) &&
           await _snapToRow(messageId)) {
-        return;
+        return true;
       }
       // Folded, or in the room but with no row of its own — either way the
       // thread is where it can be seen.
@@ -757,6 +823,7 @@ class _RoomScreenState extends State<RoomScreen>
     messenger?.showSnackBar(
       const SnackBar(content: Text("couldn't jump to that message")),
     );
+    return false;
   }
 
   /// Scroll to [messageId]'s row and pulse it. False when the message has no
@@ -826,9 +893,13 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   /// The pill's own tap. Separate from [_scrollToBottom] because that is also
-  /// what a send calls, and only a deliberate tap earns a haptic.
+  /// what a send calls, and only a deliberate tap earns a haptic — and only a
+  /// deliberate return to the present abandons the trail of replies behind it.
+  /// A send must not, or replying mid-chain would silently lose the reader's
+  /// way back.
   void _onJumpToLatestTapped() {
     HapticFeedback.selectionClick();
+    _jumpBack.clear();
     _scrollToBottom();
   }
 
@@ -1516,7 +1587,7 @@ class _RoomScreenState extends State<RoomScreen>
                     final messageItem = item as MessageItem;
                     final m = messageItem.message;
                     final grouped = messageItem.grouped;
-                    final showReplyTether = messageItem.showReplyTether;
+                    final replyMarker = messageItem.replyMarker;
                 final author = _members[m.senderId];
                 final isMine = m.senderId == me;
                 // A run is bracketed: name on the row that opens it, avatar on
@@ -1578,7 +1649,7 @@ class _RoomScreenState extends State<RoomScreen>
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
-                              showReplyIndicator: showReplyTether,
+                              replyMarker: replyMarker,
                               grouped: grouped,
                               lastInRun: messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
@@ -1595,7 +1666,7 @@ class _RoomScreenState extends State<RoomScreen>
                               author: author,
                               parentAuthor: parentAuthor,
                               seenByOthers: seenByOthers,
-                              showReplyIndicator: showReplyTether,
+                              replyMarker: replyMarker,
                               grouped: grouped,
                               lastInRun: messageItem.lastInRun,
                               showAvatarSlot: !room.isDm,
@@ -1705,7 +1776,7 @@ class _RoomScreenState extends State<RoomScreen>
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
-                        showReplyIndicator: showReplyTether,
+                        replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,
                         showAvatarSlot: !room.isDm,
@@ -1734,7 +1805,7 @@ class _RoomScreenState extends State<RoomScreen>
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
-                        showReplyIndicator: showReplyTether,
+                        replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,
                         showAvatarSlot: !room.isDm,
@@ -1806,18 +1877,39 @@ class _RoomScreenState extends State<RoomScreen>
                   left: 0,
                   right: 0,
                   child: Center(
-                    // Two reasons to be here: scrolled away from the newest
-                    // message, or parked on a detached slice of history where
-                    // the bottom of the list isn't the present at all. Both
-                    // want the same button, and _scrollToBottom already tells
-                    // them apart.
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: _scrolledUp,
-                      builder: (context, scrolledUp, _) => ScrollToLatestSlot(
-                        visible: scrolledUp ||
-                            widget.repo.inHistoryWindow(widget.roomId),
-                        onTap: _onJumpToLatestTapped,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Back one hop up the reply trail. Above the jump-to-
+                        // latest pill because it is the transient one: it comes
+                        // and goes with the trail, while the pill below it is
+                        // the fixture a reader always knows where to find.
+                        TransientPillSlot(
+                          visible: _jumpBack.isNotEmpty,
+                          child: JumpBackPill(
+                            depth: _jumpBack.depth,
+                            onTap: _jumpBackOneHop,
+                          ),
+                        ),
+                        // Unconditional: when the slot below is unmounted this
+                        // just lifts the back pill 8px off the composer, which
+                        // beats racing its fade-out to decide whether to render.
+                        const SizedBox(height: 8),
+                        // Two reasons to be here: scrolled away from the newest
+                        // message, or parked on a detached slice of history
+                        // where the bottom of the list isn't the present at
+                        // all. Both want the same button, and _scrollToBottom
+                        // already tells them apart.
+                        ValueListenableBuilder<bool>(
+                          valueListenable: _scrolledUp,
+                          builder: (context, scrolledUp, _) =>
+                              ScrollToLatestSlot(
+                            visible: scrolledUp ||
+                                widget.repo.inHistoryWindow(widget.roomId),
+                            onTap: _onJumpToLatestTapped,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
