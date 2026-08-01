@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -864,11 +865,17 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// The composer's camera button — the same flow the attachment sheet's Camera
   /// entry reaches, one tap sooner.
+  ///
+  /// Opens on the front lens. The button sits in the composer, mid-conversation:
+  /// what it is for is answering someone with your face, and the rear lens made
+  /// every such reply start with a flip. Photographing something in front of you
+  /// is the deliberate case, and it still has the flip button and the
+  /// attachment sheet's Camera entry.
   Future<void> _onCamera() async {
     if (!await _claimMediaEntry()) return;
     try {
       if (!mounted) return;
-      await _captureAndSend();
+      await _captureAndSend(initialLens: CameraLensDirection.front);
     } finally {
       _attachInFlight = false;
     }
@@ -914,8 +921,14 @@ class _RoomScreenState extends State<RoomScreen>
   /// The loop is what makes RETAKE mean what it says. It used to pop null,
   /// which is the same thing discarding does, so the button dropped the user
   /// back in the chat rather than back at the camera.
-  Future<void> _captureAndSend() async {
-    var result = await CameraScreen.open(context);
+  ///
+  /// [initialLens] is which lens to open on, and RETAKE returns to the same one
+  /// — a retake is a second attempt at the shot the entry point was for, not a
+  /// different one.
+  Future<void> _captureAndSend({
+    CameraLensDirection initialLens = CameraLensDirection.back,
+  }) async {
+    var result = await CameraScreen.open(context, initialLens: initialLens);
     while (result != null) {
       if (!mounted) return;
 
@@ -948,7 +961,7 @@ class _RoomScreenState extends State<RoomScreen>
             mirrored: mirrored,
           );
           if (!retake || !mounted) return;
-          result = await CameraScreen.open(context);
+          result = await CameraScreen.open(context, initialLens: initialLens);
       }
     }
   }
