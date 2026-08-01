@@ -118,6 +118,21 @@ class ChatRepository extends ChangeNotifier {
   /// The room currently visible to the user (if any). Used by [PushManager] to
   /// suppress incoming-message notifications for the chat already on screen.
   String? get activeRoomId => _activeRoomId;
+
+  /// Whoever asked for the open room — the `RoomScreen` state that called
+  /// [openRoom]. [closeRoom] only tears the room down for THIS holder.
+  ///
+  /// An opaque token rather than a roomId because the two screens are
+  /// sometimes for the SAME room: a push tap for the chat already on screen
+  /// mounts a second `RoomScreen` before the first one is disposed, so a
+  /// roomId comparison would match and let the departing screen close the
+  /// room its replacement is now serving.
+  Object? _openOwner;
+
+  /// Bumped by [openRoom], [closeRoom] and [detach]. An open that started
+  /// before the bump has been superseded and must not publish the
+  /// subscriptions it is still awaiting.
+  int _openGen = 0;
   Subscription? _messagesSub;
   Subscription? _activeTypingSub;
   Subscription? _readStateSub;
@@ -300,6 +315,10 @@ class ChatRepository extends ChangeNotifier {
     _globalTypingSub?.cancel();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
+    // Signing out has to take this one with it too: left live, it keeps
+    // writing the previous account's read receipts into `_activeReadState`
+    // for whoever signs in next.
+    _readStateSub?.cancel();
     _typingHeartbeat?.cancel();
     _connStateSub?.cancel();
     _roomsSub = null;
@@ -309,9 +328,13 @@ class ChatRepository extends ChangeNotifier {
     _globalTypingSub = null;
     _messagesSub = null;
     _activeTypingSub = null;
+    _readStateSub = null;
     _typingHeartbeat = null;
     _connStateSub = null;
     _activeRoomId = null;
+    _openOwner = null;
+    // Any open still in flight belongs to the account being signed out.
+    _openGen++;
     _userId = null;
     _rooms = [];
     _friends = [];
@@ -412,12 +435,44 @@ class ChatRepository extends ChangeNotifier {
     return merged;
   }
 
-  Future<void> openRoom(String roomId) async {
-    if (_activeRoomId == roomId) return;
+  /// Makes [roomId] the open room: drops the previous room's subscriptions,
+  /// loads its transcript, and registers messages / read-state / typing.
+  ///
+  /// [owner] is the token that will later hand the room back via [closeRoom] —
+  /// pass the `State` doing the opening. Ownership transfers even when this
+  /// short-circuits on an already-open room, so re-entering the chat you are
+  /// already in (a push tap for the room on screen) leaves the NEW screen
+  /// holding it and makes the old screen's `dispose` a no-op.
+  ///
+  /// [force] re-registers the subscriptions of an already-open room without
+  /// disturbing ownership or blanking [activeRoomId] — [resubscribe]'s case
+  /// after a reconnect.
+  Future<void> openRoom(String roomId, {Object? owner, bool force = false}) async {
+    // Before the short-circuit on purpose: a second screen for the room
+    // already open still has to take ownership, or the first screen's dispose
+    // will close the room out from under it.
+    if (owner != null) _openOwner = owner;
+    if (_activeRoomId == roomId && !force) return;
+    if (_activeRoomId != roomId) {
+      // The room being left still has a typing heartbeat and a pending clear,
+      // both of which read `_activeRoomId` when they fire — so stop it here,
+      // while that still means the OLD room. [closeRoom] can no longer be
+      // relied on for this: on a superseded screen it is now a no-op, and
+      // before the ownership guard existed it was clearing typing in the room
+      // the user had just ENTERED.
+      _stopTyping();
+    }
+    final gen = ++_openGen;
     _activeRoomId = roomId;
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
+    // Nulled immediately, not just reassigned at the end: this open can now
+    // bail at any of the `gen` checks below, and [closeRoom] would otherwise
+    // find and re-cancel a handle that is already dead.
+    _messagesSub = null;
+    _activeTypingSub = null;
+    _readStateSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -443,6 +498,11 @@ class ChatRepository extends ChangeNotifier {
         CacheStore.instance.scheduleSaveMessages(me, roomId, _messages[roomId]!);
       }
     } catch (_) {/* offline — cached messages remain */}
+    // Superseded while reading disk / fetching: bail before registering
+    // anything. Nothing is dangling yet — no subscription has been created,
+    // and everything written above is keyed by `roomId`, so a late write
+    // can't corrupt whichever room won.
+    if (gen != _openGen) return;
     _pending[roomId] ??= [];
     _initialLoaded.add(roomId);
     // Prime the dedup baseline with the newest message we already loaded, so
@@ -452,7 +512,7 @@ class ChatRepository extends ChangeNotifier {
         ? _messages[roomId]!.last.id
         : null;
     notifyListeners();
-    _messagesSub = await cv.subscribe(
+    final messagesSub = await cv.subscribe(
       'messages:list',
       // `viewerUserId` widens the subscription's read set by this viewer's OWN
       // view-once ledger rows and nothing else, which is deliberate: opening a
@@ -491,9 +551,17 @@ class ChatRepository extends ChangeNotifier {
       },
       onError: (err) => debugPrint('messages sub error: $err'),
     );
+    if (gen != _openGen) {
+      // A newer open (or a [closeRoom]) landed while this one was
+      // registering. Publishing the handle would wire the room actually on
+      // screen to the wrong query, with nobody holding a handle to cancel it.
+      messagesSub.cancel();
+      return;
+    }
+    _messagesSub = messagesSub;
 
     if (me != null) {
-      _readStateSub = await cv.subscribe(
+      final readStateSub = await cv.subscribe(
         'messages:getReadState',
         {'roomId': roomId, 'viewerUserId': me},
         onData: (data) {
@@ -509,6 +577,14 @@ class ChatRepository extends ChangeNotifier {
         },
         onError: (err) => debugPrint('readState sub error: $err'),
       );
+      if (gen != _openGen) {
+        // Not merely wasteful: this one's onData clears and refills
+        // `_activeReadState`, which is NOT keyed by room, so a stale copy
+        // would paint the old room's read receipts on the new room's bubbles.
+        readStateSub.cancel();
+        return;
+      }
+      _readStateSub = readStateSub;
     }
 
     // Mark the room read on entry too.
@@ -518,8 +594,7 @@ class ChatRepository extends ChangeNotifier {
     }
     final id = _userId;
     if (id != null) {
-      _openTypingRoomId = roomId;
-      _activeTypingSub = await cv.subscribe(
+      final typingSub = await cv.subscribe(
         'typing:getTypingUsers',
         {'roomId': roomId, 'currentUserId': id},
         onData: (data) {
@@ -532,10 +607,43 @@ class ChatRepository extends ChangeNotifier {
         },
         onError: (err) => debugPrint('typing(room) sub error: $err'),
       );
+      if (gen != _openGen) {
+        typingSub.cancel();
+        return;
+      }
+      // Below the await, not above it: `_openTypingRoomId` is the key
+      // [typingIn] branches on, so claiming it for a room that then lost the
+      // race serves the wrong room's typists.
+      _openTypingRoomId = roomId;
+      _activeTypingSub = typingSub;
     }
   }
 
-  void closeRoom() {
+  /// Hands the open room back. [owner] must be the token that opened it (see
+  /// [openRoom]); any other caller is a no-op.
+  ///
+  /// The guard is the whole point. Route transitions dispose the OUTGOING room
+  /// screen long after the incoming one has already called [openRoom]: a push
+  /// tap runs an animated `popUntil` and then a synchronous `push`
+  /// (app.dart's `_openRoomFromPush`), so the old screen's dispose lands ~300ms
+  /// into the new room's life; the desktop two-pane keeps the outgoing
+  /// `RoomScreen` mounted for the whole `AnimatedSwitcher` fade
+  /// (home_shell.dart's `_ChatTwoPane`); and a resize reconciliation pops the
+  /// stale route a frame later still. Unconditional teardown therefore
+  /// cancelled the subscriptions of the room the user was now looking at and
+  /// cleared [activeRoomId] underneath it — which is why push banners kept
+  /// firing for the chat on screen, and in the worst case why that room went
+  /// live-message-dead until it was re-entered.
+  ///
+  /// Mirrors the identity guard `_RoomScreenState.dispose` already applies to
+  /// its `UiSelectionStore` clear.
+  void closeRoom(Object owner) {
+    if (!identical(_openOwner, owner)) return;
+    _openOwner = null;
+    // An open still in flight for this same owner (backed out before its
+    // subscriptions landed) must not publish them after the teardown, or the
+    // room closes with live subscriptions nobody holds a handle to.
+    _openGen++;
     _stopTyping();
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
@@ -1659,9 +1767,18 @@ class ChatRepository extends ChangeNotifier {
     if (uid == null) return;
     final open = _activeRoomId;
     await attach(uid); // cancels + recreates rooms/friends/typing subs
-    if (open != null) {
-      _activeRoomId = null; // clear openRoom()'s same-room short-circuit
-      await openRoom(open); // recreates messages/read/typing subs for the room
+    // Re-checked rather than trusting the snapshot: `attach` is four network
+    // round-trips and five subscriptions, and the user can leave the room (or
+    // land in a different one from a push tap) during it.
+    if (open != null && _activeRoomId == open) {
+      // `force` rather than the old `_activeRoomId = null` poke, which existed
+      // only to defeat openRoom's same-room short-circuit. That poke blinded
+      // PushManager's suppression check (app.dart wires it to `activeRoomId`)
+      // for the whole of attach() plus the re-open — so every reconnect opened
+      // a window where the room ON SCREEN got banners, which is exactly when
+      // queued pushes arrive. `force` also preserves `_openOwner`, so the room
+      // screen keeps its claim across the reconnect.
+      await openRoom(open, force: true); // recreates messages/read/typing subs
     }
     await flushPending();
   }

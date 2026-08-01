@@ -198,7 +198,11 @@ class _RoomScreenState extends State<RoomScreen>
           _highlightCtrl.reset();
         }
       });
-    widget.repo.openRoom(widget.roomId);
+    // `this` is the ownership token: whichever State opened the room is the
+    // only one allowed to close it. Route transitions dispose the outgoing
+    // RoomScreen well after the incoming one has opened its room, so an
+    // unguarded close used to tear down the room now on screen.
+    widget.repo.openRoom(widget.roomId, owner: this);
     _loadMembers();
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
@@ -575,7 +579,7 @@ class _RoomScreenState extends State<RoomScreen>
     _membersSub?.cancel();
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
-    widget.repo.closeRoom();
+    widget.repo.closeRoom(this);
     if (_pushedCaptureScope) {
       CaptureProtection.instance.popScope();
     }

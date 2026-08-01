@@ -264,12 +264,24 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       return;
     }
     final nav = rootNavigatorKey.currentState!;
+    // Both branches want the same selection: expanded renders the detail pane
+    // straight off it, and compact needs it as the resize breadcrumb that
+    // `_reconcileNavigatorForExpanded` lands on — same reasoning as
+    // screens/navigation/open_room.dart, which every list tap goes through.
+    // This path used to be the one exception, so a push tap on phone left the
+    // selection pointing at the PREVIOUS room until the outgoing screen's
+    // dispose nulled it, and a later resize popped the user out to the
+    // empty-room hint.
+    //
+    // Set BEFORE the pop: the outgoing RoomScreen's dispose clears this store
+    // too, and its identity guard only holds off when it finds a NEWER roomId
+    // already in place.
+    UiSelectionStore.instance.selectRoom(roomId);
     // Pop any nested route first so we always land cleanly on the shell.
     nav.popUntil((r) => r.isFirst);
     if (gLastWindowClass == WindowClass.expanded) {
       // Desktop: fill the chat detail pane instead of pushing a full screen.
       SettingsStore.instance.setSection(HomeSection.chat);
-      UiSelectionStore.instance.selectRoom(roomId);
       return;
     }
     nav.push(
