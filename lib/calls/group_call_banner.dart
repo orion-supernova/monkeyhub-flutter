@@ -34,7 +34,20 @@ class _GroupCallBannerState extends State<GroupCallBanner>
     with SingleTickerProviderStateMixin {
   Subscription? _sub;
   Map<String, dynamic>? _call;
-  late final AnimationController _pulse = AnimationController(
+  // Created on first paint, not on mount: this banner sits in every room's
+  // layout permanently and collapses to nothing whenever there's no call, so
+  // an eager controller would run a repeating ticker in every open room for a
+  // call that isn't happening.
+  //
+  // Nullable and not `late final … = AnimationController(…)`. With a lazy
+  // initializer, a banner that never showed reaches dispose having never been
+  // touched — making `_pulse.dispose()` the *first* access, which builds an
+  // AnimationController during unmount. `createTicker` looks up its TickerMode
+  // ancestor, and that lookup is illegal on a deactivated element: closing any
+  // room with no active call in it threw.
+  AnimationController? _pulseCtrl;
+
+  AnimationController get _pulse => _pulseCtrl ??= AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
   )..repeat(reverse: true);
@@ -76,7 +89,9 @@ class _GroupCallBannerState extends State<GroupCallBanner>
   void dispose() {
     widget.service.removeListener(_onService);
     _sub?.cancel();
-    _pulse.dispose();
+    // Deliberately not `_pulse` — see the field. Nothing to dispose when the
+    // banner never had a call to show.
+    _pulseCtrl?.dispose();
     super.dispose();
   }
 
