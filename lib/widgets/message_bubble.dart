@@ -103,9 +103,9 @@ class MessageBubble extends StatelessWidget {
   final bool useHero;
 
   /// When false, the inline reply indicator is suppressed and the leading-
-  /// top corner stays full radius. Used inside the thread overlay where the
-  /// chain is already visualized — showing each card's inline tether on top
-  /// of the depth stack would be redundant clutter.
+  /// top corner stays full radius. Callers pass `message.isReply` — the flag
+  /// exists for previews and other chrome that need a bubble without its
+  /// quote, not to make a reply look like a plain message.
   final bool showReplyIndicator;
 
   final bool seenByOthers;

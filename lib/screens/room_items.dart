@@ -66,10 +66,14 @@ class MessageItem extends RoomItem {
   /// then stays top-aligned, since there is no run for it to close.
   bool lastInRun;
 
-  /// Whether to render the inline quoted parent. False when the parent is
-  /// the bubble directly above — the quote would just duplicate a message
-  /// already on screen. The thread stays reachable via long-press → VIEW
-  /// THREAD, which is gated on `isReply` rather than on this flag.
+  /// Whether to render the inline quoted parent. True for every reply.
+  ///
+  /// This used to be false when the parent was the bubble directly above, on
+  /// the theory that the quote would duplicate a message already on screen.
+  /// It suppressed the quote in the single most common case there is —
+  /// swipe-to-reply targets the newest message in one gesture — so a reply
+  /// read as an ordinary message and the act of replying looked like it had
+  /// done nothing. Duplicating one line is the price of the signal.
   final bool showReplyTether;
 
   @override
@@ -279,10 +283,9 @@ bool continuesRun(
       }
       out.add(fold);
       threadRows.putIfAbsent(fold.threadKey, () => <int>[]).add(out.length - 1);
-      // Barrier. Clearing prevVisible makes both expressions below yield
-      // showTether == true and grouped == false for the next row, with no
-      // extra branches: its parent is definitionally no longer the bubble
-      // above it, and a fold is a new visual beat.
+      // Barrier. Clearing prevVisible makes `grouped` false for the next row
+      // with no extra branches — a fold is a new visual beat, so nothing may
+      // group across it.
       prevVisible = null;
     }
 
@@ -298,13 +301,10 @@ bool continuesRun(
       startsDay = true;
     }
 
-    // Suppress the quoted-parent card only when the parent is the bubble
-    // directly above. This compares against the previous *visible* row, not
-    // the previous message: if the chronological predecessor was folded away,
-    // suppressing the tether would strip context for a parent that is no
-    // longer on screen — exactly backwards.
-    final showTether =
-        m.isReply && (prevVisible == null || m.replyToId != prevVisible.id);
+    // Every reply shows its quoted parent — see [MessageItem.showReplyTether]
+    // for why this is unconditional rather than skipping the parent-directly-
+    // above case.
+    final showTether = m.isReply;
 
     // Folds don't need a clause here: they always emit a chip, and the chip
     // clears prevVisible.
@@ -346,12 +346,26 @@ void _applyRails(
   Map<String, List<int>> threadRows,
   int maxRailLanes,
 ) {
+  // Indices address `out`, which interleaves date dividers among the content
+  // rows, so raw index arithmetic overstates the gap: a parent and its reply
+  // that sit next to each other but straddle midnight are two indices apart
+  // and used to earn a rail connecting two rows already touching. Count
+  // content rows only. Spans stay in raw indices — everything below addresses
+  // `out` directly — so this is purely a measuring tape.
+  final contentOrdinal = List<int>.filled(out.length, 0);
+  var seen = 0;
+  for (var i = 0; i < out.length; i++) {
+    contentOrdinal[i] = seen;
+    if (out[i] is! DateDividerItem) seen++;
+  }
+
   final spans = <({int start, int end, Set<int> rows})>[];
   for (final rows in threadRows.values) {
     if (rows.length < 2) continue;
     final start = rows.first;
     final end = rows.last;
-    if (end - start < 2) continue; // adjacent rows need no connector
+    // Adjacent rows need no connector.
+    if (contentOrdinal[end] - contentOrdinal[start] < 2) continue;
     spans.add((start: start, end: end, rows: rows.toSet()));
   }
   if (spans.isEmpty) return;

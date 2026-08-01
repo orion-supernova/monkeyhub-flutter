@@ -258,14 +258,34 @@ void main() {
           reason: 'its parent is folded away, so context must be restored');
     });
 
-    test('tether is suppressed only when the parent is the visible row above',
-        () {
+    test('a reply keeps its tether even when the parent is the row above', () {
+      // The reported bug: swipe-to-reply targets the newest message, so this
+      // is the commonest shape there is. Suppressing the quote here made the
+      // act of replying look like it had done nothing.
       final ms = [
         msg('p', t: 0),
         msg('c', t: 1, sender: 'bob', replyTo: 'p', root: 'p'),
       ];
       final r = build(ms);
-      expect(itemFor(r.items, 'c').showReplyTether, isFalse);
+      expect(itemFor(r.items, 'c').showReplyTether, isTrue);
+    });
+
+    test('a reply to your own last message still tethers, and breaks the run',
+        () {
+      // Same sender inside the 5-minute window — the one case that used to
+      // group. A quote card cannot live in the tight within-run gap.
+      final ms = [
+        msg('p', t: 0, sender: 'alice'),
+        msg('c', t: 1, sender: 'alice', replyTo: 'p', root: 'p'),
+      ];
+      final r = build(ms);
+      expect(itemFor(r.items, 'c').showReplyTether, isTrue);
+      expect(itemFor(r.items, 'c').grouped, isFalse);
+    });
+
+    test('a plain message carries no tether', () {
+      final r = build([msg('x1', t: 0), msg('x2', t: 1, sender: 'bob')]);
+      expect(itemFor(r.items, 'x2').showReplyTether, isFalse);
     });
 
     test('normal grouping still works with no threads involved', () {
@@ -412,6 +432,35 @@ void main() {
       final r = build(ms);
       expect(itemFor(r.items, 'a').rails, isEmpty);
       expect(itemFor(r.items, 'b').rails, isEmpty);
+    });
+
+    test('a date divider between two members does not earn them a rail', () {
+      // Adjacent parent and reply that straddle midnight. The divider takes a
+      // row of its own, so measuring the span in raw indices used to put them
+      // two apart and draw a connector between two rows already touching.
+      final ms = [
+        msg('a', t: 0),
+        msg('b', t: 60 * 20, sender: 'bob', replyTo: 'a', root: 'a'),
+      ];
+      final r = build(ms);
+      expect(r.items.whereType<DateDividerItem>(), hasLength(2),
+          reason: 'the fixture must actually cross a day boundary');
+      expect(itemFor(r.items, 'a').rails, isEmpty);
+      expect(itemFor(r.items, 'b').rails, isEmpty);
+    });
+
+    test('a divider does not rob a genuinely gapped thread of its rail', () {
+      // One unrelated message between the members, plus a day boundary. The
+      // gap is real, so the rail must survive the new measurement.
+      final ms = [
+        msg('a', t: 0),
+        msg('u', t: 60 * 20, sender: 'carol'),
+        msg('b', t: 60 * 20 + 1, sender: 'bob', replyTo: 'a', root: 'a'),
+      ];
+      final r = build(ms);
+      expect(ownRail(r.items, 'a')?.kind, RailKind.capTop);
+      expect(crossedBy(r.items, 'u'), isTrue);
+      expect(ownRail(r.items, 'b')?.kind, RailKind.capBottom);
     });
 
     test('no rail for a single-message thread', () {

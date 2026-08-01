@@ -444,14 +444,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // between-runs gap) makes it taller than that rect and overflows.
     final messages = _messages;
     final j = messages.indexWhere((x) => x.id == m.id);
-    final grouped = j <= 0
-        ? false
-        : continuesRun(messages[j - 1], m,
-            showTether: m.isReply && m.replyToId != messages[j - 1].id);
+    final grouped =
+        j <= 0 ? false : continuesRun(messages[j - 1], m, showTether: m.isReply);
     final next = j == -1 || j + 1 >= messages.length ? null : messages[j + 1];
-    final lastInRun = next == null ||
-        !continuesRun(m, next,
-            showTether: next.isReply && next.replyToId != m.id);
+    final lastInRun =
+        next == null || !continuesRun(m, next, showTether: next.isReply);
 
     final result = await showMessageActionMenu(
       context: context,
@@ -466,7 +463,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
       bubbleBuilder: (_) => _bubbleFor(
         m,
         author,
-        showReplyIndicator: false,
+        // Must match the row this lifted off, indicator included — the
+        // overlay force-sizes the preview into the measured rect, so a
+        // hardcoded false is exactly the overflow the comment above warns
+        // about now that every reply draws its quote.
+        showReplyIndicator: m.isReply,
         interactive: false,
         grouped: grouped,
         lastInRun: lastInRun,
@@ -827,13 +828,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
               name: m.senderName,
             );
 
-        // Only tether a reply to its parent when the parent ISN'T the bubble
-        // directly above it. In a linear chain that's always the case, so the
-        // quoted card would just duplicate the message already on screen; in
-        // a branching thread it's the only thing that says which message this
-        // is actually answering.
-        final showIndicator = m.isReply &&
-            (j == 0 || m.replyToId != messages[j - 1].id);
+        // Every reply tethers to its parent, matching the room list. A linear
+        // chain therefore quotes on every row — the redundancy is the point:
+        // without it a branch and a straight continuation look identical, and
+        // that ambiguity is the whole reason threads are hard to read.
+        final showIndicator = m.isReply;
 
         // The room list's own rule, so a thread doesn't read as looser than
         // the conversation it came from. Note this deliberately has no
@@ -848,11 +847,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         // be evaluated the same way, tether included.
         final next = j + 1 < messages.length ? messages[j + 1] : null;
         final lastInRun = next == null ||
-            !continuesRun(
-              m,
-              next,
-              showTether: next.isReply && next.replyToId != m.id,
-            );
+            !continuesRun(m, next, showTether: next.isReply);
 
         final canReply = !m.id.startsWith('tmp_') &&
             m.status == MessageStatus.sent &&
