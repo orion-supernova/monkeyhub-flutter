@@ -312,6 +312,44 @@ export default defineSchema({
     // room. Never written without `replyToId` — see `messages:send`.
     rootId: v.optional(v.id("messages")),
 
+    // ── @-mentions ──────────────────────────────────────────────────────────
+    //
+    // `content` keeps the literal `@handle` the sender typed; this array names
+    // who those handles resolved to. The text is NOT rewritten into `<@id>`
+    // markup the way Slack does it, because this table keeps four denormalized
+    // copies of `content` and two of them are byte slices that would cut such a
+    // token in half: `rooms.lastMessage` (100 chars), the push body,
+    // `replyToPreview.contentPreview` (140 chars), and the clipboard. Literal
+    // text needs no resolver in any of them, and a client too old to know about
+    // mentions renders a readable sentence rather than a raw id.
+    //
+    // The username is stored ALONGSIDE the id, denormalized exactly like
+    // `replyToPreview` above it, so rendering a mention needs no roster at all.
+    // That matters in three places a live member list isn't available: history
+    // containing someone who has since left the room, the thread overlay, and a
+    // cold boot off the disk cache. `username` is immutable — `users:updateProfile`
+    // patches `name` and `email` only — so unlike a display-name snapshot this
+    // one can never drift from the truth.
+    //
+    // Rebuilt server-side on every send: the client sends ids, the server says
+    // what they are called. `messages:send` keeps only current members of the
+    // room, drops the sender's own id, de-duplicates, caps the count, and
+    // requires the handle to actually appear in `content` — otherwise "hi"
+    // could ping twenty people. Left undefined rather than `[]` when nothing
+    // survives, so the field stays sparse; nothing queries it, so it has no index.
+    mentions: v.optional(
+      v.array(
+        v.object({
+          userId: v.id("users"),
+          username: v.string(),
+        })
+      )
+    ),
+    // `@everyone`. A flag rather than an expanded roster: membership changes
+    // between send and read, and a snapshot would notify people who have since
+    // left while missing people who have since joined.
+    mentionsEveryone: v.optional(v.boolean()),
+
     // ── View-once photos ────────────────────────────────────────────────────
     //
     // Armed by the sender in the pre-send editor. The promise is that the blob

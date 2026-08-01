@@ -309,6 +309,8 @@ export const listUserRooms = query({
           lastReadAt: m.lastReadAt ?? null,
           unreadCount: unread.count,
           unreadCapped: unread.capped,
+          // Computed from the rows `unreadForRoom` already read — see badges.ts.
+          hasMention: unread.hasMention,
         };
       })
     );

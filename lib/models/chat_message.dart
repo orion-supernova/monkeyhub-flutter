@@ -47,6 +47,28 @@ class ReplyPreview {
       };
 }
 
+/// One @-mention carried by a message: who was named, and what they were
+/// called when they were named.
+///
+/// The username is stored alongside the id for the same reason [ReplyPreview]
+/// snapshots its parent — so rendering never depends on a live roster. Three
+/// places have none: history containing someone who has since left the room,
+/// the thread overlay, and a cold boot off the disk cache. Unlike a display
+/// name this snapshot cannot drift, because `username` is immutable server-side.
+class MessageMention {
+  const MessageMention({required this.userId, required this.username});
+
+  final String userId;
+  final String username;
+
+  factory MessageMention.fromJson(Map<String, dynamic> j) => MessageMention(
+        userId: (j['userId']).toString(),
+        username: (j['username'] ?? '') as String,
+      );
+
+  Map<String, dynamic> toJson() => {'userId': userId, 'username': username};
+}
+
 class ChatMessage {
   ChatMessage({
     required this.id,
@@ -71,7 +93,10 @@ class ChatMessage {
     this.viewOnceBurnedAt,
     this.upload,
     this.clientId,
-  }) : reactions = reactions ?? [];
+    List<MessageMention>? mentions,
+    this.mentionsEveryone = false,
+  })  : reactions = reactions ?? [],
+        mentions = mentions ?? const [];
 
   final String id;
   final String roomId;
@@ -129,6 +154,30 @@ class ChatMessage {
   final String? clientId;
   bool edited;
   List<MessageReaction> reactions;
+
+  /// Everyone this message named with an `@`, resolved by the server at send
+  /// time. Empty on the overwhelming majority of messages.
+  ///
+  /// The bubble re-derives the highlighted spans by looking for these exact
+  /// handles in [content], rather than storing offsets: `_LinkAwareBubble`
+  /// rewrites the text it renders when the user has link URLs hidden, which
+  /// would shift every offset out from under them.
+  final List<MessageMention> mentions;
+
+  /// `@everyone` — addressed to the whole room rather than to anybody named.
+  final bool mentionsEveryone;
+
+  /// Whether [userId] is on the receiving end of this message's mentions.
+  /// `@everyone` counts for every reader, which is the point of it.
+  bool mentionsUser(String userId) =>
+      mentionsEveryone || mentions.any((m) => m.userId == userId);
+
+  /// The handles to look for in [content], keyed by who they belong to —
+  /// the shape `MentionDetector` consumes.
+  Map<String, String> get mentionHandles => {
+        for (final m in mentions) m.userId: m.username,
+      };
+
   final String? replyToId;
   final ReplyPreview? replyToPreview;
 
@@ -226,6 +275,12 @@ class ChatMessage {
               (j['viewOnceBurnedAt'] as num).toInt())
           : null,
       clientId: j['clientId'] as String?,
+      mentions: (j['mentions'] as List?)
+              ?.map((m) =>
+                  MessageMention.fromJson((m as Map).cast<String, dynamic>()))
+              .toList() ??
+          const [],
+      mentionsEveryone: (j['mentionsEveryone'] ?? false) as bool,
     );
   }
 
@@ -251,6 +306,13 @@ class ChatMessage {
         // Round-trips through CacheStore — without it, cached messages lose
         // their thread membership on cold boot.
         if (rootId != null) 'rootId': rootId,
+        // These have to round-trip too. This map is the disk cache's whole
+        // record of a message, so without them a cold boot would redraw every
+        // highlighted mention as flat text — and the reader's own name would
+        // stop standing out in the one message that was actually aimed at them.
+        if (mentions.isNotEmpty)
+          'mentions': mentions.map((m) => m.toJson()).toList(),
+        if (mentionsEveryone) 'mentionsEveryone': true,
         // These have to survive the disk cache too. Without them a cold boot
         // would redraw a spent or burned photo as an unopened one, inviting a
         // tap that can only ever be refused.
@@ -294,5 +356,11 @@ class ChatMessage {
         // in-flight send would leave a bubble that can neither paint its picture
         // nor be retried, and nothing about the call site would hint at it.
         upload: upload,
+        // Carried for the same reason: a copy that lost these would render a
+        // bubble whose text says "@bob" and whose highlighting says nothing,
+        // with nothing at the call site to hint at why. `copyWith` runs on the
+        // reaction and view-once paths, neither of which knows mentions exist.
+        mentions: mentions,
+        mentionsEveryone: mentionsEveryone,
       );
 }

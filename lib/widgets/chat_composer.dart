@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../data/mention_session.dart';
 import '../keyboard/focusable_tap.dart';
+import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
@@ -32,6 +34,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.onAttach,
     this.onCamera,
     this.padding,
+    this.mention,
   });
 
   final TextEditingController controller;
@@ -54,6 +57,15 @@ class ChatComposerClassic extends StatelessWidget {
   /// Overrides the default outer padding. Only needed by hosts that own
   /// their own keyboard insets; leave null inside a `Scaffold`.
   final EdgeInsets? padding;
+
+  /// Drives the `@`-picker's keyboard navigation. Null where no picker is
+  /// wired up, and then [MentionKeyboardNav] adds no node at all — so key
+  /// routing is byte-identical to what it was before this existed.
+  ///
+  /// The picker itself is NOT built here. It goes above the composer as a
+  /// sibling, the same way the reply card does, because only the host knows
+  /// what else is stacked there.
+  final MentionSession? mention;
 
   @override
   Widget build(BuildContext context) {
@@ -98,23 +110,26 @@ class ChatComposerClassic extends StatelessWidget {
               child: SubmitOnEnter(
                 controller: controller,
                 onSubmit: onSend,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink),
-                  cursorColor: theme.accent,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: ephemeral
-                        ? 'whisper something the server will forget…'
-                        : 'say something…',
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                child: MentionKeyboardNav(
+                  session: mention,
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    style: theme.body.copyWith(color: theme.ink),
+                    cursorColor: theme.accent,
+                    minLines: 1,
+                    maxLines: 4,
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: ephemeral
+                          ? 'whisper something the server will forget…'
+                          : 'say something…',
+                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                    onChanged: onChanged,
                   ),
-                  onChanged: onChanged,
                 ),
               ),
             ),
@@ -191,6 +206,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.onAttach,
     this.onCamera,
     this.padding,
+    this.mention,
   });
 
   final TextEditingController controller;
@@ -214,6 +230,9 @@ class ChatComposerLiquid extends StatelessWidget {
   /// this widget would otherwise add. Only needed by hosts that own their
   /// own keyboard insets; leave null inside a `Scaffold`.
   final EdgeInsets? padding;
+
+  /// See [ChatComposerClassic.mention].
+  final MentionSession? mention;
 
   @override
   Widget build(BuildContext context) {
@@ -247,22 +266,25 @@ class ChatComposerLiquid extends StatelessWidget {
               child: SubmitOnEnter(
                 controller: controller,
                 onSubmit: onSend,
-                child: TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  style: theme.body.copyWith(color: theme.ink, fontSize: 16),
-                  cursorColor: theme.accent,
-                  minLines: 1,
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    border: InputBorder.none,
-                    hintText: ephemeral
-                        ? 'whisper something the server will forget…'
-                        : 'Message',
-                    hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                child: MentionKeyboardNav(
+                  session: mention,
+                  child: TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    style: theme.body.copyWith(color: theme.ink, fontSize: 16),
+                    cursorColor: theme.accent,
+                    minLines: 1,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: ephemeral
+                          ? 'whisper something the server will forget…'
+                          : 'Message',
+                      hintStyle: theme.body.copyWith(color: theme.inkMuted),
+                    ),
+                    onChanged: onChanged,
                   ),
-                  onChanged: onChanged,
                 ),
               ),
             ),

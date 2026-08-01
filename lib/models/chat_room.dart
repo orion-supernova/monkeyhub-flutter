@@ -19,6 +19,7 @@ class ChatRoom {
     this.avatarStorageId,
     this.unreadCount = 0,
     this.unreadCapped = false,
+    this.hasMention = false,
     this.isMember = false,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
@@ -47,6 +48,15 @@ class ChatRoom {
   /// higher, so the UI can render "99+".
   int unreadCount;
   bool unreadCapped;
+
+  /// Whether any of those unread messages named this user with an `@` (or
+  /// addressed the whole room with `@everyone`).
+  ///
+  /// The room list draws this differently from an ordinary unread count: a
+  /// number says "there is traffic", this says "some of it is yours". Computed
+  /// server-side from rows the unread scan already had in hand, so it is free —
+  /// and, like the count, it only sees the first 99 unread messages.
+  bool hasMention;
 
   final List<String> participantIds;
 
@@ -102,6 +112,7 @@ class ChatRoom {
         if (avatarStorageId != null) 'avatarStorageId': avatarStorageId,
         'unreadCount': unreadCount,
         'unreadCapped': unreadCapped,
+        if (hasMention) 'hasMention': true,
         'participantIds': participantIds,
       };
 
@@ -128,6 +139,7 @@ class ChatRoom {
       avatarStorageId: j['avatarStorageId'] as String?,
       unreadCount: ((j['unreadCount'] ?? 0) as num).toInt(),
       unreadCapped: (j['unreadCapped'] ?? false) as bool,
+      hasMention: (j['hasMention'] ?? false) as bool,
       isMember: (j['isMember'] ?? false) as bool,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );

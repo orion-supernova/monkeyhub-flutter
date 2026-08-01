@@ -25,13 +25,24 @@ export const UNREAD_CAP = 99;
  *
  * Messages the user sent themselves never count — otherwise sending a message
  * would badge your own device.
+ *
+ * [hasMention] rides along because the rows it needs are the rows already in
+ * hand: "was I named in anything I haven't read" is a filter over `fresh`, not
+ * a second query. That is what makes an `@` marker in the room list free, and
+ * it is why the alternative — a counter on `roomMembers` — was not taken: that
+ * table is read by three reactive queries, so a per-send write there would fan
+ * a subscription storm out across every member of the room.
+ *
+ * One documented limit: only `UNREAD_CAP + 1` rows are ever read, so a mention
+ * buried under more than 99 unread messages is not seen. The count already
+ * renders as "99+" at that point, so the room is shouting either way.
  */
 export async function unreadForRoom(
   ctx: any,
   roomId: any,
   userId: any,
   lastReadAt: number | undefined | null,
-): Promise<{ count: number; capped: boolean }> {
+): Promise<{ count: number; capped: boolean; hasMention: boolean }> {
   const cursor = lastReadAt ?? 0;
   const rows = await ctx.db
     .query("messages")
@@ -42,9 +53,15 @@ export async function unreadForRoom(
 
   const mine = userId.toString();
   const fresh = rows.filter((r: any) => r.userId.toString() !== mine);
+  const hasMention = fresh.some(
+    (r: any) =>
+      r.mentionsEveryone === true ||
+      (r.mentions ?? []).some((m: any) => m.userId.toString() === mine),
+  );
   return {
     count: Math.min(fresh.length, UNREAD_CAP),
     capped: rows.length > UNREAD_CAP,
+    hasMention,
   };
 }
 

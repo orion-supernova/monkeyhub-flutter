@@ -119,7 +119,7 @@ class RoomCard extends StatelessWidget {
                 ),
                 if (room.unreadCount > 0) ...[
                   const SizedBox(width: 8),
-                  CountBadge(count: room.unreadCount),
+                  CountBadge(count: room.unreadCount, mention: room.hasMention),
                 ],
               ],
             ),

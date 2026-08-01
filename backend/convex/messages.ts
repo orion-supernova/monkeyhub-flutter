@@ -82,8 +82,12 @@ export const send = mutation({
     // the old at-least-once behaviour. See the schema comment on
     // `messages.clientId`.
     clientId: v.optional(v.string()),
+    // @-mentions. The client says WHO it meant; this mutation decides what they
+    // are called and whether they may be named at all. See `resolveMentions`.
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    mentionsEveryone: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce, clientId }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
     // Idempotency, checked before anything else has a chance to happen twice.
     //
     // Everything below this line has side effects that must not be repeated:
@@ -107,6 +111,18 @@ export const send = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
     if (!membership) throw new Error("NOT_A_MEMBER");
+
+    // The room's roster, fetched at most once per send and only if something
+    // below actually needs it. Three separate branches want it — the DM block
+    // check, the armed view-once recipient count, and mention resolution — and
+    // before this they each ran their own identical `by_room` collect. Lazy so
+    // an ordinary text send into a group room still reads nothing extra.
+    let rosterCache: any[] | null = null;
+    const roster = async () =>
+      (rosterCache ??= await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
+        .collect());
 
     const msgType = type ?? "text";
 
@@ -140,10 +156,7 @@ export const send = mutation({
     // block is absolute. The error is intentionally generic — never reveal
     // to the sender that they're the one being blocked.
     if (room?.name?.startsWith("dm:")) {
-      const otherMember = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room", (q) => q.eq("roomId", roomId))
-        .collect();
+      const otherMember = await roster();
       const otherId = otherMember.find(
         (m) => m.userId.toString() !== userId.toString()
       )?.userId;
@@ -217,11 +230,7 @@ export const send = mutation({
     const armed = viewOnce === true && mediaStorageId !== undefined;
     let viewOnceFields: Record<string, any> = {};
     if (armed) {
-      const roster = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room", (q) => q.eq("roomId", roomId))
-        .collect();
-      const recipients = roster.filter(
+      const recipients = (await roster()).filter(
         (m) => m.userId.toString() !== userId.toString()
       ).length;
       viewOnceFields = {
@@ -232,6 +241,56 @@ export const send = mutation({
         viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
       };
     }
+
+    // Resolve @-mentions. The client sends ids; everything else is decided
+    // here, because the client is not in a position to be trusted about who
+    // may be pinged.
+    //
+    // Five guards, each closing something different:
+    //
+    //  * The cap is applied BEFORE any `ctx.db.get`, so a hostile client can't
+    //    buy an unbounded read set (or an unbounded push fan-out) by sending a
+    //    huge array. Truncating silently rather than throwing is deliberate —
+    //    the client caps too, and a disagreement must never fail a send the
+    //    user has already made.
+    //  * De-duplication, because the array answers "who", not "how many".
+    //  * The sender's own id is dropped: `unreadForRoom` already skips your own
+    //    messages, so a self-mention could only ever be dead weight.
+    //  * Membership, which IS the authorization model here — without it any
+    //    client could ping any account on the deployment.
+    //  * The handle must actually appear in `content`. Otherwise "hi" could
+    //    notify twenty people, and the text would disagree with the badge.
+    const MAX_MENTIONS = 20;
+    let resolvedMentions:
+      | Array<{ userId: any; username: string }>
+      | undefined;
+    if (mentionedUserIds && mentionedUserIds.length > 0) {
+      const wanted = [
+        ...new Set(mentionedUserIds.slice(0, MAX_MENTIONS).map(String)),
+      ].filter((id) => id !== userId.toString());
+      if (wanted.length > 0) {
+        const memberIds = new Set(
+          (await roster()).map((m) => m.userId.toString())
+        );
+        const out: Array<{ userId: any; username: string }> = [];
+        for (const id of wanted) {
+          if (!memberIds.has(id)) continue;
+          const u = await ctx.db.get(id as any);
+          const handle = (u as any)?.username;
+          if (!handle) continue;
+          if (!content.includes(`@${handle}`)) continue;
+          out.push({ userId: (u as any)._id, username: handle });
+        }
+        // Never store an empty array — the field is meant to be sparse.
+        if (out.length > 0) resolvedMentions = out;
+      }
+    }
+    // `@everyone` is only meaningful where there is a crowd to address, and a
+    // DM already has the other person's full attention.
+    const everyone =
+      mentionsEveryone === true &&
+      !room?.name?.startsWith("dm:") &&
+      content.includes("@everyone");
 
     const messageId = await ctx.db.insert("messages", {
       roomId,
@@ -254,6 +313,8 @@ export const send = mutation({
       ...(replyToPreview
         ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
         : {}),
+      ...(resolvedMentions ? { mentions: resolvedMentions } : {}),
+      ...(everyone ? { mentionsEveryone: true } : {}),
     });
 
     // Schedule server-side deletion for self-destructing messages
@@ -305,6 +366,10 @@ export const send = mutation({
       senderName: resolvedSenderName,
       content: preview,
       type: msgType,
+      // Post-validation, so nobody gets a "mentioned you" banner for a mention
+      // that was rejected above and isn't on the stored row.
+      mentionedUserIds: resolvedMentions?.map((m) => m.userId),
+      mentionsEveryone: everyone ? true : undefined,
     });
 
     return messageId;

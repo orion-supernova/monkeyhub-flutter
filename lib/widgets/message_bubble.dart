@@ -41,6 +41,7 @@ class MessageBubble extends StatelessWidget {
     this.onReactionTap,
     this.onReactionLongPress,
     this.onAuthorTap,
+    this.onMentionTap,
     this.onReplyIndicatorTap,
     this.onViewThread,
     this.parentAuthor,
@@ -81,6 +82,11 @@ class MessageBubble extends StatelessWidget {
   final void Function(String emoji)? onReactionLongPress;
 
   final VoidCallback? onAuthorTap;
+
+  /// Invoked when the user taps an @-mention. Receives the mentioned user's id
+  /// so the screen can open their profile. Null leaves mentions highlighted
+  /// but inert.
+  final void Function(String userId)? onMentionTap;
 
   /// Invoked when the user taps the inline reply indicator. Receives the
   /// parent message id so the screen can scroll-and-highlight it.
@@ -298,6 +304,8 @@ class MessageBubble extends StatelessWidget {
       onOpenViewOnce: onOpenViewOnce,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
+      currentUserId: currentUserId,
+      onMentionTap: onMentionTap,
     );
   }
 }
@@ -315,6 +323,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onReactionTap,
     this.onReactionLongPress,
     this.onAuthorTap,
+    this.onMentionTap,
     this.onReplyIndicatorTap,
     this.onViewThread,
     this.parentAuthor,
@@ -355,6 +364,9 @@ class EphemeralMessageBubble extends StatelessWidget {
   final void Function(String emoji)? onReactionLongPress;
 
   final VoidCallback? onAuthorTap;
+
+  /// See [MessageBubble.onMentionTap].
+  final void Function(String userId)? onMentionTap;
   final void Function(String parentId)? onReplyIndicatorTap;
   final VoidCallback? onViewThread;
   final ChatUser? parentAuthor;
@@ -421,6 +433,8 @@ class EphemeralMessageBubble extends StatelessWidget {
       onOpenViewOnce: onOpenViewOnce,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
+      currentUserId: currentUserId,
+      onMentionTap: onMentionTap,
     );
 
     final bubble = Stack(
@@ -819,6 +833,16 @@ Widget buildMessageContent({
   /// message is unconfirmed.
   Future<void> Function()? onRetrySend,
   VoidCallback? onDiscardSend,
+
+  /// The reader, so a mention OF THEM can be drawn louder than a mention of
+  /// anyone else. Null leaves every mention styled the same, which is the right
+  /// fallback for previews and chrome that have no viewer.
+  String? currentUserId,
+
+  /// Opens a mentioned user's profile. Null leaves mentions highlighted but
+  /// inert — the same treatment [onOpenViewOnce] gets where no repository is
+  /// wired up.
+  void Function(String userId)? onMentionTap,
 }) {
   final deco = theme.bubbleDecoration(
     isMine: isMine,
@@ -934,7 +958,11 @@ Widget buildMessageContent({
           Container(
             decoration: deco,
             child: _captionBody(theme, message.content, isMine,
-                stamp: stampFor(bubbleTone)),
+                stamp: stampFor(bubbleTone),
+                mentionHandles: message.mentionHandles,
+                mentionsEveryone: message.mentionsEveryone,
+                currentUserId: currentUserId,
+                onMentionTap: onMentionTap),
           ),
         ],
       );
@@ -1018,7 +1046,11 @@ Widget buildMessageContent({
           Container(
             decoration: deco,
             child: _captionBody(theme, message.content, isMine,
-                stamp: stampFor(bubbleTone)),
+                stamp: stampFor(bubbleTone),
+                mentionHandles: message.mentionHandles,
+                mentionsEveryone: message.mentionsEveryone,
+                currentUserId: currentUserId,
+                onMentionTap: onMentionTap),
           ),
         ],
       );
@@ -1026,7 +1058,11 @@ Widget buildMessageContent({
       return Container(
         decoration: deco,
         child: _captionBody(theme, message.content, isMine,
-            stamp: stampFor(bubbleTone)),
+            stamp: stampFor(bubbleTone),
+            mentionHandles: message.mentionHandles,
+            mentionsEveryone: message.mentionsEveryone,
+            currentUserId: currentUserId,
+            onMentionTap: onMentionTap),
       );
     case MessageType.url:
     case MessageType.text:
@@ -1036,6 +1072,8 @@ Widget buildMessageContent({
         isMine: isMine,
         decoration: deco,
         stamp: stampFor(bubbleTone),
+        currentUserId: currentUserId,
+        onMentionTap: onMentionTap,
       );
   }
 }
@@ -1046,28 +1084,59 @@ Widget buildMessageContent({
 /// The padding moves off the enclosing `Container` and in here, because the
 /// stamp's `Positioned` has to live *inside* the padded box to measure from the
 /// text's edge rather than the bubble's.
+///
+/// Routed through [LinkifiedText] with `linkifyUrls: false` rather than
+/// building its own `Text`: with no URLs and no mentions that widget's fast
+/// path emits exactly the `Text` / `Text.rich` this used to, so a system notice
+/// renders identically — while a caption that DOES carry mentions gets them
+/// highlighted through the same code the text bubble uses, instead of a second
+/// span builder that would have to be kept in step with it.
+///
+/// No caller passes a caption today, so the mention half of this is currently
+/// only reachable by a system message. It is wired anyway so that adding a
+/// caption composer is a repository change and not a rendering one.
 Widget _captionBody(
   AppTheme theme,
   String text,
   bool isMine, {
   required MessageStamp? stamp,
+  Map<String, String> mentionHandles = const {},
+  bool mentionsEveryone = false,
+  String? currentUserId,
+  void Function(String userId)? onMentionTap,
 }) {
   const pad = EdgeInsets.fromLTRB(14, 10, 14, 10);
   final style = theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
-  if (stamp == null) {
-    return Padding(padding: pad, child: Text(text, style: style));
-  }
-  return StampedTextBlock(
-    stamp: stamp,
-    padding: pad,
-    child: Text.rich(TextSpan(
-      // trimRight so a caption ending in a newline doesn't push the stamp onto
-      // a line of its own.
-      text: text.trimRight(),
-      children: [stampSpacerSpan(stamp)],
-      style: style,
-    )),
+  final mentionInk = isMine
+      ? theme.accentInk
+      : (theme.accent.computeLuminance() < 0.2 ? theme.accent : theme.ink);
+  final mentionStyle =
+      style.copyWith(color: mentionInk, fontWeight: FontWeight.w600);
+  final body = LinkifiedText(
+    // trimRight so a caption ending in a newline doesn't push the stamp onto
+    // a line of its own. Only when there IS a stamp — an unstamped caption kept
+    // its trailing whitespace before and has no reason to stop.
+    text: stamp == null ? text : text.trimRight(),
+    style: style,
+    linkifyUrls: false,
+    // Unreachable with linkifyUrls false, but the parameters are required.
+    linkStyle: style,
+    onLinkTap: (_) {},
+    trailing: stamp == null ? null : stampSpacerSpan(stamp),
+    mentionHandles: mentionHandles,
+    mentionsEveryone: mentionsEveryone,
+    selfUserId: currentUserId,
+    mentionStyle: mentionStyle,
+    selfMentionStyle: mentionStyle.copyWith(
+      background: Paint()
+        ..color = isMine
+            ? theme.accentInk.withValues(alpha: 0.22)
+            : theme.accentSoft,
+    ),
+    onMentionTap: onMentionTap,
   );
+  if (stamp == null) return Padding(padding: pad, child: body);
+  return StampedTextBlock(stamp: stamp, padding: pad, child: body);
 }
 
 /// A photo in the transcript, shown at the picture's own aspect ratio.
@@ -1889,11 +1958,15 @@ class _LinkAwareBubble extends StatelessWidget {
     required this.isMine,
     required this.decoration,
     required this.stamp,
+    this.currentUserId,
+    this.onMentionTap,
   });
 
   final AppTheme theme;
   final ChatMessage message;
   final bool isMine;
+  final String? currentUserId;
+  final void Function(String userId)? onMentionTap;
 
   /// Tucked into the text block's bottom-trailing corner. Null for the
   /// card-only mode below, which has no bubble of its own — see
@@ -1976,6 +2049,33 @@ class _LinkAwareBubble extends StatelessWidget {
 
         final stamp = this.stamp;
         final textPad = EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10);
+        // Mentions borrow the link's ink for the same reason it was computed
+        // that way: an outgoing bubble is FILLED with `theme.accent`, so an
+        // accent-coloured word inside one is invisible. Weight carries the
+        // emphasis instead of colour, and no underline — that stays the link's
+        // own signature so the two remain tellable apart at a glance.
+        final mentionStyle = theme.body.copyWith(
+          color: linkAccent,
+          fontWeight: FontWeight.w600,
+        );
+        // Being named yourself gets a wash behind the text as well. This is the
+        // one distinction the feature exists to draw, so it is the one that
+        // gets the loudest treatment available.
+        //
+        // `TextStyle.background` rather than a `WidgetSpan` pill: this
+        // paragraph already carries one placeholder whose sizing is
+        // load-bearing (`stampSpacerSpan` reserves exactly the room the
+        // timestamp needs, and a too-full line is supposed to wrap instead of
+        // giving it up). A pill wraps as an atomic unit and would start
+        // influencing that decision. A background paints behind the glyphs at
+        // zero layout cost, and — unlike a placeholder — stays selectable, so
+        // the copy action keeps agreeing with what is on screen.
+        final selfMentionStyle = mentionStyle.copyWith(
+          background: Paint()
+            ..color = isMine
+                ? theme.accentInk.withValues(alpha: 0.22)
+                : theme.accentSoft,
+        );
         final body = LinkifiedText(
           // Trailing whitespace would push the stamp onto a line of its own.
           text: displayText.trimRight(),
@@ -1987,6 +2087,12 @@ class _LinkAwareBubble extends StatelessWidget {
           ),
           onLinkTap: (url) => LinkOpener.open(context, url),
           trailing: stamp == null ? null : stampSpacerSpan(stamp),
+          mentionHandles: message.mentionHandles,
+          mentionsEveryone: message.mentionsEveryone,
+          selfUserId: currentUserId,
+          mentionStyle: mentionStyle,
+          selfMentionStyle: selfMentionStyle,
+          onMentionTap: onMentionTap,
         );
 
         return Container(

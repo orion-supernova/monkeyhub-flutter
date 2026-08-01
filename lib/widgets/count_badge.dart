@@ -17,9 +17,19 @@ class CountBadge extends StatelessWidget {
     required this.count,
     this.onAccent = false,
     this.max = 99,
+    this.mention = false,
   });
 
   final int count;
+
+  /// True when at least one of the counted messages named this user with an
+  /// `@`. The pill fills in and grows an `@` in front of the number.
+  ///
+  /// A count says "there is traffic in here"; this says "some of it is
+  /// yours" — a difference worth more than a slightly louder number, so it is
+  /// carried by the badge itself and not by the two call sites, which would
+  /// otherwise be free to drift apart.
+  final bool mention;
 
   /// True when the badge sits on top of an accent-filled surface, so it
   /// needs to invert rather than blend into it.
@@ -33,21 +43,28 @@ class CountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
+    // Filled rather than tinted when you were named. The tinted pill has to
+    // stay quiet enough to sit beside a dozen others in a room list; a mention
+    // is the one that has earned the right to be read first.
+    final fg = mention
+        ? (onAccent ? theme.accent : theme.accentInk)
+        : (onAccent ? theme.accentInk : theme.accent);
+    final bg = mention
+        ? (onAccent ? theme.accentInk : theme.accent)
+        : (onAccent
+            ? theme.accentInk.withValues(alpha: 0.18)
+            : theme.accent.withValues(alpha: 0.16));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       constraints: const BoxConstraints(minWidth: 16),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: onAccent
-            ? theme.accentInk.withValues(alpha: 0.18)
-            : theme.accent.withValues(alpha: 0.16),
+        color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        count > max ? '$max+' : '$count',
-        style: theme.monoTiny.copyWith(
-          color: onAccent ? theme.accentInk : theme.accent,
-        ),
+        '${mention ? '@' : ''}${count > max ? '$max+' : '$count'}',
+        style: theme.monoTiny.copyWith(color: fg),
       ),
     );
   }

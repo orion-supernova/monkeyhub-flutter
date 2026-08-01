@@ -359,6 +359,11 @@ class ChatApi {
     /// every retry of that message. The server returns the row it already wrote
     /// rather than writing a second one.
     String? clientId,
+    /// Who this message names with an `@`. Ids only: the server resolves each
+    /// one to a handle itself, and drops any that isn't a current member of the
+    /// room or isn't actually written into [content].
+    List<String> mentionedUserIds = const [],
+    bool mentionsEveryone = false,
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
@@ -372,6 +377,10 @@ class ChatApi {
       'senderName': ?senderName,
       'replyToId': ?replyToId,
       if (viewOnce) 'viewOnce': true,
+      // Omitted rather than sent empty, matching `viewOnce` above — the common
+      // message mentions nobody and shouldn't widen the wire to say so.
+      if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+      if (mentionsEveryone) 'mentionsEveryone': true,
     });
     return res.toString();
   }

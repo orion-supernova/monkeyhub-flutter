@@ -1012,12 +1012,20 @@ class ChatRepository extends ChangeNotifier {
     }
   }
 
-  Future<void> sendText(String roomId, String text, {String? replyToId}) async {
+  Future<void> sendText(
+    String roomId,
+    String text, {
+    String? replyToId,
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
+  }) async {
     return _send(
       roomId: roomId,
       content: text,
       type: MessageType.text,
       replyToId: replyToId,
+      mentions: mentions,
+      mentionsEveryone: mentionsEveryone,
     );
   }
 
@@ -1227,6 +1235,8 @@ class ChatRepository extends ChangeNotifier {
     double? mediaHeight,
     String? replyToId,
     bool viewOnce = false,
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
   }) async {
     final optimistic = _buildOptimistic(
       roomId: roomId,
@@ -1237,6 +1247,8 @@ class ChatRepository extends ChangeNotifier {
       mediaHeight: mediaHeight,
       replyToId: replyToId,
       viewOnce: viewOnce,
+      mentions: mentions,
+      mentionsEveryone: mentionsEveryone,
     );
     if (optimistic == null) return;
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
@@ -1261,6 +1273,8 @@ class ChatRepository extends ChangeNotifier {
     bool viewOnce = false,
     MessageStatus status = MessageStatus.pending,
     PendingUpload? upload,
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
   }) {
     final id = _userId;
     if (id == null) return null;
@@ -1316,6 +1330,12 @@ class ChatRepository extends ChangeNotifier {
       rootId: optimisticPreview != null ? optimisticRootId : null,
       viewOnce: viewOnce,
       upload: upload,
+      // Carried on the pending bubble so the sender's own mention is
+      // highlighted the instant they hit send, rather than flatly for the
+      // round-trip and then lighting up when the echo lands. The server may
+      // still drop one it refuses; the echo replaces this copy with the truth.
+      mentions: mentions,
+      mentionsEveryone: mentionsEveryone,
     );
   }
 
@@ -1342,6 +1362,12 @@ class ChatRepository extends ChangeNotifier {
         // the socket was frozen comes back as an ordinary, permanent one — the
         // flag dropped on the retry rather than on the send the user made.
         viewOnce: optimistic.viewOnce,
+        // Read off the message for exactly the same reason: a retry that
+        // dropped these would deliver the text "@bob" to a Bob who is never
+        // told about it. Storing them on the bubble is what gets both reconnect
+        // sweepers this for free.
+        mentionedUserIds: [for (final m in optimistic.mentions) m.userId],
+        mentionsEveryone: optimistic.mentionsEveryone,
         // The bubble's own local id, which is stable across every retry of this
         // message — that stability is the entire mechanism. Two attempts at the
         // same send carry the same key and collapse to one row; two genuinely

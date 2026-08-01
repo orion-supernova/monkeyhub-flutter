@@ -115,8 +115,12 @@ export const sendMessagePush = internalAction({
     senderName: v.string(),
     content: v.string(),
     type: v.string(),
+    // Already validated by `messages:send` — these name people who really are
+    // members and really were written into the text.
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    mentionsEveryone: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, messageId, senderId, senderName, content, type }) => {
+  handler: async (ctx, { roomId, messageId, senderId, senderName, content, type, mentionedUserIds, mentionsEveryone }) => {
     const apiKey = process.env.ONESIGNAL_API_KEY;
 
     if (!apiKey) {
@@ -170,6 +174,12 @@ export const sendMessagePush = internalAction({
       `sendMessagePush: targeting ${externalIds.length} user(s) by external_id`
     );
 
+    // Who, of this room, was named. `@everyone` makes that everybody, which is
+    // the whole point of it — every recipient below is already the roster minus
+    // the sender.
+    const mentioned = new Set((mentionedUserIds ?? []).map(String));
+    const mentionsAll = mentionsEveryone === true;
+
     const sentAt = Date.now();
 
     // Use the OneSignal v5 User Model API: target users by external_id via
@@ -180,11 +190,16 @@ export const sendMessagePush = internalAction({
     const results = await Promise.allSettled(
       members.map(async (m) => {
         const uid = m.userId.toString();
+        // A mention is the one message in a busy room that is genuinely
+        // addressed to you, so it says so on the lock screen. Costs nothing
+        // extra: this loop already builds a payload per recipient in order to
+        // stamp a per-user badge count.
+        const isMention = mentionsAll || mentioned.has(uid);
         const payload = {
           app_id: ONESIGNAL_APP_ID,
           target_channel: "push",
           include_aliases: { external_id: [uid] },
-          headings: { en: senderName },
+          headings: { en: isMention ? `${senderName} mentioned you` : senderName },
           contents: { en: body },
           data: {
             roomId: roomId.toString(),
@@ -193,6 +208,10 @@ export const sendMessagePush = internalAction({
             senderName,
             content: body,
             type,
+            // Read by nothing today — tap routing goes through `roomId`, which
+            // a mention carries like any other message. Carried so a future
+            // in-app treatment doesn't need a server change to find out.
+            mention: isMention,
           },
           // The delivered notification's identifier. Deleting the message
           // later sends a silent push carrying this same string, which the

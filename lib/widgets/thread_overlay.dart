@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/mention_session.dart';
 import '../data/settings_store.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
@@ -23,6 +24,8 @@ import 'chat_pane.dart';
 import 'composer_reply_card.dart';
 import 'glass_pill.dart';
 import 'jump_back.dart';
+import 'mention_picker.dart';
+import 'mention_text_controller.dart';
 import 'message_action_menu.dart';
 import 'message_bubble.dart';
 import 'reaction_picker_sheet.dart';
@@ -56,6 +59,11 @@ Future<void> showThreadOverlay({
   required String roomId,
   required String rootId,
   required String anchorMessageId,
+  /// The room's roster, for the @-picker. Handed in rather than subscribed to
+  /// here: this overlay is only ever opened from the room screen, which already
+  /// holds a live `rooms:getMembers` subscription, and a second one would pay
+  /// for the same rows twice.
+  List<ChatUser> members = const [],
   void Function(String gateError, String unsentText)? onChildGate,
 }) async {
   final theme = ThemeScope.of(context);
@@ -69,6 +77,7 @@ Future<void> showThreadOverlay({
       roomId: roomId,
       rootId: rootId,
       anchorMessageId: anchorMessageId,
+      members: members,
       themeMotion: theme.motionEntrance,
       onChildGate: onChildGate,
       onResolve: () {
@@ -90,6 +99,7 @@ class _ThreadSheet extends StatefulWidget {
     required this.roomId,
     required this.rootId,
     required this.anchorMessageId,
+    required this.members,
     required this.themeMotion,
     required this.onResolve,
     this.onChildGate,
@@ -100,6 +110,7 @@ class _ThreadSheet extends StatefulWidget {
   final String roomId;
   final String rootId;
   final String anchorMessageId;
+  final List<ChatUser> members;
   final Curve themeMotion;
   final VoidCallback onResolve;
   final void Function(String gateError, String unsentText)? onChildGate;
@@ -128,8 +139,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
   // in the room. Its own instance, not the room's — the two surfaces scroll
   // independently and a hop in one means nothing in the other.
   final JumpBackStack _jumpBack = JumpBackStack();
-  final TextEditingController _composer = TextEditingController();
+  final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode(debugLabel: 'thread-composer');
+  late final MentionSession _mention;
 
   bool _closing = false;
 
@@ -162,6 +174,15 @@ class _ThreadSheetState extends State<_ThreadSheet>
   @override
   void initState() {
     super.initState();
+    _mention = MentionSession(
+      controller: _composer,
+      roster: () => widget.members,
+      selfUserId: widget.repo.userId,
+      // The roster is a snapshot taken when the overlay opened, so a DM is
+      // still a DM for as long as it is up — no need to re-read the room.
+      allowEveryone: () => widget.members.length > 2,
+    );
+    _mention.addListener(_onMentionChanged);
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 240),
@@ -210,6 +231,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _scrolledUp.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
+    // Before the controller: the session is a listener on it.
+    _mention.removeListener(_onMentionChanged);
+    _mention.dispose();
     _composer.dispose();
     _composerFocus.dispose();
     _pulse.dispose();
@@ -426,6 +450,33 @@ class _ThreadSheetState extends State<_ThreadSheet>
     return messages.last;
   }
 
+  void _onMentionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Opens a mentioned user's profile from inside the thread. Resolved against
+  /// the roster snapshot the overlay was handed; someone who has left the room
+  /// still renders as a mention but has no profile to open.
+  void _openMentionedProfile(String userId) {
+    ChatUser? user;
+    for (final u in widget.members) {
+      if (u.id == userId) {
+        user = u;
+        break;
+      }
+    }
+    if (user == null || !mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(
+          user: user!,
+          repo: widget.repo,
+          api: widget.api,
+        ),
+      ),
+    );
+  }
+
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
@@ -438,13 +489,22 @@ class _ThreadSheetState extends State<_ThreadSheet>
       _showToast('still sending — try again in a second');
       return;
     }
+    final mentions = _composer.mentions;
+    final everyone = _composer.everyone;
+    _composer.clearMentions();
     _composer.clear();
     // Disarm: the reply is sent, so an explicit target has nothing left to
     // say. Falling back to null means the next send goes to the tail — which
     // is now the message just sent. Nothing to restore on the refusal path
     // below: it dismisses the overlay and hands the text to the room.
     if (_target != null) setState(() => _target = null);
-    await widget.repo.sendText(widget.roomId, text, replyToId: target.id);
+    await widget.repo.sendText(
+      widget.roomId,
+      text,
+      replyToId: target.id,
+      mentions: mentions,
+      mentionsEveryone: everyone,
+    );
 
     // Read-and-clear, immediately after the send, exactly as the room screen
     // does — leaving it set would leak the refusal into the next send there.
@@ -619,6 +679,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
         senderName: name,
         highlightT: highlightT,
         replyMarker: replyMarker,
+        onMentionTap: _openMentionedProfile,
         // Null hides the branch button — no thread-within-a-thread.
         onViewThread: null,
         onReplyIndicatorTap:
@@ -642,6 +703,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       senderName: name,
       highlightT: highlightT,
       replyMarker: replyMarker,
+      onMentionTap: _openMentionedProfile,
       onViewThread: null,
       onReplyIndicatorTap:
           interactive ? (parentId) => _jumpToParent(parentId, from: m) : null,
@@ -653,6 +715,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // See room_screen.build — assigned per build so a theme change reaches it.
+    _composer.tint = theme.accent;
     final curved = CurvedAnimation(parent: _ctrl, curve: widget.themeMotion);
     final messages = _messages;
     final loading = widget.repo.isLoadingThread(widget.rootId);
@@ -988,6 +1052,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
             // no null target inside a thread.
             onCancel: () => setState(() => _target = null),
           ),
+        // The @-picker, unlike the attach flow below, is safe here precisely
+        // because it is a sibling in this Column rather than an overlay of its
+        // own — there is nothing for this root entry to fight with.
+        if (_mention.isOpen)
+          MentionPicker(session: _mention, api: widget.api),
         // Attachments are deliberately absent: the attach flow pushes
         // full-screen routes (camera, voice recorder) that would fight this
         // root-overlay entry for layering. Text only in the thread.
@@ -999,6 +1068,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             onSend: _send,
             onChanged: (_) => widget.repo.noteTyping(),
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+            mention: _mention,
           )
         else
           ChatComposerLiquid(
@@ -1008,6 +1078,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             onSend: _send,
             onChanged: (_) => widget.repo.noteTyping(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            mention: _mention,
           ),
       ],
         ),

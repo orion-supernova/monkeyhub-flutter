@@ -74,7 +74,10 @@ class RoomGridTile extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (room.unreadCount > 0)
-                        CountBadge(count: room.unreadCount)
+                        CountBadge(
+                          count: room.unreadCount,
+                          mention: room.hasMention,
+                        )
                       else if (room.hasUnread)
                         Container(
                           width: 10,

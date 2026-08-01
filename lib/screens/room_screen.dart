@@ -15,6 +15,7 @@ import '../calls/group_call_banner.dart';
 import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
+import '../data/mention_session.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -42,6 +43,8 @@ import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
+import '../widgets/mention_picker.dart';
+import '../widgets/mention_text_controller.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
@@ -87,8 +90,9 @@ class _RoomScreenState extends State<RoomScreen>
     with TickerProviderStateMixin {
   late Timer _ticker;
   DateTime _now = DateTime.now();
-  final TextEditingController _composer = TextEditingController();
+  final MentionTextController _composer = MentionTextController();
   final FocusNode _composerFocus = FocusNode();
+  late final MentionSession _mention;
   final ScrollController _scroll = ScrollController();
   // Whether the transcript is parked away from the newest message. Kept in a
   // notifier rather than a field: _onScroll runs on every scroll frame and this
@@ -185,6 +189,21 @@ class _RoomScreenState extends State<RoomScreen>
     // now takes it off the critical path of the tap that follows; it neither
     // opens a session nor prompts for anything.
     CameraScreen.warmUp();
+    // Reads `_members` through a closure rather than a captured list so a
+    // member who joins mid-sentence is offered without rebuilding the session.
+    _mention = MentionSession(
+      controller: _composer,
+      roster: () => _members.values.toList(),
+      selfUserId: widget.repo.userId,
+      // "Everyone" in a two-person room is just the other person, who is
+      // already looking at the message.
+      allowEveryone: () => !(_room?.isDm ?? true),
+    );
+    // The picker is a conditional child of the composer column, so the screen
+    // has to rebuild when it opens or closes. The session only notifies when
+    // something it renders actually changed, so ordinary typing does not
+    // repaint a list that would look identical.
+    _mention.addListener(_onMentionChanged);
     _ticker = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (mounted) setState(() => _now = DateTime.now());
     });
@@ -530,7 +549,12 @@ class _RoomScreenState extends State<RoomScreen>
   String _signatureFor(List<ChatUser> users) {
     final parts = users
         .map((u) =>
-            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
+            // `username` is in here because the @-picker filters and inserts on
+            // it. It is immutable server-side today, so this can't actually
+            // change under the subscription — but the signature should describe
+            // everything the map is read for, not everything that happens to
+            // vary.
+            '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
         .toList()
       ..sort();
     return parts.join(';');
@@ -604,6 +628,9 @@ class _RoomScreenState extends State<RoomScreen>
       UiSelectionStore.instance.selectRoom(null);
     }
     _ticker.cancel();
+    // Before the controller: the session is a listener on it.
+    _mention.removeListener(_onMentionChanged);
+    _mention.dispose();
     _composer.dispose();
     _composerFocus.dispose();
     _highlightCtrl.dispose();
@@ -631,21 +658,36 @@ class _RoomScreenState extends State<RoomScreen>
     // is sent, so the card has nothing left to say. It stays armed only when
     // the send is refused below, since then there's still a pending reply.
     final replyTarget = _replyingTo;
+    // Same snapshot-then-clear for the mentions, and for the same reason —
+    // the refusal path below has to be able to put them back.
+    final mentions = _composer.mentions;
+    final everyone = _composer.everyone;
     setState(() => _replyingTo = null);
+    _composer.clearMentions();
     _composer.clear();
     // Sending while reading old history: the optimistic bubble lands on the
     // live tail, so come back to it rather than leaving the sender staring at
     // a transcript their own message isn't in.
     widget.repo.exitHistoryWindow(widget.roomId);
-    await widget.repo.sendText(widget.roomId, text, replyToId: replyTarget?.id);
+    await widget.repo.sendText(
+      widget.roomId,
+      text,
+      replyToId: replyTarget?.id,
+      mentions: mentions,
+      mentionsEveryone: everyone,
+    );
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just
     // vanish. Most likely a grant was revoked while the room was open.
     final gate = widget.repo.takeChildGateError();
     if (gate != null && mounted) {
-      // Nothing was sent — put the user back exactly where they were.
+      // Nothing was sent — put the user back exactly where they were. The
+      // mentions have to come back with the text: restoring "@bob" as plain
+      // characters would leave a retry that reads like a tag and notifies
+      // nobody.
       setState(() {
         _composer.text = text;
+        _composer.restoreMentions(mentions, everyone: everyone);
         _replyingTo = replyTarget;
       });
       _keepComposerFocus();
@@ -740,6 +782,10 @@ class _RoomScreenState extends State<RoomScreen>
         roomId: widget.roomId,
         rootId: rootId,
         anchorMessageId: anchorMessageId,
+        // A snapshot rather than a live feed: the overlay is short-lived, and
+        // this screen already pays for the only `rooms:getMembers`
+        // subscription either surface needs.
+        members: _members.values.toList(),
         onChildGate: (gate, unsentText) {
           if (!mounted) return;
           _composer.text = unsentText;
@@ -1144,6 +1190,19 @@ class _RoomScreenState extends State<RoomScreen>
     setState(() => _mediaBusy = busy);
   }
 
+  void _onMentionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Opens a mentioned user's profile. Silently does nothing for someone who
+  /// has left the room since the message was sent — the mention still renders
+  /// (its username is stored on the message) but there is no member row left to
+  /// build a profile from.
+  void _openMention(String userId) {
+    final u = _members[userId];
+    if (u != null) _openProfile(u);
+  }
+
   void _openProfile(ChatUser u) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1226,6 +1285,10 @@ class _RoomScreenState extends State<RoomScreen>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Set here rather than at construction because the theme is a
+    // `ThemeScope` lookup and can change under a live screen. The controller
+    // only reads it while painting, so assigning on every build is free.
+    _composer.tint = theme.accent;
     final room = _room ?? widget.repo.roomById(widget.roomId);
     if (room == null) {
       return Scaffold(
@@ -1342,6 +1405,8 @@ class _RoomScreenState extends State<RoomScreen>
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
+                if (_mention.isOpen)
+                  MentionPicker(session: _mention, api: widget.api),
                 ChatComposerClassic(
                   controller: _composer,
                   focusNode: _composerFocus,
@@ -1350,6 +1415,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
+                  mention: _mention,
                 ),
               ],
               ),
@@ -1434,6 +1500,8 @@ class _RoomScreenState extends State<RoomScreen>
                     api: widget.api,
                     onCancel: () => setState(() => _replyingTo = null),
                   ),
+                if (_mention.isOpen)
+                  MentionPicker(session: _mention, api: widget.api),
                 ChatComposerLiquid(
                   controller: _composer,
                   focusNode: _composerFocus,
@@ -1442,6 +1510,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
+                  mention: _mention,
                 ),
               ],
                 ),
@@ -1770,6 +1839,7 @@ class _RoomScreenState extends State<RoomScreen>
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                        onMentionTap: _openMention,
                         onReplyIndicatorTap: (parentId) =>
                             _jumpToMessage(parentId, from: m),
                         onViewThread: m.isReply ? onViewThread : null,
@@ -1799,6 +1869,7 @@ class _RoomScreenState extends State<RoomScreen>
                         onReactionTap: onReactionTap,
                         onReactionLongPress: onReactionLongPress,
                         onAuthorTap: author != null && !isMine ? onAuthorTap : null,
+                        onMentionTap: _openMention,
                         onReplyIndicatorTap: (parentId) =>
                             _jumpToMessage(parentId, from: m),
                         onViewThread: m.isReply ? onViewThread : null,
