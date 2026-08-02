@@ -42,7 +42,6 @@ ChatMessage msg(
   bool ephemeral = false,
   bool Function(ChatMessage)? isPinned,
   int minFolded = kMinFoldedMessages,
-  int maxRailLanes = kMaxRailLanes,
 }) =>
     buildRoomItems(
       messages: messages,
@@ -50,7 +49,6 @@ ChatMessage msg(
       isPinned: isPinned ?? (_) => false,
       dayLabel: (d) => '${d.year}-${d.month}-${d.day}',
       minFolded: minFolded,
-      maxRailLanes: maxRailLanes,
     );
 
 List<String> visibleIds(List<RoomItem> items) => items
@@ -60,14 +58,6 @@ List<String> visibleIds(List<RoomItem> items) => items
 
 MessageItem itemFor(List<RoomItem> items, String id) =>
     items.whereType<MessageItem>().firstWhere((i) => i.message.id == id);
-
-/// The segment for the thread this row actually belongs to, ignoring rails
-/// that merely pass it on their way down.
-RailSegment? ownRail(List<RoomItem> items, String id) =>
-    itemFor(items, id).memberRail;
-
-bool crossedBy(List<RoomItem> items, String id) =>
-    itemFor(items, id).rails.any((r) => r.kind == RailKind.across);
 
 /// A 6-member thread (root m1 + replies) interleaved with unrelated messages.
 /// Members: m1, m2, m4, m6, m8, m10. Unrelated: u3, u5, u7, u9.
@@ -148,8 +138,8 @@ void main() {
       final r = build(interleavedThread(), ephemeral: true);
       expect(r.hidden, isEmpty);
       expect(r.items.whereType<ThreadFoldItem>(), isEmpty);
-      // Rails still apply — they hide nothing.
-      expect(crossedBy(r.items, 'u5'), isTrue);
+      // Every member keeps its own row, so the thread is still all there.
+      expect(visibleIds(r.items), hasLength(10));
     });
 
     test('a pinned interior member is never folded', () {
@@ -372,21 +362,6 @@ void main() {
           reason: 'the chip below it is a new beat, so a0 closes its own run');
       expect(itemFor(r.items, 'a3').lastInRun, isTrue);
     });
-
-    test('rails do not drop the flag when they rebuild a row', () {
-      // Two visible members with a gap earns a rail, and _withRails replaces
-      // every row it touches — lastInRun has to survive that copy.
-      final ms = [
-        msg('r0', t: 0, sender: 'alice'),
-        msg('u1', t: 1, sender: 'bob'),
-        msg('r1', t: 2, sender: 'alice', replyTo: 'r0', root: 'r0'),
-        msg('r2', t: 3, sender: 'alice', root: 'r0'),
-      ];
-      final r = build(ms);
-      expect(itemFor(r.items, 'r1').rails, isNotEmpty);
-      expect(itemFor(r.items, 'r1').lastInRun, isFalse);
-      expect(itemFor(r.items, 'r2').lastInRun, isTrue);
-    });
   });
 
   group('date dividers', () {
@@ -418,138 +393,6 @@ void main() {
       ];
       final r = build(ms);
       expect(r.items.whereType<DateDividerItem>(), hasLength(2));
-    });
-  });
-
-  group('rails', () {
-    test('spans a thread across the unrelated rows between its members', () {
-      final r = build(interleavedThread());
-      // Visible members after folding: m1 (start) and m10 (end).
-      expect(ownRail(r.items, 'm1')?.kind, RailKind.capTop);
-      expect(ownRail(r.items, 'm10')?.kind, RailKind.capBottom);
-      // Unrelated rows inside the span are crossed, not claimed.
-      for (final id in ['u3', 'u5', 'u7', 'u9']) {
-        expect(ownRail(r.items, id), isNull, reason: id);
-        expect(crossedBy(r.items, id), isTrue, reason: id);
-      }
-      // The fold chip is thread content, so it draws solid.
-      expect(
-        r.items.whereType<ThreadFoldItem>().single.memberRail?.kind,
-        RailKind.through,
-      );
-    });
-
-    test('no rail when a thread has no gap between its members', () {
-      final ms = [
-        msg('a', t: 0),
-        msg('b', t: 1, sender: 'bob', replyTo: 'a', root: 'a'),
-      ];
-      final r = build(ms);
-      expect(itemFor(r.items, 'a').rails, isEmpty);
-      expect(itemFor(r.items, 'b').rails, isEmpty);
-    });
-
-    test('a date divider between two members does not earn them a rail', () {
-      // Adjacent parent and reply that straddle midnight. The divider takes a
-      // row of its own, so measuring the span in raw indices used to put them
-      // two apart and draw a connector between two rows already touching.
-      final ms = [
-        msg('a', t: 0),
-        msg('b', t: 60 * 20, sender: 'bob', replyTo: 'a', root: 'a'),
-      ];
-      final r = build(ms);
-      expect(r.items.whereType<DateDividerItem>(), hasLength(2),
-          reason: 'the fixture must actually cross a day boundary');
-      expect(itemFor(r.items, 'a').rails, isEmpty);
-      expect(itemFor(r.items, 'b').rails, isEmpty);
-    });
-
-    test('a divider does not rob a genuinely gapped thread of its rail', () {
-      // One unrelated message between the members, plus a day boundary. The
-      // gap is real, so the rail must survive the new measurement.
-      final ms = [
-        msg('a', t: 0),
-        msg('u', t: 60 * 20, sender: 'carol'),
-        msg('b', t: 60 * 20 + 1, sender: 'bob', replyTo: 'a', root: 'a'),
-      ];
-      final r = build(ms);
-      expect(ownRail(r.items, 'a')?.kind, RailKind.capTop);
-      expect(crossedBy(r.items, 'u'), isTrue);
-      expect(ownRail(r.items, 'b')?.kind, RailKind.capBottom);
-    });
-
-    test('no rail for a single-message thread', () {
-      final r = build([msg('solo', t: 0)]);
-      expect(itemFor(r.items, 'solo').rails, isEmpty);
-    });
-
-    test('rails draw for short threads that never fold', () {
-      // 3 members: below the fold threshold, but still worth connecting.
-      final ms = [
-        msg('s1', t: 0),
-        msg('u2', t: 1, sender: 'carol'),
-        msg('s3', t: 2, sender: 'bob', replyTo: 's1', root: 's1'),
-      ];
-      final r = build(ms);
-      expect(r.hidden, isEmpty);
-      expect(ownRail(r.items, 's1')?.kind, RailKind.capTop);
-      expect(crossedBy(r.items, 'u2'), isTrue);
-      expect(ownRail(r.items, 's3')?.kind, RailKind.capBottom);
-    });
-
-    test('overlapping threads get separate lanes', () {
-      final ms = [
-        msg('A1', t: 0),
-        msg('B1', t: 1, sender: 'bob'),
-        msg('u', t: 2, sender: 'carol'),
-        msg('A2', t: 3, replyTo: 'A1', root: 'A1'),
-        msg('B2', t: 4, sender: 'bob', replyTo: 'B1', root: 'B1'),
-      ];
-      final r = build(ms);
-      final laneA = ownRail(r.items, 'A1')?.lane;
-      final laneB = ownRail(r.items, 'B1')?.lane;
-      expect(laneA, isNotNull);
-      expect(laneB, isNotNull);
-      // B1 is also crossed by A's rail — that's exactly why a row needs a
-      // list of segments rather than one.
-      expect(crossedBy(r.items, 'B1'), isTrue);
-      expect(laneA, isNot(equals(laneB)));
-    });
-
-    test('threads beyond the lane cap go without a rail', () {
-      final ms = [
-        msg('A1', t: 0),
-        msg('B1', t: 1, sender: 'bob'),
-        msg('C1', t: 2, sender: 'carol'),
-        msg('u', t: 3, sender: 'dave'),
-        msg('A2', t: 4, replyTo: 'A1', root: 'A1'),
-        msg('B2', t: 5, sender: 'bob', replyTo: 'B1', root: 'B1'),
-        msg('C2', t: 6, sender: 'carol', replyTo: 'C1', root: 'C1'),
-      ];
-      final r = build(ms, maxRailLanes: 2);
-      final lanes = <int>{};
-      for (final id in ['A1', 'B1', 'C1']) {
-        final rail = ownRail(r.items, id);
-        if (rail != null) lanes.add(rail.lane);
-      }
-      expect(lanes.length, lessThanOrEqualTo(2));
-      // The third thread is dropped rather than crowding the gutter.
-      expect(ownRail(r.items, 'C1'), isNull);
-    });
-
-    test('a lane is reused once its previous thread has ended', () {
-      final ms = [
-        msg('A1', t: 0),
-        msg('u1', t: 1, sender: 'carol'),
-        msg('A2', t: 2, sender: 'bob', replyTo: 'A1', root: 'A1'),
-        msg('B1', t: 3, sender: 'dave'),
-        msg('u2', t: 4, sender: 'carol'),
-        msg('B2', t: 5, sender: 'eve', replyTo: 'B1', root: 'B1'),
-      ];
-      final r = build(ms);
-      // Non-overlapping spans, so both sit in lane 0.
-      expect(ownRail(r.items, 'A1')?.lane, 0);
-      expect(ownRail(r.items, 'B1')?.lane, 0);
     });
   });
 

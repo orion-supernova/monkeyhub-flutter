@@ -284,36 +284,6 @@ class _RoomScreenState extends State<RoomScreen>
     CaptureProtection.instance.pushScope();
   }
 
-  /// Wraps a row so thread rails can be painted in the leading gutter.
-  ///
-  /// The gutter is reserved on EVERY row and the ListView's own horizontal
-  /// padding is reduced by the same amount, so content sits at exactly the
-  /// same x whether a rail is present or not — no jitter as threads come and
-  /// go. A Stack rather than a Row: a Row with stretch needs a bounded height
-  /// the list can't supply, and IntrinsicHeight on every row is not worth it.
-  Widget _railed(List<RailSegment> rails, Widget child) {
-    final content =
-        Padding(padding: const EdgeInsets.only(left: _kRailGutter), child: child);
-    if (rails.isEmpty) return content;
-    final theme = ThemeScope.of(context);
-    return Stack(
-      children: [
-        Positioned(
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: _kRailGutter,
-          child: IgnorePointer(
-            child: CustomPaint(
-              painter: _ThreadRailPainter(rails: rails, accent: theme.accent),
-            ),
-          ),
-        ),
-        content,
-      ],
-    );
-  }
-
   /// Whether [m] must keep its own row — never folded into a chip.
   ///
   /// The `_dateTracks` clause is the load-bearing one: that map is populated
@@ -1379,7 +1349,7 @@ class _RoomScreenState extends State<RoomScreen>
               messages,
               items,
               me,
-              listPadding: const EdgeInsets.fromLTRB(20 - _kRailGutter, 12, 20, 24),
+              listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               // Classic already says who's typing in its header — a second
               // indicator at the bottom of the transcript would say it twice.
               showTypingRow: false,
@@ -1436,9 +1406,7 @@ class _RoomScreenState extends State<RoomScreen>
     // double-count and leave a massive gap.
     const chromeH = 60.0;
     final listPadding = EdgeInsets.fromLTRB(
-      // Rails are painted in a per-row gutter; take its width out of the
-      // list padding so message content keeps its original 20px inset.
-      20 - _kRailGutter,
+      20,
       topSafe + chromeH + 12,
       20,
       chromeH + 16 + bottomSafe,
@@ -1580,7 +1548,7 @@ class _RoomScreenState extends State<RoomScreen>
                 // person types first is exactly the moment you want to see it.
                 if (showTypingRow)
                   Positioned(
-                    left: listPadding.left + _kRailGutter,
+                    left: listPadding.left,
                     right: listPadding.right,
                     bottom: listPadding.bottom,
                     child: ChatColumn(child: typingRow()),
@@ -1609,20 +1577,16 @@ class _RoomScreenState extends State<RoomScreen>
                   itemBuilder: (context, i) {
                     // reverse: true — index 0 is the bottom of the transcript,
                     // which is where a message that hasn't been sent yet
-                    // belongs. Railed like every other row so it shares the
-                    // gutter and lands at the same left edge as the bubbles.
+                    // belongs.
                     if (typingRows == 1 && i == 0) {
-                      return _railed(const [], typingRow());
+                      return typingRow();
                     }
                     final item = items[i - typingRows];
                     if (item is IntroItem) {
-                      return _railed(
-                        const [],
-                        _RoomIntro(
-                          room: room,
-                          members: _members.values.toList(),
-                          api: widget.api,
-                        ),
+                      return _RoomIntro(
+                        room: room,
+                        members: _members.values.toList(),
+                        api: widget.api,
                       );
                     }
                     if (item is DateDividerItem) {
@@ -1630,10 +1594,7 @@ class _RoomScreenState extends State<RoomScreen>
                         stableId: 'd_${item.label}',
                         label: item.label,
                         isDivider: true,
-                        child: _railed(
-                          item.rails,
-                          _DateDivider(label: item.label),
-                        ),
+                        child: _DateDivider(label: item.label),
                       );
                     }
                     // MUST precede the cast below — a new RoomItem subtype
@@ -1643,14 +1604,11 @@ class _RoomScreenState extends State<RoomScreen>
                       // carries no date, and registering it would let it win
                       // the topmost-tracked-item contest in
                       // _recomputePositionState and show a wrong floating date.
-                      return _railed(
-                        item.rails,
-                        _ThreadFoldChip(
-                          fold: item,
-                          api: widget.api,
-                          members: _members,
-                          onTap: () => _openFoldedThread(item),
-                        ),
+                      return _ThreadFoldChip(
+                        fold: item,
+                        api: widget.api,
+                        members: _members,
+                        onTap: () => _openFoldedThread(item),
                       );
                     }
                     final messageItem = item as MessageItem;
@@ -1891,9 +1849,7 @@ class _RoomScreenState extends State<RoomScreen>
                   stableId: 'm_${m.id}',
                   label: _humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
-                  child: _railed(
-                    messageItem.rails,
-                    AnimatedSwitcher(
+                  child: AnimatedSwitcher(
                     duration: theme.motionMed,
                     switchInCurve: theme.motionEntrance,
                     child: SwipeToReply(
@@ -1901,7 +1857,6 @@ class _RoomScreenState extends State<RoomScreen>
                       enabled: canReply,
                       onReplyTriggered: () => _armReply(m, haptic: false),
                       child: bubble,
-                    ),
                     ),
                   ),
                 );
@@ -2189,67 +2144,6 @@ class _RoomIntro extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Width reserved on every row for thread rails. Two lanes at a 6px pitch,
-/// plus the stroke. Subtracted from the ListView's horizontal padding so the
-/// net content inset is unchanged.
-const double _kRailGutter = 12.0;
-
-/// Paints the vertical connectors that tie a thread's separated messages
-/// together.
-///
-/// One segment per lane per row; consecutive rows butt together into a
-/// continuous line. Members draw at full accent, rows the rail merely passes
-/// draw faint — that contrast is the whole signal: "this thread carries on
-/// past these unrelated messages".
-class _ThreadRailPainter extends CustomPainter {
-  const _ThreadRailPainter({required this.rails, required this.accent});
-
-  final List<RailSegment> rails;
-  final Color accent;
-
-  static const double _stroke = 2.0;
-  static const double _pitch = 6.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (final seg in rails) {
-      // Lane 0 sits closest to the message content; extra lanes step outward.
-      final x = size.width - _stroke - seg.lane * _pitch;
-      final paint = Paint()
-        ..strokeWidth = _stroke
-        ..strokeCap = StrokeCap.round
-        ..color = accent.withValues(alpha: seg.isMember ? 0.85 : 0.20);
-
-      final mid = size.height / 2;
-      switch (seg.kind) {
-        case RailKind.capTop:
-          canvas.drawLine(Offset(x, mid), Offset(x, size.height), paint);
-          // A dot terminates the run so the thread has a visible beginning.
-          canvas.drawCircle(Offset(x, mid), _stroke, paint);
-        case RailKind.capBottom:
-          canvas.drawLine(Offset(x, 0), Offset(x, mid), paint);
-          canvas.drawCircle(Offset(x, mid), _stroke, paint);
-        case RailKind.through:
-        case RailKind.across:
-          canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ThreadRailPainter old) =>
-      old.accent != accent ||
-      old.rails.length != rails.length ||
-      !_sameRails(old.rails, rails);
-
-  static bool _sameRails(List<RailSegment> a, List<RailSegment> b) {
-    for (var i = 0; i < a.length; i++) {
-      if (a[i].kind != b[i].kind || a[i].lane != b[i].lane) return false;
-    }
-    return true;
   }
 }
 

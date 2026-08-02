@@ -7,15 +7,10 @@ import '../models/enums.dart';
 /// so the whole thing is unit-testable without pumping widgets or standing up
 /// a Convex client. [buildRoomItems] is pure.
 ///
-/// Beyond date dividers it does two thread-aware things, both keyed on
+/// Beyond date dividers it does one thread-aware thing, keyed on
 /// [ChatMessage.threadKey] (`rootId ?? id` — two messages are in the same
 /// thread iff their keys match):
 ///
-///  * **Rails.** A thread whose members are separated by unrelated messages
-///    gets a vertical connector spanning from its first visible member to its
-///    last, drawn solid beside members and faded across everything in between.
-///    Threads in this app interleave freely with the rest of the room, so this
-///    is the only thing that makes one legible as a structure.
 ///  * **Folds.** A long thread's interior members collapse into a single
 ///    [ThreadFoldItem]. The root and the newest member always stay.
 ///
@@ -24,22 +19,15 @@ import '../models/enums.dart';
 
 // ───────────────────────── list item model ─────────────────────────
 
-abstract class RoomItem {
-  /// Rail segments crossing this row, at most one per lane. Empty for rows
-  /// no thread spans.
-  List<RailSegment> get rails;
-}
+/// Marker for everything the transcript can render. Carries nothing itself —
+/// it exists so the ListView has one type to switch on.
+abstract class RoomItem {}
 
-class IntroItem extends RoomItem {
-  @override
-  List<RailSegment> get rails => const [];
-}
+class IntroItem extends RoomItem {}
 
 class DateDividerItem extends RoomItem {
-  DateDividerItem(this.label, {this.rails = const []});
+  DateDividerItem(this.label);
   final String label;
-  @override
-  final List<RailSegment> rails;
 }
 
 class MessageItem extends RoomItem {
@@ -48,7 +36,6 @@ class MessageItem extends RoomItem {
     this.grouped = false,
     this.lastInRun = true,
     this.replyMarker = ReplyMarker.full,
-    this.rails = const [],
   });
 
   final ChatMessage message;
@@ -70,9 +57,6 @@ class MessageItem extends RoomItem {
   /// How much of the quoted parent this row draws — see [replyMarkerFor] for
   /// the rule and [ReplyMarker] for why it is not a bool.
   final ReplyMarker replyMarker;
-
-  @override
-  final List<RailSegment> rails;
 }
 
 /// One or more of a thread's interior messages, folded away. Rendered as a
@@ -83,7 +67,6 @@ class ThreadFoldItem extends RoomItem {
     required this.count,
     required this.oldestHiddenId,
     required this.senderIds,
-    this.rails = const [],
   });
 
   final String threadKey;
@@ -100,55 +83,6 @@ class ThreadFoldItem extends RoomItem {
   /// Distinct senders among the folded messages, oldest first. The chip shows
   /// the first few as avatars.
   final List<String> senderIds;
-
-  @override
-  final List<RailSegment> rails;
-}
-
-// ───────────────────────── rails ─────────────────────────
-
-enum RailKind {
-  /// Topmost row of a thread's span — the rail starts here, rounded.
-  capTop,
-
-  /// Bottommost row of a thread's span — the rail ends here, rounded.
-  capBottom,
-
-  /// A thread member (or its fold chip) mid-span: solid, full height.
-  through,
-
-  /// A row that is *not* part of the thread but sits inside its span. Drawn
-  /// faded, so the thread reads as continuing past unrelated messages.
-  across,
-}
-
-class RailSegment {
-  const RailSegment(this.kind, this.lane);
-
-  final RailKind kind;
-
-  /// Which parallel track to draw on, so overlapping threads don't collide.
-  /// 0-based, innermost first.
-  final int lane;
-
-  /// True for rows belonging to the thread itself, as opposed to unrelated
-  /// rows the rail merely passes on its way down.
-  bool get isMember => kind != RailKind.across;
-
-  @override
-  String toString() => 'RailSegment($kind, lane $lane)';
-}
-
-extension RoomItemRails on RoomItem {
-  /// The segment for this row belonging to a thread it is actually part of,
-  /// if any. A row can carry several segments — one thread's member row is
-  /// often another thread's [RailKind.across].
-  RailSegment? get memberRail {
-    for (final r in rails) {
-      if (r.isMember) return r;
-    }
-    return null;
-  }
 }
 
 // ───────────────────────── the build ─────────────────────────
@@ -157,10 +91,6 @@ extension RoomItemRails on RoomItem {
 /// Folding one is a net loss: the chip replaces the row it hides, so you
 /// trade content for nothing.
 const int kMinFoldedMessages = 2;
-
-/// How many overlapping thread rails can be drawn side by side before extra
-/// threads simply go without one, rather than crowding the gutter.
-const int kMaxRailLanes = 2;
 
 /// How much of [m]'s quoted parent to draw, given the content row directly
 /// above it ([prev], null when nothing precedes it or a fold intervenes).
@@ -204,7 +134,6 @@ bool continuesRun(
   required bool Function(ChatMessage m) isPinned,
   required String Function(DateTime day) dayLabel,
   int minFolded = kMinFoldedMessages,
-  int maxRailLanes = kMaxRailLanes,
 }) {
   if (messages.isEmpty) {
     return (items: <RoomItem>[IntroItem()], hidden: const <String>{});
@@ -271,10 +200,7 @@ bool continuesRun(
   }
 
   // ── Pass 2: emit rows ─────────────────────────────────────────────────
-  // Row indices are recorded as we go so rail spans can be resolved after,
-  // once we know which rows actually survived.
   final out = <RoomItem>[IntroItem()];
-  final threadRows = <String, List<int>>{};
 
   DateTime? lastDay;
   ChatMessage? prevVisible;
@@ -297,7 +223,6 @@ bool continuesRun(
         lastDay = d;
       }
       out.add(fold);
-      threadRows.putIfAbsent(fold.threadKey, () => <int>[]).add(out.length - 1);
       // Barrier. Clearing prevVisible makes `grouped` false for the next row
       // with no extra branches — a fold is a new visual beat, so nothing may
       // group across it.
@@ -328,124 +253,9 @@ bool continuesRun(
     final row = MessageItem(m, grouped: grouped, replyMarker: marker);
     out.add(row);
     prevRow = row;
-    if (threads[m.threadKey]!.length > 1) {
-      threadRows.putIfAbsent(m.threadKey, () => <int>[]).add(out.length - 1);
-    }
 
     prevVisible = m;
   }
 
-  // ── Pass 3: rails ─────────────────────────────────────────────────────
-  _applyRails(out, threadRows, maxRailLanes);
-
   return (items: out, hidden: hidden);
-}
-
-/// Resolves each thread's visible span into per-row [RailSegment]s, assigning
-/// overlapping threads to parallel lanes.
-///
-/// A thread only earns a rail if it has at least two visible rows AND a gap
-/// between them — two adjacent rows already read as connected, so a rail there
-/// is noise. This is deliberately independent of folding: most threads are too
-/// short to fold but still benefit from the connector.
-void _applyRails(
-  List<RoomItem> out,
-  Map<String, List<int>> threadRows,
-  int maxRailLanes,
-) {
-  // Indices address `out`, which interleaves date dividers among the content
-  // rows, so raw index arithmetic overstates the gap: a parent and its reply
-  // that sit next to each other but straddle midnight are two indices apart
-  // and used to earn a rail connecting two rows already touching. Count
-  // content rows only. Spans stay in raw indices — everything below addresses
-  // `out` directly — so this is purely a measuring tape.
-  final contentOrdinal = List<int>.filled(out.length, 0);
-  var seen = 0;
-  for (var i = 0; i < out.length; i++) {
-    contentOrdinal[i] = seen;
-    if (out[i] is! DateDividerItem) seen++;
-  }
-
-  final spans = <({int start, int end, Set<int> rows})>[];
-  for (final rows in threadRows.values) {
-    if (rows.length < 2) continue;
-    final start = rows.first;
-    final end = rows.last;
-    // Adjacent rows need no connector.
-    if (contentOrdinal[end] - contentOrdinal[start] < 2) continue;
-    spans.add((start: start, end: end, rows: rows.toSet()));
-  }
-  if (spans.isEmpty) return;
-
-  spans.sort((a, b) => a.start.compareTo(b.start));
-
-  // Greedy lane assignment: a lane frees up once its last span has ended.
-  final laneEnds = <int>[];
-  final segments = <int, List<RailSegment>>{};
-  for (final s in spans) {
-    var lane = -1;
-    for (var i = 0; i < laneEnds.length; i++) {
-      if (laneEnds[i] < s.start) {
-        lane = i;
-        break;
-      }
-    }
-    if (lane < 0) {
-      if (laneEnds.length >= maxRailLanes) continue; // this one goes railless
-      lane = laneEnds.length;
-      laneEnds.add(s.end);
-    } else {
-      laneEnds[lane] = s.end;
-    }
-
-    for (var row = s.start; row <= s.end; row++) {
-      final RailKind kind;
-      if (row == s.start) {
-        kind = RailKind.capTop;
-      } else if (row == s.end) {
-        kind = RailKind.capBottom;
-      } else if (s.rows.contains(row)) {
-        kind = RailKind.through;
-      } else {
-        // Not this thread's message — the rail only passes through. A row can
-        // collect several of these while still being a member of its own
-        // thread on another lane, which is why rails are a list.
-        kind = RailKind.across;
-      }
-      segments.putIfAbsent(row, () => <RailSegment>[]).add(
-            RailSegment(kind, lane),
-          );
-    }
-  }
-
-  for (final entry in segments.entries) {
-    out[entry.key] = _withRails(out[entry.key], entry.value);
-  }
-}
-
-/// Rebuilds a row carrying its rail segments. Items are immutable value-ish
-/// objects, so this replaces rather than mutates.
-RoomItem _withRails(RoomItem item, List<RailSegment> rails) {
-  if (item is MessageItem) {
-    return MessageItem(
-      item.message,
-      grouped: item.grouped,
-      lastInRun: item.lastInRun,
-      replyMarker: item.replyMarker,
-      rails: rails,
-    );
-  }
-  if (item is ThreadFoldItem) {
-    return ThreadFoldItem(
-      threadKey: item.threadKey,
-      count: item.count,
-      oldestHiddenId: item.oldestHiddenId,
-      senderIds: item.senderIds,
-      rails: rails,
-    );
-  }
-  if (item is DateDividerItem) {
-    return DateDividerItem(item.label, rails: rails);
-  }
-  return item;
 }
