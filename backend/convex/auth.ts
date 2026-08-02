@@ -2,7 +2,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { wipeRoomCompletely } from "./roomCleanup";
-import { deleteStored } from "./files";
+import { deleteStored, releaseMessageBlobs } from "./files";
 
 export const signup = mutation({
   args: {
@@ -219,7 +219,9 @@ async function purgeUser(ctx: any, userId: any) {
         .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
         .collect(),
     );
-    await deleteStored(ctx, msg.mediaStorageId);
+    // Refcounted: somebody else may have forwarded this message's file into a
+    // room that has nothing to do with this account. See `releaseMessageBlobs`.
+    await releaseMessageBlobs(ctx, msg);
     // View-once ledger for photos this user SENT.
     await deleteRows(
       ctx,

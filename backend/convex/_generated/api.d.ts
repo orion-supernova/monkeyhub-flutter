@@ -26,6 +26,7 @@ import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as releases from "../releases.js";
 import type * as roomCleanup from "../roomCleanup.js";
+import type * as roomContent from "../roomContent.js";
 import type * as rooms from "../rooms.js";
 import type * as typing from "../typing.js";
 import type * as users from "../users.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   reactions: typeof reactions;
   releases: typeof releases;
   roomCleanup: typeof roomCleanup;
+  roomContent: typeof roomContent;
   rooms: typeof rooms;
   typing: typeof typing;
   users: typeof users;

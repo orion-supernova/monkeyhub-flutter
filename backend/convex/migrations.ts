@@ -1,6 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { LINK_PATTERN, galleryBucketFor } from "./messages";
 
 /**
  * One-off backfill for `messages.rootId` (see the field comment in schema.ts).
@@ -131,5 +132,88 @@ export const countMissingRootIds = internalMutation({
       `countMissingRootIds: ${t} messages, ${r} replies, ${m} missing rootId`
     );
     return { done: true, total: t, replies: r, missing: m };
+  },
+});
+
+/**
+ * One-off backfill for `messages.galleryBucket` and `messages.hasLink` (see
+ * the field comments in schema.ts).
+ *
+ * Every message sent after the shared-content deploy carries both already;
+ * this walks history so the browser can reach anything older than the ~100
+ * messages a client holds. Without it the MEDIA/FILES/LINKS tabs are empty for
+ * every room that existed before the deploy, which looks exactly like a broken
+ * feature rather than a pending migration.
+ *
+ * Both values are derived from the message alone — no parent walk, no ordering
+ * constraint — so this is order-independent, idempotent, and safe to re-run or
+ * resume after a failure. Rows that should carry neither (text without a link,
+ * system rows, view-once photos, attachments whose upload never landed) are
+ * left with both fields ABSENT rather than written false/none, because an
+ * absent field is what keeps them outside the index range entirely.
+ *
+ * Self-chains through the scheduler until the table is exhausted. Kick it off
+ * with:
+ *
+ *     npx convex run migrations:backfillRoomContent '{}'
+ *
+ * and watch the returned/logged counts. Re-running after completion is a
+ * no-op.
+ */
+export const backfillRoomContent = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+    scanned: v.optional(v.number()),
+    patched: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, batchSize, scanned, patched }) => {
+    const numItems = Math.min(batchSize ?? 200, 500);
+    const page = await ctx.db
+      .query("messages")
+      .paginate({ numItems, cursor: cursor ?? null });
+
+    let totalScanned = scanned ?? 0;
+    let totalPatched = patched ?? 0;
+
+    for (const msg of page.page) {
+      totalScanned++;
+
+      const bucket = galleryBucketFor(
+        msg.type ?? "text",
+        msg.mediaStorageId !== undefined,
+        msg.viewOnce === true
+      );
+      const linked =
+        msg.viewOnce !== true && LINK_PATTERN.test(msg.content ?? "");
+
+      // Only the fields that would actually change, so a re-run patches
+      // nothing and a partial run resumes without rewriting what it did.
+      const patch: Record<string, any> = {};
+      if (bucket !== msg.galleryBucket) patch.galleryBucket = bucket;
+      if (linked && msg.hasLink !== true) patch.hasLink = true;
+      // `undefined` in a patch is how Convex clears a field — which is what a
+      // row wrongly marked by an earlier version of this needs.
+      if (!linked && msg.hasLink !== undefined) patch.hasLink = undefined;
+
+      if (Object.keys(patch).length === 0) continue;
+      await ctx.db.patch(msg._id, patch);
+      totalPatched++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.backfillRoomContent, {
+        cursor: page.continueCursor,
+        batchSize: numItems,
+        scanned: totalScanned,
+        patched: totalPatched,
+      });
+      return { done: false, scanned: totalScanned, patched: totalPatched };
+    }
+
+    console.log(
+      `backfillRoomContent complete: scanned ${totalScanned}, patched ${totalPatched}`
+    );
+    return { done: true, scanned: totalScanned, patched: totalPatched };
   },
 });

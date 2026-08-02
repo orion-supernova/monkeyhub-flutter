@@ -298,6 +298,58 @@ export default defineSchema({
     fileName: v.optional(v.string()),
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
+
+    // ── The room's shared-content browser ───────────────────────────────────
+    //
+    // Which tab of "shared content" this message belongs in: "media" (a photo
+    // or a video), "file", or "voice". Written at send time, and UNSET — not
+    // set to "none" — on everything that belongs in no tab: text, system rows,
+    // every view-once photo, and any attachment whose upload never produced a
+    // storage id (`chat_repository` posts an image-typed message with no blob
+    // when its retained-bytes cap refuses one; bucketing that would render a
+    // grid tile that can never load).
+    //
+    // Unset rather than a sentinel because Convex has no sparse indexes but
+    // `eq()` never matches an absent field. The excluded rows are therefore not
+    // filtered out of the scan, they are outside it — the same trick, and the
+    // same reasoning, as `viewOnceLive` below. That is also what keeps a
+    // view-once photo out of the gallery structurally rather than by a check
+    // somebody has to remember to write.
+    galleryBucket: v.optional(v.string()),
+
+    // Whether `content` contains at least one URL, decided by the server at
+    // send time (see `LINK_PATTERN` in messages.ts) so the LINKS tab can range
+    // over history instead of re-parsing every message it has never loaded.
+    //
+    // Set to `true` or left absent, never written `false` — for the index
+    // reason above. The URLs themselves are deliberately NOT stored: they
+    // would duplicate `content` on a row that `messages:list` re-sends to
+    // every member on every reaction change, and a client-supplied copy would
+    // let a message render a tappable URL that appears nowhere in its text.
+    // The tab already receives `content` and re-derives with the real
+    // `UrlDetector`.
+    hasLink: v.optional(v.boolean()),
+
+    // Playing time of an audio or video attachment, in milliseconds, when the
+    // sender could measure it. Lets a list row show "0:42" without fetching
+    // and decoding the media first — the same argument as `mediaWidth`.
+    mediaDurationMs: v.optional(v.number()),
+
+    // A still frame of a video, uploaded alongside it as a second blob.
+    //
+    // Extraction is Android/iOS only, so this is absent on every video sent
+    // from web or desktop and on all history. That is permanent, not a
+    // migration state — the grid's play-glyph tile is the real fallback, not a
+    // placeholder waiting to be filled in.
+    //
+    // NEVER written on an armed send. A view-once video's poster is a still of
+    // the thing whose entire promise is that it leaks nothing, and neither
+    // guard that protects `mediaStorageId` can see this one: `sanitizeViewOnce`
+    // strips a fixed list of fields, and `files:getFileUrl` refuses view-once
+    // by looking up `by_media`, which is keyed on `mediaStorageId` alone.
+    // Not writing it is the guard; the sanitizer lists it as well, in depth.
+    posterStorageId: v.optional(v.id("_storage")),
+
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Reply support. `replyToId` points at the parent message; `replyToPreview`
@@ -438,7 +490,16 @@ export default defineSchema({
     // Reverse lookup for `files:getFileUrl`, so it can refuse a storage id
     // belonging to a view-once message. Defence in depth — after sanitizing,
     // no client should be able to name one in the first place.
-    .index("by_media", ["mediaStorageId"]),
+    .index("by_media", ["mediaStorageId"])
+    // The shared-content browser, one page per tab. `galleryBucket` leads for
+    // the same reason `viewOnceLive` does: it is absent on the overwhelming
+    // majority of rows, and Convex orders `undefined` before every string, so
+    // the excluded messages form a contiguous prefix of each room's range that
+    // `eq(roomId).eq(bucket)` never enters. A bare `by_room_time` scan filtered
+    // in JS would instead read a whole transcript to find a dozen photos.
+    .index("by_room_bucket_time", ["roomId", "galleryBucket", "createdAt"])
+    // The LINKS tab. Same shape, same reasoning.
+    .index("by_room_link_time", ["roomId", "hasLink", "createdAt"]),
 
   // Who has opened which view-once message. A side table rather than a
   // `readBy` array on `messages`, for the reason the roomMembers comment gives:

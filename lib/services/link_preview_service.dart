@@ -226,6 +226,15 @@ class UrlDetector {
     caseSensitive: false,
   );
 
+  /// The detection rule itself, exposed so `url_detector_parity_test.dart` can
+  /// compare it against `LINK_PATTERN` in backend/convex/messages.ts.
+  ///
+  /// The server owns the same rule in TypeScript, because it is what decides
+  /// which rows carry `messages.hasLink` and therefore which messages the LINKS
+  /// tab is able to read at all. Drift between the two produces no error —
+  /// just a tab that pages through history rendering nothing.
+  static RegExp get pattern => _pattern;
+
   static const _trailingTrim = '.,;:!?)]}>\'"';
 
   /// Returns all URL matches as (start, end, url) tuples in document order.

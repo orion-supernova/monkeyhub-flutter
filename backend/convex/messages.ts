@@ -7,7 +7,7 @@ import {
   childMayUseRoom,
   childPolicyOf,
 } from "./childGuard";
-import { deleteStored } from "./files";
+import { deleteStored, releaseMessageBlobs } from "./files";
 
 // ── View-once tuning ────────────────────────────────────────────────────────
 
@@ -48,7 +48,19 @@ const VIEW_ONCE_BURN_GRACE_MS = VIEW_ONCE_NONCE_TTL_MS + 30_000;
  */
 export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
   if (msg?.viewOnce !== true) return msg;
-  const { mediaStorageId: _id, mediaWidth: _w, mediaHeight: _h, ...rest } = msg;
+  // `posterStorageId` is here in depth, not as the guard. `send` never writes
+  // one on an armed message in the first place — which it has to be, because
+  // this is a list of field names rather than a rule, and because
+  // `files:getFileUrl` refuses a view-once blob by looking it up in `by_media`,
+  // an index keyed on `mediaStorageId` alone. A poster that reached storage
+  // would be fetchable by anyone who learned its id, forever.
+  const {
+    mediaStorageId: _id,
+    mediaWidth: _w,
+    mediaHeight: _h,
+    posterStorageId: _p,
+    ...rest
+  } = msg;
   let opened = false;
   if (viewerUserId) {
     const row = await ctx.db
@@ -60,6 +72,168 @@ export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
     opened = row !== null;
   }
   return { ...rest, viewOnceOpened: opened };
+}
+
+// ── Shared-content indexing ─────────────────────────────────────────────────
+
+/**
+ * URL detection, for `messages.hasLink`.
+ *
+ * This is a deliberate port of `UrlDetector._pattern` in
+ * lib/services/link_preview_service.dart, and the two must stay identical:
+ * the LINKS tab decides *which rows to read* from this one and then decides
+ * *what to render* with the Dart one, so a disagreement shows up as a page of
+ * results that renders empty rather than as an error.
+ * `url_detector_parity_test.dart` reads both literals and compares them.
+ *
+ * Only ever asked a yes/no question, so the client's extra trailing-punctuation
+ * trim is irrelevant here — it can only shorten a match, never remove one.
+ * The `i` flag is not decoration: the Dart side is `caseSensitive: false`, and
+ * without it a message reading `HTTP://EXAMPLE.COM` would be linkified in its
+ * bubble and yet never appear in the LINKS tab, because this is what decides
+ * whether the row is in the index at all.
+ */
+export const LINK_PATTERN = /https?:\/\/[^\s<>"]+/i;
+
+/**
+ * Which shared-content tab a message belongs in, or undefined for none.
+ *
+ * The `hasBlob` argument is load-bearing and easy to mistake for a formality:
+ * `messages:send` accepts `type: "image"` with no `mediaStorageId`, and
+ * `ChatRepository` posts exactly that when its retained-bytes cap refuses an
+ * upload. Bucketing one puts a tile in the grid that can never load and can
+ * never be dismissed.
+ *
+ * Armed messages get no bucket at all, which is what keeps a view-once photo
+ * out of the browser structurally — `eq()` cannot match an absent field — as
+ * opposed to by a filter somebody has to remember to write on every read path.
+ */
+export function galleryBucketFor(
+  type: string,
+  hasBlob: boolean,
+  viewOnce: boolean
+): string | undefined {
+  if (!hasBlob || viewOnce) return undefined;
+  switch (type) {
+    case "image":
+    case "video":
+      return "media";
+    case "audio":
+      return "voice";
+    case "file":
+      return "file";
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Everything that must be true before a message may be written into a room,
+ * plus the three values that fall out of checking it.
+ *
+ * Extracted so `send` and `forwardToRoom` cannot disagree about who may write
+ * where — the same reasoning as `removeMessageAndFanout` two functions down,
+ * and a sharper case, because every check in here is a security check. A
+ * forward that grew its own copy of the DM block rule would be a way to reach
+ * someone who blocked you.
+ *
+ * Returns the lazy `roster` rather than a resolved list because `send` needs it
+ * again afterwards (view-once recipient counts, mention resolution) and most
+ * sends never need it at all.
+ *
+ * [msgType] is only consulted by the child media policy. A forward passes the
+ * type it is about to write, so a child who may not send media may not forward
+ * it either.
+ */
+async function guardOutgoing(
+  ctx: any,
+  roomId: any,
+  userId: any,
+  msgType: string,
+  senderName?: string
+) {
+  const membership = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_room_user", (q: any) =>
+      q.eq("roomId", roomId).eq("userId", userId)
+    )
+    .first();
+  if (!membership) throw new Error("NOT_A_MEMBER");
+
+  // The room's roster, fetched at most once and only if something actually
+  // needs it. Three separate branches want it — the DM block check, the armed
+  // view-once recipient count, and mention resolution — and before this they
+  // each ran their own identical `by_room` collect. Lazy so an ordinary text
+  // send into a group room still reads nothing extra.
+  let rosterCache: any[] | null = null;
+  const roster = async () =>
+    (rosterCache ??= await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .collect());
+
+  // Child guard. Membership alone isn't enough: a grant can be revoked while
+  // the child is still sitting in the room, and the room's members can change
+  // after approval. Re-checked on every send so revocation is immediate rather
+  // than "until they close the screen".
+  const policy = await childPolicyOf(ctx, userId);
+  if (policy !== null) {
+    if (!(await childMayUseRoom(ctx, userId, roomId))) {
+      throw new Error(ERR_APPROVAL_REQUIRED);
+    }
+    if (msgType !== "text" && !policy.mediaEnabled) {
+      throw new Error(ERR_NOT_ALLOWED);
+    }
+  }
+
+  // Typed `string` up front rather than inferred from the optional argument,
+  // so callers destructuring this get a name they can pass straight to the
+  // push action without re-proving it is present.
+  let resolvedSenderName: string = senderName ?? "";
+  if (!resolvedSenderName) {
+    const user = await ctx.db.get(userId);
+    resolvedSenderName = user?.name ?? user?.username ?? "Unknown";
+  }
+
+  const room = await ctx.db.get(roomId);
+
+  // DM block enforcement.
+  //
+  // Group rooms allow blocks to be one-way (the blocker hides the blockee
+  // client-side). For DMs we hard-stop sends in either direction so the block
+  // is absolute. The error is intentionally generic — never reveal to the
+  // sender that they're the one being blocked.
+  if (room?.name?.startsWith("dm:")) {
+    const otherMember = await roster();
+    const otherId = otherMember.find(
+      (m: any) => m.userId.toString() !== userId.toString()
+    )?.userId;
+    if (otherId) {
+      const iBlockedThem = await ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", userId).eq("blockedUserId", otherId)
+        )
+        .first();
+      const theyBlockedMe = await ctx.db
+        .query("blocks")
+        .withIndex("by_pair", (q: any) =>
+          q.eq("userId", otherId).eq("blockedUserId", userId)
+        )
+        .first();
+      if (iBlockedThem) throw new Error("UNBLOCK_FIRST");
+      if (theyBlockedMe) throw new Error("MESSAGE_FAILED");
+    }
+  }
+
+  // Chamber of Secrets. Derived from the TARGET room, which is what makes
+  // forwarding out of an ephemeral room into a permanent one a laundering
+  // path — `forwardToRoom` refuses that at the source instead.
+  const expiresAt = room?.messageLifetime
+    ? Date.now() + room.messageLifetime * 1000
+    : undefined;
+
+  return { room, roster, resolvedSenderName, expiresAt };
 }
 
 /**
@@ -108,6 +282,12 @@ export const send = mutation({
     fileName: v.optional(v.string()),
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
+    // Playing time of an audio or video attachment, when the sender measured
+    // it, so a shared-content row can show a duration without decoding.
+    mediaDurationMs: v.optional(v.number()),
+    // A poster frame for a video, uploaded as a second blob. Refused on an
+    // armed send — see the schema comment.
+    posterStorageId: v.optional(v.id("_storage")),
     senderName: v.optional(v.string()),
     replyToId: v.optional(v.id("messages")),
     // Burn-after-reading. Armed by the sender in the pre-send editor; see the
@@ -122,7 +302,7 @@ export const send = mutation({
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
     // Idempotency, checked before anything else has a chance to happen twice.
     //
     // Everything below this line has side effects that must not be repeated:
@@ -140,83 +320,19 @@ export const send = mutation({
       if (existing) return existing._id;
     }
 
-    // Verify membership
-    const membership = await ctx.db
-      .query("roomMembers")
-      .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
-      .first();
-    if (!membership) throw new Error("NOT_A_MEMBER");
-
-    // The room's roster, fetched at most once per send and only if something
-    // below actually needs it. Three separate branches want it — the DM block
-    // check, the armed view-once recipient count, and mention resolution — and
-    // before this they each ran their own identical `by_room` collect. Lazy so
-    // an ordinary text send into a group room still reads nothing extra.
-    let rosterCache: any[] | null = null;
-    const roster = async () =>
-      (rosterCache ??= await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room", (q) => q.eq("roomId", roomId))
-        .collect());
-
     const msgType = type ?? "text";
 
-    // Child guard. Membership alone isn't enough: a grant can be revoked
-    // while the child is still sitting in the room, and the room's members
-    // can change after approval. Re-checked on every send so revocation is
-    // immediate rather than "until they close the screen".
-    const policy = await childPolicyOf(ctx, userId);
-    if (policy !== null) {
-      if (!(await childMayUseRoom(ctx, userId, roomId))) {
-        throw new Error(ERR_APPROVAL_REQUIRED);
-      }
-      if (msgType !== "text" && !policy.mediaEnabled) {
-        throw new Error(ERR_NOT_ALLOWED);
-      }
-    }
-
-    // Resolve senderName if not provided
-    let resolvedSenderName = senderName;
-    if (!resolvedSenderName) {
-      const user = await ctx.db.get(userId);
-      resolvedSenderName = user?.name ?? user?.username ?? "Unknown";
-    }
-
-    const room = await ctx.db.get(roomId);
-
-    // DM block enforcement.
-    //
-    // Group rooms allow blocks to be one-way (the blocker hides the blockee
-    // client-side). For DMs we hard-stop sends in either direction so the
-    // block is absolute. The error is intentionally generic — never reveal
-    // to the sender that they're the one being blocked.
-    if (room?.name?.startsWith("dm:")) {
-      const otherMember = await roster();
-      const otherId = otherMember.find(
-        (m) => m.userId.toString() !== userId.toString()
-      )?.userId;
-      if (otherId) {
-        const iBlockedThem = await ctx.db
-          .query("blocks")
-          .withIndex("by_pair", (q) =>
-            q.eq("userId", userId).eq("blockedUserId", otherId)
-          )
-          .first();
-        const theyBlockedMe = await ctx.db
-          .query("blocks")
-          .withIndex("by_pair", (q) =>
-            q.eq("userId", otherId).eq("blockedUserId", userId)
-          )
-          .first();
-        if (iBlockedThem) throw new Error("UNBLOCK_FIRST");
-        if (theyBlockedMe) throw new Error("MESSAGE_FAILED");
-      }
-    }
-
-    // Check if the room has a message lifetime (Chamber of Secrets)
-    const expiresAt = room?.messageLifetime
-      ? Date.now() + room.messageLifetime * 1000
-      : undefined;
+    // Membership, the child guard, DM blocks, the sender's display name and the
+    // room's message lifetime — all of it, in the order it has always run. See
+    // `guardOutgoing`, which `forwardToRoom` shares so the two cannot disagree
+    // about who may write where.
+    const { room, roster, resolvedSenderName, expiresAt } = await guardOutgoing(
+      ctx,
+      roomId,
+      userId,
+      msgType,
+      senderName
+    );
 
     // Build a denormalized snapshot of the parent at send time. Survives the
     // parent's later deletion so the inline reply tether keeps rendering. We
@@ -266,7 +382,7 @@ export const send = mutation({
     let viewOnceFields: Record<string, any> = {};
     if (armed) {
       const recipients = (await roster()).filter(
-        (m) => m.userId.toString() !== userId.toString()
+        (m: any) => m.userId.toString() !== userId.toString()
       ).length;
       viewOnceFields = {
         viewOnce: true,
@@ -305,7 +421,7 @@ export const send = mutation({
       ].filter((id) => id !== userId.toString());
       if (wanted.length > 0) {
         const memberIds = new Set(
-          (await roster()).map((m) => m.userId.toString())
+          (await roster()).map((m: any) => m.userId.toString())
         );
         const out: Array<{ userId: any; username: string }> = [];
         for (const id of wanted) {
@@ -347,6 +463,25 @@ export const send = mutation({
       fileName: armed ? undefined : fileName,
       fileSize: armed ? undefined : fileSize,
       mimeType: armed ? undefined : mimeType,
+      mediaDurationMs: armed ? undefined : mediaDurationMs,
+      // THE guard, not a redundancy. `sanitizeViewOnce` lists this field too,
+      // but that is a hardcoded list on the read path; the poster must never
+      // reach storage in the first place, because `files:getFileUrl` refuses a
+      // view-once blob via `by_media` — an index that cannot see this id.
+      posterStorageId: armed ? undefined : posterStorageId,
+      // Which shared-content tab this belongs in, or nothing. Passing
+      // `mediaStorageId !== undefined` rather than `msgType` alone is what
+      // keeps a failed upload out of the grid — see `galleryBucketFor`.
+      galleryBucket: galleryBucketFor(
+        msgType,
+        mediaStorageId !== undefined,
+        armed
+      ),
+      // Left absent rather than written `false`, so the LINKS index holds only
+      // rows that belong in it. Armed messages are excluded for the same
+      // reason they get no bucket: a sealed photo's caption is not shared
+      // content anybody may browse.
+      ...(!armed && LINK_PATTERN.test(content) ? { hasLink: true } : {}),
       senderName: resolvedSenderName,
       expiresAt,
       // Stored so the retry that arrives after this one commits can find it.
@@ -445,10 +580,16 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
     .collect();
   for (const p of pins) await ctx.db.delete(p._id);
 
-  // Media. Via `deleteStored` rather than a bare `ctx.storage.delete`, which
-  // throws on a file some other path already removed — and would abort the
-  // fanout below half-done, leaving children tethered to a deleted parent.
-  await deleteStored(ctx, msg.mediaStorageId);
+  // Media, and the video poster that rides with it. Via `releaseMessageBlobs`
+  // rather than a bare `deleteStored` because forwarding re-references a file
+  // instead of copying it, so this message may not be the last one pointing at
+  // its bytes. That helper is also what tolerates a file some other path
+  // already removed — a throw here would abort the fanout below half-done,
+  // leaving children tethered to a deleted parent.
+  //
+  // Not used on the two view-once burn paths: an armed message can be neither
+  // forwarded nor given a poster, so there is nothing there to share.
+  await releaseMessageBlobs(ctx, msg);
 
   // View-once ledger. Also runs for messages that were never armed, where the
   // scan is a single empty index range.
@@ -529,6 +670,285 @@ export const deleteMessage = mutation({
     }
 
     await removeMessageAndFanout(ctx, msg, messageId);
+  },
+});
+
+/** Most messages one forward may carry. See `forwardToRoom`. */
+const MAX_FORWARD_MESSAGES = 10;
+
+/** Most messages one bulk delete may remove. See `deleteMany`. */
+const MAX_DELETE_MESSAGES = 25;
+
+/**
+ * Re-sends [messageIds] into ONE other room.
+ *
+ * One target room per call, with the client fanning out, rather than a single
+ * mutation taking a list of rooms. A Convex mutation is one transaction, so a
+ * multi-room version would be all-or-nothing: one blocked DM among five targets
+ * would roll back the four that were fine. Per-room also keeps OCC contention
+ * scoped to the room being written, lets the UI say *which* target failed, and
+ * makes `clientIds` a per-room idempotency key rather than a global one.
+ *
+ * Deliberately not built on `messages:send`. Calling it via `ctx.runMutation`
+ * would run in this same transaction anyway — no isolation, no separate limit
+ * budget — while re-reading the roster, re-patching `rooms.lastMessage` and
+ * scheduling a push once per message. Instead the guard both paths must agree
+ * on is shared (`guardOutgoing`) and the rest is done once for the batch.
+ *
+ * What is deliberately NOT carried over:
+ *  - mentions, so forwarding does not ping people in a room they were never
+ *    named in;
+ *  - `replyToId`/`replyToPreview`, since the parent is not in this room;
+ *  - `viewOnce`, which is refused outright — the client does not even hold an
+ *    armed message's storage id, so a "forward" of one would be an empty row.
+ *
+ * The blob itself is shared rather than copied — a mutation cannot read storage
+ * bytes anyway, and re-uploading would double the storage for an identical
+ * file. That is what makes `files.releaseMessageBlobs` necessary: before this,
+ * every teardown path deleted a message's media unconditionally, which was
+ * correct only while exactly one message could ever name a given blob.
+ */
+export const forwardToRoom = mutation({
+  args: {
+    sourceRoomId: v.id("rooms"),
+    targetRoomId: v.id("rooms"),
+    userId: v.id("users"),
+    messageIds: v.array(v.id("messages")),
+    // One idempotency key per message, same order. The forwarded rows carry
+    // them exactly as an original send carries its optimistic bubble's id, so
+    // a retry after a dropped ack collapses onto the same rows.
+    clientIds: v.optional(v.array(v.string())),
+  },
+  handler: async (
+    ctx,
+    { sourceRoomId, targetRoomId, userId, messageIds, clientIds }
+  ) => {
+    if (messageIds.length === 0) return { forwarded: 0, refused: 0 };
+    if (messageIds.length > MAX_FORWARD_MESSAGES) {
+      throw new Error("TOO_MANY_MESSAGES");
+    }
+    // Not an error worth its own code — the UI has no way to offer it — but
+    // writing a room's own messages back into it would look like a bug.
+    if (sourceRoomId.toString() === targetRoomId.toString()) {
+      throw new Error("SAME_ROOM");
+    }
+
+    // The caller must be in the room they are forwarding OUT of, or this is a
+    // way to read any message whose id you can guess into a room you control.
+    const sourceMembership = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", sourceRoomId).eq("userId", userId)
+      )
+      .first();
+    if (!sourceMembership) throw new Error("NOT_A_MEMBER");
+
+    // Forwarding OUT of a Chamber of Secrets room is refused entirely.
+    // `guardOutgoing` derives `expiresAt` from the TARGET room, so a message
+    // written to self-destruct in an hour would land in an ordinary room as a
+    // permanent one — the sender's expiry silently laundered away by a reader.
+    const sourceRoom = await ctx.db.get(sourceRoomId);
+    if (sourceRoom?.messageLifetime) throw new Error("SOURCE_IS_EPHEMERAL");
+
+    const sources = await Promise.all(messageIds.map((id) => ctx.db.get(id)));
+
+    // The child media policy is checked against the strongest type in the
+    // batch: a child who may not send media may not forward it either, and
+    // checking only the first would let one text message carry nine photos.
+    const batchType = sources.some((m) => m && (m.type ?? "text") !== "text")
+      ? "media"
+      : "text";
+
+    const { resolvedSenderName, expiresAt } = await guardOutgoing(
+      ctx,
+      targetRoomId,
+      userId,
+      batchType
+    );
+
+    let forwarded = 0;
+    let refused = 0;
+    let newest: { type?: string; content?: string; fileName?: string } | null =
+      null;
+    let newestId: any = null;
+
+    for (let i = 0; i < sources.length; i++) {
+      const msg = sources[i];
+      // Skipped rather than thrown, so one expired message in a selection does
+      // not roll back the nine the user could legitimately forward.
+      if (!msg) {
+        refused++;
+        continue;
+      }
+      // Server-derived, never taken from args — the caller says which room it
+      // is forwarding from, and every message has to actually be from there.
+      if (msg.roomId.toString() !== sourceRoomId.toString()) {
+        refused++;
+        continue;
+      }
+      if (msg.viewOnce === true) {
+        refused++;
+        continue;
+      }
+
+      const clientId = clientIds?.[i];
+      if (clientId !== undefined) {
+        const existing = await ctx.db
+          .query("messages")
+          .withIndex("by_room_user_client", (q) =>
+            q
+              .eq("roomId", targetRoomId)
+              .eq("userId", userId)
+              .eq("clientId", clientId)
+          )
+          .first();
+        if (existing) {
+          forwarded++;
+          continue;
+        }
+      }
+
+      const msgType = msg.type ?? "text";
+      const newId = await ctx.db.insert("messages", {
+        roomId: targetRoomId,
+        userId,
+        content: msg.content ?? "",
+        createdAt: Date.now(),
+        type: msgType,
+        mediaStorageId: msg.mediaStorageId,
+        mediaWidth: msg.mediaWidth,
+        mediaHeight: msg.mediaHeight,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize,
+        mimeType: msg.mimeType,
+        mediaDurationMs: msg.mediaDurationMs,
+        posterStorageId: msg.posterStorageId,
+        // Recomputed rather than copied. The source's bucket was decided
+        // against the source's own storage id and armed flag, and a copy would
+        // be a second place for that decision to live.
+        galleryBucket: galleryBucketFor(
+          msgType,
+          msg.mediaStorageId !== undefined,
+          false
+        ),
+        ...(LINK_PATTERN.test(msg.content ?? "") ? { hasLink: true } : {}),
+        senderName: resolvedSenderName,
+        expiresAt,
+        ...(clientId !== undefined ? { clientId } : {}),
+      });
+
+      if (expiresAt !== undefined) {
+        await ctx.scheduler.runAt(
+          new Date(expiresAt),
+          internal.messages.expireMessage,
+          { messageId: newId }
+        );
+      }
+
+      forwarded++;
+      newest = { type: msgType, content: msg.content, fileName: msg.fileName };
+      newestId = newId;
+    }
+
+    // Once for the batch, not once per message: N patches to one room document
+    // all land in the same write set, so only the last would matter anyway —
+    // but every one of them contends with concurrent sends into that room.
+    if (forwarded > 0 && newest !== null) {
+      const preview = roomPreviewFor(newest);
+      await ctx.db.patch(targetRoomId, {
+        lastMessage: preview,
+        lastMessageTime: Date.now(),
+      });
+
+      // One push for the batch as well. Ten banners for one tap on FORWARD is
+      // a notification bug, not a notification.
+      await ctx.scheduler.runAfter(0, internal.notifications.sendMessagePush, {
+        roomId: targetRoomId,
+        messageId: newestId,
+        senderId: userId,
+        senderName: resolvedSenderName,
+        content: forwarded === 1 ? preview : `${forwarded} forwarded messages`,
+        // Forced to "text" for a batch so the notification renders the count
+        // sentence rather than replacing it with a "📷 Image" label.
+        type: forwarded === 1 ? (newest.type ?? "text") : "text",
+      });
+    }
+
+    return { forwarded, refused };
+  },
+});
+
+/**
+ * Deletes up to [MAX_DELETE_MESSAGES] messages the caller is entitled to.
+ *
+ * Per-message authorization SKIPS rather than throws, and that is the whole
+ * design. A selection made in a gallery will routinely mix the caller's own
+ * messages with other people's; throwing on the first one they don't own would
+ * roll back the deletions they were entitled to and leave the UI unable to say
+ * which of the twenty was the problem. The `{deleted, refused}` return is what
+ * the caller reports.
+ *
+ * The client is expected to have filtered the selection already — the DELETE
+ * action only appears when every selected message is deletable — so a non-zero
+ * `refused` means the two disagreed, which is exactly when a silent partial
+ * success would be worst.
+ *
+ * Same rule as `deleteMessage`: sender, or the room's owner. Note that
+ * `roomMembers.role` is fixed at join time and there is no promote/demote
+ * mutation anywhere, so in a DM only the initiator is ever "owner". This is
+ * delete-for-everyone, not delete-for-me.
+ */
+export const deleteMany = mutation({
+  args: {
+    userId: v.id("users"),
+    messageIds: v.array(v.id("messages")),
+  },
+  handler: async (ctx, { userId, messageIds }) => {
+    if (messageIds.length === 0) return { deleted: 0, refused: 0 };
+    if (messageIds.length > MAX_DELETE_MESSAGES) {
+      throw new Error("TOO_MANY_MESSAGES");
+    }
+
+    // Owner status is per room, and a selection comes from one room, but that
+    // is the caller's claim rather than a fact — so this resolves each room it
+    // actually meets and remembers the answer. One read per distinct room,
+    // not one per message.
+    const ownerOf = new Map<string, boolean>();
+    const isOwner = async (roomId: any) => {
+      const key = roomId.toString();
+      const known = ownerOf.get(key);
+      if (known !== undefined) return known;
+      const membership = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q) =>
+          q.eq("roomId", roomId).eq("userId", userId)
+        )
+        .first();
+      const owner = membership?.role === "owner";
+      ownerOf.set(key, owner);
+      return owner;
+    };
+
+    let deleted = 0;
+    let refused = 0;
+
+    for (const messageId of messageIds) {
+      const msg = await ctx.db.get(messageId);
+      // Already gone — an expired ephemeral message, or someone else's delete
+      // landing first. Not a refusal: the caller wanted it gone and it is.
+      if (!msg) continue;
+
+      const mine = msg.userId.toString() === userId.toString();
+      if (!mine && !(await isOwner(msg.roomId))) {
+        refused++;
+        continue;
+      }
+
+      await removeMessageAndFanout(ctx, msg, messageId);
+      deleted++;
+    }
+
+    return { deleted, refused };
   },
 });
 

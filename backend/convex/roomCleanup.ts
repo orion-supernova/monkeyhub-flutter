@@ -11,7 +11,7 @@
  * Plain helpers, not Convex functions: callers pass their own `ctx`.
  */
 
-import { deleteStored } from "./files";
+import { deleteStored, releaseMessageBlobs } from "./files";
 
 /**
  * Deletes every trace of a room: messages, their reactions, their media in
@@ -33,7 +33,9 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
       .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
       .collect();
     for (const r of reactions) await ctx.db.delete(r._id);
-    await deleteStored(ctx, msg.mediaStorageId);
+    // Refcounted: a message forwarded OUT of this room still points at these
+    // bytes from wherever it landed. See `releaseMessageBlobs`.
+    await releaseMessageBlobs(ctx, msg);
     // View-once ledger. Empty index range for ordinary messages.
     const views = await ctx.db
       .query("viewOnceViews")

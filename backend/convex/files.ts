@@ -78,7 +78,7 @@ const GRACE_MS = 24 * 60 * 60 * 1000;
  * 4000 × 3 tables leaves headroom under Convex's ~16k-document per-function
  * read limit with `_storage` still to enumerate. Currently the largest of the
  * three is `messages` at ~460 rows, so there is roughly 9× slack. Tripping this
- * is the signal to index the four storage fields (including the nested
+ * is the signal to index the five storage fields (including the nested
  * `replyToPreview.mediaStorageId` path) and check per-candidate instead of
  * building a set up front.
  */
@@ -88,12 +88,57 @@ const MAX_SCAN = 4000;
 const SWEEP_LIMIT = 200;
 
 /**
+ * Reclaims the blobs belonging to [msg] — unless another message still points
+ * at them.
+ *
+ * Forwarding re-references a file rather than re-uploading it, so one blob can
+ * now be named by several messages in several rooms. A bare
+ * `deleteStored(msg.mediaStorageId)` would therefore let deleting a forwarded
+ * copy — or wiping the room it was forwarded out of, or purging the account
+ * that first sent it — take the bytes out from under every other copy, leaving
+ * live messages pointing at nothing. `by_media` exists for exactly this kind of
+ * reverse lookup and makes the check one indexed read.
+ *
+ * [msg] is usually still in the table when this runs (`removeMessageAndFanout`
+ * deletes it afterwards, because it reads siblings first), so the message being
+ * removed is excluded from the count by id rather than assumed absent.
+ *
+ * The poster is gated on the SAME lookup, deliberately. A poster is only ever
+ * created alongside its video and only ever copied by a forward, which copies
+ * both fields together — so "is anyone else using my poster" and "is anyone
+ * else using my video" cannot have different answers, and a second index keyed
+ * on `posterStorageId` would only be able to confirm what this one already
+ * knows. Keep them written and copied together or that stops being true.
+ */
+export async function releaseMessageBlobs(ctx: any, msg: any) {
+  const storageId = msg?.mediaStorageId;
+  if (!storageId) {
+    // No media means no poster: a poster is never written without one.
+    return;
+  }
+
+  const referrers = await ctx.db
+    .query("messages")
+    .withIndex("by_media", (q: any) => q.eq("mediaStorageId", storageId))
+    .take(2);
+  const othersExist = referrers.some(
+    (m: any) => m._id.toString() !== msg._id.toString()
+  );
+  if (othersExist) return;
+
+  await deleteStored(ctx, storageId);
+  await deleteStored(ctx, msg.posterStorageId);
+}
+
+/**
  * Every storage id any row currently points at.
  *
- * The four fields are the complete set of `v.id("_storage")` in `schema.ts`.
+ * The five fields are the complete set of `v.id("_storage")` in `schema.ts`.
  * `replyToPreview.mediaStorageId` is a *denormalized copy* of a parent
  * message's id, snapshotted at send time — it counts as a live reference, or a
  * file still rendered inside a reply preview would be swept out from under it.
+ * `posterStorageId` is reachable only through the message that owns it, so it
+ * would otherwise look orphaned from the moment it was uploaded.
  *
  * Returns null when the scan can't be trusted (see `MAX_SCAN`).
  */
@@ -121,6 +166,11 @@ async function collectReferenced(ctx: any): Promise<Set<string> | null> {
   for (const m of msgs) {
     add(m.mediaStorageId);
     add(m.replyToPreview?.mediaStorageId);
+    // A video's poster frame. Nothing else in the deployment points at it —
+    // it is reachable only through the message that owns it — so leaving it
+    // out here would make every poster look orphaned and have this sweep
+    // delete it out from under its own video.
+    add(m.posterStorageId);
   }
 
   return referenced;
