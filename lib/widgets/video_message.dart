@@ -50,6 +50,10 @@ class _VideoMessageState extends State<VideoMessage> {
       // re-opened room doesn't re-query a URL it already had.
       final url =
           await FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id));
+      // Burned view-once, or a swept blob. Throwing lands in the catch below,
+      // which is already the right rendering — the alternative was parsing the
+      // string "null" into a URI and letting the player fail on it.
+      if (url == null) throw const FileUnavailable();
       final c = VideoPlayerController.networkUrl(Uri.parse(url));
       await c.initialize();
       if (!mounted) {

@@ -11,6 +11,7 @@ import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
@@ -577,6 +578,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
       final url = await api.getFileUrl(storageId);
+      // No URL to fetch — falls into the catch below and its "couldn't save
+      // image." snackbar, rather than GETting the string "null".
+      if (url == null) throw const FileUnavailable();
       final resp = await http.get(Uri.parse(url));
       if (resp.statusCode != 200) {
         throw Exception('status ${resp.statusCode}');

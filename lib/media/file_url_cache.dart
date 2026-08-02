@@ -4,6 +4,18 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// The backend has no URL for this storage id — a view-once file, or a blob
+/// that has been swept.
+///
+/// Worth its own type because it is categorically different from a transport
+/// failure: there is nothing to retry, and a widget that offers a retry button
+/// for it is lying. See the `unavailable` branch in `AudioMessage`.
+class FileUnavailable implements Exception {
+  const FileUnavailable();
+  @override
+  String toString() => 'file unavailable';
+}
+
 /// Maps a Convex `_storage` id to its serving URL, in memory and across launches.
 ///
 /// Three widgets used to keep their own private `static Map` of ids to URLs —
@@ -39,7 +51,7 @@ class FileUrlCache {
   /// In-flight resolutions, so N widgets mounting the same avatar in one frame
   /// issue one query rather than N. Without this the chat list fires a
   /// duplicate query for every row sharing a sender.
-  final Map<String, Future<String>> _pending = {};
+  final Map<String, Future<String?>> _pending = {};
 
   bool _loaded = false;
   bool _dirty = false;
@@ -60,7 +72,15 @@ class FileUrlCache {
       final decoded = jsonDecode(raw);
       if (decoded is! Map) return;
       decoded.forEach((k, v) {
-        if (k is String && v is String) _urls[k] = v;
+        if (k is! String || v is! String) return;
+        // Builds before `getFileUrl` went nullable persisted the literal string
+        // "null" for a file the backend declined to serve, which then poisoned
+        // that id across restarts. Drop anything that isn't a URL on the way in
+        // rather than bumping the prefs key — same result, without costing a
+        // round trip per attachment on the next launch of every install that
+        // was never poisoned.
+        if (!v.startsWith('http')) return;
+        _urls[k] = v;
       });
     } catch (e) {
       debugPrint('FileUrlCache.load failed (continuing cold): $e');
@@ -74,11 +94,12 @@ class FileUrlCache {
   /// instantly and shimmering for a round trip.
   String? peek(String storageId) => _urls[storageId];
 
-  /// Resolves [storageId], calling [fetch] only on a miss.
+  /// Resolves [storageId], calling [fetch] only on a miss. Null when the
+  /// backend has no URL for it.
   ///
   /// Takes a fetcher rather than the API object so the cache has no opinion on
   /// where a URL comes from — and so this is testable without a backend.
-  Future<String> resolve(String storageId, Future<String> Function() fetch) {
+  Future<String?> resolve(String storageId, Future<String?> Function() fetch) {
     final known = _urls[storageId];
     if (known != null) return Future.value(known);
 
@@ -86,13 +107,18 @@ class FileUrlCache {
     if (inFlight != null) return inFlight;
 
     final future = fetch().then((url) {
+      // A null is an answer, not a URL, and caching one would pin this id to
+      // "gone" for the life of the install. Leaving the miss uncached also
+      // means an id that stops being view-once, or a blob that reappears,
+      // heals on the next mount.
+      if (url == null || url.isEmpty) return null;
       _urls[storageId] = url;
       _dirty = true;
       _scheduleSave();
       return url;
     }).whenComplete(() {
       // Braces, not an arrow. `Map.remove` returns the removed value — here a
-      // `Future<String>?`, and specifically *this* future — and `whenComplete`
+      // `Future<String?>?`, and specifically *this* future — and `whenComplete`
       // waits on any Future its callback returns. An arrow body would make the
       // future await itself, so every cache miss would hang forever.
       _pending.remove(storageId);

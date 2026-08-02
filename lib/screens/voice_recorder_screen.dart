@@ -8,6 +8,23 @@ import 'package:record/record.dart';
 
 import '../theme/theme_scope.dart';
 
+/// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
+/// (MP4) container.
+///
+/// `audio/mp4` (RFC 4337) and NOT `audio/m4a`, which is what this used to send
+/// and which is registered nowhere. Convex serves storage from an
+/// extension-less URL — `<site>/api/storage/<uuid>` — so on iOS the served
+/// content type is the *only* signal AVFoundation gets about the container, and
+/// its MIME→UTI table has no entry for `audio/m4a`. Every voice note ever sent
+/// therefore rendered "audio failed" while the bytes themselves were perfectly
+/// good. (`audio/x-m4a` also works on Apple platforms, but it is an
+/// unregistered iTunes vendor type — no reason to prefer it to the standard.)
+///
+/// Convex fixes contentType at upload time and it cannot be patched afterwards,
+/// so this only helps notes sent from this build onward. `AudioFileCache` is
+/// the half that revives the ones already stored.
+const voiceNoteContentType = 'audio/mp4';
+
 /// Records an AAC voice note and pops its bytes.
 ///
 /// Mobile and desktop only — the attachment menu does not offer the voice tile
@@ -49,6 +66,13 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
     }
     final dir = await getTemporaryDirectory();
     final p = '${dir.path}/mh_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    // The file this writes is not "faststart": the index (`moov`) lands after
+    // the payload (`mdat`), because both backends here — AVAudioRecorder and
+    // MediaMuxer — stream samples out and only finalise the index on stop.
+    // That is hostile to progressive HTTP, and there is no knob on `record` to
+    // change it; getting faststart would mean remuxing afterwards. Don't.
+    // Playback downloads the whole file before handing it to the player (see
+    // AudioFileCache), so atom order has no observable effect.
     await _rec.start(
       const RecordConfig(encoder: AudioEncoder.aacLc, sampleRate: 44100, bitRate: 96000),
       path: p,

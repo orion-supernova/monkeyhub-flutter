@@ -1159,9 +1159,19 @@ class ChatApi {
     return res.toString();
   }
 
-  Future<String> getFileUrl(String storageId) async {
+  /// The serving URL for [storageId], or null when there isn't one.
+  ///
+  /// Nullable because the backend query is: `files:getFileUrl` returns null for
+  /// a view-once file and for an id whose blob has been swept. This used to be
+  /// a bare `res.toString()`, and `null.toString()` is the four-character
+  /// string "null" — which every caller then treated as a URL, handed to a
+  /// player or an image loader, and persisted in [FileUrlCache] for the life of
+  /// the install.
+  Future<String?> getFileUrl(String storageId) async {
     final res = await _cv.query('files:getFileUrl', {'storageId': storageId});
-    return res.toString();
+    if (res == null) return null;
+    final url = res.toString();
+    return url.isEmpty ? null : url;
   }
 
   // No deleteFile: freeing a stored file is the server's job, done in the same

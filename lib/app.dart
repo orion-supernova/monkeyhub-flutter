@@ -24,6 +24,7 @@ import 'data/settings_store.dart';
 import 'family/family_service.dart';
 import 'env.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'media/audio_file_cache.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'audio/alert_sounds.dart';
@@ -518,6 +519,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // that got GC'd would just render a broken tile.
         await FileUrlCache.instance.clear();
         await MediaAspectCache.instance.clear();
+        // Cached voice notes aren't secret either, but unlike the two above
+        // they occupy real disk, and a signed-out account shouldn't leave
+        // someone else's audio on the device.
+        await AudioFileCache.instance.clear();
         await _signaling.stop();
         await _callService.endCall();
         _callService.detachWatch();

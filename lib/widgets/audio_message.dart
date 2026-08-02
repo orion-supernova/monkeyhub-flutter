@@ -1,13 +1,31 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../backend/chat_api.dart';
+import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-/// Inline audio bubble. Resolves [storageId] → URL via the API, lazy-loads
+/// How the bubble is currently rendering.
+///
+/// Replaces an earlier `bool _ready` + `Object? _error` pair, which could only
+/// say "something went wrong" — and so rendered the same dead-end "audio
+/// failed" for a burned view-once file (nothing to retry) and for a dropped
+/// packet (very much worth retrying).
+enum _Phase { loading, ready, failed, unavailable }
+
+/// Inline audio bubble. Resolves [storageId] → a playable source, lazy-loads it
 /// into a [just_audio] player, plays in place. Minimal UX: play/pause +
 /// position scrubber.
+///
+/// Off-web the source is a *local file*, not the storage URL — see
+/// [AudioFileCache] for why streaming an extension-less Convex URL is what made
+/// every voice note unplayable.
 class AudioMessage extends StatefulWidget {
   const AudioMessage({
     super.key,
@@ -25,8 +43,19 @@ class AudioMessage extends StatefulWidget {
 
 class _AudioMessageState extends State<AudioMessage> {
   final _player = AudioPlayer();
-  bool _ready = false;
-  Object? _error;
+  _Phase _phase = _Phase.loading;
+
+  /// From `setFilePath`/`setUrl`, which know the duration before the position
+  /// stream has ticked once.
+  Duration? _duration;
+
+  /// Web only. Revoked on dispose — an object URL left dangling pins its bytes
+  /// for the life of the document.
+  String? _blobUrl;
+
+  /// Guards against a slow resolve landing after a newer one has started, which
+  /// a recycled row makes entirely possible.
+  int _gen = 0;
 
   @override
   void initState() {
@@ -35,24 +64,117 @@ class _AudioMessageState extends State<AudioMessage> {
   }
 
   @override
+  void didUpdateWidget(AudioMessage old) {
+    super.didUpdateWidget(old);
+    // `message_bubble.dart` builds this with no key, so the ListView recycles
+    // one State onto a different message as rows scroll. Without this the
+    // bubble keeps playing — and showing the duration of — the previous note.
+    if (old.storageId == widget.storageId) return;
+    _revokeBlob();
+    unawaited(_player.stop());
+    setState(() {
+      _phase = _Phase.loading;
+      _duration = null;
+    });
+    _resolve();
+  }
+
+  @override
   void dispose() {
+    _revokeBlob();
     _player.dispose();
     super.dispose();
   }
 
-  Future<void> _resolve() async {
+  void _revokeBlob() {
+    final url = _blobUrl;
+    if (url == null) return;
+    _blobUrl = null;
+    revokeWebPlayableUrl(url);
+  }
+
+  /// Loads the audio. With [fresh], throws away any local copy first — the
+  /// eviction is awaited here rather than fired off beside the reload, because
+  /// a delete still in flight will happily remove the file the reload has just
+  /// finished renaming into place.
+  Future<void> _resolve({bool fresh = false}) async {
+    final id = widget.storageId;
+    if (id == null || id.isEmpty) return;
+    final gen = ++_gen;
+    try {
+      if (fresh && !kIsWeb) await AudioFileCache.instance.evict(id);
+      // The timeout covers the whole load, not just the download. What the
+      // sender actually saw was the spinner and the literal "loading…" forever,
+      // because an asset AVFoundation can't identify neither completes nor
+      // throws — it just stops. An endless spinner is worse than a failure,
+      // because a failure now has a retry on it.
+      await _load(id, gen).timeout(const Duration(seconds: 45));
+      if (!mounted || gen != _gen) return;
+      setState(() => _phase = _Phase.ready);
+    } on FileUnavailable {
+      if (!mounted || gen != _gen) return;
+      setState(() => _phase = _Phase.unavailable);
+    } catch (e) {
+      debugPrint('AudioMessage: $id failed to load: $e');
+      if (!mounted || gen != _gen) return;
+      setState(() => _phase = _Phase.failed);
+    }
+  }
+
+  Future<void> _load(String id, int gen) async {
+    Future<String?> url() =>
+        FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id));
+
+    if (kIsWeb) {
+      final remote = await url();
+      if (remote == null) throw const FileUnavailable();
+      final blob = await webPlayableUrl(remote);
+      if (gen != _gen) {
+        // A newer load overtook this one. Revoking the blob we just minted is
+        // the only chance to release its bytes — nothing else holds a handle.
+        if (blob != null) revokeWebPlayableUrl(blob);
+        return;
+      }
+      _revokeBlob();
+      _blobUrl = blob;
+      // Falling back to the raw URL on a CORS refusal preserves exactly the
+      // behaviour that shipped, which browsers other than Safari sniff fine.
+      _duration = await _player.setUrl(blob ?? remote);
+      return;
+    }
+
+    try {
+      _duration = await _player
+          .setFilePath(await AudioFileCache.instance.resolve(id, url));
+    } on FileUnavailable {
+      rethrow;
+    } catch (_) {
+      // One silent retry against a fresh copy. The file can be gone or
+      // half-written underneath us in two ordinary ways: iOS purges
+      // Library/Caches under disk pressure at any moment, and a download
+      // interrupted by suspension leaves nothing usable. Both look identical
+      // from here and both are fixed by downloading again, so doing it
+      // silently beats making the user tap.
+      await AudioFileCache.instance.evict(id);
+      _duration = await _player
+          .setFilePath(await AudioFileCache.instance.resolve(id, url));
+    }
+  }
+
+  void _retry() {
     final id = widget.storageId;
     if (id == null) return;
-    try {
-      // Shared with every other attachment in the app, and persisted, so a
-      // re-opened room doesn't re-query a URL it already had.
-      final url =
-          await FileUrlCache.instance.resolve(id, () => widget.api.getFileUrl(id));
-      await _player.setUrl(url);
-      if (mounted) setState(() => _ready = true);
-    } catch (e) {
-      if (mounted) setState(() => _error = e);
-    }
+    HapticFeedback.selectionClick();
+    // The two things most likely to make this fail twice are a stale URL and a
+    // bad local copy, and both are cached. `FileUrlCache.invalidate` has
+    // existed since that cache was written and never had a caller — this is
+    // the case it was written for.
+    FileUrlCache.instance.invalidate(id);
+    setState(() {
+      _phase = _Phase.loading;
+      _duration = null;
+    });
+    unawaited(_resolve(fresh: true));
   }
 
   String _fmt(Duration d) {
@@ -62,18 +184,61 @@ class _AudioMessageState extends State<AudioMessage> {
     return '$m:${r.toString().padLeft(2, '0')}';
   }
 
+  /// The 34pt circle every state shares, so the bubble never resizes as it
+  /// moves between them.
+  Widget _disc(
+    AppTheme theme,
+    Color ink, {
+    required Widget child,
+    VoidCallback? onTap,
+  }) {
+    final disc = Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: widget.isMine ? ink.withValues(alpha: 0.2) : theme.accent,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: child,
+    );
+    if (onTap == null) return disc;
+    return GestureDetector(onTap: onTap, child: disc);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final ink = widget.isMine ? theme.accentInk : theme.ink;
+    final onDisc = widget.isMine ? ink : theme.accentInk;
 
     if (widget.storageId == null) {
       return Text('[audio missing]', style: theme.body.copyWith(color: ink));
     }
-    if (_error != null) {
-      return Text('audio failed', style: theme.body.copyWith(color: ink));
+
+    if (_phase == _Phase.unavailable) {
+      // The backend has no URL for this id — burned view-once, or a swept blob.
+      // Retrying can only produce the same nothing, so there is no button.
+      return Text('audio unavailable', style: theme.body.copyWith(color: ink));
     }
 
+    if (_phase == _Phase.failed) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _disc(theme, ink,
+              onTap: _retry, child: Icon(Icons.refresh, color: onDisc, size: 18)),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 120,
+            child: Text('tap to retry',
+                style: theme.monoTiny.copyWith(color: ink.withValues(alpha: 0.8))),
+          ),
+        ],
+      );
+    }
+
+    final ready = _phase == _Phase.ready;
     return StreamBuilder<PlayerState>(
       stream: _player.playerStateStream,
       builder: (context, snap) {
@@ -83,15 +248,20 @@ class _AudioMessageState extends State<AudioMessage> {
           stream: _player.positionStream,
           builder: (context, posSnap) {
             final pos = posSnap.data ?? Duration.zero;
-            final total = _player.duration ?? Duration.zero;
+            // `_duration` is the value setFilePath returned, available a beat
+            // before the player's own stream reports one — which is why this
+            // used to sit on "loading…" after the audio was already loaded.
+            final total = _player.duration ?? _duration ?? Duration.zero;
             final progress = total.inMilliseconds == 0
                 ? 0.0
                 : (pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GestureDetector(
-                  onTap: !_ready
+                _disc(
+                  theme,
+                  ink,
+                  onTap: !ready
                       ? null
                       : () {
                           if (playing) {
@@ -103,27 +273,20 @@ class _AudioMessageState extends State<AudioMessage> {
                             _player.play();
                           }
                         },
-                  child: Container(
-                    width: 34, height: 34,
-                    decoration: BoxDecoration(
-                      color: widget.isMine ? ink.withValues(alpha: 0.2) : theme.accent,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: !_ready
-                        ? SizedBox(
-                            width: 14, height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: widget.isMine ? ink : theme.accentInk,
-                            ),
-                          )
-                        : Icon(
-                            playing ? Icons.pause : Icons.play_arrow,
-                            color: widget.isMine ? ink : theme.accentInk,
-                            size: 18,
+                  child: !ready
+                      ? SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: onDisc,
                           ),
-                  ),
+                        )
+                      : Icon(
+                          playing ? Icons.pause : Icons.play_arrow,
+                          color: onDisc,
+                          size: 18,
+                        ),
                 ),
                 const SizedBox(width: 10),
                 SizedBox(
@@ -151,8 +314,11 @@ class _AudioMessageState extends State<AudioMessage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        total > Duration.zero ? '${_fmt(pos)} / ${_fmt(total)}' : 'loading…',
-                        style: theme.monoTiny.copyWith(color: ink.withValues(alpha: 0.8)),
+                        total > Duration.zero
+                            ? '${_fmt(pos)} / ${_fmt(total)}'
+                            : 'loading…',
+                        style: theme.monoTiny
+                            .copyWith(color: ink.withValues(alpha: 0.8)),
                       ),
                     ],
                   ),

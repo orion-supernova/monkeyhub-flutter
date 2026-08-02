@@ -176,6 +176,13 @@ class _RemoteImageState extends State<RemoteImage> {
       // in flight (list reorder, page swipe) — dropping a stale result here is
       // what stops one row briefly showing another row's picture.
       if (!mounted || widget.storageId != id) return;
+      // Null means the backend has no URL for this id — burned view-once, or a
+      // swept blob. Rendering the error tile is correct; assigning it to _url
+      // would hand CachedNetworkImage the string "null" as a URI.
+      if (url == null) {
+        setState(() => _error = const FileUnavailable());
+        return;
+      }
       setState(() => _url = url);
     }).catchError((Object e) {
       if (!mounted || widget.storageId != id) return;

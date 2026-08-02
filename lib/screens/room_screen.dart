@@ -993,7 +993,7 @@ class _RoomScreenState extends State<RoomScreen>
             _sendMedia(
               bytes: bytes,
               type: MessageType.audio,
-              contentType: 'audio/m4a',
+              contentType: voiceNoteContentType,
             );
           }
           break;

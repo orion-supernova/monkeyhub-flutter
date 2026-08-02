@@ -93,6 +93,35 @@ void main() {
     expect(calls, 2);
   });
 
+  test('a null URL is not cached, so the id can heal later', () async {
+    // `files:getFileUrl` answers null for a view-once file and for a swept
+    // blob. The old code did `res.toString()` on that, cached the literal
+    // string "null" as if it were a URL, and persisted it — pinning the id to
+    // broken for the life of the install. A null must stay an answer, not
+    // become an entry.
+    var calls = 0;
+    Future<String?> gone() async {
+      calls++;
+      return null;
+    }
+
+    expect(await cache.resolve('abc', gone), isNull);
+    expect(cache.peek('abc'), isNull);
+
+    expect(await cache.resolve('abc', gone), isNull);
+    expect(calls, 2);
+
+    // And once the backend does have a URL, the id resolves normally.
+    final url =
+        await cache.resolve('abc', () async => 'https://example.test/api/storage/1');
+    expect(url, 'https://example.test/api/storage/1');
+  });
+
+  test('an empty URL is treated as no URL', () async {
+    expect(await cache.resolve('abc', () async => ''), isNull);
+    expect(cache.peek('abc'), isNull);
+  });
+
   test('invalidate forces the next resolve back to the fetcher', () async {
     cache.debugSeed({'abc': 'https://example.test/api/storage/old'});
     cache.invalidate('abc');
