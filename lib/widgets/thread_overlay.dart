@@ -16,7 +16,6 @@ import '../models/enums.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
-import '../platform.dart';
 import '../theme/theme_scope.dart';
 import 'anchored_scroll.dart';
 import 'chat_composer.dart';
@@ -45,8 +44,12 @@ const int kThreadPageSize = 25;
 /// inside the thread — and messages other people send while it's open —
 /// appear without a refetch. Scrolling to the top pages further back.
 ///
-/// Dismiss: tap the scrim, tap the close button, or press Esc. Vertical drag
-/// scrolls the list and dismisses the keyboard rather than the overlay.
+/// Dismiss: tap the background — the scrim, the space beside a bubble, the gap
+/// above the first message — or the close button, or Esc. Taps on the messages
+/// themselves are content, not background, and do nothing. A tap while the soft
+/// keyboard is up spends itself putting the keyboard away. Vertical drag
+/// scrolls the list, anywhere in it, and dismisses the keyboard rather than the
+/// overlay.
 ///
 /// [onChildGate] is invoked instead of sending when a child guard refuses the
 /// message. The overlay dismisses first and hands back the refusal plus the
@@ -151,6 +154,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// have no key — which silently kills long-press on exactly the messages
   /// the user is most likely to interact with.
   final Map<String, GlobalKey> _keys = {};
+
+  /// Keys on the bubble boxes themselves, as opposed to [_keys]' full-width
+  /// rows. Only these say where the message actually *is*, which is what
+  /// [_tapLandedOnAMessage] needs — see it for why the row can't.
+  final Map<String, GlobalKey> _bubbleKeys = {};
 
   /// The message a new reply attaches to. Null means "the last message in the
   /// thread", resolved at send time so it tracks live arrivals. Set
@@ -538,6 +546,48 @@ class _ThreadSheetState extends State<_ThreadSheet>
     widget.onResolve();
   }
 
+  /// A tap that landed on the transcript rather than on the scrim around it.
+  ///
+  /// The rule is the scrim's: the background dismisses, the messages don't.
+  /// It has to be re-stated here only because a [Scrollable] hit-tests opaque
+  /// across its whole viewport, so a tap in the empty half of a row never
+  /// reaches the scrim underneath to be handled there — on a phone the list is
+  /// the entire window, which left the close button as the only way out.
+  ///
+  /// Two things come before the dismiss:
+  ///  * While the soft keyboard is up the tap only puts it away. The composer
+  ///    may be holding a half-typed reply and closing would take it along.
+  ///  * A tap on a message is a tap on content, not on the background.
+  ///
+  /// Anything that handles its own taps — a photo, a pill, a link, a mention —
+  /// never gets this far; its recognizer wins the arena first.
+  void _tapTranscript(Offset globalPosition, {required bool keyboardUp}) {
+    if (keyboardUp) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+    if (_tapLandedOnAMessage(globalPosition)) return;
+    unawaited(_dismiss());
+  }
+
+  /// Whether [globalPosition] is inside some bubble's own box.
+  ///
+  /// Measured off [_bubbleKeys] rather than the row keys because a row is
+  /// always the full width of the list: by the row, every tap is on a message
+  /// and nothing would ever dismiss. Only mounted rows are checked, which is
+  /// every row a finger can reach.
+  bool _tapLandedOnAMessage(Offset globalPosition) {
+    for (final key in _bubbleKeys.values) {
+      final ctx = key.currentContext;
+      if (ctx == null || !ctx.mounted) continue;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached || !box.hasSize) continue;
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      if (rect.contains(globalPosition)) return true;
+    }
+    return false;
+  }
+
   // ───────────── action menu ─────────────
 
   Future<void> _onLongPressBubble(ChatMessage m, ChatUser? author) async {
@@ -657,6 +707,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
   }) {
     final me = widget.repo.userId ?? '';
     final isDm = widget.repo.roomById(widget.roomId)?.isDm ?? false;
+    // Only the rows in the list get one. The action menu's preview is built
+    // from this same method, and a GlobalKey can only be in the tree once —
+    // handing it out twice would tear the bubble out of the transcript the
+    // moment the menu opened.
+    final bubbleKey = interactive
+        ? _bubbleKeys.putIfAbsent(
+            m.id,
+            () => GlobalKey(debugLabel: 'thread-bubble-${m.id}'),
+          )
+        : null;
     // Same bracketing as the room transcript — see room_screen's builder.
     final name = (m.senderId == me || isDm || grouped)
         ? null
@@ -665,6 +725,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
             : (m.senderName.trim().isEmpty ? null : m.senderName));
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
+        bubbleKey: bubbleKey,
         message: m,
         now: _now,
         currentUserId: me,
@@ -689,6 +750,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       );
     }
     return MessageBubble(
+      bubbleKey: bubbleKey,
       message: m,
       now: _now,
       currentUserId: me,
@@ -801,11 +863,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
                       Expanded(
                         // Deliberately only the populated branch is wrapped.
                         // An empty thread paints a bare Text/spinner, which
-                        // hit-tests through to the scrim behind — tapping the
-                        // middle of "thread unavailable" dismisses the overlay,
-                        // and swallowing that to unfocus a keyboard that isn't
-                        // up (there is no composer without a target) would be a
-                        // pure loss.
+                        // hit-tests through to the scrim behind — so tapping
+                        // the middle of "thread unavailable" already dismisses,
+                        // and there is no keyboard to put away first (no
+                        // composer without a target).
                         child: messages.isEmpty
                             ? Center(
                                 child: hasLoaded
@@ -823,24 +884,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
                                       ),
                               )
                             : GestureDetector(
-                                // Tapping the transcript puts the keyboard
-                                // away — the same gesture the room screen
-                                // offers, and the companion to the list's own
-                                // drag-to-dismiss. Translucent so it wins the
-                                // arena ahead of the scrim: a tap in here
-                                // closes the keyboard and must NOT also close
-                                // the whole overlay. (No behaviour is lost —
-                                // Scrollable already hit-tests opaque, so these
-                                // taps never reached the scrim to begin with.)
-                                //
-                                // On desktop there is no soft keyboard to put
-                                // away, and stealing focus would silently break
-                                // Enter-to-send after any click in the thread.
+                                // Tapping the transcript closes the thread, or
+                                // puts the keyboard away when it's up — see
+                                // [_tapTranscript]. Translucent so it wins the
+                                // arena ahead of the scrim, which the
+                                // Scrollable's opaque hit-testing keeps these
+                                // taps away from regardless.
                                 behavior: HitTestBehavior.translucent,
-                                onTap: isPhysicalKeyboardPlatform
-                                    ? null
-                                    : () => FocusManager.instance.primaryFocus
-                                        ?.unfocus(),
+                                onTapUp: (d) => _tapTranscript(
+                                  d.globalPosition,
+                                  keyboardUp: media.viewInsets.bottom > 0,
+                                ),
                                 child: Stack(
                                   children: [
                                     Positioned.fill(

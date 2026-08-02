@@ -12,6 +12,7 @@ import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
+import 'package:monkeyhub/widgets/reply_indicator.dart';
 import 'package:monkeyhub/widgets/user_avatar.dart';
 
 /// A run of messages is bracketed: the sender's name opens it, their face
@@ -54,6 +55,7 @@ void main() {
       );
 
   Widget bubble({
+    GlobalKey? bubbleKey,
     bool showAvatarSlot = true,
     bool showAvatar = true,
     bool avatarAtBottom = false,
@@ -66,6 +68,7 @@ void main() {
         'keeps going for several more lines so the bubble is tall',
   }) =>
       MessageBubble(
+        bubbleKey: bubbleKey,
         message: msg(content),
         now: DateTime(2026, 3, 1, 12),
         currentUserId: 'bob',
@@ -174,6 +177,69 @@ void main() {
     expect(find.byType(UserAvatar), findsNothing);
     expect(bubbleRect(tester).left, 0,
         reason: 'nothing left to reserve space for');
+  });
+
+  // The thread overlay decides tap-to-dismiss by asking whether the tap landed
+  // inside this box: on the message, nothing happens; beside it, the thread
+  // closes. That only works while the box is the bubble and not the row.
+  testWidgets('bubbleKey measures the message, not the row it sits in',
+      (tester) async {
+    final key = GlobalKey();
+    await tester.pumpWidget(host(bubble(bubbleKey: key, content: 'hi')));
+
+    final keyed = tester.getRect(find.byKey(key));
+    final painted = bubbleRect(tester);
+    expect(keyed.contains(painted.center), isTrue,
+        reason: 'a tap in the middle of the bubble is a tap on the message');
+    expect(keyed.right, lessThan(400),
+        reason: 'a short message in a 500px row leaves most of the row empty, '
+            'and all of that empty space has to stay dismissable');
+    expect(keyed.contains(const Offset(480, 10)), isFalse,
+        reason: 'the far gutter is background');
+  });
+
+  testWidgets('a reply tether stays outside the measured box', (tester) async {
+    // The tether crosses the transcript to reach the bubble it quotes, so it
+    // is routinely several times the width of the message hanging off it.
+    // Measuring the pair together turned that reach into a dead strip beside
+    // short replies, where taps landed on nothing and dismissed nothing.
+    final key = GlobalKey();
+    await tester.pumpWidget(host(MessageBubble(
+      bubbleKey: key,
+      message: ChatMessage(
+        id: 'm1',
+        roomId: 'r',
+        senderId: 'alice',
+        senderName: 'alice',
+        content: 'ok',
+        createdAt: DateTime(2026, 3, 1, 12),
+        type: MessageType.text,
+        status: MessageStatus.sent,
+        replyToId: 'parent',
+        rootId: 'parent',
+        replyToPreview: const ReplyPreview(
+          senderId: 'bob',
+          senderName: 'bob',
+          contentPreview: 'a much longer parent message to reach across',
+          type: MessageType.text,
+        ),
+      ),
+      now: DateTime(2026, 3, 1, 12),
+      currentUserId: 'bob',
+      api: api,
+      author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
+      replyMarker: ReplyMarker.compact,
+    )));
+
+    final keyed = tester.getRect(find.byKey(key));
+    final painted = bubbleRect(tester);
+    expect(tester.getRect(find.byType(ReplyTether)).width,
+        greaterThan(painted.width),
+        reason: 'a tether no wider than the bubble would prove nothing here');
+    expect(keyed.width, lessThan(painted.width + 12),
+        reason: 'the box is the bubble; the tether above it is not part of it');
+    expect(keyed.top, greaterThanOrEqualTo(painted.top - 12),
+        reason: 'and it does not reach up over the tether either');
   });
 
   group('vertical rhythm', () {

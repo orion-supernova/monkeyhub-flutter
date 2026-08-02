@@ -58,6 +58,7 @@ class MessageBubble extends StatelessWidget {
     this.onOpenViewOnce,
     this.onRetrySend,
     this.onDiscardSend,
+    this.bubbleKey,
   });
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
@@ -82,6 +83,14 @@ class MessageBubble extends StatelessWidget {
   final void Function(String emoji)? onReactionLongPress;
 
   final VoidCallback? onAuthorTap;
+
+  /// Goes on the speech bubble alone — not the full-width row it sits in, and
+  /// not the reply tether above it. A caller that has to tell "on the message"
+  /// from "in the space beside it" measures this; the row spans the window
+  /// however narrow the bubble is, and the tether is regularly wider than the
+  /// message hanging off it, so neither can answer that. The thread overlay's
+  /// tap-to-dismiss is the one caller that needs it.
+  final GlobalKey? bubbleKey;
 
   /// Invoked when the user taps an @-mention. Receives the mentioned user's id
   /// so the screen can open their profile. Null leaves mentions highlighted
@@ -195,12 +204,21 @@ class MessageBubble extends StatelessWidget {
       ),
     );
 
+    // Keyed around the bubble alone, never around the reply marker above it:
+    // a tether is regularly wider than the short message hanging off it, and a
+    // caller measuring "is this point on the message" would inherit that width
+    // as an invisible dead strip beside the bubble. Nothing is lost — the
+    // tether takes its own taps, so they never reach the caller either way.
+    final keyed = bubbleKey == null
+        ? bubble
+        : KeyedSubtree(key: bubbleKey!, child: bubble);
+
     // `isReply` is the veto: a marker can only draw when there is a preview to
     // draw it from, and that is exactly what `isReply` asserts.
     final marker = message.isReply ? replyMarker : ReplyMarker.none;
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
-      bubbleArea = bubble;
+      bubbleArea = keyed;
     } else {
       bubbleArea = Column(
         mainAxisSize: MainAxisSize.min,
@@ -234,7 +252,7 @@ class MessageBubble extends StatelessWidget {
               },
               onViewThread: onViewThread,
             ),
-          bubble,
+          keyed,
         ],
       );
     }
@@ -340,6 +358,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.onOpenViewOnce,
     this.onRetrySend,
     this.onDiscardSend,
+    this.bubbleKey,
   });
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
@@ -364,6 +383,9 @@ class EphemeralMessageBubble extends StatelessWidget {
   final void Function(String emoji)? onReactionLongPress;
 
   final VoidCallback? onAuthorTap;
+
+  /// See [MessageBubble.bubbleKey].
+  final GlobalKey? bubbleKey;
 
   /// See [MessageBubble.onMentionTap].
   final void Function(String userId)? onMentionTap;
@@ -473,11 +495,16 @@ class EphemeralMessageBubble extends StatelessWidget {
       ),
     );
 
+    // See the twin in [MessageBubble] — the bubble alone, not the marker.
+    final keyed = bubbleKey == null
+        ? innerBubble
+        : KeyedSubtree(key: bubbleKey!, child: innerBubble);
+
     // See the twin in [MessageBubble] — same rule, same veto.
     final marker = message.isReply ? replyMarker : ReplyMarker.none;
     final Widget bubbleArea;
     if (marker == ReplyMarker.none) {
-      bubbleArea = innerBubble;
+      bubbleArea = keyed;
     } else {
       bubbleArea = Column(
         mainAxisSize: MainAxisSize.min,
@@ -513,7 +540,7 @@ class EphemeralMessageBubble extends StatelessWidget {
               },
               onViewThread: onViewThread,
             ),
-          innerBubble,
+          keyed,
         ],
       );
     }
