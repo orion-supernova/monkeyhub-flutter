@@ -16,6 +16,7 @@ import '../models/room_pin.dart';
 import '../push/push_manager.dart';
 import 'cache_store.dart';
 import 'pending_reconcile.dart';
+import 'room_filter.dart';
 import 'settings_store.dart';
 
 /// Source of truth for chat data (rooms + open-room messages).
@@ -34,18 +35,42 @@ class ChatRepository extends ChangeNotifier {
   String? _userId;
   String? get userId => _userId;
 
-  List<ChatRoom> _rooms = [];
+  List<ChatRoom> _roomsStore = [];
+
+  /// Every write to the room list goes through this setter so the memoised
+  /// [facetCounts] cannot go stale. There are six assignment sites; adding a
+  /// seventh should not depend on remembering to invalidate by hand.
+  ///
+  /// Safe because rooms are only ever replaced wholesale — nothing anywhere
+  /// mutates `unreadCount`, `hasMention` or `lastReadAt` on a live [ChatRoom].
+  List<ChatRoom> get _rooms => _roomsStore;
+  set _rooms(List<ChatRoom> next) {
+    _roomsStore = next;
+    _facetCounts = null;
+  }
+
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
-  /// Number of rooms with messages newer than this user's read cursor.
-  int get unreadRoomCount => _rooms.where((r) => r.hasUnread).length;
+  RoomFacetCounts? _facetCounts;
 
-  /// Total unread *messages* across every room — drives the Chat tab / ROOMS
-  /// pill badge and, via [BadgeManager], the OS app-icon badge. Counts
-  /// messages rather than rooms so it matches what the push payload's
-  /// absolute `ios_badgeCount` says.
-  int get unreadMessageTotal =>
-      _rooms.fold(0, (sum, r) => sum + r.unreadCount);
+  /// How many rooms match each filter facet, plus the unread aggregates —
+  /// computed in a single pass and cached until the room list changes.
+  ///
+  /// Worth the cache: [notifyListeners] fires on every typing keystroke in any
+  /// room, so recomputing per getter call meant ten linear scans per keystroke
+  /// once the filter UI started asking for counts. Now it's one scan per room
+  /// push.
+  RoomFacetCounts get facetCounts =>
+      _facetCounts ??= RoomFacetCounts.of(_roomsStore);
+
+  /// Number of rooms with messages newer than this user's read cursor.
+  int get unreadRoomCount => facetCounts.unreadRooms;
+
+  /// Total unread *messages* across every room — drives the Chat tab badge
+  /// and, via [BadgeManager], the OS app-icon badge. Counts messages rather
+  /// than rooms so it matches what the push payload's absolute
+  /// `ios_badgeCount` says.
+  int get unreadMessageTotal => facetCounts.unreadMessages;
 
   /// Lookup a user by id from any cached source the repo currently knows
   /// (friends list). Returns null when the user isn't cached — callers may

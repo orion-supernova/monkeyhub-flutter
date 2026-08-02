@@ -259,14 +259,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _bootstrap();
   }
 
-  /// Land a friend-request / approval notification tap on the Friends tab.
+  /// Land a friend-request / approval notification tap on the requests list.
   ///
   /// Unlike [_openRoomFromPush] there's nothing to stash for a cold start:
-  /// [UiSelectionStore] holds the request until a [HomeScreen] mounts and
+  /// [UiSelectionStore] holds the request until [DiscoverScreen] mounts and
   /// consumes it, which covers the launch-from-notification case for free.
+  ///
+  /// Requests moved out of the chat list into Discover, so this steers the
+  /// shell there — but with `persist: false`. A notification tap should decide
+  /// where you land *now*, not quietly rewrite which section the app opens on
+  /// for good. (That was invisible before only because this always set Chat,
+  /// which is the default anyway.)
   void _openRequestsFromPush() {
-    UiSelectionStore.instance.requestHomeTab('friends');
-    SettingsStore.instance.setSection(HomeSection.chat);
+    UiSelectionStore.instance.requestRequestsView();
+    SettingsStore.instance.setSection(HomeSection.discover, persist: false);
     final nav = rootNavigatorKey.currentState;
     if (nav == null) return;
     nav.popUntil((r) => r.isFirst);

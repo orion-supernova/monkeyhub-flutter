@@ -1,26 +1,52 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/focusable_tap.dart';
 import '../models/chat_room.dart';
-import '../models/family.dart';
+import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/approval_gate.dart';
-import '../widgets/join_room_sheet.dart';
-import '../widgets/visibility_badge.dart';
+import '../widgets/discover_rows.dart';
+import '../widgets/request_cards.dart';
+import 'discover_lists.dart';
+import 'navigation/destinations.dart';
+import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
 import 'search_screen.dart';
-// Discover panel doesn't open profile directly anymore — search screen does.
 
-/// Discover is rooms-only; people search lives in Friends. Its own Hero tag,
-/// distinct from the Friends bar, so a tab transition can't briefly mount two
-/// Heroes under one tag.
-const String _searchBarTag = 'discover-search-bar';
+/// How many friends and public rooms Discover shows before handing off to a
+/// full-list screen.
+///
+/// Both lists can run to dozens, and a page whose height depends on them means
+/// scrolling past one world to find out the other exists. Three rather than
+/// five because everything in the people world stacks up above the rooms one —
+/// two rows saved here is ~130pt less to scroll past.
+const int _previewCount = 3;
 
-class DiscoverPanel extends StatefulWidget {
-  const DiscoverPanel({
+/// The page's vertical rhythm, as three steps rather than a scatter of one-off
+/// gaps.
+///
+/// Sections used to be divided only by ad-hoc SizedBoxes of 12, 14, 16 and 18 —
+/// so the space *between* two sections was barely larger than the space *inside*
+/// one, and an empty section ran straight into the next heading with nothing to
+/// say where one stopped. Each step is roughly double the last, which is what
+/// makes the grouping legible without drawing a single extra line.
+const double _withinSection = 12;
+const double _betweenSections = 30;
+const double _betweenWorlds = 44;
+
+/// Everything you go looking for, grouped into two worlds.
+///
+/// The page reads top to bottom as PEOPLE then ROOMS, and everything belonging
+/// to a world sits inside it — search door, requests, and the list. An earlier
+/// arrangement banded only the search doors and then let the content sections
+/// alternate underneath, so the screen went people → rooms → people → rooms.
+class DiscoverScreen extends StatefulWidget {
+  const DiscoverScreen({
     super.key,
     required this.repo,
     required this.api,
@@ -29,36 +55,129 @@ class DiscoverPanel extends StatefulWidget {
   final ChatRepository repo;
   final ChatApi api;
   final FamilyService family;
+
   @override
-  State<DiscoverPanel> createState() => _DiscoverPanelState();
+  State<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
-class _DiscoverPanelState extends State<DiscoverPanel> {
+/// Which half of the requests section is showing.
+enum _RequestsTab { incoming, outgoing }
+
+class _DiscoverScreenState extends State<DiscoverScreen> {
   List<ChatRoom> _rooms = [];
   bool _loading = false;
+
+  _RequestsTab _requestsTab = _RequestsTab.incoming;
 
   /// Rooms this child has already asked about, so their tiles read
   /// "waiting for a grown-up" instead of inviting a second request.
   Set<String> _awaiting = {};
 
+  /// Last known value of [_roomsUnlocked], so a guardian unlocking public rooms
+  /// mid-session can trigger the fetch that `initState` skipped.
+  bool _wasUnlocked = false;
+
+  /// Anchors the scroll a friend-request notification asks for.
+  final _incomingKey = GlobalKey();
+
+  /// Anchors for the world jump control.
+  final _peopleKey = GlobalKey();
+  final _roomsKey = GlobalKey();
+
+  void _jumpTo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: ThemeScope.of(context).motionMed,
+      curve: Curves.easeOutCubic,
+      alignment: 0.02,
+    );
+  }
+
+  /// Whether the public-rooms world may render.
+  ///
+  /// Gated on `hasContext` as well as the policy flag. [FamilyContext.empty]
+  /// reads as an unrestricted adult until the family subscription lands, and
+  /// `publicRoomsEnabled` is *false* by default for a child — so without this a
+  /// gated child gets a fully-composed ROOMS world on every cold start, which
+  /// then vanishes. That flash is new: when Discover was a tab it simply never
+  /// appeared for those accounts.
+  bool get _roomsUnlocked =>
+      widget.family.hasContext && widget.family.canSeePublicRooms;
+
+  /// Whether people search may render. Left failing open, matching the rest of
+  /// the app: it is the less sensitive capability, and gating it on context too
+  /// would reflow the top of the screen on every launch.
+  bool get _peopleUnlocked => widget.family.canRequestContacts;
+
   @override
   void initState() {
     super.initState();
+    widget.repo.addListener(_onChange);
+    widget.family.addListener(_onChange);
+    _wasUnlocked = _roomsUnlocked;
+    // A friend-request notification tapped before this screen existed is still
+    // waiting in the store — including on a cold start, where the tap lands
+    // long before any widget mounts.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _consumePendingRequests(),
+    );
     _refresh();
   }
 
+  @override
+  void dispose() {
+    widget.repo.removeListener(_onChange);
+    widget.family.removeListener(_onChange);
+    super.dispose();
+  }
+
+  void _onChange() {
+    if (!mounted) return;
+    // Rising edge: the fetch is skipped while locked, so without this an
+    // unlocked child would land on a fully-rendered rooms world reading
+    // "nothing open right now" — a lie, at the one moment they are most likely
+    // to look.
+    final unlocked = _roomsUnlocked;
+    if (unlocked && !_wasUnlocked && _rooms.isEmpty) _refresh();
+    _wasUnlocked = unlocked;
+    setState(() {});
+  }
+
+  /// The requests lists live on this page now, so a notification tap scrolls to
+  /// them rather than pushing a screen on top of the one that already shows
+  /// them.
+  void _consumePendingRequests() {
+    if (!mounted) return;
+    if (!UiSelectionStore.instance.consumeRequestsView()) return;
+    // A friend-request push is always about something arriving, so land on the
+    // incoming half whatever was last selected.
+    setState(() => _requestsTab = _RequestsTab.incoming);
+    final ctx = _incomingKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: ThemeScope.of(context).motionMed,
+      curve: Curves.easeOutCubic,
+      alignment: 0.1,
+    );
+  }
+
   Future<void> _refresh() async {
+    // Nothing to fetch while locked, and asking anyway would spend a round trip
+    // on a response the backend blanks by design.
+    if (!_roomsUnlocked) return;
     setState(() => _loading = true);
     try {
       // Passing the viewer lets the backend blank this list for a child who
-      // isn't allowed public rooms — belt and braces with hiding the tab.
-      final rs = await widget.api.listPublic(
-        viewerUserId: widget.repo.userId,
-      );
+      // isn't allowed public rooms — belt and braces with hiding the section.
+      final rs = await widget.api.listPublic(viewerUserId: widget.repo.userId);
       if (!mounted) return;
       setState(() => _rooms = rs);
       if (widget.family.isChild) await _refreshAwaiting();
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -69,256 +188,579 @@ class _DiscoverPanelState extends State<DiscoverPanel> {
     try {
       final pending = await widget.api.listMyApprovals(uid);
       if (!mounted) return;
-      setState(() => _awaiting = pending
-          .where((p) => p.roomId != null)
-          .map((p) => p.roomId!)
-          .toSet());
-    } catch (_) {/* tiles just won't show the pill */}
+      setState(
+        () => _awaiting = pending
+            .where((p) => p.roomId != null)
+            .map((p) => p.roomId!)
+            .toSet(),
+      );
+    } catch (_) {
+      /* tiles just won't show the pill */
+    }
   }
 
-  /// Whether the viewer is already in [room], and can therefore just walk in.
-  bool _joined(ChatRoom room) => widget.repo.isJoined(room);
-
-  /// A child tapping a room they don't have raises the request with their
-  /// guardians instead of failing. Returns true when the join should proceed.
-  Future<bool> _clearedToJoin(ChatRoom room) async {
-    if (!widget.family.isChild) return true;
-    // A child already in the room needs no new grant — the guardian's decision
-    // is what put them there. Asking again would queue a second approval for
-    // access they demonstrably already have.
-    if (_joined(room)) return true;
-    final uid = widget.repo.userId;
-    if (uid == null) return false;
-
-    final alreadyAsked = _awaiting.contains(room.id);
-    final wantsToAsk = await showApprovalGate(
-      context,
-      what: 'join ${room.name}',
-      detail: room.description,
-      alreadyAsked: alreadyAsked,
+  void _openSearch(SearchMode mode) {
+    final theme = ThemeScope.of(context);
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        transitionDuration: theme.motionMed,
+        reverseTransitionDuration: theme.motionMed,
+        pageBuilder: (_, _, _) => SearchScreen(
+          repo: widget.repo,
+          api: widget.api,
+          family: widget.family,
+          mode: mode,
+        ),
+        transitionsBuilder: (_, anim, _, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: theme.motionEntrance,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.06),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
     );
-    if (!wantsToAsk || alreadyAsked) return false;
+  }
 
+  Future<void> _openDm(ChatUser user) async {
     try {
-      await widget.api.requestApproval(
-        childId: uid,
-        kind: 'joinRoom',
-        targetRoomId: room.id,
-      );
-      if (mounted) setState(() => _awaiting = {..._awaiting, room.id});
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('couldn\'t ask right now — try again')),
-        );
-      }
-    }
-    return false;
+      final roomId = await widget.repo.openDmWith(user);
+      if (!mounted) return;
+      openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
+    } catch (_) {}
+  }
+
+  void _push(Widget screen) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
+  void _onTapRoom(ChatRoom room) {
+    enterPublicRoom(
+      context,
+      room: room,
+      repo: widget.repo,
+      api: widget.api,
+      family: widget.family,
+      alreadyAsked: _awaiting.contains(room.id),
+      onAsked: (id) {
+        if (mounted) setState(() => _awaiting = {..._awaiting, id});
+      },
+      onChildGateRefused: _refreshAwaiting,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return AdaptivePageBody(
-      child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            PageRouteBuilder(
-              transitionDuration: theme.motionMed,
-              reverseTransitionDuration: theme.motionMed,
-              pageBuilder: (_, _, _) => SearchScreen(
-                repo: widget.repo,
-                api: widget.api,
-                mode: SearchMode.rooms,
-                heroTag: _searchBarTag,
-              ),
-              transitionsBuilder: (_, anim, _, child) {
-                final curved = CurvedAnimation(parent: anim, curve: theme.motionEntrance);
-                return FadeTransition(
-                  opacity: curved,
-                  child: SlideTransition(
-                    position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
-                        .animate(curved),
-                    child: child,
+    final friends = widget.repo.friends;
+    final incoming = widget.repo.incomingRequests;
+    final outgoing = widget.repo.outgoingRequests;
+
+    final showPeople = _peopleUnlocked;
+    final showRooms = _roomsUnlocked;
+    // An outgoing section on an account that can never send one names a
+    // capability it does not have. It stays for a child whose permission was
+    // revoked with a request still in flight.
+    final showOutgoing = _peopleUnlocked || outgoing.isNotEmpty;
+    // One derivation, read everywhere below. The caption used to be the literal
+    // string 'people · rooms · requests' regardless of account, which told a
+    // child with public rooms locked that public rooms exist.
+    final caption = <String>[
+      if (showPeople) 'people',
+      if (showRooms) 'rooms',
+      'requests',
+    ].join(' · ');
+    final showBands = showPeople && showRooms;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          theme.backgroundLayer(context),
+          SafeArea(
+            child: AdaptivePageBody(
+              child: ListView(
+                // Bumped whenever the section order changes; the old key would
+                // restore a scroll offset measured against a different page.
+                key: const PageStorageKey('discover_main_list_v3'),
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  14,
+                  20,
+                  kFloatingNavClearance,
+                ),
+                children: [
+                  Text('discover.', style: theme.displayMedium),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(width: 18, height: 1, color: theme.accent),
+                      const SizedBox(width: 8),
+                      Text(caption, style: theme.caption),
+                    ],
                   ),
-                );
-              },
+                  // One tap to either world. Everything in PEOPLE stacks above
+                  // ROOMS, so without this the rooms list starts most of a
+                  // screen down.
+                  if (showBands) ...[
+                    const SizedBox(height: 18),
+                    _WorldJump(
+                      onPeople: () => _jumpTo(_peopleKey),
+                      onRooms: () => _jumpTo(_roomsKey),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  // ================= PEOPLE =================
+                  if (showBands) _BandLabel('PEOPLE', key: _peopleKey),
+                  if (showPeople) ...[
+                    _DoorRow(
+                      circular: true,
+                      icon: CupertinoIcons.person_2,
+                      title: 'find people',
+                      subtitle: widget.family.isChild
+                          ? 'type a whole username'
+                          : 'search by @username or name',
+                      onTap: () => _openSearch(SearchMode.people),
+                    ),
+                    const SizedBox(height: _betweenSections),
+                  ],
+
+                  // One section, both directions named on a segmented control —
+                  // the shape the old Friends tab used.
+                  //
+                  // Two things had to hold at once: both directions visible
+                  // even at zero (they used to appear only when something was
+                  // pending, so the feature read as missing), and not much
+                  // height, since all of this stacks above the rooms world.
+                  // A segment does both — the counts are always on screen, but
+                  // only one list is ever rendered.
+                  DiscoverSectionHeader(
+                    key: _incomingKey,
+                    label: 'REQUESTS',
+                    // The counts live on the segments, where they say which
+                    // direction they belong to.
+                    count: '',
+                  ),
+                  if (showOutgoing) ...[
+                    const SizedBox(height: 10),
+                    _RequestSegments(
+                      active: _requestsTab,
+                      incoming: incoming.length,
+                      outgoing: outgoing.length,
+                      onChange: (t) => setState(() => _requestsTab = t),
+                    ),
+                  ],
+                  const SizedBox(height: _withinSection),
+                  AnimatedSize(
+                    duration: theme.motionMed,
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // With no outgoing half there is nothing to switch
+                        // between, so the incoming list stands alone.
+                        if (!showOutgoing ||
+                            _requestsTab == _RequestsTab.incoming)
+                          if (incoming.isEmpty)
+                            const DiscoverEmptyLine('inbox quiet')
+                          else
+                            for (final r in incoming)
+                              IncomingRequestCard(
+                                key: ValueKey('in_${r.user.id}'),
+                                req: r,
+                                repo: widget.repo,
+                                api: widget.api,
+                              )
+                        else if (outgoing.isEmpty)
+                          const DiscoverEmptyLine('nothing pending')
+                        else
+                          for (final r in outgoing)
+                            OutgoingRequestCard(
+                              key: ValueKey('out_${r.user.id}'),
+                              req: r,
+                              repo: widget.repo,
+                              api: widget.api,
+                            ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: _betweenSections),
+                  DiscoverSectionHeader(
+                    label: 'YOUR PEOPLE',
+                    count: '${friends.length}',
+                  ),
+                  // The one empty state worth a sentence: it points at the way
+                  // out, which a bare `0` cannot.
+                  if (friends.isEmpty)
+                    DiscoverEmptyLine(
+                      showPeople
+                          ? 'no one yet — find people above'
+                          : 'no one yet',
+                    )
+                  else ...[
+                    const SizedBox(height: _withinSection),
+                    for (final f in friends.take(_previewCount))
+                      FriendRow(
+                        key: ValueKey(f.id),
+                        user: f,
+                        api: widget.api,
+                        onTap: () => _openDm(f),
+                      ),
+                    if (friends.length > _previewCount)
+                      SeeAllRow(
+                        total: friends.length,
+                        onTap: () => _push(
+                          PeopleListScreen(repo: widget.repo, api: widget.api),
+                        ),
+                      ),
+                  ],
+
+                  // ================= ROOMS =================
+                  // Absent, not greyed out and not empty, when a guardian
+                  // hasn't unlocked public rooms. A locked door still tells a
+                  // child there's a room behind it.
+                  if (showRooms) ...[
+                    const SizedBox(height: _betweenWorlds),
+                    if (showBands) _BandLabel('ROOMS', key: _roomsKey),
+                    // Says "search", not "browse". Rooms are listable, so a
+                    // row promising to *browse* them sitting directly above a
+                    // list of them read as two different sets — the question
+                    // it prompted was "are these my rooms or all of them?".
+                    // Naming the row for the one thing it does (search) leaves
+                    // the section below as the only list, and mirrors the
+                    // people door exactly: search entry, then your own list.
+                    _DoorRow(
+                      circular: false,
+                      icon: Icons.tag,
+                      title: 'search rooms',
+                      subtitle: 'find a public room by name',
+                      onTap: () => _openSearch(SearchMode.rooms),
+                    ),
+                    const SizedBox(height: _betweenSections),
+                    DiscoverSectionHeader(
+                      label: 'PUBLIC ROOMS',
+                      // Blank while the first fetch is in flight so a `0` only
+                      // ever means "looked, found nothing".
+                      count: _loading && _rooms.isEmpty
+                          ? ''
+                          : '${_rooms.length}',
+                    ),
+                    const SizedBox(height: _withinSection),
+                    if (_loading && _rooms.isEmpty)
+                      const DiscoverEmptyLine('looking…')
+                    else if (_rooms.isEmpty)
+                      const DiscoverEmptyLine('nothing open right now')
+                    else
+                      // Rebuilds on every repo change so a tile flips to JOINED
+                      // the moment the rooms subscription delivers the new
+                      // membership — including when the join happened
+                      // elsewhere entirely (a push tap, another device).
+                      ListenableBuilder(
+                        listenable: widget.repo,
+                        builder: (context, _) => Column(
+                          children: [
+                            for (final r in _rooms.take(_previewCount))
+                              PublicRoomTile(
+                                key: ValueKey(r.id),
+                                room: r,
+                                awaiting: _awaiting.contains(r.id),
+                                joined: widget.repo.isJoined(r),
+                                onTap: () => _onTapRoom(r),
+                              ),
+                            if (_rooms.length > _previewCount)
+                              SeeAllRow(
+                                total: _rooms.length,
+                                // The search screen with an empty query IS the
+                                // full list, so there's no second full-rooms
+                                // screen to maintain.
+                                onTap: () => _openSearch(SearchMode.rooms),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ],
+              ),
             ),
           ),
-          child: Hero(
-            tag: _searchBarTag,
-            child: Material(
-              type: MaterialType.transparency,
-              child: Container(
-                decoration: theme.inputDecoration(),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                child: Row(
+        ],
+      ),
+    );
+  }
+}
+
+/// Names a world. Deliberately plainer than the page caption above it, which
+/// carries the accent tick — two identical tick+mono rows 20pt apart would read
+/// as one repeated element rather than two levels of hierarchy.
+class _BandLabel extends StatelessWidget {
+  const _BandLabel(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, left: 2),
+      child: Text(text, style: theme.label.copyWith(color: theme.inkMuted)),
+    );
+  }
+}
+
+/// Incoming / outgoing switch for the requests section.
+///
+/// Deliberately not [PillNav]. Its items draw `theme.label` — the same token
+/// [DiscoverSectionHeader] uses for a title — so two filled, badged pills sat
+/// under "REQUESTS" carrying more weight than the heading they belong to.
+///
+/// This sits a tier below instead: `monoTiny`, muted until selected, marked by
+/// an accent underline rather than a fill, and left-aligned to the section's
+/// own text column so it reads as part of the section rather than a control in
+/// its own right. The underline is text-width via [IntrinsicWidth], so it
+/// tracks the label at any text scale.
+class _RequestSegments extends StatelessWidget {
+  const _RequestSegments({
+    required this.active,
+    required this.incoming,
+    required this.outgoing,
+    required this.onChange,
+  });
+  final _RequestsTab active;
+  final int incoming;
+  final int outgoing;
+  final ValueChanged<_RequestsTab> onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _Segment(
+          label: 'incoming',
+          count: incoming,
+          active: active == _RequestsTab.incoming,
+          onTap: () => onChange(_RequestsTab.incoming),
+        ),
+        const SizedBox(width: 20),
+        _Segment(
+          label: 'outgoing',
+          count: outgoing,
+          active: active == _RequestsTab.outgoing,
+          onTap: () => onChange(_RequestsTab.outgoing),
+        ),
+      ],
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.count,
+    required this.active,
+    required this.onTap,
+  });
+  final String label;
+  final int count;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      // The count is spoken as well as drawn: "incoming, 0" is the answer to
+      // "have I got any?", which is the whole reason both segments stay on
+      // screen when nothing is pending.
+      semanticLabel: '$label, $count',
+      selected: active,
+      radius: theme.radiusSm,
+      inset: 4,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: IntrinsicWidth(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AnimatedDefaultTextStyle(
+                duration: theme.motionFast,
+                curve: Curves.easeOutCubic,
+                style: theme.monoTiny.copyWith(
+                  color: active ? theme.ink : theme.inkMuted,
+                ),
+                child: Text('${label.toUpperCase()} · $count'),
+              ),
+              const SizedBox(height: 6),
+              AnimatedContainer(
+                duration: theme.motionFast,
+                curve: Curves.easeOutCubic,
+                height: 1.5,
+                color: active ? theme.accent : Colors.transparent,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Jumps straight to either world.
+///
+/// Not a tab bar — both worlds stay on one page and stay scrollable end to
+/// end; this only saves you the swiping. Nothing is hidden behind it, so it
+/// doesn't reintroduce the navigation layer this screen exists to remove.
+class _WorldJump extends StatelessWidget {
+  const _WorldJump({required this.onPeople, required this.onRooms});
+  final VoidCallback onPeople;
+  final VoidCallback onRooms;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _JumpChip(
+          label: 'people',
+          icon: CupertinoIcons.person_2,
+          onTap: onPeople,
+        ),
+        const SizedBox(width: 8),
+        _JumpChip(label: 'rooms', icon: Icons.tag, onTap: onRooms),
+      ],
+    );
+  }
+}
+
+class _JumpChip extends StatelessWidget {
+  const _JumpChip({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: 'Jump to $label',
+      shape: FocusRingShape.capsule,
+      radius: 999,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: theme.chipDecoration(),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: theme.accent),
+              const SizedBox(width: 7),
+              Text(label, style: theme.label.copyWith(color: theme.accent)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A way into a world: glyph, title, one line of explanation, search icon.
+///
+/// The glyph is a circle for people and a rounded square for rooms — the same
+/// distinction the app already draws between a round [UserAvatar] and a room
+/// tile's chip, so the two worlds stay apart at a glance.
+///
+/// Deliberately not a [Hero]. The old single search field was bar-shaped and
+/// flew cleanly into the search screen's own bar; a door is a two-line card and
+/// the destination is still a one-line field, so the flight interpolated toward
+/// a box shorter than the card's own text and overflowed on every frame. The
+/// route's fade-and-slide carries the continuity instead.
+class _DoorRow extends StatelessWidget {
+  const _DoorRow({
+    required this.circular,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final bool circular;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: '$title. $subtitle',
+      radius: theme.radiusLg,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          decoration: theme.inputDecoration(),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.accentSoft,
+                  shape: circular ? BoxShape.circle : BoxShape.rectangle,
+                  borderRadius: circular
+                      ? null
+                      : BorderRadius.circular(theme.radiusMd),
+                ),
+                child: Icon(icon, size: 15, color: theme.accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.search, color: theme.inkMuted, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'search rooms…',
-                        style: theme.body.copyWith(color: theme.inkMuted),
-                      ),
+                    Text(
+                      title,
+                      style: theme.displaySmall.copyWith(fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: theme.monoTiny,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Icon(Icons.search, size: 18, color: theme.inkMuted),
+            ],
           ),
-        ),
-        const SizedBox(height: 22),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('ROOMS · PUBLIC', style: theme.label),
-            const SizedBox(width: 8),
-            Expanded(child: Container(height: 1, color: theme.divider)),
-            const SizedBox(width: 8),
-            Text('${_rooms.length}', style: theme.monoTiny),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_loading && _rooms.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2)),
-          )
-        else if (_rooms.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('no public rooms', style: theme.bodySoft)),
-          )
-        else
-          // Rebuilds on every repo change so a tile flips to JOINED the moment
-          // the `rooms:listUserRooms` subscription delivers the new membership
-          // — including when the join happened somewhere else entirely (a push
-          // tap, another device). Without this the badge would be stale until
-          // the next manual _refresh().
-          ListenableBuilder(
-            listenable: widget.repo,
-            builder: (context, _) => Column(children: _tiles(context)),
-          ),
-      ],
-    ),
-    );
-  }
-
-  List<Widget> _tiles(BuildContext context) {
-    return [
-      for (final r in _rooms)
-        _DiscoverRoomTile(
-          key: ValueKey(r.id),
-          room: r,
-          awaiting: _awaiting.contains(r.id),
-          joined: _joined(r),
-          onTap: () => _onTapRoom(context, r),
-        ),
-    ];
-  }
-
-  Future<void> _onTapRoom(BuildContext context, ChatRoom r) async {
-    final messenger = ScaffoldMessenger.of(context);
-    // Already in it — just open it. Everything below is the flow for *getting*
-    // into a room, and running any of it against a room you're already in is
-    // the bug this guard exists to prevent: an approval gate for access you
-    // have, then a JOIN sheet that re-asks for a password you've already
-    // cleared, then a join the backend treats as a no-op.
-    if (_joined(r)) {
-      openRoom(context, roomId: r.id, repo: widget.repo, api: widget.api);
-      return;
-    }
-    // Child gate first: no point previewing a room they can't enter yet.
-    if (!await _clearedToJoin(r)) return;
-    if (!context.mounted) return;
-    // Preview + confirm before joining; a locked room's password field lives
-    // inside this same sheet.
-    final result = await showJoinRoomSheet(context, r, widget.api);
-    if (!mounted || result == null) return;
-    try {
-      await widget.repo.joinRoom(roomId: r.id, password: result.password);
-      if (!context.mounted) return;
-      openRoom(context, roomId: r.id, repo: widget.repo, api: widget.api);
-    } catch (e) {
-      // A child can still trip the server-side gate if a grant was revoked
-      // between listing and tapping.
-      if (isChildGateError(e)) {
-        await _refreshAwaiting();
-        return;
-      }
-      final msg = e.toString().contains('WRONG_PASSWORD')
-          ? 'wrong password'
-          : 'couldn\'t join — try again';
-      messenger.showSnackBar(SnackBar(content: Text(msg)));
-    }
-  }
-}
-
-class _DiscoverRoomTile extends StatelessWidget {
-  const _DiscoverRoomTile({
-    super.key,
-    required this.room,
-    required this.onTap,
-    this.awaiting = false,
-    this.joined = false,
-  });
-  final ChatRoom room;
-  final VoidCallback onTap;
-
-  /// This child has already asked a grown-up about this room.
-  final bool awaiting;
-
-  /// The viewer is already a member, so tapping opens it rather than joining.
-  final bool joined;
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
-        child: Row(
-          children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: theme.accentSoft,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              alignment: Alignment.center,
-              child: room.isEphemeral
-                  ? theme.hourglassIcon(size: 14, color: theme.accent)
-                  : Icon(Icons.tag, size: 14, color: theme.accent),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(room.name, style: theme.displaySmall),
-                  const SizedBox(height: 2),
-                  if (room.description != null && room.description!.isNotEmpty)
-                    Text(room.description!.toLowerCase(),
-                        style: theme.bodySoft, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-            if (joined)
-              const JoinedBadge(dense: true)
-            else if (awaiting)
-              const WaitingPill(label: 'asked')
-            else
-              VisibilityBadge(isPublic: room.isPublic, dense: true),
-            const SizedBox(width: 8),
-            Text('${room.memberCount}', style: theme.monoLarge),
-            const SizedBox(width: 4),
-            Text('IN', style: theme.monoTiny),
-          ],
         ),
       ),
     );

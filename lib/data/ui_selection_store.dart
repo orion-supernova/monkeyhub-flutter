@@ -41,25 +41,35 @@ class UiSelectionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// A one-shot request to switch the home screen's tab ('rooms' | 'discover' |
-  /// 'friends'), used when something outside the widget tree needs to steer the
-  /// UI — currently a friend-request notification tap.
+  /// A one-shot request to show the friend-requests list, used when something
+  /// outside the widget tree needs to steer the UI — currently a friend-request
+  /// notification tap. The caller pairs it with
+  /// `SettingsStore.setSection(HomeSection.discover)`; Discover consumes it on
+  /// mount and scrolls its INCOMING section into view.
   ///
-  /// One-shot because it's an event, not state: [HomeScreen] calls
-  /// [consumeRequestedHomeTab] when it acts on it, so a later rebuild (or a
-  /// second HomeScreen after a navigation) doesn't yank the user back to a tab
-  /// they've since left.
-  String? _requestedHomeTab;
-  String? get requestedHomeTab => _requestedHomeTab;
+  /// One-shot because it's an event, not state: whoever acts on it calls
+  /// [consumeRequestsView], so a later rebuild (or a second Discover after a
+  /// navigation) doesn't yank the user back to a screen they've since left.
+  ///
+  /// It outlives widget mounting on purpose — a tap that arrives during a cold
+  /// start is still waiting here when Discover first builds.
+  bool _requestsViewPending = false;
+  bool get requestsViewPending => _requestsViewPending;
 
-  void requestHomeTab(String tab) {
-    _requestedHomeTab = tab;
+  void requestRequestsView() {
+    _requestsViewPending = true;
     notifyListeners();
   }
 
-  String? consumeRequestedHomeTab() {
-    final t = _requestedHomeTab;
-    _requestedHomeTab = null;
-    return t;
+  /// Returns whether a request was pending, clearing it either way.
+  ///
+  /// Always clears — the previous incarnation of this mechanism guarded on
+  /// "is this destination currently available?" and returned *before*
+  /// consuming, so an unroutable request stayed set forever and ambushed the
+  /// next screen that could handle it.
+  bool consumeRequestsView() {
+    final pending = _requestsViewPending;
+    _requestsViewPending = false;
+    return pending;
   }
 }

@@ -5,23 +5,32 @@ import 'package:flutter/services.dart';
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
-import '../data/ui_selection_store.dart';
+import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/focusable_tap.dart';
+import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
-import '../widgets/pill_nav.dart';
 import '../widgets/room_card.dart';
+import '../widgets/room_filter_bar.dart';
+import '../widgets/room_filter_drawer.dart';
 import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
+import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'create_room_sheet.dart';
-import 'friends_screen.dart';
-import 'discover_screen.dart';
 import 'profile_screen.dart';
 
+/// Your conversations, and nothing else.
+///
+/// Discover (public rooms) and Friends used to live here as sibling tabs, above
+/// a hero headline that restated the tab you were already on. Both were really
+/// *ways to find things* rather than peers of your own chat list, so they moved
+/// to their own shell section and this screen collapsed to one header row, a
+/// filter control, and the list.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
@@ -40,82 +49,70 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String _tab = 'rooms';
-  int _direction = 1;
   ChatUser? _me;
 
-  /// Discover disappears entirely for a child whose guardian hasn't unlocked
-  /// public rooms — not greyed out, not empty, absent. A locked door still
-  /// tells a child there's a room behind it.
-  ///
-  /// Discover is public *rooms* only. People live under Friends, which is
-  /// always present — so "ask to add" never depends on public rooms.
-  List<String> get _tabOrder => widget.family.canSeePublicRooms
-      ? const ['rooms', 'discover', 'friends']
-      : const ['rooms', 'friends'];
-
-  void _setTab(String next) {
-    if (next == _tab) return;
-    final oldIdx = _tabOrder.indexOf(_tab);
-    final newIdx = _tabOrder.indexOf(next);
-    setState(() {
-      _direction = newIdx >= oldIdx ? 1 : -1;
-      _tab = next;
-    });
-  }
+  /// Whether the drawer-style filter panel is open. Purely presentational, so
+  /// unlike the filter itself it isn't persisted.
+  bool _filterExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    widget.repo.addListener(_onRepoChange);
-    widget.family.addListener(_onFamilyChange);
-    UiSelectionStore.instance.addListener(_onExternalTabRequest);
-    // A tap that arrived before this screen mounted (cold start from a
-    // notification) is still waiting in the store.
-    _onExternalTabRequest();
+    widget.repo.addListener(_onChange);
+    widget.family.addListener(_onChange);
+    // The filter and its style both live in SettingsStore. HomeShell also
+    // listens and would rebuild us anyway, but depending on an ancestor's
+    // subscription to stay correct is the kind of coupling that breaks quietly;
+    // two setState calls in one frame coalesce into a single rebuild.
+    SettingsStore.instance.addListener(_onChange);
     _loadMe();
   }
 
   @override
   void dispose() {
-    widget.repo.removeListener(_onRepoChange);
-    widget.family.removeListener(_onFamilyChange);
-    UiSelectionStore.instance.removeListener(_onExternalTabRequest);
+    widget.repo.removeListener(_onChange);
+    widget.family.removeListener(_onChange);
+    SettingsStore.instance.removeListener(_onChange);
     super.dispose();
   }
 
-  /// Honour a tab switch requested from outside the widget tree — a friend
-  /// request notification tap. Ignored if the tab isn't available to this
-  /// account (a child without Discover).
-  void _onExternalTabRequest() {
-    final requested = UiSelectionStore.instance.requestedHomeTab;
-    if (requested == null || !_tabOrder.contains(requested)) return;
-    UiSelectionStore.instance.consumeRequestedHomeTab();
+  void _onChange() {
     if (!mounted) return;
-    _setTab(requested);
-  }
-
-  /// A guardian can unlock (or re-lock) Discover while the child is looking
-  /// at this screen. If the tab we're on just vanished, fall back to rooms.
-  void _onFamilyChange() {
-    if (!mounted) return;
-    setState(() {
-      if (!_tabOrder.contains(_tab)) _tab = 'rooms';
-    });
-  }
-
-  void _onRepoChange() {
-    if (mounted) setState(() {});
+    // Switching to chips unmounts the panel, so a left-open drawer would
+    // otherwise stay `true` invisibly and spring back open on the way back.
+    if (SettingsStore.instance.filterStyle != FilterStyle.drawer) {
+      _filterExpanded = false;
+    }
+    setState(() {});
   }
 
   Future<void> _loadMe() async {
     final session = widget.auth.session;
     if (session == null) return;
     try {
-      final fresh = await widget.api.getProfile(session.userId, viewerUserId: session.userId);
+      final fresh = await widget.api.getProfile(
+        session.userId,
+        viewerUserId: session.userId,
+      );
       if (!mounted || fresh == null) return;
       setState(() => _me = fresh);
     } catch (_) {}
+  }
+
+  void _setFilter(RoomFilter next) =>
+      SettingsStore.instance.setRoomFilter(next);
+
+  void _clearFilter() {
+    HapticFeedback.lightImpact();
+    SettingsStore.instance.setRoomFilter(RoomFilter.empty);
+  }
+
+  void _openCreate() {
+    HapticFeedback.lightImpact();
+    showAdaptiveSheet(
+      context,
+      builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
+    );
   }
 
   @override
@@ -123,9 +120,27 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = ThemeScope.of(context);
     final session = widget.auth.session;
     if (session == null) return const SizedBox.shrink();
-    final rooms = widget.repo.rooms;
-    final me = _me ??
-        ChatUser(id: session.userId, username: session.username, name: session.name);
+
+    final settings = SettingsStore.instance;
+    final filter = settings.roomFilter;
+    // Resolved once per build and threaded down. `repo.rooms` allocates an
+    // unmodifiable view on every call and the repository notifies on every
+    // typing keystroke in any room, so the cue and the list must not each go
+    // and filter it themselves.
+    final allRooms = widget.repo.rooms;
+    final visibleRooms = filter.apply(allRooms);
+    // Projected, not the repository's raw totals: every number on a filter
+    // control is what tapping it would actually show.
+    final counts = RoomFacetCounts.projected(allRooms, filter);
+    final me =
+        _me ??
+        ChatUser(
+          id: session.userId,
+          username: session.username,
+          name: session.name,
+        );
+
+    final chipsStyle = settings.filterStyle == FilterStyle.chips;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -148,77 +163,75 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-                  onCreateTap: _tab == 'rooms' && widget.family.canCreateRooms
+                  // No longer conditional on which tab you're looking at — the
+                  // create affordance used to appear and vanish as you moved
+                  // between Rooms and Friends, which made it feel unreliable.
+                  onCreateTap: widget.family.canCreateRooms
                       ? _openCreate
                       : null,
+                  filterButton: chipsStyle
+                      ? null
+                      : RoomFilterButton(
+                          filter: filter,
+                          expanded: _filterExpanded,
+                          onTap: () => setState(
+                            () => _filterExpanded = !_filterExpanded,
+                          ),
+                        ),
+                ),
+                // The filter control stays out of the scroll view: with a
+                // persisted filter, the reason the list is short must not be
+                // something you have to scroll up to rediscover.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (chipsStyle)
+                        RoomFilterBar(
+                          filter: filter,
+                          counts: counts,
+                          onChanged: _setFilter,
+                        ),
+                      // Shown under BOTH styles. The chip row scrolls and holds
+                      // nine chips against a ~320pt viewport, so the active one
+                      // can easily be off-screen on a cold start — and the
+                      // filter persists, so a cold start really can open onto a
+                      // short list with no visible reason for it.
+                      if (filter.isNotEmpty)
+                        ActiveFilterCue(
+                          filter: filter,
+                          matchCount: visibleRooms.length,
+                          onClear: _clearFilter,
+                        ),
+                      if (!chipsStyle)
+                        RoomFilterPanel(
+                          filter: filter,
+                          counts: counts,
+                          expanded: _filterExpanded,
+                          onChanged: _setFilter,
+                          onDone: () => setState(() => _filterExpanded = false),
+                        ),
+                    ],
+                  ),
                 ),
                 Expanded(
                   child: ListView(
                     key: const PageStorageKey('home_main_list'),
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      14,
+                      20,
+                      kFloatingNavClearance,
+                    ),
                     children: [
-                      _Hero(tab: _tab, roomCount: rooms.length),
-                      const SizedBox(height: 18),
-                      Center(
-                        child: PillNav(
-                          activeId: _tab,
-                          onChange: _setTab,
-                          items: [
-                            PillNavItem(
-                              id: 'rooms',
-                              label: 'ROOMS',
-                              badge: widget.repo.unreadMessageTotal == 0
-                                  ? null
-                                  : '${widget.repo.unreadMessageTotal}',
-                            ),
-                            if (widget.family.canSeePublicRooms)
-                              const PillNavItem(
-                                  id: 'discover', label: 'DISCOVER'),
-                            PillNavItem(
-                              id: 'friends',
-                              label: 'FRIENDS',
-                              badge: widget.repo.incomingRequests.isEmpty
-                                  ? null
-                                  : '${widget.repo.incomingRequests.length}',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      AnimatedSize(
-                        duration: theme.motionMed,
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment.topCenter,
-                        child: AnimatedSwitcher(
-                          duration: theme.motionMed,
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, anim) {
-                            final isExiting = anim.status == AnimationStatus.reverse ||
-                                anim.status == AnimationStatus.dismissed;
-                            final dx = (isExiting ? -1.0 : 1.0) * _direction * 0.08;
-                            return FadeTransition(
-                              opacity: anim,
-                              child: SlideTransition(
-                                position: Tween(begin: Offset(dx, 0), end: Offset.zero).animate(
-                                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-                                ),
-                                child: child,
-                              ),
-                            );
-                          },
-                          layoutBuilder: (currentChild, previousChildren) => Stack(
-                            alignment: Alignment.topLeft,
-                            children: [
-                              ...previousChildren,
-                              ?currentChild,
-                            ],
-                          ),
-                          child: KeyedSubtree(
-                            key: ValueKey('${_tab}_${theme.id}'),
-                            child: _panel(),
-                          ),
-                        ),
+                      _RoomsPanel(
+                        repo: widget.repo,
+                        api: widget.api,
+                        filter: filter,
+                        allRooms: allRooms,
+                        rooms: visibleRooms,
+                        onClearFilter: _clearFilter,
                       ),
                     ],
                   ),
@@ -230,35 +243,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  Widget _panel() {
-    switch (_tab) {
-      case 'rooms':
-        return _RoomsPanel(repo: widget.repo, api: widget.api);
-      case 'friends':
-        return FriendsPanel(
-          repo: widget.repo,
-          api: widget.api,
-          family: widget.family,
-        );
-      case 'discover':
-        return DiscoverPanel(
-          repo: widget.repo,
-          api: widget.api,
-          family: widget.family,
-        );
-      default:
-        return _RoomsPanel(repo: widget.repo, api: widget.api);
-    }
-  }
-
-  void _openCreate() {
-    HapticFeedback.lightImpact();
-    showAdaptiveSheet(
-      context,
-      builder: (_) => CreateRoomSheet(repo: widget.repo, api: widget.api),
-    );
-  }
 }
 
 class _Header extends StatelessWidget {
@@ -268,12 +252,16 @@ class _Header extends StatelessWidget {
     required this.greeting,
     required this.onProfileTap,
     this.onCreateTap,
+    this.filterButton,
   });
   final ChatUser me;
   final ChatApi api;
   final String greeting;
   final VoidCallback onProfileTap;
   final VoidCallback? onCreateTap;
+
+  /// Null under [FilterStyle.chips], where the chip row is the whole control.
+  final Widget? filterButton;
 
   @override
   Widget build(BuildContext context) {
@@ -283,9 +271,20 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
+          FocusableTap(
             onTap: onProfileTap,
-            child: UserAvatar(user: me, size: 36, api: api, showStatus: false),
+            semanticLabel: 'Your profile',
+            shape: FocusRingShape.circle,
+            radius: 999,
+            child: GestureDetector(
+              onTap: onProfileTap,
+              child: UserAvatar(
+                user: me,
+                size: 36,
+                api: api,
+                showStatus: false,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -295,6 +294,11 @@ class _Header extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (filterButton != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: filterButton,
+            ),
           AnimatedSwitcher(
             duration: theme.motionFast,
             switchInCurve: Curves.easeOutBack,
@@ -307,26 +311,39 @@ class _Header extends StatelessWidget {
                 ? Padding(
                     key: const ValueKey('plus_visible'),
                     padding: const EdgeInsets.only(left: 10),
-                    child: GestureDetector(
+                    child: FocusableTap(
                       onTap: onCreateTap,
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: theme.accent,
-                          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 1),
-                          boxShadow: [
-                            BoxShadow(
-                              color: theme.accent.withValues(alpha: 0.32),
-                              blurRadius: 14,
-                              offset: const Offset(0, 5),
+                      semanticLabel: 'New room',
+                      shape: FocusRingShape.circle,
+                      radius: 999,
+                      child: GestureDetector(
+                        onTap: onCreateTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.accent,
+                            border: Border.all(
+                              color: theme.ink.withValues(alpha: 0.18),
+                              width: 1,
                             ),
-                          ],
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.accent.withValues(alpha: 0.32),
+                                blurRadius: 14,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            CupertinoIcons.plus,
+                            size: 16,
+                            color: theme.accentInk,
+                          ),
                         ),
-                        child: Icon(CupertinoIcons.plus, size: 16, color: theme.accentInk),
                       ),
                     ),
                   )
@@ -338,133 +355,46 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Hero extends StatelessWidget {
-  const _Hero({required this.tab, required this.roomCount});
-  final String tab;
-  final int roomCount;
-
-  String _word() {
-    switch (tab) {
-      case 'rooms':
-        return 'rooms.';
-      case 'friends':
-        return 'friends.';
-      case 'discover':
-        return 'discover.';
-      default:
-        return 'rooms.';
-    }
-  }
-
-  String _caption() {
-    switch (tab) {
-      case 'rooms':
-        return '$roomCount in your hub';
-      case 'friends':
-        return 'people · requests · invites';
-      case 'discover':
-        return 'public rooms · open to join';
-      default:
-        return '';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.92, end: 1.0),
-            duration: theme.motionSlow,
-            curve: theme.motionEntrance,
-            builder: (context, v, child) => Transform.translate(
-              offset: Offset(0, (1 - v) * 24),
-              child: Opacity(opacity: ((v - 0.92) / 0.08).clamp(0.0, 1.0), child: child),
-            ),
-            child: AnimatedSwitcher(
-              duration: theme.motionMed,
-              switchInCurve: theme.motionEntrance,
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: anim.drive(
-                    Tween(begin: const Offset(0, 0.18), end: Offset.zero)
-                        .chain(CurveTween(curve: theme.motionEntrance)),
-                  ),
-                  child: child,
-                ),
-              ),
-              layoutBuilder: (currentChild, previousChildren) => Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  ...previousChildren,
-                  ?currentChild,
-                ],
-              ),
-              child: RichText(
-                key: ValueKey('hero_word_$tab'),
-                text: TextSpan(
-                  style: theme.displayLarge,
-                  children: [
-                    TextSpan(text: 'your ', style: theme.displayLarge.copyWith(color: theme.inkMuted)),
-                    TextSpan(text: _word()),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          AnimatedSwitcher(
-            duration: theme.motionMed,
-            switchInCurve: theme.motionEntrance,
-            transitionBuilder: (child, anim) => FadeTransition(
-              opacity: anim,
-              child: SlideTransition(
-                position: anim.drive(
-                  Tween(begin: const Offset(0, 0.18), end: Offset.zero)
-                      .chain(CurveTween(curve: theme.motionEntrance)),
-                ),
-                child: child,
-              ),
-            ),
-            layoutBuilder: (currentChild, previousChildren) => Stack(
-              alignment: Alignment.centerLeft,
-              children: [
-                ...previousChildren,
-                ?currentChild,
-              ],
-            ),
-            child: Row(
-              key: ValueKey('hero_cap_$tab'),
-              children: [
-                Container(width: 18, height: 1, color: theme.accent),
-                const SizedBox(width: 8),
-                Text(_caption(), style: theme.caption),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RoomsPanel extends StatelessWidget {
-  const _RoomsPanel({required this.repo, required this.api});
+  const _RoomsPanel({
+    required this.repo,
+    required this.api,
+    required this.filter,
+    required this.allRooms,
+    required this.rooms,
+    required this.onClearFilter,
+  });
   final ChatRepository repo;
   final ChatApi api;
+  final RoomFilter filter;
+
+  /// Every room, unfiltered — only used to tell "you have no rooms" apart from
+  /// "your filter hid them all", and to size the escape hatch.
+  final List<ChatRoom> allRooms;
+
+  /// What actually renders. Already filtered by the caller.
+  final List<ChatRoom> rooms;
+  final VoidCallback onClearFilter;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final rooms = repo.rooms;
-    if (rooms.isEmpty) {
+
+    // Genuinely empty account — distinct from "filtered down to nothing".
+    if (allRooms.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: Text('no rooms yet — create one', style: theme.bodySoft)),
+        child: Center(
+          child: Text('no rooms yet — create one', style: theme.bodySoft),
+        ),
+      );
+    }
+
+    if (rooms.isEmpty) {
+      return FilteredEmptyState(
+        filter: filter,
+        total: allRooms.length,
+        onClear: onClearFilter,
       );
     }
 
@@ -486,10 +416,11 @@ class _RoomsPanel extends StatelessWidget {
         itemBuilder: (context, i) {
           return TweenAnimationBuilder<double>(
             // Identity key, not position. Rooms are ordered by recency, so any
-            // incoming message reorders this list — and without a key Flutter
-            // re-matches elements by index, handing the tile at position i a
-            // DIFFERENT room. Its avatar then reloads (and briefly shows the
-            // wrong face) on every reorder. See the same fix on the list layout.
+            // incoming message reorders this list — and toggling a filter
+            // reorders it far more violently. Without a key Flutter re-matches
+            // elements by index, handing the tile at position i a DIFFERENT
+            // room; its avatar then reloads (and briefly shows the wrong face).
+            // See the same fix on the list layout.
             key: ValueKey(rooms[i].id),
             tween: Tween(begin: 0, end: 1),
             duration: theme.motionMed + Duration(milliseconds: i * 40),
@@ -517,8 +448,9 @@ class _RoomsPanel extends StatelessWidget {
         for (var i = 0; i < rooms.length; i++)
           TweenAnimationBuilder<double>(
             // See the grid layout above: keyed by room id so a recency reorder
-            // moves the element rather than repurposing it, which is what made
-            // avatars reload and momentarily swap between rows.
+            // or a filter change moves the element rather than repurposing it,
+            // which is what made avatars reload and momentarily swap between
+            // rows.
             key: ValueKey(rooms[i].id),
             tween: Tween(begin: 0, end: 1),
             duration: theme.motionMed + Duration(milliseconds: i * 60),
@@ -540,4 +472,3 @@ class _RoomsPanel extends StatelessWidget {
     );
   }
 }
-

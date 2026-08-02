@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/theme_scope.dart';
+import 'room_filter.dart';
 
 /// User-selectable preferences persisted across launches.
 ///
@@ -29,6 +30,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kFullScreenIntentPrompted = 'mh.fullScreenIntentPrompted';
   static const _kBatteryOptPrompted = 'mh.batteryOptPrompted';
   static const _kMicPermissionPrompted = 'mh.micPermissionPrompted';
+  static const _kFilterStyle = 'mh.filterStyle';
+  static const _kRoomFilter = 'mh.roomFilter';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -50,6 +53,8 @@ class SettingsStore extends ChangeNotifier {
   bool _fullScreenIntentPrompted = false;
   bool _batteryOptPrompted = false;
   bool _micPermissionPrompted = false;
+  FilterStyle _filterStyle = FilterStyle.chips;
+  RoomFilter _roomFilter = RoomFilter.empty;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -83,6 +88,16 @@ class SettingsStore extends ChangeNotifier {
   bool get fullScreenIntentPrompted => _fullScreenIntentPrompted;
   bool get batteryOptPrompted => _batteryOptPrompted;
   bool get micPermissionPrompted => _micPermissionPrompted;
+
+  /// Which control the chat list uses to filter rooms. Defaults to
+  /// [FilterStyle.chips] — the filters are worth a permanent row, and a control
+  /// you have to open first is a control most people never find.
+  FilterStyle get filterStyle => _filterStyle;
+
+  /// Active chat-list filter. Persisted, so a cold start can open onto a
+  /// filtered — possibly empty — list. The chat screen therefore always renders
+  /// an active-filter cue and a one-tap "show all" escape when this is set.
+  RoomFilter get roomFilter => _roomFilter;
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -156,7 +171,13 @@ class SettingsStore extends ChangeNotifier {
           await _storage.read(key: _kBatteryOptPrompted) == 'true';
       _micPermissionPrompted =
           await _storage.read(key: _kMicPermissionPrompted) == 'true';
-    } catch (_) {/* secure storage unavailable in test harness */}
+      final fs = await _storage.read(key: _kFilterStyle);
+      // First-launch default is chips; honour an explicit 'drawer' selection.
+      _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
+      _roomFilter = RoomFilter.decode(await _storage.read(key: _kRoomFilter));
+    } catch (_) {
+      /* secure storage unavailable in test harness */
+    }
     _loaded = true;
     notifyListeners();
   }
@@ -183,11 +204,45 @@ class SettingsStore extends ChangeNotifier {
     await _storage.write(key: _kNav, value: s.name);
   }
 
-  Future<void> setSection(HomeSection s) async {
+  /// Switches the active shell section.
+  ///
+  /// [persist] exists for pushes: a notification tap should steer the shell for
+  /// *this* run without making the destination sticky across restarts. Every
+  /// in-app caller wants the default.
+  Future<void> setSection(HomeSection s, {bool persist = true}) async {
     if (_section == s) return;
     _section = s;
     notifyListeners();
-    await _storage.write(key: _kSection, value: s.name);
+    if (persist) await _storage.write(key: _kSection, value: s.name);
+  }
+
+  Future<void> setFilterStyle(FilterStyle s) async {
+    if (_filterStyle == s) return;
+    _filterStyle = s;
+    notifyListeners();
+    await _storage.write(key: _kFilterStyle, value: s.name);
+  }
+
+  /// Serialises writes to the filter key.
+  ///
+  /// Filter chips are tapped rapidly and repeatedly, and every tap fires a
+  /// write. Concurrent `FlutterSecureStorage.write` calls on one key have no
+  /// completion ordering, so an unlucky interleaving persists a filter the user
+  /// passed through rather than the one they stopped on — and because the
+  /// filter survives relaunch, that wrong value is what they come back to.
+  Future<void> _filterWrite = Future<void>.value();
+
+  Future<void> setRoomFilter(RoomFilter f) async {
+    if (_roomFilter == f) return;
+    _roomFilter = f;
+    notifyListeners();
+    final encoded = f.encode();
+    _filterWrite = _filterWrite
+        .then((_) => _storage.write(key: _kRoomFilter, value: encoded))
+        .catchError((_) {
+          /* storage unavailable; in-memory state still right */
+        });
+    await _filterWrite;
   }
 
   Future<void> setPushEnabled(bool v) async {
@@ -277,7 +332,9 @@ class SettingsStore extends ChangeNotifier {
   /// from the current store state; safe to call from any setter. Awaiting
   /// would block the UI on a non-essential side effect.
   void _applyLauncherIcon() {
-    final active = ThemeController.byId(_themeId ?? ThemeController.all.first.id);
+    final active = ThemeController.byId(
+      _themeId ?? ThemeController.all.first.id,
+    );
     LauncherIconService.applyFromSettings(active);
   }
 }
@@ -285,6 +342,14 @@ class SettingsStore extends ChangeNotifier {
 enum RoomLayout { list, grid }
 
 enum NavStyle { radial, pill }
+
+/// Shape of the chat list's filter control.
+///
+/// * `chips` (default) — an always-visible scrolling row of multi-select chips.
+///   Zero taps to filter, at the cost of a permanent row.
+/// * `drawer` — one button in the header that expands an inline panel with
+///   per-facet counts. Calmer at rest, but costs a tap and is easier to miss.
+enum FilterStyle { drawer, chips }
 
 enum ChatStyle { classic, compact }
 
@@ -301,19 +366,21 @@ enum ReplyStyle { phantomEcho, stickyNote, comicTail, classic }
 
 enum LogoMode { auto, manual, alwaysDefault }
 
+/// Top-level shell destinations, in nav order.
 enum HomeSection {
   chat,
+  discover,
   feed,
   settings;
 
-  static HomeSection parse(String? s) {
-    switch (s) {
-      case 'feed':
-        return HomeSection.feed;
-      case 'settings':
-        return HomeSection.settings;
-      default:
-        return HomeSection.chat;
-    }
-  }
+  static final Map<String, HomeSection> _byName = values.asNameMap();
+
+  /// Resolves a persisted section name, falling back to [chat].
+  ///
+  /// Derived from [values] rather than a hand-written switch: the previous
+  /// version listed each case explicitly with a `default:` catch-all, so adding
+  /// a member and forgetting its case compiled cleanly while silently dumping
+  /// everyone on that section back to Chat at each cold start. Nothing to
+  /// forget now.
+  static HomeSection parse(String? s) => _byName[s] ?? HomeSection.chat;
 }

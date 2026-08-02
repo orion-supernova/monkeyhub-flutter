@@ -12,15 +12,23 @@ import 'count_badge.dart';
 
 /// Gesture-driven radial pie menu for major-section switching.
 ///
-/// Faithful port of v02's `FloatingMenu` (BaseView.swift):
+/// Ported from v02's `FloatingMenu` (BaseView.swift), with the geometry made
+/// count-derived:
 ///   - Anchored bottom-leading with 24pt padding.
-///   - 3 items fan out in a quadrant from straight-up to roughly-right.
-///   - Angles: `-π/2.2 + π/4.5 * i` for i ∈ [0..2]. Distance: 90pt when open.
+///   - Items fan out across a fixed 80° quadrant, from straight-up to
+///     roughly-right, spaced evenly however many there are.
 ///   - Gesture is computed from drag TRANSLATION (dx,dy from touch start),
-///     not absolute positions. distance > 40 starts highlighting; closest
-///     angle wins.
+///     not absolute positions. distance > [_hoverMinDistance] starts
+///     highlighting; closest angle wins.
 ///   - Orb rotates 45° while expanded, plus a light/selection/medium haptic
 ///     trio (expand / hover-change / commit).
+///
+/// The angles used to be the literal `-π/2.2 + π/4.5 * i`, i.e. a 40° step with
+/// three items assumed. A fourth item put slot 3 at +38.2° — below the
+/// horizontal — which placed it 55pt *below* the gesture surface, under the
+/// home indicator, and `Clip.none` rendered it there rather than clipping it.
+/// Deriving the step from the item count keeps the fan inside the quadrant at
+/// any count.
 class RadialFloatingMenu extends StatefulWidget {
   const RadialFloatingMenu({
     super.key,
@@ -35,6 +43,91 @@ class RadialFloatingMenu extends StatefulWidget {
 
   @override
   State<RadialFloatingMenu> createState() => _RadialFloatingMenuState();
+}
+
+/// The radial fan's geometry, as pure functions of the item count.
+///
+/// Separated from the widget so it can be verified directly. The values used to
+/// be private constants with the count folded in — `-π/2.2 + π/4.5 * i` assumed
+/// exactly three items, and a fourth silently landed below the horizontal, 55pt
+/// beneath the gesture surface and under the home indicator, where `Clip.none`
+/// rendered it rather than clipping it. Nothing in the widget tree could have
+/// caught that; a test over these functions can.
+class RadialGeometry {
+  const RadialGeometry._();
+
+  /// First slot's angle — straight up, less a little. Screen coords put
+  /// positive y DOWN, so negative angles point up.
+  static const double spanStart = -math.pi / 2.2; // ≈ -81.8°
+
+  /// Total sweep from first slot to last. 80°, preserved from the original
+  /// three-item fan so the menu still occupies the same quadrant.
+  static const double spanSweep = math.pi / 2.25; // 80°
+
+  static const double orbSize = 52;
+  static const double itemSize = 44;
+
+  /// Raised from 96 when the fan went to four. At a 26.7° step, neighbouring
+  /// slot centres sit `2·r·sin(13.3°)` apart: 44.3pt at r=96, which against a
+  /// 44pt [itemSize] left a 0.3pt gap — orbs visually touching. r=112 puts
+  /// centres 51.7pt apart, a 7.7pt gap.
+  static const double radius = 112;
+
+  /// How far past either end of the fan a drag may stray and still commit.
+  /// A gesture up-and-left plainly means "the top item" even though it points
+  /// outside the fan; one pointing straight down means nothing.
+  static const double endOvershoot = math.pi / 3; // 60°
+
+  /// Even spacing of [n] slots across [spanSweep]. A lone item sits in the
+  /// middle of the quadrant rather than at its edge.
+  static double slotAngle(int i, int n) {
+    if (n <= 1) return spanStart + spanSweep / 2;
+    return spanStart + (spanSweep / (n - 1)) * i;
+  }
+
+  /// Per-item fan-out stagger: item i starts at t = `stagger * i` of the master
+  /// controller and runs its own curve to 1.0.
+  ///
+  /// Derived from the count so the last item always begins halfway through the
+  /// expand. A fixed 0.18 gave a fourth item `Interval(0.54, 1.0)` — 46% of the
+  /// 260ms to travel the same distance as the first, which read as rushed.
+  static double stagger(int n) => n <= 1 ? 0 : 0.5 / (n - 1);
+
+  /// Left offset of slot [i] within the gesture square, at fan progress [t].
+  static double left(int i, int n, double t) =>
+      (orbSize - itemSize) / 2 + math.cos(slotAngle(i, n)) * radius * t;
+
+  /// Bottom offset of slot [i]. Negative means the item is rendered *below* the
+  /// gesture surface — the exact failure a fourth item used to produce.
+  static double bottom(int i, int n, double t) =>
+      (orbSize - itemSize) / 2 - math.sin(slotAngle(i, n)) * radius * t;
+
+  /// Which slot a drag at [angle] radians selects, or -1 for none.
+  ///
+  /// Between slots the nearest always wins — a pie menu shouldn't have dead
+  /// zones between its wedges. Only an end slot can be "missed", and only by a
+  /// gesture straying outside the whole fan by more than [endOvershoot].
+  ///
+  /// The old rule was `bestDelta > (pi / n) * 1.15`, a tolerance that shrank as
+  /// items were added: three to four narrowed it 69° → 51.75°, so a drag
+  /// up-and-left that used to select the first item would suddenly select
+  /// nothing. A fixed overshoot keeps the feel constant at any count.
+  static int indexForAngle(double angle, int n) {
+    if (n <= 0) return -1;
+    var best = 0;
+    var bestDelta = double.infinity;
+    for (var i = 0; i < n; i++) {
+      var d = (angle - slotAngle(i, n)).abs();
+      // Wrap so we always take the shorter way around the circle.
+      if (d > math.pi) d = (2 * math.pi) - d;
+      if (d < bestDelta) {
+        bestDelta = d;
+        best = i;
+      }
+    }
+    if ((best == 0 || best == n - 1) && bestDelta > endOvershoot) return -1;
+    return best;
+  }
 }
 
 class RadialMenuItem {
@@ -57,15 +150,12 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     with SingleTickerProviderStateMixin {
   // Geometry — refined from v02 (BaseView.swift) for a lighter resting state.
   static const double _padding = 24;
-  static const double _orbSize = 52;
-  static const double _itemSize = 44;
-  static const double _radius = 96;
+  static const double _orbSize = RadialGeometry.orbSize;
+  static const double _itemSize = RadialGeometry.itemSize;
+  static const double _radius = RadialGeometry.radius;
   static const double _hoverMinDistance = 36;
   static const Duration _expandDuration = Duration(milliseconds: 260);
   static const Duration _collapseDuration = Duration(milliseconds: 200);
-  // Per-item stagger when fanning out. Item i starts at t = _stagger * i of
-  // the master controller and runs through its own easeOutCubic to t = 1.0.
-  static const double _stagger = 0.18;
 
   late final AnimationController _ctrl = AnimationController(
     vsync: this,
@@ -82,43 +172,29 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     super.dispose();
   }
 
-  /// Angle for slot [i], measured the same way as v02:
-  /// `-π/2.2 + (π/4.5) * i`. Positive y is DOWN in screen coords, so these
-  /// negative angles point up and to the right.
-  double _slotAngle(int i) => -math.pi / 2.2 + (math.pi / 4.5) * i;
+  int get _n => widget.items.length;
+  double get _stagger => RadialGeometry.stagger(_n);
 
-  /// Cupertino glyph used by the orb when the user is on a given section.
-  /// Matches the icons passed in via `RadialMenuItem` so the orb visually
-  /// echoes the active item.
+  /// Glyph the resting orb wears, echoing whichever item is active.
+  ///
+  /// Resolved from the items themselves rather than a parallel switch. It used
+  /// to be its own `HomeSection -> IconData` map, which meant the orb's glyph
+  /// and the fan item for the same section were two independent claims about
+  /// one thing — exactly what `navDestinations` was made the single source of
+  /// truth to prevent.
   IconData _iconForSection(HomeSection s) {
-    switch (s) {
-      case HomeSection.chat:
-        return CupertinoIcons.bubble_left;
-      case HomeSection.feed:
-        return CupertinoIcons.sparkles;
-      case HomeSection.settings:
-        return CupertinoIcons.gear;
+    for (final item in widget.items) {
+      if (item.section == s) return item.icon;
     }
+    return CupertinoIcons.bubble_left;
   }
 
   int _indexForDrag(Offset translation) {
-    final dist = translation.distance;
-    if (dist < _hoverMinDistance) return -1;
-    final angle = math.atan2(translation.dy, translation.dx);
-    int best = 0;
-    double bestDelta = double.infinity;
-    for (var i = 0; i < widget.items.length; i++) {
-      var d = (angle - _slotAngle(i)).abs();
-      // Wrap so we always take the shorter way around the circle.
-      if (d > math.pi) d = (2 * math.pi) - d;
-      if (d < bestDelta) {
-        bestDelta = d;
-        best = i;
-      }
-    }
-    // Demand reasonable proximity — outside this, nothing is hovered.
-    if (bestDelta > (math.pi / widget.items.length) * 1.15) return -1;
-    return best;
+    if (translation.distance < _hoverMinDistance) return -1;
+    return RadialGeometry.indexForAngle(
+      math.atan2(translation.dy, translation.dx),
+      _n,
+    );
   }
 
   void _onPanStart(DragStartDetails _) {
@@ -215,14 +291,14 @@ class _RadialFloatingMenuState extends State<RadialFloatingMenu>
     // Per-item progress: item i starts at t = _stagger * i and runs its own
     // easeOutCubic to t = 1.0. This makes items fan out sequentially rather
     // than all at once.
-    final tItem = Interval(_stagger * i, 1.0, curve: Curves.easeOutCubic)
-        .transform(_ctrl.value.clamp(0.0, 1.0));
-    final angle = _slotAngle(i);
-    final dx = math.cos(angle) * _radius * tItem;
-    final dy = math.sin(angle) * _radius * tItem;
+    final tItem = Interval(
+      _stagger * i,
+      1.0,
+      curve: Curves.easeOutCubic,
+    ).transform(_ctrl.value.clamp(0.0, 1.0));
     return Positioned(
-      left: (_orbSize - _itemSize) / 2 + dx,
-      bottom: (_orbSize - _itemSize) / 2 - dy,
+      left: RadialGeometry.left(i, _n, tItem),
+      bottom: RadialGeometry.bottom(i, _n, tItem),
       child: IgnorePointer(
         ignoring: tItem < 0.05,
         child: Opacity(
@@ -292,7 +368,10 @@ class _Orb extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.accent,
           shape: BoxShape.circle,
-          border: Border.all(color: theme.ink.withValues(alpha: 0.18), width: 0.5),
+          border: Border.all(
+            color: theme.ink.withValues(alpha: 0.18),
+            width: 0.5,
+          ),
           boxShadow: [
             BoxShadow(
               color: theme.accent.withValues(alpha: expanded ? 0.30 : 0.22),
@@ -309,7 +388,12 @@ class _Orb extends StatelessWidget {
 }
 
 class _Slice extends StatelessWidget {
-  const _Slice({required this.theme, required this.item, required this.active, required this.hovered});
+  const _Slice({
+    required this.theme,
+    required this.item,
+    required this.active,
+    required this.hovered,
+  });
   final AppTheme theme;
   final RadialMenuItem item;
   final bool active;
@@ -377,7 +461,9 @@ class _Slice extends StatelessWidget {
           decoration: BoxDecoration(
             color: fill,
             shape: BoxShape.circle,
-            border: borderColor == null ? null : Border.all(color: borderColor, width: borderWidth),
+            border: borderColor == null
+                ? null
+                : Border.all(color: borderColor, width: borderWidth),
             boxShadow: shadow,
           ),
           alignment: Alignment.center,
@@ -385,20 +471,30 @@ class _Slice extends StatelessWidget {
         ),
       ),
     );
-    if (item.badgeCount <= 0) return orb;
+    // The fan is icon-only by design, so [RadialMenuItem.label] is what names
+    // each orb to a screen reader. Without this the labels were dead strings
+    // and the menu was four unnamed circles to VoiceOver.
+    Widget named(Widget child) => Semantics(
+      label: item.badgeCount > 0
+          ? '${item.label}, ${item.badgeCount} waiting'
+          : item.label,
+      button: true,
+      selected: active,
+      child: ExcludeSemantics(child: child),
+    );
+
+    if (item.badgeCount <= 0) return named(orb);
     // Outside the ClipOval — inside it the dot would be clipped away by the
     // orb's own circular mask.
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        orb,
-        Positioned(
-          top: 2,
-          right: 2,
-          child: DotBadge(show: true),
-        ),
-      ],
+    return named(
+      Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          orb,
+          Positioned(top: 2, right: 2, child: DotBadge(show: true)),
+        ],
+      ),
     );
   }
 }

@@ -46,7 +46,13 @@ class FocusableTap extends StatefulWidget {
     this.radius = 14,
     this.inset = 3,
     this.enabled = true,
+    this.selected,
   });
+
+  /// Selection state for controls that toggle. Leave null for ordinary buttons
+  /// — `Semantics.selected` on a non-toggle would have VoiceOver announce
+  /// "not selected" after every label.
+  final bool? selected;
 
   /// Null (or `enabled: false`) means disabled: Tab skips it and the ring never
   /// paints, matching the dimmed CTAs the sheets already render.
@@ -113,6 +119,11 @@ class _FocusableTapState extends State<FocusableTap> {
       child: Semantics(
         button: true,
         enabled: _active,
+        // Null for a plain button; true/false marks it as a toggle and lets a
+        // screen reader announce its state. Without it, controls whose only
+        // on/off signal is an accent fill — the filter chips and facet rows —
+        // are indistinguishable to assistive tech.
+        selected: widget.selected,
         label: widget.semanticLabel,
         child: Stack(
           clipBehavior: Clip.none,

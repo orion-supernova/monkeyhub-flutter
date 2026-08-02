@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import 'navigation/destinations.dart';
 
 class NavigationScreen extends StatefulWidget {
   const NavigationScreen({super.key});
@@ -43,40 +46,52 @@ class _NavigationScreenState extends State<NavigationScreen> {
           SafeArea(
             child: AdaptivePageBody(
               child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
-              children: [
-                Row(children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: theme.inkSoft,
+                          size: 18,
+                        ),
+                      ),
+                    ],
                   ),
-                ]),
-                const SizedBox(height: 10),
-                Text('navigation.', style: theme.displayMedium),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Container(width: 18, height: 1, color: theme.accent),
-                  const SizedBox(width: 8),
-                  Text('how you move between chat, feed, settings', style: theme.caption),
-                ]),
-                const SizedBox(height: 28),
-                _NavCard(
-                  label: 'RADIAL ORB',
-                  sub: 'hold + drag from the corner. a quiet idle, a gesture you grow into.',
-                  active: current == NavStyle.radial,
-                  preview: const _RadialPreview(),
-                  onTap: () => _set(NavStyle.radial),
-                ),
-                const SizedBox(height: 14),
-                _NavCard(
-                  label: 'BOTTOM PILL',
-                  sub: 'classic tap. always visible, no learning curve.',
-                  active: current == NavStyle.pill,
-                  preview: const _PillPreview(),
-                  onTap: () => _set(NavStyle.pill),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 10),
+                  Text('navigation.', style: theme.displayMedium),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(width: 18, height: 1, color: theme.accent),
+                      const SizedBox(width: 8),
+                      Text(
+                        'how you move between chat, discover, feed, settings',
+                        style: theme.caption,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                  _NavCard(
+                    label: 'RADIAL ORB',
+                    sub:
+                        'hold + drag from the corner. a quiet idle, a gesture you grow into.',
+                    active: current == NavStyle.radial,
+                    preview: const _RadialPreview(),
+                    onTap: () => _set(NavStyle.radial),
+                  ),
+                  const SizedBox(height: 14),
+                  _NavCard(
+                    label: 'BOTTOM PILL',
+                    sub: 'classic tap. always visible, no learning curve.',
+                    active: current == NavStyle.pill,
+                    preview: const _PillPreview(),
+                    onTap: () => _set(NavStyle.pill),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -115,7 +130,12 @@ class _NavCard extends StatelessWidget {
             width: active ? 1.6 : 1,
           ),
           boxShadow: active
-              ? [BoxShadow(color: theme.accent.withValues(alpha: 0.25), blurRadius: 18)]
+              ? [
+                  BoxShadow(
+                    color: theme.accent.withValues(alpha: 0.25),
+                    blurRadius: 18,
+                  ),
+                ]
               : null,
         ),
         child: Column(
@@ -125,15 +145,23 @@ class _NavCard extends StatelessWidget {
               children: [
                 Expanded(child: Text(label, style: theme.label)),
                 if (active)
-                  Row(children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text('ACTIVE', style: theme.monoTiny.copyWith(color: theme.accent)),
-                  ]),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: theme.accent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'ACTIVE',
+                        style: theme.monoTiny.copyWith(color: theme.accent),
+                      ),
+                    ],
+                  ),
               ],
             ),
             const SizedBox(height: 6),
@@ -158,27 +186,34 @@ class _NavCard extends StatelessWidget {
 
 class _RadialPreview extends StatelessWidget {
   const _RadialPreview();
+
+  /// Mirrors [RadialFloatingMenu]'s real geometry at preview scale, so the card
+  /// can't drift out of sync with the menu it's advertising. The dots used to
+  /// be three hand-placed [Positioned]s.
+  static const double _spanStart = -math.pi / 2.2;
+  static const double _spanSweep = math.pi / 2.25;
+  static const double _previewRadius = 56;
+  static const double _orbCentre = 19; // 8pt inset + half of a 22pt orb
+  static const double _dot = 18;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final n = navDestinations.length;
     return Stack(
       children: [
-        // Ghost slices fanned above orb
-        Positioned(
-          left: 30,
-          bottom: 50,
-          child: _ghostDot(theme),
-        ),
-        Positioned(
-          left: 56,
-          bottom: 70,
-          child: _ghostDot(theme),
-        ),
-        Positioned(
-          left: 86,
-          bottom: 62,
-          child: _ghostDot(theme),
-        ),
+        // Ghost slices fanned above the orb, evenly spaced across the quadrant.
+        for (var i = 0; i < n; i++)
+          () {
+            final a = n <= 1
+                ? _spanStart + _spanSweep / 2
+                : _spanStart + (_spanSweep / (n - 1)) * i;
+            return Positioned(
+              left: _orbCentre + math.cos(a) * _previewRadius - _dot / 2,
+              bottom: _orbCentre - math.sin(a) * _previewRadius - _dot / 2,
+              child: _ghostDot(theme),
+            );
+          }(),
         // Resting orb
         Positioned(
           left: 8,
@@ -204,8 +239,8 @@ class _RadialPreview extends StatelessWidget {
 
   Widget _ghostDot(AppTheme theme) {
     return Container(
-      width: 18,
-      height: 18,
+      width: _dot,
+      height: _dot,
       decoration: BoxDecoration(
         color: theme.surface,
         shape: BoxShape.circle,
@@ -232,7 +267,7 @@ class _PillPreview extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         child: Row(
           children: [
-            for (var i = 0; i < 3; i++) ...[
+            for (var i = 0; i < navDestinations.length; i++) ...[
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -241,7 +276,7 @@ class _PillPreview extends StatelessWidget {
                   ),
                 ),
               ),
-              if (i < 2) const SizedBox(width: 4),
+              if (i < navDestinations.length - 1) const SizedBox(width: 4),
             ],
           ],
         ),

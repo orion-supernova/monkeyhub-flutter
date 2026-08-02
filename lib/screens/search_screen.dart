@@ -9,16 +9,19 @@ import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/join_room_sheet.dart';
+import '../widgets/approval_gate.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
+import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
 
-/// Which half of search this screen is. Rooms live under Discover, people
-/// under Friends — the two are never mixed, so a child who may ask to add a
-/// contact can reach people search without that also handing them Discover.
+/// Which half of search this screen is.
+///
+/// Fixed for the life of the screen. Discover reaches each half through its own
+/// door, so an in-place PEOPLE/ROOMS switcher here would re-mix the two worlds
+/// that the doors exist to keep apart.
 enum SearchMode { people, rooms }
 
 class SearchScreen extends StatefulWidget {
@@ -27,16 +30,25 @@ class SearchScreen extends StatefulWidget {
     required this.repo,
     required this.api,
     required this.mode,
-    required this.heroTag,
+    this.heroTag,
+    this.family,
   });
   final ChatRepository repo;
   final ChatApi api;
   final SearchMode mode;
 
-  /// Tag of the collapsed bar this screen flies out of. Each entry point
-  /// passes its own — Discover's and Friends' bars can both be mounted for a
-  /// frame mid tab-transition, and two live Heroes sharing a tag throws.
-  final String heroTag;
+  /// Tag of the collapsed bar this screen flies out of, when there is one.
+  ///
+  /// Null from Discover: its doors are two-line cards, and morphing one into a
+  /// one-line search field made the flight interpolate toward a box shorter
+  /// than the card's own text, overflowing on every frame. The route's
+  /// fade-and-slide carries the transition instead.
+  final String? heroTag;
+
+  /// Optional so existing callers keep working; falls back to
+  /// [FamilyService.maybeInstance]. Threaded through so the room results can
+  /// run the same child approval gate Discover does.
+  final FamilyService? family;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -49,6 +61,12 @@ class _SearchScreenState extends State<SearchScreen> {
 
   bool get _people => widget.mode == SearchMode.people;
 
+  FamilyService? get _family => widget.family ?? FamilyService.maybeInstance;
+
+  /// Rooms this child has already asked about in this session, so a second tap
+  /// doesn't file a duplicate approval into their guardian's queue.
+  Set<String> _awaiting = {};
+
   List<ChatUser> _users = [];
   List<ChatRoom> _rooms = [];
   bool _loading = false;
@@ -56,14 +74,22 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    // Without this, `repo.isJoined` is sampled once at build, so a room joined
+    // from here (or on another device) keeps rendering as un-joined.
+    widget.repo.addListener(_onRepoChange);
     _refresh();
   }
 
   @override
   void dispose() {
+    widget.repo.removeListener(_onRepoChange);
     _q.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onRepoChange() {
+    if (mounted) setState(() {});
   }
 
   void _onChanged(String v) {
@@ -98,9 +124,14 @@ class _SearchScreenState extends State<SearchScreen> {
         );
         _rooms = _query.isEmpty
             ? rs
-            : rs.where((r) => r.name.toLowerCase().contains(_query.toLowerCase())).toList();
+            : rs
+                  .where(
+                    (r) => r.name.toLowerCase().contains(_query.toLowerCase()),
+                  )
+                  .toList();
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -116,46 +147,54 @@ class _SearchScreenState extends State<SearchScreen> {
           SafeArea(
             child: AdaptivePageBody(
               child: Column(
-              children: [
-                _Header(
-                  q: _q,
-                  heroTag: widget.heroTag,
-                  hintText: _people ? 'search people…' : 'search rooms…',
-                  onChanged: _onChanged,
-                  onClose: () => Navigator.of(context).maybePop(),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: theme.motionMed,
-                    switchInCurve: theme.motionEntrance,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, anim) => FadeTransition(
-                      opacity: anim,
-                      child: SlideTransition(
-                        position: Tween(begin: const Offset(0, 0.06), end: Offset.zero)
-                            .chain(CurveTween(curve: theme.motionEntrance))
-                            .animate(anim),
-                        child: child,
+                children: [
+                  _Header(
+                    q: _q,
+                    heroTag: widget.heroTag,
+                    hintText: _people ? 'search people…' : 'search rooms…',
+                    onChanged: _onChanged,
+                    onClose: () => Navigator.of(context).maybePop(),
+                  ),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: theme.motionMed,
+                      switchInCurve: theme.motionEntrance,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, anim) => FadeTransition(
+                        opacity: anim,
+                        child: SlideTransition(
+                          position:
+                              Tween(
+                                    begin: const Offset(0, 0.06),
+                                    end: Offset.zero,
+                                  )
+                                  .chain(
+                                    CurveTween(curve: theme.motionEntrance),
+                                  )
+                                  .animate(anim),
+                          child: child,
+                        ),
+                      ),
+                      layoutBuilder: (currentChild, previousChildren) => Stack(
+                        alignment: Alignment.topCenter,
+                        children: [...previousChildren, ?currentChild],
+                      ),
+                      child: KeyedSubtree(
+                        key: ValueKey(widget.mode),
+                        child: _loading
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  color: theme.accent,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : (_people ? _peopleBody() : _roomsBody()),
                       ),
                     ),
-                    layoutBuilder: (currentChild, previousChildren) => Stack(
-                      alignment: Alignment.topCenter,
-                      children: [
-                        ...previousChildren,
-                        ?currentChild,
-                      ],
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey(widget.mode),
-                      child: _loading
-                          ? Center(child: CircularProgressIndicator(color: theme.accent, strokeWidth: 2))
-                          : (_people ? _peopleBody() : _roomsBody()),
-                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             ),
           ),
         ],
@@ -212,7 +251,9 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _roomsBody() {
     final theme = ThemeScope.of(context);
     if (_rooms.isEmpty) {
-      final msg = _query.isEmpty ? 'no public rooms yet' : 'no public rooms match';
+      final msg = _query.isEmpty
+          ? 'no public rooms yet'
+          : 'no public rooms match';
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
         child: Center(child: Text(msg, style: theme.bodySoft)),
@@ -225,9 +266,28 @@ class _SearchScreenState extends State<SearchScreen> {
         room: _rooms[i],
         repo: widget.repo,
         api: widget.api,
+        family: _family,
+        awaiting: _awaiting.contains(_rooms[i].id),
+        onAsked: (id) {
+          if (mounted) setState(() => _awaiting = {..._awaiting, id});
+        },
       ),
     );
   }
+}
+
+/// A [Hero] when there is something to fly from, and nothing at all when there
+/// isn't. A Hero with no matching source doesn't animate, but it still installs
+/// a flight-manager entry — so skipping it outright keeps the no-tag case
+/// honest.
+class _MaybeHero extends StatelessWidget {
+  const _MaybeHero({required this.tag, required this.child});
+  final String? tag;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      tag == null ? child : Hero(tag: tag!, child: child);
 }
 
 class _Header extends StatelessWidget {
@@ -239,7 +299,7 @@ class _Header extends StatelessWidget {
     required this.onClose,
   });
   final TextEditingController q;
-  final String heroTag;
+  final String? heroTag;
   final String hintText;
   final ValueChanged<String> onChanged;
   final VoidCallback onClose;
@@ -251,33 +311,39 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Hero(
+            child: _MaybeHero(
               tag: heroTag,
               child: Material(
                 type: MaterialType.transparency,
                 child: Container(
                   decoration: theme.inputDecoration(),
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Row(children: [
-                    Icon(Icons.search, color: theme.inkMuted, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: q,
-                        autofocus: true,
-                        style: theme.body.copyWith(color: theme.ink),
-                        cursorColor: theme.accent,
-                        decoration: InputDecoration(
-                          isCollapsed: true,
-                          border: InputBorder.none,
-                          hintText: hintText,
-                          hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: theme.inkMuted, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: q,
+                          autofocus: true,
+                          style: theme.body.copyWith(color: theme.ink),
+                          cursorColor: theme.accent,
+                          decoration: InputDecoration(
+                            isCollapsed: true,
+                            border: InputBorder.none,
+                            hintText: hintText,
+                            hintStyle: theme.body.copyWith(
+                              color: theme.inkMuted,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 14,
+                            ),
+                          ),
+                          onChanged: onChanged,
                         ),
-                        onChanged: onChanged,
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -297,7 +363,12 @@ class _Header extends StatelessWidget {
 }
 
 class _PersonRow extends StatefulWidget {
-  const _PersonRow({required this.user, required this.repo, required this.api, required this.onChanged});
+  const _PersonRow({
+    required this.user,
+    required this.repo,
+    required this.api,
+    required this.onChanged,
+  });
   final ChatUser user;
   final ChatRepository repo;
   final ChatApi api;
@@ -317,13 +388,15 @@ class _PersonRowState extends State<_PersonRow> {
       switch (widget.user.friendshipStatus) {
         case FriendshipStatus.none:
           if (!mounted) return;
-          nav.push(MaterialPageRoute(
-            builder: (_) => FriendRequestDraftScreen(
-              repo: widget.repo,
-              api: widget.api,
-              target: widget.user,
+          nav.push(
+            MaterialPageRoute(
+              builder: (_) => FriendRequestDraftScreen(
+                repo: widget.repo,
+                api: widget.api,
+                target: widget.user,
+              ),
             ),
-          ));
+          );
           break;
         case FriendshipStatus.outgoingPending:
           await widget.repo.cancelDirectRequest(widget.user.id);
@@ -332,7 +405,12 @@ class _PersonRowState extends State<_PersonRow> {
           final roomId = await widget.repo.approveDirectRequest(widget.user.id);
           if (!mounted) return;
           if (roomId != null) {
-            openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
+            openRoom(
+              context,
+              roomId: roomId,
+              repo: widget.repo,
+              api: widget.api,
+            );
           }
           break;
         case FriendshipStatus.friend:
@@ -341,7 +419,8 @@ class _PersonRowState extends State<_PersonRow> {
           openRoom(context, roomId: roomId, repo: widget.repo, api: widget.api);
           break;
       }
-    } catch (_) {} finally {
+    } catch (_) {
+    } finally {
       if (mounted) {
         setState(() => _busy = false);
         widget.onChanged();
@@ -373,12 +452,15 @@ class _PersonRowState extends State<_PersonRow> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
           builder: (_) => ProfileScreen(
-                user: widget.user,
-                repo: widget.repo,
-                api: widget.api,
-              ))),
+            user: widget.user,
+            repo: widget.repo,
+            api: widget.api,
+          ),
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
@@ -391,7 +473,10 @@ class _PersonRowState extends State<_PersonRow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.user.displayName, style: theme.displaySmall.copyWith(fontSize: 16)),
+                  Text(
+                    widget.user.displayName,
+                    style: theme.displaySmall.copyWith(fontSize: 16),
+                  ),
                   Text('@${widget.user.username}', style: theme.monoTiny),
                 ],
               ),
@@ -399,18 +484,26 @@ class _PersonRowState extends State<_PersonRow> {
             GestureDetector(
               onTap: _busy ? null : _act,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: _filled
                       ? (_busy ? theme.accentSoft : theme.accent)
                       : Colors.transparent,
                   border: Border.all(
-                      color: _filled ? theme.accent : theme.divider, width: 1.2),
+                    color: _filled ? theme.accent : theme.divider,
+                    width: 1.2,
+                  ),
                   borderRadius: BorderRadius.circular(theme.radiusMd),
                 ),
-                child: Text(_actionLabel(),
-                    style: theme.label.copyWith(
-                        color: _filled ? theme.accentInk : theme.ink)),
+                child: Text(
+                  _actionLabel(),
+                  style: theme.label.copyWith(
+                    color: _filled ? theme.accentInk : theme.ink,
+                  ),
+                ),
               ),
             ),
           ],
@@ -421,48 +514,54 @@ class _PersonRowState extends State<_PersonRow> {
 }
 
 class _RoomRow extends StatelessWidget {
-  const _RoomRow({required this.room, required this.repo, required this.api});
+  const _RoomRow({
+    required this.room,
+    required this.repo,
+    required this.api,
+    required this.family,
+    required this.awaiting,
+    required this.onAsked,
+  });
   final ChatRoom room;
   final ChatRepository repo;
   final ChatApi api;
+  final FamilyService? family;
+
+  /// This child has already raised this room with a grown-up.
+  final bool awaiting;
+  final ValueChanged<String> onAsked;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     // Same rule Discover tiles use.
     final joined = repo.isJoined(room);
     return GestureDetector(
-      onTap: () async {
-        final messenger = ScaffoldMessenger.of(context);
-        // Already a member — open it. The join sheet below would otherwise
-        // re-prompt for a password already cleared, to perform a join that the
-        // backend treats as a no-op.
-        if (joined) {
-          openRoom(context, roomId: room.id, repo: repo, api: api);
-          return;
-        }
-        // Preview + confirm before joining; a locked room's password field
-        // lives inside this same sheet.
-        final result = await showJoinRoomSheet(context, room, api);
-        if (!context.mounted || result == null) return;
-        try {
-          await repo.joinRoom(roomId: room.id, password: result.password);
-          if (!context.mounted) return;
-          openRoom(context, roomId: room.id, repo: repo, api: api);
-        } catch (e) {
-          final msg = e.toString().contains('WRONG_PASSWORD')
-              ? 'wrong password'
-              : 'couldn\'t join — try again';
-          messenger.showSnackBar(SnackBar(content: Text(msg)));
-        }
-      },
+      // Goes through the shared flow rather than straight to the join sheet.
+      // This row used to skip the child approval gate entirely: the server
+      // still refused the join, but no approval was ever filed, so a child got
+      // "couldn't join — try again" with no way to ask anyone.
+      onTap: () => enterPublicRoom(
+        context,
+        room: room,
+        repo: repo,
+        api: api,
+        family: family,
+        alreadyAsked: awaiting,
+        onAsked: onAsked,
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
-        decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
+        decoration: theme.roomCardDecoration(
+          ephemeral: room.isEphemeral,
+          active: false,
+        ),
         child: Row(
           children: [
             Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: theme.accentSoft,
@@ -477,15 +576,24 @@ class _RoomRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(room.name, style: theme.displaySmall.copyWith(fontSize: 16)),
+                  Text(
+                    room.name,
+                    style: theme.displaySmall.copyWith(fontSize: 16),
+                  ),
                   if (room.description != null && room.description!.isNotEmpty)
-                    Text(room.description!.toLowerCase(), style: theme.monoTiny,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      room.description!.toLowerCase(),
+                      style: theme.monoTiny,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                 ],
               ),
             ),
             if (joined)
               const JoinedBadge(dense: true)
+            else if (awaiting)
+              const WaitingPill(label: 'asked')
             else
               VisibilityBadge(isPublic: room.isPublic, dense: true),
             const SizedBox(width: 8),

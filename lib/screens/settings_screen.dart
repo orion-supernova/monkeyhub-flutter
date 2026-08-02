@@ -23,6 +23,7 @@ import 'family_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
+import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'profile_screen.dart';
 import 'room_layout_screen.dart';
@@ -75,17 +76,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   /// True when [key]'s sub-screen is the one shown in the desktop detail pane.
   bool _isOpen(String key) =>
-      context.isExpanded &&
-      UiSelectionStore.instance.settingsDetailKey == key;
+      context.isExpanded && UiSelectionStore.instance.settingsDetailKey == key;
 
   Future<void> _loadMe() async {
     final s = widget.auth.session;
     if (s == null) return;
     try {
-      final fresh = await widget.api.getProfile(s.userId, viewerUserId: s.userId);
+      final fresh = await widget.api.getProfile(
+        s.userId,
+        viewerUserId: s.userId,
+      );
       if (!mounted || fresh == null) return;
       setState(() => _me = fresh);
-    } catch (_) {/* keep the bootstrap ChatUser; avatar stays generic */}
+    } catch (_) {
+      /* keep the bootstrap ChatUser; avatar stays generic */
+    }
   }
 
   String get _familyLabel {
@@ -95,13 +100,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String get _layoutLabel =>
-      SettingsStore.instance.roomLayout == RoomLayout.list ? 'Scroll list' : 'Grid sheet';
+      SettingsStore.instance.roomLayout == RoomLayout.list
+      ? 'Scroll list'
+      : 'Grid sheet';
 
-  String get _navLabel =>
-      SettingsStore.instance.navStyle == NavStyle.radial ? 'Radial orb' : 'Bottom pill';
+  String get _navLabel => SettingsStore.instance.navStyle == NavStyle.radial
+      ? 'Radial orb'
+      : 'Bottom pill';
 
   String get _chatStyleLabel =>
-      SettingsStore.instance.chatStyle == ChatStyle.classic ? 'Classic' : 'Compact';
+      SettingsStore.instance.chatStyle == ChatStyle.classic
+      ? 'Classic'
+      : 'Compact';
 
   String get _bubbleStyleLabel {
     switch (SettingsStore.instance.bubbleStyle) {
@@ -156,20 +166,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         theme.backgroundLayer(context),
         SafeArea(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              28,
+              20,
+              kFloatingNavClearance,
+            ),
             children: [
-              Row(children: [
-                const AppBrandMark(size: 30),
-                const SizedBox(width: 10),
-                Text('SETTINGS', style: theme.label.copyWith(letterSpacing: 3)),
-              ]),
+              Row(
+                children: [
+                  const AppBrandMark(size: 30),
+                  const SizedBox(width: 10),
+                  Text(
+                    'SETTINGS',
+                    style: theme.label.copyWith(letterSpacing: 3),
+                  ),
+                ],
+              ),
               const SizedBox(height: 28),
               Text('look. feel. you.', style: theme.displayLarge),
               const SizedBox(height: 28),
               if (s != null) ...[
                 () {
-                  final me = _me ??
-                      ChatUser(id: s.userId, username: s.username, name: s.name);
+                  final me =
+                      _me ??
+                      ChatUser(
+                        id: s.userId,
+                        username: s.username,
+                        name: s.name,
+                      );
                   return GestureDetector(
                     onTap: () => openSettingsDetail(
                       context,
@@ -183,7 +208,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: theme.roomCardDecoration(ephemeral: false, active: false),
+                      decoration: theme.roomCardDecoration(
+                        ephemeral: false,
+                        active: false,
+                      ),
                       child: Row(
                         children: [
                           UserAvatar(user: me, size: 48, api: widget.api),
@@ -193,12 +221,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(me.displayName, style: theme.displaySmall),
-                                Text('@${me.username}',
-                                    style: theme.mono.copyWith(color: theme.inkMuted)),
+                                Text(
+                                  '@${me.username}',
+                                  style: theme.mono.copyWith(
+                                    color: theme.inkMuted,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                          Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
+                          Icon(
+                            Icons.chevron_right,
+                            size: 18,
+                            color: theme.inkMuted,
+                          ),
                         ],
                       ),
                     ),
@@ -214,30 +250,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: activeTheme.name,
                 selected: _isOpen('theme'),
                 leading: _SwatchDot(color: activeTheme.accent),
-                onTap: () => openSettingsDetail(context,
-                    key: 'theme', builder: (_) => const ThemeScreen()),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'theme',
+                  builder: (_) => const ThemeScreen(),
+                ),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'APP LOGO',
                 value: _logoLabel,
                 selected: _isOpen('logo'),
-                leading: Icon(Icons.workspaces_outline, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'logo', builder: (_) => const LogoScreen()),
+                leading: Icon(
+                  Icons.workspaces_outline,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'logo',
+                  builder: (_) => const LogoScreen(),
+                ),
               ),
 
               const SizedBox(height: 28),
               _SectionHeader(label: 'LAYOUT'),
               const SizedBox(height: 12),
               _DisclosureRow(
-                label: 'ROOM LAYOUT',
+                label: 'CHAT LIST',
                 value: _layoutLabel,
                 selected: _isOpen('roomLayout'),
-                leading: Icon(Icons.dashboard_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'roomLayout',
-                    builder: (_) => const RoomLayoutScreen()),
+                leading: Icon(
+                  Icons.dashboard_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'roomLayout',
+                  builder: (_) => const RoomLayoutScreen(),
+                ),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
@@ -245,39 +297,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _navLabel,
                 selected: _isOpen('navigation'),
                 leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'navigation',
-                    builder: (_) => const NavigationScreen()),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'navigation',
+                  builder: (_) => const NavigationScreen(),
+                ),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'CHAT STYLE',
                 value: _chatStyleLabel,
                 selected: _isOpen('chatStyle'),
-                leading: Icon(Icons.bubble_chart_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'chatStyle',
-                    builder: (_) => const ChatStyleScreen()),
+                leading: Icon(
+                  Icons.bubble_chart_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'chatStyle',
+                  builder: (_) => const ChatStyleScreen(),
+                ),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'BUBBLE STYLE',
                 value: _bubbleStyleLabel,
                 selected: _isOpen('bubbleStyle'),
-                leading: Icon(Icons.chat_bubble_outline, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'bubbleStyle',
-                    builder: (_) => const BubbleStyleScreen()),
+                leading: Icon(
+                  Icons.chat_bubble_outline,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'bubbleStyle',
+                  builder: (_) => const BubbleStyleScreen(),
+                ),
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
                 label: 'REPLY STYLE',
                 value: _replyStyleLabel,
                 selected: _isOpen('replyStyle'),
-                leading: Icon(Icons.reply_outlined, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(context,
-                    key: 'replyStyle',
-                    builder: (_) => ReplyStyleScreen(api: widget.api)),
+                leading: Icon(
+                  Icons.reply_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'replyStyle',
+                  builder: (_) => ReplyStyleScreen(api: widget.api),
+                ),
               ),
 
               const SizedBox(height: 28),
@@ -291,18 +363,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   value: _familyLabel,
                   badge: widget.family.pendingCount,
                   selected: _isOpen('family'),
-                  leading: Icon(Icons.family_restroom,
-                      size: 16, color: theme.inkSoft),
+                  leading: Icon(
+                    Icons.family_restroom,
+                    size: 16,
+                    color: theme.inkSoft,
+                  ),
                   onTap: () {
                     final s = widget.auth.session;
                     if (s == null) return;
-                    openSettingsDetail(context,
-                        key: 'family',
-                        builder: (_) => FamilyScreen(
-                              api: widget.api,
-                              userId: s.userId,
-                              family: widget.family,
-                            ));
+                    openSettingsDetail(
+                      context,
+                      key: 'family',
+                      builder: (_) => FamilyScreen(
+                        api: widget.api,
+                        userId: s.userId,
+                        family: widget.family,
+                      ),
+                    );
                   },
                 ),
                 if (widget.family.context.children.isNotEmpty) ...[
@@ -323,13 +400,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onTap: () {
                       final s = widget.auth.session;
                       if (s == null) return;
-                      openSettingsDetail(context,
-                          key: 'approvals',
-                          builder: (_) => ApprovalsScreen(
-                                api: widget.api,
-                                guardianId: s.userId,
-                                family: widget.family,
-                              ));
+                      openSettingsDetail(
+                        context,
+                        key: 'approvals',
+                        builder: (_) => ApprovalsScreen(
+                          api: widget.api,
+                          guardianId: s.userId,
+                          family: widget.family,
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -353,7 +432,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     );
   }
-
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -420,16 +498,15 @@ class _DisclosureRow extends StatelessWidget {
               ? theme.accent.withValues(alpha: 0.14)
               : theme.surface,
           border: Border.all(
-            color: selected ? theme.accent.withValues(alpha: 0.4) : theme.divider,
+            color: selected
+                ? theme.accent.withValues(alpha: 0.4)
+                : theme.divider,
           ),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
         child: Row(
           children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 12),
-            ],
+            if (leading != null) ...[leading!, const SizedBox(width: 12)],
             SizedBox(width: 110, child: Text(label, style: theme.label)),
             Expanded(
               child: Text(
@@ -553,7 +630,9 @@ class _PushToggleState extends State<_PushToggle> {
             child: Row(
               children: [
                 Icon(
-                  on ? Icons.notifications_active_outlined : Icons.notifications_off_outlined,
+                  on
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_off_outlined,
                   size: 16,
                   color: on ? theme.accent : theme.inkMuted,
                 ),
