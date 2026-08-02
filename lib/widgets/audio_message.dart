@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 import '../backend/chat_api.dart';
 import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
+import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
@@ -177,13 +178,6 @@ class _AudioMessageState extends State<AudioMessage> {
     unawaited(_resolve(fresh: true));
   }
 
-  String _fmt(Duration d) {
-    final s = d.inSeconds;
-    final m = s ~/ 60;
-    final r = s % 60;
-    return '$m:${r.toString().padLeft(2, '0')}';
-  }
-
   /// The 34pt circle every state shares, so the bubble never resizes as it
   /// moves between them.
   Widget _disc(
@@ -315,7 +309,7 @@ class _AudioMessageState extends State<AudioMessage> {
                       const SizedBox(height: 4),
                       Text(
                         total > Duration.zero
-                            ? '${_fmt(pos)} / ${_fmt(total)}'
+                            ? '${formatClockDuration(pos)} / ${formatClockDuration(total)}'
                             : 'loading…',
                         style: theme.monoTiny
                             .copyWith(color: ink.withValues(alpha: 0.8)),

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../theme/theme_scope.dart';
+import 'room_items.dart' show formatClockDuration;
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
 /// (MP4) container.
@@ -137,13 +138,6 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
     Navigator.of(context).pop<Uint8List?>(bytes);
   }
 
-  String _fmt(Duration d) {
-    final s = d.inSeconds;
-    final m = s ~/ 60;
-    final r = s % 60;
-    return '$m:${r.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -171,7 +165,7 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                   // Amplitude meter
                   _Meter(level: _level, recording: _recording),
                   const SizedBox(height: 28),
-                  Text(_fmt(_elapsed), style: theme.displayLarge.copyWith(fontSize: 44)),
+                  Text(formatClockDuration(_elapsed), style: theme.displayLarge.copyWith(fontSize: 44)),
                   const Spacer(flex: 2),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

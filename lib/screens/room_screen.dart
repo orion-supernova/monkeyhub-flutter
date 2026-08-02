@@ -338,7 +338,7 @@ class _RoomScreenState extends State<RoomScreen>
       messages: messages,
       roomIsEphemeral: room.isEphemeral,
       mustKeepOwnRow: _mustKeepOwnRow,
-      dayLabel: _humanDay,
+      dayLabel: humanDay,
     );
     _memoSource = messages;
     _memoFoldKey = foldKey;
@@ -362,17 +362,6 @@ class _RoomScreenState extends State<RoomScreen>
     _revItems = rev;
     _rowIndexOf = index;
     return rev;
-  }
-
-  String _humanDay(DateTime d) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    if (d == today) return 'TODAY';
-    if (d == yesterday) return 'YESTERDAY';
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    final sameYear = d.year == now.year;
-    return sameYear ? '${months[d.month - 1]} ${d.day}' : '${months[d.month - 1]} ${d.day} · ${d.year}';
   }
 
   void _onScroll() {
@@ -2067,7 +2056,7 @@ class _RoomScreenState extends State<RoomScreen>
                       );
                 return _trackedDate(
                   stableId: 'm_${m.id}',
-                  label: _humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
+                  label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
                   child: AnimatedSwitcher(
                     duration: theme.motionMed,

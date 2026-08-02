@@ -11,6 +11,7 @@ import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../models/family.dart';
 import '../models/friend_request_message.dart';
+import '../models/room_content_item.dart';
 import 'convex_client.dart';
 
 /// Client-side SHA-256, matching v02's `SecurityUtils.hashPassword` /
@@ -646,6 +647,134 @@ class ChatApi {
       'messageId': messageId,
       'userId': userId,
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Shared content
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// One page of a room's attachments of one kind, newest first.
+  ///
+  /// Paged on `createdAt` like [listMessagesBefore] rather than an opaque
+  /// cursor: pass the `createdAt` of the oldest row you hold as [before], or
+  /// omit it for the first page.
+  ///
+  /// Unlike the transcript queries these are one-shot — the browser is not
+  /// subscribed, which is why `roomContent` can afford a membership check that
+  /// `pins:listForRoom` deliberately skips.
+  Future<RoomContentPage> listRoomContent({
+    required String roomId,
+    required String userId,
+    required String bucket,
+    DateTime? before,
+    int limit = 30,
+  }) async {
+    final res = await _cv.query('roomContent:listBucket', {
+      'roomId': roomId,
+      'userId': userId,
+      'bucket': bucket,
+      'beforeTimestamp': ?before?.millisecondsSinceEpoch,
+      'limit': limit,
+    });
+    return _decodeContentPage(res);
+  }
+
+  /// One page of the room's messages that contain a URL, newest first.
+  ///
+  /// Returns whole messages, not links: the server records only that a message
+  /// has one (see `messages.hasLink`), so the URLs are re-derived client-side
+  /// with the same `UrlDetector` the bubbles linkify with.
+  Future<RoomContentPage> listRoomLinks({
+    required String roomId,
+    required String userId,
+    DateTime? before,
+    int limit = 30,
+  }) async {
+    final res = await _cv.query('roomContent:listLinks', {
+      'roomId': roomId,
+      'userId': userId,
+      'beforeTimestamp': ?before?.millisecondsSinceEpoch,
+      'limit': limit,
+    });
+    return _decodeContentPage(res);
+  }
+
+  /// How much each tab holds, capped server-side — see [RoomContentCount].
+  Future<Map<String, RoomContentCount>> roomContentCounts({
+    required String roomId,
+    required String userId,
+  }) async {
+    final res = await _cv.query('roomContent:counts', {
+      'roomId': roomId,
+      'userId': userId,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return {
+      for (final e in map.entries)
+        e.key: RoomContentCount.fromJson((e.value as Map).cast<String, dynamic>()),
+    };
+  }
+
+  /// Re-sends [messageIds] into a single other room.
+  ///
+  /// One room per call because a Convex mutation is one transaction — see
+  /// `messages:forwardToRoom`. Callers forwarding to several rooms issue
+  /// several of these so one refusal doesn't roll back the rest.
+  ///
+  /// [clientIds] are per-message idempotency keys in the same order, so a retry
+  /// after a dropped ack collapses onto the same rows rather than duplicating
+  /// them.
+  ///
+  /// Throws `SOURCE_IS_EPHEMERAL` when forwarding out of a Chamber of Secrets
+  /// room, which is refused outright: the target's lifetime is what would
+  /// apply, so it would launder a self-destructing message into a permanent one.
+  Future<({int forwarded, int refused})> forwardToRoom({
+    required String sourceRoomId,
+    required String targetRoomId,
+    required String userId,
+    required List<String> messageIds,
+    List<String>? clientIds,
+  }) async {
+    final res = await _cv.mutation('messages:forwardToRoom', {
+      'sourceRoomId': sourceRoomId,
+      'targetRoomId': targetRoomId,
+      'userId': userId,
+      'messageIds': messageIds,
+      'clientIds': ?clientIds,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      forwarded: (map['forwarded'] as num?)?.toInt() ?? 0,
+      refused: (map['refused'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Deletes every message in [messageIds] the caller is entitled to delete.
+  ///
+  /// Partial success is the normal outcome, not an error: the server skips what
+  /// the caller doesn't own rather than throwing, so a mixed selection removes
+  /// what it can. `refused` is what the caller reports.
+  Future<({int deleted, int refused})> deleteMessages({
+    required String userId,
+    required List<String> messageIds,
+  }) async {
+    final res = await _cv.mutation('messages:deleteMany', {
+      'userId': userId,
+      'messageIds': messageIds,
+    });
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return (
+      deleted: (map['deleted'] as num?)?.toInt() ?? 0,
+      refused: (map['refused'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  RoomContentPage _decodeContentPage(dynamic res) {
+    final map = (res as Map?)?.cast<String, dynamic>() ?? const {};
+    return RoomContentPage(
+      items: _decodeMessages(map['items']),
+      hasMore: (map['hasMore'] as bool?) ?? false,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────

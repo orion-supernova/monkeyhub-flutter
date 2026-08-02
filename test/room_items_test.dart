@@ -402,4 +402,57 @@ void main() {
     expect(r.items.single, isA<IntroItem>());
     expect(r.hidden, isEmpty);
   });
+
+  /// Both of these were private to a State and are now shared — `humanDay` with
+  /// the shared-content browser, `formatClockDuration` with the two places that
+  /// had already copied it. Extraction is only worth it if it stays correct.
+  group('humanDay', () {
+    DateTime dayOf(DateTime d) => DateTime(d.year, d.month, d.day);
+
+    test('names today and yesterday', () {
+      final now = DateTime.now();
+      expect(humanDay(dayOf(now)), 'TODAY');
+      expect(
+        humanDay(dayOf(now.subtract(const Duration(days: 1)))),
+        'YESTERDAY',
+      );
+    });
+
+    test('drops the year while it is obvious and adds it once it is not', () {
+      final now = DateTime.now();
+      final thisYear = DateTime(now.year, 3, 14);
+      // Skip if that date happens to be today/yesterday, which have their own
+      // labels and would make this assertion about the wrong branch.
+      if (thisYear != dayOf(now) &&
+          thisYear != dayOf(now.subtract(const Duration(days: 1)))) {
+        expect(humanDay(thisYear), 'MAR 14');
+      }
+      expect(humanDay(DateTime(now.year - 3, 3, 14)), 'MAR ${14} · ${now.year - 3}');
+    });
+
+    test('only matches a date-only value', () {
+      // The today/yesterday tests are exact equality, so a value carrying a
+      // time of day silently falls through to the dated form. Callers must
+      // pass `DateTime(y, m, d)` — `buildRoomItems` already does.
+      final now = DateTime.now();
+      final withTime = DateTime(now.year, now.month, now.day, 9, 30);
+      expect(humanDay(withTime), isNot('TODAY'));
+    });
+  });
+
+  group('formatClockDuration', () {
+    test('pads seconds, never minutes', () {
+      expect(formatClockDuration(const Duration(seconds: 7)), '0:07');
+      expect(formatClockDuration(const Duration(minutes: 3, seconds: 42)), '3:42');
+      expect(formatClockDuration(Duration.zero), '0:00');
+    });
+
+    test('runs past an hour rather than growing a third field', () {
+      expect(formatClockDuration(const Duration(minutes: 62, seconds: 3)), '62:03');
+    });
+
+    test('truncates sub-second remainders', () {
+      expect(formatClockDuration(const Duration(milliseconds: 1900)), '0:01');
+    });
+  });
 }

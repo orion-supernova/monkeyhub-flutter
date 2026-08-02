@@ -17,6 +17,47 @@ import '../models/enums.dart';
 /// Nothing here keys off adjacency — a thread's messages are almost never
 /// consecutive in the room timeline.
 
+const List<String> _monthAbbrev = [
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+];
+
+/// The label above a day's first row — `TODAY`, `YESTERDAY`, `MAR 14`, or
+/// `MAR 14 · 2024` once the year stops being obvious.
+///
+/// [d] must already be date-only (`DateTime(y, m, d)`); the equality tests
+/// against today and yesterday are exact, so a value carrying a time of day
+/// silently never matches either.
+///
+/// Was a private method on `_RoomScreenState`, which meant the shared-content
+/// browser — the second surface to group messages by day — could either reach
+/// into a State or grow a second copy. `_fmt` had already been copied twice
+/// elsewhere in this codebase, so the third copy is the one worth not writing.
+String humanDay(DateTime d) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final yesterday = today.subtract(const Duration(days: 1));
+  if (d == today) return 'TODAY';
+  if (d == yesterday) return 'YESTERDAY';
+  final sameYear = d.year == now.year;
+  return sameYear
+      ? '${_monthAbbrev[d.month - 1]} ${d.day}'
+      : '${_monthAbbrev[d.month - 1]} ${d.day} · ${d.year}';
+}
+
+/// A playing time as `m:ss` — `0:07`, `3:42`, `12:05`.
+///
+/// Minutes are not zero-padded and do not roll into hours: nothing this app
+/// carries (a voice note, a video, a call timer) runs long enough for `1:02:03`
+/// to be worth the width, and `62:03` stays readable if one ever does.
+///
+/// Not to be confused with `formatClockTime` in `message_stamp.dart`, which
+/// formats a time of day.
+String formatClockDuration(Duration d) {
+  final s = d.inSeconds;
+  return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+}
+
 // ───────────────────────── list item model ─────────────────────────
 
 /// Marker for everything the transcript can render. Carries nothing itself —
