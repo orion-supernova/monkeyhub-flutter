@@ -4,7 +4,7 @@ import '../keyboard/focusable_tap.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
 import '../theme/theme_scope.dart';
-import 'glass_surface.dart';
+import 'liquid_glass.dart';
 
 /// Height of the banner's content row, excluding the divider.
 ///
@@ -22,6 +22,17 @@ const int _kMaxTickSegments = 5;
 const double _kTickWidth = 2.0;
 const double _kTickHeight = 26.0;
 const double _kTickGap = 2.0;
+
+/// Compact-style insets and corner. The 16pt gutter is the one the liquid
+/// header and composer already use, and 22 is the composer field's radius —
+/// half of the 44pt chrome height, so the strip reads as the same pill family
+/// as the round buttons flanking it rather than a full-bleed ribbon.
+///
+/// Horizontal only: the height has to stay exactly [kPinnedBannerHeight] or the
+/// transcript's reserved top padding drifts. The gap above comes from the
+/// header's own 8pt bottom padding.
+const double _kGlassGutter = 16.0;
+const double _kGlassRadius = 22.0;
 
 /// Advances the pin cursor, wrapping at the end.
 ///
@@ -155,8 +166,11 @@ class PinnedMessageBanner extends StatelessWidget {
   /// Open the full list of pins.
   final VoidCallback onOpenList;
 
-  /// Frosted rather than opaque, for the liquid style where this floats over
-  /// the transcript instead of sitting in a column above it.
+  /// A frosted, rounded, gutter-inset pill instead of an opaque full-bleed
+  /// strip. For the compact style, where this floats over the transcript
+  /// alongside the header capsule and the composer rather than sitting in a
+  /// column above it — square corners there were the one piece of chrome not
+  /// speaking the style's language.
   final bool glass;
 
   @override
@@ -244,7 +258,20 @@ class _Strip extends StatelessWidget {
       ),
     );
 
-    if (glass) return GlassSurface(radius: 0, padding: EdgeInsets.zero, child: row);
+    // [LiquidGlass] rather than [GlassSurface]: this is the same chrome as the
+    // header capsule and the composer field, so it should share their rounded
+    // shape, the user's glass dials, and — because the blur goes through
+    // `BackdropFilter.grouped` — their single rasterization pass.
+    if (glass) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _kGlassGutter),
+        child: LiquidGlass(
+          shape: LiquidGlassShape.rounded,
+          radius: _kGlassRadius,
+          child: row,
+        ),
+      );
+    }
 
     return DecoratedBox(
       decoration: BoxDecoration(

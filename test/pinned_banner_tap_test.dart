@@ -6,6 +6,7 @@ import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/room_pin.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/liquid_glass.dart';
 import 'package:monkeyhub/widgets/pinned_banner.dart';
 
 /// [FocusableTap] registers NO gesture recognizer of its own — it adds the
@@ -152,6 +153,38 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('alice  survivor'), findsOneWidget);
+  });
+
+  testWidgets('the compact strip is a rounded pill that keeps its height', (
+    tester,
+  ) async {
+    // The corner radius is the point — but `room_screen` reserves exactly
+    // kPinnedBannerHeight of transcript padding for this, so insetting it must
+    // stay horizontal. A vertical inset here reads as a gap above the composer.
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'a')],
+          activeIndex: 0,
+          onTap: () {},
+          onOpenList: () {},
+          glass: true,
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final size = tester.getSize(find.byType(PinnedMessageBanner));
+    expect(size.height, kPinnedBannerHeight);
+
+    final glass = tester.widget<LiquidGlass>(find.byType(LiquidGlass));
+    expect(glass.shape, LiquidGlassShape.rounded);
+    expect(glass.radius, greaterThan(0));
+    expect(
+      tester.getSize(find.byType(LiquidGlass)).width,
+      lessThan(size.width),
+      reason: 'the pill sits in the same gutter as the header and composer',
+    );
   });
 
   testWidgets('the position counter only appears with more than one pin', (
