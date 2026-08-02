@@ -44,7 +44,7 @@ enum _Shows { bar, surfaces }
 
 /// Gutter down the preview's right edge kept clear of preview content, so the
 /// floating collapse control never lands on top of it.
-const double _previewChromeGutter = 34;
+const double _previewChromeGutter = 92;
 
 /// One duration for every transition on this screen, so the preview's height,
 /// its contents and its glass all settle together instead of at three
@@ -52,11 +52,31 @@ const double _previewChromeGutter = 34;
 const Duration _glassMotion = Duration(milliseconds: 260);
 
 class _GlassScreenState extends State<GlassScreen> {
-  HomeSection _previewSection = HomeSection.discover;
+  // Chat, because it is the destination carrying a badge in the sample — so
+  // the one case where the badge has to hold up, sitting on the selected
+  // pill, is the case on screen by default.
+  HomeSection _previewSection = HomeSection.chat;
 
   final _panelKeys = {for (final p in _Panel.values) p: GlobalKey()};
   _Panel _activePanel = _Panel.looks;
   final _scrollKey = GlobalKey();
+
+  /// Guards against queueing a measurement per scroll event.
+  ///
+  /// A drag emits a notification every frame, and each was posting its own
+  /// post-frame callback — so a single flick queued dozens of identical
+  /// measurements, each capable of a setState. One in flight at a time is
+  /// enough: the callback runs after the frame the last event belongs to.
+  bool _syncQueued = false;
+
+  void _queueSyncActivePanel() {
+    if (_syncQueued) return;
+    _syncQueued = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncQueued = false;
+      if (mounted) _syncActivePanel();
+    });
+  }
 
   /// Follows the sticky header currently parked at the top of the list.
   ///
@@ -232,7 +252,19 @@ class _GlassScreenState extends State<GlassScreen> {
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          theme.backgroundLayer(context),
+          // A flat fill, not theme.backgroundLayer, and this is the one screen
+          // where that is right.
+          //
+          // Every theme's background layer is position-dependent — an accent
+          // wash over the top third, a vignette, and on Retro Wave a hard
+          // purple sky that is not the background colour at all. This screen
+          // pins two opaque bands over it (the preview, and whichever panel
+          // title is stuck under it), and an opaque band can only match a
+          // gradient at one scroll position. On light themes the seam was
+          // plainly visible; on Retro Wave the band was a different colour
+          // entirely. Flat, everything matches at every offset, on all
+          // thirteen. The colour on this screen comes from the preview.
+          Positioned.fill(child: ColoredBox(color: theme.background)),
           SafeArea(
             child: AdaptivePageBody(
               // The pinned header's extent is animated, and a sliver's extent
@@ -251,12 +283,10 @@ class _GlassScreenState extends State<GlassScreen> {
                 builder: (context, previewHeight, _) {
                   _livePreviewHeight = previewHeight;
                   return NotificationListener<ScrollNotification>(
+                    // After the frame, so the headers being measured have
+                    // already been laid out at their new positions.
                     onNotification: (_) {
-                      // After the frame, so the headers being measured have
-                      // already been laid out at their new positions.
-                      WidgetsBinding.instance.addPostFrameCallback(
-                        (_) => _syncActivePanel(),
-                      );
+                      _queueSyncActivePanel();
                       return false;
                     },
                     child: CustomScrollView(
@@ -389,13 +419,29 @@ class _GlassScreenState extends State<GlassScreen> {
                           onReset: profile.app == base.app
                               ? null
                               : () => _edit(profile.copyWith(app: base.app)),
-                          rows: _knobRows(
-                            theme,
-                            glassKnobs,
-                            profile.app,
-                            base.app,
-                            (c) => _edit(profile.copyWith(app: c)),
-                          ),
+                          rows: [
+                            // The two configs are separate because these
+                            // surfaces sit over text rather than over scrolling
+                            // content, so they usually want more fill. But once
+                            // the bar is tuned, "the same, please" is the common
+                            // next thought, and hand-matching eight dials to get
+                            // there is miserable.
+                            _ActionRow(
+                              icon: Icons.sync_alt,
+                              label: 'MATCH THE BOTTOM BAR',
+                              enabled: profile.app != profile.nav,
+                              onTap: () =>
+                                  _edit(profile.copyWith(app: profile.nav)),
+                            ),
+                            const SizedBox(height: 18),
+                            ..._knobRows(
+                              theme,
+                              glassKnobs,
+                              profile.app,
+                              base.app,
+                              (c) => _edit(profile.copyWith(app: c)),
+                            ),
+                          ],
                         ),
 
                         _panel(
@@ -846,23 +892,43 @@ class _PreviewToggle extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          padding: const EdgeInsets.fromLTRB(10, 5, 6, 5),
           decoration: ShapeDecoration(
             // Reads over whatever is behind it, which here is deliberately the
             // busiest content in the app.
-            color: theme.background.withValues(alpha: 0.82),
+            color: theme.background.withValues(alpha: 0.86),
             shape: StadiumBorder(
               side: BorderSide(color: theme.divider, width: 0.5),
             ),
           ),
-          child: AnimatedRotation(
-            turns: expanded ? 0 : 0.5,
-            duration: theme.motionFast,
-            child: Icon(
-              Icons.keyboard_arrow_up,
-              size: 16,
-              color: theme.inkSoft,
-            ),
+          // Carries the word as well as the chevron. A strip of app chrome
+          // sitting over unfamiliar chat rows in the middle of a settings
+          // screen reads as something rendering on top of the page by mistake
+          // — which is how it got reported. Saying "preview" on the control
+          // that is already there costs no extra corner: a separate tag in the
+          // opposite corner would have collided with the composer preview's
+          // own header, which is what the right-hand gutter exists to avoid.
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'PREVIEW',
+                style: theme.monoTiny.copyWith(
+                  color: theme.inkSoft,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(width: 3),
+              AnimatedRotation(
+                turns: expanded ? 0 : 0.5,
+                duration: theme.motionFast,
+                child: Icon(
+                  Icons.keyboard_arrow_up,
+                  size: 15,
+                  color: theme.inkSoft,
+                ),
+              ),
+            ],
           ),
         ),
       ),

@@ -37,24 +37,29 @@ void main() {
   const gutter = 36.0;
 
   group('routing', () {
-    test('crosses the transcript when the two bubbles sit on opposite sides',
-        () {
-      // The case that motivated the whole design: their bubble left, mine
-      // right, and previously nothing at all connecting the two.
-      final p = replyTetherPath(
-        width: w,
-        height: h,
-        isMine: true,
-        parentIsMine: false,
-        parentGutter: gutter,
-      );
-      expect(p.start.dx, lessThan(w / 3), reason: 'leaves from their margin');
-      expect(p.end.dx, greaterThan(w * 2 / 3), reason: 'arrives at mine');
-      expect(p.radius, greaterThan(0),
-          reason: 'a run this long gets both of its turns rounded');
-      expect(p.start.dy, 0);
-      expect(p.end.dy, h);
-    });
+    test(
+      'crosses the transcript when the two bubbles sit on opposite sides',
+      () {
+        // The case that motivated the whole design: their bubble left, mine
+        // right, and previously nothing at all connecting the two.
+        final p = replyTetherPath(
+          width: w,
+          height: h,
+          isMine: true,
+          parentIsMine: false,
+          parentGutter: gutter,
+        );
+        expect(p.start.dx, lessThan(w / 3), reason: 'leaves from their margin');
+        expect(p.end.dx, greaterThan(w * 2 / 3), reason: 'arrives at mine');
+        expect(
+          p.radius,
+          greaterThan(0),
+          reason: 'a run this long gets both of its turns rounded',
+        );
+        expect(p.start.dy, 0);
+        expect(p.end.dy, h);
+      },
+    );
 
     test('collapses to a straight drop when both sit on the same side', () {
       final p = replyTetherPath(
@@ -65,31 +70,37 @@ void main() {
         parentGutter: 0,
       );
       expect(p.start.dx, p.end.dx);
-      expect(p.radius, 0,
-          reason: 'no run means no corners — two zero-radius turns drawn on '
-              'top of each other is not the same picture');
+      expect(
+        p.radius,
+        0,
+        reason:
+            'no run means no corners — two zero-radius turns drawn on '
+            'top of each other is not the same picture',
+      );
     });
 
-    test('starts under the parent bubble, not a whole avatar column left of it',
-        () {
-      // Our row is outgoing so it reserves no avatar column; theirs is incoming
-      // so it does. Without the inset the anchor dot floats in the gutter.
-      final withSlot = replyTetherPath(
-        width: w,
-        height: h,
-        isMine: true,
-        parentIsMine: false,
-        parentGutter: gutter,
-      );
-      final inDm = replyTetherPath(
-        width: w,
-        height: h,
-        isMine: true,
-        parentIsMine: false,
-        parentGutter: 0,
-      );
-      expect(withSlot.start.dx - inDm.start.dx, gutter);
-    });
+    test(
+      'starts under the parent bubble, not a whole avatar column left of it',
+      () {
+        // Our row is outgoing so it reserves no avatar column; theirs is incoming
+        // so it does. Without the inset the anchor dot floats in the gutter.
+        final withSlot = replyTetherPath(
+          width: w,
+          height: h,
+          isMine: true,
+          parentIsMine: false,
+          parentGutter: gutter,
+        );
+        final inDm = replyTetherPath(
+          width: w,
+          height: h,
+          isMine: true,
+          parentIsMine: false,
+          parentGutter: 0,
+        );
+        expect(withSlot.start.dx - inDm.start.dx, gutter);
+      },
+    );
 
     test('the gutter is ignored when both rows reserve the same columns', () {
       // Both incoming: our slot and the parent's start at the same x, so the
@@ -102,8 +113,11 @@ void main() {
         parentIsMine: false,
         parentGutter: gutter,
       );
-      expect(p.start.dx, p.end.dx,
-          reason: 'same margin, same origin — the straight-drop case');
+      expect(
+        p.start.dx,
+        p.end.dx,
+        reason: 'same margin, same origin — the straight-drop case',
+      );
     });
 
     test('the elbow stays inside the block, whichever way it routes', () {
@@ -116,9 +130,13 @@ void main() {
             parentIsMine: parentIsMine,
             parentGutter: gutter,
           );
-          expect(p.elbow.dx, inInclusiveRange(0, w),
-              reason: 'the branch button is centred here and would hang off '
-                  'the row otherwise (mine=$isMine, parent=$parentIsMine)');
+          expect(
+            p.elbow.dx,
+            inInclusiveRange(0, w),
+            reason:
+                'the branch button is centred here and would hang off '
+                'the row otherwise (mine=$isMine, parent=$parentIsMine)',
+          );
           expect(p.elbow, isA<Offset>());
         }
       }
@@ -127,60 +145,63 @@ void main() {
 
   group('the widget', () {
     ChatMessage reply({bool parentDeleted = false}) => ChatMessage(
-          id: 'child',
-          roomId: 'r',
-          senderId: 'me',
-          senderName: 'me',
-          // Short on purpose: the test font draws every glyph as a square of
-          // the font size, so a real sentence fills the row and the alignment
-          // assertion below could not tell a hugging bubble from a stretched
-          // one.
-          content: 'ok',
-          createdAt: DateTime(2026, 3, 1, 12),
-          type: MessageType.text,
-          status: MessageStatus.sent,
-          replyToId: 'parent',
-          rootId: 'parent',
-          replyToPreview: ReplyPreview(
-            senderId: 'alice',
-            senderName: kParentName,
-            contentPreview: parentDeleted ? '__DELETED__' : kParentText,
-            type: MessageType.text,
-          ),
-        );
+      id: 'child',
+      roomId: 'r',
+      senderId: 'me',
+      senderName: 'me',
+      // Short on purpose: the test font draws every glyph as a square of
+      // the font size, so a real sentence fills the row and the alignment
+      // assertion below could not tell a hugging bubble from a stretched
+      // one.
+      content: 'ok',
+      createdAt: DateTime(2026, 3, 1, 12),
+      type: MessageType.text,
+      status: MessageStatus.sent,
+      replyToId: 'parent',
+      rootId: 'parent',
+      replyToPreview: ReplyPreview(
+        senderId: 'alice',
+        senderName: kParentName,
+        contentPreview: parentDeleted ? '__DELETED__' : kParentText,
+        type: MessageType.text,
+      ),
+    );
 
     Widget host(Widget child) => MaterialApp(
-          home: ThemeScope(
-            controller: ThemeController(BasicTheme.midnight()),
-            child: Scaffold(
-              body: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(width: w, child: child),
-              ),
-            ),
+      home: ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(width: w, child: child),
           ),
-        );
+        ),
+      ),
+    );
 
     Widget bubble({
       bool parentDeleted = false,
       VoidCallback? onViewThread,
       void Function(String parentId)? onReplyIndicatorTap,
-    }) =>
-        MessageBubble(
-          message: reply(parentDeleted: parentDeleted),
-          now: DateTime(2026, 3, 1, 12),
-          currentUserId: 'me',
-          api: api,
-          author: ChatUser(id: 'me', username: 'me', name: 'Me'),
-          parentAuthor:
-              ChatUser(id: 'alice', username: kParentName, name: 'Sidika'),
-          replyMarker: ReplyMarker.compact,
-          onViewThread: onViewThread,
-          onReplyIndicatorTap: onReplyIndicatorTap,
-        );
+    }) => MessageBubble(
+      message: reply(parentDeleted: parentDeleted),
+      now: DateTime(2026, 3, 1, 12),
+      currentUserId: 'me',
+      api: api,
+      author: ChatUser(id: 'me', username: 'me', name: 'Me'),
+      parentAuthor: ChatUser(
+        id: 'alice',
+        username: kParentName,
+        name: 'Sidika',
+      ),
+      replyMarker: ReplyMarker.compact,
+      onViewThread: onViewThread,
+      onReplyIndicatorTap: onReplyIndicatorTap,
+    );
 
-    testWidgets('says nothing at all — no quoted text, and no name either',
-        (t) async {
+    testWidgets('says nothing at all — no quoted text, and no name either', (
+      t,
+    ) async {
       await t.pumpWidget(host(bubble(onViewThread: () {})));
 
       expect(find.byType(ReplyTether), findsOneWidget);
@@ -188,12 +209,16 @@ void main() {
       expect(find.textContaining(kParentText), findsNothing);
       // And neither must their name — their bubble is one row up, beside their
       // own avatar and their own sender label. Repeating it is noise.
-      expect(find.textContaining(kParentName, findRichText: true), findsNothing);
+      expect(
+        find.textContaining(kParentName, findRichText: true),
+        findsNothing,
+      );
       expect(find.textContaining('SIDIKA'), findsNothing);
     });
 
-    testWidgets('spans the row without dragging the bubble across it',
-        (t) async {
+    testWidgets('spans the row without dragging the bubble across it', (
+      t,
+    ) async {
       await t.pumpWidget(host(bubble(onViewThread: () {})));
 
       // The tether has to reach the far margin to connect two bubbles on
@@ -224,8 +249,9 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('offers the branch button only where a thread can be opened',
-        (t) async {
+    testWidgets('offers the branch button only where a thread can be opened', (
+      t,
+    ) async {
       await t.pumpWidget(host(bubble(onViewThread: () {})));
       expect(find.byIcon(CupertinoIcons.arrow_branch), findsOneWidget);
 
@@ -234,17 +260,23 @@ void main() {
       await t.pumpWidget(host(bubble()));
       expect(find.byIcon(CupertinoIcons.arrow_branch), findsNothing);
 
-      await t.pumpWidget(host(bubble(parentDeleted: true, onViewThread: () {})));
+      await t.pumpWidget(
+        host(bubble(parentDeleted: true, onViewThread: () {})),
+      );
       expect(find.byIcon(CupertinoIcons.arrow_branch), findsNothing);
     });
 
     testWidgets('the line and the branch are two different doors', (t) async {
       String? jumpedTo;
       var openedThread = 0;
-      await t.pumpWidget(host(bubble(
-        onViewThread: () => openedThread++,
-        onReplyIndicatorTap: (id) => jumpedTo = id,
-      )));
+      await t.pumpWidget(
+        host(
+          bubble(
+            onViewThread: () => openedThread++,
+            onReplyIndicatorTap: (id) => jumpedTo = id,
+          ),
+        ),
+      );
 
       // On the connector's own band — which starts at the parent's margin, a
       // little in from the row edge — and clear of the button at the middle.
@@ -260,8 +292,9 @@ void main() {
       expect(jumpedTo, 'parent', reason: 'and the branch must not re-jump');
     });
 
-    testWidgets('measures the same with and without the branch button',
-        (t) async {
+    testWidgets('measures the same with and without the branch button', (
+      t,
+    ) async {
       await t.pumpWidget(host(bubble(onViewThread: () {})));
       final withButton = t.getSize(find.byType(ReplyTether)).height;
 

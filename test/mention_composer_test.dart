@@ -69,8 +69,7 @@ void main() {
               builder: (_, _) => Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (session.isOpen)
-                    MentionPicker(session: session),
+                  if (session.isOpen) MentionPicker(session: session),
                   if (classic)
                     ChatComposerClassic(
                       controller: controller,
@@ -110,12 +109,14 @@ void main() {
           selfUserId: 'me',
           allowEveryone: () => true,
         );
-        await tester.pumpWidget(host(
-          controller: controller,
-          session: session,
-          classic: classic,
-          onSend: () => sends++,
-        ));
+        await tester.pumpWidget(
+          host(
+            controller: controller,
+            session: session,
+            classic: classic,
+            onSend: () => sends++,
+          ),
+        );
         await tester.pumpAndSettle();
       }
 
@@ -125,12 +126,15 @@ void main() {
         await tester.tap(find.byType(TextField));
         await tester.pump();
         tester.testTextInput.enterText(text);
-        controller.selection =
-            TextSelection.collapsed(offset: controller.text.length);
+        controller.selection = TextSelection.collapsed(
+          offset: controller.text.length,
+        );
         await tester.pumpAndSettle();
       }
 
-      testDesktop('an @ opens the list with every member on it', (tester) async {
+      testDesktop('an @ opens the list with every member on it', (
+        tester,
+      ) async {
         await pump(tester);
         await type(tester, '@');
 
@@ -156,8 +160,9 @@ void main() {
         expect(find.byType(MentionPicker), findsNothing);
       });
 
-      testDesktop('tapping a row inserts the handle and closes the list',
-          (tester) async {
+      testDesktop('tapping a row inserts the handle and closes the list', (
+        tester,
+      ) async {
         await pump(tester);
         await type(tester, '@mar');
         await tester.tap(find.text('Maria Lopez'));
@@ -188,8 +193,9 @@ void main() {
         expect(controller.mentions, isEmpty);
       });
 
-      testDesktop('editing a committed handle drops the mention',
-          (tester) async {
+      testDesktop('editing a committed handle drops the mention', (
+        tester,
+      ) async {
         await pump(tester);
         await type(tester, '@mar');
         await tester.tap(find.text('Maria Lopez'));
@@ -202,8 +208,9 @@ void main() {
         expect(controller.mentions, isEmpty);
       });
 
-      testDesktop('arrow keys move the selection and Enter takes it',
-          (tester) async {
+      testDesktop('arrow keys move the selection and Enter takes it', (
+        tester,
+      ) async {
         await pump(tester);
         await type(tester, '@m');
         // Owner first, so row 0 is Murat; one step down is Maria.
@@ -243,10 +250,12 @@ void main() {
         await type(tester, '@m');
 
         Iterable<Color?> rowFills() => tester
-            .widgetList<Container>(find.descendant(
-              of: find.byType(MentionPicker),
-              matching: find.byType(Container),
-            ))
+            .widgetList<Container>(
+              find.descendant(
+                of: find.byType(MentionPicker),
+                matching: find.byType(Container),
+              ),
+            )
             .map((c) => c.color);
 
         // Nothing is filled — the top entry must not read as already chosen.
@@ -274,31 +283,34 @@ void main() {
         expect(sends, 1);
       });
 
-      testDesktop('a composer with no session behaves exactly as before',
-          (tester) async {
+      testDesktop('a composer with no session behaves exactly as before', (
+        tester,
+      ) async {
         var taps = 0;
         final plain = TextEditingController();
-        await tester.pumpWidget(MaterialApp(
-          home: ThemeScope(
-            controller: ThemeController(BasicTheme.midnight()),
-            child: Scaffold(
-              body: Align(
-                alignment: Alignment.bottomCenter,
-                child: classic
-                    ? ChatComposerClassic(
-                        controller: plain,
-                        ephemeral: false,
-                        onSend: () => taps++,
-                      )
-                    : ChatComposerLiquid(
-                        controller: plain,
-                        ephemeral: false,
-                        onSend: () => taps++,
-                      ),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ThemeScope(
+              controller: ThemeController(BasicTheme.midnight()),
+              child: Scaffold(
+                body: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: classic
+                      ? ChatComposerClassic(
+                          controller: plain,
+                          ephemeral: false,
+                          onSend: () => taps++,
+                        )
+                      : ChatComposerLiquid(
+                          controller: plain,
+                          ephemeral: false,
+                          onSend: () => taps++,
+                        ),
+                ),
               ),
             ),
           ),
-        ));
+        );
         await tester.pumpAndSettle();
 
         await tester.tap(find.byType(TextField));

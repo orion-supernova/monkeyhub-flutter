@@ -24,20 +24,18 @@ import 'package:monkeyhub/widgets/liquid_glass.dart';
 /// hardcoded points: the invariant is "content is centred in its own slot and
 /// the whole slot is tappable", which holds at any width.
 void main() {
-  Widget wrap(
-    Widget child, {
-    TextDirection direction = TextDirection.ltr,
-  }) => ThemeScope(
-    controller: ThemeController(BasicTheme.midnight()),
-    child: MaterialApp(
-      home: Scaffold(
-        body: Directionality(
-          textDirection: direction,
-          child: Stack(children: [child]),
+  Widget wrap(Widget child, {TextDirection direction = TextDirection.ltr}) =>
+      ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Directionality(
+              textDirection: direction,
+              child: Stack(children: [child]),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
   Future<void> pumpNav(
     WidgetTester tester, {
@@ -83,7 +81,10 @@ void main() {
 
     // And they tile: no gaps, no overlap.
     for (var i = 1; i < navDestinations.length; i++) {
-      expect(slotOf(tester, i).left, closeTo(slotOf(tester, i - 1).right, 0.01));
+      expect(
+        slotOf(tester, i).left,
+        closeTo(slotOf(tester, i - 1).right, 0.01),
+      );
     }
   });
 
@@ -130,7 +131,9 @@ void main() {
 
     expect(
       taps,
-      [for (final d in navDestinations) ...[d.section, d.section]],
+      [
+        for (final d in navDestinations) ...[d.section, d.section],
+      ],
       reason: 'both outer edges of every segment must select that destination',
     );
   });
@@ -155,11 +158,7 @@ void main() {
     // absolute `Alignment(x, 0)` does not, so the indicator used to land on the
     // mirrored segment. Assert against the slot, which mirrors with the Row.
     for (final d in navDestinations) {
-      await pumpNav(
-        tester,
-        active: d.section,
-        direction: TextDirection.rtl,
-      );
+      await pumpNav(tester, active: d.section, direction: TextDirection.rtl);
       final i = navDestinations.indexOf(d);
       final indicator = tester.getRect(find.byType(FractionallySizedBox));
       expect(
@@ -210,7 +209,8 @@ void main() {
     expect(
       outer,
       lessThan(between),
-      reason: 'the bar edge should sit closer to the end pill than two pills '
+      reason:
+          'the bar edge should sit closer to the end pill than two pills '
           'sit to each other, or the ends read as dead space',
     );
     expect(outer, lessThan(8));

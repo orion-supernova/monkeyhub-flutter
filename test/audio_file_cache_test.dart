@@ -27,16 +27,14 @@ void main() {
   /// A minimal MP4: `ftyp` at offset 4, which is the marker `_extensionFor`
   /// keys on. Same layout as what `package:record` produces.
   Uint8List m4a() => Uint8List.fromList([
-        0, 0, 0, 24, // box size
-        ...'ftyp'.codeUnits,
-        ...'mp42'.codeUnits,
-        0, 0, 0, 0,
-      ]);
+    0, 0, 0, 24, // box size
+    ...'ftyp'.codeUnits,
+    ...'mp42'.codeUnits,
+    0, 0, 0, 0,
+  ]);
 
-  Uint8List ogg() => Uint8List.fromList([
-        ...'OggS'.codeUnits,
-        ...List.filled(12, 0),
-      ]);
+  Uint8List ogg() =>
+      Uint8List.fromList([...'OggS'.codeUnits, ...List.filled(12, 0)]);
 
   /// A client that answers every GET with [body], counting the calls.
   ({http.Client client, int Function() calls}) serving(
@@ -67,8 +65,10 @@ void main() {
   test('names the file from the container magic, not the served type', () async {
     final s = serving(m4a());
     final path = await cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: s.client,
+    );
 
     // `.m4a` is the whole point: it is the only thing telling iOS what this is,
     // because the URL it came from had no extension and the wrong MIME.
@@ -77,14 +77,18 @@ void main() {
     expect(File(path).readAsBytesSync(), m4a());
   });
 
-  test('an ogg body is named .ogg, so a future web upload is not relabelled',
-      () async {
-    final s = serving(ogg());
-    final path = await cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
-    expect(path, endsWith('.ogg'));
-  });
+  test(
+    'an ogg body is named .ogg, so a future web upload is not relabelled',
+    () async {
+      final s = serving(ogg());
+      final path = await cache.resolve(
+        'abc',
+        () async => 'https://example.test/api/storage/1',
+        client: s.client,
+      );
+      expect(path, endsWith('.ogg'));
+    },
+  );
 
   test('concurrent resolves of one id share a single download', () async {
     // A room full of voice notes mounts every visible player in one frame, and
@@ -93,8 +97,11 @@ void main() {
     final s = serving(m4a(), gate: gate);
     final futures = List.generate(
       10,
-      (_) => cache.resolve('abc', () async => 'https://example.test/api/storage/1',
-          client: s.client),
+      (_) => cache.resolve(
+        'abc',
+        () async => 'https://example.test/api/storage/1',
+        client: s.client,
+      ),
     );
     gate.complete();
     final paths = await Future.wait(futures);
@@ -106,8 +113,10 @@ void main() {
   test('a resolved id is warm afterwards and does not re-download', () async {
     final s = serving(m4a());
     Future<String> get() => cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: s.client,
+    );
 
     final first = await get();
     final second = await get();
@@ -127,20 +136,29 @@ void main() {
   test('an id that is not a safe path segment is refused', () async {
     // The id becomes a path segment; a `../` would write outside the cache dir.
     await expectLater(
-      cache.resolve('../evil', () async => 'https://example.test/api/storage/1'),
+      cache.resolve(
+        '../evil',
+        () async => 'https://example.test/api/storage/1',
+      ),
       throwsA(isA<ArgumentError>()),
     );
   });
 
-  test('a body too short to identify is rejected rather than written', () async {
-    final s = serving(Uint8List.fromList([1, 2, 3]));
-    await expectLater(
-      cache.resolve('abc', () async => 'https://example.test/api/storage/1',
-          client: s.client),
-      throwsA(isA<FormatException>()),
-    );
-    expect(dir.listSync(), isEmpty);
-  });
+  test(
+    'a body too short to identify is rejected rather than written',
+    () async {
+      final s = serving(Uint8List.fromList([1, 2, 3]));
+      await expectLater(
+        cache.resolve(
+          'abc',
+          () async => 'https://example.test/api/storage/1',
+          client: s.client,
+        ),
+        throwsA(isA<FormatException>()),
+      );
+      expect(dir.listSync(), isEmpty);
+    },
+  );
 
   test('a failed download does not wedge the id', () async {
     var calls = 0;
@@ -149,8 +167,10 @@ void main() {
       return http.Response('nope', 500);
     });
     Future<String> get() => cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: client);
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: client,
+    );
 
     await expectLater(get(), throwsA(isA<HttpException>()));
     // The in-flight entry has to clear on failure too, or one dropped request
@@ -162,8 +182,10 @@ void main() {
   test('evict deletes the file and forces a re-download', () async {
     final s = serving(m4a());
     Future<String> get() => cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: s.client,
+    );
 
     final path = await get();
     await cache.evict('abc');
@@ -179,8 +201,10 @@ void main() {
     File('${dir.path}/abc.m4a.part').writeAsBytesSync(m4a().sublist(0, 8));
     final s = serving(m4a());
     final path = await cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: s.client,
+    );
 
     expect(path, endsWith('.m4a'));
     expect(path, isNot(endsWith('.part')));
@@ -188,28 +212,36 @@ void main() {
     expect(File(path).readAsBytesSync(), hasLength(m4a().length));
   });
 
-  test('a warm directory is adopted on a cold start with no download', () async {
-    // The index is what makes the cache survive a restart without a hop in
-    // main() — and what makes airplane-mode playback work.
-    final s = serving(m4a());
-    final path = await cache.resolve(
-        'abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+  test(
+    'a warm directory is adopted on a cold start with no download',
+    () async {
+      // The index is what makes the cache survive a restart without a hop in
+      // main() — and what makes airplane-mode playback work.
+      final s = serving(m4a());
+      final path = await cache.resolve(
+        'abc',
+        () async => 'https://example.test/api/storage/1',
+        client: s.client,
+      );
 
-    cache.debugReset();
-    cache.debugDir = dir;
+      cache.debugReset();
+      cache.debugDir = dir;
 
-    final again = await cache.resolve('abc', () async {
-      fail('a warm file must not re-resolve its URL');
-    }, client: s.client);
-    expect(again, path);
-    expect(s.calls(), 1);
-  });
+      final again = await cache.resolve('abc', () async {
+        fail('a warm file must not re-resolve its URL');
+      }, client: s.client);
+      expect(again, path);
+      expect(s.calls(), 1);
+    },
+  );
 
   test('clear removes the directory', () async {
     final s = serving(m4a());
-    await cache.resolve('abc', () async => 'https://example.test/api/storage/1',
-        client: s.client);
+    await cache.resolve(
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+      client: s.client,
+    );
     await cache.clear();
     expect(dir.existsSync(), isFalse);
   });

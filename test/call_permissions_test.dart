@@ -30,22 +30,22 @@ void main() {
   void install() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      final video = (call.arguments as Map?)?['video'] == true;
-      switch (call.method) {
-        case 'hasCallPermissions':
-          return video ? audioGranted && cameraGranted : audioGranted;
-        case 'requestCallPermissions':
-          if (grantOnRequest) {
-            audioGranted = true;
-            if (video) cameraGranted = true;
+          calls.add(call);
+          final video = (call.arguments as Map?)?['video'] == true;
+          switch (call.method) {
+            case 'hasCallPermissions':
+              return video ? audioGranted && cameraGranted : audioGranted;
+            case 'requestCallPermissions':
+              if (grantOnRequest) {
+                audioGranted = true;
+                if (video) cameraGranted = true;
+              }
+              return grantOnRequest;
+            case 'openAppSettings':
+              return true;
           }
-          return grantOnRequest;
-        case 'openAppSettings':
-          return true;
-      }
-      return null;
-    });
+          return null;
+        });
   }
 
   setUp(() {
@@ -93,8 +93,8 @@ void main() {
     test('an unreachable channel reports false, never true', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async {
-        throw MissingPluginException('no such method');
-      });
+            throw MissingPluginException('no such method');
+          });
 
       expect(await CallPermissions.granted(CallMediaKind.audio), isFalse);
     });
@@ -139,8 +139,9 @@ void main() {
       grantOnRequest = true;
 
       expect(await CallPermissions.ensure(CallMediaKind.video), isTrue);
-      final request =
-          calls.firstWhere((c) => c.method == 'requestCallPermissions');
+      final request = calls.firstWhere(
+        (c) => c.method == 'requestCallPermissions',
+      );
       expect(request.arguments, {'video': true});
     });
   });
@@ -151,8 +152,9 @@ void main() {
 
       await CallPermissions.preGrantMicrophone();
 
-      final request =
-          calls.firstWhere((c) => c.method == 'requestCallPermissions');
+      final request = calls.firstWhere(
+        (c) => c.method == 'requestCallPermissions',
+      );
       expect(request.arguments, {'video': false});
     });
 

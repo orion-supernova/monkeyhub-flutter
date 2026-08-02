@@ -48,29 +48,41 @@ void main() {
     /// The exact state `just_audio` leaves behind: still flagged playing, and
     /// a position a tick short of the end.
     AudioDisplay finished() => audioDisplayFor(
-          rawPlaying: true,
-          completed: true,
-          position: const Duration(seconds: 41, milliseconds: 700),
-          total: total,
-        );
+      rawPlaying: true,
+      completed: true,
+      position: const Duration(seconds: 41, milliseconds: 700),
+      total: total,
+    );
 
     test('is not playing, whatever the raw flag says', () {
-      expect(finished().playing, isFalse,
-          reason: 'this is what drew a pause button on a stopped note, and '
-              'what sent the tap handler down its pause() branch so replaying '
-              'took two taps');
+      expect(
+        finished().playing,
+        isFalse,
+        reason:
+            'this is what drew a pause button on a stopped note, and '
+            'what sent the tap handler down its pause() branch so replaying '
+            'took two taps',
+      );
     });
 
     test('the bar arrives at the end', () {
-      expect(finished().progress, 1.0,
-          reason: 'the position stream stops short, so a computed progress '
-              'rests at ~97% — a bar that visibly never finishes');
+      expect(
+        finished().progress,
+        1.0,
+        reason:
+            'the position stream stops short, so a computed progress '
+            'rests at ~97% — a bar that visibly never finishes',
+      );
     });
 
     test('the readout shows the full duration, not the last tick', () {
-      expect(finished().elapsed, total,
-          reason: 'otherwise a finished note reads "0:41 / 0:42" and looks '
-              'like it stopped early');
+      expect(
+        finished().elapsed,
+        total,
+        reason:
+            'otherwise a finished note reads "0:41 / 0:42" and looks '
+            'like it stopped early',
+      );
     });
   });
 

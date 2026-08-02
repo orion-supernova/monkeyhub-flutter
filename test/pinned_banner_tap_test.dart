@@ -24,41 +24,45 @@ import 'package:monkeyhub/widgets/pinned_banner.dart';
 /// does not also fire the row's jump.
 void main() {
   ChatMessage msg(String id, String content) => ChatMessage(
-        id: id,
-        roomId: 'r',
-        senderId: 'alice',
-        senderName: 'alice',
-        content: content,
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: MessageType.text,
-      );
+    id: id,
+    roomId: 'r',
+    senderId: 'alice',
+    senderName: 'alice',
+    content: content,
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: MessageType.text,
+  );
 
   RoomPin pin(String id, String content) => RoomPin(
-        message: msg(id, content),
-        pinnedAt: DateTime(2026, 3, 1, 13),
-        pinnedBy: 'bob',
-      );
+    message: msg(id, content),
+    pinnedAt: DateTime(2026, 3, 1, 13),
+    pinnedBy: 'bob',
+  );
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 500, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 500, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   testWidgets('tapping the row fires onTap', (tester) async {
     var taps = 0;
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'deploy at 4pm')],
-      activeIndex: 0,
-      onTap: () => taps++,
-      onOpenList: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'deploy at 4pm')],
+          activeIndex: 0,
+          onTap: () => taps++,
+          onOpenList: () {},
+        ),
+      ),
+    );
     // Past the AnimatedSize/AnimatedSwitcher entrance before touching anything.
     await tester.pump(const Duration(milliseconds: 400));
 
@@ -68,16 +72,21 @@ void main() {
     expect(taps, 1, reason: 'FocusableTap alone registers no recognizer');
   });
 
-  testWidgets('tapping the list button opens the list, and does not jump',
-      (tester) async {
+  testWidgets('tapping the list button opens the list, and does not jump', (
+    tester,
+  ) async {
     var taps = 0;
     var opens = 0;
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'a'), pin('m2', 'b')],
-      activeIndex: 0,
-      onTap: () => taps++,
-      onOpenList: () => opens++,
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'a'), pin('m2', 'b')],
+          activeIndex: 0,
+          onTap: () => taps++,
+          onOpenList: () => opens++,
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     await tester.tap(find.byIcon(CupertinoIcons.list_bullet));
@@ -88,12 +97,16 @@ void main() {
   });
 
   testWidgets('renders no ink', (tester) async {
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'a')],
-      activeIndex: 0,
-      onTap: () {},
-      onOpenList: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'a')],
+          activeIndex: 0,
+          onTap: () {},
+          onOpenList: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(InkWell), findsNothing);
@@ -101,12 +114,16 @@ void main() {
   });
 
   testWidgets('collapses to zero height with no pins', (tester) async {
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: const [],
-      activeIndex: 0,
-      onTap: () {},
-      onOpenList: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: const [],
+          activeIndex: 0,
+          onTap: () {},
+          onOpenList: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(
@@ -116,39 +133,53 @@ void main() {
     );
   });
 
-  testWidgets('a stale cursor past the end renders rather than throwing',
-      (tester) async {
+  testWidgets('a stale cursor past the end renders rather than throwing', (
+    tester,
+  ) async {
     // Two pins expired between subscription frames; the cursor has not caught
     // up yet. The strip clamps on read.
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'survivor')],
-      activeIndex: 4,
-      onTap: () {},
-      onOpenList: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'survivor')],
+          activeIndex: 4,
+          onTap: () {},
+          onOpenList: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(tester.takeException(), isNull);
     expect(find.text('alice  survivor'), findsOneWidget);
   });
 
-  testWidgets('the position counter only appears with more than one pin',
-      (tester) async {
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'a')],
-      activeIndex: 0,
-      onTap: () {},
-      onOpenList: () {},
-    )));
+  testWidgets('the position counter only appears with more than one pin', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'a')],
+          activeIndex: 0,
+          onTap: () {},
+          onOpenList: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Pinned message'), findsOneWidget);
 
-    await tester.pumpWidget(host(PinnedMessageBanner(
-      pins: [pin('m1', 'a'), pin('m2', 'b'), pin('m3', 'c')],
-      activeIndex: 1,
-      onTap: () {},
-      onOpenList: () {},
-    )));
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'a'), pin('m2', 'b'), pin('m3', 'c')],
+          activeIndex: 1,
+          onTap: () {},
+          onOpenList: () {},
+        ),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Pinned message  2/3'), findsOneWidget);
   });

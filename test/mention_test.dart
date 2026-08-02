@@ -14,14 +14,13 @@ ChatUser _user(
   String name = '',
   String? role,
   String? status,
-}) =>
-    ChatUser(
-      id: id,
-      username: username,
-      name: name,
-      role: role,
-      status: status,
-    );
+}) => ChatUser(
+  id: id,
+  username: username,
+  name: name,
+  role: role,
+  status: status,
+);
 
 void main() {
   group('MentionDetector', () {
@@ -34,7 +33,10 @@ void main() {
       expect(m.single.userId, 'u1');
       expect(m.single.start, 4);
       expect(m.single.end, 10);
-      expect('hey @murat look'.substring(m.single.start, m.single.end), '@murat');
+      expect(
+        'hey @murat look'.substring(m.single.start, m.single.end),
+        '@murat',
+      );
     });
 
     test('ignores a handle the message never claimed', () {
@@ -72,8 +74,10 @@ void main() {
         usernameById: {'u1': 'john smith'},
       );
       expect(m.single.userId, 'u1');
-      expect('ping @john smith now'.substring(m.single.start, m.single.end),
-          '@john smith');
+      expect(
+        'ping @john smith now'.substring(m.single.start, m.single.end),
+        '@john smith',
+      );
     });
 
     test('does not fire on an email address', () {
@@ -120,11 +124,14 @@ void main() {
 
     test('survivingIds drops a mention the user has edited away', () {
       const handles = {'u1': 'murat'};
-      expect(MentionDetector.survivingIds('hi @murat', usernameById: handles),
-          {'u1'});
+      expect(MentionDetector.survivingIds('hi @murat', usernameById: handles), {
+        'u1',
+      });
       // One backspace and it is no longer that person's handle.
-      expect(MentionDetector.survivingIds('hi @mura', usernameById: handles),
-          isEmpty);
+      expect(
+        MentionDetector.survivingIds('hi @mura', usernameById: handles),
+        isEmpty,
+      );
     });
   });
 

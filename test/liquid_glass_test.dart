@@ -13,25 +13,31 @@ import 'package:monkeyhub/widgets/liquid_glass.dart';
 /// hence these tests.
 void main() {
   Widget host(Widget child, {double width = 800}) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Center(
-              child: SizedBox(width: width, child: Center(child: child)),
-            ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: width,
+            child: Center(child: child),
           ),
         ),
-      );
-
-  testWidgets('without an explicit size the glass hugs its child',
-      (tester) async {
-    await tester.pumpWidget(host(
-      const LiquidGlass(
-        shape: LiquidGlassShape.capsule,
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: SizedBox(width: 100, height: 20),
       ),
-    ));
+    ),
+  );
+
+  testWidgets('without an explicit size the glass hugs its child', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const LiquidGlass(
+          shape: LiquidGlassShape.capsule,
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: SizedBox(width: 100, height: 20),
+        ),
+      ),
+    );
 
     // 100 of child + 12 padding either side. NOT the 800 on offer.
     expect(tester.getSize(find.byType(LiquidGlass)).width, 124);
@@ -39,35 +45,47 @@ void main() {
 
   testWidgets('a hugging glass still lets a flexible child ellipsize at the '
       'width on offer', (tester) async {
-    await tester.pumpWidget(host(
-      LiquidGlass(
-        shape: LiquidGlassShape.capsule,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text('x' * 4000, maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-          ],
+    await tester.pumpWidget(
+      host(
+        LiquidGlass(
+          shape: LiquidGlassShape.capsule,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  'x' * 4000,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
+        width: 300,
       ),
-      width: 300,
-    ));
+    );
 
     // Clamped by the parent rather than overflowing it.
-    expect(tester.getSize(find.byType(LiquidGlass)).width, lessThanOrEqualTo(300));
+    expect(
+      tester.getSize(find.byType(LiquidGlass)).width,
+      lessThanOrEqualTo(300),
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('an explicit size still pins the box and centres the child',
-      (tester) async {
-    await tester.pumpWidget(host(
-      const LiquidGlass(
-        shape: LiquidGlassShape.circle,
-        size: Size(44, 44),
-        child: SizedBox(width: 18, height: 18),
+  testWidgets('an explicit size still pins the box and centres the child', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const LiquidGlass(
+          shape: LiquidGlassShape.circle,
+          size: Size(44, 44),
+          child: SizedBox(width: 18, height: 18),
+        ),
       ),
-    ));
+    );
 
     expect(tester.getSize(find.byType(LiquidGlass)), const Size(44, 44));
     final glass = tester.getCenter(find.byType(LiquidGlass));
@@ -76,20 +94,23 @@ void main() {
     expect(icon.dy, closeTo(glass.dy, 0.01));
   });
 
-  testWidgets('a tightly constrained glass still fills — the composer field',
-      (tester) async {
-    await tester.pumpWidget(host(
-      const Row(
-        children: [
-          Expanded(
-            child: LiquidGlass(
-              shape: LiquidGlassShape.rounded,
-              child: SizedBox(height: 40),
+  testWidgets('a tightly constrained glass still fills — the composer field', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const Row(
+          children: [
+            Expanded(
+              child: LiquidGlass(
+                shape: LiquidGlassShape.rounded,
+                child: SizedBox(height: 40),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
 
     expect(tester.getSize(find.byType(LiquidGlass)).width, 800);
   });

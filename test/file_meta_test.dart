@@ -25,8 +25,11 @@ void main() {
     test('is empty when there is nothing to read', () {
       expect(fileExtensionOf('README'), '', reason: 'no dot at all');
       expect(fileExtensionOf(''), '', reason: 'empty name');
-      expect(fileExtensionOf('trailing.'), '',
-          reason: 'a trailing dot names no type');
+      expect(
+        fileExtensionOf('trailing.'),
+        '',
+        reason: 'a trailing dot names no type',
+      );
     });
 
     test('a dotfile is a name, not a type', () {
@@ -37,10 +40,16 @@ void main() {
     });
 
     test('rejects a suffix that cannot be an extension', () {
-      expect(fileExtensionOf('report v2. final'), '',
-          reason: 'a space means this is prose, not a type');
-      expect(fileExtensionOf('some.dir/file'), '',
-          reason: 'the last dot is above the filename');
+      expect(
+        fileExtensionOf('report v2. final'),
+        '',
+        reason: 'a space means this is prose, not a type',
+      );
+      expect(
+        fileExtensionOf('some.dir/file'),
+        '',
+        reason: 'the last dot is above the filename',
+      );
     });
   });
 
@@ -51,8 +60,11 @@ void main() {
         mimeTypeForFileName('notes.docx'),
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       );
-      expect(mimeTypeForFileName('PHOTO.JPEG'), 'image/jpeg',
-          reason: 'case must not matter — Android hands back SHOUTED names');
+      expect(
+        mimeTypeForFileName('PHOTO.JPEG'),
+        'image/jpeg',
+        reason: 'case must not matter — Android hands back SHOUTED names',
+      );
     });
 
     test('falls back rather than guessing', () {
@@ -89,8 +101,11 @@ void main() {
 
     test('is non-negative and never blank', () {
       expect(formatFileSize(0), '0 B');
-      expect(formatFileSize(-5), '0 B',
-          reason: 'a negative size is a bug upstream, not something to render');
+      expect(
+        formatFileSize(-5),
+        '0 B',
+        reason: 'a negative size is a bug upstream, not something to render',
+      );
     });
 
     test('crosses to KB at exactly 1024, binary like every file browser', () {

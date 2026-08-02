@@ -483,36 +483,39 @@ void main() {
       expect(resubscribes, 0);
     });
 
-    test('sustained socket flapping neither resubscribes nor resets the UI', () async {
-      probe.probeResult = false;
-      probe.reconnectResult = false;
-      build().start();
+    test(
+      'sustained socket flapping neither resubscribes nor resets the UI',
+      () async {
+        probe.probeResult = false;
+        probe.reconnectResult = false;
+        build().start();
 
-      for (var i = 0; i < 5; i++) {
-        probe.emit(false);
-        probe.emit(true);
-        await settle(const Duration(milliseconds: 12));
-      }
-      await settle(const Duration(milliseconds: 40));
+        for (var i = 0; i < 5; i++) {
+          probe.emit(false);
+          probe.emit(true);
+          await settle(const Duration(milliseconds: 12));
+        }
+        await settle(const Duration(milliseconds: 40));
 
-      expect(resubscribes, 0, reason: 'no probe ever succeeded');
-      expect(
-        health.phase,
-        isNot(ConnectionPhase.online),
-        reason: 'one continuous outage, not five short ones',
-      );
+        expect(resubscribes, 0, reason: 'no probe ever succeeded');
+        expect(
+          health.phase,
+          isNot(ConnectionPhase.online),
+          reason: 'one continuous outage, not five short ones',
+        );
 
-      // Each edge is evidence of progress, so the alarm gets pushed back — but
-      // only [maxStalledRearms] times. Past that the flapping is the outage,
-      // and a connection that is genuinely broken has to say so.
-      await settle(_stalled * 4);
-      expect(
-        health.phase,
-        ConnectionPhase.stalled,
-        reason: 'the alarm cannot be deferred forever by flapping',
-      );
-      expect(resubscribes, 0);
-    });
+        // Each edge is evidence of progress, so the alarm gets pushed back — but
+        // only [maxStalledRearms] times. Past that the flapping is the outage,
+        // and a connection that is genuinely broken has to say so.
+        await settle(_stalled * 4);
+        expect(
+          health.phase,
+          ConnectionPhase.stalled,
+          reason: 'the alarm cannot be deferred forever by flapping',
+        );
+        expect(resubscribes, 0);
+      },
+    );
 
     // Defect: "tap to retry" was dead. retryNow only completed the backoff
     // sleeper, which is null while a probe is in flight — and a probe occupies
@@ -553,7 +556,8 @@ void main() {
       expect(
         health.isRetrying,
         isTrue,
-        reason: 'a new attempt started, so the banner must not blink to the dot',
+        reason:
+            'a new attempt started, so the banner must not blink to the dot',
       );
     });
 
@@ -584,27 +588,44 @@ void main() {
       await health.retryNow(manual: false);
       await settle(const Duration(milliseconds: 20));
 
-      expect(probe.probeCalls, initialCalls, reason: 'fresh probe <1.5s old must not be interrupted by automatic resume retry');
+      expect(
+        probe.probeCalls,
+        initialCalls,
+        reason:
+            'fresh probe <1.5s old must not be interrupted by automatic resume retry',
+      );
     });
 
-    test('stalled phase automatic background retries do not toggle isRetrying unless manual', () async {
-      probe.probeResult = false;
-      probe.probeDelay = const Duration(milliseconds: 10);
-      build(backoff: const [Duration(milliseconds: 50)]).start();
+    test(
+      'stalled phase automatic background retries do not toggle isRetrying unless manual',
+      () async {
+        probe.probeResult = false;
+        probe.probeDelay = const Duration(milliseconds: 10);
+        build(backoff: const [Duration(milliseconds: 50)]).start();
 
-      probe.emit(false);
-      await expectPhase(ConnectionPhase.stalled);
+        probe.emit(false);
+        await expectPhase(ConnectionPhase.stalled);
 
-      // Settle past next background attempt
-      await settle(const Duration(milliseconds: 80));
-      // Background retry during stalled should not set isRetrying to true
-      expect(health.isRetrying, isFalse, reason: 'automatic background retry during stalled phase stays steady on tap-to-retry');
+        // Settle past next background attempt
+        await settle(const Duration(milliseconds: 80));
+        // Background retry during stalled should not set isRetrying to true
+        expect(
+          health.isRetrying,
+          isFalse,
+          reason:
+              'automatic background retry during stalled phase stays steady on tap-to-retry',
+        );
 
-      // Manual retry sets isRetrying to true
-      unawaited(health.retryNow(manual: true));
-      expect(health.isRetrying, isTrue, reason: 'manual tap sets isRetrying true so spinner displays');
-      await settle(const Duration(milliseconds: 30));
-    });
+        // Manual retry sets isRetrying to true
+        unawaited(health.retryNow(manual: true));
+        expect(
+          health.isRetrying,
+          isTrue,
+          reason: 'manual tap sets isRetrying true so spinner displays',
+        );
+        await settle(const Duration(milliseconds: 30));
+      },
+    );
 
     // ───────── rebuilding the socket ─────────
     //
@@ -656,50 +677,59 @@ void main() {
       expect(health.phase, ConnectionPhase.online);
     });
 
-    test('the rebuild escalation waits for rebuildAfterAttempt failures', () async {
-      probe.probeResult = false;
-      probe.reconnectResult = false;
-      build(backoff: const [Duration(milliseconds: 10)]).start();
+    test(
+      'the rebuild escalation waits for rebuildAfterAttempt failures',
+      () async {
+        probe.probeResult = false;
+        probe.reconnectResult = false;
+        build(backoff: const [Duration(milliseconds: 10)]).start();
 
-      probe.emit(false);
-      // Two attempts in: still probing only.
-      await settle(const Duration(milliseconds: 25));
-      expect(
-        probe.calls.take(2),
-        everyElement('probe'),
-        reason: 'a merely slow server must not lose its socket on one miss',
-      );
+        probe.emit(false);
+        // Two attempts in: still probing only.
+        await settle(const Duration(milliseconds: 25));
+        expect(
+          probe.calls.take(2),
+          everyElement('probe'),
+          reason: 'a merely slow server must not lose its socket on one miss',
+        );
 
-      await settle(const Duration(milliseconds: 120));
-      expect(probe.reconnectCalls, greaterThan(0));
-    });
+        await settle(const Duration(milliseconds: 120));
+        expect(probe.reconnectCalls, greaterThan(0));
+      },
+    );
 
-    test('a rebuild is re-probed at once and does not reset the backoff', () async {
-      probe.probeResult = false;
-      build(backoff: const [
-        Duration(milliseconds: 10),
-        Duration(milliseconds: 10),
-        Duration(seconds: 30),
-      ]).start();
+    test(
+      'a rebuild is re-probed at once and does not reset the backoff',
+      () async {
+        probe.probeResult = false;
+        build(
+          backoff: const [
+            Duration(milliseconds: 10),
+            Duration(milliseconds: 10),
+            Duration(seconds: 30),
+          ],
+        ).start();
 
-      probe.emit(false);
-      await settle(const Duration(milliseconds: 60));
+        probe.emit(false);
+        await settle(const Duration(milliseconds: 60));
 
-      final i = probe.calls.indexOf('reconnect');
-      expect(i, greaterThanOrEqualTo(0));
-      expect(
-        probe.calls[i + 1],
-        'probe',
-        reason: 'the point of a rebuild is the probe that rides the new socket',
-      );
+        final i = probe.calls.indexOf('reconnect');
+        expect(i, greaterThanOrEqualTo(0));
+        expect(
+          probe.calls[i + 1],
+          'probe',
+          reason:
+              'the point of a rebuild is the probe that rides the new socket',
+        );
 
-      // The ladder measures how long the outage has lasted, which a rebuild
-      // does not shorten. Resetting it left an offline phone oscillating on the
-      // first two rungs instead of settling at one attempt per 15s.
-      final settled = probe.probeCalls;
-      await settle(const Duration(milliseconds: 80));
-      expect(probe.probeCalls, settled, reason: 'parked on the 30s rung');
-    });
+        // The ladder measures how long the outage has lasted, which a rebuild
+        // does not shorten. Resetting it left an offline phone oscillating on the
+        // first two rungs instead of settling at one attempt per 15s.
+        final settled = probe.probeCalls;
+        await settle(const Duration(milliseconds: 80));
+        expect(probe.probeCalls, settled, reason: 'parked on the 30s rung');
+      },
+    );
 
     test('a connected edge no longer cancels an in-flight probe', () async {
       probe.probeResult = false;
@@ -747,28 +777,32 @@ void main() {
       );
     });
 
-    test('connectivity storms produce at most one retry per throttle window',
-        () async {
-      probe.probeResult = false;
-      build(backoff: const [Duration(seconds: 30)], watchConnectivity: true)
-          .start();
+    test(
+      'connectivity storms produce at most one retry per throttle window',
+      () async {
+        probe.probeResult = false;
+        build(
+          backoff: const [Duration(seconds: 30)],
+          watchConnectivity: true,
+        ).start();
 
-      probe.emit(false);
-      await settle(const Duration(milliseconds: 30));
-      final before = probe.probeCalls;
+        probe.emit(false);
+        await settle(const Duration(milliseconds: 30));
+        final before = probe.probeCalls;
 
-      // Both platforms emit a burst of interface transitions per unlock.
-      for (var i = 0; i < 8; i++) {
-        connectivity.add(true);
-      }
-      await settle(const Duration(milliseconds: 30));
+        // Both platforms emit a burst of interface transitions per unlock.
+        for (var i = 0; i < 8; i++) {
+          connectivity.add(true);
+        }
+        await settle(const Duration(milliseconds: 30));
 
-      expect(
-        probe.probeCalls - before,
-        lessThanOrEqualTo(1),
-        reason: 'unthrottled, each one killed the probe the last one started',
-      );
-    });
+        expect(
+          probe.probeCalls - before,
+          lessThanOrEqualTo(1),
+          reason: 'unthrottled, each one killed the probe the last one started',
+        );
+      },
+    );
 
     test('tap-to-retry during a verify starts a fresh probe', () async {
       probe.probeResult = false;
@@ -826,55 +860,59 @@ void main() {
       );
     });
 
-    test('a tap during the uninterruptible floor is honoured, not dropped',
-        () async {
-      probe.probeResult = false;
-      // One long rung, so a dropped wake is unmistakable: without the fix the
-      // next probe is 30s away.
-      build(backoff: const [Duration(seconds: 30)]).start();
+    test(
+      'a tap during the uninterruptible floor is honoured, not dropped',
+      () async {
+        probe.probeResult = false;
+        // One long rung, so a dropped wake is unmistakable: without the fix the
+        // next probe is 30s away.
+        build(backoff: const [Duration(seconds: 30)]).start();
 
-      probe.emit(false);
-      await settle(const Duration(milliseconds: 20));
-      final before = probe.probeCalls;
-      expect(before, greaterThan(0));
+        probe.emit(false);
+        await settle(const Duration(milliseconds: 20));
+        final before = probe.probeCalls;
+        expect(before, greaterThan(0));
 
-      // The floor is only 10ms here, so land the tap inside it: fire it in the
-      // same turn the probe fails.
-      health.retryNow(manual: true);
-      await settle(const Duration(milliseconds: 60));
+        // The floor is only 10ms here, so land the tap inside it: fire it in the
+        // same turn the probe fails.
+        health.retryNow(manual: true);
+        await settle(const Duration(milliseconds: 60));
 
-      expect(
-        probe.probeCalls,
-        greaterThan(before),
-        reason:
-            'the floor bounds how OFTEN we retry; it must not discard the '
-            'request, or the banner spins "retrying…" with nothing in flight',
-      );
-    });
+        expect(
+          probe.probeCalls,
+          greaterThan(before),
+          reason:
+              'the floor bounds how OFTEN we retry; it must not discard the '
+              'request, or the banner spins "retrying…" with nothing in flight',
+        );
+      },
+    );
 
     // ───────── the one input that is not a hint ─────────
 
-    test('losing the interface shows the banner without waiting for a probe',
-        () async {
-      probe.probeResult = false;
-      probe.probeDelay = const Duration(seconds: 30); // never reports
-      build(watchConnectivity: true).start();
+    test(
+      'losing the interface shows the banner without waiting for a probe',
+      () async {
+        probe.probeResult = false;
+        probe.probeDelay = const Duration(seconds: 30); // never reports
+        build(watchConnectivity: true).start();
 
-      connectivity.add(false);
+        connectivity.add(false);
 
-      // The probe is still parked and will be for another 30s. Nothing else in
-      // this class could raise a banner before then, which is the ~9.5s (real
-      // clock) blind spot this exists to close.
-      await expectPhase(
-        ConnectionPhase.reconnecting,
-        reason: 'the radio being off is not something a probe can clarify',
-      );
-      expect(
-        probe.probeCalls,
-        lessThanOrEqualTo(1),
-        reason: 'no extra probing — we already know the answer',
-      );
-    });
+        // The probe is still parked and will be for another 30s. Nothing else in
+        // this class could raise a banner before then, which is the ~9.5s (real
+        // clock) blind spot this exists to close.
+        await expectPhase(
+          ConnectionPhase.reconnecting,
+          reason: 'the radio being off is not something a probe can clarify',
+        );
+        expect(
+          probe.probeCalls,
+          lessThanOrEqualTo(1),
+          reason: 'no extra probing — we already know the answer',
+        );
+      },
+    );
 
     test('a momentary interface flap does not flash the banner', () async {
       probe.probeResult = true;
@@ -893,43 +931,48 @@ void main() {
       );
     });
 
-    test('the banner clears once the interface returns and a probe lands',
-        () async {
-      probe.probeResult = false;
-      build(watchConnectivity: true).start();
+    test(
+      'the banner clears once the interface returns and a probe lands',
+      () async {
+        probe.probeResult = false;
+        build(watchConnectivity: true).start();
 
-      connectivity.add(false);
-      await expectPhase(ConnectionPhase.reconnecting);
+        connectivity.add(false);
+        await expectPhase(ConnectionPhase.reconnecting);
 
-      probe.probeResult = true;
-      clock.advance(const Duration(seconds: 10)); // past the retry throttle
-      connectivity.add(true);
+        probe.probeResult = true;
+        clock.advance(const Duration(seconds: 10)); // past the retry throttle
+        connectivity.add(true);
 
-      await expectPhase(ConnectionPhase.online);
-      expect(resubscribes, 1);
-    });
+        await expectPhase(ConnectionPhase.online);
+        expect(resubscribes, 1);
+      },
+    );
 
-    test('an automatic retry during a verify defers instead of piling on',
-        () async {
-      probe.probeResult = false;
-      probe.probeDelay = const Duration(milliseconds: 100);
-      build().start();
+    test(
+      'an automatic retry during a verify defers instead of piling on',
+      () async {
+        probe.probeResult = false;
+        probe.probeDelay = const Duration(milliseconds: 100);
+        build().start();
 
-      unawaited(health.retryNow(manual: true));
-      await settle(const Duration(milliseconds: 20));
-      expect(probe.probeCalls, 1);
+        unawaited(health.retryNow(manual: true));
+        await settle(const Duration(milliseconds: 20));
+        expect(probe.probeCalls, 1);
 
-      clock.advance(const Duration(seconds: 5));
-      await health.retryNow(manual: false);
-      await settle(const Duration(milliseconds: 20));
+        clock.advance(const Duration(seconds: 5));
+        await health.retryNow(manual: false);
+        await settle(const Duration(milliseconds: 20));
 
-      expect(
-        probe.probeCalls,
-        1,
-        reason: 'an OS nudge has no more to say than the probe already running',
-      );
-      await settle(const Duration(milliseconds: 120));
-    });
+        expect(
+          probe.probeCalls,
+          1,
+          reason:
+              'an OS nudge has no more to say than the probe already running',
+        );
+        await settle(const Duration(milliseconds: 120));
+      },
+    );
   });
 
   // Defect: overlapping resubscribes used to be dropped outright. When the

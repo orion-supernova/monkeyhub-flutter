@@ -42,7 +42,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'ImageDescriptor.width/height throw UnsupportedError on web. Use '
+      reason:
+          'ImageDescriptor.width/height throw UnsupportedError on web. Use '
           'decodeImageBytes or imageBytesSize from $allowed instead.\n'
           'Found at: ${offenders.join(', ')}',
     );

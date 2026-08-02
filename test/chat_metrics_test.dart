@@ -84,10 +84,16 @@ void main() {
       ChatMetrics? prev;
       for (var w = 320.0; w <= 3000; w += 8) {
         final m = wide(w);
-        expect(m.columnWidth, lessThanOrEqualTo(w),
-            reason: 'column must fit the pane at $w');
-        expect(m.bubbleMaxWidth, lessThanOrEqualTo(m.columnWidth),
-            reason: 'bubble must fit the column at $w');
+        expect(
+          m.columnWidth,
+          lessThanOrEqualTo(w),
+          reason: 'column must fit the pane at $w',
+        );
+        expect(
+          m.bubbleMaxWidth,
+          lessThanOrEqualTo(m.columnWidth),
+          reason: 'bubble must fit the column at $w',
+        );
         if (prev != null) {
           expect(m.columnWidth, greaterThanOrEqualTo(prev.columnWidth));
           expect(m.bubbleMaxWidth, greaterThanOrEqualTo(prev.bubbleMaxWidth));

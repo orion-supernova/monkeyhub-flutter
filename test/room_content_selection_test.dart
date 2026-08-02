@@ -20,15 +20,15 @@ import 'package:monkeyhub/models/enums.dart';
 /// selecting from.
 void main() {
   ChatMessage msg(String id) => ChatMessage(
-        id: id,
-        roomId: 'r1',
-        senderId: 'u1',
-        senderName: 'ada',
-        content: '',
-        createdAt: DateTime.utc(2026, 1, 1, 12, int.parse(id.substring(1))),
-        type: MessageType.image,
-        mediaStorageId: 'stor_$id',
-      );
+    id: id,
+    roomId: 'r1',
+    senderId: 'u1',
+    senderName: 'ada',
+    content: '',
+    createdAt: DateTime.utc(2026, 1, 1, 12, int.parse(id.substring(1))),
+    type: MessageType.image,
+    mediaStorageId: 'stor_$id',
+  );
 
   late RoomContentSelection sel;
   late int notifies;
@@ -85,14 +85,21 @@ void main() {
       sel.selectAll(['m1', 'm2']);
       sel.selectAll(['m1', 'm2']);
       expect(sel.isEmpty, isTrue);
-      expect(sel.active, isTrue, reason: 'still selecting, just nothing picked');
+      expect(
+        sel.active,
+        isTrue,
+        reason: 'still selecting, just nothing picked',
+      );
     });
 
     test('a grown list re-selects rather than clearing', () {
       sel.selectAll(['m1', 'm2']);
       sel.selectAll(['m1', 'm2', 'm3']);
-      expect(sel.count, 3,
-          reason: 'the list is not the same list, so this is not a re-press');
+      expect(
+        sel.count,
+        3,
+        reason: 'the list is not the same list, so this is not a re-press',
+      );
     });
   });
 
@@ -103,8 +110,11 @@ void main() {
       final alive = [msg('m1'), msg('m3')];
 
       expect(sel.count, 3, reason: 'the raw set still holds the stale id');
-      expect(sel.resolve(alive).map((m) => m.id), ['m1', 'm3'],
-          reason: 'THIS is what the action bar must count and act on');
+      expect(
+        sel.resolve(alive).map((m) => m.id),
+        ['m1', 'm3'],
+        reason: 'THIS is what the action bar must count and act on',
+      );
     });
 
     test('resolve follows the list order, not the selection order', () {
@@ -125,9 +135,13 @@ void main() {
       sel.selectAll(['m1', 'm2']);
       final before = notifies;
       sel.prune([msg('m1'), msg('m2')]);
-      expect(notifies, before,
-          reason: 'prune runs after every list settle — a no-op must not '
-              'rebuild the grid');
+      expect(
+        notifies,
+        before,
+        reason:
+            'prune runs after every list settle — a no-op must not '
+            'rebuild the grid',
+      );
     });
 
     test('prune on an empty selection is free', () {
@@ -141,8 +155,11 @@ void main() {
       expect(sel.resolve(const []), isEmpty);
       sel.prune(const []);
       expect(sel.isEmpty, isTrue);
-      expect(sel.active, isTrue,
-          reason: 'the mode outlives the content; only clear() leaves it');
+      expect(
+        sel.active,
+        isTrue,
+        reason: 'the mode outlives the content; only clear() leaves it',
+      );
     });
   });
 

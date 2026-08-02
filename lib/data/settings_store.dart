@@ -213,14 +213,23 @@ class SettingsStore extends ChangeNotifier {
       _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
       _roomFilter = RoomFilter.decode(await _storage.read(key: _kRoomFilter));
       _glassSlots = _decodeSlots(await _storage.read(key: _kGlassSlots));
-      _glassPresetId = await _storage.read(key: _kGlassPreset);
       final rawGlass = await _storage.read(key: _kGlassProfile);
-      // The stored profile wins, because a preset can be selected and then
+      // The stored profile wins, because a look can be selected and then
       // nudged. Only fall back to the preset's own profile when there is no
       // stored one at all — a fresh install, or a keychain wipe.
+      //
+      // The two are read together, and the preset pointer is only trusted when
+      // there IS a stored profile. Reading the pointer on its own overwrote the
+      // field's default with the null a fresh install returns, so a first
+      // launch came up wearing Frosted's values while labelled "Custom" — a
+      // state the UI otherwise cannot reach, and one that made the shipped
+      // default look like an unsaved edit.
       if (rawGlass != null && rawGlass.isNotEmpty) {
         _glass = GlassProfile.fromJson(jsonDecode(rawGlass));
+        // Legitimately null once the slot you were wearing is deleted.
+        _glassPresetId = await _storage.read(key: _kGlassPreset);
       } else {
+        _glassPresetId = kDefaultGlassPresetId;
         _glass = _resolvePreset(_glassPresetId).profile;
       }
     } catch (_) {

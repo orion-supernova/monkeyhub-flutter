@@ -22,31 +22,34 @@ void main() {
   /// recognizer's bail path run at all. Standalone, it wins the arena as the
   /// sole member and the interesting branch is never reached.
   Widget host({required VoidCallback onReply}) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: ListView(
-              children: [
-                SwipeToReply(
-                  onReplyTriggered: onReply,
-                  child: Container(
-                    key: childKey,
-                    height: 60,
-                    color: const Color(0xFF222222),
-                  ),
-                ),
-              ],
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: ListView(
+          children: [
+            SwipeToReply(
+              onReplyTriggered: onReply,
+              child: Container(
+                key: childKey,
+                height: 60,
+                color: const Color(0xFF222222),
+              ),
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
-  testWidgets('reply arms on release, before the bubble has slid home',
-      (tester) async {
+  testWidgets('reply arms on release, before the bubble has slid home', (
+    tester,
+  ) async {
     var replies = 0;
     await tester.pumpWidget(host(onReply: () => replies++));
 
-    final gesture = await tester.startGesture(tester.getCenter(find.byKey(childKey)));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(childKey)),
+    );
     await tester.pump();
     // Past the 64px threshold.
     await gesture.moveBy(const Offset(90, 0));
@@ -56,7 +59,11 @@ void main() {
     await gesture.up();
     // A single frame — nowhere near the 220ms snap-back.
     await tester.pump();
-    expect(replies, 1, reason: 'must fire on the release frame, not after the snap');
+    expect(
+      replies,
+      1,
+      reason: 'must fire on the release frame, not after the snap',
+    );
 
     // And the bubble is still on its way home at that point.
     expect(tester.getTopLeft(find.byKey(childKey)).dx, greaterThan(0));
@@ -66,12 +73,15 @@ void main() {
     expect(replies, 1, reason: 'the snap-back must not fire a second reply');
   });
 
-  testWidgets('a pull that stops short of the threshold arms nothing',
-      (tester) async {
+  testWidgets('a pull that stops short of the threshold arms nothing', (
+    tester,
+  ) async {
     var replies = 0;
     await tester.pumpWidget(host(onReply: () => replies++));
 
-    final gesture = await tester.startGesture(tester.getCenter(find.byKey(childKey)));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(childKey)),
+    );
     await tester.pump();
     await gesture.moveBy(const Offset(40, 0));
     await tester.pump();
@@ -82,8 +92,9 @@ void main() {
     expect(tester.getTopLeft(find.byKey(childKey)).dx, 0);
   });
 
-  testWidgets('a second finger landing mid-swipe cannot strand the bubble',
-      (tester) async {
+  testWidgets('a second finger landing mid-swipe cannot strand the bubble', (
+    tester,
+  ) async {
     // The regression. A fresh pointer resets the recognizer's leftward budget
     // while the accumulated drag persists, so the bail could fire with the
     // bubble already pulled far to the right. It then swallowed every
@@ -108,8 +119,11 @@ void main() {
     await a.up();
     await tester.pumpAndSettle();
 
-    expect(tester.getTopLeft(find.byKey(childKey)).dx, 0,
-        reason: 'the bubble must always return to rest');
+    expect(
+      tester.getTopLeft(find.byKey(childKey)).dx,
+      0,
+      reason: 'the bubble must always return to rest',
+    );
     expect(replies, lessThanOrEqualTo(1));
   });
 
@@ -117,7 +131,9 @@ void main() {
     var replies = 0;
     await tester.pumpWidget(host(onReply: () => replies++));
 
-    final gesture = await tester.startGesture(tester.getCenter(find.byKey(childKey)));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(childKey)),
+    );
     await tester.pump();
     await gesture.moveBy(const Offset(-40, 0));
     await tester.pump();

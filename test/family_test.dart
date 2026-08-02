@@ -37,10 +37,14 @@ void main() {
 
   group('request stage', () {
     test('maps the wire values from friendships.stage', () {
-      expect(RequestStage.parse('awaitingSenderGuardian'),
-          RequestStage.senderGuardian);
-      expect(RequestStage.parse('awaitingRecipientGuardian'),
-          RequestStage.recipientGuardian);
+      expect(
+        RequestStage.parse('awaitingSenderGuardian'),
+        RequestStage.senderGuardian,
+      );
+      expect(
+        RequestStage.parse('awaitingRecipientGuardian'),
+        RequestStage.recipientGuardian,
+      );
       expect(RequestStage.parse('awaitingRecipient'), RequestStage.recipient);
     });
 
@@ -57,8 +61,7 @@ void main() {
     test('only the sender-guardian hop mentions a grown-up', () {
       // The other two must stay vague: telling a sender that the recipient's
       // guardian is deciding would disclose that the recipient is a child.
-      expect(RequestStage.senderGuardian.senderLabel,
-          'waiting for a grown-up');
+      expect(RequestStage.senderGuardian.senderLabel, 'waiting for a grown-up');
       expect(RequestStage.recipientGuardian.senderLabel, 'waiting for them');
       expect(RequestStage.recipient.senderLabel, 'waiting for them');
     });
@@ -142,25 +145,30 @@ void main() {
       // Only the latter should offer an ASK button.
       expect(isChildBlockedOutright(Exception('CHILD_NOT_ALLOWED')), isTrue);
       expect(
-          isChildBlockedOutright(Exception('CHILD_APPROVAL_REQUIRED')), isFalse);
+        isChildBlockedOutright(Exception('CHILD_APPROVAL_REQUIRED')),
+        isFalse,
+      );
     });
   });
 
   group('allowed contacts', () {
     ChildContact parse(Map<String, dynamic> j) => ChildContact.fromJson(j);
 
-    test('a whitelisted person who has not accepted reads as not-yet-added', () {
-      final c = parse(const {
-        '_id': 'u1',
-        'username': 'grandma',
-        'name': 'Grandma',
-        'connected': false,
-        'approvalId': 'a1',
-      });
-      expect(c.isWhitelisted, isTrue);
-      expect(c.connected, isFalse);
-      expect(c.stateLabel, 'allowed · not added yet');
-    });
+    test(
+      'a whitelisted person who has not accepted reads as not-yet-added',
+      () {
+        final c = parse(const {
+          '_id': 'u1',
+          'username': 'grandma',
+          'name': 'Grandma',
+          'connected': false,
+          'approvalId': 'a1',
+        });
+        expect(c.isWhitelisted, isTrue);
+        expect(c.connected, isFalse);
+        expect(c.stateLabel, 'allowed · not added yet');
+      },
+    );
 
     test('someone added through the normal flow has no pre-approval', () {
       // No approvalId means there's nothing to "take back" — the row has to
@@ -191,10 +199,20 @@ void main() {
     test('grants decode a mixed list', () {
       final g = ChildGrants.fromJson(const {
         'rooms': [
-          {'_id': 'r1', 'name': 'minecraft', 'memberCount': 3, 'approvalId': 'ar1'}
+          {
+            '_id': 'r1',
+            'name': 'minecraft',
+            'memberCount': 3,
+            'approvalId': 'ar1',
+          },
         ],
         'contacts': [
-          {'_id': 'u1', 'username': 'grandma', 'name': 'Gran', 'approvalId': 'a1'},
+          {
+            '_id': 'u1',
+            'username': 'grandma',
+            'name': 'Gran',
+            'approvalId': 'a1',
+          },
           {'_id': 'u2', 'username': 'zoe', 'name': 'Zoe', 'connected': true},
         ],
       });
@@ -235,7 +253,7 @@ void main() {
         'dmCount': 0,
         'messageCount': 0,
         'sharedGroupRooms': [
-          {'_id': 'r1', 'name': 'minecraft', 'memberCount': 12}
+          {'_id': 'r1', 'name': 'minecraft', 'memberCount': 12},
         ],
       });
       expect(p.isEmpty, isFalse);
@@ -253,14 +271,16 @@ void main() {
       expect(p.dmCount, 2);
     });
 
-    test('the offline fallback reads as nothing-known, not nothing-to-lose',
-        () {
-      // `unknown` is what a failed preview falls back to. It must not claim
-      // there is history to delete, but the caller still routes through the
-      // confirmation because it cannot prove there isn't.
-      expect(ContactRemovalPreview.unknown.messageCount, 0);
-      expect(ContactRemovalPreview.unknown.dmCount, 0);
-    });
+    test(
+      'the offline fallback reads as nothing-known, not nothing-to-lose',
+      () {
+        // `unknown` is what a failed preview falls back to. It must not claim
+        // there is history to delete, but the caller still routes through the
+        // confirmation because it cannot prove there isn't.
+        expect(ContactRemovalPreview.unknown.messageCount, 0);
+        expect(ContactRemovalPreview.unknown.dmCount, 0);
+      },
+    );
 
     test('a missing payload decodes rather than throwing', () {
       final p = ContactRemovalPreview.fromJson(const {});

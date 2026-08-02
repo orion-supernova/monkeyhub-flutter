@@ -12,24 +12,24 @@ import 'package:monkeyhub/widgets/busy_scrim.dart';
 /// scrim, and a second tap on it during a pick used to open a second picker.
 void main() {
   Widget host({required VoidCallback onUnderneath}) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Stack(
-              children: [
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onUnderneath,
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-                const BusyScrim(),
-              ],
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onUnderneath,
+                child: const SizedBox.expand(),
+              ),
             ),
-          ),
+            const BusyScrim(),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   testWidgets('shows a spinner', (tester) async {
     await tester.pumpWidget(host(onUnderneath: () {}));

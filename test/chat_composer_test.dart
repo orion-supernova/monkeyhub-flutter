@@ -18,27 +18,29 @@ import 'package:monkeyhub/widgets/chat_composer.dart';
 /// ship broken for half the users.
 void main() {
   Widget host(Widget composer) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(body: Align(alignment: Alignment.bottomCenter, child: composer)),
-        ),
-      );
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(alignment: Alignment.bottomCenter, child: composer),
+      ),
+    ),
+  );
 
   final composers = <String, Widget Function({VoidCallback? onCamera})>{
     'classic': ({onCamera}) => ChatComposerClassic(
-          controller: TextEditingController(),
-          ephemeral: false,
-          onSend: () {},
-          onAttach: () {},
-          onCamera: onCamera,
-        ),
+      controller: TextEditingController(),
+      ephemeral: false,
+      onSend: () {},
+      onAttach: () {},
+      onCamera: onCamera,
+    ),
     'liquid': ({onCamera}) => ChatComposerLiquid(
-          controller: TextEditingController(),
-          ephemeral: false,
-          onSend: () {},
-          onAttach: () {},
-          onCamera: onCamera,
-        ),
+      controller: TextEditingController(),
+      ephemeral: false,
+      onSend: () {},
+      onAttach: () {},
+      onCamera: onCamera,
+    ),
   };
 
   composers.forEach((name, build) {
@@ -56,8 +58,9 @@ void main() {
         expect(taps, 1);
       });
 
-      testWidgets('omits it entirely when there is nowhere to go',
-          (tester) async {
+      testWidgets('omits it entirely when there is nowhere to go', (
+        tester,
+      ) async {
         await tester.pumpWidget(host(build()));
         await tester.pumpAndSettle();
 

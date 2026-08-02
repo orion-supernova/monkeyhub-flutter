@@ -58,8 +58,11 @@ void main() {
       final back = ChatMessage.fromJson(doc().toJson());
 
       expect(back.type, MessageType.file);
-      expect(back.fileName, 'q3 report.pdf',
-          reason: 'the name IS the document — there is no thumbnail behind it');
+      expect(
+        back.fileName,
+        'q3 report.pdf',
+        reason: 'the name IS the document — there is no thumbnail behind it',
+      );
       expect(back.fileSize, 84210);
       expect(back.mimeType, 'application/pdf');
       expect(back.mediaStorageId, 'stor_1');

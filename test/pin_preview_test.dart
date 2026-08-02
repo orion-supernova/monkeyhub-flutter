@@ -22,17 +22,16 @@ void main() {
     MessageType type = MessageType.text,
     String content = '',
     bool viewOnce = false,
-  }) =>
-      ChatMessage(
-        id: 'm1',
-        roomId: 'r',
-        senderId: 'alice',
-        senderName: 'alice',
-        content: content,
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: type,
-        viewOnce: viewOnce,
-      );
+  }) => ChatMessage(
+    id: 'm1',
+    roomId: 'r',
+    senderId: 'alice',
+    senderName: 'alice',
+    content: content,
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: type,
+    viewOnce: viewOnce,
+  );
 
   group('view-once wins', () {
     test('is labelled before content is consulted', () {
@@ -54,7 +53,10 @@ void main() {
 
   group('text', () {
     test('is passed through', () {
-      expect(messagePreviewLine(msg(content: 'deploy at 4pm')), 'deploy at 4pm');
+      expect(
+        messagePreviewLine(msg(content: 'deploy at 4pm')),
+        'deploy at 4pm',
+      );
     });
 
     test('empty renders as an ellipsis, never as nothing', () {

@@ -25,12 +25,14 @@ void main() {
 
     // The literal as written in messages.ts: body between the delimiters, then
     // whatever flags follow.
-    final match =
-        RegExp(r'export const LINK_PATTERN = /(.+)/([a-z]*);').firstMatch(source);
+    final match = RegExp(
+      r'export const LINK_PATTERN = /(.+)/([a-z]*);',
+    ).firstMatch(source);
     expect(
       match,
       isNotNull,
-      reason: 'LINK_PATTERN was renamed, moved out of messages.ts, or stopped '
+      reason:
+          'LINK_PATTERN was renamed, moved out of messages.ts, or stopped '
           'being a plain regex literal. It is one half of a pair that must '
           'stay in step, so it has to remain readable from here.',
     );
@@ -44,7 +46,8 @@ void main() {
     expect(
       serverBody.replaceAll(r'\/', '/'),
       UrlDetector.pattern.pattern,
-      reason: 'The server decides which messages the LINKS tab may read and the '
+      reason:
+          'The server decides which messages the LINKS tab may read and the '
           'client decides what it renders from them. A disagreement shows up '
           'as a tab that pages forever drawing nothing, with no error anywhere.',
     );
@@ -56,7 +59,8 @@ void main() {
     expect(
       serverFlags.contains('i'),
       !UrlDetector.pattern.isCaseSensitive,
-      reason: 'Case sensitivity must match. Server flags: "$serverFlags", '
+      reason:
+          'Case sensitivity must match. Server flags: "$serverFlags", '
           'Dart isCaseSensitive: ${UrlDetector.pattern.isCaseSensitive}.',
     );
   });
@@ -64,11 +68,15 @@ void main() {
   test('the shared pattern actually matches what a message looks like', () {
     // Cheap end-to-end sanity on the Dart half, so a parity test passing
     // because BOTH sides were broken identically still gets caught.
-    expect(UrlDetector.extract('see https://example.com/a?b=1'),
-        ['https://example.com/a?b=1']);
+    expect(UrlDetector.extract('see https://example.com/a?b=1'), [
+      'https://example.com/a?b=1',
+    ]);
     expect(UrlDetector.extract('http://x.dev and https://y.dev').length, 2);
     expect(UrlDetector.extract('no links here'), isEmpty);
-    expect(UrlDetector.extract('ftp://nope.example'), isEmpty,
-        reason: 'only http(s) — the server agrees, and must');
+    expect(
+      UrlDetector.extract('ftp://nope.example'),
+      isEmpty,
+      reason: 'only http(s) — the server agrees, and must',
+    );
   });
 }

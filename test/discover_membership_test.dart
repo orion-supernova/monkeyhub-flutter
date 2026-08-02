@@ -14,14 +14,14 @@ import 'package:monkeyhub/models/chat_room.dart';
 /// screens branch on.
 void main() {
   ChatRoom room(String id, {bool isMember = false}) => ChatRoom(
-        id: id,
-        name: id,
-        createdBy: 'someone',
-        createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-        isPrivate: false,
-        memberCount: 1,
-        isMember: isMember,
-      );
+    id: id,
+    name: id,
+    createdBy: 'someone',
+    createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+    isPrivate: false,
+    memberCount: 1,
+    isMember: isMember,
+  );
 
   // No network: the client initializes lazily, and none of this touches it.
   ChatRepository repo() {
@@ -72,12 +72,15 @@ void main() {
       expect(r.isJoined(room('b')), isTrue);
     });
 
-    test('is true from the server flag alone, before the list has hydrated', () {
-      // The cold-start window: repo.rooms is still empty because the
-      // subscription hasn't delivered, but listPublic already told us.
-      final r = repo()..debugSeedRooms([]);
-      expect(r.isJoined(room('a', isMember: true)), isTrue);
-    });
+    test(
+      'is true from the server flag alone, before the list has hydrated',
+      () {
+        // The cold-start window: repo.rooms is still empty because the
+        // subscription hasn't delivered, but listPublic already told us.
+        final r = repo()..debugSeedRooms([]);
+        expect(r.isJoined(room('a', isMember: true)), isTrue);
+      },
+    );
 
     test('an empty repo and an unflagged room means run the join flow', () {
       final r = repo()..debugSeedRooms([]);

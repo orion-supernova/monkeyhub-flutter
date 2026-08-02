@@ -15,14 +15,13 @@ void main() {
     required bool isMine,
     bool firstInRun = true,
     bool lastInRun = true,
-  }) =>
-      theme.bubbleShape(
-        isMine: isMine,
-        ephemeral: false,
-        style: style,
-        firstInRun: firstInRun,
-        lastInRun: lastInRun,
-      );
+  }) => theme.bubbleShape(
+    isMine: isMine,
+    ephemeral: false,
+    style: style,
+    firstInRun: firstInRun,
+    lastInRun: lastInRun,
+  );
 
   double large() {
     final authored = theme
@@ -54,16 +53,20 @@ void main() {
     test('only the row that closes a run carries the tail', () {
       expect(shapeFor(style: BubbleStyle.tailed, isMine: true).tail, isTrue);
       expect(
-        shapeFor(style: BubbleStyle.tailed, isMine: true, lastInRun: false).tail,
+        shapeFor(
+          style: BubbleStyle.tailed,
+          isMine: true,
+          lastInRun: false,
+        ).tail,
         isFalse,
       );
       expect(
         shapeFor(
-                style: BubbleStyle.tailed,
-                isMine: true,
-                firstInRun: false,
-                lastInRun: false)
-            .tail,
+          style: BubbleStyle.tailed,
+          isMine: true,
+          firstInRun: false,
+          lastInRun: false,
+        ).tail,
         isFalse,
       );
     });
@@ -72,25 +75,27 @@ void main() {
       for (final style in [
         BubbleStyle.soft,
         BubbleStyle.pill,
-        BubbleStyle.slab
+        BubbleStyle.slab,
       ]) {
         expect(shapeFor(style: style, isMine: true).tail, isFalse);
       }
     });
 
-    test('the sender-side corners tighten inside a run, the far side never',
-        () {
-      final middle = shapeFor(
-        style: BubbleStyle.tailed,
-        isMine: true,
-        firstInRun: false,
-        lastInRun: false,
-      ).radii;
-      expect(middle.topRight.x, small(), reason: 'sender top tightens');
-      expect(middle.bottomRight.x, small(), reason: 'sender bottom tightens');
-      expect(middle.topLeft.x, large(), reason: 'far side stays round');
-      expect(middle.bottomLeft.x, large(), reason: 'far side stays round');
-    });
+    test(
+      'the sender-side corners tighten inside a run, the far side never',
+      () {
+        final middle = shapeFor(
+          style: BubbleStyle.tailed,
+          isMine: true,
+          firstInRun: false,
+          lastInRun: false,
+        ).radii;
+        expect(middle.topRight.x, small(), reason: 'sender top tightens');
+        expect(middle.bottomRight.x, small(), reason: 'sender bottom tightens');
+        expect(middle.topLeft.x, large(), reason: 'far side stays round');
+        expect(middle.bottomLeft.x, large(), reason: 'far side stays round');
+      },
+    );
 
     test('incoming mirrors outgoing', () {
       final mine = shapeFor(
@@ -109,13 +114,15 @@ void main() {
       expect(theirs.bottomRight, mine.bottomLeft);
     });
 
-    test('a bubble on its own is fully round on the sender side, with a tail',
-        () {
-      final single = shapeFor(style: BubbleStyle.tailed, isMine: true);
-      expect(single.tail, isTrue);
-      expect(single.radii.topRight.x, large());
-      expect(single.radii.bottomRight.x, large());
-    });
+    test(
+      'a bubble on its own is fully round on the sender side, with a tail',
+      () {
+        final single = shapeFor(style: BubbleStyle.tailed, isMine: true);
+        expect(single.tail, isTrue);
+        expect(single.radii.topRight.x, large());
+        expect(single.radii.bottomRight.x, large());
+      },
+    );
   });
 
   group('tail gutter', () {
@@ -140,13 +147,15 @@ void main() {
     });
 
     test('insets the child on the sender side only', () {
-      final side = theme
-              .messageBubbleDecoration(isMine: true, ephemeral: false)
-              .border is Border
-          ? (theme.messageBubbleDecoration(isMine: true, ephemeral: false).border
-                  as Border)
-              .top
-              .width
+      final side =
+          theme.messageBubbleDecoration(isMine: true, ephemeral: false).border
+              is Border
+          ? (theme
+                        .messageBubbleDecoration(isMine: true, ephemeral: false)
+                        .border
+                    as Border)
+                .top
+                .width
           : 0.0;
       final mine = shapeFor(style: BubbleStyle.tailed, isMine: true);
       final insets = mine.dimensions.resolve(TextDirection.ltr);
@@ -170,8 +179,10 @@ void main() {
         isMine: true,
         lastInRun: false,
       );
-      expect(closing.getOuterPath(rect).getBounds().right,
-          closeTo(rect.right, 0.5));
+      expect(
+        closing.getOuterPath(rect).getBounds().right,
+        closeTo(rect.right, 0.5),
+      );
       expect(
         middle.getOuterPath(rect).getBounds().right,
         closeTo(rect.right - middle.tailWidth, 0.5),
@@ -187,14 +198,18 @@ void main() {
       );
       // The hook reaches the left edge; the body's own left edge sits a
       // gutter in, on every row of the run.
-      expect(closing.getOuterPath(rect).getBounds().left,
-          closeTo(rect.left, 0.5));
+      expect(
+        closing.getOuterPath(rect).getBounds().left,
+        closeTo(rect.left, 0.5),
+      );
       expect(
         middle.getOuterPath(rect).getBounds().left,
         closeTo(rect.left + middle.tailWidth, 0.5),
       );
-      expect(closing.getOuterPath(rect).getBounds().right,
-          closeTo(rect.right, 0.5));
+      expect(
+        closing.getOuterPath(rect).getBounds().right,
+        closeTo(rect.right, 0.5),
+      );
     });
 
     test('stays inside its rect even when the radius exceeds the height', () {
@@ -216,17 +231,21 @@ void main() {
     });
   });
 
-  test('identical shapes compare equal, so bubbles do not repaint per frame',
-      () {
-    expect(
-      shapeFor(style: BubbleStyle.tailed, isMine: true),
-      shapeFor(style: BubbleStyle.tailed, isMine: true),
-    );
-    expect(
-      shapeFor(style: BubbleStyle.tailed, isMine: true),
-      isNot(shapeFor(style: BubbleStyle.tailed, isMine: true, lastInRun: false)),
-    );
-  });
+  test(
+    'identical shapes compare equal, so bubbles do not repaint per frame',
+    () {
+      expect(
+        shapeFor(style: BubbleStyle.tailed, isMine: true),
+        shapeFor(style: BubbleStyle.tailed, isMine: true),
+      );
+      expect(
+        shapeFor(style: BubbleStyle.tailed, isMine: true),
+        isNot(
+          shapeFor(style: BubbleStyle.tailed, isMine: true, lastInRun: false),
+        ),
+      );
+    },
+  );
 
   test('slab and pill ignore run position entirely', () {
     for (final style in [BubbleStyle.pill, BubbleStyle.slab]) {

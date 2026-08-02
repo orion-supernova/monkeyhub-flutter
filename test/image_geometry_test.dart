@@ -26,8 +26,11 @@ void main() {
           dpr: 3,
           screen: const Size(393, 852),
         );
-        expect(decode.width == null || decode.height == null, isTrue,
-            reason: 'both axes constrained for $box — the decode would distort');
+        expect(
+          decode.width == null || decode.height == null,
+          isTrue,
+          reason: 'both axes constrained for $box — the decode would distort',
+        );
       }
     });
 
@@ -68,8 +71,12 @@ void main() {
     });
 
     test('rounds up to at least one pixel', () {
-      final decode =
-          decodeSizeFor(width: 0.1, height: null, dpr: 1, screen: const Size(393, 852));
+      final decode = decodeSizeFor(
+        width: 0.1,
+        height: null,
+        dpr: 1,
+        screen: const Size(393, 852),
+      );
       expect(decode.width, 1);
     });
   });
@@ -91,20 +98,27 @@ void main() {
     test('a phone screenshot stops at the tall clamp', () {
       // 9:16 would be 427 tall — a column that pushes the conversation around
       // it off screen. Capped, and the overshoot is what `cover` crops.
-      expect(ChatMetrics.mediaTileHeight(w, 9 / 16),
-          w * ChatMetrics.mediaMaxHeightFactor);
+      expect(
+        ChatMetrics.mediaTileHeight(w, 9 / 16),
+        w * ChatMetrics.mediaMaxHeightFactor,
+      );
     });
 
     test('a panorama stops at the short clamp', () {
-      expect(ChatMetrics.mediaTileHeight(w, 4.0),
-          w * ChatMetrics.mediaMinHeightFactor);
+      expect(
+        ChatMetrics.mediaTileHeight(w, 4.0),
+        w * ChatMetrics.mediaMinHeightFactor,
+      );
     });
 
-    test('a nonsense ratio falls back to the square rather than collapsing', () {
-      for (final bad in [0.0, -2.0, double.nan, double.infinity]) {
-        expect(ChatMetrics.mediaTileHeight(w, bad), w, reason: 'aspect $bad');
-      }
-    });
+    test(
+      'a nonsense ratio falls back to the square rather than collapsing',
+      () {
+        for (final bad in [0.0, -2.0, double.nan, double.infinity]) {
+          expect(ChatMetrics.mediaTileHeight(w, bad), w, reason: 'aspect $bad');
+        }
+      },
+    );
   });
 
   group('MediaAspectCache', () {
@@ -160,17 +174,23 @@ void main() {
       expect(measurements, 1);
     });
 
-    test('a failed measurement is not cached, so the next one retries', () async {
-      var measurements = 0;
-      Future<double?> measure() async {
-        measurements++;
-        return measurements == 1 ? null : 1.25;
-      }
+    test(
+      'a failed measurement is not cached, so the next one retries',
+      () async {
+        var measurements = 0;
+        Future<double?> measure() async {
+          measurements++;
+          return measurements == 1 ? null : 1.25;
+        }
 
-      expect(await MediaAspectCache.instance.resolve('img4', measure), isNull);
-      expect(MediaAspectCache.instance.peek('img4'), isNull);
-      expect(await MediaAspectCache.instance.resolve('img4', measure), 1.25);
-      expect(measurements, 2);
-    });
+        expect(
+          await MediaAspectCache.instance.resolve('img4', measure),
+          isNull,
+        );
+        expect(MediaAspectCache.instance.peek('img4'), isNull);
+        expect(await MediaAspectCache.instance.resolve('img4', measure), 1.25);
+        expect(measurements, 2);
+      },
+    );
   });
 }

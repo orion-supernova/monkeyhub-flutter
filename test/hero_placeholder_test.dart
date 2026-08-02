@@ -32,11 +32,15 @@ void main() {
     WidgetTester tester,
     GlobalKey<NavigatorState> nav,
   ) async {
-    nav.currentState!.push(MaterialPageRoute<void>(
-      builder: (_) => const Scaffold(
-        body: Center(child: Hero(tag: 'photo', child: _Probe(size: 300))),
+    nav.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(
+          body: Center(
+            child: Hero(tag: 'photo', child: _Probe(size: 300)),
+          ),
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     nav.currentState!.pop();
     await tester.pumpAndSettle();
@@ -59,46 +63,60 @@ void main() {
 
     await flyThereAndBack(tester, nav);
 
-    expect(identical(homeProbe(tester), before), isFalse,
-        reason: 'expected a plain Hero to rebuild the child it lands on');
+    expect(
+      identical(homeProbe(tester), before),
+      isFalse,
+      reason: 'expected a plain Hero to rebuild the child it lands on',
+    );
   });
 
-  testWidgets('SteadyHero carries the child through the flight',
-      (tester) async {
+  testWidgets('SteadyHero carries the child through the flight', (
+    tester,
+  ) async {
     final nav = GlobalKey<NavigatorState>();
     await tester.pumpWidget(app(nav, steady: true));
     final before = homeProbe(tester);
 
     await flyThereAndBack(tester, nav);
 
-    expect(identical(homeProbe(tester), before), isTrue,
-        reason: 'the thumbnail should be carried through, not rebuilt');
+    expect(
+      identical(homeProbe(tester), before),
+      isTrue,
+      reason: 'the thumbnail should be carried through, not rebuilt',
+    );
   });
 
-  testWidgets('the held-open slot is sized, invisible and inert',
-      (tester) async {
+  testWidgets('the held-open slot is sized, invisible and inert', (
+    tester,
+  ) async {
     final nav = GlobalKey<NavigatorState>();
     var taps = 0;
-    await tester.pumpWidget(MaterialApp(
-      navigatorKey: nav,
-      home: Scaffold(
-        body: Center(
-          child: SteadyHero(
-            tag: 'photo',
-            child: GestureDetector(
-              onTap: () => taps++,
-              child: const _Probe(size: 40),
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: nav,
+        home: Scaffold(
+          body: Center(
+            child: SteadyHero(
+              tag: 'photo',
+              child: GestureDetector(
+                onTap: () => taps++,
+                child: const _Probe(size: 40),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
 
-    nav.currentState!.push(MaterialPageRoute<void>(
-      builder: (_) => const Scaffold(
-        body: Center(child: Hero(tag: 'photo', child: _Probe(size: 300))),
+    nav.currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(
+          body: Center(
+            child: Hero(tag: 'photo', child: _Probe(size: 300)),
+          ),
+        ),
       ),
-    ));
+    );
     // Mid-flight: the placeholder is what is standing in the home route.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));

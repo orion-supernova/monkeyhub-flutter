@@ -52,7 +52,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'VideoPoster.extract reads a filesystem path. On web XFile.path '
+      reason:
+          'VideoPoster.extract reads a filesystem path. On web XFile.path '
           'is a blob: URL and video_thumbnail has no implementation at all, so '
           'an unguarded call is a caught MissingPluginException on every video '
           'send.\nFound at: ${offenders.join(', ')}',
@@ -61,9 +62,13 @@ void main() {
 
   test('the extractor keeps its own guard as well', () {
     final source = File('lib/media/video_poster.dart').readAsStringSync();
-    expect(source.contains('if (kIsWeb) return null;'), isTrue,
-        reason: 'defence in depth — the call-site guard is the contract, this '
-            'is what makes a missed one degrade instead of throw');
+    expect(
+      source.contains('if (kIsWeb) return null;'),
+      isTrue,
+      reason:
+          'defence in depth — the call-site guard is the contract, this '
+          'is what makes a missed one degrade instead of throw',
+    );
   });
 
   test('a poster is never uploaded for an armed send', () {
@@ -74,7 +79,8 @@ void main() {
     expect(
       source.contains('posterBytes: viewOnce ? null : posterBytes'),
       isTrue,
-      reason: 'sendMediaLocal must drop the poster on an armed send, matching '
+      reason:
+          'sendMediaLocal must drop the poster on an armed send, matching '
           "the server's refusal in messages:send",
     );
   });
@@ -82,8 +88,12 @@ void main() {
   test('the poster upload cannot fail the video it belongs to', () {
     final source = File('lib/data/chat_repository.dart').readAsStringSync();
     final at = source.indexOf('poster upload failed');
-    expect(at, isNonNegative,
-        reason: 'the poster upload must be wrapped in its own catch — a poster '
-            'is an enhancement to a send that has to happen regardless');
+    expect(
+      at,
+      isNonNegative,
+      reason:
+          'the poster upload must be wrapped in its own catch — a poster '
+          'is an enhancement to a send that has to happen regardless',
+    );
   });
 }

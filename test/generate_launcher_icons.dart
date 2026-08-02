@@ -56,31 +56,37 @@ void main() {
   // has no outbound HTTP, so a fetch here would always fail.
   GoogleFonts.config.allowRuntimeFetching = false;
 
-  testWidgets('generate launcher icons for every theme', (tester) async {
-    final iosDir = Directory('ios/Runner/AlternateIcons');
-    iosDir.createSync(recursive: true);
+  testWidgets(
+    'generate launcher icons for every theme',
+    (tester) async {
+      final iosDir = Directory('ios/Runner/AlternateIcons');
+      iosDir.createSync(recursive: true);
 
-    // 1) Theme-derived alt icons.
-    for (final theme in ThemeController.all) {
-      // The PNG filename uses the PLATFORM alt-icon name, which differs from
-      // the theme id for a few themes (see launcher_icon_names.dart).
-      final iconName = launcherIconNameForThemeId(theme.id);
-      final masterPng = await _renderMaster(tester, theme);
-      await _writeAllSizes(tester, masterPng, iconName, iosDir);
-      // ignore: avoid_print
-      print('[generate_launcher_icons] wrote $iconName (theme.id=${theme.id})');
-    }
+      // 1) Theme-derived alt icons.
+      for (final theme in ThemeController.all) {
+        // The PNG filename uses the PLATFORM alt-icon name, which differs from
+        // the theme id for a few themes (see launcher_icon_names.dart).
+        final iconName = launcherIconNameForThemeId(theme.id);
+        final masterPng = await _renderMaster(tester, theme);
+        await _writeAllSizes(tester, masterPng, iconName, iosDir);
+        // ignore: avoid_print
+        print(
+          '[generate_launcher_icons] wrote $iconName (theme.id=${theme.id})',
+        );
+      }
 
-    // 2) Monkey Collection alt icons — same compositing path, different
-    //    canvas (branding/logo.png on a fixed backdrop). Filename equals the
-    //    variant id, no renaming pass needed.
-    for (final variant in monkeyCollection) {
-      final masterPng = await _renderMonkeyMaster(tester, variant);
-      await _writeAllSizes(tester, masterPng, variant.id, iosDir);
-      // ignore: avoid_print
-      print('[generate_launcher_icons] wrote ${variant.id} (monkey)');
-    }
-  }, timeout: const Timeout(Duration(minutes: 5)));
+      // 2) Monkey Collection alt icons — same compositing path, different
+      //    canvas (branding/logo.png on a fixed backdrop). Filename equals the
+      //    variant id, no renaming pass needed.
+      for (final variant in monkeyCollection) {
+        final masterPng = await _renderMonkeyMaster(tester, variant);
+        await _writeAllSizes(tester, masterPng, variant.id, iosDir);
+        // ignore: avoid_print
+        print('[generate_launcher_icons] wrote ${variant.id} (monkey)');
+      }
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
 }
 
 Future<void> _writeAllSizes(
@@ -142,8 +148,7 @@ Future<Uint8List> _renderMaster(WidgetTester tester, AppTheme theme) async {
   // otherwise toImage's future never completes and the test times out.
   return (await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1.0);
-    final byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }))!;
 }
@@ -180,8 +185,7 @@ Future<Uint8List> _renderMonkeyMaster(
       key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
   return (await tester.runAsync(() async {
     final image = await boundary.toImage(pixelRatio: 1.0);
-    final byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }))!;
 }
@@ -198,8 +202,9 @@ Future<Uint8List> _downsample(
       targetHeight: targetPx,
     );
     final frame = await codec.getNextFrame();
-    final byteData =
-        await frame.image.toByteData(format: ui.ImageByteFormat.png);
+    final byteData = await frame.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     return byteData!.buffer.asUint8List();
   }))!;
 }

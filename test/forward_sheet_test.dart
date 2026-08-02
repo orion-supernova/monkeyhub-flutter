@@ -49,8 +49,7 @@ class _FakeApi extends Fake implements ChatApi {
   Future<({int deleted, int refused})> deleteMessages({
     required String userId,
     required List<String> messageIds,
-  }) async =>
-      (deleted: messageIds.length, refused: 0);
+  }) async => (deleted: messageIds.length, refused: 0);
 }
 
 class _FakeRepo extends Fake implements ChatRepository {
@@ -63,15 +62,15 @@ void main() {
   late _FakeRepo repo;
 
   ChatMessage photo(String id) => ChatMessage(
-        id: id,
-        roomId: 'source',
-        senderId: 'me',
-        senderName: 'ada',
-        content: '',
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: MessageType.image,
-        mediaStorageId: 'stor_$id',
-      );
+    id: id,
+    roomId: 'source',
+    senderId: 'me',
+    senderName: 'ada',
+    content: '',
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: MessageType.image,
+    mediaStorageId: 'stor_$id',
+  );
 
   Future<BulkResult> forward(List<String> targets, {int messages = 2}) =>
       forwardMessages(
@@ -90,17 +89,24 @@ void main() {
   group('fan-out', () {
     test('issues one call per target room', () async {
       await forward(['a', 'b', 'c']);
-      expect(api.targetsCalled, ['a', 'b', 'c'],
-          reason: 'one transaction per room is what makes partial success '
-              'possible at all');
+      expect(
+        api.targetsCalled,
+        ['a', 'b', 'c'],
+        reason:
+            'one transaction per room is what makes partial success '
+            'possible at all',
+      );
     });
 
     test('one failing room does not take the others with it', () async {
       api.outcomes['b'] = Exception('UNBLOCK_FIRST');
       final res = await forward(['a', 'b', 'c']);
 
-      expect(api.targetsCalled, ['a', 'b', 'c'],
-          reason: 'the loop continues past a refusal');
+      expect(api.targetsCalled, [
+        'a',
+        'b',
+        'c',
+      ], reason: 'the loop continues past a refusal');
       expect(res.ok, 2);
       expect(res.failed, 1);
       expect(res.summary, 'forwarded to 2, 1 failed');
@@ -110,9 +116,13 @@ void main() {
       await forward(['a', 'b'], messages: 2);
       final flat = api.clientIdsSeen.expand((e) => e).toList();
       expect(flat.length, 4);
-      expect(flat.toSet().length, 4,
-          reason: 'a key reused across rooms would make the second room a '
-              'no-op, because the server dedupes on (room, user, clientId)');
+      expect(
+        flat.toSet().length,
+        4,
+        reason:
+            'a key reused across rooms would make the second room a '
+            'no-op, because the server dedupes on (room, user, clientId)',
+      );
     });
   });
 
@@ -120,9 +130,13 @@ void main() {
     test('the ephemeral refusal names the actual reason', () async {
       api.outcomes['a'] = Exception('SOURCE_IS_EPHEMERAL');
       final res = await forward(['a']);
-      expect(res.summary, "messages that fade can't be forwarded",
-          reason: 'a generic failure here reads as a bug, when it is the one '
-              'refusal the user could not have predicted and cannot retry');
+      expect(
+        res.summary,
+        "messages that fade can't be forwarded",
+        reason:
+            'a generic failure here reads as a bug, when it is the one '
+            'refusal the user could not have predicted and cannot retry',
+      );
     });
 
     test('a block is named as something the user can fix', () async {
@@ -186,9 +200,13 @@ void main() {
         repo: repo,
         messageIds: ['m1', 'm2', 'm3'],
       );
-      expect(res.summary, 'deleted 1, 2 not yours',
-          reason: 'the server skips rather than throwing, so the client has to '
-              'be the one that notices');
+      expect(
+        res.summary,
+        'deleted 1, 2 not yours',
+        reason:
+            'the server skips rather than throwing, so the client has to '
+            'be the one that notices',
+      );
     });
   });
 }
@@ -203,6 +221,5 @@ class _RefusingApi extends Fake implements ChatApi {
   Future<({int deleted, int refused})> deleteMessages({
     required String userId,
     required List<String> messageIds,
-  }) async =>
-      (deleted: 1, refused: 2);
+  }) async => (deleted: 1, refused: 2);
 }

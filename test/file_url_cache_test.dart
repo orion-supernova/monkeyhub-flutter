@@ -64,18 +64,21 @@ void main() {
     expect(urls, everyElement('https://example.test/api/storage/1'));
   });
 
-  test('a resolved id is warm afterwards, and the next resolve is free', () async {
-    var calls = 0;
-    Future<String> fetch() async {
-      calls++;
-      return 'https://example.test/api/storage/1';
-    }
+  test(
+    'a resolved id is warm afterwards, and the next resolve is free',
+    () async {
+      var calls = 0;
+      Future<String> fetch() async {
+        calls++;
+        return 'https://example.test/api/storage/1';
+      }
 
-    await cache.resolve('abc', fetch);
-    expect(cache.peek('abc'), 'https://example.test/api/storage/1');
-    await cache.resolve('abc', fetch);
-    expect(calls, 1);
-  });
+      await cache.resolve('abc', fetch);
+      expect(cache.peek('abc'), 'https://example.test/api/storage/1');
+      await cache.resolve('abc', fetch);
+      expect(calls, 1);
+    },
+  );
 
   test('a failed fetch is not cached, and does not wedge the id', () async {
     var calls = 0;
@@ -112,8 +115,10 @@ void main() {
     expect(calls, 2);
 
     // And once the backend does have a URL, the id resolves normally.
-    final url =
-        await cache.resolve('abc', () async => 'https://example.test/api/storage/1');
+    final url = await cache.resolve(
+      'abc',
+      () async => 'https://example.test/api/storage/1',
+    );
     expect(url, 'https://example.test/api/storage/1');
   });
 
@@ -127,8 +132,10 @@ void main() {
     cache.invalidate('abc');
     expect(cache.peek('abc'), isNull);
 
-    final url =
-        await cache.resolve('abc', () async => 'https://example.test/api/storage/new');
+    final url = await cache.resolve(
+      'abc',
+      () async => 'https://example.test/api/storage/new',
+    );
     expect(url, 'https://example.test/api/storage/new');
   });
 }

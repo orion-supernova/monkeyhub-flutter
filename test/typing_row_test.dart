@@ -13,19 +13,18 @@ import 'package:monkeyhub/widgets/user_avatar.dart';
 /// the call site.
 void main() {
   Widget host(Widget child, {double width = 400}) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: width, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: width, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
-  ChatUser user(String name) =>
-      ChatUser(id: name, username: name, name: name);
+  ChatUser user(String name) => ChatUser(id: name, username: name, name: name);
 
   testWidgets('an idle room gives the row no height at all', (tester) async {
     await tester.pumpWidget(host(const TypingRow(typists: [])));
@@ -34,8 +33,9 @@ void main() {
     expect(tester.getSize(find.byType(TypingRow)).height, 0);
   });
 
-  testWidgets('one typist puts the bubble a message-avatar in from the edge',
-      (tester) async {
+  testWidgets('one typist puts the bubble a message-avatar in from the edge', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(TypingRow(typists: [user('mom')])));
     await tester.pump();
 
@@ -47,8 +47,9 @@ void main() {
     expect(tester.getSize(find.byType(TypingRow)).height, greaterThan(0));
   });
 
-  testWidgets('a DM drops the avatar and starts at the left edge',
-      (tester) async {
+  testWidgets('a DM drops the avatar and starts at the left edge', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       host(TypingRow(typists: [user('mom')], showAvatars: false)),
     );
@@ -57,8 +58,9 @@ void main() {
     expect(tester.getTopLeft(find.byType(TypingDots)).dx, lessThan(36));
   });
 
-  testWidgets('stacked avatars stay inside the slot they are given',
-      (tester) async {
+  testWidgets('stacked avatars stay inside the slot they are given', (
+    tester,
+  ) async {
     // The separator ring used to be a border, which grew each avatar to 31px
     // inside a 28px slot — the Stack then clipped every circle flat, top and
     // bottom, and shaved the rightmost one.
@@ -81,8 +83,9 @@ void main() {
     }
   });
 
-  testWidgets('a lone typist gets the full avatar, no separator ring',
-      (tester) async {
+  testWidgets('a lone typist gets the full avatar, no separator ring', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(TypingRow(typists: [user('mom')])));
     await tester.pump();
 

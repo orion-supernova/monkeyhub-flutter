@@ -16,6 +16,9 @@ import 'package:monkeyhub/widgets/liquid_glass.dart';
 /// decoder, which is what lets a look saved by one build survive being opened
 /// by another. Both halves of that are easy to break silently — a config that
 /// round-trips wrong just looks like the user's slot "not working".
+GlassPreset _presetNamed(String name) =>
+    kBuiltInGlassPresets.firstWhere((p) => p.name == name);
+
 void main() {
   group('GlassConfig', () {
     test('an untouched dial reports its standard', () {
@@ -157,6 +160,20 @@ void main() {
       expect(store.glassPresetId, kDefaultGlassPresetId);
       expect(store.glass.nav.of(kBlur), 10);
     });
+
+    test(
+      'a fresh install wears the default look by name, not "Custom"',
+      () async {
+        // load() reads from a keychain the test harness does not provide, so
+        // every read comes back null — exactly a first launch. The pointer used
+        // to be read on its own, which overwrote the field's default with that
+        // null and left the app wearing Frosted's values under the label
+        // "Custom", a state the UI cannot otherwise reach.
+        await SettingsStore.instance.load();
+        expect(store.glassPresetId, kDefaultGlassPresetId);
+        expect(store.glass, _presetNamed('Frosted').profile);
+      },
+    );
 
     test('selecting a preset replaces the live profile', () async {
       store.selectGlassPreset('clear');
@@ -623,6 +640,28 @@ void main() {
             'the bar while tuning them would be tuning blind',
       );
       expect(find.text('message'), findsOneWidget);
+    });
+
+    testWidgets('matching copies the bar\'s glass onto the other surfaces', (
+      tester,
+    ) async {
+      store.selectGlassPreset('clear');
+      store.flushGlassWrites();
+      await pumpScreen(tester);
+
+      final target = find.text('MATCH THE BOTTOM BAR');
+      await tester.scrollUntilVisible(
+        target,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+
+      expect(store.glass.app, store.glass.nav);
+      expect(store.glass.app.of(kSaturation), 1.7);
+      // The bar itself is untouched by the copy.
+      expect(store.glass.nav, _presetNamed('Clear').profile.nav);
     });
 
     testWidgets('the preview collapses and expands', (tester) async {

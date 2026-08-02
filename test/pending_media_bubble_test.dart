@@ -46,50 +46,48 @@ void main() {
     MessageStatus status = MessageStatus.uploading,
     bool viewOnce = false,
     String? storageId,
-  }) =>
-      ChatMessage(
-        // `tmp_` is what the room screen reads to know a message is optimistic.
-        id: 'tmp_1',
-        roomId: 'r',
-        senderId: 'alice',
-        senderName: 'alice',
-        content: '',
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: MessageType.image,
-        mediaStorageId: storageId,
-        mediaWidth: viewOnce ? null : 800,
-        mediaHeight: viewOnce ? null : 600,
-        status: status,
-        viewOnce: viewOnce,
-        upload: up,
-      );
+  }) => ChatMessage(
+    // `tmp_` is what the room screen reads to know a message is optimistic.
+    id: 'tmp_1',
+    roomId: 'r',
+    senderId: 'alice',
+    senderName: 'alice',
+    content: '',
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: MessageType.image,
+    mediaStorageId: storageId,
+    mediaWidth: viewOnce ? null : 800,
+    mediaHeight: viewOnce ? null : 600,
+    status: status,
+    viewOnce: viewOnce,
+    upload: up,
+  );
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 500, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 500, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget bubble(
     ChatMessage m, {
     Future<void> Function()? onRetry,
     VoidCallback? onDiscard,
-  }) =>
-      MessageBubble(
-        message: m,
-        now: DateTime(2026, 3, 1, 12),
-        // Its own sender: only the sender ever sees one of these.
-        currentUserId: 'alice',
-        api: api,
-        onRetrySend: onRetry,
-        onDiscardSend: onDiscard,
-      );
+  }) => MessageBubble(
+    message: m,
+    now: DateTime(2026, 3, 1, 12),
+    // Its own sender: only the sender ever sees one of these.
+    currentUserId: 'alice',
+    api: api,
+    onRetrySend: onRetry,
+    onDiscardSend: onDiscard,
+  );
 
   group('an ordinary photo on its way up', () {
     testWidgets('paints the local bytes, not a remote fetch', (tester) async {
@@ -105,8 +103,9 @@ void main() {
       expect(find.byIcon(Icons.image_not_supported_outlined), findsNothing);
     });
 
-    testWidgets('caps the decode so one big send cannot evict the image cache',
-        (tester) async {
+    testWidgets('caps the decode so one big send cannot evict the image cache', (
+      tester,
+    ) async {
       final up = upload();
       addTearDown(up.dispose);
 
@@ -126,16 +125,21 @@ void main() {
       expect(resized.width ?? resized.height, isNotNull);
     });
 
-    testWidgets('keeps painting the bytes after a storage id arrives',
-        (tester) async {
+    testWidgets('keeps painting the bytes after a storage id arrives', (
+      tester,
+    ) async {
       // For a moment after the upload lands the message has both. Resolving a URL
       // then would download back the picture we just finished sending.
       final up = upload();
       addTearDown(up.dispose);
 
-      await tester.pumpWidget(host(
-        bubble(outgoing(up: up, status: MessageStatus.pending, storageId: 'sA')),
-      ));
+      await tester.pumpWidget(
+        host(
+          bubble(
+            outgoing(up: up, status: MessageStatus.pending, storageId: 'sA'),
+          ),
+        ),
+      );
 
       expect(find.byType(RemoteImage), findsNothing);
       expect(find.byType(Image), findsOneWidget);
@@ -159,11 +163,15 @@ void main() {
       var retried = 0;
       var discarded = 0;
 
-      await tester.pumpWidget(host(bubble(
-        outgoing(up: up, status: MessageStatus.error),
-        onRetry: () async => retried++,
-        onDiscard: () => discarded++,
-      )));
+      await tester.pumpWidget(
+        host(
+          bubble(
+            outgoing(up: up, status: MessageStatus.error),
+            onRetry: () async => retried++,
+            onDiscard: () => discarded++,
+          ),
+        ),
+      );
 
       await tester.tap(find.byIcon(Icons.refresh));
       await tester.pump();
@@ -180,9 +188,9 @@ void main() {
       final up = upload();
       addTearDown(up.dispose);
 
-      await tester.pumpWidget(host(
-        bubble(outgoing(up: up, status: MessageStatus.error)),
-      ));
+      await tester.pumpWidget(
+        host(bubble(outgoing(up: up, status: MessageStatus.error))),
+      );
 
       expect(find.byType(Image), findsOneWidget);
     });
@@ -204,16 +212,21 @@ void main() {
       expect(find.text('sending…'), findsOneWidget);
     });
 
-    testWidgets('a failed armed send offers retry, still without the picture',
-        (tester) async {
+    testWidgets('a failed armed send offers retry, still without the picture', (
+      tester,
+    ) async {
       final up = upload();
       addTearDown(up.dispose);
       var retried = 0;
 
-      await tester.pumpWidget(host(bubble(
-        outgoing(up: up, viewOnce: true, status: MessageStatus.error),
-        onRetry: () async => retried++,
-      )));
+      await tester.pumpWidget(
+        host(
+          bubble(
+            outgoing(up: up, viewOnce: true, status: MessageStatus.error),
+            onRetry: () async => retried++,
+          ),
+        ),
+      );
 
       expect(find.byType(Image), findsNothing);
       expect(find.byType(RemoteImage), findsNothing);
@@ -226,30 +239,31 @@ void main() {
   });
 
   group('the other two attachment kinds', () {
-    ChatMessage outgoingOf(MessageType type, PendingUpload up,
-            {MessageStatus status = MessageStatus.uploading}) =>
-        ChatMessage(
-          id: 'tmp_1',
-          roomId: 'r',
-          senderId: 'alice',
-          senderName: 'alice',
-          content: '',
-          createdAt: DateTime(2026, 3, 1, 12),
-          type: type,
-          status: status,
-          upload: up,
-        );
+    ChatMessage outgoingOf(
+      MessageType type,
+      PendingUpload up, {
+      MessageStatus status = MessageStatus.uploading,
+    }) => ChatMessage(
+      id: 'tmp_1',
+      roomId: 'r',
+      senderId: 'alice',
+      senderName: 'alice',
+      content: '',
+      createdAt: DateTime(2026, 3, 1, 12),
+      type: type,
+      status: status,
+      upload: up,
+    );
 
-    testWidgets('a voice note in flight says so instead of "[audio missing]"',
-        (tester) async {
+    testWidgets('a voice note in flight says so instead of "[audio missing]"', (
+      tester,
+    ) async {
       // AudioMessage renders a null storage id as that literal string, which is
       // true of a broken message and alarmingly false of one uploading fine.
       final up = upload();
       addTearDown(up.dispose);
 
-      await tester.pumpWidget(host(bubble(
-        outgoingOf(MessageType.audio, up),
-      )));
+      await tester.pumpWidget(host(bubble(outgoingOf(MessageType.audio, up))));
 
       expect(find.text('[audio missing]'), findsNothing);
       expect(find.text('sending…'), findsOneWidget);
@@ -260,10 +274,14 @@ void main() {
       addTearDown(up.dispose);
       var retried = 0;
 
-      await tester.pumpWidget(host(bubble(
-        outgoingOf(MessageType.audio, up, status: MessageStatus.error),
-        onRetry: () async => retried++,
-      )));
+      await tester.pumpWidget(
+        host(
+          bubble(
+            outgoingOf(MessageType.audio, up, status: MessageStatus.error),
+            onRetry: () async => retried++,
+          ),
+        ),
+      );
 
       expect(find.text('failed'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.refresh));
@@ -271,13 +289,13 @@ void main() {
       expect(retried, 1);
     });
 
-    testWidgets('a video in flight shows a ring, not an endless player',
-        (tester) async {
+    testWidgets('a video in flight shows a ring, not an endless player', (
+      tester,
+    ) async {
       final up = upload();
       addTearDown(up.dispose);
 
-      await tester
-          .pumpWidget(host(bubble(outgoingOf(MessageType.video, up))));
+      await tester.pumpWidget(host(bubble(outgoingOf(MessageType.video, up))));
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
     });

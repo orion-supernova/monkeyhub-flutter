@@ -60,40 +60,68 @@ void main() {
       .join('\n');
 
   test('_openRoomInfo awaits a ChatMessage rather than discarding the pop', () {
-    final body = bodyOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
-    expect(body.contains('push<ChatMessage>'), isTrue,
-        reason: 'an untyped push discards the message the browser popped, and '
-            '"show in chat" silently does nothing');
+    final body = bodyOf(
+      roomScreen,
+      'Future<void> _openRoomInfo(ChatRoom room)',
+    );
+    expect(
+      body.contains('push<ChatMessage>'),
+      isTrue,
+      reason:
+          'an untyped push discards the message the browser popped, and '
+          '"show in chat" silently does nothing',
+    );
     expect(body.contains('_travelTo('), isTrue);
   });
 
   test('it re-checks mounted after the await, before travelling', () {
-    final body = bodyOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
+    final body = bodyOf(
+      roomScreen,
+      'Future<void> _openRoomInfo(ChatRoom room)',
+    );
     final awaitAt = body.indexOf('await Navigator');
     final guardAt = body.indexOf('if (!mounted');
     final travelAt = body.indexOf('_travelTo(');
 
     expect(awaitAt, isNonNegative);
-    expect(guardAt, greaterThan(awaitAt),
-        reason: 'RoomInfoScreen pops twice on leave/delete, which disposes this '
-            'State before the future completes');
-    expect(guardAt, lessThan(travelAt),
-        reason: '_travelTo calls setState — the guard has to come first');
+    expect(
+      guardAt,
+      greaterThan(awaitAt),
+      reason:
+          'RoomInfoScreen pops twice on leave/delete, which disposes this '
+          'State before the future completes',
+    );
+    expect(
+      guardAt,
+      lessThan(travelAt),
+      reason: '_travelTo calls setState — the guard has to come first',
+    );
   });
 
   test('a null result is a no-op, which is what leave and delete pop', () {
-    final body = bodyOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
-    expect(body.contains('jump == null'), isTrue,
-        reason: 'RoomInfoScreen._leave and ._delete both pop null; travelling '
-            'on that would jump a room the user just walked out of');
+    final body = bodyOf(
+      roomScreen,
+      'Future<void> _openRoomInfo(ChatRoom room)',
+    );
+    expect(
+      body.contains('jump == null'),
+      isTrue,
+      reason:
+          'RoomInfoScreen._leave and ._delete both pop null; travelling '
+          'on that would jump a room the user just walked out of',
+    );
   });
 
   test('it leaves NO back-trail entry, unlike the pin and reply jumps', () {
-    final code = codeOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
+    final code = codeOf(
+      roomScreen,
+      'Future<void> _openRoomInfo(ChatRoom room)',
+    );
     expect(
       code.contains('_jumpBack.push'),
       isFalse,
-      reason: 'The pin banner and a reply tether jump from one place in the '
+      reason:
+          'The pin banner and a reply tether jump from one place in the '
           'transcript to another, so "back" names the position you left. This '
           'arrives from two routes away — the reader was in the media library, '
           'not the transcript — so a back pill would offer to return them to '
@@ -107,25 +135,39 @@ void main() {
     // wholesale would break following a reply tether, which is what it is for.
     final pin = bodyOf(roomScreen, 'Future<void> _jumpToPin(RoomPin target)');
     expect(pin.contains('_jumpBack.push'), isTrue);
-    expect(pin.indexOf('_topmostVisibleMessage'), lessThan(pin.indexOf('_travelTo(')),
-        reason: 'the origin is captured before the travel, or it records the '
-            'destination as the origin');
+    expect(
+      pin.indexOf('_topmostVisibleMessage'),
+      lessThan(pin.indexOf('_travelTo(')),
+      reason:
+          'the origin is captured before the travel, or it records the '
+          'destination as the origin',
+    );
   });
 
   test('RoomInfoScreen passes the message through without acting on it', () {
-    final body = bodyOf(roomInfo, 'Future<void> _openContent(RoomContentTab tab)');
+    final body = bodyOf(
+      roomInfo,
+      'Future<void> _openContent(RoomContentTab tab)',
+    );
     expect(body.contains('push<ChatMessage>'), isTrue);
-    expect(body.contains('Navigator.of(context).pop(jump)'), isTrue,
-        reason: 'room info is a pass-through — it owns no travel machinery');
+    expect(
+      body.contains('Navigator.of(context).pop(jump)'),
+      isTrue,
+      reason: 'room info is a pass-through — it owns no travel machinery',
+    );
     expect(body.contains('if (!mounted || jump == null) return;'), isTrue);
   });
 
   test('the browser pops the whole message, not just an id', () {
     final body = bodyOf(browser, 'void _showInChat(ChatMessage m)');
-    expect(body.contains('pop(m)'), isTrue,
-        reason: '_travelTo needs `from.threadKey` for the folded-thread '
-            'fallback, and a message old enough to be browsed for will not be '
-            'in repo.findMessageInRoom to look up from an id');
+    expect(
+      body.contains('pop(m)'),
+      isTrue,
+      reason:
+          '_travelTo needs `from.threadKey` for the folded-thread '
+          'fallback, and a message old enough to be browsed for will not be '
+          'in repo.findMessageInRoom to look up from an id',
+    );
   });
 
   test('the pager closes itself before handing the message up', () {
@@ -134,7 +176,8 @@ void main() {
     expect(
       browser.contains('Navigator.of(context, rootNavigator: true).pop()'),
       isTrue,
-      reason: 'onShowInChat from the fullscreen pager must dismiss the pager '
+      reason:
+          'onShowInChat from the fullscreen pager must dismiss the pager '
           'first — it was pushed with rootNavigator: true',
     );
   });

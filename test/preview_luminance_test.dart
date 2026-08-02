@@ -126,12 +126,12 @@ void main() {
       }
 
       double meter(Uint8List bytes) => meanPreviewLuminance(
-            bytes: bytes,
-            width: 64,
-            height: 48,
-            bytesPerRow: 64 * 4,
-            bytesPerPixel: 4,
-          );
+        bytes: bytes,
+        width: 64,
+        height: 48,
+        bytesPerRow: 64 * 4,
+        bytesPerPixel: 4,
+      );
 
       final blue = meter(solid(255, 0, 0));
       final green = meter(solid(0, 255, 0));

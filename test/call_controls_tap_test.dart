@@ -21,7 +21,7 @@ class _RecordingGroupCallService extends GroupCallService {
   _RecordingGroupCallService() : super(api: _FakeGroupCallApi());
 
   final List<({String roomId, CallMediaKind kind, List<String>? inviteeIds})>
-      started = [];
+  started = [];
 
   @override
   Future<void> startCall({
@@ -70,8 +70,9 @@ void main() {
     expect(find.text('Start a call'), findsOneWidget);
   }
 
-  testWidgets('tapping "Call everyone" starts a voice call for the room',
-      (tester) async {
+  testWidgets('tapping "Call everyone" starts a voice call for the room', (
+    tester,
+  ) async {
     await openSheet(tester);
     await tester.tap(find.text('Call everyone'));
     await tester.pumpAndSettle();
@@ -81,8 +82,9 @@ void main() {
     expect(service.started.single.inviteeIds, isNull);
   });
 
-  testWidgets('the VIDEO chip responds and changes the started call kind',
-      (tester) async {
+  testWidgets('the VIDEO chip responds and changes the started call kind', (
+    tester,
+  ) async {
     await openSheet(tester);
     await tester.tap(find.text('VIDEO'));
     await tester.pump();

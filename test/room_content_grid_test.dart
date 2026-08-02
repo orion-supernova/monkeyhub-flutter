@@ -39,31 +39,30 @@ void main() {
     String? poster,
     int? durationMs,
     String? storageId = 'stor',
-  }) =>
-      ChatMessage(
-        id: id,
-        roomId: 'r1',
-        senderId: 'u1',
-        senderName: 'ada',
-        content: '',
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: type,
-        mediaStorageId: storageId,
-        posterStorageId: poster,
-        mediaDurationMs: durationMs,
-      );
+  }) => ChatMessage(
+    id: id,
+    roomId: 'r1',
+    senderId: 'u1',
+    senderName: 'ada',
+    content: '',
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: type,
+    mediaStorageId: storageId,
+    posterStorageId: poster,
+    mediaDurationMs: durationMs,
+  );
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 120, height: 120, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 120, height: 120, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget tile(
     ChatMessage m, {
@@ -71,41 +70,42 @@ void main() {
     bool selecting = false,
     VoidCallback? onTap,
     VoidCallback? onLongPress,
-  }) =>
-      MediaGridTile(
-        message: m,
-        api: api,
-        selected: selected,
-        selecting: selecting,
-        onTap: onTap ?? () {},
-        onLongPress: onLongPress ?? () {},
-      );
+  }) => MediaGridTile(
+    message: m,
+    api: api,
+    selected: selected,
+    selecting: selecting,
+    onTap: onTap ?? () {},
+    onLongPress: onLongPress ?? () {},
+  );
 
   group('never a video player', () {
     testWidgets('a video with a poster mounts no VideoMessage', (tester) async {
-      await tester.pumpWidget(host(tile(
-        media('m1', type: MessageType.video, poster: 'poster_1'),
-      )));
+      await tester.pumpWidget(
+        host(tile(media('m1', type: MessageType.video, poster: 'poster_1'))),
+      );
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.byType(VideoMessage), findsNothing,
-          reason: 'forty of these in a grid is forty media pipelines');
+      expect(
+        find.byType(VideoMessage),
+        findsNothing,
+        reason: 'forty of these in a grid is forty media pipelines',
+      );
     });
 
-    testWidgets('a video with no poster mounts no VideoMessage either',
-        (tester) async {
-      await tester.pumpWidget(host(tile(
-        media('m1', type: MessageType.video),
-      )));
+    testWidgets('a video with no poster mounts no VideoMessage either', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(tile(media('m1', type: MessageType.video))));
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.byType(VideoMessage), findsNothing);
     });
 
     testWidgets('the posterless case draws a deliberate glyph', (tester) async {
-      await tester.pumpWidget(host(tile(
-        media('m1', type: MessageType.video, durationMs: 42000),
-      )));
+      await tester.pumpWidget(
+        host(tile(media('m1', type: MessageType.video, durationMs: 42000))),
+      );
       await tester.pump(const Duration(milliseconds: 400));
 
       // The running time is the tell that this is a designed representation of
@@ -113,14 +113,17 @@ void main() {
       expect(find.text('0:42'), findsOneWidget);
     });
 
-    testWidgets('a duration it never measured is simply absent', (tester) async {
-      await tester.pumpWidget(host(tile(
-        media('m1', type: MessageType.video),
-      )));
+    testWidgets('a duration it never measured is simply absent', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(tile(media('m1', type: MessageType.video))));
       await tester.pump(const Duration(milliseconds: 400));
 
-      expect(find.text('0:00'), findsNothing,
-          reason: 'an unknown length must not render as a zero-length video');
+      expect(
+        find.text('0:00'),
+        findsNothing,
+        reason: 'an unknown length must not render as a zero-length video',
+      );
     });
   });
 
@@ -138,11 +141,11 @@ void main() {
     testWidgets('a long press fires onLongPress, not onTap', (tester) async {
       var taps = 0;
       var longs = 0;
-      await tester.pumpWidget(host(tile(
-        media('m1'),
-        onTap: () => taps++,
-        onLongPress: () => longs++,
-      )));
+      await tester.pumpWidget(
+        host(
+          tile(media('m1'), onTap: () => taps++, onLongPress: () => longs++),
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 400));
 
       await tester.longPress(find.byType(MediaGridTile));
@@ -151,8 +154,9 @@ void main() {
       expect(taps, 0);
     });
 
-    testWidgets('every tile shows its checkbox once selecting, picked or not',
-        (tester) async {
+    testWidgets('every tile shows its checkbox once selecting, picked or not', (
+      tester,
+    ) async {
       // Otherwise the affordance is invisible on the tiles that have not been
       // picked yet, and the grid reads as though only one thing is selectable.
       await tester.pumpWidget(host(tile(media('m1'), selecting: true)));
@@ -163,8 +167,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       final idle = tester.widgetList(find.byType(AnimatedContainer)).length;
 
-      expect(unpicked, greaterThan(idle),
-          reason: 'selection mode adds the veil and its ring to every tile');
+      expect(
+        unpicked,
+        greaterThan(idle),
+        reason: 'selection mode adds the veil and its ring to every tile',
+      );
     });
   });
 }

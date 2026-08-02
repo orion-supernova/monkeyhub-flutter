@@ -32,8 +32,11 @@ void main() {
   setUpAll(() {
     final source = File('backend/convex/messages.ts').readAsStringSync();
     final start = source.indexOf('export function galleryBucketFor(');
-    expect(start, isNonNegative,
-        reason: 'galleryBucketFor was renamed or moved out of messages.ts');
+    expect(
+      start,
+      isNonNegative,
+      reason: 'galleryBucketFor was renamed or moved out of messages.ts',
+    );
     // Bounded at the next top-level declaration so nothing below leaks in.
     final end = source.indexOf('\n/**', start);
     body = source.substring(start, end == -1 ? source.length : end);
@@ -45,13 +48,21 @@ void main() {
     final guard = body.indexOf('if (!hasBlob || viewOnce) return undefined;');
     final switchAt = body.indexOf('switch (type)');
 
-    expect(guard, isNonNegative,
-        reason: 'The combined hasBlob/viewOnce guard is gone. A failed upload '
-            'would become a permanently broken grid tile, and a view-once '
-            'photo would enter the gallery index.');
-    expect(guard, lessThan(switchAt),
-        reason: 'The guard has to run before the type switch, or the switch '
-            'answers for rows the guard was meant to exclude.');
+    expect(
+      guard,
+      isNonNegative,
+      reason:
+          'The combined hasBlob/viewOnce guard is gone. A failed upload '
+          'would become a permanently broken grid tile, and a view-once '
+          'photo would enter the gallery index.',
+    );
+    expect(
+      guard,
+      lessThan(switchAt),
+      reason:
+          'The guard has to run before the type switch, or the switch '
+          'answers for rows the guard was meant to exclude.',
+    );
   });
 
   test('returns undefined rather than a sentinel', () {
@@ -59,7 +70,8 @@ void main() {
     expect(
       body.contains('"none"'),
       isFalse,
-      reason: 'A sentinel string would be IN the index. Absence is what keeps '
+      reason:
+          'A sentinel string would be IN the index. Absence is what keeps '
           'excluded rows outside the scan range entirely.',
     );
   });
@@ -80,23 +92,21 @@ void main() {
 
   test('the buckets it can return are exactly the ones roomContent serves', () {
     final rc = File('backend/convex/roomContent.ts').readAsStringSync();
-    final match =
-        RegExp(r'const BUCKETS = \[(.*?)\] as const;').firstMatch(rc);
+    final match = RegExp(r'const BUCKETS = \[(.*?)\] as const;').firstMatch(rc);
     expect(match, isNotNull, reason: 'BUCKETS moved or changed shape');
 
-    final served = RegExp('"([a-z]+)"')
-        .allMatches(match!.group(1)!)
-        .map((m) => m.group(1)!)
-        .toSet();
-    final produced = RegExp(r'return "([a-z]+)";')
-        .allMatches(body)
-        .map((m) => m.group(1)!)
-        .toSet();
+    final served = RegExp(
+      '"([a-z]+)"',
+    ).allMatches(match!.group(1)!).map((m) => m.group(1)!).toSet();
+    final produced = RegExp(
+      r'return "([a-z]+)";',
+    ).allMatches(body).map((m) => m.group(1)!).toSet();
 
     expect(
       produced,
       served,
-      reason: 'A bucket written by send but not served by listBucket is content '
+      reason:
+          'A bucket written by send but not served by listBucket is content '
           'nobody can ever reach; one served but never written is a tab that '
           'is always empty. Produced: $produced, served: $served.',
     );

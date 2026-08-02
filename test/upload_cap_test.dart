@@ -27,17 +27,22 @@ void main() {
       r'_maxRetainedUploadBytes\s*=\s*(\d+)\s*\*\s*1024\s*\*\s*1024',
     ).firstMatch(source);
 
-    expect(match, isNotNull,
-        reason: 'ChatRepository._maxRetainedUploadBytes moved or changed shape. '
-            'It is the ceiling kMaxFileUploadBytes is chosen against, so this '
-            'test has to keep being able to read it.');
+    expect(
+      match,
+      isNotNull,
+      reason:
+          'ChatRepository._maxRetainedUploadBytes moved or changed shape. '
+          'It is the ceiling kMaxFileUploadBytes is chosen against, so this '
+          'test has to keep being able to read it.',
+    );
 
     final retainedBytes = int.parse(match!.group(1)!) * 1024 * 1024;
 
     expect(
       kMaxFileUploadBytes,
       lessThan(retainedBytes),
-      reason: 'A single pick that can exceed the whole-repository budget means '
+      reason:
+          'A single pick that can exceed the whole-repository budget means '
           'the first document a user sends lands in the un-retryable failure '
           'path instead of being refused with a reason.',
     );
@@ -47,31 +52,43 @@ void main() {
     expect(
       kMaxFileUploadBytes * 2,
       lessThanOrEqualTo(retainedBytes),
-      reason: 'Two documents in flight must both fit inside the retained budget.',
+      reason:
+          'Two documents in flight must both fit inside the retained budget.',
     );
   });
 
-  test('the pick path refuses on size before it hands anything to the send', () {
-    final source = File('lib/screens/room_screen.dart').readAsStringSync();
-    final start = source.indexOf('Future<void> _pickAndSendFile()');
-    expect(start, isNonNegative, reason: '_pickAndSendFile was renamed');
+  test(
+    'the pick path refuses on size before it hands anything to the send',
+    () {
+      final source = File('lib/screens/room_screen.dart').readAsStringSync();
+      final start = source.indexOf('Future<void> _pickAndSendFile()');
+      expect(start, isNonNegative, reason: '_pickAndSendFile was renamed');
 
-    // Bounded by the next method so this cannot accidentally match the video
-    // or gallery paths below it.
-    final body = source.substring(start, source.indexOf('\n  /// ', start + 1));
+      // Bounded by the next method so this cannot accidentally match the video
+      // or gallery paths below it.
+      final body = source.substring(
+        start,
+        source.indexOf('\n  /// ', start + 1),
+      );
 
-    final capAt = body.indexOf('kMaxFileUploadBytes');
-    final sendAt = body.indexOf('_sendMedia(');
+      final capAt = body.indexOf('kMaxFileUploadBytes');
+      final sendAt = body.indexOf('_sendMedia(');
 
-    expect(capAt, isNonNegative,
-        reason: 'The document pick no longer checks kMaxFileUploadBytes at all, '
+      expect(
+        capAt,
+        isNonNegative,
+        reason:
+            'The document pick no longer checks kMaxFileUploadBytes at all, '
             'so an oversized file now falls through to the retained-bytes cap '
-            'and its un-retryable failure bubble.');
-    expect(
-      capAt,
-      lessThan(sendAt),
-      reason: 'The size check has to run BEFORE _sendMedia — checking after it '
-          'has already queued the upload refuses nothing.',
-    );
-  });
+            'and its un-retryable failure bubble.',
+      );
+      expect(
+        capAt,
+        lessThan(sendAt),
+        reason:
+            'The size check has to run BEFORE _sendMedia — checking after it '
+            'has already queued the upload refuses nothing.',
+      );
+    },
+  );
 }

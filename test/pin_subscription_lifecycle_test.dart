@@ -88,8 +88,7 @@ class _FakeApi extends Fake implements ChatApi {
     required String roomId,
     int limit = 100,
     String? viewerUserId,
-  }) async =>
-      throw StateError('offline');
+  }) async => throw StateError('offline');
 
   @override
   Future<void> markRoomRead({
@@ -146,9 +145,8 @@ void main() {
     await repo.attach('me');
   });
 
-  List<_FakeSub> pinSubsFor(String roomId) => cv.issued
-      .where((s) => s.label == 'pins:listForRoom/$roomId')
-      .toList();
+  List<_FakeSub> pinSubsFor(String roomId) =>
+      cv.issued.where((s) => s.label == 'pins:listForRoom/$roomId').toList();
 
   group('registration', () {
     test('opening a room subscribes to its pins', () async {
@@ -171,8 +169,11 @@ void main() {
       await opening;
 
       for (final s in pinSubsFor('b')) {
-        expect(s.cancelled, isTrue,
-            reason: 'a superseded open must not publish a pins subscription');
+        expect(
+          s.cancelled,
+          isTrue,
+          reason: 'a superseded open must not publish a pins subscription',
+        );
       }
     });
 
@@ -192,8 +193,11 @@ void main() {
       await second;
 
       for (final s in pinSubsFor('b')) {
-        expect(s.cancelled, isTrue,
-            reason: 'the loser of the race must not publish');
+        expect(
+          s.cancelled,
+          isTrue,
+          reason: 'the loser of the race must not publish',
+        );
       }
       expect(repo.activeRoomId, 'c');
     });

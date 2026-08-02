@@ -33,7 +33,10 @@ void main() {
     test('a degenerate box yields an empty rect rather than a NaN', () {
       expect(fitContain(box: Size.zero, aspect: 1), Rect.zero);
       expect(fitContain(box: const Size(10, 10), aspect: 0), Rect.zero);
-      expect(fitContain(box: const Size(10, 10), aspect: double.nan), Rect.zero);
+      expect(
+        fitContain(box: const Size(10, 10), aspect: double.nan),
+        Rect.zero,
+      );
     });
   });
 
@@ -58,7 +61,11 @@ void main() {
 
     test('is the identity for a pillarboxed image', () {
       final stage = fitContain(box: const Size(400, 400), aspect: 0.5);
-      for (final p in const [Offset(100, 0), Offset(300, 400), Offset(211, 89)]) {
+      for (final p in const [
+        Offset(100, 0),
+        Offset(300, 400),
+        Offset(211, 89),
+      ]) {
         final n = stageToNorm(p, viewport: unit, stage: stage);
         final back = normToStage(n, viewport: unit, stage: stage);
         expect(back.dx, closeTo(p.dx, 1e-9));
@@ -90,8 +97,9 @@ void main() {
       // Its offset within the crop region is the same fraction either way.
       final inFull = normToStage(point, viewport: unit, stage: full);
       final fractionOfCropFull =
-          (inFull.dx - normToStage(crop.topLeft, viewport: unit, stage: full).dx) /
-              (crop.width * full.width);
+          (inFull.dx -
+              normToStage(crop.topLeft, viewport: unit, stage: full).dx) /
+          (crop.width * full.width);
       final inCropped = normToStage(point, viewport: crop, stage: cropped);
       final fractionOfCropZoomed =
           (inCropped.dx - cropped.left) / cropped.width;
@@ -297,19 +305,16 @@ void main() {
     });
 
     test('two points make a straight segment of the right length', () {
-      final metrics =
-          strokePath(const [Offset(0, 0), Offset(3, 4)]).computeMetrics().toList();
+      final metrics = strokePath(const [
+        Offset(0, 0),
+        Offset(3, 4),
+      ]).computeMetrics().toList();
       expect(metrics, hasLength(1));
       expect(metrics.first.length, closeTo(5, 1e-6));
     });
 
     test('a many-point stroke starts and ends on the samples it was given', () {
-      const pts = [
-        Offset(0, 0),
-        Offset(10, 20),
-        Offset(30, 5),
-        Offset(50, 40),
-      ];
+      const pts = [Offset(0, 0), Offset(10, 20), Offset(30, 5), Offset(50, 40)];
       final bounds = strokePath(pts).getBounds();
       // Quadratics through midpoints stay within the control polygon, so the
       // curve can never wander outside the samples' own bounding box.

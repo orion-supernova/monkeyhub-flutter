@@ -54,8 +54,9 @@ void main() {
     return landed;
   }
 
-  testWidgets('lands on a row hundreds of items away that was never built',
-      (tester) async {
+  testWidgets('lands on a row hundreds of items away that was never built', (
+    tester,
+  ) async {
     final controller = ScrollController();
     await tester.pumpWidget(harness(controller, reverse: false));
 
@@ -64,8 +65,9 @@ void main() {
     expect(find.text('row 500'), findsOneWidget);
   });
 
-  testWidgets('works the same on a reversed list (the chat transcript)',
-      (tester) async {
+  testWidgets('works the same on a reversed list (the chat transcript)', (
+    tester,
+  ) async {
     final controller = ScrollController();
     await tester.pumpWidget(harness(controller, reverse: true));
 
@@ -82,8 +84,7 @@ void main() {
     expect(find.text('row 12'), findsOneWidget);
   });
 
-  testWidgets('a row already on screen just settles into view',
-      (tester) async {
+  testWidgets('a row already on screen just settles into view', (tester) async {
     final controller = ScrollController();
     await tester.pumpWidget(harness(controller, reverse: false));
 
@@ -92,8 +93,9 @@ void main() {
     expect(find.text('row 2'), findsOneWidget);
   });
 
-  testWidgets('reports failure instead of hanging when the row is gone',
-      (tester) async {
+  testWidgets('reports failure instead of hanging when the row is gone', (
+    tester,
+  ) async {
     final controller = ScrollController();
     await tester.pumpWidget(harness(controller, reverse: true));
 

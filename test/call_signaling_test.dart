@@ -54,14 +54,14 @@ class _RecordingCallService extends CallService {
 }
 
 Map<String, dynamic> _sig(String id, String kind, {String? targetDeviceId}) => {
-      '_id': id,
-      'callId': 'call1',
-      'fromUserId': 'peer',
-      'kind': kind,
-      'payload': '{}',
-      'createdAt': 0,
-      'targetDeviceId': ?targetDeviceId,
-    };
+  '_id': id,
+  'callId': 'call1',
+  'fromUserId': 'peer',
+  'kind': kind,
+  'payload': '{}',
+  'createdAt': 0,
+  'targetDeviceId': ?targetDeviceId,
+};
 
 Future<void> _pump([int rounds = 8]) async {
   for (var i = 0; i < rounds; i++) {
@@ -81,23 +81,25 @@ void main() {
     await sub.start('me', deviceId: 'dev1');
   });
 
-  test('signals dispatch strictly in order — bye waits for in-flight offer',
-      () async {
-    final gate = service.gates['offer'] = Completer<void>();
-    api.emit!([_sig('s1', 'offer'), _sig('s2', 'bye')]);
-    await _pump();
-    // Offer is in flight; bye must not have started.
-    expect(service.started, ['offer']);
-    expect(service.finished, isEmpty);
+  test(
+    'signals dispatch strictly in order — bye waits for in-flight offer',
+    () async {
+      final gate = service.gates['offer'] = Completer<void>();
+      api.emit!([_sig('s1', 'offer'), _sig('s2', 'bye')]);
+      await _pump();
+      // Offer is in flight; bye must not have started.
+      expect(service.started, ['offer']);
+      expect(service.finished, isEmpty);
 
-    gate.complete();
-    await _pump();
-    expect(service.finished, ['offer', 'bye']);
-    // One batched consume, ids in delivery order.
-    expect(api.consumedBatches, [
-      ['s1', 's2'],
-    ]);
-  });
+      gate.complete();
+      await _pump();
+      expect(service.finished, ['offer', 'bye']);
+      // One batched consume, ids in delivery order.
+      expect(api.consumedBatches, [
+        ['s1', 's2'],
+      ]);
+    },
+  );
 
   test('re-delivered ids dispatch and consume only once', () async {
     api.emit!([_sig('s1', 'state')]);
@@ -108,16 +110,18 @@ void main() {
     expect(api.consumedBatches.expand((b) => b), ['s1', 's2']);
   });
 
-  test('signals targeted at another device are consumed but not dispatched',
-      () async {
-    api.emit!([
-      _sig('s1', 'handoff-takeover', targetDeviceId: 'otherDevice'),
-      _sig('s2', 'state', targetDeviceId: 'dev1'),
-    ]);
-    await _pump();
-    expect(service.finished, ['state']);
-    expect(api.consumedBatches.single, ['s1', 's2']);
-  });
+  test(
+    'signals targeted at another device are consumed but not dispatched',
+    () async {
+      api.emit!([
+        _sig('s1', 'handoff-takeover', targetDeviceId: 'otherDevice'),
+        _sig('s2', 'state', targetDeviceId: 'dev1'),
+      ]);
+      await _pump();
+      expect(service.finished, ['state']);
+      expect(api.consumedBatches.single, ['s1', 's2']);
+    },
+  );
 
   test('a throwing handler does not stall the queue', () async {
     service.gates['offer'] = Completer<void>()

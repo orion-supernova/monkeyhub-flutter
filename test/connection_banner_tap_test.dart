@@ -29,7 +29,9 @@ class _StubProbe implements ConnectionProbe {
   @override
   Stream<bool> get connectionState => _ctrl.stream;
   @override
-  Future<bool> probeConnection({Duration timeout = const Duration(seconds: 5)}) async {
+  Future<bool> probeConnection({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
     retries++;
     return false;
   }
@@ -102,7 +104,9 @@ void main() {
     await probe.close();
   });
 
-  testWidgets('the whole strip is tappable, not just the label', (tester) async {
+  testWidgets('the whole strip is tappable, not just the label', (
+    tester,
+  ) async {
     await pumpStalled(tester);
     final before = probe.retries;
 

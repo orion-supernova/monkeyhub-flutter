@@ -71,20 +71,23 @@ void main() {
   InteractiveViewer viewer(WidgetTester tester) =>
       tester.widget<InteractiveViewer>(find.byType(InteractiveViewer));
 
-  testWidgets('the viewer is unconstrained, so the child can exceed the window',
-      (tester) async {
-    final file = makePng(400, 800);
-    await settle(tester, host(file));
+  testWidgets(
+    'the viewer is unconstrained, so the child can exceed the window',
+    (tester) async {
+      final file = makePng(400, 800);
+      await settle(tester, host(file));
 
-    // The load-bearing flag. With the default `true` the SizedBox below would
-    // be squashed to the window and nothing would pan.
-    expect(viewer(tester).constrained, isFalse);
-    expect(viewer(tester).minScale, 1);
-    expect(viewer(tester).boundaryMargin, EdgeInsets.zero);
-  });
+      // The load-bearing flag. With the default `true` the SizedBox below would
+      // be squashed to the window and nothing would pan.
+      expect(viewer(tester).constrained, isFalse);
+      expect(viewer(tester).minScale, 1);
+      expect(viewer(tester).boundaryMargin, EdgeInsets.zero);
+    },
+  );
 
-  testWidgets('a portrait image opens centered, not on its top-left corner',
-      (tester) async {
+  testWidgets('a portrait image opens centered, not on its top-left corner', (
+    tester,
+  ) async {
     final file = makePng(400, 800);
     await settle(tester, host(file));
 
@@ -105,8 +108,9 @@ void main() {
     expect(t.y, lessThan(-1));
   });
 
-  testWidgets('the window stays inside the image however hard you drag',
-      (tester) async {
+  testWidgets('the window stays inside the image however hard you drag', (
+    tester,
+  ) async {
     final file = makePng(400, 800);
     await settle(tester, host(file));
 
@@ -125,20 +129,25 @@ void main() {
       await pumpFrames(tester);
 
       final topLeft = ctrl.toScene(Offset.zero);
-      final bottomRight = ctrl.toScene(
-        Offset(window.width, window.height),
-      );
+      final bottomRight = ctrl.toScene(Offset(window.width, window.height));
       expect(topLeft.dx, greaterThanOrEqualTo(-0.5), reason: 'drag $drag');
       expect(topLeft.dy, greaterThanOrEqualTo(-0.5), reason: 'drag $drag');
-      expect(bottomRight.dx, lessThanOrEqualTo(child.width + 0.5),
-          reason: 'drag $drag');
-      expect(bottomRight.dy, lessThanOrEqualTo(child.height + 0.5),
-          reason: 'drag $drag');
+      expect(
+        bottomRight.dx,
+        lessThanOrEqualTo(child.width + 0.5),
+        reason: 'drag $drag',
+      );
+      expect(
+        bottomRight.dy,
+        lessThanOrEqualTo(child.height + 0.5),
+        reason: 'drag $drag',
+      );
     }
   });
 
-  testWidgets('a landscape image covers the window on the other axis',
-      (tester) async {
+  testWidgets('a landscape image covers the window on the other axis', (
+    tester,
+  ) async {
     final file = makePng(1200, 400);
     await settle(tester, host(file));
 
@@ -153,8 +162,9 @@ void main() {
     expect(t.y, closeTo(0, 0.5));
   });
 
-  testWidgets('rect mode keeps the source aspect ratio and needs no panning',
-      (tester) async {
+  testWidgets('rect mode keeps the source aspect ratio and needs no panning', (
+    tester,
+  ) async {
     final file = makePng(400, 800);
     await settle(tester, host(file, shape: CropShape.rect));
 

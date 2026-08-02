@@ -58,6 +58,5 @@ void main() {
         isNot(NativeCallHandler.derivedUuid('jd7abc124')),
       );
     });
-
   });
 }

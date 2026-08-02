@@ -36,11 +36,11 @@ void main() {
   }
 
   Widget host(Uint8List source, {bool canRetake = false}) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: CameraEditorScreen(source: source, canRetake: canRetake),
-        ),
-      );
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: CameraEditorScreen(source: source, canRetake: canRetake),
+    ),
+  );
 
   /// Drives the screen until its image is decoded and laid out.
   ///
@@ -67,8 +67,9 @@ void main() {
 
   final photo = makePng(600, 800);
 
-  testWidgets('the drawing tools stay hidden until the pen is picked up',
-      (tester) async {
+  testWidgets('the drawing tools stay hidden until the pen is picked up', (
+    tester,
+  ) async {
     await settle(tester, host(photo));
 
     expect(find.byIcon(CupertinoIcons.scribble), findsOneWidget);
@@ -86,8 +87,9 @@ void main() {
     expect(find.byIcon(CupertinoIcons.trash), findsNothing);
   });
 
-  testWidgets('crop is an icon at the top, not a labelled button in the rail',
-      (tester) async {
+  testWidgets('crop is an icon at the top, not a labelled button in the rail', (
+    tester,
+  ) async {
     await settle(tester, host(photo));
 
     expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
@@ -96,17 +98,23 @@ void main() {
     expect(find.text('SEND'), findsOneWidget);
   });
 
-  testWidgets('retake is offered for a capture and absent for a library photo',
-      (tester) async {
-    await settle(tester, host(photo, canRetake: true));
-    expect(find.byIcon(CupertinoIcons.arrow_counterclockwise), findsOneWidget);
+  testWidgets(
+    'retake is offered for a capture and absent for a library photo',
+    (tester) async {
+      await settle(tester, host(photo, canRetake: true));
+      expect(
+        find.byIcon(CupertinoIcons.arrow_counterclockwise),
+        findsOneWidget,
+      );
 
-    await settle(tester, host(photo));
-    expect(find.byIcon(CupertinoIcons.arrow_counterclockwise), findsNothing);
-  });
+      await settle(tester, host(photo));
+      expect(find.byIcon(CupertinoIcons.arrow_counterclockwise), findsNothing);
+    },
+  );
 
-  testWidgets('a swipe across the photo only draws once the pen is out',
-      (tester) async {
+  testWidgets('a swipe across the photo only draws once the pen is out', (
+    tester,
+  ) async {
     await settle(tester, host(photo));
 
     // Undo appears only when there is a stroke to undo, which makes it a

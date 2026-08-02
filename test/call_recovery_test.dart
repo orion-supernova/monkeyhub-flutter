@@ -61,11 +61,15 @@ void main() {
     test('deterministic and asymmetric for any pair', () {
       const a = 'user_aaa';
       const b = 'user_bbb';
-      expect(winsGlare(myUserId: a, peerUserId: b),
-          isNot(winsGlare(myUserId: b, peerUserId: a)));
+      expect(
+        winsGlare(myUserId: a, peerUserId: b),
+        isNot(winsGlare(myUserId: b, peerUserId: a)),
+      );
       // Stable across repeated evaluation.
-      expect(winsGlare(myUserId: a, peerUserId: b),
-          winsGlare(myUserId: a, peerUserId: b));
+      expect(
+        winsGlare(myUserId: a, peerUserId: b),
+        winsGlare(myUserId: a, peerUserId: b),
+      );
     });
   });
 
@@ -73,7 +77,11 @@ void main() {
     test('good on healthy stats', () {
       expect(
         classifyQuality(
-            rttMs: 80, lossPercent: 0.5, videoFps: 30, limitationReason: 'none'),
+          rttMs: 80,
+          lossPercent: 0.5,
+          videoFps: 30,
+          limitationReason: 'none',
+        ),
         CallQuality.good,
       );
     });
@@ -81,10 +89,11 @@ void main() {
     test('fair when the encoder reports a limitation', () {
       expect(
         classifyQuality(
-            rttMs: 80,
-            lossPercent: 0.5,
-            videoFps: 24,
-            limitationReason: 'bandwidth'),
+          rttMs: 80,
+          lossPercent: 0.5,
+          videoFps: 24,
+          limitationReason: 'bandwidth',
+        ),
         CallQuality.fair,
       );
     });

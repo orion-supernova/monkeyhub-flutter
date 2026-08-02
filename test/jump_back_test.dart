@@ -15,16 +15,16 @@ import 'package:monkeyhub/widgets/jump_back.dart';
 final _epoch = DateTime(2026, 3, 1, 12, 0);
 
 ChatMessage msg(String id, {String? root}) => ChatMessage(
-      id: id,
-      roomId: 'room',
-      senderId: 'alice',
-      senderName: 'alice',
-      content: id,
-      createdAt: _epoch,
-      type: MessageType.text,
-      status: MessageStatus.sent,
-      rootId: root,
-    );
+  id: id,
+  roomId: 'room',
+  senderId: 'alice',
+  senderName: 'alice',
+  content: id,
+  createdAt: _epoch,
+  type: MessageType.text,
+  status: MessageStatus.sent,
+  rootId: root,
+);
 
 void main() {
   group('JumpBackStack', () {
@@ -140,8 +140,9 @@ void main() {
     final inside = window * 0.8;
     final past = window * 1.4;
 
-    testWidgets('the default window is short, and it is what you get',
-        (tester) async {
+    testWidgets('the default window is short, and it is what you get', (
+      tester,
+    ) async {
       // Not pinned to an exact value — only to the band that makes the feature
       // work: long enough to be a backstop, short enough that the pill isn't
       // still sitting there minutes after the reader moved on. Scrolling back
@@ -152,8 +153,9 @@ void main() {
       expect(JumpBackStack().idleTimeout, window);
     });
 
-    testWidgets('an untouched trail clears itself once the window is up',
-        (tester) async {
+    testWidgets('an untouched trail clears itself once the window is up', (
+      tester,
+    ) async {
       final s = JumpBackStack();
       addTearDown(s.dispose);
       s.push(msg('a'));
@@ -203,8 +205,9 @@ void main() {
       s.clear();
     });
 
-    testWidgets('walking the trail to empty leaves no timer behind',
-        (tester) async {
+    testWidgets('walking the trail to empty leaves no timer behind', (
+      tester,
+    ) async {
       // A timer outliving the trail would fire into a disposed notifier. The
       // binding fails the test on a pending timer, so reaching the end of this
       // one is the assertion.
@@ -226,18 +229,19 @@ void main() {
 
   group('JumpBackPill', () {
     Widget host(int depth, {VoidCallback? onTap}) => MaterialApp(
-          home: ThemeScope(
-            controller: ThemeController(BasicTheme.midnight()),
-            child: Scaffold(
-              body: Center(
-                child: JumpBackPill(depth: depth, onTap: onTap ?? () {}),
-              ),
-            ),
+      home: ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: Scaffold(
+          body: Center(
+            child: JumpBackPill(depth: depth, onTap: onTap ?? () {}),
           ),
-        );
+        ),
+      ),
+    );
 
-    testWidgets('one hop reads plainly, a deeper trail says how deep',
-        (tester) async {
+    testWidgets('one hop reads plainly, a deeper trail says how deep', (
+      tester,
+    ) async {
       await tester.pumpWidget(host(1));
       expect(find.text('BACK'), findsOneWidget);
 
@@ -245,8 +249,9 @@ void main() {
       expect(find.text('BACK · 3'), findsOneWidget);
     });
 
-    testWidgets('never names a mechanism the reader may not have used',
-        (tester) async {
+    testWidgets('never names a mechanism the reader may not have used', (
+      tester,
+    ) async {
       // This read BACK TO REPLY from when a reply tether was the only way to
       // jump. A pin banner and the shared-content browser's "show in chat" now
       // push onto the same trail, and neither involves a reply — so the label
@@ -255,8 +260,9 @@ void main() {
       expect(find.textContaining('REPLY'), findsNothing);
     });
 
-    testWidgets('is the same glass capsule as the pill below it',
-        (tester) async {
+    testWidgets('is the same glass capsule as the pill below it', (
+      tester,
+    ) async {
       await tester.pumpWidget(host(1));
       expect(find.byType(GlassPill), findsOneWidget);
     });
@@ -276,18 +282,18 @@ void main() {
       // BackdropFilter parked at zero opacity still costs a rasterization pass
       // every frame of every chat.
       Widget host({required bool visible}) => MaterialApp(
-            home: ThemeScope(
-              controller: ThemeController(BasicTheme.midnight()),
-              child: Scaffold(
-                body: Center(
-                  child: TransientPillSlot(
-                    visible: visible,
-                    child: JumpBackPill(depth: 1, onTap: () {}),
-                  ),
-                ),
+        home: ThemeScope(
+          controller: ThemeController(BasicTheme.midnight()),
+          child: Scaffold(
+            body: Center(
+              child: TransientPillSlot(
+                visible: visible,
+                child: JumpBackPill(depth: 1, onTap: () {}),
               ),
             ),
-          );
+          ),
+        ),
+      );
 
       await tester.pumpWidget(host(visible: false));
       expect(find.byType(JumpBackPill), findsNothing);

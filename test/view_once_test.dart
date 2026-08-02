@@ -26,46 +26,44 @@ void main() {
     DateTime? burnedAt,
     String? storageId,
     String senderId = 'alice',
-  }) =>
-      ChatMessage(
-        id: 'm1',
-        roomId: 'r',
-        senderId: senderId,
-        senderName: 'alice',
-        content: '',
-        createdAt: DateTime(2026, 3, 1, 12),
-        type: MessageType.image,
-        mediaStorageId: storageId,
-        status: MessageStatus.sent,
-        viewOnce: viewOnce,
-        viewOnceOpened: opened,
-        viewOnceBurnedAt: burnedAt,
-      );
+  }) => ChatMessage(
+    id: 'm1',
+    roomId: 'r',
+    senderId: senderId,
+    senderName: 'alice',
+    content: '',
+    createdAt: DateTime(2026, 3, 1, 12),
+    type: MessageType.image,
+    mediaStorageId: storageId,
+    status: MessageStatus.sent,
+    viewOnce: viewOnce,
+    viewOnceOpened: opened,
+    viewOnceBurnedAt: burnedAt,
+  );
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 500, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 500, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget bubble(
     ChatMessage m, {
     String currentUserId = 'bob',
     Future<void> Function()? onOpen,
-  }) =>
-      MessageBubble(
-        message: m,
-        now: DateTime(2026, 3, 1, 12),
-        currentUserId: currentUserId,
-        api: api,
-        onOpenViewOnce: onOpen,
-      );
+  }) => MessageBubble(
+    message: m,
+    now: DateTime(2026, 3, 1, 12),
+    currentUserId: currentUserId,
+    api: api,
+    onOpenViewOnce: onOpen,
+  );
 
   group('sealed bubble', () {
     testWidgets('never builds a RemoteImage', (tester) async {
@@ -87,21 +85,21 @@ void main() {
       expect(find.text('tap to view'), findsNothing);
     });
 
-    testWidgets('burned without ever being opened reads "expired"',
-        (tester) async {
+    testWidgets('burned without ever being opened reads "expired"', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         host(bubble(photo(burnedAt: DateTime(2026, 3, 15)))),
       );
       expect(find.text('expired'), findsOneWidget);
     });
 
-    testWidgets('the sender sees the same tile, not their own photo',
-        (tester) async {
+    testWidgets('the sender sees the same tile, not their own photo', (
+      tester,
+    ) async {
       // Same silhouette and the same wording as a recipient's — the sender has
       // no reopen path, so nothing here should suggest one.
-      await tester.pumpWidget(
-        host(bubble(photo(), currentUserId: 'alice')),
-      );
+      await tester.pumpWidget(host(bubble(photo(), currentUserId: 'alice')));
       expect(find.byType(RemoteImage), findsNothing);
       expect(find.text('Photo'), findsOneWidget);
       expect(find.text('view once'), findsOneWidget);
@@ -133,10 +131,12 @@ void main() {
     testWidgets('a burned photo ignores taps', (tester) async {
       var opens = 0;
       await tester.pumpWidget(
-        host(bubble(
-          photo(burnedAt: DateTime(2026, 3, 15)),
-          onOpen: () async => opens++,
-        )),
+        host(
+          bubble(
+            photo(burnedAt: DateTime(2026, 3, 15)),
+            onOpen: () async => opens++,
+          ),
+        ),
       );
       await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
@@ -146,11 +146,9 @@ void main() {
     testWidgets('the sender cannot reopen their own', (tester) async {
       var opens = 0;
       await tester.pumpWidget(
-        host(bubble(
-          photo(),
-          currentUserId: 'alice',
-          onOpen: () async => opens++,
-        )),
+        host(
+          bubble(photo(), currentUserId: 'alice', onOpen: () async => opens++),
+        ),
       );
       await tester.tap(find.text('Photo'), warnIfMissed: false);
       await tester.pumpAndSettle();
@@ -163,10 +161,9 @@ void main() {
       await tester.pumpWidget(host(bubble(m)));
       await tester.pump();
       return tester.getSize(
-        find.ancestor(
-          of: find.text('Photo'),
-          matching: find.byType(Container),
-        ).last,
+        find
+            .ancestor(of: find.text('Photo'), matching: find.byType(Container))
+            .last,
       );
     }
 
@@ -190,10 +187,9 @@ void main() {
     await tester.pump();
     expect(find.text('12:00'), findsOneWidget);
 
-    final tile = find.ancestor(
-      of: find.text('Photo'),
-      matching: find.byType(Container),
-    ).last;
+    final tile = find
+        .ancestor(of: find.text('Photo'), matching: find.byType(Container))
+        .last;
     expect(
       find.descendant(of: tile, matching: find.byKey(kVisibleStampKey)),
       findsOneWidget,
@@ -211,8 +207,10 @@ void main() {
     expect(box.bottom - stamp.bottom, lessThan(20));
 
     // The seal and its labels stay centred on the tile's own axis.
-    expect(tester.getRect(find.text('Photo')).center.dx,
-        moreOrLessEquals(box.center.dx, epsilon: 0.5));
+    expect(
+      tester.getRect(find.text('Photo')).center.dx,
+      moreOrLessEquals(box.center.dx, epsilon: 0.5),
+    );
   });
 
   group('model rules', () {

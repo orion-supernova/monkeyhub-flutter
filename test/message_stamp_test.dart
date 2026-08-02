@@ -41,54 +41,52 @@ void main() {
     MessageStatus status = MessageStatus.sent,
     String? mediaStorageId,
     DateTime? expiresAt,
-  }) =>
-      ChatMessage(
-        id: 'm1',
-        roomId: 'r',
-        senderId: 'alice',
-        senderName: 'alice',
-        content: content,
-        createdAt: DateTime(2026, 3, 1, 12, 4),
-        type: type,
-        status: status,
-        mediaStorageId: mediaStorageId,
-        expiresAt: expiresAt,
-      );
+  }) => ChatMessage(
+    id: 'm1',
+    roomId: 'r',
+    senderId: 'alice',
+    senderName: 'alice',
+    content: content,
+    createdAt: DateTime(2026, 3, 1, 12, 4),
+    type: type,
+    status: status,
+    mediaStorageId: mediaStorageId,
+    expiresAt: expiresAt,
+  );
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(
-            body: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox(width: 500, child: child),
-            ),
-          ),
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 500, child: child),
         ),
-      );
+      ),
+    ),
+  );
 
   Widget bubble(
     ChatMessage m, {
     bool isMine = false,
     bool seenByOthers = false,
-  }) =>
-      MessageBubble(
-        message: m,
-        now: DateTime(2026, 3, 1, 12, 4),
-        currentUserId: isMine ? 'alice' : 'bob',
-        api: api,
-        seenByOthers: seenByOthers,
-        author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
-      );
+  }) => MessageBubble(
+    message: m,
+    now: DateTime(2026, 3, 1, 12, 4),
+    currentUserId: isMine ? 'alice' : 'bob',
+    api: api,
+    seenByOthers: seenByOthers,
+    author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
+  );
 
   Rect bubbleRect(WidgetTester tester) => tester.getRect(
-        find
-            .ancestor(
-              of: find.byType(LinkifiedText),
-              matching: find.byType(Container),
-            )
-            .first,
-      );
+    find
+        .ancestor(
+          of: find.byType(LinkifiedText),
+          matching: find.byType(Container),
+        )
+        .first,
+  );
 
   /// The stamp that is actually painted. A bare type finder would also catch the
   /// invisible twin reserving room for it inside the paragraph.
@@ -101,11 +99,17 @@ void main() {
   testWidgets('the timestamp rides inside the bubble', (tester) async {
     await tester.pumpWidget(host(bubble(msg())));
 
-    expect(visibleStamp, findsOneWidget,
-        reason: 'one painted stamp — inside the bubble, not also below it');
+    expect(
+      visibleStamp,
+      findsOneWidget,
+      reason: 'one painted stamp — inside the bubble, not also below it',
+    );
     expect(stampText('12:04'), findsOneWidget);
-    expect(find.byType(StampSpacer), findsOneWidget,
-        reason: 'the paragraph reserves the room the stamp takes');
+    expect(
+      find.byType(StampSpacer),
+      findsOneWidget,
+      reason: 'the paragraph reserves the room the stamp takes',
+    );
 
     final stamp = tester.getRect(visibleStamp);
     final body = bubbleRect(tester);
@@ -115,20 +119,27 @@ void main() {
     expect(stamp.top, greaterThanOrEqualTo(body.top - 0.5));
     // The bubble reserves a strip on the sender's side for its tail, and the
     // stamp has to stay out of it or the shape clips it.
-    expect(stamp.right, lessThanOrEqualTo(body.right - gutter + 0.5),
-        reason: 'the tail strip is not the stamp\'s to use');
+    expect(
+      stamp.right,
+      lessThanOrEqualTo(body.right - gutter + 0.5),
+      reason: 'the tail strip is not the stamp\'s to use',
+    );
     expect(stamp.left, greaterThanOrEqualTo(body.left));
   });
 
-  testWidgets('a one-word message keeps its stamp on its only line',
-      (tester) async {
+  testWidgets('a one-word message keeps its stamp on its only line', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(bubble(msg(content: 'ok'))));
 
     final body = bubbleRect(tester);
     // One line of body text plus its 10+10 padding. Every theme's body line box
     // is around 20pt, so a second line would blow well past this.
-    expect(body.height, lessThan(46),
-        reason: 'reserving room for the stamp must not cost the message a line');
+    expect(
+      body.height,
+      lessThan(46),
+      reason: 'reserving room for the stamp must not cost the message a line',
+    );
 
     final stamp = tester.getRect(visibleStamp);
     final text = tester.getRect(find.byType(LinkifiedText));
@@ -136,12 +147,20 @@ void main() {
     expect(stamp.center.dy, lessThan(text.bottom));
   });
 
-  testWidgets('a wrapping message keeps its stamp on the last line',
-      (tester) async {
-    await tester.pumpWidget(host(bubble(msg(
-      content: 'the quick brown fox jumps over the lazy dog and then keeps '
-          'going for several more lines so the bubble is tall',
-    ))));
+  testWidgets('a wrapping message keeps its stamp on the last line', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        bubble(
+          msg(
+            content:
+                'the quick brown fox jumps over the lazy dog and then keeps '
+                'going for several more lines so the bubble is tall',
+          ),
+        ),
+      ),
+    );
 
     final stamp = tester.getRect(visibleStamp);
     final body = bubbleRect(tester);
@@ -151,25 +170,34 @@ void main() {
     expect(body.bottom - stamp.bottom, lessThan(30));
   });
 
-  testWidgets('an ephemeral message counts down inside its bubble',
-      (tester) async {
+  testWidgets('an ephemeral message counts down inside its bubble', (
+    tester,
+  ) async {
     final now = DateTime(2026, 3, 1, 12, 4);
-    await tester.pumpWidget(host(EphemeralMessageBubble(
-      message: msg(expiresAt: now.add(const Duration(seconds: 12))),
-      now: now,
-      currentUserId: 'bob',
-      api: api,
-      author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
-    )));
+    await tester.pumpWidget(
+      host(
+        EphemeralMessageBubble(
+          message: msg(expiresAt: now.add(const Duration(seconds: 12))),
+          now: now,
+          currentUserId: 'bob',
+          api: api,
+          author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
+        ),
+      ),
+    );
 
     expect(visibleStamp, findsOneWidget);
-    expect(stampText('12s'), findsOneWidget,
-        reason: 'seconds while seconds matter');
+    expect(
+      stampText('12s'),
+      findsOneWidget,
+      reason: 'seconds while seconds matter',
+    );
     expect(stampText('12:04'), findsOneWidget);
   });
 
-  testWidgets('a pending message shows the clock, a sent one does not',
-      (tester) async {
+  testWidgets('a pending message shows the clock, a sent one does not', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(bubble(msg(status: MessageStatus.pending))));
     expect(
       find.descendant(of: visibleStamp, matching: find.byIcon(Icons.schedule)),
@@ -181,53 +209,65 @@ void main() {
   });
 
   group('an attachment still going up', () {
-    testWidgets('shows the upload glyph rather than the pending clock',
-        (tester) async {
-      await tester
-          .pumpWidget(host(bubble(msg(status: MessageStatus.uploading))));
+    testWidgets('shows the upload glyph rather than the pending clock', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(bubble(msg(status: MessageStatus.uploading))),
+      );
 
       expect(
         find.descendant(
-            of: visibleStamp, matching: find.byIcon(Icons.arrow_upward)),
+          of: visibleStamp,
+          matching: find.byIcon(Icons.arrow_upward),
+        ),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.schedule), findsNothing);
     });
 
-    testWidgets('is never marked seen, however far ahead the read cursor is',
-        (tester) async {
+    testWidgets('is never marked seen, however far ahead the read cursor is', (
+      tester,
+    ) async {
       // `seenByOthers` is another member's read cursor measured against this
       // message's timestamp, and a cursor already past "now" makes it true for a
       // message created a moment ago. Left to fall through to the showSeen
       // branch, an upload in flight would draw `done_all` — "seen" — on a photo
       // nobody has received yet.
-      await tester.pumpWidget(host(bubble(
-        msg(status: MessageStatus.uploading),
-        isMine: true,
-        seenByOthers: true,
-      )));
+      await tester.pumpWidget(
+        host(
+          bubble(
+            msg(status: MessageStatus.uploading),
+            isMine: true,
+            seenByOthers: true,
+          ),
+        ),
+      );
 
       expect(find.byIcon(Icons.done_all), findsNothing);
       expect(
         find.descendant(
-            of: visibleStamp, matching: find.byIcon(Icons.arrow_upward)),
+          of: visibleStamp,
+          matching: find.byIcon(Icons.arrow_upward),
+        ),
         findsOneWidget,
       );
     });
 
-    testWidgets('a sent message with the same cursor DOES read as seen',
-        (tester) async {
+    testWidgets('a sent message with the same cursor DOES read as seen', (
+      tester,
+    ) async {
       // The control for the test above: it must be pinning the uploading branch,
       // not a broken seen path.
-      await tester.pumpWidget(host(bubble(
-        msg(),
-        isMine: true,
-        seenByOthers: true,
-      )));
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, seenByOthers: true)),
+      );
 
       expect(
         find.descendant(
-            of: visibleStamp, matching: find.byIcon(Icons.done_all)),
+          of: visibleStamp,
+          matching: find.byIcon(Icons.done_all),
+        ),
         findsOneWidget,
       );
     });
@@ -250,7 +290,9 @@ void main() {
 
     test('a URL with text alongside keeps its stamp inline', () {
       final m = msg(
-          content: 'look at this https://example.com', type: MessageType.url);
+        content: 'look at this https://example.com',
+        type: MessageType.url,
+      );
       expect(messageStampsInline(m, showLinkUrls: false), isTrue);
       expect(messageStampsInline(m, showLinkUrls: true), isTrue);
     });
@@ -258,13 +300,16 @@ void main() {
     test('a photo takes the stamp on the picture, or in its caption', () {
       expect(
         messageStampsInline(
-            msg(content: '', type: MessageType.image, mediaStorageId: 's1'),
-            showLinkUrls: true),
+          msg(content: '', type: MessageType.image, mediaStorageId: 's1'),
+          showLinkUrls: true,
+        ),
         isTrue,
       );
       expect(
         messageStampsInline(
-            msg(content: 'look', type: MessageType.image), showLinkUrls: true),
+          msg(content: 'look', type: MessageType.image),
+          showLinkUrls: true,
+        ),
         isTrue,
         reason: 'the caption bubble can host it even with no picture',
       );
@@ -273,8 +318,10 @@ void main() {
     test('a photo that never arrived falls back to the row', () {
       // An error plate is no place for a frosted timestamp lozenge.
       expect(
-        messageStampsInline(msg(content: '', type: MessageType.image),
-            showLinkUrls: true),
+        messageStampsInline(
+          msg(content: '', type: MessageType.image),
+          showLinkUrls: true,
+        ),
         isFalse,
       );
     });

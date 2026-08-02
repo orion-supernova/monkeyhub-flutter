@@ -29,25 +29,24 @@ void main() {
     String senderId = 'alice',
     Duration offset = Duration.zero,
     bool withBytes = false,
-  }) =>
-      ChatMessage(
-        id: id,
-        roomId: 'r',
-        senderId: senderId,
-        senderName: '',
-        content: content,
-        createdAt: t0.add(offset),
-        type: type,
-        status: status,
-        mediaStorageId: storageId,
-        viewOnce: viewOnce,
-        upload: withBytes
-            ? PendingUpload(
-                bytes: Uint8List.fromList(const [1, 2, 3]),
-                contentType: 'image/jpeg',
-              )
-            : null,
-      );
+  }) => ChatMessage(
+    id: id,
+    roomId: 'r',
+    senderId: senderId,
+    senderName: '',
+    content: content,
+    createdAt: t0.add(offset),
+    type: type,
+    status: status,
+    mediaStorageId: storageId,
+    viewOnce: viewOnce,
+    upload: withBytes
+        ? PendingUpload(
+            bytes: Uint8List.fromList(const [1, 2, 3]),
+            contentType: 'image/jpeg',
+          )
+        : null,
+  );
 
   group('one-to-one claiming', () {
     test('a single echo removes exactly one of two captionless photos', () {
@@ -144,15 +143,17 @@ void main() {
       expect(survivingPending(live, [pending]), [pending]);
     });
 
-    test('a view-once photo falls back to the window, having no id to compare',
-        () {
-      // The server strips mediaStorageId from every read of an armed photo, so
-      // the id branch can never fire for one — the fallback has to work.
-      final pending = msg(id: 'tmp_1', viewOnce: true, storageId: 'sA');
-      final live = [msg(id: 'srv_1', viewOnce: true)];
+    test(
+      'a view-once photo falls back to the window, having no id to compare',
+      () {
+        // The server strips mediaStorageId from every read of an armed photo, so
+        // the id branch can never fire for one — the fallback has to work.
+        final pending = msg(id: 'tmp_1', viewOnce: true, storageId: 'sA');
+        final live = [msg(id: 'srv_1', viewOnce: true)];
 
-      expect(survivingPending(live, [pending]), isEmpty);
-    });
+        expect(survivingPending(live, [pending]), isEmpty);
+      },
+    );
   });
 
   group('the cheap discriminators', () {
@@ -281,6 +282,9 @@ void main() {
     final c = msg(id: 'tmp_3', storageId: 'sC');
     final live = [msg(id: 'srv_2', storageId: 'sB')];
 
-    expect(survivingPending(live, [a, b, c]).map((m) => m.id), ['tmp_1', 'tmp_3']);
+    expect(survivingPending(live, [a, b, c]).map((m) => m.id), [
+      'tmp_1',
+      'tmp_3',
+    ]);
   });
 }

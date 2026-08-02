@@ -41,7 +41,9 @@ void main() {
       expect(p.value, isFalse);
 
       p.updateMetrics(
-          pixels: BottomProximity.showAbove + 1, maxScrollExtent: 5000);
+        pixels: BottomProximity.showAbove + 1,
+        maxScrollExtent: 5000,
+      );
       expect(p.value, isTrue);
 
       // The hysteresis band: back below the show threshold, still shown.
@@ -87,23 +89,20 @@ void main() {
     // MaterialApp and Scaffold bring their own FadeTransitions and
     // IgnorePointers, so every structural finder here is scoped to the slot.
     Finder inSlot(Type type) => find.descendant(
-          of: find.byType(ScrollToLatestSlot),
-          matching: find.byType(type),
-        );
+      of: find.byType(ScrollToLatestSlot),
+      matching: find.byType(type),
+    );
 
     Widget host({required bool visible, VoidCallback? onTap}) => MaterialApp(
-          home: ThemeScope(
-            controller: ThemeController(BasicTheme.midnight()),
-            child: Scaffold(
-              body: Center(
-                child: ScrollToLatestSlot(
-                  visible: visible,
-                  onTap: onTap ?? () {},
-                ),
-              ),
-            ),
+      home: ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: Scaffold(
+          body: Center(
+            child: ScrollToLatestSlot(visible: visible, onTap: onTap ?? () {}),
           ),
-        );
+        ),
+      ),
+    );
 
     testWidgets('mounts nothing at all while hidden', (tester) async {
       await tester.pumpWidget(host(visible: false));
@@ -119,13 +118,17 @@ void main() {
       expect(
         // .first: FocusableTap's focus ring is an AnimatedOpacity, which is
         // itself a FadeTransition. Ours is the outer one.
-        tester.widget<FadeTransition>(inSlot(FadeTransition).first).opacity.value,
+        tester
+            .widget<FadeTransition>(inSlot(FadeTransition).first)
+            .opacity
+            .value,
         1,
       );
     });
 
-    testWidgets('stays mounted while animating out, then unmounts',
-        (tester) async {
+    testWidgets('stays mounted while animating out, then unmounts', (
+      tester,
+    ) async {
       await tester.pumpWidget(host(visible: true));
       await tester.pumpWidget(host(visible: false));
 

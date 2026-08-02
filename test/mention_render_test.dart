@@ -17,11 +17,11 @@ void main() {
   const handles = {'u1': 'murat', 'u2': 'maria'};
 
   Widget host(Widget child) => MaterialApp(
-        home: ThemeScope(
-          controller: ThemeController(BasicTheme.midnight()),
-          child: Scaffold(body: SizedBox(width: 500, child: child)),
-        ),
-      );
+    home: ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: Scaffold(body: SizedBox(width: 500, child: child)),
+    ),
+  );
 
   LinkifiedText build(
     String text, {
@@ -29,19 +29,18 @@ void main() {
     bool everyone = false,
     String? selfUserId,
     InlineSpan? trailing,
-  }) =>
-      LinkifiedText(
-        text: text,
-        style: const TextStyle(fontSize: 14, color: Color(0xFFFFFFFF)),
-        linkStyle: const TextStyle(color: Color(0xFF00FF00)),
-        onLinkTap: (_) {},
-        trailing: trailing,
-        mentionHandles: mentionHandles,
-        mentionsEveryone: everyone,
-        selfUserId: selfUserId,
-        mentionStyle: const TextStyle(color: Color(0xFFFF0000)),
-        selfMentionStyle: const TextStyle(color: Color(0xFF0000FF)),
-      );
+  }) => LinkifiedText(
+    text: text,
+    style: const TextStyle(fontSize: 14, color: Color(0xFFFFFFFF)),
+    linkStyle: const TextStyle(color: Color(0xFF00FF00)),
+    onLinkTap: (_) {},
+    trailing: trailing,
+    mentionHandles: mentionHandles,
+    mentionsEveryone: everyone,
+    selfUserId: selfUserId,
+    mentionStyle: const TextStyle(color: Color(0xFFFF0000)),
+    selfMentionStyle: const TextStyle(color: Color(0xFF0000FF)),
+  );
 
   /// The flattened leaf spans of whatever the widget rendered.
   List<InlineSpan> spansOf(WidgetTester tester) {
@@ -55,8 +54,9 @@ void main() {
     return out;
   }
 
-  testWidgets('plain text with nothing to enrich stays a plain Text',
-      (tester) async {
+  testWidgets('plain text with nothing to enrich stays a plain Text', (
+    tester,
+  ) async {
     await tester.pumpWidget(host(build('just a message')));
     final text = tester.widget<Text>(find.byType(Text));
     // `data` non-null is what proves the cheap path was taken — the rich path
@@ -75,10 +75,7 @@ void main() {
 
   testWidgets('a mention of the reader is styled differently from one of '
       'somebody else', (tester) async {
-    await tester.pumpWidget(host(build(
-      '@murat and @maria',
-      selfUserId: 'u2',
-    )));
+    await tester.pumpWidget(host(build('@murat and @maria', selfUserId: 'u2')));
     final spans = spansOf(tester).whereType<TextSpan>().toList();
     final other = spans.firstWhere((s) => s.text == '@murat');
     final self = spans.firstWhere((s) => s.text == '@maria');
@@ -86,22 +83,30 @@ void main() {
     expect(self.style?.color, const Color(0xFF0000FF));
   });
 
-  testWidgets('@everyone reads as a mention of the reader, whoever they are',
-      (tester) async {
-    await tester.pumpWidget(host(build(
-      'heads up @everyone',
-      mentionHandles: const {},
-      everyone: true,
-      selfUserId: 'nobody-in-particular',
-    )));
+  testWidgets('@everyone reads as a mention of the reader, whoever they are', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        build(
+          'heads up @everyone',
+          mentionHandles: const {},
+          everyone: true,
+          selfUserId: 'nobody-in-particular',
+        ),
+      ),
+    );
     final spans = spansOf(tester).whereType<TextSpan>().toList();
     final everyone = spans.firstWhere((s) => s.text == '@everyone');
     expect(everyone.style?.color, const Color(0xFF0000FF));
   });
 
-  testWidgets('a handle the message never claimed is left as plain text',
-      (tester) async {
-    await tester.pumpWidget(host(build('hey @murat', mentionHandles: const {})));
+  testWidgets('a handle the message never claimed is left as plain text', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(build('hey @murat', mentionHandles: const {})),
+    );
     final text = tester.widget<Text>(find.byType(Text));
     expect(text.data, 'hey @murat');
   });
@@ -109,10 +114,9 @@ void main() {
   testWidgets('the trailing stamp span stays last, after both a URL and a '
       'mention', (tester) async {
     const stamp = WidgetSpan(child: SizedBox(width: 40, height: 10));
-    await tester.pumpWidget(host(build(
-      '@murat see https://example.com now',
-      trailing: stamp,
-    )));
+    await tester.pumpWidget(
+      host(build('@murat see https://example.com now', trailing: stamp)),
+    );
 
     final spans = spansOf(tester);
     expect(spans.last, same(stamp));
@@ -125,11 +129,11 @@ void main() {
 
   testWidgets('trailing alone still forces the rich path', (tester) async {
     const stamp = WidgetSpan(child: SizedBox(width: 40, height: 10));
-    await tester.pumpWidget(host(build(
-      'nothing to enrich',
-      mentionHandles: const {},
-      trailing: stamp,
-    )));
+    await tester.pumpWidget(
+      host(
+        build('nothing to enrich', mentionHandles: const {}, trailing: stamp),
+      ),
+    );
     final text = tester.widget<Text>(find.byType(Text));
     expect(text.data, isNull);
     expect(text.textSpan, isNotNull);
@@ -143,11 +147,14 @@ void main() {
     expect(spans.any((s) => s.text == '@murat'), isFalse);
   });
 
-  test('MentionDetector and UrlDetector agree on the same coordinate space', () {
-    // Guards the merge: both must be measured against the string that is
-    // actually rendered, or the spans land on the wrong characters.
-    const text = '@murat https://x.com';
-    final m = MentionDetector.matches(text, usernameById: handles).single;
-    expect(text.substring(m.start, m.end), '@murat');
-  });
+  test(
+    'MentionDetector and UrlDetector agree on the same coordinate space',
+    () {
+      // Guards the merge: both must be measured against the string that is
+      // actually rendered, or the spans land on the wrong characters.
+      const text = '@murat https://x.com';
+      final m = MentionDetector.matches(text, usernameById: handles).single;
+      expect(text.substring(m.start, m.end), '@murat');
+    },
+  );
 }

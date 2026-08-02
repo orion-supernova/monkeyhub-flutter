@@ -46,14 +46,19 @@ class CountBadge extends StatelessWidget {
     // Filled rather than tinted when you were named. The tinted pill has to
     // stay quiet enough to sit beside a dozen others in a room list; a mention
     // is the one that has earned the right to be read first.
+    // On an accent surface the badge fills solid rather than tinting.
+    //
+    // A tint only reads against a plain surface. Sitting on the nav bar's
+    // selected pill — itself accent at 0.16 over glass — an 18% wash of
+    // accentInk had almost nothing to separate it from its background, so the
+    // count all but vanished on the one tab most likely to be carrying one.
+    // Filling with the accent puts a solid shape on a translucent one.
     final fg = mention
         ? (onAccent ? theme.accent : theme.accentInk)
         : (onAccent ? theme.accentInk : theme.accent);
     final bg = mention
         ? (onAccent ? theme.accentInk : theme.accent)
-        : (onAccent
-            ? theme.accentInk.withValues(alpha: 0.18)
-            : theme.accent.withValues(alpha: 0.16));
+        : (onAccent ? theme.accent : theme.accent.withValues(alpha: 0.16));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       constraints: const BoxConstraints(minWidth: 16),

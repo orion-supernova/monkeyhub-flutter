@@ -80,35 +80,31 @@ class _FakeRepo extends Fake implements ChatRepository {
 }
 
 ChatMessage photo(String id, int minute) => ChatMessage(
-      id: id,
-      roomId: 'r1',
-      senderId: 'u1',
-      senderName: 'ada',
-      content: '',
-      createdAt: DateTime.utc(2026, 1, 1, 12, minute),
-      type: MessageType.image,
-      mediaStorageId: 'stor_$id',
-    );
+  id: id,
+  roomId: 'r1',
+  senderId: 'u1',
+  senderName: 'ada',
+  content: '',
+  createdAt: DateTime.utc(2026, 1, 1, 12, minute),
+  type: MessageType.image,
+  mediaStorageId: 'stor_$id',
+);
 
 ChatMessage textWith(String id, int minute, String content) => ChatMessage(
-      id: id,
-      roomId: 'r1',
-      senderId: 'u1',
-      senderName: 'ada',
-      content: content,
-      createdAt: DateTime.utc(2026, 1, 1, 12, minute),
-    );
+  id: id,
+  roomId: 'r1',
+  senderId: 'u1',
+  senderName: 'ada',
+  content: content,
+  createdAt: DateTime.utc(2026, 1, 1, 12, minute),
+);
 
 void main() {
   late _FakeApi api;
   late _FakeRepo repo;
 
-  RoomContentController make(RoomContentTab tab) => RoomContentController(
-        repo: repo,
-        api: api,
-        roomId: 'r1',
-        tab: tab,
-      );
+  RoomContentController make(RoomContentTab tab) =>
+      RoomContentController(repo: repo, api: api, roomId: 'r1', tab: tab);
 
   setUp(() {
     api = _FakeApi();
@@ -119,63 +115,85 @@ void main() {
     test('a message in both halves renders once', () async {
       final shared = photo('m2', 2);
       repo.live = [photo('m3', 3), shared];
-      api.pages.add(RoomContentPage(items: [shared, photo('m1', 1)], hasMore: false));
+      api.pages.add(
+        RoomContentPage(items: [shared, photo('m1', 1)], hasMore: false),
+      );
 
       final c = make(RoomContentTab.media);
       await c.loadInitial();
 
-      expect(c.items.map((m) => m.id), ['m3', 'm2', 'm1'],
-          reason: 'the overlap at the newest end must collapse, not duplicate');
+      expect(
+        c.items.map((m) => m.id),
+        ['m3', 'm2', 'm1'],
+        reason: 'the overlap at the newest end must collapse, not duplicate',
+      );
     });
 
-    test('the live copy wins, because it is the one carrying reactions', () async {
-      final stale = photo('m1', 1)..content = 'snapshot';
-      final live = photo('m1', 1)..content = 'live';
-      repo.live = [live];
-      api.pages.add(RoomContentPage(items: [stale], hasMore: false));
+    test(
+      'the live copy wins, because it is the one carrying reactions',
+      () async {
+        final stale = photo('m1', 1)..content = 'snapshot';
+        final live = photo('m1', 1)..content = 'live';
+        repo.live = [live];
+        api.pages.add(RoomContentPage(items: [stale], hasMore: false));
 
-      final c = make(RoomContentTab.media);
-      await c.loadInitial();
+        final c = make(RoomContentTab.media);
+        await c.loadInitial();
 
-      expect(c.items.single.content, 'live');
-    });
+        expect(c.items.single.content, 'live');
+      },
+    );
 
-    test('the merged list is newest-first regardless of which half it came from',
-        () async {
-      repo.live = [photo('m4', 4), photo('m1', 1)];
-      api.pages.add(RoomContentPage(items: [photo('m3', 3), photo('m2', 2)], hasMore: false));
+    test(
+      'the merged list is newest-first regardless of which half it came from',
+      () async {
+        repo.live = [photo('m4', 4), photo('m1', 1)];
+        api.pages.add(
+          RoomContentPage(
+            items: [photo('m3', 3), photo('m2', 2)],
+            hasMore: false,
+          ),
+        );
 
-      final c = make(RoomContentTab.media);
-      await c.loadInitial();
+        final c = make(RoomContentTab.media);
+        await c.loadInitial();
 
-      expect(c.items.map((m) => m.id), ['m4', 'm3', 'm2', 'm1']);
-    });
+        expect(c.items.map((m) => m.id), ['m4', 'm3', 'm2', 'm1']);
+      },
+    );
 
-    test('only messages belonging in the tab are taken from the live half', () async {
-      repo.live = [
-        photo('m3', 3),
-        textWith('m2', 2, 'just talking'),
-        ChatMessage(
-          id: 'm1',
-          roomId: 'r1',
-          senderId: 'u1',
-          senderName: 'ada',
-          content: '',
-          createdAt: DateTime.utc(2026, 1, 1, 12, 1),
-          type: MessageType.image,
-          viewOnce: true,
-        ),
-      ];
-      api.pages.add(RoomContentPage.empty);
+    test(
+      'only messages belonging in the tab are taken from the live half',
+      () async {
+        repo.live = [
+          photo('m3', 3),
+          textWith('m2', 2, 'just talking'),
+          ChatMessage(
+            id: 'm1',
+            roomId: 'r1',
+            senderId: 'u1',
+            senderName: 'ada',
+            content: '',
+            createdAt: DateTime.utc(2026, 1, 1, 12, 1),
+            type: MessageType.image,
+            viewOnce: true,
+          ),
+        ];
+        api.pages.add(RoomContentPage.empty);
 
-      final c = make(RoomContentTab.media);
-      await c.loadInitial();
+        final c = make(RoomContentTab.media);
+        await c.loadInitial();
 
-      expect(c.items.map((m) => m.id), ['m3'],
-          reason: 'text is not media, and a view-once photo is never shared '
+        expect(
+          c.items.map((m) => m.id),
+          ['m3'],
+          reason:
+              'text is not media, and a view-once photo is never shared '
               'content — the server keeps it out of the index, so the client '
-              'must keep it out of the live half too');
-    });
+              'must keep it out of the live half too',
+        );
+      },
+    );
   });
 
   group('the paging cursor', () {
@@ -190,15 +208,20 @@ void main() {
       // taken from `items`, page two would ask for "older than 12:09" and
       // re-read the page it already has.
       repo.live = [photo('m9', 9)];
-      api.pages.add(RoomContentPage(items: [photo('m3', 3), photo('m2', 2)], hasMore: true));
+      api.pages.add(
+        RoomContentPage(items: [photo('m3', 3), photo('m2', 2)], hasMore: true),
+      );
       api.pages.add(RoomContentPage(items: [photo('m1', 1)], hasMore: false));
 
       final c = make(RoomContentTab.media);
       await c.loadInitial();
       await c.loadMore();
 
-      expect(api.cursors[1], DateTime.utc(2026, 1, 1, 12, 2),
-          reason: 'the oldest FETCHED row, not the oldest row on screen');
+      expect(
+        api.cursors[1],
+        DateTime.utc(2026, 1, 1, 12, 2),
+        reason: 'the oldest FETCHED row, not the oldest row on screen',
+      );
       expect(c.items.map((m) => m.id), ['m9', 'm3', 'm2', 'm1']);
     });
 
@@ -207,7 +230,12 @@ void main() {
       // writes its batch in one transaction — so a timestamp cursor cannot be
       // both non-skipping and non-repeating. Dedupe by id decides it.
       api.pages.add(RoomContentPage(items: [photo('m2', 2)], hasMore: true));
-      api.pages.add(RoomContentPage(items: [photo('m2', 2), photo('m1', 1)], hasMore: false));
+      api.pages.add(
+        RoomContentPage(
+          items: [photo('m2', 2), photo('m1', 1)],
+          hasMore: false,
+        ),
+      );
 
       final c = make(RoomContentTab.media);
       await c.loadInitial();
@@ -246,8 +274,11 @@ void main() {
       await c.loadInitial();
 
       expect(c.error, isNotNull);
-      expect(c.hasMore, isTrue,
-          reason: "a network error must not render as \"that's everything\"");
+      expect(
+        c.hasMore,
+        isTrue,
+        reason: "a network error must not render as \"that's everything\"",
+      );
       expect(c.loadedOnce, isTrue);
     });
 
@@ -265,7 +296,11 @@ void main() {
 
     test('forget drops rows from the fetched half immediately', () async {
       api.pages.add(
-          RoomContentPage(items: [photo('m2', 2), photo('m1', 1)], hasMore: false));
+        RoomContentPage(
+          items: [photo('m2', 2), photo('m1', 1)],
+          hasMore: false,
+        ),
+      );
       final c = make(RoomContentTab.media);
       await c.loadInitial();
 
@@ -276,61 +311,81 @@ void main() {
 
   group('links', () {
     test('one message with two URLs is two rows', () async {
-      api.pages.add(RoomContentPage(
-        items: [textWith('m1', 1, 'see https://a.dev and https://b.dev')],
-        hasMore: false,
-      ));
+      api.pages.add(
+        RoomContentPage(
+          items: [textWith('m1', 1, 'see https://a.dev and https://b.dev')],
+          hasMore: false,
+        ),
+      );
 
       final c = make(RoomContentTab.links);
       await c.loadInitial();
 
       expect(c.links.map((l) => l.url), ['https://a.dev', 'https://b.dev']);
-      expect(c.links.every((l) => l.message.id == 'm1'), isTrue,
-          reason: 'each row keeps its message, so "show in chat" works');
+      expect(
+        c.links.every((l) => l.message.id == 'm1'),
+        isTrue,
+        reason: 'each row keeps its message, so "show in chat" works',
+      );
     });
 
-    test('a page that renders nothing keeps paging instead of saying empty',
-        () async {
-      // The server selected these with its own coarser rule; the client finds
-      // no URL in them. Stopping here would show "no links" over a room that
-      // has some, one page further back.
-      api.pages.add(RoomContentPage(
-        items: [textWith('m3', 3, 'nothing here')],
-        hasMore: true,
-      ));
-      api.pages.add(RoomContentPage(
-        items: [textWith('m2', 2, 'still nothing')],
-        hasMore: true,
-      ));
-      api.pages.add(RoomContentPage(
-        items: [textWith('m1', 1, 'finally https://found.dev')],
-        hasMore: false,
-      ));
+    test(
+      'a page that renders nothing keeps paging instead of saying empty',
+      () async {
+        // The server selected these with its own coarser rule; the client finds
+        // no URL in them. Stopping here would show "no links" over a room that
+        // has some, one page further back.
+        api.pages.add(
+          RoomContentPage(
+            items: [textWith('m3', 3, 'nothing here')],
+            hasMore: true,
+          ),
+        );
+        api.pages.add(
+          RoomContentPage(
+            items: [textWith('m2', 2, 'still nothing')],
+            hasMore: true,
+          ),
+        );
+        api.pages.add(
+          RoomContentPage(
+            items: [textWith('m1', 1, 'finally https://found.dev')],
+            hasMore: false,
+          ),
+        );
 
-      final c = make(RoomContentTab.links);
-      await c.loadInitial();
+        final c = make(RoomContentTab.links);
+        await c.loadInitial();
 
-      expect(api.calls, 3);
-      expect(c.links.single.url, 'https://found.dev');
-      expect(c.isEmpty, isFalse);
-    });
+        expect(api.calls, 3);
+        expect(c.links.single.url, 'https://found.dev');
+        expect(c.isEmpty, isFalse);
+      },
+    );
 
-    test('the chase is bounded, so one tab cannot read a whole history',
-        () async {
-      for (var i = 0; i < 20; i++) {
-        api.pages.add(RoomContentPage(
-          items: [textWith('m$i', i, 'no url')],
-          hasMore: true,
-        ));
-      }
+    test(
+      'the chase is bounded, so one tab cannot read a whole history',
+      () async {
+        for (var i = 0; i < 20; i++) {
+          api.pages.add(
+            RoomContentPage(
+              items: [textWith('m$i', i, 'no url')],
+              hasMore: true,
+            ),
+          );
+        }
 
-      final c = make(RoomContentTab.links);
-      await c.loadInitial();
+        final c = make(RoomContentTab.links);
+        await c.loadInitial();
 
-      expect(api.calls, lessThanOrEqualTo(4),
-          reason: 'a bound, not a while(isEmpty) loop');
-      expect(c.hasMore, isTrue, reason: 'the screen can ask for more itself');
-    });
+        expect(
+          api.calls,
+          lessThanOrEqualTo(4),
+          reason: 'a bound, not a while(isEmpty) loop',
+        );
+        expect(c.hasMore, isTrue, reason: 'the screen can ask for more itself');
+      },
+    );
   });
 }
 
@@ -342,6 +397,5 @@ class _ThrowingApi extends Fake implements ChatApi {
     required String bucket,
     DateTime? before,
     int limit = 30,
-  }) async =>
-      throw StateError('network');
+  }) async => throw StateError('network');
 }

@@ -239,11 +239,7 @@ void main() {
         for (final f in RoomFacet.values) {
           expect(
             p[f],
-            active
-                .without(f.dimension)
-                .apply(rooms)
-                .where(f.matches)
-                .length,
+            active.without(f.dimension).apply(rooms).where(f.matches).length,
             reason: '${active.encode()} + ${f.name}',
           );
         }
@@ -255,7 +251,11 @@ void main() {
       // view" and "what this tap yields" are the same set.
       final filter = RoomFilter({RoomFacet.dms});
       final p = RoomFacetCounts.projected(rooms, filter);
-      for (final f in [RoomFacet.unread, RoomFacet.mentions, RoomFacet.public]) {
+      for (final f in [
+        RoomFacet.unread,
+        RoomFacet.mentions,
+        RoomFacet.public,
+      ]) {
         expect(p[f], filter.toggle(f).apply(rooms).length, reason: f.name);
       }
     });

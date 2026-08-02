@@ -88,8 +88,7 @@ class _FakeApi extends Fake implements ChatApi {
     required String roomId,
     int limit = 100,
     String? viewerUserId,
-  }) async =>
-      throw StateError('offline');
+  }) async => throw StateError('offline');
 
   @override
   Future<void> markRoomRead({
@@ -135,44 +134,48 @@ void main() {
       cv.issued.where((s) => s.label.endsWith('/$roomId')).toList();
 
   group('open-room ownership', () {
-    test('a superseded screen\'s dispose cannot close the room that replaced it',
-        () async {
-      await repo.openRoom('a', owner: screenA);
+    test(
+      'a superseded screen\'s dispose cannot close the room that replaced it',
+      () async {
+        await repo.openRoom('a', owner: screenA);
 
-      // Room b's open parks mid-registration, exactly where the real one sits
-      // waiting on the network while the outgoing route finishes animating.
-      final gate = Completer<void>();
-      cv.gates['messages:list'] = gate;
-      final opening = repo.openRoom('b', owner: screenB);
-      await _pump();
+        // Room b's open parks mid-registration, exactly where the real one sits
+        // waiting on the network while the outgoing route finishes animating.
+        final gate = Completer<void>();
+        cv.gates['messages:list'] = gate;
+        final opening = repo.openRoom('b', owner: screenB);
+        await _pump();
 
-      // The old screen's dispose, landing late.
-      repo.closeRoom(screenA);
+        // The old screen's dispose, landing late.
+        repo.closeRoom(screenA);
 
-      gate.complete();
-      await opening;
+        gate.complete();
+        await opening;
 
-      // Without the ownership guard this is null — which is precisely what let
-      // PushManager banner the room the user was reading.
-      expect(repo.activeRoomId, 'b');
-      expect(subsFor('b').where((s) => s.cancelled), isEmpty);
-    });
+        // Without the ownership guard this is null — which is precisely what let
+        // PushManager banner the room the user was reading.
+        expect(repo.activeRoomId, 'b');
+        expect(subsFor('b').where((s) => s.cancelled), isEmpty);
+      },
+    );
 
-    test('a push tap into the room already on screen survives the old dispose',
-        () async {
-      await repo.openRoom('a', owner: screenA);
-      // The tap mounts a SECOND RoomScreen for the same room; openRoom
-      // short-circuits but must still hand ownership over.
-      final screenA2 = Object();
-      await repo.openRoom('a', owner: screenA2);
+    test(
+      'a push tap into the room already on screen survives the old dispose',
+      () async {
+        await repo.openRoom('a', owner: screenA);
+        // The tap mounts a SECOND RoomScreen for the same room; openRoom
+        // short-circuits but must still hand ownership over.
+        final screenA2 = Object();
+        await repo.openRoom('a', owner: screenA2);
 
-      repo.closeRoom(screenA);
+        repo.closeRoom(screenA);
 
-      // A roomId-only guard would have matched here and killed the live room
-      // with nothing left to re-open it.
-      expect(repo.activeRoomId, 'a');
-      expect(subsFor('a').where((s) => s.cancelled), isEmpty);
-    });
+        // A roomId-only guard would have matched here and killed the live room
+        // with nothing left to re-open it.
+        expect(repo.activeRoomId, 'a');
+        expect(subsFor('a').where((s) => s.cancelled), isEmpty);
+      },
+    );
 
     test('the holder\'s own close still tears the room down', () async {
       await repo.openRoom('a', owner: screenA);
@@ -186,32 +189,34 @@ void main() {
   });
 
   group('open-room generation guard', () {
-    test('an open superseded mid-registration cancels the sub it created',
-        () async {
-      final gate = Completer<void>();
-      cv.gates['messages:list'] = gate;
-      final stale = repo.openRoom('a', owner: screenA);
-      await _pump();
+    test(
+      'an open superseded mid-registration cancels the sub it created',
+      () async {
+        final gate = Completer<void>();
+        cv.gates['messages:list'] = gate;
+        final stale = repo.openRoom('a', owner: screenA);
+        await _pump();
 
-      // Let room b through unimpeded while a is still parked.
-      cv.gates.remove('messages:list');
-      await repo.openRoom('b', owner: screenB);
+        // Let room b through unimpeded while a is still parked.
+        cv.gates.remove('messages:list');
+        await repo.openRoom('b', owner: screenB);
 
-      gate.complete();
-      await stale;
+        gate.complete();
+        await stale;
 
-      // Publishing a's handle would have wired the room on screen to the wrong
-      // query, with nobody holding the handle to cancel it.
-      expect(
-        cv.issued.firstWhere((s) => s.label == 'messages:list/a').cancelled,
-        isTrue,
-      );
-      expect(
-        cv.issued.firstWhere((s) => s.label == 'messages:list/b').cancelled,
-        isFalse,
-      );
-      expect(repo.activeRoomId, 'b');
-    });
+        // Publishing a's handle would have wired the room on screen to the wrong
+        // query, with nobody holding the handle to cancel it.
+        expect(
+          cv.issued.firstWhere((s) => s.label == 'messages:list/a').cancelled,
+          isTrue,
+        );
+        expect(
+          cv.issued.firstWhere((s) => s.label == 'messages:list/b').cancelled,
+          isFalse,
+        );
+        expect(repo.activeRoomId, 'b');
+      },
+    );
 
     test('closing while an open is in flight leaks no subscription', () async {
       final gate = Completer<void>();
@@ -230,45 +235,49 @@ void main() {
   });
 
   group('resubscribe', () {
-    test('re-registers the open room without ever blanking activeRoomId',
-        () async {
-      await repo.openRoom('a', owner: screenA);
-      final before = subsFor('a').length;
+    test(
+      're-registers the open room without ever blanking activeRoomId',
+      () async {
+        await repo.openRoom('a', owner: screenA);
+        final before = subsFor('a').length;
 
-      await repo.resubscribe();
+        await repo.resubscribe();
 
-      expect(repo.activeRoomId, 'a');
-      // `force` had to re-register despite the same-room short-circuit.
-      expect(subsFor('a').length, greaterThan(before));
-      expect(
-        subsFor('a').where((s) => !s.cancelled).length,
-        before,
-        reason: 'the previous generation should have been cancelled',
-      );
-    });
+        expect(repo.activeRoomId, 'a');
+        // `force` had to re-register despite the same-room short-circuit.
+        expect(subsFor('a').length, greaterThan(before));
+        expect(
+          subsFor('a').where((s) => !s.cancelled).length,
+          before,
+          reason: 'the previous generation should have been cancelled',
+        );
+      },
+    );
 
-    test('does not resurrect a room the user left during the reconnect',
-        () async {
-      await repo.openRoom('a', owner: screenA);
+    test(
+      'does not resurrect a room the user left during the reconnect',
+      () async {
+        await repo.openRoom('a', owner: screenA);
 
-      // Park inside attach(), which is four API calls and five subscriptions
-      // of real wall-clock — plenty of room for the user to back out.
-      final gate = Completer<void>();
-      cv.gates['rooms:listUserRooms'] = gate;
-      final reconnecting = repo.resubscribe();
-      await _pump();
+        // Park inside attach(), which is four API calls and five subscriptions
+        // of real wall-clock — plenty of room for the user to back out.
+        final gate = Completer<void>();
+        cv.gates['rooms:listUserRooms'] = gate;
+        final reconnecting = repo.resubscribe();
+        await _pump();
 
-      repo.closeRoom(screenA);
+        repo.closeRoom(screenA);
 
-      cv.gates.remove('rooms:listUserRooms');
-      gate.complete();
-      await reconnecting;
+        cv.gates.remove('rooms:listUserRooms');
+        gate.complete();
+        await reconnecting;
 
-      // Trusting the pre-attach snapshot re-opened the old room and pointed
-      // activeRoomId at a chat that was no longer on screen — suppressing
-      // banners for a room the user had left while banner-ing the one they
-      // were actually in.
-      expect(repo.activeRoomId, isNull);
-    });
+        // Trusting the pre-attach snapshot re-opened the old room and pointed
+        // activeRoomId at a chat that was no longer on screen — suppressing
+        // banners for a room the user had left while banner-ing the one they
+        // were actually in.
+        expect(repo.activeRoomId, isNull);
+      },
+    );
   });
 }
