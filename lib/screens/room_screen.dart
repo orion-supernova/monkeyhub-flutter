@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:file_selector/file_selector.dart' show openFile;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/file_meta.dart';
+import '../media/video_poster.dart';
 import '../media/image_raster.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
@@ -1283,11 +1285,23 @@ class _RoomScreenState extends State<RoomScreen>
       final picker = ImagePicker();
       final picked = await picker.pickVideo(source: ImageSource.gallery);
       if (picked == null) return;
+
+      // Before `readAsBytes`, and only off web. `XFile.path` is a real
+      // filesystem path on mobile, which is what the extractor needs; on web it
+      // is a `blob:` URL with no filesystem behind it — the trap
+      // `UploadService` documents for `uploadXFile` — and the plugin has no web
+      // implementation to receive it anyway. Null there and on desktop, which
+      // is why the grid's play-glyph tile is a permanent state rather than a
+      // placeholder. Covered by the existing scrim: this whole method runs
+      // inside `_setMediaBusy(true)`.
+      final poster = kIsWeb ? null : await VideoPoster.extract(picked.path);
+
       final bytes = await picked.readAsBytes();
       _sendMedia(
         bytes: bytes,
         type: MessageType.video,
         contentType: 'video/mp4',
+        posterBytes: poster,
       );
     } finally {
       _setMediaBusy(false);
@@ -1383,6 +1397,10 @@ class _RoomScreenState extends State<RoomScreen>
     String? fileName,
     int? fileSize,
 
+    /// A JPEG still frame for a video. Null on web and desktop, where it
+    /// cannot be extracted at all.
+    Uint8List? posterBytes,
+
     /// Armed with the circled "1" in the editor: one look per recipient, then
     /// the file is deleted from the server.
     bool viewOnce = false,
@@ -1409,6 +1427,7 @@ class _RoomScreenState extends State<RoomScreen>
       mediaHeight: pixelSize?.height,
       fileName: fileName,
       fileSize: fileSize,
+      posterBytes: posterBytes,
       replyToId: replyTarget?.id,
       viewOnce: viewOnce,
     );

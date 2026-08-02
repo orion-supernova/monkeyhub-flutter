@@ -16,10 +16,25 @@ import '../media/upload_service.dart';
 /// handed server-parsed messages, never the pending list, so there is no path
 /// from here to `SharedPreferences` even if someone adds the key by mistake.
 class PendingUpload {
-  PendingUpload({required this.bytes, required this.contentType});
+  PendingUpload({
+    required this.bytes,
+    required this.contentType,
+    this.posterBytes,
+  });
 
   final Uint8List bytes;
   final String contentType;
+
+  /// A JPEG still frame to upload alongside [bytes], for a video.
+  ///
+  /// Null on everything else, and on videos from web and desktop where
+  /// extraction is not possible at all — see [VideoPoster].
+  ///
+  /// Kept here rather than queued as its own send because the poster is
+  /// meaningless without the video: it must land in the same message, and a
+  /// failure to upload it must not fail the video. The queue therefore uploads
+  /// it first, best-effort, and carries on regardless.
+  final Uint8List? posterBytes;
 
   /// 0..1 where the transport can honestly measure it, null where it cannot —
   /// see [UploadService] for why the browser can only ever be indeterminate.

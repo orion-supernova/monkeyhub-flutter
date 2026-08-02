@@ -158,7 +158,10 @@ class ChatMessage {
   ///
   /// Never present on a view-once message: `messages:send` refuses to write one
   /// on an armed send, and `sanitizeViewOnce` strips it besides.
-  final String? posterStorageId;
+  ///
+  /// Mutable for the same reason [mediaStorageId] is: the upload queue fills it
+  /// in when the poster blob lands, before the message itself is posted.
+  String? posterStorageId;
 
   DateTime? expiresAt;
   MessageStatus status;

@@ -1318,6 +1318,7 @@ class ChatRepository extends ChangeNotifier {
     String? fileName,
     int? fileSize,
     String? mimeType,
+    int? mediaDurationMs,
     String? replyToId,
     bool viewOnce = false,
     MessageStatus status = MessageStatus.pending,
@@ -1375,6 +1376,7 @@ class ChatRepository extends ChangeNotifier {
       fileName: fileName,
       fileSize: fileSize,
       mimeType: mimeType,
+      mediaDurationMs: mediaDurationMs,
       createdAt: DateTime.now(),
       status: status,
       replyToId: optimisticPreview != null ? replyToId : null,
@@ -1415,6 +1417,11 @@ class ChatRepository extends ChangeNotifier {
         fileName: optimistic.fileName,
         fileSize: optimistic.fileSize,
         mimeType: optimistic.mimeType,
+        mediaDurationMs: optimistic.mediaDurationMs,
+        // Assigned by the upload queue a moment before this runs. Read off the
+        // message for the same reason as everything else here: both reconnect
+        // sweepers re-post through this path and neither knows posters exist.
+        posterStorageId: optimistic.posterStorageId,
         replyToId: optimistic.replyToId,
         // Must ride along, or a view-once photo that happened to be sent while
         // the socket was frozen comes back as an ordinary, permanent one — the
@@ -1515,11 +1522,25 @@ class ChatRepository extends ChangeNotifier {
     double? mediaHeight,
     String? fileName,
     int? fileSize,
+    int? mediaDurationMs,
+
+    /// A JPEG still frame for a video, extracted by the sender before the
+    /// picker's file was read. Uploaded ahead of the video itself and
+    /// best-effort — see `_runUpload`. Always null on web and desktop, where
+    /// extraction is not possible.
+    Uint8List? posterBytes,
     String? caption,
     String? replyToId,
     bool viewOnce = false,
   }) async {
-    final upload = PendingUpload(bytes: bytes, contentType: contentType);
+    final upload = PendingUpload(
+      bytes: bytes,
+      contentType: contentType,
+      // Never on an armed send: the server refuses to store a poster for one,
+      // so uploading it would only orphan a blob — and a still frame of a
+      // view-once video is the exact thing that must not leak.
+      posterBytes: viewOnce ? null : posterBytes,
+    );
     final optimistic = _buildOptimistic(
       roomId: roomId,
       content: caption ?? '',
@@ -1527,6 +1548,7 @@ class ChatRepository extends ChangeNotifier {
       fileName: fileName,
       fileSize: fileSize,
       mimeType: fileName == null ? null : contentType,
+      mediaDurationMs: viewOnce ? null : mediaDurationMs,
       // Null until the upload hands one back. This is exactly why
       // MessageStatus.uploading exists — see enums.dart.
       mediaStorageId: null,
@@ -1650,6 +1672,29 @@ class ChatRepository extends ChangeNotifier {
     final task = UploadTask();
     upload.task = task;
     try {
+      // The poster first, and best-effort. It is a fraction of the video's
+      // size, so it costs the sender almost nothing — and going first means a
+      // video that succeeds always has its poster, rather than the pair racing
+      // and sometimes landing a video with a poster id it has to patch in
+      // afterwards.
+      //
+      // A failure here is swallowed on purpose: a poster is an enhancement to
+      // a send that must happen regardless, and `gcOrphanedFiles` reclaims a
+      // blob nothing ever referenced. Not passed the cancel `task` either —
+      // cancelling should stop the video, and a poster upload that outlives it
+      // by a moment is reclaimed the same way.
+      if (upload.posterBytes != null && message.posterStorageId == null) {
+        try {
+          message.posterStorageId = await UploadService(api).uploadFile(
+            bytes: upload.posterBytes!,
+            contentType: 'image/jpeg',
+          );
+        } catch (e) {
+          debugPrint('poster upload failed (sending video anyway): $e');
+        }
+        if (upload.disposed) return;
+      }
+
       final storageId = await UploadService(api).uploadFile(
         bytes: upload.bytes,
         contentType: upload.contentType,

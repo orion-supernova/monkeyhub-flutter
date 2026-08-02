@@ -358,6 +358,14 @@ class ChatApi {
     String? fileName,
     int? fileSize,
     String? mimeType,
+
+    /// Playing time of an audio or video attachment, when the sender measured
+    /// it, so a shared-content row shows a duration without decoding first.
+    int? mediaDurationMs,
+
+    /// A still frame for a video, uploaded as a second blob. The server
+    /// refuses to store one on an armed send.
+    String? posterStorageId,
     String? senderName,
     String? replyToId,
 
@@ -386,6 +394,8 @@ class ChatApi {
       'fileName': ?fileName,
       'fileSize': ?fileSize,
       'mimeType': ?mimeType,
+      'mediaDurationMs': ?mediaDurationMs,
+      'posterStorageId': ?posterStorageId,
       'senderName': ?senderName,
       'replyToId': ?replyToId,
       if (viewOnce) 'viewOnce': true,

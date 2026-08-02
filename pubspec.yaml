@@ -60,8 +60,19 @@ dependencies:
   just_audio: ^0.10.6
   video_player: ^2.9.2
   http: ^1.2.2
-  # Saves images to the system Photos/Gallery (used by avatar "download").
+  # Saves images to the system Photos/Gallery (avatar "download", and saving
+  # from the shared-content browser).
   gal: ^2.3.0
+  # Poster frames for outgoing videos, so the shared-content grid shows the
+  # video instead of a play glyph. ANDROID + iOS ONLY — it wraps
+  # MediaMetadataRetriever and AVAssetImageGenerator, and there is no web or
+  # desktop implementation of either. Videos sent from those platforms (and all
+  # history) keep the glyph tile permanently; see `messages.posterStorageId`.
+  #
+  # Chosen over the `video_thumbnail_plus` fork on adoption: 617 likes and
+  # ~164k monthly downloads against 0 and ~565. Its `<3.0.0` SDK bound resolves
+  # under pub's Dart 3 leniency for exactly that upper bound.
+  video_thumbnail: ^0.5.6
   # JPEG encoding for cropped photos. dart:ui only encodes PNG, and a 1024²
   # photographic PNG is ~2 MB against ~200 KB for JPEG q90. Already resolved
   # transitively at this version; listing it here only promotes it to a direct
