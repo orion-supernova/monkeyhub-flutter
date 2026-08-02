@@ -187,12 +187,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (chipsStyle)
+                      if (chipsStyle) ...[
                         RoomFilterBar(
                           filter: filter,
                           counts: counts,
                           onChanged: _setFilter,
                         ),
+                        // The list below is a sibling, not an underlay, so its
+                        // top edge is where scrolled content gets clipped. Flush
+                        // against the chips that clip read as the chip row
+                        // shearing rows in half; a few points of air moves the
+                        // cut away from the control and makes it look like
+                        // scrolling instead of damage.
+                        const SizedBox(height: 6),
+                      ],
                       // Shown under BOTH styles. The chip row scrolls and holds
                       // nine chips against a ~320pt viewport, so the active one
                       // can easily be off-screen on a cold start — and the

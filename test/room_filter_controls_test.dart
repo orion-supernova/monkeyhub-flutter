@@ -32,6 +32,30 @@ void main() {
   ];
   final counts = RoomFacetCounts.of(rooms);
 
+  /// Chips in the order the row lays them out — `unread` first. Scrolling is
+  /// forward-only, so walking [RoomFacet.values] instead sends the row chasing
+  /// a chip that is already behind it, all the way to the end.
+  final chipOrder = [
+    for (final d in facetDimensionOrder)
+      ...RoomFacet.values.where((f) => f.dimension == d),
+  ];
+
+  /// The row scrolls, and only the first dimension or so fits a phone width, so
+  /// a chip has to be brought into view before it can be tapped.
+  ///
+  /// The finder is `.hitTestable()`, not a plain `find.text`: the viewport
+  /// builds a cache band past its right edge, so an off-screen chip is findable
+  /// while still being untappable — and `scrollUntilVisible` would return
+  /// having scrolled nothing, leaving the tap to land on empty space.
+  Future<void> revealChip(WidgetTester tester, String label) async {
+    await tester.scrollUntilVisible(
+      find.text(label).hitTestable(),
+      60,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
   Widget host(Widget child, {double width = 375}) => MaterialApp(
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
@@ -57,6 +81,7 @@ void main() {
           ),
         ),
       );
+      await revealChip(tester, 'dms');
       await tester.tap(find.text('dms'));
       await tester.pump();
 
@@ -94,6 +119,7 @@ void main() {
           ),
         ),
       );
+      await revealChip(tester, 'dms');
       await tester.tap(find.text('dms'));
       await tester.pump();
 
@@ -129,15 +155,29 @@ void main() {
         ),
       );
       expect(find.text('all'), findsOneWidget);
-      for (final f in RoomFacet.values) {
+      for (final f in chipOrder) {
         // The row scrolls, so drag rather than assume everything is on screen.
-        await tester.scrollUntilVisible(
-          find.text(f.label),
-          60,
-          scrollable: find.byType(Scrollable).first,
-        );
+        await revealChip(tester, f.label);
         expect(find.text(f.label), findsOneWidget, reason: f.name);
       }
+    });
+
+    testWidgets('"unread" sits directly after the "all" reset', (tester) async {
+      await tester.pumpWidget(
+        host(
+          RoomFilterBar(
+            filter: RoomFilter.empty,
+            counts: counts,
+            onChanged: (_) {},
+          ),
+        ),
+      );
+      // The daily-driver facet has to be reachable without scrolling the row.
+      final all = tester.getTopLeft(find.text('all')).dx;
+      final unread = tester.getTopLeft(find.text('unread')).dx;
+      final dms = tester.getTopLeft(find.text('dms')).dx;
+      expect(unread, greaterThan(all));
+      expect(unread, lessThan(dms));
     });
 
     testWidgets('"all" clears an active filter', (tester) async {

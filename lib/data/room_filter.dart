@@ -8,6 +8,22 @@ import '../models/chat_room.dart';
 /// is what a flat OR would give and which can't express "unread DMs" at all.
 enum FacetDimension { type, nature, status }
 
+/// The order the filter controls lay the dimensions out in, shared by the chip
+/// row and the drawer panel so the two styles stay the same shape.
+///
+/// Status leads because `unread` is the one facet people reach for daily, and
+/// it belongs directly after the 'all' reset rather than at the end of a row
+/// that has to be scrolled to reach it.
+///
+/// Kept separate from the declaration order of [FacetDimension] on purpose:
+/// this is presentation, and nothing about the filter's semantics should move
+/// when the row is rearranged again.
+const List<FacetDimension> facetDimensionOrder = [
+  FacetDimension.status,
+  FacetDimension.type,
+  FacetDimension.nature,
+];
+
 /// A single filter facet. Every predicate is an O(1) field or getter read on
 /// [ChatRoom], so a full pass over the room list stays cheap enough to run on
 /// each repository push (see [RoomFacetCounts]).
@@ -108,6 +124,16 @@ class RoomFilter {
     return next.isEmpty ? empty : RoomFilter(next);
   }
 
+  /// This filter with one whole dimension dropped — the rest still applied.
+  ///
+  /// The probe [RoomFacetCounts.projected] counts against: it answers "of the
+  /// rooms the *other* dimensions allow, how many carry this facet?".
+  RoomFilter without(FacetDimension dimension) {
+    if (isEmpty) return empty;
+    final next = facets.where((f) => f.dimension != dimension).toSet();
+    return next.isEmpty ? empty : RoomFilter(next);
+  }
+
   /// True when every non-empty dimension has at least one passing facet.
   /// An empty filter has no groups, so the loop falls through to true.
   bool matches(ChatRoom r) {
@@ -200,8 +226,8 @@ class RoomFacetCounts {
 
   int operator [](RoomFacet f) => _byFacet[f.index];
 
-  /// What each facet would yield *given the rest of the active filter* — i.e.
-  /// the number of rooms you'd actually see if you tapped that control.
+  /// How many rooms carry each facet *within the rest of the active filter* —
+  /// the other dimensions applied, the facet's own dimension ignored.
   ///
   /// The plain [of] totals start lying the moment anything is selected, because
   /// facets AND across dimensions. With `dms` active, a `locked` chip showing
@@ -209,20 +235,30 @@ class RoomFacetCounts {
   /// groups, so tapping it lands straight on the empty state. A count that
   /// promises rooms it cannot show is worse than showing no count at all.
   ///
-  /// Uses [RoomFilter.toggle] as the probe, so the number is by construction
-  /// exactly what the tap produces — including for an already-active facet,
-  /// where the tap turns it off and the count is what that reveals.
+  /// Ignoring the facet's *own* dimension is what keeps the number steady under
+  /// the tap that sets it. Probing with [RoomFilter.toggle] instead — literally
+  /// "what would this tap yield" — made the lit chip report the release rather
+  /// than the selection: tapping `public` in a 7-room list narrowed it to the 1
+  /// public room while the chip flipped from 1 to 7, since turning `public` back
+  /// off is what reveals all seven. Facets OR within a dimension, so the same
+  /// probe also inflated every unlit sibling by the rooms its lit neighbour had
+  /// already claimed.
+  ///
+  /// For a facet whose dimension is otherwise untouched the two rules agree, so
+  /// an unlit chip still reads as "what tapping me shows".
   factory RoomFacetCounts.projected(List<ChatRoom> rooms, RoomFilter filter) {
     final base = RoomFacetCounts.of(rooms);
     if (filter.isEmpty) return base;
+    // One probe per dimension rather than one per facet: three filters built
+    // instead of eight, and the room scan stays single-pass.
+    final probes = <FacetDimension, RoomFilter>{
+      for (final d in FacetDimension.values) d: filter.without(d),
+    };
     final counts = List<int>.filled(RoomFacet.values.length, 0);
-    for (final f in RoomFacet.values) {
-      final probe = filter.toggle(f);
-      var n = 0;
-      for (final r in rooms) {
-        if (probe.matches(r)) n++;
+    for (final r in rooms) {
+      for (final f in RoomFacet.values) {
+        if (f.matches(r) && probes[f.dimension]!.matches(r)) counts[f.index]++;
       }
-      counts[f.index] = n;
     }
     return RoomFacetCounts._(
       List.unmodifiable(counts),

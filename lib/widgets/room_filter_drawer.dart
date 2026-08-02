@@ -205,7 +205,7 @@ class RoomFilterPanel extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final dimension in FacetDimension.values) ...[
+                    for (final dimension in facetDimensionOrder) ...[
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6, top: 2),
                         child: Text(

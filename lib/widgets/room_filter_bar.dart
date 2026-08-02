@@ -54,7 +54,7 @@ class RoomFilterBar extends StatelessWidget {
                     onChanged(RoomFilter.empty);
                   },
           ),
-          for (final dimension in FacetDimension.values) ...[
+          for (final dimension in facetDimensionOrder) ...[
             _Separator(color: theme.divider),
             for (final facet in RoomFacet.values.where(
               (f) => f.dimension == dimension,

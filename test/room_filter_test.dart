@@ -227,29 +227,56 @@ void main() {
       expect(p[RoomFacet.locked], 0);
     });
 
-    test('every projected count equals what tapping actually yields', () {
+    test('a count is its facet inside the other dimensions', () {
       for (final active in [
         RoomFilter.empty,
         RoomFilter({RoomFacet.dms}),
         RoomFilter({RoomFacet.unread}),
         RoomFilter({RoomFacet.dms, RoomFacet.unread}),
+        RoomFilter({RoomFacet.dms, RoomFacet.groups}),
       ]) {
         final p = RoomFacetCounts.projected(rooms, active);
         for (final f in RoomFacet.values) {
           expect(
             p[f],
-            active.toggle(f).apply(rooms).length,
+            active
+                .without(f.dimension)
+                .apply(rooms)
+                .where(f.matches)
+                .length,
             reason: '${active.encode()} + ${f.name}',
           );
         }
       }
     });
 
-    test('an active facet reports what turning it off reveals', () {
+    test('an unlit facet still reads as what tapping it shows', () {
+      // Where its dimension is otherwise untouched, "my share of the current
+      // view" and "what this tap yields" are the same set.
       final filter = RoomFilter({RoomFacet.dms});
       final p = RoomFacetCounts.projected(rooms, filter);
-      // Tapping the lit `dms` chip clears it, revealing all three rooms.
-      expect(p[RoomFacet.dms], 3);
+      for (final f in [RoomFacet.unread, RoomFacet.mentions, RoomFacet.public]) {
+        expect(p[f], filter.toggle(f).apply(rooms).length, reason: f.name);
+      }
+    });
+
+    test('selecting a facet does not change its own count', () {
+      // The bug: with one public room in seven, tapping `public` narrowed the
+      // list to that one room while its chip jumped 1 → 7, because the probe
+      // asked what *releasing* the chip would reveal.
+      final seven = [
+        room(id: 'p', isPrivate: false),
+        for (var i = 0; i < 6; i++) room(id: 'g$i'),
+      ];
+      final before = RoomFacetCounts.projected(seven, RoomFilter.empty);
+      final after = RoomFacetCounts.projected(
+        seven,
+        RoomFilter({RoomFacet.public}),
+      );
+      expect(before[RoomFacet.public], 1);
+      expect(after[RoomFacet.public], 1);
+      // And the sibling it ORs with reports its own rooms, not the union.
+      expect(after[RoomFacet.private], 6);
     });
   });
 
