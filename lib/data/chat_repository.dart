@@ -12,6 +12,7 @@ import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
 import '../models/pending_upload.dart';
+import '../models/room_pin.dart';
 import '../push/push_manager.dart';
 import 'cache_store.dart';
 import 'pending_reconcile.dart';
@@ -136,6 +137,15 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _messagesSub;
   Subscription? _activeTypingSub;
   Subscription? _readStateSub;
+  Subscription? _pinsSub;
+
+  /// Pinned messages, keyed by room.
+  ///
+  /// Room-keyed rather than a bare list for the same reason `_messages` is: a
+  /// late `onData` from the room being left must not paint over the room being
+  /// entered. `_activeReadState` is the counter-example this avoids — it is not
+  /// keyed, which is why `openRoom` has to clear it by hand.
+  final Map<String, List<RoomPin>> _pins = {};
   Timer? _typingHeartbeat;
   bool _typingActive = false;
 
@@ -322,6 +332,7 @@ class ChatRepository extends ChangeNotifier {
     // writing the previous account's read receipts into `_activeReadState`
     // for whoever signs in next.
     _readStateSub?.cancel();
+    _pinsSub?.cancel();
     _typingHeartbeat?.cancel();
     _roomsSub = null;
     _friendsSub = null;
@@ -331,6 +342,7 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
+    _pinsSub = null;
     _typingHeartbeat = null;
     _activeRoomId = null;
     _openOwner = null;
@@ -342,6 +354,9 @@ class ChatRepository extends ChangeNotifier {
     _incomingRequests = [];
     _outgoingRequests = [];
     _messages.clear();
+    // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
+    // is a sign-out: they are the previous account's room state.
+    _pins.clear();
     // Abort and release anything still going up. Signing out has to take the
     // bytes with it: they are one user's unsent photos, and the next account to
     // sign in on this device has no business holding them in memory — quite
@@ -468,12 +483,14 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
+    _pinsSub?.cancel();
     // Nulled immediately, not just reassigned at the end: this open can now
     // bail at any of the `gen` checks below, and [closeRoom] would otherwise
     // find and re-cancel a handle that is already dead.
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
+    _pinsSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -560,6 +577,32 @@ class ChatRepository extends ChangeNotifier {
       return;
     }
     _messagesSub = messagesSub;
+
+    // Pinned messages. Registered here rather than by the room screen so the
+    // `gen` guard and `SubscriptionRegistry`'s reconnect rebinding cover it for
+    // free, exactly like the three around it.
+    //
+    // No paired one-shot fetch, unlike `messages:list` above: the banner is
+    // zero-height until this lands, and the list is `reverse: true`, so a
+    // reader sitting at the newest message sees nothing move when it arrives.
+    final pinsSub = await cv.subscribe(
+      'pins:listForRoom',
+      {'roomId': roomId, 'viewerUserId': ?me},
+      onData: (data) {
+        final list = (data as List?) ?? const [];
+        _pins[roomId] = list
+            .whereType<Map>()
+            .map((e) => RoomPin.fromJson(e.cast<String, dynamic>()))
+            .toList();
+        notifyListeners();
+      },
+      onError: (err) => debugPrint('pins sub error: $err'),
+    );
+    if (gen != _openGen) {
+      pinsSub.cancel();
+      return;
+    }
+    _pinsSub = pinsSub;
 
     if (me != null) {
       final readStateSub = await cv.subscribe(
@@ -649,9 +692,11 @@ class ChatRepository extends ChangeNotifier {
     _messagesSub?.cancel();
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
+    _pinsSub?.cancel();
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
+    _pinsSub = null;
     _activeRoomId = null;
     // Hand the room back to the global stream's name-only entry.
     _openTypingRoomId = null;
@@ -1622,6 +1667,43 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.deleteMessage(messageId: messageId, userId: id);
+  }
+
+  // ───────────── pins ─────────────
+
+  /// This room's pinned messages, oldest message first. Empty until the
+  /// subscription lands, and offline.
+  List<RoomPin> pinsFor(String roomId) => _pins[roomId] ?? const [];
+
+  bool isMessagePinned(String roomId, String messageId) =>
+      pinsFor(roomId).any((p) => p.message.id == messageId);
+
+  /// Pins [messageId]. Returns null on success, or an error code the caller
+  /// must surface.
+  ///
+  /// Deviates from [toggleReaction]'s swallow-and-reconcile on purpose: a
+  /// refused pin is a refusal the user has to see. The per-room cap is the
+  /// entire reason this can fail, and silently doing nothing would read as the
+  /// button being broken.
+  Future<String?> pinMessage(String roomId, String messageId) async {
+    final id = _userId;
+    if (id == null) return null;
+    try {
+      await api.pinMessage(messageId: messageId, userId: id);
+      return null;
+    } catch (e) {
+      return e.toString().contains('PIN_LIMIT_REACHED')
+          ? 'PIN_LIMIT_REACHED'
+          : 'PIN_FAILED';
+    }
+  }
+
+  Future<void> unpinMessage(String roomId, String messageId) async {
+    final id = _userId;
+    if (id == null) return;
+    try {
+      await api.unpinMessage(messageId: messageId, userId: id);
+    } catch (_) {/* swallow — live subscription will reconcile */}
   }
 
   // ───────────── reactions ─────────────

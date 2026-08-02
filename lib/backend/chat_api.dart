@@ -612,6 +612,32 @@ class ChatApi {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Pins
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Neither of these takes a `roomId`: the server derives it from the message,
+  /// so a pin naming a room its message doesn't live in cannot be expressed.
+  Future<void> pinMessage({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('pins:pin', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  Future<void> unpinMessage({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('pins:unpin', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Typing
   // ─────────────────────────────────────────────────────────────────────────
 

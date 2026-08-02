@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../models/message_preview.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
 
@@ -44,18 +45,12 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
     super.dispose();
   }
 
-  String _previewText() {
-    final m = widget.parent;
-    if (m.type == MessageType.text || m.type == MessageType.url) {
-      return m.content.isEmpty ? '…' : m.content;
-    }
-    if (m.type == MessageType.image || m.type == MessageType.video) {
-      // The thumbnail says it — no need for a redundant "photo" label.
-      return m.content;
-    }
-    if (m.type == MessageType.audio) return 'voice message';
-    return m.content;
-  }
+  // This card draws the picture beside the text, so it asks for the caption
+  // alone. Shared with the pin banner and pin list via `messagePreviewLine` so
+  // the three surfaces cannot drift on what a voice note or an uncaptioned
+  // photo is called.
+  String _previewText() =>
+      messagePreviewLine(widget.parent, hasThumbnail: true);
 
   @override
   Widget build(BuildContext context) {
