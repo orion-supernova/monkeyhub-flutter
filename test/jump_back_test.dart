@@ -239,10 +239,20 @@ void main() {
     testWidgets('one hop reads plainly, a deeper trail says how deep',
         (tester) async {
       await tester.pumpWidget(host(1));
-      expect(find.text('BACK TO REPLY'), findsOneWidget);
+      expect(find.text('BACK'), findsOneWidget);
 
       await tester.pumpWidget(host(3));
-      expect(find.text('BACK TO REPLY · 3'), findsOneWidget);
+      expect(find.text('BACK · 3'), findsOneWidget);
+    });
+
+    testWidgets('never names a mechanism the reader may not have used',
+        (tester) async {
+      // This read BACK TO REPLY from when a reply tether was the only way to
+      // jump. A pin banner and the shared-content browser's "show in chat" now
+      // push onto the same trail, and neither involves a reply — so the label
+      // was sending readers to look for one they never tapped.
+      await tester.pumpWidget(host(1));
+      expect(find.textContaining('REPLY'), findsNothing);
     });
 
     testWidgets('is the same glass capsule as the pill below it',

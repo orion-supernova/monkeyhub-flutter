@@ -84,12 +84,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     widget.repo.addListener(_onRepo);
   }
 
-  /// Badge numbers for the shared-content cards.
+  /// How much each shared-content tab holds.
   ///
-  /// Fetched once rather than subscribed: they are decoration on a screen
-  /// the user reads and leaves, and four capped index scans per notify would
-  /// be a real cost for a number that only says whether a tab is worth
-  /// opening. Failure is silent for the same reason — the cards render a dash.
+  /// Fetched once rather than subscribed: these are decoration on a screen the
+  /// user reads and leaves, and four capped index scans per notify would be a
+  /// real cost for a number that only says whether a tab is worth opening.
+  ///
+  /// Failure is silent, and so is the interval before it lands — a row with no
+  /// count simply shows none, because a placeholder there reads as broken
+  /// rather than pending. An empty tab is distinguished only once the answer
+  /// is actually known.
   Map<String, RoomContentCount> _contentCounts = const {};
 
   Future<void> _loadContentCounts() async {
@@ -1007,62 +1011,55 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   /// The four ways into the shared-content browser.
   ///
-  /// Counts arrive from a separate query so this renders on the frame the
-  /// screen opens rather than waiting on four index scans — and a tab with no
-  /// badge yet is indistinguishable from one that is genuinely empty, which is
-  /// the right trade for a number that only says "worth opening".
+  /// A grouped list rather than a row of tiles. Four tiles across a phone left
+  /// each one about 64pt of content, which is narrower than the word `MEDIA`
+  /// at this letter-spacing — so every label sat on the edge of truncating and
+  /// the whole block read as cramped. Rows have the width to be legible, match
+  /// the rhythm of the members section directly below, and stay right on a
+  /// 720pt desktop pane where four tiles would instead stretch absurdly wide.
+  ///
+  /// Counts come from a separate query so this renders on the frame the screen
+  /// opens rather than waiting on four index scans. A tab whose count has not
+  /// arrived shows nothing at all — never a placeholder dash, which reads as
+  /// "broken" rather than "pending" and is indistinguishable from genuinely
+  /// empty. Once the count IS known, an empty tab says so in words.
   Widget _sharedContent(AppTheme theme) {
-    Widget card(RoomContentTab tab, IconData icon) {
-      final count = _contentCounts[tab.countKey];
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3),
-          child: FocusableTap(
-            onTap: () => _openContent(tab),
-            semanticLabel: tab.label,
-            radius: theme.radiusMd,
-            child: GestureDetector(
-              onTap: () => _openContent(tab),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-                decoration: BoxDecoration(
-                  color: theme.surfaceSunken,
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                  border: Border.all(color: theme.divider, width: 1.4),
-                ),
-                child: Column(
-                  children: [
-                    Icon(icon, size: 18, color: theme.accent),
-                    const SizedBox(height: 7),
-                    Text(
-                      tab.label,
-                      style: theme.monoTiny.copyWith(letterSpacing: 1.2),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      count?.badge ?? '—',
-                      style: theme.bodyEmph.copyWith(
-                        color: count?.badge == null ? theme.inkMuted : theme.ink,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+    const rows = <(RoomContentTab, IconData)>[
+      (RoomContentTab.media, CupertinoIcons.photo),
+      (RoomContentTab.file, CupertinoIcons.doc),
+      (RoomContentTab.voice, CupertinoIcons.waveform),
+      (RoomContentTab.links, CupertinoIcons.link),
+    ];
 
-    return Row(
-      children: [
-        card(RoomContentTab.media, CupertinoIcons.photo),
-        card(RoomContentTab.file, CupertinoIcons.doc),
-        card(RoomContentTab.voice, CupertinoIcons.waveform),
-        card(RoomContentTab.links, CupertinoIcons.link),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surfaceSunken,
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+        border: Border.all(color: theme.divider, width: 1.4),
+      ),
+      // Clipped so the first and last rows' press highlight cannot paint over
+      // the rounded corners.
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              // Inset to the text column, so the dividers read as separating
+              // rows rather than as a table grid.
+              Padding(
+                padding: const EdgeInsets.only(left: 52),
+                child: Divider(height: 1, thickness: 1, color: theme.divider),
+              ),
+            _SharedContentRow(
+              theme: theme,
+              tab: rows[i].$1,
+              icon: rows[i].$2,
+              count: _contentCounts[rows[i].$1.countKey],
+              onTap: () => _openContent(rows[i].$1),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -1133,6 +1130,99 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row of the SHARED CONTENT group: icon, name, how much, chevron.
+///
+/// Pressed state is drawn here rather than by an overlay because this row sits
+/// inside a clipped, bordered container — an ink splash would have to be
+/// clipped to the group's radius, and this app draws no ink anywhere regardless.
+class _SharedContentRow extends StatefulWidget {
+  const _SharedContentRow({
+    required this.theme,
+    required this.tab,
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  final AppTheme theme;
+  final RoomContentTab tab;
+  final IconData icon;
+
+  /// Null until the counts query lands. Rendered as nothing rather than as a
+  /// placeholder — see [_RoomInfoScreenState._sharedContent].
+  final RoomContentCount? count;
+
+  final VoidCallback onTap;
+
+  @override
+  State<_SharedContentRow> createState() => _SharedContentRowState();
+}
+
+class _SharedContentRowState extends State<_SharedContentRow> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final count = widget.count;
+    final empty = count != null && count.count == 0;
+
+    // `FocusableTap` registers no gesture recognizer of its own, so the bare
+    // `GestureDetector` inside is what actually receives the pointer. Both
+    // carry the handler; wrapping alone would render a row that does nothing.
+    // Never an InkWell — this app draws no ink anywhere.
+    return FocusableTap(
+      onTap: widget.onTap,
+      semanticLabel: count?.badge == null
+          ? widget.tab.label
+          : '${widget.tab.label}, ${count!.badge}',
+      radius: theme.radiusSm,
+      inset: 1,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOut,
+          color: _pressed ? theme.accent.withValues(alpha: 0.10) : null,
+          padding: const EdgeInsets.fromLTRB(12, 13, 12, 13),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 28,
+                child: Icon(widget.icon, size: 18, color: theme.accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.tab.label,
+                  style: theme.body.copyWith(color: theme.ink),
+                ),
+              ),
+              // An empty tab says so in words rather than showing a zero: "0"
+              // next to a chevron reads as a number that failed to load, where
+              // "none" reads as an answer. Nothing at all while the count is
+              // still in flight.
+              if (empty)
+                Text('none', style: theme.caption.copyWith(color: theme.inkMuted))
+              else if (count?.badge != null)
+                Text(
+                  count!.badge!,
+                  style: theme.bodyEmph.copyWith(color: theme.accent),
+                ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
         ),
       ),
     );

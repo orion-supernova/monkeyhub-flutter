@@ -122,11 +122,20 @@ class JumpBackPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassPill(
-    // Down, because a reply is always newer than the parent we jumped to,
-    // and in a transcript newer is below.
+    // Down, because the place you jumped from is almost always newer than the
+    // message you jumped to — following a tether, opening a pin and jumping in
+    // from the shared-content browser all walk backwards through history, and
+    // in a transcript newer is below.
     icon: CupertinoIcons.arrow_uturn_down,
-    label: depth > 1 ? 'BACK TO REPLY · $depth' : 'BACK TO REPLY',
-    semanticLabel: depth > 1 ? 'Back to the reply you jumped from, $depth to go' : 'Back to the reply you jumped from',
+    // Says where it goes, not why you left. It used to read BACK TO REPLY,
+    // from when a reply tether was the only way to jump — but a pin banner and
+    // "show in chat" push onto this same trail, and neither of those involves
+    // a reply at all. Naming a mechanism the reader didn't use is worse than
+    // naming none: it sends them looking for a reply they never tapped.
+    label: depth > 1 ? 'BACK · $depth' : 'BACK',
+    semanticLabel: depth > 1
+        ? 'Back to where you jumped from, $depth to go'
+        : 'Back to where you jumped from',
     onTap: onTap,
   );
 }

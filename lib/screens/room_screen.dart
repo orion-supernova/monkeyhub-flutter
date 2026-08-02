@@ -164,7 +164,7 @@ class _RoomScreenState extends State<RoomScreen>
   // ends on a thread chip where the message used to be is a jump that failed.
   String? _jumpTargetId;
 
-  // Every reply we've jumped away from, newest last — what the BACK TO REPLY
+  // Every place we have jumped away from, newest last — what the BACK
   // pill walks off one hop at a time. A plain setState here where _scrolledUp
   // needed a notifier: this changes on taps and one expiry timer, not on every
   // scroll frame.
