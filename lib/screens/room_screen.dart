@@ -178,7 +178,7 @@ class _RoomScreenState extends State<RoomScreen>
   // changed, and messagesFor() hands back the same list instance while no
   // sends are pending, so identity is a cheap and correct cache key.
   List<ChatMessage>? _memoSource;
-  String _memoPinKey = '';
+  String _memoFoldKey = '';
   ({List<RoomItem> items, Set<String> hidden})? _memoResult;
 
   @override
@@ -286,6 +286,10 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// Whether [m] must keep its own row — never folded into a chip.
   ///
+  /// Nothing to do with user-pinned messages. A pinned message folded into a
+  /// thread chip is fine: tapping the pin banner routes through `_travelTo`,
+  /// which hands off to the thread overlay when the target is folded.
+  ///
   /// The `_dateTracks` clause is the load-bearing one: that map is populated
   /// from the itemBuilder, so containsKey means "this row has already been
   /// built at least once this session". Without it a message would vanish
@@ -293,7 +297,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// thread's interior — possibly mid-video, or with its action menu open —
   /// and the same thing would happen on pagination when loadOlder prepends a
   /// root that turns the previously-first message into an interior one.
-  bool _isPinned(ChatMessage m) =>
+  bool _mustKeepOwnRow(ChatMessage m) =>
       m.id.startsWith('tmp_') ||
       m.status != MessageStatus.sent ||
       m.type == MessageType.system ||
@@ -308,26 +312,26 @@ class _RoomScreenState extends State<RoomScreen>
     ChatRoom room,
     List<ChatMessage> messages,
   ) {
-    // Everything _isPinned reads has to be in the key, or an armed reply or a
-    // highlight pulse would be computed against a stale fold set.
-    final pinKey = '${_dateTracks.length}'
+    // Everything _mustKeepOwnRow reads has to be in the key, or an armed reply
+    // or a highlight pulse would be computed against a stale fold set.
+    final foldKey = '${_dateTracks.length}'
         '|${_replyingTo?.id ?? ''}'
         '|${_highlightedMessageId ?? ''}'
         '|${_jumpTargetId ?? ''}';
     final memo = _memoResult;
     if (memo != null &&
         identical(messages, _memoSource) &&
-        pinKey == _memoPinKey) {
+        foldKey == _memoFoldKey) {
       return memo;
     }
     final result = buildRoomItems(
       messages: messages,
       roomIsEphemeral: room.isEphemeral,
-      isPinned: _isPinned,
+      mustKeepOwnRow: _mustKeepOwnRow,
       dayLabel: _humanDay,
     );
     _memoSource = messages;
-    _memoPinKey = pinKey;
+    _memoFoldKey = foldKey;
     _memoResult = result;
     return result;
   }

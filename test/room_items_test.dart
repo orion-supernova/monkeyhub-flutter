@@ -40,13 +40,13 @@ ChatMessage msg(
 ({List<RoomItem> items, Set<String> hidden}) build(
   List<ChatMessage> messages, {
   bool ephemeral = false,
-  bool Function(ChatMessage)? isPinned,
+  bool Function(ChatMessage)? mustKeepOwnRow,
   int minFolded = kMinFoldedMessages,
 }) =>
     buildRoomItems(
       messages: messages,
       roomIsEphemeral: ephemeral,
-      isPinned: isPinned ?? (_) => false,
+      mustKeepOwnRow: mustKeepOwnRow ?? (_) => false,
       dayLabel: (d) => '${d.year}-${d.month}-${d.day}',
       minFolded: minFolded,
     );
@@ -142,28 +142,28 @@ void main() {
       expect(visibleIds(r.items), hasLength(10));
     });
 
-    test('a pinned interior member is never folded', () {
+    test('an interior member that must keep its own row is never folded', () {
       final r = build(
         interleavedThread(),
-        isPinned: (m) => m.id == 'm4',
+        mustKeepOwnRow: (m) => m.id == 'm4',
       );
       expect(r.hidden, isNot(contains('m4')));
       expect(visibleIds(r.items), contains('m4'));
     });
 
-    test('pinning splits the interior; only the longer contiguous run folds',
+    test('a held row splits the interior; only the longer contiguous run folds',
         () {
-      // Interior m2,m4,m6,m8 with m4 pinned → runs [m2] and [m6,m8].
+      // Interior m2,m4,m6,m8 with m4 held → runs [m2] and [m6,m8].
       // [m2] is below threshold, so only m6+m8 fold.
-      final r = build(interleavedThread(), isPinned: (m) => m.id == 'm4');
+      final r = build(interleavedThread(), mustKeepOwnRow: (m) => m.id == 'm4');
       expect(r.hidden, {'m6', 'm8'});
       expect(r.items.whereType<ThreadFoldItem>().single.oldestHiddenId, 'm6');
     });
 
-    test('pinning enough of the interior suppresses the fold entirely', () {
+    test('holding enough of the interior suppresses the fold entirely', () {
       final r = build(
         interleavedThread(),
-        isPinned: (m) => m.id == 'm4' || m.id == 'm8',
+        mustKeepOwnRow: (m) => m.id == 'm4' || m.id == 'm8',
       );
       // Runs are [m2] and [m6], both below threshold.
       expect(r.hidden, isEmpty);
@@ -195,10 +195,10 @@ void main() {
         msg('m4', t: 3, replyTo: 'm1', root: 'm1'),
         msg('m5', t: 4, replyTo: 'm1', root: 'm1'),
       ];
-      // Mirrors room_screen's real _isPinned predicate.
+      // Mirrors room_screen's real _mustKeepOwnRow predicate.
       final r = build(
         ms,
-        isPinned: (m) =>
+        mustKeepOwnRow: (m) =>
             m.id.startsWith('tmp_') || m.status != MessageStatus.sent,
       );
       expect(r.hidden, isNot(contains('tmp_x')));

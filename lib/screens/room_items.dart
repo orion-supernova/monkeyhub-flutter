@@ -131,7 +131,7 @@ bool continuesRun(
 ({List<RoomItem> items, Set<String> hidden}) buildRoomItems({
   required List<ChatMessage> messages,
   required bool roomIsEphemeral,
-  required bool Function(ChatMessage m) isPinned,
+  required bool Function(ChatMessage m) mustKeepOwnRow,
   required String Function(DateTime day) dayLabel,
   int minFolded = kMinFoldedMessages,
 }) {
@@ -164,11 +164,12 @@ bool continuesRun(
       // Root and newest always stay put.
       final interior = members.sublist(1, members.length - 1);
 
-      // Only a contiguous run may fold. Pinning can punch holes in the
-      // interior, and a chip spanning a hole would misstate where the gap is.
+      // Only a contiguous run may fold. A row that must keep its own place can
+      // punch holes in the interior, and a chip spanning a hole would misstate
+      // where the gap is.
       var bestStart = -1, bestLen = 0, runStart = -1, runLen = 0;
       for (var i = 0; i < interior.length; i++) {
-        if (isPinned(interior[i])) {
+        if (mustKeepOwnRow(interior[i])) {
           runStart = -1;
           runLen = 0;
           continue;
