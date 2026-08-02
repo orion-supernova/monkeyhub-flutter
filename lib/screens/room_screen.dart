@@ -1678,12 +1678,36 @@ class _RoomScreenState extends State<RoomScreen>
     );
   }
 
-  void _openRoomInfo(ChatRoom room) {
-    Navigator.of(context).push(
+  /// Opens room info, and travels to whatever it hands back.
+  ///
+  /// The result comes from the shared-content browser two routes up, passed
+  /// through `RoomInfoScreen` untouched: only this screen owns the back-trail,
+  /// the folded-thread fallback and the `listAround` window fetch, and none of
+  /// that is reachable from a route stacked on top of it.
+  ///
+  /// The `mounted` check after the await is load-bearing rather than
+  /// defensive. `RoomInfoScreen` pops TWICE on leave and on delete, which takes
+  /// this screen down with it — so on those paths the future completes into a
+  /// disposed state. Both pop null, so the null guard covers correctness and
+  /// this one covers the `setState` inside `_travelTo`.
+  Future<void> _openRoomInfo(ChatRoom room) async {
+    final jump = await Navigator.of(context).push<ChatMessage>(
       MaterialPageRoute(
         builder: (_) => RoomInfoScreen(roomId: room.id, repo: widget.repo, api: widget.api),
       ),
     );
+    if (!mounted || jump == null) return;
+
+    // Same shape as `_jumpToPin`, for the same reasons: the origin is captured
+    // before the travel (afterwards the transcript has moved and no longer
+    // names where the reader came from), and `from` is the target message so a
+    // message folded into a thread hands off to that thread.
+    final origin = _topmostVisibleMessage(widget.repo.timelineFor(widget.roomId));
+    final landed = await _travelTo(jump.id, from: jump);
+    if (!mounted) return;
+    if (landed && origin != null && origin.id != jump.id) {
+      _jumpBack.push(origin);
+    }
   }
 
   Widget _messageBody(

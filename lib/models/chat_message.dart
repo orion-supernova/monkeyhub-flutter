@@ -84,6 +84,8 @@ class ChatMessage {
     this.fileName,
     this.fileSize,
     this.mimeType,
+    this.mediaDurationMs,
+    this.posterStorageId,
     this.expiresAt,
     this.status = MessageStatus.sent,
     this.edited = false,
@@ -141,6 +143,22 @@ class ChatMessage {
   final String? fileName;
   final int? fileSize;
   final String? mimeType;
+
+  /// Playing time of an audio or video attachment, when the sender measured
+  /// it. Lets a list row show `0:42` without fetching and decoding the media
+  /// first — the same argument as [mediaWidth].
+  final int? mediaDurationMs;
+
+  /// A still frame of a video, stored as a second blob.
+  ///
+  /// Null on every video sent from web or desktop and on all history, because
+  /// extraction is Android/iOS only. That is permanent rather than a migration
+  /// state, so surfaces must treat its absence as an ordinary case — the grid
+  /// draws a play glyph — and never as a load that has not finished.
+  ///
+  /// Never present on a view-once message: `messages:send` refuses to write one
+  /// on an armed send, and `sanitizeViewOnce` strips it besides.
+  final String? posterStorageId;
 
   DateTime? expiresAt;
   MessageStatus status;
@@ -290,6 +308,8 @@ class ChatMessage {
       fileName: j['fileName'] as String?,
       fileSize: (j['fileSize'] as num?)?.toInt(),
       mimeType: j['mimeType'] as String?,
+      mediaDurationMs: (j['mediaDurationMs'] as num?)?.toInt(),
+      posterStorageId: j['posterStorageId'] as String?,
       expiresAt: ex is num ? DateTime.fromMillisecondsSinceEpoch(ex.toInt()) : null,
       edited: (j['edited'] ?? false) as bool,
       reactions: (j['reactions'] as List?)
@@ -337,6 +357,11 @@ class ChatMessage {
         if (fileName != null) 'fileName': fileName,
         if (fileSize != null) 'fileSize': fileSize,
         if (mimeType != null) 'mimeType': mimeType,
+        // Same reasoning as `mediaWidth` above: without these a cold boot
+        // redraws a video tile with no running time and no poster, then
+        // acquires both when the subscription lands.
+        if (mediaDurationMs != null) 'mediaDurationMs': mediaDurationMs,
+        if (posterStorageId != null) 'posterStorageId': posterStorageId,
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
         'edited': edited,
         'reactions': reactions.map((r) => r.toJson()).toList(),
@@ -388,6 +413,8 @@ class ChatMessage {
         fileName: fileName,
         fileSize: fileSize,
         mimeType: mimeType,
+        mediaDurationMs: mediaDurationMs,
+        posterStorageId: posterStorageId,
         expiresAt: expiresAt,
         status: status ?? this.status,
         edited: edited,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -8,8 +9,10 @@ import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
+import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -22,6 +25,7 @@ import '../widgets/user_avatar.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
 import 'profile_screen.dart';
+import 'room_content_screen.dart';
 
 class RoomInfoScreen extends StatefulWidget {
   const RoomInfoScreen({
@@ -76,7 +80,30 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void initState() {
     super.initState();
     _hydrate();
+    _loadContentCounts();
     widget.repo.addListener(_onRepo);
+  }
+
+  /// Badge numbers for the shared-content cards.
+  ///
+  /// Fetched once rather than subscribed: they are decoration on a screen
+  /// the user reads and leaves, and four capped index scans per notify would
+  /// be a real cost for a number that only says whether a tab is worth
+  /// opening. Failure is silent for the same reason — the cards render a dash.
+  Map<String, RoomContentCount> _contentCounts = const {};
+
+  Future<void> _loadContentCounts() async {
+    final me = widget.repo.userId;
+    if (me == null) return;
+    try {
+      final counts = await widget.api.roomContentCounts(
+        roomId: widget.roomId,
+        userId: me,
+      );
+      if (mounted) setState(() => _contentCounts = counts);
+    } catch (_) {
+      // Leaves the cards showing a dash, which is honest.
+    }
   }
 
   void _onRepo() {
@@ -599,6 +626,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ],
                         ],
                         const SizedBox(height: 28),
+                        FieldLabel('SHARED CONTENT'),
+                        const SizedBox(height: 6),
+                        _sharedContent(theme),
+                        const SizedBox(height: 28),
                         FieldLabel('MEMBERS · ${_members.length}'),
                         const SizedBox(height: 6),
                         _membersList(theme, r),
@@ -972,6 +1003,89 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         ),
       ),
     );
+  }
+
+  /// The four ways into the shared-content browser.
+  ///
+  /// Counts arrive from a separate query so this renders on the frame the
+  /// screen opens rather than waiting on four index scans — and a tab with no
+  /// badge yet is indistinguishable from one that is genuinely empty, which is
+  /// the right trade for a number that only says "worth opening".
+  Widget _sharedContent(AppTheme theme) {
+    Widget card(RoomContentTab tab, IconData icon) {
+      final count = _contentCounts[tab.countKey];
+      return Expanded(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 3),
+          child: FocusableTap(
+            onTap: () => _openContent(tab),
+            semanticLabel: tab.label,
+            radius: theme.radiusMd,
+            child: GestureDetector(
+              onTap: () => _openContent(tab),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+                decoration: BoxDecoration(
+                  color: theme.surfaceSunken,
+                  borderRadius: BorderRadius.circular(theme.radiusMd),
+                  border: Border.all(color: theme.divider, width: 1.4),
+                ),
+                child: Column(
+                  children: [
+                    Icon(icon, size: 18, color: theme.accent),
+                    const SizedBox(height: 7),
+                    Text(
+                      tab.label,
+                      style: theme.monoTiny.copyWith(letterSpacing: 1.2),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      count?.badge ?? '—',
+                      style: theme.bodyEmph.copyWith(
+                        color: count?.badge == null ? theme.inkMuted : theme.ink,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        card(RoomContentTab.media, CupertinoIcons.photo),
+        card(RoomContentTab.file, CupertinoIcons.doc),
+        card(RoomContentTab.voice, CupertinoIcons.waveform),
+        card(RoomContentTab.links, CupertinoIcons.link),
+      ],
+    );
+  }
+
+  /// Opens the browser, and passes any "show in chat" it returns straight
+  /// through to whoever pushed this screen.
+  ///
+  /// A pure pass-through rather than travelling here: `RoomScreen` owns the
+  /// jump machinery — the back-trail, the folded-thread fallback, and the
+  /// `listAround` window fetch — and none of it is reachable from a route
+  /// stacked on top of it.
+  Future<void> _openContent(RoomContentTab tab) async {
+    final jump = await Navigator.of(context).push<ChatMessage>(
+      MaterialPageRoute(
+        builder: (_) => RoomContentScreen(
+          roomId: widget.roomId,
+          repo: widget.repo,
+          api: widget.api,
+          initialTab: tab,
+        ),
+      ),
+    );
+    if (!mounted || jump == null) return;
+    Navigator.of(context).pop(jump);
   }
 
   Widget _seg(AppTheme theme, {
