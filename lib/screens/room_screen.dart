@@ -1717,16 +1717,20 @@ class _RoomScreenState extends State<RoomScreen>
     );
     if (!mounted || jump == null) return;
 
-    // Same shape as `_jumpToPin`, for the same reasons: the origin is captured
-    // before the travel (afterwards the transcript has moved and no longer
-    // names where the reader came from), and `from` is the target message so a
-    // message folded into a thread hands off to that thread.
-    final origin = _topmostVisibleMessage(widget.repo.timelineFor(widget.roomId));
-    final landed = await _travelTo(jump.id, from: jump);
-    if (!mounted) return;
-    if (landed && origin != null && origin.id != jump.id) {
-      _jumpBack.push(origin);
-    }
+    // Deliberately NO `_jumpBack.push`, unlike `_jumpToPin` and the reply
+    // tether. Those two jump from one place in the transcript to another, so
+    // "back" means the position you were reading and the pill is the way home.
+    //
+    // This arrives from two routes away. The reader was not in the transcript
+    // when they chose the message — they were in the media library — so there
+    // is no reading position they left behind, and a back pill would offer to
+    // return them to wherever the transcript happened to be sitting before
+    // they opened room info. That is not somewhere they were; it is somewhere
+    // they had already navigated away from twice.
+    //
+    // `from` is still the target message, so one folded into a thread hands
+    // off to that thread exactly as a pin does.
+    await _travelTo(jump.id, from: jump);
   }
 
   Widget _messageBody(

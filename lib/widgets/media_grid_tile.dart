@@ -9,6 +9,15 @@ import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'steady_hero.dart';
+
+/// Hero tag tying a grid tile to its page in the fullscreen pager.
+///
+/// Deliberately not the bubble's `msg-image-<id>`. A transcript bubble for the
+/// same message can be alive on the room screen further down the stack, and two
+/// heroes sharing a tag on routes that both take part in a flight is an
+/// assertion, not a graceful degrade.
+String roomMediaHeroTag(String messageId) => 'room-media-$messageId';
 
 /// One square in the shared-content grid.
 ///
@@ -78,15 +87,27 @@ class MediaGridTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageId != null)
-              RemoteImage(
-                storageId: imageId,
-                api: api,
-                fit: BoxFit.cover,
-                decodeWidth: decodeWidth,
-              )
-            else
-              _GlyphTile(theme: theme, isVideo: _isVideo),
+            // `SteadyHero`, not `Hero`: a plain one tears its child out of the
+            // tree for the length of the flight at BOTH ends, so the tile a
+            // picture flies home to is destroyed at take-off and rebuilt from
+            // nothing on touchdown — with no resolved URL and a decode that
+            // spent the flight with no listener holding it in the ImageCache.
+            // The landing is a hole in the shape of the photograph. See the
+            // class comment on SteadyHero, which exists for exactly this.
+            //
+            // The glyph tile gets one too, so a posterless video still flies
+            // rather than snapping — the destination has the same glyph.
+            SteadyHero(
+              tag: roomMediaHeroTag(message.id),
+              child: imageId != null
+                  ? RemoteImage(
+                      storageId: imageId,
+                      api: api,
+                      fit: BoxFit.cover,
+                      decodeWidth: decodeWidth,
+                    )
+                  : _GlyphTile(theme: theme, isVideo: _isVideo),
+            ),
 
             if (_isVideo)
               _VideoOverlay(theme: theme, durationMs: message.mediaDurationMs),

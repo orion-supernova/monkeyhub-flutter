@@ -6,7 +6,9 @@ import '../keyboard/focusable_tap.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/remote_image.dart';
+import '../widgets/steady_hero.dart';
 import '../widgets/video_message.dart';
 
 /// Fullscreen media, swipeable across everything in the MEDIA tab.
@@ -37,17 +39,26 @@ class MediaPagerScreen extends StatefulWidget {
   /// there is nothing to travel back to.
   final void Function(ChatMessage message)? onShowInChat;
 
-  static Future<void> open(
+  /// Returns the index the pager was left on, so the grid can put that tile
+  /// back under the reader's eyes. Null if it was dismissed without settling.
+  ///
+  /// Swiping four photos deep and closing should not land you looking at the
+  /// one you opened — and the hero has nowhere to fly home to if the tile it
+  /// belongs to has been scrolled out of the grid's build range.
+  static Future<int?> open(
     BuildContext context, {
     required List<ChatMessage> items,
     required int initialIndex,
     required ChatApi api,
     void Function(ChatMessage message)? onShowInChat,
   }) {
-    return Navigator.of(context, rootNavigator: true).push(
-      PageRouteBuilder(
+    return Navigator.of(context, rootNavigator: true).push<int>(
+      PageRouteBuilder<int>(
         opaque: false,
         barrierColor: Colors.transparent,
+        // Matches `FullscreenImageViewer`: the flight is a direct response to
+        // a tap on the thing that flies, so it should feel like the picture
+        // moved rather than like an animation played.
         transitionDuration: const Duration(milliseconds: 200),
         reverseTransitionDuration: const Duration(milliseconds: 170),
         pageBuilder: (_, _, _) => MediaPagerScreen(
@@ -113,7 +124,7 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
             _Chrome(
               message: current,
               position: '${_index + 1} / ${widget.items.length}',
-              onClose: () => Navigator.of(context).pop(),
+              onClose: () => Navigator.of(context).pop(_index),
               onShowInChat: widget.onShowInChat == null
                   ? null
                   : () => widget.onShowInChat!(current),
@@ -151,11 +162,18 @@ class _Page extends StatelessWidget {
         // Poster if there is one, dark plate if not. Never a player.
         final poster = message.posterStorageId;
         return Center(
-          child: poster == null
-              ? const Icon(CupertinoIcons.film, size: 34, color: Colors.white24)
-              : RemoteImage(storageId: poster, api: api, fit: BoxFit.contain),
+          child: _flight(
+            poster == null
+                ? const Icon(CupertinoIcons.film, size: 34, color: Colors.white24)
+                : RemoteImage(storageId: poster, api: api, fit: BoxFit.contain),
+          ),
         );
       }
+      // No hero on the page that owns a player: a `VideoPlayer` texture cannot
+      // be flown between routes, and asking it to produces a black rectangle
+      // where the poster used to be. The poster on the inactive page above
+      // carries the flight, which is the one that is on screen when a flight
+      // actually starts.
       return Center(
         child: VideoMessage(api: api, storageId: id, isMine: false),
       );
@@ -165,10 +183,20 @@ class _Page extends StatelessWidget {
       minScale: 1,
       maxScale: 4,
       child: Center(
-        child: RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
+        child: _flight(
+          RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
+        ),
       ),
     );
   }
+
+  /// Pairs this page with its grid tile for the open/close flight.
+  ///
+  /// `SteadyHero` rather than `Hero` for the reason its own doc gives: a plain
+  /// one tears the child out of the tree at both ends of a flight, so the
+  /// picture arrives as a hole and fills in a frame later.
+  Widget _flight(Widget child) =>
+      SteadyHero(tag: roomMediaHeroTag(message.id), child: child);
 }
 
 class _Chrome extends StatelessWidget {

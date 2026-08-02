@@ -20,6 +20,61 @@ import '../theme/theme_scope.dart';
 /// packet (very much worth retrying).
 enum _Phase { loading, ready, failed, unavailable }
 
+/// What the player should DRAW, derived from what `just_audio` reports.
+///
+/// A free function rather than inline in `build` because the interesting part
+/// is not the layout, it is this translation — and it had two bugs in it that
+/// only showed up after a note finished playing. `audio_completion_test.dart`
+/// pins both.
+class AudioDisplay {
+  const AudioDisplay({required this.playing, required this.progress, required this.elapsed});
+
+  /// Whether to draw the PAUSE glyph, and whether a tap means "pause".
+  final bool playing;
+
+  /// 0..1 for the scrubber.
+  final double progress;
+
+  /// The left-hand half of `0:07 / 0:42`.
+  final Duration elapsed;
+}
+
+/// Translates a raw player state into what the bubble shows.
+///
+/// Two things here are not obvious and were both wrong before:
+///
+///  * **`just_audio` does not clear `playing` when a track finishes.** It emits
+///    `PlayerState(playing: true, processingState: completed)` and leaves it
+///    there. Reading [rawPlaying] alone therefore claims a finished note is
+///    still playing — which drew a pause button on a stopped voice note and,
+///    worse, sent the tap handler down its `pause()` branch, so the first tap
+///    after it ended did nothing and replaying took two taps.
+///
+///  * **The position stream stops a tick short of the duration.** Its last
+///    emission is a frame or so under [total] and then it goes quiet, so a
+///    finished note rested at about 97% — a bar that visibly never arrives,
+///    beside a readout saying `0:41 / 0:42`.
+///
+/// Both are fixed by treating `completed` as the authority it is: the note is
+/// not playing, and it is exactly at the end.
+AudioDisplay audioDisplayFor({
+  required bool rawPlaying,
+  required bool completed,
+  required Duration position,
+  required Duration total,
+}) {
+  if (completed) {
+    return AudioDisplay(playing: false, progress: 1, elapsed: total);
+  }
+  return AudioDisplay(
+    playing: rawPlaying,
+    progress: total.inMilliseconds == 0
+        ? 0
+        : (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0),
+    elapsed: position,
+  );
+}
+
 /// Inline audio bubble. Resolves [storageId] → a playable source, lazy-loads it
 /// into a [just_audio] player, plays in place. Minimal UX: play/pause +
 /// position scrubber.
@@ -236,19 +291,24 @@ class _AudioMessageState extends State<AudioMessage> {
     return StreamBuilder<PlayerState>(
       stream: _player.playerStateStream,
       builder: (context, snap) {
-        final playing = snap.data?.playing ?? false;
         final processing = snap.data?.processingState;
+        final completed = processing == ProcessingState.completed;
         return StreamBuilder<Duration?>(
           stream: _player.positionStream,
           builder: (context, posSnap) {
-            final pos = posSnap.data ?? Duration.zero;
             // `_duration` is the value setFilePath returned, available a beat
             // before the player's own stream reports one — which is why this
             // used to sit on "loading…" after the audio was already loaded.
             final total = _player.duration ?? _duration ?? Duration.zero;
-            final progress = total.inMilliseconds == 0
-                ? 0.0
-                : (pos.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
+            // Everything about how a finished note should look lives in here.
+            final display = audioDisplayFor(
+              rawPlaying: snap.data?.playing ?? false,
+              completed: completed,
+              position: posSnap.data ?? Duration.zero,
+              total: total,
+            );
+            final playing = display.playing;
+            final progress = display.progress;
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -309,7 +369,8 @@ class _AudioMessageState extends State<AudioMessage> {
                       const SizedBox(height: 4),
                       Text(
                         total > Duration.zero
-                            ? '${formatClockDuration(pos)} / ${formatClockDuration(total)}'
+                            ? '${formatClockDuration(display.elapsed)}'
+                                ' / ${formatClockDuration(total)}'
                             : 'loading…',
                         style: theme.monoTiny
                             .copyWith(color: ink.withValues(alpha: 0.8)),

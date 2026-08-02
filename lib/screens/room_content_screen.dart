@@ -18,13 +18,14 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
+import '../widgets/audio_message.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/pill_nav.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
-import 'room_items.dart' show formatClockDuration, humanDay;
+import 'room_items.dart' show humanDay;
 
 /// Everything a room has shared, by kind, with multi-select.
 ///
@@ -140,27 +141,63 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     switch (m.type) {
       case MessageType.image:
       case MessageType.video:
-        final media = _c.items;
-        MediaPagerScreen.open(
-          context,
-          items: media,
-          initialIndex: media.indexWhere((x) => x.id == m.id).clamp(0, media.length - 1),
-          api: widget.api,
-          onShowInChat: (msg) {
-            // Pop the pager (a root-navigator route) before handing the
-            // message back, or the transcript would animate in behind it.
-            Navigator.of(context, rootNavigator: true).pop();
-            _showInChat(msg);
-          },
-        );
+        _openPager(m);
       case MessageType.file:
         _saveOne(m);
       case MessageType.audio:
+        // Nothing. A voice row carries a real player, and that player's own
+        // button is what starts it — routing the row's tap anywhere would
+        // fight it. Reaching the transcript from a voice note is the IN CHAT
+        // action, the same way it is for four selected photos.
+        break;
       case MessageType.text:
       case MessageType.url:
       case MessageType.system:
         _showInChat(m);
     }
+  }
+
+  Future<void> _openPager(ChatMessage m) async {
+    final media = _c.items;
+    final start = media.indexWhere((x) => x.id == m.id);
+    if (start < 0) return;
+
+    final landed = await MediaPagerScreen.open(
+      context,
+      items: media,
+      initialIndex: start,
+      api: widget.api,
+      onShowInChat: (msg) {
+        // Pop the pager (a root-navigator route) before handing the message
+        // back, or the transcript would animate in behind it.
+        Navigator.of(context, rootNavigator: true).pop();
+        _showInChat(msg);
+      },
+    );
+    if (!mounted || landed == null || landed == start) return;
+    _revealInGrid(landed);
+  }
+
+  /// Scrolls the grid so tile [index] is on screen.
+  ///
+  /// Swiping several photos deep in the pager and closing should not land you
+  /// looking at the one you opened. It also gives the closing hero somewhere to
+  /// fly to: a tile scrolled outside the grid's build range has no widget for
+  /// the flight to match, and Flutter degrades to a plain fade.
+  void _revealInGrid(int index) {
+    if (!_scroll.hasClients) return;
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = _gridColumns(width);
+    final rowExtent = width / columns + _gridSpacing;
+    final target = (index ~/ columns) * rowExtent;
+
+    // Only when it is genuinely off screen — jumping a tile that is already
+    // visible moves the grid under the reader for no reason.
+    final pos = _scroll.position;
+    final viewportEnd = pos.pixels + pos.viewportDimension - rowExtent;
+    if (target >= pos.pixels && target <= viewportEnd) return;
+
+    _scroll.jumpTo(target.clamp(pos.minScrollExtent, pos.maxScrollExtent));
   }
 
   /// Hands [m] back up the stack. `RoomInfoScreen` forwards it to `RoomScreen`,
@@ -475,14 +512,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
 
   Widget _mediaGrid(AppTheme theme, double bottomPad) {
     final items = _c.items;
-    // Wider panes get more columns rather than bigger squares — a 200pt photo
-    // thumbnail is not more useful than a 110pt one, just heavier to decode.
     final width = MediaQuery.sizeOf(context).width;
-    final columns = width >= Breakpoints.expanded
-        ? 6
-        : width >= Breakpoints.medium
-            ? 5
-            : 3;
+    final columns = _gridColumns(width);
     final tileWidth = width / columns;
     final dpr = MediaQuery.devicePixelRatioOf(context);
 
@@ -491,8 +522,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       padding: EdgeInsets.fromLTRB(2, 6, 2, bottomPad),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: columns,
-        crossAxisSpacing: 2,
-        mainAxisSpacing: 2,
+        crossAxisSpacing: _gridSpacing,
+        mainAxisSpacing: _gridSpacing,
       ),
       itemCount: items.length + (_c.hasMore ? 1 : 0),
       itemBuilder: (_, i) {
@@ -531,6 +562,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
             _ContentRow(
               theme: theme,
               message: m,
+              api: widget.api,
               tab: _tab,
               selected: _selection.contains(m.id),
               selecting: _selection.active,
@@ -586,6 +618,18 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
 
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// Hairline gap between tiles. Shared with [_revealInGrid], which has to
+  /// reproduce the grid's row extent to scroll to one.
+  static const double _gridSpacing = 2;
+
+  /// Wider panes get more columns rather than bigger squares — a 200pt photo
+  /// thumbnail is not more useful than a 110pt one, just heavier to decode.
+  static int _gridColumns(double width) => width >= Breakpoints.expanded
+      ? 6
+      : width >= Breakpoints.medium
+          ? 5
+          : 3;
 }
 
 class _DayHeader extends StatelessWidget {
@@ -659,6 +703,7 @@ class _ContentRow extends StatelessWidget {
   const _ContentRow({
     required this.theme,
     required this.message,
+    required this.api,
     required this.tab,
     required this.selected,
     required this.selecting,
@@ -668,6 +713,7 @@ class _ContentRow extends StatelessWidget {
 
   final AppTheme theme;
   final ChatMessage message;
+  final ChatApi api;
   final RoomContentTab tab;
   final bool selected;
   final bool selecting;
@@ -676,18 +722,14 @@ class _ContentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVoice = tab == RoomContentTab.voice;
-    final name = isVoice ? 'voice message' : (message.fileName ?? 'document');
-    final ms = message.mediaDurationMs;
-    final sub = isVoice
-        ? (ms == null || ms <= 0
-            ? message.senderName
-            : '${formatClockDuration(Duration(milliseconds: ms))} · ${message.senderName}')
-        : [
-            if (message.fileSize != null && message.fileSize! > 0)
-              formatFileSize(message.fileSize!),
-            message.senderName,
-          ].join(' · ');
+    if (tab == RoomContentTab.voice) return _voiceRow(context);
+
+    final name = message.fileName ?? 'document';
+    final sub = [
+      if (message.fileSize != null && message.fileSize! > 0)
+        formatFileSize(message.fileSize!),
+      message.senderName,
+    ].join(' · ');
 
     return _SelectableRow(
       theme: theme,
@@ -705,15 +747,55 @@ class _ContentRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(theme.radiusSm),
           border: Border.all(color: theme.divider, width: 0.8),
         ),
-        child: isVoice
-            ? Icon(CupertinoIcons.waveform, size: 18, color: theme.accent)
-            : Text(
-                fileTypeBadge(name),
-                style: theme.monoTiny.copyWith(color: theme.accent, fontSize: 9.5),
-              ),
+        child: Text(
+          fileTypeBadge(name),
+          style: theme.monoTiny.copyWith(color: theme.accent, fontSize: 9.5),
+        ),
       ),
       title: name,
       subtitle: sub,
+    );
+  }
+
+  /// A voice note, with a player that actually plays.
+  ///
+  /// [AudioMessage] rather than an icon and a duration: a voice note the user
+  /// has to open a chat to hear is a list of things they cannot listen to.
+  /// Mounting one per row is the same density the transcript already runs at —
+  /// `ListView.builder` only builds the visible window — which is why this is
+  /// safe where mounting `VideoMessage` per grid tile would not be.
+  Widget _voiceRow(BuildContext context) {
+    return _SelectableRow(
+      theme: theme,
+      selected: selected,
+      selecting: selecting,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      semanticLabel: 'Voice message from ${message.senderName}',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            message.senderName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.caption.copyWith(color: theme.inkMuted),
+          ),
+          const SizedBox(height: 4),
+          // Deaf to the pointer while selecting, so a tap anywhere on the row
+          // picks it instead of starting playback the user did not ask for.
+          IgnorePointer(
+            ignoring: selecting,
+            child: AudioMessage(
+              api: api,
+              storageId: message.mediaStorageId,
+              // Always "theirs" here: this is a browser, not a transcript, and
+              // there is no left/right side to take a colour from.
+              isMine: false,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -772,9 +854,10 @@ class _SelectableRow extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.semanticLabel,
-    required this.leading,
-    required this.title,
-    required this.subtitle,
+    this.leading,
+    this.title,
+    this.subtitle,
+    this.body,
   });
 
   final AppTheme theme;
@@ -783,9 +866,17 @@ class _SelectableRow extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final String semanticLabel;
-  final Widget leading;
-  final String title;
-  final String subtitle;
+
+  /// The square at the head of the row. Omitted by rows whose [body] is the
+  /// whole content — a voice player has its own play disc and a second circle
+  /// beside it reads as two buttons.
+  final Widget? leading;
+
+  final String? title;
+  final String? subtitle;
+
+  /// Replaces the [title]/[subtitle] pair entirely.
+  final Widget? body;
 
   @override
   Widget build(BuildContext context) {
@@ -817,27 +908,30 @@ class _SelectableRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              leading,
-              const SizedBox(width: 11),
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 11),
+              ],
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.bodyEmph.copyWith(color: theme.ink),
+                child: body ??
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.bodyEmph.copyWith(color: theme.ink),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.caption.copyWith(color: theme.inkMuted),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.caption.copyWith(color: theme.inkMuted),
-                    ),
-                  ],
-                ),
               ),
               if (selecting) ...[
                 const SizedBox(width: 10),

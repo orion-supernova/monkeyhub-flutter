@@ -44,6 +44,21 @@ void main() {
     return source.substring(start, end);
   }
 
+  /// [bodyOf] with comment lines removed.
+  ///
+  /// Prose explaining why a call is absent necessarily names that call, and a
+  /// naïve `contains` then reads the explanation as the thing it forbids —
+  /// which is exactly how this test first failed. Same carve-out
+  /// `web_safe_apis_test.dart` makes: prose about the trap is the point of the
+  /// trap, not a violation of it.
+  String codeOf(String source, String signature) => bodyOf(source, signature)
+      .split('\n')
+      .where((l) {
+        final t = l.trimLeft();
+        return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*');
+      })
+      .join('\n');
+
   test('_openRoomInfo awaits a ChatMessage rather than discarding the pop', () {
     final body = bodyOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
     expect(body.contains('push<ChatMessage>'), isTrue,
@@ -73,21 +88,28 @@ void main() {
             'on that would jump a room the user just walked out of');
   });
 
-  test('it pushes the back-trail entry captured BEFORE the travel', () {
-    final body = bodyOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
-    final originAt = body.indexOf('_topmostVisibleMessage');
-    final travelAt = body.indexOf('_travelTo(');
-    final pushAt = body.indexOf('_jumpBack.push');
+  test('it leaves NO back-trail entry, unlike the pin and reply jumps', () {
+    final code = codeOf(roomScreen, 'Future<void> _openRoomInfo(ChatRoom room)');
+    expect(
+      code.contains('_jumpBack.push'),
+      isFalse,
+      reason: 'The pin banner and a reply tether jump from one place in the '
+          'transcript to another, so "back" names the position you left. This '
+          'arrives from two routes away — the reader was in the media library, '
+          'not the transcript — so a back pill would offer to return them to '
+          'wherever the transcript happened to be sitting before they opened '
+          'room info. That is not somewhere they were.',
+    );
+  });
 
-    expect(originAt, isNonNegative);
-    expect(originAt, lessThan(travelAt),
-        reason: 'after the travel the transcript has moved, so this would '
-            'record the destination as the origin — the same ordering '
-            '_jumpToPin documents');
-    expect(pushAt, greaterThan(travelAt));
-    expect(body.contains('landed'), isTrue,
-        reason: 'a trip that ended in the thread overlay must not leave a pill '
-            'pointing into a transcript nobody is looking at');
+  test('the jumps that DO come from the transcript still leave one', () {
+    // Guards the fix above from being over-applied: removing the trail
+    // wholesale would break following a reply tether, which is what it is for.
+    final pin = bodyOf(roomScreen, 'Future<void> _jumpToPin(RoomPin target)');
+    expect(pin.contains('_jumpBack.push'), isTrue);
+    expect(pin.indexOf('_topmostVisibleMessage'), lessThan(pin.indexOf('_travelTo(')),
+        reason: 'the origin is captured before the travel, or it records the '
+            'destination as the origin');
   });
 
   test('RoomInfoScreen passes the message through without acting on it', () {
