@@ -109,6 +109,7 @@ void main() {
       // Scaled with the rest of the clocks. In production this is 750ms; here
       // it is the floor no wake may cut off a 10ms backoff rung.
       minLoopInterval: const Duration(milliseconds: 10),
+      offlineGrace: const Duration(milliseconds: 6),
       now: clock.call,
       connectivity: connectivity.stream,
       // Connectivity() needs a platform channel; the injected stream stands in
@@ -849,6 +850,63 @@ void main() {
             'the floor bounds how OFTEN we retry; it must not discard the '
             'request, or the banner spins "retrying…" with nothing in flight',
       );
+    });
+
+    // ───────── the one input that is not a hint ─────────
+
+    test('losing the interface shows the banner without waiting for a probe',
+        () async {
+      probe.probeResult = false;
+      probe.probeDelay = const Duration(seconds: 30); // never reports
+      build(watchConnectivity: true).start();
+
+      connectivity.add(false);
+
+      // The probe is still parked and will be for another 30s. Nothing else in
+      // this class could raise a banner before then, which is the ~9.5s (real
+      // clock) blind spot this exists to close.
+      await expectPhase(
+        ConnectionPhase.reconnecting,
+        reason: 'the radio being off is not something a probe can clarify',
+      );
+      expect(
+        probe.probeCalls,
+        lessThanOrEqualTo(1),
+        reason: 'no extra probing — we already know the answer',
+      );
+    });
+
+    test('a momentary interface flap does not flash the banner', () async {
+      probe.probeResult = true;
+      build(watchConnectivity: true).start();
+
+      // Both platforms flick through `none` while handing off Wi-Fi→cellular.
+      connectivity.add(false);
+      await settle(const Duration(milliseconds: 2));
+      connectivity.add(true);
+      await settle(const Duration(milliseconds: 40));
+
+      expect(
+        health.phase,
+        ConnectionPhase.online,
+        reason: 'a handoff is not an outage',
+      );
+    });
+
+    test('the banner clears once the interface returns and a probe lands',
+        () async {
+      probe.probeResult = false;
+      build(watchConnectivity: true).start();
+
+      connectivity.add(false);
+      await expectPhase(ConnectionPhase.reconnecting);
+
+      probe.probeResult = true;
+      clock.advance(const Duration(seconds: 10)); // past the retry throttle
+      connectivity.add(true);
+
+      await expectPhase(ConnectionPhase.online);
+      expect(resubscribes, 1);
     });
 
     test('an automatic retry during a verify defers instead of piling on',

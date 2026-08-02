@@ -113,6 +113,10 @@ class CoalescingJob {
 ///  * **A successful rebuild is not a verdict either.** [ConnectionProbe.reconnect]
 ///    returns once a fresh transport exists, not once it has connected — see
 ///    `ConvexBackend.reconnect`. It buys a socket worth probing, nothing more.
+///  * **"No interface at all" IS a verdict, and the only one.** Everything else
+///    here costs a round-trip to establish, which is why a real outage takes a
+///    probe timeout plus a grace window to surface. With the radio off there is
+///    nothing to be uncertain about, so [_noteInterfaceLost] says so at once.
 class ConnectionHealth extends ChangeNotifier {
   ConnectionHealth({
     required ConnectionProbe backend,
@@ -135,6 +139,7 @@ class ConnectionHealth extends ChangeNotifier {
     this.rebuildAfterAttempt = 2,
     this.rebuildTimeout = const Duration(seconds: 6),
     this.connectivityRetryThrottle = const Duration(seconds: 3),
+    this.offlineGrace = const Duration(milliseconds: 600),
     this.maxStalledRearms = 2,
     this.minLoopInterval = const Duration(milliseconds: 750),
     DateTime Function() now = DateTime.now,
@@ -206,6 +211,14 @@ class ConnectionHealth extends ChangeNotifier {
   /// platforms emit several of these per unlock.
   final Duration connectivityRetryThrottle;
 
+  /// How long "no usable interface" must hold before the banner says so.
+  ///
+  /// Short, because the OS reporting no interface is not a guess and no probe
+  /// can make it more certain — but not zero, because both platforms flick
+  /// through `none` while handing off between Wi-Fi and cellular, and a banner
+  /// that flashes during a handoff is the noise this class exists to avoid.
+  final Duration offlineGrace;
+
   /// How many times one healing episode may push the "can't reach server"
   /// alarm back on evidence of progress. Capped because uncapped, a socket
   /// flapping every few seconds would defer the alarm forever — a permanently
@@ -254,6 +267,7 @@ class ConnectionHealth extends ChangeNotifier {
   bool _wantRebuild = false;
 
   DateTime? _lastConnectivityRetryAt;
+  Timer? _offlineTimer;
 
   /// Consecutive interrupted attempts. Guards against a socket edge storm
   /// spinning [_loop] with neither backoff nor progress.
@@ -317,7 +331,12 @@ class ConnectionHealth extends ChangeNotifier {
                     !results.contains(ConnectivityResult.none),
               );
       _connectivitySub = stream.listen((usable) {
-        if (!usable) return;
+        if (!usable) {
+          _noteInterfaceLost();
+          return;
+        }
+        _offlineTimer?.cancel();
+        _offlineTimer = null;
         // Throttled, and non-manual. Both matter. iOS and Android each emit a
         // burst of interface transitions per unlock, and `manual: true` forces
         // an interrupt — so unthrottled manual retries killed the in-flight
@@ -344,6 +363,7 @@ class ConnectionHealth extends ChangeNotifier {
     _healing = false;
     _socketSub?.cancel();
     _connectivitySub?.cancel();
+    _offlineTimer?.cancel();
     _disarmUiTimers();
     _interruptAttempt(force: true);
     _wake();
@@ -584,10 +604,44 @@ class ConnectionHealth extends ChangeNotifier {
   /// surface — which is the right trade. A banner that is wrong is worse than a
   /// banner that is late, and the message a user just sent already shows its own
   /// pending state meanwhile.
-  void _armUiTimers() {
+  /// The OS says there is no usable interface at all.
+  ///
+  /// This is the one input to this class that is not a hint. Everywhere else a
+  /// verdict costs a round-trip, because "the socket looks down" and "the
+  /// server is slow" are indistinguishable from here — which is why an outage
+  /// otherwise takes a probe timeout plus a grace window (about nine seconds)
+  /// to reach the banner. With no interface there is nothing to be uncertain
+  /// about: no probe can succeed, and none can make the answer more certain. So
+  /// say so at once, and skip the grace window that exists to protect against
+  /// being wrong.
+  ///
+  /// Still debounced by [offlineGrace] — see its doc. And still not a shortcut
+  /// to [ConnectionPhase.stalled]: "can't reach server · tap to retry" is a
+  /// claim that recovery is not working, which is not yet true.
+  void _noteInterfaceLost() {
+    if (_disposed || _offlineTimer != null) return;
+    _offlineTimer = Timer(offlineGrace, () {
+      _offlineTimer = null;
+      if (_disposed || !_foreground || !_isActive()) return;
+      _beginHealing();
+      _armUiTimers(skipGrace: true);
+      _setPhase(ConnectionPhase.reconnecting);
+    });
+  }
+
+  void _armUiTimers({bool skipGrace = false}) {
     if (_uiTimersArmed) return;
     _uiTimersArmed = true;
     _graceTimer?.cancel();
+    if (skipGrace) {
+      _graceTimer = null;
+      _stalledTimer?.cancel();
+      _stalledTimer = Timer(stalledAfter, () {
+        if (_disposed || !_healing) return;
+        _setPhase(ConnectionPhase.stalled);
+      });
+      return;
+    }
     //Slightly longer grace (3s) for the initial handshake (attempt 0) on launch/resume
     //so normal 1-2s WebSocket SSL handshakes never flash a false-alarm banner.
     final delay = _attempt == 0 ? initialGraceDelay : graceDelay;
@@ -605,6 +659,8 @@ class ConnectionHealth extends ChangeNotifier {
   void _disarmUiTimers() {
     _uiTimersArmed = false;
     _stalledRearms = 0;
+    _offlineTimer?.cancel();
+    _offlineTimer = null;
     _graceTimer?.cancel();
     _graceTimer = null;
     _stalledTimer?.cancel();
