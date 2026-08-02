@@ -469,6 +469,44 @@ export default defineSchema({
     // on messages that survive them.
     .index("by_user", ["userId"]),
 
+  // Messages pinned to the top of a room. Many per room; any member may pin.
+  //
+  // A side table for the same reason `viewOnceViews` is one, and the reason is
+  // sharper here: a `pinned` field on `messages` would patch a document that
+  // `messages:list` reads, and that subscription refires on every doc it
+  // touches (see the comment in messages.ts:list). One person pinning would
+  // rebuild the entire transcript for every member of the room and reset each
+  // reader's live window. Pins ride their own small subscription instead and
+  // touch nothing the transcript reads.
+  //
+  // `roomId` is denormalized, like `viewOnceViews`: the only query that matters
+  // is "this room's pins", and deriving the room from each message would mean a
+  // scan. It is written server-side from `msg.roomId` and never taken from the
+  // client, so a pin naming a room its message doesn't live in is not
+  // representable.
+  //
+  // Every field is required, so no `undefined` ever reaches an index and the
+  // ordering trap the `viewOnceLive` comment describes cannot apply. Each index
+  // leads with an equality field.
+  pinnedMessages: defineTable({
+    roomId: v.id("rooms"),
+    messageId: v.id("messages"),
+    // Who pinned it. Named `userId` rather than `pinnedBy` so auth.ts's
+    // `byUser` index helper applies verbatim, matching `reactions`.
+    userId: v.id("users"),
+    pinnedAt: v.number(),
+  })
+    // Serves both the live room query (prefix on roomId alone) and the
+    // idempotence probe / unpin lookup (both fields). Convex indexes are
+    // prefix-scannable, so one index covers both.
+    .index("by_room_message", ["roomId", "messageId"])
+    // Message teardown: `removeMessageAndFanout` holds a messageId and no room
+    // scope. Without this there is no way to find a dying message's pin.
+    .index("by_message", ["messageId"])
+    // Account teardown, for pins this user left on messages that outlive them.
+    // Same role as `reactions.by_user`.
+    .index("by_user", ["userId"]),
+
   // One row per (recipient, message) push OneSignal accepted.
   //
   // Exists so deleting a message can call DELETE /notifications/{id} while the

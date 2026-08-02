@@ -21,6 +21,7 @@ import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
+import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
 import type * as reactions from "../reactions.js";
 import type * as releases from "../releases.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   messages: typeof messages;
   migrations: typeof migrations;
   notifications: typeof notifications;
+  pins: typeof pins;
   presence: typeof presence;
   reactions: typeof reactions;
   releases: typeof releases;

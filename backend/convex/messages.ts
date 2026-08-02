@@ -46,7 +46,7 @@ const VIEW_ONCE_BURN_GRACE_MS = VIEW_ONCE_NONCE_TTL_MS + 30_000;
  * that viewer's `list` (which is how opening on web greys the bubble out on
  * their phone) and nobody else's.
  */
-async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
+export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
   if (msg?.viewOnce !== true) return msg;
   const { mediaStorageId: _id, mediaWidth: _w, mediaHeight: _h, ...rest } = msg;
   let opened = false;
@@ -391,6 +391,16 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
     .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
     .collect();
   for (const r of reactions) await ctx.db.delete(r._id);
+
+  // Pins. Room state, but it points at this message — a pin outliving its
+  // message is a banner entry that can be neither opened nor cleared. Being
+  // here rather than in `deleteMessage` is what makes a pinned message in a
+  // Chamber of Secrets room clean itself up when it self-destructs.
+  const pins = await ctx.db
+    .query("pinnedMessages")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+  for (const p of pins) await ctx.db.delete(p._id);
 
   // Media. Via `deleteStored` rather than a bare `ctx.storage.delete`, which
   // throws on a file some other path already removed — and would abort the

@@ -211,6 +211,14 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
       .collect();
     await deleteRows(ctx, rxns);
+    // Pins OTHER people put on this user's messages.
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query("pinnedMessages")
+        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+        .collect(),
+    );
     await deleteStored(ctx, msg.mediaStorageId);
     // View-once ledger for photos this user SENT.
     await deleteRows(
@@ -228,6 +236,21 @@ async function purgeUser(ctx: any, userId: any) {
   await deleteRows(
     ctx,
     await ctx.db.query("reactions").withIndex("by_user", byUser(userId)).collect(),
+  );
+
+  // Pins this user put on other people's messages. Same shape as the reactions
+  // case overhead, and the only reason `pinnedMessages.by_user` exists.
+  //
+  // Note this is account DELETION, not leaving a room: a pin survives its
+  // author walking out of a group, because a pin is room state like the room's
+  // name. Only the user row vanishing takes it, and then only because a
+  // dangling `userId` would be a broken reference.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("pinnedMessages")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
   );
 
   // View-once rows where this user was the VIEWER. These hang off other

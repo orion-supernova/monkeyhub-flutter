@@ -48,6 +48,14 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
     .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const m of members) await ctx.db.delete(m._id);
+  // Pins. Swept by room rather than inside the per-message loop above,
+  // precisely because this table denormalizes roomId: one index range instead
+  // of an index probe per message in the room.
+  const pins = await ctx.db
+    .query("pinnedMessages")
+    .withIndex("by_room_message", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const p of pins) await ctx.db.delete(p._id);
   // Typing indicators
   const typing = await ctx.db
     .query("typingIndicators")
