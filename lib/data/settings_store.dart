@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/theme_scope.dart';
+import 'glass_config.dart';
 import 'room_filter.dart';
 
 /// User-selectable preferences persisted across launches.
@@ -32,6 +36,9 @@ class SettingsStore extends ChangeNotifier {
   static const _kMicPermissionPrompted = 'mh.micPermissionPrompted';
   static const _kFilterStyle = 'mh.filterStyle';
   static const _kRoomFilter = 'mh.roomFilter';
+  static const _kGlassProfile = 'mh.glass.profile';
+  static const _kGlassSlots = 'mh.glass.slots';
+  static const _kGlassPreset = 'mh.glass.preset';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -55,6 +62,9 @@ class SettingsStore extends ChangeNotifier {
   bool _micPermissionPrompted = false;
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
+  GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
+  List<GlassPreset> _glassSlots = const [];
+  String? _glassPresetId = kDefaultGlassPresetId;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -98,6 +108,33 @@ class SettingsStore extends ChangeNotifier {
   /// filtered — possibly empty — list. The chat screen therefore always renders
   /// an active-filter cue and a one-tap "show all" escape when this is set.
   RoomFilter get roomFilter => _roomFilter;
+
+  /// Live glass tuning — what every [LiquidGlass] and the bottom bar actually
+  /// render with right now. Not necessarily equal to any saved preset: moving
+  /// a slider edits this and clears [glassPresetId].
+  GlassProfile get glass => _glass;
+
+  /// The user's saved looks, newest last. Built-ins are not in here — see
+  /// [glassPresets] for the full list as the panel shows it.
+  List<GlassPreset> get glassSlots => List.unmodifiable(_glassSlots);
+
+  /// Built-ins first, then saved slots.
+  List<GlassPreset> get glassPresets => [
+    ...kBuiltInGlassPresets,
+    ..._glassSlots,
+  ];
+
+  /// Which preset [glass] came from, or null once a dial has been moved away
+  /// from it — the panel shows that as "Custom", and it is the state the "save
+  /// current as…" action exists to name.
+  String? get glassPresetId => _glassPresetId;
+
+  bool get glassSlotsFull => _glassSlots.length >= kMaxGlassSlots;
+
+  static GlassPreset _presetById(String? id) => kBuiltInGlassPresets.firstWhere(
+    (p) => p.id == id,
+    orElse: () => kBuiltInGlassPresets.first,
+  );
 
   bool _loaded = false;
   bool get loaded => _loaded;
@@ -175,6 +212,17 @@ class SettingsStore extends ChangeNotifier {
       // First-launch default is chips; honour an explicit 'drawer' selection.
       _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
       _roomFilter = RoomFilter.decode(await _storage.read(key: _kRoomFilter));
+      _glassSlots = _decodeSlots(await _storage.read(key: _kGlassSlots));
+      _glassPresetId = await _storage.read(key: _kGlassPreset);
+      final rawGlass = await _storage.read(key: _kGlassProfile);
+      // The stored profile wins, because a preset can be selected and then
+      // nudged. Only fall back to the preset's own profile when there is no
+      // stored one at all — a fresh install, or a keychain wipe.
+      if (rawGlass != null && rawGlass.isNotEmpty) {
+        _glass = GlassProfile.fromJson(jsonDecode(rawGlass));
+      } else {
+        _glass = _resolvePreset(_glassPresetId).profile;
+      }
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -326,6 +374,176 @@ class SettingsStore extends ChangeNotifier {
     notifyListeners();
     await _storage.write(key: _kManualLogoThemeId, value: id);
     _applyLauncherIcon();
+  }
+
+  // --------------------------------------------------------------- glass
+
+  GlassPreset _resolvePreset(String? id) => glassPresets.firstWhere(
+    (p) => p.id == id,
+    orElse: () => kBuiltInGlassPresets.first,
+  );
+
+  static List<GlassPreset> _decodeSlots(String? raw) {
+    if (raw == null || raw.isEmpty) return const [];
+    try {
+      final list = jsonDecode(raw);
+      if (list is! List) return const [];
+      return [
+        for (final entry in list.take(kMaxGlassSlots)) ?GlassPreset.fromJson(entry),
+      ];
+    } catch (_) {
+      // A slot list that no longer parses costs the user their saved looks,
+      // which is bad; wedging every cold start on it would be worse.
+      return const [];
+    }
+  }
+
+  /// Debounces the live profile's write.
+  ///
+  /// A slider reports on every drag frame. The filter-chip guard below
+  /// serialises writes but still performs one per event, which at 60fps means
+  /// ~60 keychain writes per second of dragging — enough to visibly stutter
+  /// the drag on a real device. Only the value the user lets go on matters, so
+  /// coalesce and write once the drag stops.
+  Timer? _glassWriteTimer;
+  Future<void> _glassWrite = Future<void>.value();
+
+  void _writeGlassSoon() {
+    _glassWriteTimer?.cancel();
+    _glassWriteTimer = Timer(const Duration(milliseconds: 350), _writeGlassNow);
+  }
+
+  void _writeGlassNow() {
+    _glassWriteTimer?.cancel();
+    _glassWriteTimer = null;
+    final profile = jsonEncode(_glass.toJson());
+    final preset = _glassPresetId;
+    _glassWrite = _glassWrite
+        .then((_) async {
+          await _storage.write(key: _kGlassProfile, value: profile);
+          if (preset == null) {
+            await _storage.delete(key: _kGlassPreset);
+          } else {
+            await _storage.write(key: _kGlassPreset, value: preset);
+          }
+        })
+        .catchError((_) {
+          /* storage unavailable; in-memory state still right */
+        });
+  }
+
+  /// Starts any pending debounced glass write immediately.
+  ///
+  /// Call when leaving the tuning screen, which is exactly when a drag that
+  /// ended a moment ago has not been persisted yet. Also what keeps widget
+  /// tests honest: a test that moves a slider and ends otherwise leaves a live
+  /// [Timer] behind, which the test binding reports as a failure.
+  ///
+  /// Deliberately not awaitable. Every glass write is fire-and-forget for the
+  /// same reason [_applyLauncherIcon] is — the in-memory state is already
+  /// correct and already notified, so a caller gains nothing by waiting on the
+  /// keychain. Returning a future here would also hang any `testWidgets` that
+  /// awaited it: the body runs in a fake-async zone where the platform
+  /// channel's reply never arrives, so the write never completes.
+  void flushGlassWrites() {
+    if (_glassWriteTimer?.isActive ?? false) _writeGlassNow();
+  }
+
+  /// Replaces the live tuning. [presetId] is the preset it came from, or null
+  /// when a dial has been dragged and it now matches nothing saved.
+  Future<void> setGlassProfile(GlassProfile p, {String? presetId}) async {
+    if (_glass == p && _glassPresetId == presetId) return;
+    _glass = p;
+    _glassPresetId = presetId;
+    notifyListeners();
+    _writeGlassSoon();
+  }
+
+  /// Selects a built-in or saved look.
+  void selectGlassPreset(String id) {
+    final preset = _resolvePreset(id);
+    _glass = preset.profile;
+    _glassPresetId = preset.id;
+    notifyListeners();
+    // Discrete choice rather than a drag, so no reason to make it wait out the
+    // debounce before it would survive a kill.
+    _writeGlassNow();
+  }
+
+  /// Saves the live tuning as a new named slot and makes it the active one.
+  ///
+  /// Returns false when the cap is reached or the name is blank, so the caller
+  /// can say why rather than appearing to succeed.
+  bool saveGlassSlot(String rawName) {
+    final name = sanitizeSlotName(rawName);
+    if (name.isEmpty || glassSlotsFull) return false;
+    // Millisecond stamp rather than a counter: a counter reset by a keychain
+    // wipe would re-issue an id that a stale persisted selection still points
+    // at, silently activating the wrong slot.
+    final id = 'slot-${DateTime.now().microsecondsSinceEpoch}';
+    _glassSlots = [
+      ..._glassSlots,
+      GlassPreset(id: id, name: name, profile: _glass),
+    ];
+    _glassPresetId = id;
+    notifyListeners();
+    _writeSlots();
+    _writeGlassNow();
+    return true;
+  }
+
+  /// Renames a saved slot. Built-ins are not renameable.
+  void renameGlassSlot(String id, String rawName) {
+    final name = sanitizeSlotName(rawName);
+    if (name.isEmpty) return;
+    final i = _glassSlots.indexWhere((s) => s.id == id);
+    if (i < 0 || _glassSlots[i].name == name) return;
+    final next = [..._glassSlots];
+    next[i] = GlassPreset(
+      id: id,
+      name: name,
+      profile: _glassSlots[i].profile,
+    );
+    _glassSlots = next;
+    notifyListeners();
+    _writeSlots();
+  }
+
+  /// Overwrites a saved slot with the live tuning.
+  void updateGlassSlot(String id) {
+    final i = _glassSlots.indexWhere((s) => s.id == id);
+    if (i < 0) return;
+    final next = [..._glassSlots];
+    next[i] = GlassPreset(id: id, name: _glassSlots[i].name, profile: _glass);
+    _glassSlots = next;
+    _glassPresetId = id;
+    notifyListeners();
+    _writeSlots();
+    _writeGlassNow();
+  }
+
+  void deleteGlassSlot(String id) {
+    if (!_glassSlots.any((s) => s.id == id)) return;
+    _glassSlots = [
+      for (final s in _glassSlots)
+        if (s.id != id) s,
+    ];
+    // Deleting the look you are wearing leaves the look on screen and just
+    // stops calling it by name — reverting to a default here would throw away
+    // tuning the user never asked to lose.
+    if (_glassPresetId == id) _glassPresetId = null;
+    notifyListeners();
+    _writeSlots();
+    _writeGlassNow();
+  }
+
+  void _writeSlots() {
+    final encoded = jsonEncode([for (final s in _glassSlots) s.toJson()]);
+    _glassWrite = _glassWrite
+        .then((_) => _storage.write(key: _kGlassSlots, value: encoded))
+        .catchError((_) {
+          /* storage unavailable; in-memory state still right */
+        });
   }
 
   /// Fire-and-forget native launcher-icon swap. Reads the resolved icon name

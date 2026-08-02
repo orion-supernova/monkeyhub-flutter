@@ -28,15 +28,17 @@ typedef NavDest = ({
 /// Bottom padding every scrolling section needs so its last row clears the
 /// floating nav pill.
 ///
-/// The pill sits at `bottom: 16` inside its own SafeArea, and a section's own
+/// The pill sits at `bottom: 12` inside its own SafeArea, and a section's own
 /// SafeArea has already excluded the same bottom inset — so from a section's
-/// point of view the pill's top edge is 16 + its height above the bottom. The
-/// stacked four-item pill is ~63pt tall (4 + 8 padding, 22 icon, 5 gap, ~12
-/// label, 8 + 4 padding), so 79pt is the floor and this leaves ~31pt of air.
+/// point of view the pill's top edge is 12 + its height above the bottom. The
+/// stacked four-item pill is ~60pt tall (6 + 6 padding, 22 icon, 2 gap, ~12
+/// label, 6 + 6 padding), so 72pt is the floor and this leaves ~38pt of air.
 ///
 /// A constant because four screens each hardcoded their own number and they had
 /// already drifted: Feed was still on 80 from the three-item era, which cleared
-/// the old 46pt pill by 34pt and the new one by 1pt.
+/// the old 46pt pill by 34pt and its successor by 1pt. The arithmetic above had
+/// drifted too, so `pill_bottom_nav_layout_test.dart` now measures the real bar
+/// against this number rather than trusting a comment.
 const double kFloatingNavClearance = 110;
 
 /// Horizontal alignment of the bottom nav's sliding indicator over segment

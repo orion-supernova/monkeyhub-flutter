@@ -21,7 +21,9 @@ enum FocusRingShape { rounded, circle, capsule }
 ///    onTapUp press state — is passed through untouched.
 ///  * **The ring is drawn outside the child's bounds** via a [Stack] with a
 ///    negative-inset [Positioned], so layout is identical at every call site
-///    and no caller needs re-spacing.
+///    and no caller needs re-spacing. That is why the Stack is
+///    [StackFit.passthrough] and not the default [StackFit.loose] — see the
+///    note at the Stack itself.
 ///  * **It does not take focus on tap.** Clicking Send in the composer must not
 ///    pull focus out of the message field.
 ///
@@ -126,6 +128,17 @@ class _FocusableTapState extends State<FocusableTap> {
         selected: widget.selected,
         label: widget.semanticLabel,
         child: Stack(
+          // Passthrough, not the default loose. A loose Stack re-loosens the
+          // constraints it was handed, so a wrapped child that shrink-wraps
+          // stopped filling a slot it used to fill and got pinned at the
+          // Stack's default topStart — this wrapper silently moved it. The
+          // bottom nav shipped that way: each segment is `Expanded` (tight
+          // 81.5pt) around a `mainAxisSize.min` Column (~54pt), so every icon
+          // and label sat 13.875pt left of centre, and the ~28pt of slack was
+          // dead to touch because only the child's GestureDetector was opaque.
+          // Passthrough forwards the constraints untouched, which is the
+          // "layout is identical at every call site" promise above.
+          fit: StackFit.passthrough,
           clipBehavior: Clip.none,
           children: [
             // Stack sizes itself to its first non-positioned child, so the ring

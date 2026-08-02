@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../data/glass_config.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 
@@ -26,7 +28,7 @@ class LiquidGlass extends StatefulWidget {
     this.size,
     this.tinted = false,
     this.onTap,
-    this.blurSigma = 18,
+    this.config,
   });
 
   final Widget child;
@@ -36,7 +38,15 @@ class LiquidGlass extends StatefulWidget {
   final Size? size;
   final bool tinted;
   final VoidCallback? onTap;
-  final double blurSigma;
+
+  /// Dial positions for this surface. Null — every caller but the bottom bar —
+  /// means "whatever the user has set for the app", read live from
+  /// [SettingsStore.glass].
+  ///
+  /// One config rather than a parameter per dial: there are eight of them, they
+  /// are always set together, and they have to round-trip through a saved slot
+  /// as a unit anyway.
+  final GlassConfig? config;
 
   @override
   State<LiquidGlass> createState() => _LiquidGlassState();
@@ -44,6 +54,34 @@ class LiquidGlass extends StatefulWidget {
 
 class _LiquidGlassState extends State<LiquidGlass> {
   bool _pressed = false;
+
+  /// Saturate first, then blur. The other order blurs the colour into its
+  /// neighbours before boosting it, so the boost lands on an already-averaged
+  /// backdrop and mostly amplifies the haze.
+  ImageFilter _backdrop(GlassConfig cfg) {
+    final sigma = cfg.of(kBlur);
+    final blur = ImageFilter.blur(sigmaX: sigma, sigmaY: sigma);
+    final saturation = cfg.of(kSaturation);
+    // Tolerance, not equality: a slider lands on 0.997 as readily as on 1, and
+    // composing an identity matrix costs a whole extra filter pass per frame
+    // on every glass surface in the app.
+    if ((saturation - 1).abs() < 0.02) return blur;
+    return ImageFilter.compose(outer: blur, inner: _saturate(saturation));
+  }
+
+  /// Standard luminance-preserving saturation matrix — the channel weights are
+  /// Rec. 709, so boosting colour does not also drag the backdrop's brightness
+  /// around.
+  static ColorFilter _saturate(double s) {
+    const lr = 0.213, lg = 0.715, lb = 0.072;
+    final i = 1 - s;
+    return ColorFilter.matrix(<double>[
+      lr * i + s, lg * i, lb * i, 0, 0,
+      lr * i, lg * i + s, lb * i, 0, 0,
+      lr * i, lg * i, lb * i + s, 0, 0,
+      0, 0, 0, 1, 0,
+    ]);
+  }
 
   OutlinedBorder _border({BorderSide side = BorderSide.none}) {
     switch (widget.shape) {
@@ -61,16 +99,33 @@ class _LiquidGlassState extends State<LiquidGlass> {
 
   @override
   Widget build(BuildContext context) {
+    final config = widget.config;
+    if (config != null) return _build(context, config);
+    // Only surfaces following the app-wide tuning subscribe. The bottom bar is
+    // handed its config by a parent that already rebuilds on settings changes,
+    // so making it listen too would just double the rebuilds.
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) =>
+          _build(context, SettingsStore.instance.glass.app),
+    );
+  }
+
+  Widget _build(BuildContext context, GlassConfig cfg) {
     final theme = ThemeScope.of(context);
     final isLight = MediaQuery.platformBrightnessOf(context) == Brightness.light;
 
-    final frostAlpha = isLight ? 0.55 : 0.35;
-    final overlayTop = isLight ? 0.45 : 0.10;
-    const overlayMid = 0.05;
+    final frost = cfg.of(kFrost);
+    final frostAlpha = (isLight ? 0.55 : 0.35) * frost;
+    final overlayTop = (isLight ? 0.45 : 0.10) * frost;
+    final overlayMid = 0.05 * frost;
 
     final clipShape = _border();
     final framedShape = _border(
-      side: BorderSide(color: theme.accent.withValues(alpha: 0.30), width: 1.5),
+      side: BorderSide(
+        color: theme.accent.withValues(alpha: cfg.of(kRimOpacity)),
+        width: cfg.of(kRimWidth),
+      ),
     );
 
     // BackdropFilter.grouped looks up the nearest BackdropGroup ancestor and
@@ -79,7 +134,7 @@ class _LiquidGlassState extends State<LiquidGlass> {
     final blurred = ClipPath(
       clipper: ShapeBorderClipper(shape: clipShape),
       child: BackdropFilter.grouped(
-        filter: ImageFilter.blur(sigmaX: widget.blurSigma, sigmaY: widget.blurSigma),
+        filter: _backdrop(cfg),
         child: Stack(
           children: [
             Positioned.fill(
@@ -135,9 +190,9 @@ class _LiquidGlassState extends State<LiquidGlass> {
         shape: framedShape,
         shadows: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: cfg.of(kShadowOpacity)),
+            blurRadius: cfg.of(kShadowBlur),
+            offset: Offset(0, cfg.of(kShadowY)),
           ),
         ],
       ),

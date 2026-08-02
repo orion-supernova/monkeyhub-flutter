@@ -20,6 +20,7 @@ import 'approvals_screen.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
 import 'family_screen.dart';
+import 'glass_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
@@ -107,6 +108,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String get _navLabel => SettingsStore.instance.navStyle == NavStyle.radial
       ? 'Radial orb'
       : 'Bottom pill';
+
+  /// The active look's name, marked when it has been tuned away from what it
+  /// saved. 'Custom' only when nothing is selected at all.
+  String get _glassLabel {
+    final store = SettingsStore.instance;
+    final id = store.glassPresetId;
+    if (id == null) return 'Custom';
+    for (final p in store.glassPresets) {
+      if (p.id == id) {
+        return store.glass == p.profile ? p.name : '${p.name} · edited';
+      }
+    }
+    return 'Custom';
+  }
 
   String get _chatStyleLabel =>
       SettingsStore.instance.chatStyle == ChatStyle.classic
@@ -270,6 +285,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   key: 'logo',
                   builder: (_) => const LogoScreen(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: 'GLASS',
+                value: _glassLabel,
+                selected: _isOpen('glass'),
+                leading: Icon(
+                  Icons.blur_on_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'glass',
+                  builder: (_) => const GlassScreen(),
                 ),
               ),
 

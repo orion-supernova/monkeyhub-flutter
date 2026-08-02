@@ -20,6 +20,7 @@ import 'feed_screen.dart';
 import 'home_screen.dart' as chat;
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
+import 'navigation/pill_bottom_nav.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
 
@@ -155,7 +156,7 @@ class _HomeShellState extends State<HomeShell> {
               ),
             )
           else
-            _PillBottomNav(
+            PillBottomNav(
               active: settings.section,
               onSelect: _select,
               badges: _badges,
@@ -535,40 +536,40 @@ class _SideRail extends StatelessWidget {
     return FocusableTap(
       onTap: () => onSelect(s),
       semanticLabel: label,
-      radius: theme.radiusLg,
+      shape: FocusRingShape.capsule,
       child: GestureDetector(
         onTap: () => onSelect(s),
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
-          duration: theme.motionMed,
+          duration: theme.motionFast,
           curve: Curves.easeOutCubic,
           width: double.infinity,
           // Matches the pill segment's vertical padding so the two chromes
-          // share a rhythm as well as a radius.
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
+          // share a rhythm as well as a shape.
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          decoration: ShapeDecoration(
             color: isActive
                 ? theme.accent.withValues(alpha: 0.16)
                 : Colors.transparent,
-            // Same token as the bottom pill's indicator, so the two chromes
+            // Same shape as the bottom pill's indicator, so the two chromes
             // agree — the point of stacking the pill was to make compact and
             // expanded read as one design.
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            border: Border.all(
-              color: isActive
-                  ? theme.accent.withValues(alpha: 0.32)
-                  : Colors.transparent,
-              width: 0.5,
+            shape: StadiumBorder(
+              side: BorderSide(
+                color: isActive
+                    ? theme.accent.withValues(alpha: 0.32)
+                    : Colors.transparent,
+                width: 0.5,
+              ),
             ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Same widened box and same inversion as the pill segment — see
-              // the comment there.
-              SizedBox(
-                width: 46,
-                height: 22,
+              // Same glyph-sized box, same left-anchored badge and same
+              // inversion as the pill segment — see the comments there.
+              SizedBox.square(
+                dimension: 22,
                 child: Stack(
                   clipBehavior: Clip.none,
                   alignment: Alignment.center,
@@ -581,13 +582,13 @@ class _SideRail extends StatelessWidget {
                     if (badge > 0)
                       Positioned(
                         top: -6,
-                        right: 0,
+                        left: 13,
                         child: CountBadge(count: badge, onAccent: isActive),
                       ),
                   ],
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 2),
               Text(
                 label,
                 maxLines: 1,
@@ -602,219 +603,6 @@ class _SideRail extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The floating bottom nav, stacked icon-over-label.
-///
-/// Went stacked when a fourth destination arrived: at four segments a 375pt
-/// phone gives each item 81.75pt, and after padding the side-by-side layout
-/// left ~40pt for a label needing ~45pt, so "Settings" and "Discover" both
-/// ellipsised — and worse once a badge appeared. Stacking also brings this into
-/// line with [_SideRail], which was already icon-over-label, so compact and
-/// expanded windows finally read as the same design.
-class _PillBottomNav extends StatelessWidget {
-  const _PillBottomNav({
-    required this.active,
-    required this.onSelect,
-    required this.badges,
-  });
-  final HomeSection active;
-  final ValueChanged<HomeSection> onSelect;
-
-  /// Per-destination badge counts. Was a pair of named `chatBadge` /
-  /// `settingsBadge` fields, which meant every new destination wanting a badge
-  /// cost another constructor parameter.
-  final Map<HomeSection, int> badges;
-
-  Alignment _alignmentFor(HomeSection s) => Alignment(
-    segmentAlignmentX(
-      navDestinations.indexWhere((d) => d.section == s),
-      navDestinations.length,
-    ),
-    0,
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // Concentric with the indicator inside it: the Container's 4pt padding is
-    // the gap between the two outlines, so the shell's radius has to be the
-    // indicator's plus that gap. Both were `circular(999)` before the pill went
-    // stacked, which clamped to a tidy capsule at 335x46 but to a 31pt
-    // barrel-end at 335x63.
-    final shellRadius = BorderRadius.circular(theme.radiusLg + 4);
-    return Positioned(
-      left: 20,
-      right: 20,
-      bottom: 16,
-      // Bottom only. SafeArea defaults to all four sides, and the status-bar
-      // inset is still in MediaQuery down here, so the default was padding ~44pt
-      // of dead space onto the top of a bottom-anchored bar.
-      child: SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        child: ClipRRect(
-          borderRadius: shellRadius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: theme.surface.withValues(alpha: 0.72),
-                borderRadius: shellRadius,
-                border: Border.all(color: theme.divider, width: 0.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // Sliding accent indicator behind the active segment.
-                  Positioned.fill(
-                    child: AnimatedAlign(
-                      duration: theme.motionMed,
-                      curve: Curves.easeOutCubic,
-                      alignment: _alignmentFor(active),
-                      child: FractionallySizedBox(
-                        widthFactor: 1 / navDestinations.length,
-                        heightFactor: 1,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: theme.accent.withValues(alpha: 0.16),
-                            // A rounded rectangle, NOT a capsule. This was
-                            // `circular(999)`, which was right when a segment
-                            // was ~109x38 and the radius clamped to a proper
-                            // pill. Stacking the icon over its label made each
-                            // segment ~82x55, where 999 clamps to min(w,h)/2
-                            // and both ends round into full semicircles — the
-                            // indicator rendered as a squashed circle.
-                            borderRadius: BorderRadius.circular(theme.radiusLg),
-                            border: Border.all(
-                              color: theme.accent.withValues(alpha: 0.32),
-                              width: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      for (final d in navDestinations)
-                        _btn(
-                          theme,
-                          d.icon,
-                          d.label,
-                          d.section,
-                          badge: badges[d.section] ?? 0,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _btn(
-    AppTheme theme,
-    IconData icon,
-    String label,
-    HomeSection s, {
-    int badge = 0,
-  }) {
-    final isActive = s == active;
-    return Expanded(
-      child: FocusableTap(
-        onTap: () => onSelect(s),
-        semanticLabel: label,
-        // Matches the indicator behind it — a capsule ring around a near-square
-        // segment reads as a circle for the same reason.
-        radius: theme.radiusLg,
-        child: GestureDetector(
-          onTap: () => onSelect(s),
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The Stack is widened past the glyph so a right-anchored badge
-                // has somewhere to grow into. Sized to the 22pt icon with a
-                // bare `right: -10`, the badge grew LEFTWARD instead — one
-                // digit covered the icon's right 6pt and "99+" covered 18 of
-                // its 22.
-                SizedBox(
-                  width: 46,
-                  height: 22,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedDefaultTextStyle(
-                        duration: theme.motionMed,
-                        style: TextStyle(
-                          color: isActive ? theme.accent : theme.inkSoft,
-                        ),
-                        child: Builder(
-                          builder: (ctx) => Icon(
-                            icon,
-                            size: 22,
-                            color: DefaultTextStyle.of(ctx).style.color,
-                          ),
-                        ),
-                      ),
-                      if (badge > 0)
-                        Positioned(
-                          top: -6,
-                          right: 0,
-                          // Sits on the accent-filled sliding indicator when
-                          // this segment is the active one, so it has to invert
-                          // there. Hardcoding `false` painted accent@0.16 on
-                          // accent@0.16 and the badge vanished on the one
-                          // segment most likely to carry it.
-                          child: CountBadge(count: badge, onAccent: isActive),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 5),
-                AnimatedDefaultTextStyle(
-                  duration: theme.motionMed,
-                  curve: Curves.easeOutCubic,
-                  style: TextStyle(
-                    fontFamily: 'CupertinoSystemText',
-                    fontSize: 10,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    letterSpacing: -0.08,
-                    color: isActive ? theme.accent : theme.inkSoft,
-                  ),
-                  // Still guarded: at four segments a 375pt phone gives each
-                  // label ~74pt, which fits every current destination, but a
-                  // fifth one or a longer word should degrade rather than
-                  // throw an overflow.
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
