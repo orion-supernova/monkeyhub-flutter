@@ -4,10 +4,11 @@ import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-/// Shorter than the platform default (500ms) — see the matching constant in
-/// message_bubble.dart. Duplicated rather than shared because that file
-/// imports this one.
-const Duration _reactorsLongPressDuration = Duration(milliseconds: 150);
+/// Shorter than the platform default (500ms) so peeking at who reacted feels
+/// responsive rather than sluggish to hold for. Deliberately quicker than the
+/// bubble's own hold in message_bubble.dart — a chip is a smaller, lighter
+/// target than the action menu behind the whole message.
+const Duration _reactorsLongPressDuration = Duration(milliseconds: 200);
 
 class ReactionRow extends StatelessWidget {
   const ReactionRow({

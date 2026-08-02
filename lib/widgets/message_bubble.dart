@@ -608,12 +608,13 @@ class EphemeralMessageBubble extends StatelessWidget {
   }
 }
 
-/// Shorter than the platform default (500ms) so the reaction sheet feels
-/// responsive rather than sluggish to hold for.
-const Duration _reactionLongPressDuration = Duration(milliseconds: 150);
+/// A shade under the platform default (500ms): the action menu is a deliberate
+/// gesture, so it wants a near-full hold rather than the quicker one the
+/// reaction chips use (see reaction_bubble.dart).
+const Duration _reactionLongPressDuration = Duration(milliseconds: 400);
 
 /// Long-press-for-reactions, double-tap, and right-click-mirrors-long-press
-/// on a single [child], with a tuned (shorter) long-press duration. Plain
+/// on a single [child], with an explicit long-press duration. Plain
 /// [GestureDetector] has no hook for that duration, so this goes straight to
 /// the recognizers — see [_HorizontalRightDragRecognizer] in swipe_to_reply.dart
 /// for the same pattern.
