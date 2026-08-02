@@ -81,6 +81,9 @@ class ChatMessage {
     this.mediaStorageId,
     this.mediaWidth,
     this.mediaHeight,
+    this.fileName,
+    this.fileSize,
+    this.mimeType,
     this.expiresAt,
     this.status = MessageStatus.sent,
     this.edited = false,
@@ -123,6 +126,21 @@ class ChatMessage {
     if (w == null || h == null || w <= 0 || h <= 0) return null;
     return w / h;
   }
+
+  /// What the sender's filesystem called the attachment, its size in bytes, and
+  /// what to upload it as. Set on [MessageType.file] and nothing else.
+  ///
+  /// The name is the entire content of a document bubble — there is no
+  /// thumbnail to fall back on — so unlike [mediaWidth] these are not
+  /// optimisations. A document that loses its name renders as an anonymous
+  /// grey row that says only how big it is.
+  ///
+  /// [mimeType] is derived from the name by `mimeTypeForFileName`, not taken
+  /// from the picker's own `XFile.mimeType`, which is null on most Android
+  /// content providers and only as good as the browser's guess on web.
+  final String? fileName;
+  final int? fileSize;
+  final String? mimeType;
 
   DateTime? expiresAt;
   MessageStatus status;
@@ -226,8 +244,20 @@ class ChatMessage {
       viewOnce && !isMine && !viewOnceOpened && !viewOnceBurned;
 
   bool get isEphemeral => expiresAt != null;
+
+  /// Carries an attachment, so it is unsendable until a storage id exists.
+  ///
+  /// Both callers are the same guard — a message of this shape with no
+  /// `mediaStorageId` references nothing and must never be posted — which is
+  /// why [MessageType.file] belongs here despite "media" reading like it is
+  /// only about pictures. A document left out would be the one attachment the
+  /// guard didn't cover, and this chain is not a `switch`, so nothing would
+  /// have said so.
   bool get isMedia =>
-      type == MessageType.image || type == MessageType.video || type == MessageType.audio;
+      type == MessageType.image ||
+      type == MessageType.video ||
+      type == MessageType.audio ||
+      type == MessageType.file;
   bool get isReply => replyToId != null && replyToPreview != null;
 
   Duration timeLeft(DateTime now) {
@@ -257,6 +287,9 @@ class ChatMessage {
       mediaStorageId: j['mediaStorageId'] as String?,
       mediaWidth: (j['mediaWidth'] as num?)?.toDouble(),
       mediaHeight: (j['mediaHeight'] as num?)?.toDouble(),
+      fileName: j['fileName'] as String?,
+      fileSize: (j['fileSize'] as num?)?.toInt(),
+      mimeType: j['mimeType'] as String?,
       expiresAt: ex is num ? DateTime.fromMillisecondsSinceEpoch(ex.toInt()) : null,
       edited: (j['edited'] ?? false) as bool,
       reactions: (j['reactions'] as List?)
@@ -298,6 +331,12 @@ class ChatMessage {
         // again — the exact reflow this field exists to prevent.
         if (mediaWidth != null) 'mediaWidth': mediaWidth,
         if (mediaHeight != null) 'mediaHeight': mediaHeight,
+        // A document bubble is its name and its size — there is no thumbnail
+        // underneath to carry it — so dropping these from the cache would give
+        // a cold boot a row of anonymous grey plates.
+        if (fileName != null) 'fileName': fileName,
+        if (fileSize != null) 'fileSize': fileSize,
+        if (mimeType != null) 'mimeType': mimeType,
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
         'edited': edited,
         'reactions': reactions.map((r) => r.toJson()).toList(),
@@ -342,6 +381,13 @@ class ChatMessage {
         mediaStorageId: mediaStorageId,
         mediaWidth: mediaWidth,
         mediaHeight: mediaHeight,
+        // Carried for the same reason as `mentions` below: `copyWith` runs on
+        // the reaction and view-once paths, neither of which knows documents
+        // exist, and a reaction that anonymised the file it was reacting to
+        // would have nothing at the call site to hint at why.
+        fileName: fileName,
+        fileSize: fileSize,
+        mimeType: mimeType,
         expiresAt: expiresAt,
         status: status ?? this.status,
         edited: edited,

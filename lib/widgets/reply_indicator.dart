@@ -405,6 +405,14 @@ String _previewLabel(ReplyPreview preview) {
     case MessageType.audio:
       // Voice notes have no thumbnail, so the label IS the only signal.
       return 'voice message';
+    case MessageType.file:
+      // Nor do documents — and unlike a voice note, one document is not
+      // interchangeable with another, so the word "document" would make a
+      // quote of a spreadsheet indistinguishable from a quote of a contract.
+      // `replyToPreview` carries no filename (it snapshots the parent's text,
+      // which for a document send is its caption), so this is the best that
+      // is available without widening that snapshot.
+      return 'document';
     default:
       return '…';
   }

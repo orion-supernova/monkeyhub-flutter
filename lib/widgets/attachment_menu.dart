@@ -13,6 +13,7 @@ class AttachmentMenuChoice {
   static const camera = AttachmentMenuChoice._('camera');
   static const voice = AttachmentMenuChoice._('voice');
   static const video = AttachmentMenuChoice._('video');
+  static const file = AttachmentMenuChoice._('file');
 }
 
 Future<AttachmentMenuChoice?> showAttachmentMenu(BuildContext context) {
@@ -39,6 +40,10 @@ class _AttachmentSheet extends StatelessWidget {
       // which has no web implementation to ask. Offering a tile that records
       // something nobody can play back would be worse than not offering it.
       if (!kIsWeb) (AttachmentMenuChoice.voice, CupertinoIcons.mic, 'voice'),
+      // Deliberately NOT web-gated, unlike voice above. `file_selector` has a
+      // real web implementation backed by `<input type=file>`, and the bytes
+      // it hands back are exactly what the upload path already wants.
+      (AttachmentMenuChoice.file, CupertinoIcons.doc, 'file'),
     ];
     return Material(
       type: MaterialType.transparency,

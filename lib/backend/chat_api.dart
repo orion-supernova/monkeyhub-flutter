@@ -350,8 +350,16 @@ class ChatApi {
     /// lay the bubble out at the picture's real ratio without decoding it first.
     double? mediaWidth,
     double? mediaHeight,
+
+    /// Set on [MessageType.file] and nothing else. Convex storage records
+    /// neither the original name nor a usable content type, so a document that
+    /// doesn't carry them here can never be presented as anything but a UUID.
+    String? fileName,
+    int? fileSize,
+    String? mimeType,
     String? senderName,
     String? replyToId,
+
     /// Burn-after-reading. The server drops [mediaWidth]/[mediaHeight] for one
     /// of these and never hands the storage id back out again.
     bool viewOnce = false,
@@ -374,6 +382,9 @@ class ChatApi {
       'mediaStorageId': ?mediaStorageId,
       'mediaWidth': ?mediaWidth,
       'mediaHeight': ?mediaHeight,
+      'fileName': ?fileName,
+      'fileSize': ?fileSize,
+      'mimeType': ?mimeType,
       'senderName': ?senderName,
       'replyToId': ?replyToId,
       if (viewOnce) 'viewOnce': true,

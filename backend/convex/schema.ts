@@ -273,7 +273,7 @@ export default defineSchema({
     createdAt: v.number(),
     edited: v.optional(v.boolean()),
     // New fields
-    type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "url" | "system"
+    type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "file" | "url" | "system"
     mediaStorageId: v.optional(v.id("_storage")),
     // Pixel size of `mediaStorageId`, recorded by the sender who already holds
     // it. A photo bubble lays out at the picture's own ratio, and without this
@@ -283,6 +283,21 @@ export default defineSchema({
     // those fall back to a client-side measurement cache.
     mediaWidth: v.optional(v.number()),
     mediaHeight: v.optional(v.number()),
+    // Documents (`type: "file"`). Convex storage keeps none of these: a stored
+    // blob is a UUID with no name, no declared type and no extension, served
+    // from a URL that carries no `Content-Disposition`. So unlike `mediaWidth`
+    // above — an optimisation for a bubble that would otherwise measure the
+    // picture itself — these are the only record that exists. Without them a
+    // received document can be downloaded but not identified, named or opened
+    // by anything that dispatches on file type.
+    //
+    // `mimeType` is derived from the name by the SENDER (see
+    // `mimeTypeForFileName`) rather than taken from its file picker, which
+    // omits it entirely on most Android providers and flattens it to
+    // `application/octet-stream` on web.
+    fileName: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    mimeType: v.optional(v.string()),
     senderName: v.optional(v.string()),
     expiresAt: v.optional(v.number()),       // Unix ms timestamp — set for Chamber of Secrets rooms
     // Reply support. `replyToId` points at the parent message; `replyToPreview`

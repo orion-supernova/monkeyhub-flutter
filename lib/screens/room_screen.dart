@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:camera/camera.dart' show CameraLensDirection;
+import 'package:file_selector/file_selector.dart' show openFile;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +20,7 @@ import '../data/mention_session.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../media/file_meta.dart';
 import '../media/image_raster.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
@@ -1083,6 +1085,9 @@ class _RoomScreenState extends State<RoomScreen>
         case AttachmentMenuChoice.camera:
           await _captureAndSend();
           break;
+        case AttachmentMenuChoice.file:
+          await _pickAndSendFile();
+          break;
         case AttachmentMenuChoice.voice:
           final bytes = await nav.push<Uint8List>(
             MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
@@ -1300,6 +1305,68 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
+  /// Same uncovered gap as the video pick, and for the same two reasons: the OS
+  /// file browser is a route we don't own, and reading the chosen file back is
+  /// a whole-file read across a platform channel (a `FileReader` round trip on
+  /// web) before anything can go on screen.
+  Future<void> _pickAndSendFile() async {
+    // Resolved before the awaits below, which are async gaps after which
+    // touching `context` is unsafe — the same up-front capture `_openViewOnce`
+    // and the pin paths make.
+    final messenger = ScaffoldMessenger.of(context);
+    _setMediaBusy(true);
+    try {
+      // No `acceptedTypeGroups`: a chat carries whatever the sender has, and a
+      // filter here would be a list of formats to keep updating forever.
+      final picked = await openFile();
+      if (picked == null || !mounted) return;
+
+      // Read straight to bytes rather than holding the path. On web there is
+      // no filesystem behind an `XFile` at all, and off web `UploadService`
+      // wants bytes anyway — the same reason the video path reads them here.
+      final Uint8List bytes;
+      try {
+        bytes = await picked.readAsBytes();
+      } catch (_) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text("couldn't read that file")),
+        );
+        return;
+      }
+      if (!mounted) return;
+
+      // Refused here rather than by `_maxRetainedUploadBytes`, which is a
+      // budget for *all* unfinished sends and whose overflow path produces a
+      // failed bubble with no bytes left to retry — a dead end rather than an
+      // error. Refusing at the picker names a size while the user is still
+      // looking at the file browser they chose it in.
+      if (bytes.length > kMaxFileUploadBytes) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'files are capped at ${formatFileSize(kMaxFileUploadBytes)}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      final name = picked.name;
+      _sendMedia(
+        bytes: bytes,
+        type: MessageType.file,
+        // Derived from the name rather than trusting `picked.mimeType`, which
+        // is null on most Android content providers and only as good as the
+        // browser's own guess on web.
+        contentType: mimeTypeForFileName(name),
+        fileName: name,
+        fileSize: bytes.length,
+      );
+    } finally {
+      _setMediaBusy(false);
+    }
+  }
+
   /// Puts [bytes] in the transcript now and uploads them behind it.
   ///
   /// [pixelSize] is the attachment's intrinsic size when the caller knows it —
@@ -1320,6 +1387,13 @@ class _RoomScreenState extends State<RoomScreen>
     required MessageType type,
     required String contentType,
     Size? pixelSize,
+
+    /// Set on documents only — the name the sender's filesystem gave it, and
+    /// its size. They ride on the message rather than being derived from the
+    /// blob because Convex storage keeps neither.
+    String? fileName,
+    int? fileSize,
+
     /// Armed with the circled "1" in the editor: one look per recipient, then
     /// the file is deleted from the server.
     bool viewOnce = false,
@@ -1344,6 +1418,8 @@ class _RoomScreenState extends State<RoomScreen>
       type: type,
       mediaWidth: pixelSize?.width,
       mediaHeight: pixelSize?.height,
+      fileName: fileName,
+      fileSize: fileSize,
       replyToId: replyTarget?.id,
       viewOnce: viewOnce,
     );

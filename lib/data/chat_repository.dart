@@ -1315,6 +1315,9 @@ class ChatRepository extends ChangeNotifier {
     String? mediaStorageId,
     double? mediaWidth,
     double? mediaHeight,
+    String? fileName,
+    int? fileSize,
+    String? mimeType,
     String? replyToId,
     bool viewOnce = false,
     MessageStatus status = MessageStatus.pending,
@@ -1369,6 +1372,9 @@ class ChatRepository extends ChangeNotifier {
       mediaStorageId: mediaStorageId,
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
+      fileName: fileName,
+      fileSize: fileSize,
+      mimeType: mimeType,
       createdAt: DateTime.now(),
       status: status,
       replyToId: optimisticPreview != null ? replyToId : null,
@@ -1403,6 +1409,12 @@ class ChatRepository extends ChangeNotifier {
         mediaStorageId: optimistic.mediaStorageId,
         mediaWidth: optimistic.mediaWidth,
         mediaHeight: optimistic.mediaHeight,
+        // Read off the message for the same reason as everything else here: a
+        // reconnect sweeper re-posting this must not turn a named document into
+        // an anonymous one, and neither sweeper knows documents exist.
+        fileName: optimistic.fileName,
+        fileSize: optimistic.fileSize,
+        mimeType: optimistic.mimeType,
         replyToId: optimistic.replyToId,
         // Must ride along, or a view-once photo that happened to be sent while
         // the socket was frozen comes back as an ordinary, permanent one — the
@@ -1501,6 +1513,8 @@ class ChatRepository extends ChangeNotifier {
     required MessageType type,
     double? mediaWidth,
     double? mediaHeight,
+    String? fileName,
+    int? fileSize,
     String? caption,
     String? replyToId,
     bool viewOnce = false,
@@ -1510,6 +1524,9 @@ class ChatRepository extends ChangeNotifier {
       roomId: roomId,
       content: caption ?? '',
       type: type,
+      fileName: fileName,
+      fileSize: fileSize,
+      mimeType: fileName == null ? null : contentType,
       // Null until the upload hands one back. This is exactly why
       // MessageStatus.uploading exists — see enums.dart.
       mediaStorageId: null,
@@ -1542,6 +1559,12 @@ class ChatRepository extends ChangeNotifier {
               roomId: roomId,
               content: caption ?? '',
               type: type,
+              // Kept even on the refusal bubble: a failed document row with no
+              // name is an anonymous grey plate, and the user needs to see
+              // *which* file was too big to send.
+              fileName: fileName,
+              fileSize: fileSize,
+              mimeType: fileName == null ? null : contentType,
               replyToId: replyToId,
               viewOnce: viewOnce,
               status: MessageStatus.error,

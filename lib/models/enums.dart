@@ -2,7 +2,9 @@ enum FriendshipStatus { none, friend, outgoingPending, incomingPending }
 
 enum RoomType { regular, secret }
 
-enum MessageType { text, image, video, audio, url, system }
+/// Ordering is free: [MessageTypeWire.wire] is `name`, so nothing anywhere
+/// depends on the index.
+enum MessageType { text, image, video, audio, file, url, system }
 
 /// Where an outgoing message is in its journey.
 ///
@@ -57,6 +59,8 @@ extension MessageTypeWire on MessageType {
         return MessageType.video;
       case 'audio':
         return MessageType.audio;
+      case 'file':
+        return MessageType.file;
       case 'url':
         return MessageType.url;
       case 'system':

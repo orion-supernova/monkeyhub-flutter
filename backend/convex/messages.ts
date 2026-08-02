@@ -62,6 +62,35 @@ export async function sanitizeViewOnce(ctx: any, msg: any, viewerUserId: any) {
   return { ...rest, viewOnceOpened: opened };
 }
 
+/**
+ * The one line a room card shows for its newest message.
+ *
+ * Shared by `send` and by the preview repair in `removeMessageAndFanout`,
+ * which each spelled it out before — and had already drifted: the repair had
+ * no armed-photo case, so deleting the newest message re-labelled a view-once
+ * photo as a plain `[image]`. The same `removeMessageAndFanout` reasoning
+ * applies, one function up.
+ *
+ * A document is the one attachment whose preview is not a category. `[file]`
+ * would make every document on the room list identical, so the name is used
+ * where there is one — it is already the thing the sender chose to say.
+ */
+function roomPreviewFor(msg: {
+  type?: string;
+  content?: string;
+  fileName?: string;
+  viewOnce?: boolean;
+}): string {
+  const type = msg.type ?? "text";
+  if (type === "text") return (msg.content ?? "").slice(0, 100);
+  if (msg.viewOnce === true) return "[photo]";
+  if (type === "file") {
+    const name = (msg.fileName ?? "").slice(0, 100);
+    return name.length > 0 ? name : "[file]";
+  }
+  return `[${type}]`;
+}
+
 export const send = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -73,6 +102,12 @@ export const send = mutation({
     // picture's real ratio before decoding it. See the schema comment.
     mediaWidth: v.optional(v.number()),
     mediaHeight: v.optional(v.number()),
+    // Documents. Convex storage keeps no name, type or extension for a blob,
+    // so these are the only record of what the attachment actually is. See the
+    // schema comment.
+    fileName: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    mimeType: v.optional(v.string()),
     senderName: v.optional(v.string()),
     replyToId: v.optional(v.id("messages")),
     // Burn-after-reading. Armed by the sender in the pre-send editor; see the
@@ -87,7 +122,7 @@ export const send = mutation({
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
     // Idempotency, checked before anything else has a chance to happen twice.
     //
     // Everything below this line has side effects that must not be repeated:
@@ -305,6 +340,13 @@ export const send = mutation({
       // nothing until it's opened.
       mediaWidth: armed ? undefined : mediaWidth,
       mediaHeight: armed ? undefined : mediaHeight,
+      // Dropped on an armed send for the same reason, and for one more: a
+      // filename is content. No UI can arm a document today, so this is
+      // defence in depth rather than a live case — but it is the sort of
+      // thing that stops being true quietly.
+      fileName: armed ? undefined : fileName,
+      fileSize: armed ? undefined : fileSize,
+      mimeType: armed ? undefined : mimeType,
       senderName: resolvedSenderName,
       expiresAt,
       // Stored so the retry that arrives after this one commits can find it.
@@ -348,11 +390,12 @@ export const send = mutation({
     }
 
     // Update room's last message preview
-    const preview = msgType === "text"
-      ? content.slice(0, 100)
-      : armed
-        ? "[photo]"
-        : `[${msgType}]`;
+    const preview = roomPreviewFor({
+      type: msgType,
+      content,
+      fileName,
+      viewOnce: armed,
+    });
     await ctx.db.patch(roomId, {
       lastMessage: preview,
       lastMessageTime: Date.now(),
@@ -446,11 +489,7 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
       .order("desc")
       .first();
     await ctx.db.patch(msg.roomId, {
-      lastMessage: newest
-        ? newest.type === "text"
-          ? (newest.content ?? "").slice(0, 100)
-          : `[${newest.type}]`
-        : undefined,
+      lastMessage: newest ? roomPreviewFor(newest) : undefined,
       lastMessageTime: newest ? newest.createdAt : undefined,
     });
   }

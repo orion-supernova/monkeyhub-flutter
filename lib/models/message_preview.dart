@@ -53,6 +53,13 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       return hasThumbnail ? '' : 'video';
     case MessageType.audio:
       return 'voice message';
+    case MessageType.file:
+      // The name, not the word "file". A document is the one attachment whose
+      // identity is text, so a preview that said "document" would throw away
+      // the only thing distinguishing two of them. [hasThumbnail] buys nothing
+      // here — a document tile draws a type badge, not a picture of itself.
+      final name = m.fileName ?? '';
+      return name.isEmpty ? 'document' : name;
     case MessageType.system:
       return m.content;
   }

@@ -17,6 +17,7 @@ import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
+import 'file_message.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
 import 'message_stamp.dart';
@@ -799,6 +800,10 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
           message.upload != null;
     case MessageType.video:
     case MessageType.audio:
+    // A document tile is a row of chrome with a name in it — there is always
+    // somewhere to tuck a timestamp, with or without a caption, and unlike the
+    // image case it never depends on a storage id arriving.
+    case MessageType.file:
     case MessageType.system:
       return true;
     case MessageType.text:
@@ -1070,6 +1075,82 @@ Widget buildMessageContent({
             isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           videoTile,
+          const SizedBox(height: 4),
+          Container(
+            decoration: deco,
+            child: _captionBody(theme, message.content, isMine,
+                stamp: stampFor(bubbleTone),
+                mentionHandles: message.mentionHandles,
+                mentionsEveryone: message.mentionsEveryone,
+                currentUserId: currentUserId,
+                onMentionTap: onMentionTap),
+          ),
+        ],
+      );
+    case MessageType.file:
+      // Same reasoning as the audio row above: with no storage id there is
+      // nothing for `FileMessage` to resolve, and the row would offer a tap it
+      // can only refuse. The outbound variant keeps the finished row's shape so
+      // nothing moves when the upload lands.
+      final fileUpload = message.upload;
+      final Widget fileRow = fileUpload != null
+          ? OutboundFileRow(
+              theme: theme,
+              fileName: message.fileName ?? 'document',
+              fileSize: message.fileSize,
+              isMine: isMine,
+              failed: message.status == MessageStatus.error,
+              maxWidth: metrics?.videoMaxWidth,
+              indicator: _UploadIndicator(
+                upload: fileUpload,
+                failed: message.status == MessageStatus.error,
+                color: isMine ? theme.accentInk : theme.ink,
+                size: 22,
+                onRetry: onRetrySend,
+                onDiscard: onDiscardSend,
+              ),
+            )
+          : FileMessage(
+              api: api,
+              storageId: message.mediaStorageId,
+              fileName: message.fileName,
+              fileSize: message.fileSize,
+              mimeType: message.mimeType,
+              isMine: isMine,
+              maxWidth: metrics?.videoMaxWidth,
+            );
+      final hasFileCaption = message.content.isNotEmpty;
+      // With a caption the stamp belongs to the caption block, exactly as it
+      // does for an image or a video — two stamps, or one on the wrong block,
+      // is what splitting them any other way produces.
+      final fileStamp = hasFileCaption ? null : stampFor(bubbleTone);
+      final fileTile = Container(
+        padding: const EdgeInsets.fromLTRB(10, 9, 12, 9),
+        decoration: deco,
+        child: fileStamp == null
+            ? fileRow
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                // Sits on the size line rather than starting a second row of
+                // tiny type — the 40pt badge sets the height, so it is free.
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  fileRow,
+                  const SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1),
+                    child: fileStamp,
+                  ),
+                ],
+              ),
+      );
+      if (!hasFileCaption) return fileTile;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment:
+            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          fileTile,
           const SizedBox(height: 4),
           Container(
             decoration: deco,

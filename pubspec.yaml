@@ -39,6 +39,22 @@ dependencies:
 
   # Media: gallery picker, in-app camera, voice recorder, audio + video playback.
   image_picker: ^1.1.2
+  # Arbitrary-document picker. Separate from image_picker, which only offers the
+  # photo library. Used with `withData: true` — mandatory on web, where there is
+  # no path to read back afterwards, and wanted everywhere else because
+  # `UploadService.uploadFile` takes bytes.
+  # Arbitrary-document picker. Separate from image_picker, which only offers the
+  # photo library; same flutter/packages family, so it behaves the same way and
+  # hands back the same `XFile`.
+  #
+  # Chosen over the more popular `file_picker` for a hard reason, not taste:
+  # every stable file_picker (≤ 11.x) depends on `win32 ^5.9`, while
+  # package_info_plus and share_plus are both on `win32 ^6` — they cannot
+  # co-resolve, and pub's suggested way out is dropping file_picker to its 2021
+  # 3.x line or taking a 12.0.0-beta. file_selector implements Windows as a
+  # native C++ plugin and depends on `win32` not at all, so the conflict simply
+  # does not exist.
+  file_selector: ^1.1.0
   camera: ^0.12.0+2
   record: ^6.2.1
   just_audio: ^0.10.6
@@ -121,6 +137,10 @@ dependencies:
   flutter_custom_tabs: ^2.6.0
   # OG-tag parser for link previews.
   html: ^0.15.4
+  # Hands a received document to the OS: the system share sheet natively, and on
+  # web a fall back to clicking an `<a download="…">` anchor. That fallback is
+  # why `DocumentSaver` needs no conditional import of its own.
+  #
   share_plus: ^13.3.0
 
   # Splash-screen plugin. MUST live in `dependencies`, not dev_dependencies:

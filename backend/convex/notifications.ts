@@ -168,6 +168,12 @@ export const sendMessagePush = internalAction({
         ? "🎥 Video"
         : type === "audio"
         ? "🎵 Audio"
+        : type === "file"
+        // `content` here is the room preview `send` already computed, which for
+        // a document is its filename (see `roomPreviewFor`). Naming it beats
+        // "📎 File" for the same reason it does on the room card: one document
+        // is not interchangeable with another.
+        ? `📎 ${content}`
         : "New message";
 
     console.log(
