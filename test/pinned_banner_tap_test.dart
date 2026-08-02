@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/models/room_pin.dart';
-import 'package:monkeyhub/theme/app_theme.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/pinned_banner.dart';

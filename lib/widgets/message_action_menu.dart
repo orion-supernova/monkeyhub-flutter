@@ -13,7 +13,11 @@ import 'glass_surface.dart';
 
 /// Actions surfaced by [showMessageActionMenu] (reactions are handled
 /// separately via [MessageActionResult.emoji] / `.fullPicker`).
-enum MessageAction { reply, viewThread, copy, delete, report, viewProfile }
+/// Two entries for pinning rather than one that toggles: the label IS the
+/// affordance, and a single `pin` case would force both switch sites to re-derive
+/// the current state just to know what they had done. Exactly one of the two is
+/// ever offered, chosen by `isPinned`.
+enum MessageAction { reply, viewThread, copy, pin, unpin, delete, report, viewProfile }
 
 /// Resolved choice from [showMessageActionMenu]. Exactly one of the three
 /// shapes is filled in:
@@ -52,6 +56,8 @@ Future<MessageActionResult?> showMessageActionMenu({
   required bool canCopy,
   bool canReply = false,
   bool hasParent = false,
+  bool canPin = false,
+  bool isPinned = false,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -82,6 +88,8 @@ Future<MessageActionResult?> showMessageActionMenu({
       canCopy: canCopy,
       canReply: canReply,
       hasParent: hasParent,
+      canPin: canPin,
+      isPinned: isPinned,
       screenSize: screenSize,
       safeInsets: safeInsets,
       onResolve: (result) {
@@ -107,6 +115,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.canCopy,
     required this.canReply,
     required this.hasParent,
+    required this.canPin,
+    required this.isPinned,
     required this.screenSize,
     required this.safeInsets,
     required this.onResolve,
@@ -122,6 +132,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final bool canCopy;
   final bool canReply;
   final bool hasParent;
+  final bool canPin;
+  final bool isPinned;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final ValueChanged<MessageActionResult?> onResolve;
@@ -165,6 +177,11 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     if (widget.canReply) n++;
     if (widget.hasParent) n++; // view thread
     if (widget.canCopy) n++;
+    // Load-bearing, not bookkeeping: this drives `menuH` below, which decides
+    // whether the list flips above or below the bubble. A row missing from this
+    // count mispositions the whole menu by 48pt, silently, and only near the
+    // top and bottom edges of the screen.
+    if (widget.canPin) n++;
     if (!widget.isMine) n++; // view profile
     if (widget.isMine) n++; // delete
     if (!widget.isMine) n++; // report
@@ -273,6 +290,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               canCopy: widget.canCopy,
               canReply: widget.canReply,
               hasParent: widget.hasParent,
+              canPin: widget.canPin,
+              isPinned: widget.isPinned,
               onAction: (a) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.action(a));
@@ -526,12 +545,16 @@ class _ActionList extends StatelessWidget {
     required this.canCopy,
     required this.canReply,
     required this.hasParent,
+    required this.canPin,
+    required this.isPinned,
     required this.onAction,
   });
   final bool isMine;
   final bool canCopy;
   final bool canReply;
   final bool hasParent;
+  final bool canPin;
+  final bool isPinned;
   final ValueChanged<MessageAction> onAction;
 
   @override
@@ -566,6 +589,18 @@ class _ActionList extends StatelessWidget {
         action: MessageAction.copy,
         icon: CupertinoIcons.doc_on_doc,
         label: 'COPY',
+        destructive: false,
+      ));
+    }
+    // Beside COPY rather than next to the destructive pair: the list runs
+    // constructive → neutral → destructive, and a pin is shared room state, not
+    // something done TO the message. Unpinning is reversible, so neither is
+    // marked destructive — red would overstate it.
+    if (canPin) {
+      add(_ActionRowSpec(
+        action: isPinned ? MessageAction.unpin : MessageAction.pin,
+        icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
+        label: isPinned ? 'UNPIN' : 'PIN',
         destructive: false,
       ));
     }

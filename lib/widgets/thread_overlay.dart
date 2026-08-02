@@ -621,6 +621,12 @@ class _ThreadSheetState extends State<_ThreadSheet>
       // intentionally suppress the View Thread row inside this overlay to
       // prevent recursion. The user already sees the thread.
       hasParent: false,
+      // Unlike View Thread above, pinning from in here is real: it is the same
+      // message, and a thread is exactly where a reply worth keeping turns up.
+      canPin: !m.id.startsWith('tmp_') &&
+          m.status == MessageStatus.sent &&
+          m.type != MessageType.system,
+      isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
       bubbleBuilder: (_) => _bubbleFor(
         m,
         author,
@@ -667,6 +673,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
             ),
           );
         }
+        break;
+      case MessageAction.pin:
+        final err = await widget.repo.pinMessage(widget.roomId, m.id);
+        if (err != null) {
+          _showToast(err == 'PIN_LIMIT_REACHED'
+              ? 'too many pins — unpin one first'
+              : "couldn't pin that");
+        }
+        break;
+      case MessageAction.unpin:
+        await widget.repo.unpinMessage(widget.roomId, m.id);
         break;
       case MessageAction.delete:
         await widget.repo.deleteMessage(m.id);

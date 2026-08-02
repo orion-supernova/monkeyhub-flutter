@@ -27,6 +27,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
+import '../models/room_pin.dart';
 import '../data/ui_selection_store.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
@@ -44,6 +45,8 @@ import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
+import '../widgets/pinned_banner.dart';
+import '../widgets/pinned_list_sheet.dart';
 import '../widgets/mention_text_controller.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
@@ -162,6 +165,11 @@ class _RoomScreenState extends State<RoomScreen>
   // needed a notifier: this changes on taps and one expiry timer, not on every
   // scroll frame.
   final JumpBackStack _jumpBack = JumpBackStack();
+
+  /// Which pin the banner is describing. Read as `_pinCursor % pins.length` at
+  /// build time and never clamped in place: a pinned message can self-destruct
+  /// between subscription frames, so this is allowed to be briefly stale.
+  int _pinCursor = 0;
 
   // ──── thread folding ────
   // Ids folded out of the list by the last _buildItems pass. Read from async
@@ -767,6 +775,92 @@ class _RoomScreenState extends State<RoomScreen>
         },
       );
 
+  /// The message row nearest the top of the viewport — where the reader is.
+  ///
+  /// Walks the same `_dateTracks` render boxes [_recomputePositionState] does,
+  /// rather than keeping a second piece of scroll state in sync with the first.
+  /// Only used to anchor the back trail, so a null (nothing laid out yet, or
+  /// mid-relayout) simply means this hop gets no pill.
+  ChatMessage? _topmostVisibleMessage(List<ChatMessage> messages) {
+    final viewportCtx = _listViewportKey.currentContext;
+    if (viewportCtx == null) return null;
+    final viewportBox = viewportCtx.findRenderObject() as RenderBox?;
+    if (viewportBox == null || !viewportBox.attached) return null;
+
+    String? bestId;
+    var bestDy = double.infinity;
+    for (final entry in _dateTracks.entries) {
+      if (!entry.key.startsWith('m_')) continue;
+      final ctx = entry.value.key.currentContext;
+      if (ctx == null || !ctx.mounted) continue;
+      final rb = ctx.findRenderObject() as RenderBox?;
+      if (rb == null || !rb.attached) continue;
+      final dy = rb.localToGlobal(Offset.zero, ancestor: viewportBox).dy;
+      if (dy < 0) continue; // scrolled off the top
+      if (dy < bestDy) {
+        bestDy = dy;
+        bestId = entry.key.substring(2);
+      }
+    }
+    if (bestId == null) return null;
+    for (final m in messages) {
+      if (m.id == bestId) return m;
+    }
+    return null;
+  }
+
+  /// Jump to the pin the banner is currently describing, then advance to the
+  /// next one so repeated taps walk the room's pins.
+  ///
+  /// Calls [_travelTo] and pushes the trail by hand rather than going through
+  /// [_jumpToMessage], because that helper uses one `from` for two jobs: the
+  /// back-trail entry AND the thread fallback (`from.threadKey`). For a reply
+  /// tether those are the same message; for a pin they are not. Handing it the
+  /// pin would push the pin itself onto the trail, so the back pill would
+  /// return the reader to where they already are.
+  Future<void> _jumpToPin(RoomPin target) async {
+    final messages = widget.repo.timelineFor(widget.roomId);
+    // Captured before the await: after it, the transcript has scrolled and this
+    // no longer names where the reader came from.
+    final origin = _topmostVisibleMessage(messages);
+    // `from` is the PIN, so a pin folded into a thread chip hands off to its
+    // own thread — the same resolution a reply tether gets.
+    final landed = await _travelTo(target.message.id, from: target.message);
+    if (!mounted) return;
+    // Not when the trip ended in the thread overlay: that has its own close
+    // button, and a pill pointing back into a transcript nobody is looking at
+    // is the case `_travelTo`'s return value exists to distinguish.
+    if (landed && origin != null && origin.id != target.message.id) {
+      _jumpBack.push(origin);
+    }
+  }
+
+  Future<void> _onPinBannerTap() async {
+    final pins = widget.repo.pinsFor(widget.roomId);
+    if (pins.isEmpty) return;
+    final i = _pinCursor % pins.length;
+    await _jumpToPin(pins[i]);
+    if (!mounted) return;
+    setState(() => _pinCursor = nextPinCursor(i, pins.length));
+  }
+
+  Future<void> _openPinList(ChatRoom room) async {
+    await showPinnedListSheet(
+      context,
+      repo: widget.repo,
+      api: widget.api,
+      roomId: room.id,
+      onJump: (pin) {
+        final pins = widget.repo.pinsFor(room.id);
+        final i = pins.indexWhere((p) => p.message.id == pin.message.id);
+        // Leave the cursor on what was just opened, so the next banner tap
+        // continues from there rather than resuming an unrelated walk.
+        if (i >= 0) setState(() => _pinCursor = i);
+        _jumpToPin(pin);
+      },
+    );
+  }
+
   /// Follow a reply tether up to the message it quotes, and remember where we
   /// came from so the reader can get back.
   ///
@@ -1346,6 +1440,14 @@ class _RoomScreenState extends State<RoomScreen>
               roomId: room.id,
               userId: me,
             ),
+          // Zero height with no pins, so no condition is needed here — and
+          // unwrapped by ChatColumn, matching GroupCallBanner above.
+          PinnedMessageBanner(
+            pins: widget.repo.pinsFor(room.id),
+            activeIndex: _pinCursor,
+            onTap: _onPinBannerTap,
+            onOpenList: () => _openPinList(room),
+          ),
           Expanded(
             child: _messageBody(
               context,
@@ -1408,12 +1510,19 @@ class _RoomScreenState extends State<RoomScreen>
     // Scaffold's default resizeToAvoidBottomInset shrinks the body when the
     // keyboard appears, so we DO NOT add viewInsets manually — that would
     // double-count and leave a massive gap.
-    const chromeH = 60.0;
+    //
+    // Split in two because the pin banner grows only the TOP chrome. A single
+    // constant here was doing double duty for the header and the composer, so
+    // widening it for the banner would have lifted the transcript's bottom
+    // padding too and left a gap above the composer.
+    final pins = widget.repo.pinsFor(room.id);
+    final topChromeH = 60.0 + (pins.isEmpty ? 0.0 : kPinnedBannerHeight);
+    const bottomChromeH = 60.0;
     final listPadding = EdgeInsets.fromLTRB(
       20,
-      topSafe + chromeH + 12,
+      topSafe + topChromeH + 12,
       20,
-      chromeH + 16 + bottomSafe,
+      bottomChromeH + 16 + bottomSafe,
     );
     // BackdropGroup batches the seven BackdropFilters in the chrome (header
     // pill + 2 buttons + composer attach + camera + field + send) into a
@@ -1447,6 +1556,16 @@ class _RoomScreenState extends State<RoomScreen>
                         roomId: room.id,
                         userId: me,
                       ),
+                    // Frosted here, not opaque: in this style the chrome floats
+                    // over the transcript rather than sitting in a column above
+                    // it, and `topChromeH` above has already reserved its space.
+                    PinnedMessageBanner(
+                      pins: pins,
+                      activeIndex: _pinCursor,
+                      onTap: _onPinBannerTap,
+                      onOpenList: () => _openPinList(room),
+                      glass: true,
+                    ),
                   ],
                 ),
               ),
@@ -1665,6 +1784,12 @@ class _RoomScreenState extends State<RoomScreen>
                     canCopy: m.type == MessageType.text && m.content.isNotEmpty,
                     canReply: canReply,
                     hasParent: hasParent,
+                    // An optimistic bubble has no server id to pin, and a
+                    // system notice is not something anyone means to keep.
+                    canPin: !isPending &&
+                        m.status == MessageStatus.sent &&
+                        m.type != MessageType.system,
+                    isPinned: widget.repo.isMessagePinned(room.id, m.id),
                     bubbleBuilder: (_) {
                       final parentAuthor = m.isReply
                           ? _members[m.replyToPreview?.senderId]
@@ -1729,6 +1854,21 @@ class _RoomScreenState extends State<RoomScreen>
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
                       messenger.showSnackBar(const SnackBar(content: Text('copied')));
+                      break;
+                    case MessageAction.pin:
+                      final err = await widget.repo.pinMessage(room.id, m.id);
+                      // Surfaced rather than swallowed: the cap is the only
+                      // way this fails, and silence would read as a dead menu.
+                      if (err != null) {
+                        messenger.showSnackBar(SnackBar(
+                          content: Text(err == 'PIN_LIMIT_REACHED'
+                              ? 'too many pins — unpin one first'
+                              : "couldn't pin that"),
+                        ));
+                      }
+                      break;
+                    case MessageAction.unpin:
+                      await widget.repo.unpinMessage(room.id, m.id);
                       break;
                     case MessageAction.delete:
                       await widget.repo.deleteMessage(m.id);
