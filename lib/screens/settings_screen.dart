@@ -15,6 +15,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/app_brand_mark.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
+import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
 import 'approvals_screen.dart';
 import 'bubble_style_screen.dart';
@@ -202,6 +203,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Text('look. feel. you.', style: theme.displayLarge),
               const SizedBox(height: 28),
               if (s != null) ...[
+                // An account with no recovery phrase is one forgotten password
+                // away from being gone. Shown here because Settings is the
+                // screen people actually open — profile carries the same
+                // banner. `_loadMe()` already fetches with viewerUserId ==
+                // userId, so hasRecoveryKey arrives with no extra query.
+                //
+                // Explicitly `== false`: null means "unknown" (older backend,
+                // or not a self-fetch) and must not be read as "none set".
+                // The isChild check is belt-and-braces — the server already
+                // returns null for children, who have no reset path at all.
+                if (_me?.hasRecoveryKey == false && !widget.auth.isChild) ...[
+                  RecoveryPhraseBanner(
+                    onTap: () => openSettingsDetail(
+                      context,
+                      key: 'profile',
+                      builder: (_) => ProfileScreen(
+                        user: _me!,
+                        repo: widget.repo,
+                        api: widget.api,
+                        auth: widget.auth,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 () {
                   final me =
                       _me ??

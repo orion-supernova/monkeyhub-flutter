@@ -773,4 +773,31 @@ export default defineSchema({
     notes: v.optional(v.string()),
     publishedAt: v.number(),
   }).index("by_channel", ["channel"]),
+
+  // Failed-attempt counters for the credential paths: auth.login,
+  // auth.resetPasswordWithRecoveryKey, auth.setRecoveryKey. Before this table
+  // every one of those accepted unlimited guesses.
+  //
+  // Hand-rolled rather than @convex-dev/rate-limiter because this deployment
+  // has no convex.config.ts and installs no components.
+  //
+  // Keyed by the ACCOUNT under attack, not by the caller. Convex functions
+  // see no client IP, and there are no sessions, so the account is the only
+  // stable subject available — and it is the right one anyway, since it is
+  // what we are protecting. The cost is that one user's failures throttle
+  // that account everywhere, which is the intended behaviour.
+  //
+  // `lockedUntil` is a TIMESTAMP, never a flag. There is no email in this app
+  // and therefore no unlock mail, and no admin console — so a lockout that
+  // could not expire on its own would be a permanent account loss. Every
+  // lockout here heals itself.
+  authAttempts: defineTable({
+    key: v.string(), // "login:<userId>" | "recovery:<userId>"
+    failures: v.number(),
+    windowStartedAt: v.number(),
+    lockedUntil: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_updatedAt", ["updatedAt"]),
 });

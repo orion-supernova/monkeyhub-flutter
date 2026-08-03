@@ -23,6 +23,7 @@ import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
 import 'family/family_service.dart';
 import 'env.dart';
+import 'auth/recovery_gate.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'media/audio_file_cache.dart';
 import 'media/file_url_cache.dart';
@@ -438,6 +439,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_auth.session != null) AndroidCallReliability.instance.ensure();
       UpdateChecker.instance.ensure(_api);
+      // Covers the cold-start-restore case: an account signed in on a previous
+      // launch that still has no recovery phrase. Fire-and-forget, and it
+      // queries only after the shell is already on screen.
+      if (_auth.session != null) {
+        unawaited(RecoveryGate.instance.ensure(_auth, _api));
+      }
     });
   }
 
@@ -512,7 +519,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // during the park, so without this nudge the phase could only be
         // cleared by luck (a connectivity change, or a background round trip).
         unawaited(_health.retryNow());
+        // Covers the fresh-sign-in case, including the rotation owed after a
+        // password reset — the reset signs the user in, which disposes the
+        // LoginScreen that would otherwise have pushed the gate.
+        unawaited(RecoveryGate.instance.ensure(_auth, _api));
       } else if (s == null) {
+        // Drop the per-account latch so signing in as someone else re-checks.
+        RecoveryGate.instance.reset();
         _stopPresenceHeartbeat();
         BadgeManager.instance.unbind();
         MessageAlerts.instance.unbind();

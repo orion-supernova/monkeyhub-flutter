@@ -2,7 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../platform.dart';
@@ -11,6 +13,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import 'child_pair_screen.dart';
+import 'recovery_phrase_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -51,16 +54,22 @@ class _LoginScreenState extends State<LoginScreen> {
   /// case they get a way back.
   late bool _pairing = SessionStore.instance.isChildDevice;
 
-  /// Whether sign-up's optional name/email/recovery fields are revealed.
-  bool _showOptional = false;
-
   final _username = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
   final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _recovery = TextEditingController();
   final _newPassword = TextEditingController();
+
+  /// The recovery phrase, on the reset screen only. Never typed at sign-up any
+  /// more — it is generated there, and only ever entered here.
+  final _phrase = TextEditingController();
+
+  /// Minted once per sign-up attempt and deliberately KEPT across a failed
+  /// submit, so that retrying with a corrected username reuses the phrase the
+  /// user has already written down. Without this, a USERNAME_TAKEN would
+  /// invalidate a phrase that is now on paper somewhere.
+  RecoveryPhrase? _pendingPhrase;
+  bool _phraseConfirmed = false;
 
   @override
   void dispose() {
@@ -68,8 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _password.dispose();
     _confirmPassword.dispose();
     _name.dispose();
-    _email.dispose();
-    _recovery.dispose();
+    _phrase.dispose();
     _newPassword.dispose();
     super.dispose();
   }
@@ -77,7 +85,10 @@ class _LoginScreenState extends State<LoginScreen> {
   void _switchTo(_AuthMode mode) => setState(() {
         _mode = mode;
         _error = null;
-        _showOptional = false;
+        // Switching away from sign-up abandons the attempt; a later one should
+        // mint a fresh phrase rather than resurrect an abandoned one.
+        _pendingPhrase = null;
+        _phraseConfirmed = false;
       });
 
   Future<void> _submit() async {
@@ -86,6 +97,25 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _error = 'Passwords don\'t match.');
       return;
     }
+    // Sign-up runs the save-your-phrase gate BEFORE creating the account.
+    //
+    // `_busy` is raised FIRST, covering the gate as well as the request that
+    // follows it. Without that, `_submit` is re-entrant for as long as the
+    // gate is open — a double-tap on OPEN ACCOUNT would push two gate routes,
+    // and dismissing one would leave the user staring at the other.
+    if (_mode == _AuthMode.signUp) {
+      setState(() {
+        _busy = true;
+        _error = null;
+      });
+      final saved = await _ensurePhraseSaved();
+      if (!mounted) return;
+      if (!saved) {
+        setState(() => _busy = false);
+        return;
+      }
+    }
+
     setState(() {
       _busy = true;
       _error = null;
@@ -95,21 +125,18 @@ class _LoginScreenState extends State<LoginScreen> {
       switch (_mode) {
         case _AuthMode.signUp:
           final name = _name.text.trim();
-          final email = _email.text.trim();
-          final recovery = _recovery.text.trim();
           await widget.auth.signUp(
             username: username,
             name: name.isEmpty ? username : name,
             password: _password.text,
-            email: email.isEmpty ? null : email,
-            recoveryKey: recovery.isEmpty ? null : recovery,
+            recoveryKeyHash: recoveryPhraseHash(_pendingPhrase!.canonical),
           );
         case _AuthMode.signIn:
           await widget.auth.signIn(username: username, password: _password.text);
         case _AuthMode.reset:
           await widget.auth.resetPasswordWithRecoveryKey(
             username: username,
-            recoveryKey: _recovery.text.trim(),
+            recoveryKey: _phrase.text,
             newPassword: _newPassword.text,
           );
       }
@@ -120,23 +147,49 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  static const Map<String, String> _errorMessages = {
-    'USERNAME_TAKEN': 'That username is already taken.',
-    'USER_NOT_FOUND': 'No account with that username.',
-    'WRONG_PASSWORD': 'Wrong password.',
-    'WRONG_RECOVERY_KEY': 'Recovery phrase doesn\'t match.',
-    'NO_RECOVERY_KEY': 'This account has no recovery phrase set.',
-    'CHILD_MUST_PAIR':
-        'That\'s a kid\'s account — ask a grown-up for a pairing code.',
-  };
-
-  String _humanize(Object e) {
-    final s = e.toString();
-    for (final entry in _errorMessages.entries) {
-      if (s.contains(entry.key)) return entry.value;
+  /// Shows the generated phrase and makes the user confirm they saved it.
+  /// Returns false if they backed out, in which case no account is created.
+  ///
+  /// This runs BEFORE `auth.signUp` on purpose, and the ordering is the whole
+  /// reason the gate is un-skippable:
+  ///
+  ///  * `_AppHome` swaps LoginScreen out for HomeShell the instant
+  ///    `auth.isSignedIn` flips. Showing the gate afterwards would race that
+  ///    swap; showing it first makes the flip the LAST thing that happens, so
+  ///    there is simply no app to slip into yet.
+  ///  * Killing the app mid-gate leaves no account at all — the cleanest
+  ///    possible state, with nothing half-provisioned to reconcile later.
+  ///
+  /// The risk it trades for — signup failing after the user already wrote the
+  /// phrase down — is handled by keeping `_pendingPhrase` and
+  /// `_phraseConfirmed` across the failure, so a retry reuses the same words
+  /// and does not show the gate twice.
+  ///
+  /// Note there is deliberately no "is this username free?" pre-check. It
+  /// would spare the user a retry, but it would also be a fresh account
+  /// enumeration oracle, and the form already has one in USERNAME_TAKEN.
+  Future<bool> _ensurePhraseSaved() async {
+    if (_password.text.isEmpty) {
+      setState(() => _error = 'Choose a password first.');
+      return false;
     }
-    return s.length > 140 ? '${s.substring(0, 140)}…' : s;
+    if (_phraseConfirmed) return true;
+    _pendingPhrase ??= RecoveryPhrase.generate();
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => RecoveryPhraseScreen(
+          phrase: _pendingPhrase!,
+          mode: RecoveryGateMode.setup,
+        ),
+      ),
+    );
+    if (saved != true) return false;
+    _phraseConfirmed = true;
+    return true;
   }
+
+  String _humanize(Object e) => humanizeAuthError(e);
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +273,6 @@ class _LoginScreenState extends State<LoginScreen> {
   List<Widget> _fields() {
     // The last field of each mode submits on Enter; every other field advances.
     final passwordIsLast = _mode == _AuthMode.signIn;
-    final confirmIsLast = _mode == _AuthMode.signUp && !_showOptional;
 
     return [
       ThemedInput(
@@ -247,49 +299,42 @@ class _LoginScreenState extends State<LoginScreen> {
         PasswordField(
           controller: _confirmPassword,
           hint: 'confirm password',
-          textInputAction:
-              confirmIsLast ? TextInputAction.done : TextInputAction.next,
-          onSubmitted: (_) => confirmIsLast ? _submit() : _next(),
-        ),
-        const SizedBox(height: 14),
-        _DisclosureLink(
-          label: _showOptional
-              ? 'hide optional fields'
-              : 'show optional fields',
-          onTap: () => setState(() => _showOptional = !_showOptional),
-        ),
-        if (_showOptional) ...[
-          const SizedBox(height: 14),
-          ThemedInput(
-            controller: _name,
-            hint: 'name',
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _next(),
-          ),
-          const SizedBox(height: 12),
-          ThemedInput(
-            controller: _email,
-            hint: 'email',
-            textInputAction: TextInputAction.next,
-            onSubmitted: (_) => _next(),
-          ),
-          const SizedBox(height: 12),
-          ThemedInput(
-            controller: _recovery,
-            hint: 'recovery phrase',
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
-      ],
-      if (_mode == _AuthMode.reset) ...[
-        const SizedBox(height: 12),
-        ThemedInput(
-          controller: _recovery,
-          hint: 'recovery phrase',
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => _next(),
         ),
+        // `name` used to hide behind a "show optional fields" toggle, along
+        // with email (now gone — nothing ever sent any) and a freehand
+        // recovery phrase (now generated, not typed). With one optional field
+        // left, a disclosure toggle is theatre.
+        const SizedBox(height: 12),
+        ThemedInput(
+          controller: _name,
+          hint: 'name (optional)',
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+        ),
+      ],
+      if (_mode == _AuthMode.reset) ...[
+        const SizedBox(height: 12),
+        // Multi-line on purpose. Twelve words is ~70 characters; in a
+        // single-line field the text scrolls out of sight and the user cannot
+        // see what they pasted, which is the single biggest cause of "I typed
+        // it right and it says wrong".
+        ThemedInput(
+          controller: _phrase,
+          hint: 'your 12-word recovery phrase',
+          minLines: 2,
+          maxLines: 4,
+          autocorrect: false,
+          enableSuggestions: false,
+          keyboardType: TextInputType.multiline,
+          // Drives the counter below. textInputAction is deliberately unset:
+          // with maxLines > 1 the return key inserts a newline, which
+          // normalization absorbs anyway.
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 8),
+        _WordCounter(count: recoveryWordCount(_phrase.text)),
         const SizedBox(height: 12),
         PasswordField(
           controller: _newPassword,
@@ -464,27 +509,25 @@ class _ModeToggle extends StatelessWidget {
   }
 }
 
-/// Left-aligned toggle that reveals sign-up's optional fields.
-class _DisclosureLink extends StatelessWidget {
-  const _DisclosureLink({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
+/// Live `n/12 words` readout under the reset screen's phrase field.
+///
+/// Reports the COUNT only, never which word is wrong. The count is cheap and
+/// removes most of the "I typed it right" confusion on its own; naming the bad
+/// word would turn a help affordance into a wordlist oracle.
+class _WordCounter extends StatelessWidget {
+  const _WordCounter({required this.count});
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final complete = count == 12;
     return Align(
       alignment: Alignment.centerLeft,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            label,
-            style: theme.monoTiny.copyWith(color: theme.accent),
-          ),
-        ),
+      child: Text(
+        '$count/12 words',
+        style: theme.monoTiny
+            .copyWith(color: complete ? theme.accent : theme.inkMuted),
       ),
     );
   }

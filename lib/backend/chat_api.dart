@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'package:crypto/crypto.dart';
-import 'dart:convert' show utf8;
 
+import '../auth/recovery_phrase.dart';
 import '../env.dart';
 import '../models/app_release.dart';
 import '../models/chat_message.dart';
@@ -13,11 +12,9 @@ import '../models/family.dart';
 import '../models/friend_request_message.dart';
 import '../models/room_content_item.dart';
 import 'convex_client.dart';
+import 'hashing.dart';
 
-/// Client-side SHA-256, matching v02's `SecurityUtils.hashPassword` /
-/// CryptoKit usage. Convex backend stores and compares hashes directly.
-String sha256Hash(String input) =>
-    sha256.convert(utf8.encode(input)).toString();
+export 'hashing.dart' show sha256Hash;
 
 /// Single home for every Convex function call the client makes.
 /// Mirrors v02's `ConvexChatAPI` — one method per backend endpoint.
@@ -29,20 +26,23 @@ class ChatApi {
   // Auth
   // ─────────────────────────────────────────────────────────────────────────
 
+  /// Creates an account. [recoveryKeyHash] is required and is already hashed:
+  /// the plaintext phrase lives in exactly one widget's state and never
+  /// reaches this layer, so there is nothing here to accidentally log.
+  ///
+  /// No `email` parameter. It was collected at signup and used for nothing —
+  /// this app sends no mail — so it is now a profile-only contact field.
   Future<AuthResult> signup({
     required String username,
     required String name,
     required String password,
-    String? email,
-    String? recoveryKey,
+    required String recoveryKeyHash,
   }) async {
     final res = await _cv.mutation('auth:signup', {
       'username': username,
       'name': name,
       'passwordHash': sha256Hash(password),
-      if (email != null && email.trim().isNotEmpty) 'email': email.trim(),
-      if (recoveryKey != null && recoveryKey.trim().isNotEmpty)
-        'recoveryKeyHash': sha256Hash(recoveryKey),
+      'recoveryKeyHash': recoveryKeyHash,
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
   }
@@ -59,17 +59,43 @@ class ChatApi {
     await _cv.mutation('auth:logout', {'userId': userId});
   }
 
+  /// Resets a password using a recovery phrase, as typed.
+  ///
+  /// Sends TWO candidate hashes and lets the server accept either, so that
+  /// both the new 12-word phrases and the legacy freehand ones keep working.
+  /// The server can never upgrade a legacy hash on its own — it never sees
+  /// plaintext — so this compatibility is permanent by design. See the table
+  /// on `recoveryResetHashes`.
   Future<AuthResult> resetPassword({
     required String username,
     required String recoveryKey,
     required String newPassword,
   }) async {
+    final hashes = recoveryResetHashes(recoveryKey);
     final res = await _cv.mutation('auth:resetPasswordWithRecoveryKey', {
       'username': username,
-      'recoveryKeyHash': sha256Hash(recoveryKey),
+      'recoveryKeyHash': hashes.primary,
+      'legacyRecoveryKeyHash': hashes.legacy,
       'newPasswordHash': sha256Hash(newPassword),
     });
     return AuthResult.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// Sets or replaces the recovery phrase on an existing account.
+  ///
+  /// Password-authenticated: this is an account-takeover primitive, so it must
+  /// not rely on the client-supplied `userId` the way the rest of this API
+  /// does. See `auth.setRecoveryKey` on the backend.
+  Future<void> setRecoveryKey({
+    required String userId,
+    required String password,
+    required String recoveryKeyHash,
+  }) async {
+    await _cv.mutation('auth:setRecoveryKey', {
+      'userId': userId,
+      'passwordHash': sha256Hash(password),
+      'recoveryKeyHash': recoveryKeyHash,
+    });
   }
 
   Future<void> deleteAccount({required String userId}) async {

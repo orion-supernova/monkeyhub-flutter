@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../auth/auth_service.dart';
+import '../auth/recovery_phrase.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
@@ -24,10 +25,12 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/recovery_banner.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'blocked_users_screen.dart';
+import 'recovery_phrase_screen.dart';
 import 'camera_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'fullscreen_image_viewer.dart';
@@ -170,13 +173,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await api.updateProfile(
         userId: id,
         name: next.trim().isEmpty ? widget.user.username : next.trim(),
-        email: _u.email ?? '',
+        // Deliberately omitted, NOT echoed back. `email` is now stripped from
+        // friend lists and room member lists, so a self-profile opened from
+        // one of those has `_u.email == null` until _refresh() lands — and
+        // sending an empty string is how the backend is told to DELETE it.
+        // An absent email leaves the stored one untouched.
       );
       await _refresh();
     } catch (_) {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Mints a new recovery phrase and, if the user saves it, replaces the one
+  /// on the account.
+  ///
+  /// Dismissible: the existing phrase stays valid right up until the commit
+  /// succeeds, so backing out costs the user nothing. The screen collects the
+  /// password itself — `auth.setRecoveryKey` requires it, because planting a
+  /// phrase on an account is a takeover primitive.
+  Future<void> _openRecoveryPhrase() async {
+    final auth = widget.auth;
+    if (auth == null || auth.isChild) return;
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => RecoveryPhraseScreen(
+          phrase: RecoveryPhrase.generate(),
+          mode: RecoveryGateMode.rotate,
+          dismissible: true,
+          onCommit: (password, hash) =>
+              auth.setRecoveryKey(password: password, recoveryKeyHash: hash),
+        ),
+      ),
+    );
+    // Refresh so hasRecoveryKey flips and the banner clears.
+    if (saved == true && mounted) await _refresh();
   }
 
   Future<void> _updateEmail(String next) async {
@@ -856,7 +889,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onTap: () => _confirmAndEdit(
                                 title: (_u.email?.isNotEmpty ?? false) ? 'change email?' : 'add email?',
                                 currentValue: _u.email ?? '',
-                                hint: 'only for recovery, never shown',
+                                // Was 'only for recovery, never shown', which
+                                // was never true — this app sends no mail, and
+                                // recovery is the 12-word phrase. It is now
+                                // honestly just an optional contact note.
+                                hint: 'optional — never shown to anyone',
                                 keyboardType: TextInputType.emailAddress,
                                 onSave: _updateEmail,
                               ),
@@ -1049,6 +1086,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 28),
           _sectionHeader(theme, 'ACCOUNT'),
           const SizedBox(height: 10),
+          // Explicitly `== false`: null means the backend didn't say (an older
+          // deploy, or a non-self fetch), which must never be read as "no
+          // phrase set".
+          if (_u.hasRecoveryKey == false) ...[
+            RecoveryPhraseBanner(onTap: _openRecoveryPhrase),
+            const SizedBox(height: 8),
+          ],
+          _RowLink(
+            label: _u.hasRecoveryKey == true
+                ? 'CHANGE RECOVERY PHRASE'
+                : 'SET UP RECOVERY PHRASE',
+            icon: Icons.key_outlined,
+            onTap: _openRecoveryPhrase,
+          ),
+          const SizedBox(height: 8),
           _RowActionTile(label: 'SIGN OUT', danger: false, busy: _signingOut, onTap: _signOut),
           const SizedBox(height: 8),
           _RowActionTile(

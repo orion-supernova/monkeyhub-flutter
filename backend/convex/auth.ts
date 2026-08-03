@@ -3,6 +3,14 @@ import { v } from "convex/values";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { deleteStored, releaseMessageBlobs } from "./files";
+import {
+  assertNotLocked,
+  clearFailures,
+  loginKey,
+  noteFailure,
+  recoveryKey,
+  MAX_RECOVERY_FAILURES,
+} from "./rateLimit";
 
 export const signup = mutation({
   args: {
@@ -43,6 +51,11 @@ export const login = mutation({
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
+    // Sign-in deliberately keeps USER_NOT_FOUND and CHILD_MUST_PAIR distinct
+    // rather than collapsing them the way reset does below. Username
+    // enumeration is unavoidable here regardless — signup answers
+    // USERNAME_TAKEN — and the child message is load-bearing UX ("ask a
+    // grown-up for a pairing code"). Known and accepted, not an oversight.
     if (!user) throw new Error("USER_NOT_FOUND");
 
     // Child accounts have no usable password — a guardian-issued pairing code
@@ -51,7 +64,15 @@ export const login = mutation({
     // somehow learned a password can't sign in on an unsupervised device.
     if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
 
-    if (user.passwordHash !== passwordHash) throw new Error("WRONG_PASSWORD");
+    // Before this, login accepted unlimited password guesses. Keyed by the
+    // resolved user, so a nonexistent username never creates a row.
+    const key = loginKey(user._id);
+    await assertNotLocked(ctx, key);
+    if (user.passwordHash !== passwordHash) {
+      await noteFailure(ctx, key);
+      throw new Error("WRONG_PASSWORD");
+    }
+    await clearFailures(ctx, key);
 
     await ctx.db.patch(user._id, { status: "online", lastSeen: Date.now() });
     return { userId: user._id, username: user.username, name: user.name ?? user.username };
@@ -68,28 +89,110 @@ export const logout = mutation({
 export const resetPasswordWithRecoveryKey = mutation({
   args: {
     username: v.string(),
+    // Required, not optional: clients from before the 12-word scheme are still
+    // live on TestFlight and Play and send only this field. Convex rejects
+    // undeclared args, so widening here is the only backwards-compatible move.
     recoveryKeyHash: v.string(),
+    // Sent only by clients that know about the 12-word scheme. See the compat
+    // table in lib/auth/recovery_phrase.dart#recoveryResetHashes.
+    legacyRecoveryKeyHash: v.optional(v.string()),
     newPasswordHash: v.string(),
   },
-  handler: async (ctx, { username, recoveryKeyHash, newPasswordHash }) => {
+  handler: async (
+    ctx,
+    { username, recoveryKeyHash, legacyRecoveryKeyHash, newPasswordHash },
+  ) => {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
-    if (!user) throw new Error("USER_NOT_FOUND");
-    // Same reasoning as login: recovery is a password path, and children
-    // don't have one. Without this, setting a recovery phrase on a child
-    // account would be a way around pairing.
-    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
-    if (!user.recoveryKeyHash || user.recoveryKeyHash !== recoveryKeyHash) {
+
+    // ONE answer for "no such user", "that's a child account", and "no phrase
+    // set". Reset is the only endpoint a stranger can probe with no credential
+    // at all, so it must not answer any of those questions.
+    //
+    // The child case matters most: distinguishing it here would turn reset
+    // into an "is this username a kid?" oracle, which is materially worse than
+    // username existence. The rejection itself is preserved — a child still
+    // cannot reset a password, since that would be a way around pairing.
+    if (!user || user.accountType === ACCOUNT_CHILD || !user.recoveryKeyHash) {
       throw new Error("INVALID_RECOVERY_KEY");
     }
+
+    const key = recoveryKey(user._id);
+    await assertNotLocked(ctx, key);
+
+    // Two candidates. A phrase set before the 12-word scheme was hashed from
+    // the raw trimmed string, and the server can never upgrade those itself —
+    // it never sees plaintext. So it accepts both shapes, permanently.
+    const ok =
+      user.recoveryKeyHash === recoveryKeyHash ||
+      (legacyRecoveryKeyHash !== undefined &&
+        user.recoveryKeyHash === legacyRecoveryKeyHash);
+    if (!ok) {
+      await noteFailure(ctx, key, MAX_RECOVERY_FAILURES);
+      throw new Error("INVALID_RECOVERY_KEY");
+    }
+    await clearFailures(ctx, key);
+
     await ctx.db.patch(user._id, {
       passwordHash: newPasswordHash,
       status: "online",
       lastSeen: Date.now(),
     });
-    return { userId: user._id, username: user.username };
+    // `name` is not optional for the client: AuthResult.fromJson does
+    // `j['name'].toString()`, so omitting it here wrote the literal string
+    // "null" into the keychain as the user's display name on every reset.
+    // Matches the shape `login` returns above.
+    return {
+      userId: user._id,
+      username: user.username,
+      name: user.name ?? user.username,
+    };
+  },
+});
+
+/**
+ * Sets or replaces the recovery phrase hash on an existing account.
+ *
+ * Before this existed there was no way to add a recovery phrase after signup,
+ * which is the core of the bug this change fixes: an account created without
+ * one was permanently unrecoverable.
+ *
+ * Password-authenticated on purpose. Every other mutation in this backend
+ * trusts a client-supplied `userId` — there are no sessions, which is a known
+ * and separate problem. This one MUST NOT inherit that, because it is a
+ * complete account-takeover primitive: anyone who learned a userId could plant
+ * their own recovery phrase and then reset the password with it. The password
+ * is the only credential available here, so the password is the gate.
+ */
+export const setRecoveryKey = mutation({
+  args: {
+    userId: v.id("users"),
+    passwordHash: v.string(),
+    recoveryKeyHash: v.string(),
+  },
+  handler: async (ctx, { userId, passwordHash, recoveryKeyHash }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    // BEFORE the password compare, mirroring login. This is the most important
+    // guard in the file: without it, guessing the CHILD_PASSWORD_SENTINEL
+    // (family.ts) would let anyone plant a recovery phrase on a child account
+    // and then reset its password — a complete bypass of pairing.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+
+    // Shares the LOGIN bucket, not a bucket of its own, so this cannot be used
+    // as a password-guessing oracle that sidesteps the login limiter.
+    const key = loginKey(user._id);
+    await assertNotLocked(ctx, key);
+    if (user.passwordHash !== passwordHash) {
+      await noteFailure(ctx, key);
+      throw new Error("WRONG_PASSWORD");
+    }
+    await clearFailures(ctx, key);
+
+    await ctx.db.patch(user._id, { recoveryKeyHash });
   },
 });
 

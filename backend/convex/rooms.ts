@@ -336,7 +336,9 @@ export const getMembers = query({
           _id: user._id,
           username: user.username,
           name: user.name,
-          email: user.email,
+          // No `email`. Sharing a room with someone is not consent to hand
+          // them your address — a public room would have leaked it to every
+          // member. users.getProfile serves it to self only.
           avatarStorageId: user.avatarStorageId,
           // Staleness-corrected: a user who stopped heartbeating (closed the
           // tab / killed the app) reads as offline even if the stored status

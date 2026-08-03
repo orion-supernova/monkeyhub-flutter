@@ -34,7 +34,9 @@ function publicUserView(user: any) {
     _id: user._id,
     username: user.username,
     name: user.name,
-    email: user.email,
+    // No `email` here. It used to be, and it failed the test the comment above
+    // states: a stranger who can address a friend request to you should not
+    // learn your email address. users.getProfile serves it to self only.
     avatarStorageId: user.avatarStorageId,
     status: effectiveStatus(user.status, user.lastSeen),
     lastSeen: user.lastSeen,
@@ -613,7 +615,9 @@ export const listIncomingDirectRequests = query({
             _id: requester._id,
             username: requester.username,
             name: requester.name,
-            email: requester.email,
+            // No `email` — same reasoning as publicUserView above. A stranger
+            // who sent you a request must not learn your address, nor you
+            // theirs before you've accepted.
             avatarStorageId: requester.avatarStorageId,
             status: effectiveStatus(requester.status, requester.lastSeen),
           },
@@ -658,7 +662,7 @@ export const listOutgoingDirectRequests = query({
             _id: receiver._id,
             username: receiver.username,
             name: receiver.name,
-            email: receiver.email,
+            // No `email` — same reasoning as publicUserView above.
             avatarStorageId: receiver.avatarStorageId,
             status: effectiveStatus(receiver.status, receiver.lastSeen),
           },

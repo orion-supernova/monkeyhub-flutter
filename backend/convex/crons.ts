@@ -103,4 +103,14 @@ crons.interval(
   {},
 );
 
+// Reap failed-login counters nobody has touched in a day. Pure tidiness —
+// assertNotLocked already treats a closed window as clean, so a backlog here
+// costs disk and nothing else. See rateLimit.gcAuthAttempts.
+crons.interval(
+  "rateLimit.gcAuthAttempts",
+  { hours: 6 },
+  internal.rateLimit.gcAuthAttempts,
+  {},
+);
+
 export default crons;

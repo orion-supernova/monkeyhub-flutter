@@ -82,6 +82,7 @@ class ChatUser {
     this.acceptsFriendRequests = true,
     this.accountType = AccountType.adult,
     this.childPolicy,
+    this.hasRecoveryKey,
   });
 
   final String id;
@@ -116,6 +117,17 @@ class ChatUser {
   /// guardian. Null for everyone else — and for every adult.
   ChildPolicy? childPolicy;
 
+  /// Whether this account has a recovery phrase set. The backend never sends
+  /// the hash itself — it IS the reset credential.
+  ///
+  /// Three states, and the null one is load-bearing:
+  ///   true  — a phrase is set.
+  ///   false — none is set; prompt for one.
+  ///   null  — UNKNOWN: not a self-fetch, a child account, or a backend that
+  ///           predates the field. Must be treated as "do not prompt", so a
+  ///           client shipped ahead of the backend deploy never nags.
+  bool? hasRecoveryKey;
+
   bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
@@ -149,6 +161,9 @@ class ChatUser {
           ? ChildPolicy.fromJson(
               (j['childPolicy'] as Map).cast<String, dynamic>())
           : null,
+      // Deliberately NOT defaulted. An absent key means "unknown", which is
+      // not the same as "no phrase set" — see the field's doc comment.
+      hasRecoveryKey: j['hasRecoveryKey'] as bool?,
     );
   }
 
@@ -165,6 +180,7 @@ class ChatUser {
     bool? acceptsFriendRequests,
     AccountType? accountType,
     ChildPolicy? childPolicy,
+    bool? hasRecoveryKey,
   }) => ChatUser(
         id: id,
         username: username,
@@ -181,5 +197,6 @@ class ChatUser {
         acceptsFriendRequests: acceptsFriendRequests ?? this.acceptsFriendRequests,
         accountType: accountType ?? this.accountType,
         childPolicy: childPolicy ?? this.childPolicy,
+        hasRecoveryKey: hasRecoveryKey ?? this.hasRecoveryKey,
       );
 }

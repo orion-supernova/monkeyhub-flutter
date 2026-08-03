@@ -23,6 +23,7 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
+import type * as rateLimit from "../rateLimit.js";
 import type * as reactions from "../reactions.js";
 import type * as releases from "../releases.js";
 import type * as roomCleanup from "../roomCleanup.js";
@@ -55,6 +56,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   pins: typeof pins;
   presence: typeof presence;
+  rateLimit: typeof rateLimit;
   reactions: typeof reactions;
   releases: typeof releases;
   roomCleanup: typeof roomCleanup;

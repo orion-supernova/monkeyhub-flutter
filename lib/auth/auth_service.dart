@@ -26,19 +26,20 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Creates an account. [recoveryKeyHash] is required — a recovery phrase is
+  /// no longer optional, because an account without one is unrecoverable.
+  /// The caller hashes it; the plaintext never reaches this layer.
   Future<void> signUp({
     required String username,
     required String name,
     required String password,
-    String? email,
-    String? recoveryKey,
+    required String recoveryKeyHash,
   }) async {
     final res = await _api.signup(
       username: username,
       name: name,
       password: password,
-      email: email,
-      recoveryKey: recoveryKey,
+      recoveryKeyHash: recoveryKeyHash,
     );
     _session = Session(userId: res.userId, username: res.username, name: res.name);
     // Update the UI first. Persisting to flutter_secure_storage occasionally
@@ -100,9 +101,37 @@ class AuthService extends ChangeNotifier {
         .catchError((_) {/* see signIn docs */});
   }
 
+  /// True when a reset just succeeded and the phrase should be retired.
+  ///
+  /// A phrase that has been *entered* is spent: by definition of "I forgot my
+  /// password" it may have just been typed on a borrowed laptop or into a
+  /// browser that autofilled it into history. Rotating costs the user nothing —
+  /// they are already in an account-maintenance frame of mind and the new
+  /// password is in hand.
+  ///
+  /// Deliberately NOT persisted. If the app dies before the rotation happens
+  /// the account still has a working (old) phrase — nothing is broken, it just
+  /// didn't rotate, and the next launch's recovery gate is the backstop.
+  bool _needsPhraseRotation = false;
+  bool get needsPhraseRotation => _needsPhraseRotation;
+
+  /// The password set during the reset, held only long enough to hand to the
+  /// rotation gate so it needn't ask for it again. Consumed exactly once.
+  String? _pendingRotationPassword;
+  String? consumePendingRotationPassword() {
+    final p = _pendingRotationPassword;
+    _pendingRotationPassword = null;
+    return p;
+  }
+
   /// Resets the password using a recovery phrase. On success, signs the user
   /// in immediately (mirrors the Convex `resetPasswordWithRecoveryKey` return
   /// shape, which is identical to login).
+  ///
+  /// Does NOT push the rotation gate itself: the sign-in below flips
+  /// `isSignedIn`, which makes `_AppHome` swap LoginScreen out for HomeShell
+  /// and dispose the very context that would be pushing. The flag is picked up
+  /// by `RecoveryGate` from the app shell instead.
   Future<void> resetPasswordWithRecoveryKey({
     required String username,
     required String recoveryKey,
@@ -113,9 +142,31 @@ class AuthService extends ChangeNotifier {
       recoveryKey: recoveryKey,
       newPassword: newPassword,
     );
+    _needsPhraseRotation = true;
+    _pendingRotationPassword = newPassword;
     _session = Session(userId: res.userId, username: res.username, name: res.name);
     notifyListeners();
     _persistSession(res);
+  }
+
+  /// Sets or replaces this account's recovery phrase. [recoveryKeyHash] is
+  /// already hashed; [password] proves the caller owns the account, because
+  /// planting a phrase on someone else's account would be a takeover.
+  Future<void> setRecoveryKey({
+    required String password,
+    required String recoveryKeyHash,
+  }) async {
+    final s = _session;
+    // Backstop only — the UI never offers this to a child, and the backend
+    // rejects it outright. Children have no password and no reset path.
+    if (s == null || s.isChild) return;
+    await _api.setRecoveryKey(
+      userId: s.userId,
+      password: password,
+      recoveryKeyHash: recoveryKeyHash,
+    );
+    _needsPhraseRotation = false;
+    _pendingRotationPassword = null;
   }
 
   /// Children cannot sign themselves out — that's the whole point of a
@@ -133,6 +184,11 @@ class AuthService extends ChangeNotifier {
     } catch (_) {}
     await SessionStore.instance.clearSession();
     _session = null;
+    // A pending rotation belongs to the account that just left. Carrying it
+    // into the next sign-in would gate the wrong person, with a password that
+    // isn't theirs.
+    _needsPhraseRotation = false;
+    _pendingRotationPassword = null;
     notifyListeners();
   }
 

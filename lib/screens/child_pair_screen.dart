@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -115,21 +116,18 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
     }
   }
 
-  static const Map<String, String> _errorMessages = {
-    'PAIRING_CODE_EXPIRED':
-        'That code has run out. Ask for a new one.',
-    'PAIRING_CODE_INVALID':
-        'That code didn\'t work. It may have been used already.',
-    'USER_NOT_FOUND': 'That account isn\'t there any more.',
-  };
-
-  String _humanize(Object e) {
-    final s = e.toString();
-    for (final entry in _errorMessages.entries) {
-      if (s.contains(entry.key)) return entry.value;
-    }
-    return 'Something went wrong. Try again.';
-  }
+  /// Never surfaces a raw exception — this screen is read by children.
+  ///
+  /// No username is typed here, so the shared USER_NOT_FOUND copy ("no account
+  /// with that username") would make no sense: on this screen it means the
+  /// child's account was deleted out from under the handset.
+  String _humanize(Object e) => humanizeAuthError(
+        e,
+        fallback: 'Something went wrong. Try again.',
+        overrides: const {
+          'USER_NOT_FOUND': 'That account isn\'t there any more.',
+        },
+      );
 
   @override
   Widget build(BuildContext context) {

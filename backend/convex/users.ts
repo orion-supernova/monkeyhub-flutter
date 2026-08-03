@@ -85,6 +85,22 @@ export const getProfile = query({
       name: user.name,
       // Self-only data — never expose to other viewers.
       email: isSelf || isGuardian ? user.email : undefined,
+      // Whether a recovery phrase is set. The HASH is NEVER returned: it IS
+      // the reset credential, and handing it out would enable an offline
+      // dictionary attack on the legacy freehand phrases, which are exactly
+      // the low-entropy ones.
+      //
+      // Self only — deliberately NOT self-or-guardian, unlike email above.
+      // Another adult's recovery status is none of a guardian's business, and
+      // for a child it is meaningless: children have no phrase and no reset
+      // path, so returning `false` there would drive a "set up your recovery
+      // phrase" nag on every kid's phone, pointing at a screen that cannot
+      // work for them. `undefined` reads as "unknown" on the client, which is
+      // treated as do-not-prompt.
+      hasRecoveryKey:
+        isSelf && user.accountType !== ACCOUNT_CHILD
+          ? user.recoveryKeyHash !== undefined
+          : undefined,
       avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,
       status: canSee(vis.status)
         ? effectiveStatus(user.status, user.lastSeen)
@@ -263,9 +279,18 @@ export const updateProfile = mutation({
   handler: async (ctx, { userId, name, email }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    // An ABSENT email leaves the stored one alone; only an explicitly empty
+    // string clears it. The old code treated both as "delete", which was
+    // harmless only because the client always echoed the currently-loaded
+    // value back. It no longer can: email is now stripped from friend lists
+    // and room member lists, so a profile opened from one of those has
+    // `email == null` until getProfile lands — and echoing that back would
+    // have silently deleted the user's email on a name change.
     await ctx.db.patch(userId, {
       name: name.trim(),
-      email: email && email.length > 0 ? email : undefined,
+      ...(email !== undefined
+        ? { email: email.trim().length > 0 ? email.trim() : undefined }
+        : {}),
     });
   },
 });

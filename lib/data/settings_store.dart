@@ -34,6 +34,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kFullScreenIntentPrompted = 'mh.fullScreenIntentPrompted';
   static const _kBatteryOptPrompted = 'mh.batteryOptPrompted';
   static const _kMicPermissionPrompted = 'mh.micPermissionPrompted';
+  static const _kRecoveryPromptDismissed = 'mh.recoveryPromptDismissedFor';
   static const _kFilterStyle = 'mh.filterStyle';
   static const _kRoomFilter = 'mh.roomFilter';
   static const _kGlassProfile = 'mh.glass.profile';
@@ -60,6 +61,7 @@ class SettingsStore extends ChangeNotifier {
   bool _fullScreenIntentPrompted = false;
   bool _batteryOptPrompted = false;
   bool _micPermissionPrompted = false;
+  String? _recoveryPromptDismissedFor;
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
@@ -98,6 +100,17 @@ class SettingsStore extends ChangeNotifier {
   bool get fullScreenIntentPrompted => _fullScreenIntentPrompted;
   bool get batteryOptPrompted => _batteryOptPrompted;
   bool get micPermissionPrompted => _micPermissionPrompted;
+
+  /// The userId that declined the "set up a recovery phrase" prompt.
+  ///
+  /// Stores an ID rather than a bool because two accounts can share a handset,
+  /// and one of them declining must not silence the prompt for the other.
+  ///
+  /// Deliberately lives here and NOT in SessionStore: `clearSession()` wipes
+  /// its keys on every sign-out, so a dismissal stored there would evaporate
+  /// and the user would be re-prompted on every single sign-in. SettingsStore
+  /// is never cleared. That difference is the whole reason for the split.
+  String? get recoveryPromptDismissedFor => _recoveryPromptDismissedFor;
 
   /// Which control the chat list uses to filter rooms. Defaults to
   /// [FilterStyle.chips] — the filters are worth a permanent row, and a control
@@ -208,6 +221,8 @@ class SettingsStore extends ChangeNotifier {
           await _storage.read(key: _kBatteryOptPrompted) == 'true';
       _micPermissionPrompted =
           await _storage.read(key: _kMicPermissionPrompted) == 'true';
+      _recoveryPromptDismissedFor =
+          await _storage.read(key: _kRecoveryPromptDismissed);
       final fs = await _storage.read(key: _kFilterStyle);
       // First-launch default is chips; honour an explicit 'drawer' selection.
       _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
@@ -375,6 +390,15 @@ class SettingsStore extends ChangeNotifier {
     if (_micPermissionPrompted) return;
     _micPermissionPrompted = true;
     await _storage.write(key: _kMicPermissionPrompted, value: 'true');
+  }
+
+  /// Records that [userId] declined the recovery-phrase prompt once. The
+  /// settings and profile banners carry it from there — this is a prompt, not
+  /// a nag.
+  Future<void> markRecoveryPromptDismissed(String userId) async {
+    if (_recoveryPromptDismissedFor == userId) return;
+    _recoveryPromptDismissedFor = userId;
+    await _storage.write(key: _kRecoveryPromptDismissed, value: userId);
   }
 
   Future<void> setManualLogoThemeId(String id) async {
