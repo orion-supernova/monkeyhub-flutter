@@ -136,7 +136,9 @@ class RoomCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Text('${room.memberCount} inside', style: theme.caption),
+                // A DM always has exactly two people in it, so "2 inside" is
+                // noise — the friend's name and avatar already say who's here.
+                if (!room.isDm) Text('${room.memberCount} inside', style: theme.caption),
                 const Spacer(),
                 if (room.isEphemeral)
                   Row(

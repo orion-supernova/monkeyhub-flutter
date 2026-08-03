@@ -136,11 +136,14 @@ class RoomGridTile extends StatelessWidget {
                 ],
               ),
             ),
-            Row(children: [
-              Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
-              const SizedBox(width: 4),
-              Text('IN', style: theme.monoTiny),
-            ]),
+            // A DM always has exactly two people in it, so the count is noise —
+            // the friend's name and avatar already say who's here.
+            if (!room.isDm)
+              Row(children: [
+                Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
+                const SizedBox(width: 4),
+                Text('IN', style: theme.monoTiny),
+              ]),
           ],
         ),
       ),
