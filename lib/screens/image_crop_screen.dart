@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/photo_chrome.dart';
+import 'review_route.dart';
 
 /// Shape of the crop window. [circle] is for avatars — every avatar display
 /// site clips to a circle, so the ghost ring shows exactly what will survive.
@@ -65,6 +66,10 @@ class ImageCropScreen extends StatefulWidget {
   final String confirmLabel;
   final String title;
 
+  /// [overCamera] pushes with no transition, for the camera's in-place review:
+  /// the crop takes the preview's place in the frame after the shutter rather
+  /// than presenting itself as a second screen. A photo from the library has no
+  /// camera under it and animates in normally.
   static Future<CroppedImage?> open(
     BuildContext context, {
     required Uint8List source,
@@ -74,20 +79,21 @@ class ImageCropScreen extends StatefulWidget {
     String confirmLabel = 'USE PHOTO',
     String title = 'adjust',
     bool mirrored = false,
+    bool overCamera = false,
   }) {
+    final screen = ImageCropScreen(
+      source: source,
+      shape: shape,
+      aspectRatio: aspectRatio,
+      maxOutputEdge: maxOutputEdge,
+      confirmLabel: confirmLabel,
+      title: title,
+      mirrored: mirrored,
+    );
     return Navigator.of(context).push<CroppedImage>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => ImageCropScreen(
-          source: source,
-          shape: shape,
-          aspectRatio: aspectRatio,
-          maxOutputEdge: maxOutputEdge,
-          confirmLabel: confirmLabel,
-          title: title,
-          mirrored: mirrored,
-        ),
-      ),
+      overCamera
+          ? reviewRoute<CroppedImage>(screen)
+          : MaterialPageRoute(fullscreenDialog: true, builder: (_) => screen),
     );
   }
 
