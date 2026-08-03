@@ -255,6 +255,7 @@ void main() {
   testWidgets('the menu stays clear of the keyboard', (tester) async {
     const keyboard = 336.0;
     final anchor = GlobalKey();
+    MessageActionResult? picked;
 
     // Set on the VIEW, not via a wrapping MediaQuery: the Scaffold would strip
     // a bottom inset out of its body's MediaQuery before the call site could
@@ -274,7 +275,7 @@ void main() {
             child: Builder(
               builder: (ctx) => GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: () => showMessageActionMenu(
+                onTap: () async => picked = await showMessageActionMenu(
                   context: ctx,
                   anchorKey: anchor,
                   bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
@@ -308,8 +309,21 @@ void main() {
     expect(list.bottom, lessThanOrEqualTo(bandBottom + 0.5));
     expect(list.top, greaterThanOrEqualTo(0));
 
-    // Too tall to show at once, so it scrolls — and REPORT, the last row and
-    // the first casualty, comes into the band when you reach for it.
+    // And the reaction pill is still a thing you can hit. Clamping the two
+    // separately put the menu straight on top of it — both were individually
+    // inside the band, both got pushed to the same end of it, and the quick
+    // reactions became unreachable.
+    for (final emoji in ['👍', '🔥']) {
+      final e = tester.getRect(find.text(emoji));
+      expect(e.bottom, lessThanOrEqualTo(list.top + 0.5),
+          reason: '$emoji is underneath the action list');
+      expect(e.top, greaterThanOrEqualTo(0));
+    }
+
+    // Too tall to show at once, so it scrolls — with a thumb saying so, and
+    // REPORT, the last row and the first casualty, comes into the band when you
+    // reach for it.
+    expect(find.byType(RawScrollbar), findsOneWidget);
     expect(tester.getRect(find.text('REPLY')).bottom,
         lessThanOrEqualTo(bandBottom + 0.5));
     await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -400));
@@ -317,6 +331,12 @@ void main() {
     final report = tester.getRect(find.text('REPORT'));
     expect(report.bottom, lessThanOrEqualTo(bandBottom + 0.5));
     expect(report.top, greaterThanOrEqualTo(list.top - 0.5));
+
+    // Geometry is necessary but not sufficient — the pill has to actually take
+    // the tap, not sit under the menu's hit area.
+    await tester.tap(find.text('\u{1F44D}'));
+    await tester.pumpAndSettle();
+    expect(picked?.emoji, '\u{1F44D}');
   });
 
   testWidgets('an unsent document dims its save control instead of losing it',

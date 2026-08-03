@@ -296,40 +296,46 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     final menuH = math.min(wantedMenuH, maxMenuH);
     final menuScrolls = menuH < wantedMenuH;
 
-    final spaceAbove = bubble.top - topSafe;
+    final spaceAbove = bubble.top - bandTop;
     final spaceBelow = bandBottom - bubble.bottom;
 
-    // Pill prefers above; menu prefers below. Flip when there is no room
-    // and the opposite side has more space.
-    var pillAbove = spaceAbove >= pillH + gap;
-    var menuBelow = spaceBelow >= menuH + gap;
-    if (!pillAbove && !menuBelow) {
-      // Pathological — pick whichever side has more room. Nothing overflows
-      // off-screen any more; the clamp below pulls both back into the band and
-      // they overlap the lifted bubble instead, which is recoverable in a way
-      // that a row under the keyboard is not.
-      pillAbove = spaceAbove >= spaceBelow;
-      menuBelow = !pillAbove;
-    } else if (!pillAbove && menuBelow) {
-      // Pill goes below, between the bubble and the menu.
-    } else if (pillAbove && !menuBelow) {
-      // Menu goes above, between the pill and the bubble.
+    // Preferred: the bubble sits BETWEEN them — reactions above it, actions
+    // below — which is what makes the lifted bubble read as the thing both are
+    // acting on. Taken only when both land inside the band untouched.
+    final splitPillTop = bubble.top - gap - pillH;
+    final splitMenuTop = bubble.bottom + gap;
+    final split = splitPillTop >= bandTop && splitMenuTop + menuH <= bandBottom;
+
+    final double pillTop;
+    final double menuTop;
+    if (split) {
+      pillTop = splitPillTop;
+      menuTop = splitMenuTop;
+    } else {
+      // One stack, placed and clamped as a UNIT. Clamping the two separately is
+      // what put the menu on top of the reaction pill: each was individually
+      // inside the band and they were both pushed to the same end of it, so the
+      // quick reactions became unreachable. Moved together they cannot collide,
+      // and `maxMenuH` above guarantees the pair fits the band by construction.
+      //
+      // Pill leads, because it is the shorter of the two and the one you reach
+      // for without reading.
+      final groupH = pillH + gap + menuH;
+      final double wanted = spaceBelow >= spaceAbove
+          ? bubble.bottom + gap
+          : bubble.top - gap - groupH;
+      final groupTop = wanted
+          .clamp(bandTop, math.max(bandTop, bandBottom - groupH))
+          .toDouble();
+      pillTop = groupTop;
+      menuTop = groupTop + pillH + gap;
     }
 
-    /// Pulls a placed element back inside the band. `max` on the low end so a
-    /// band shorter than the element pins it to the top rather than inverting.
-    double intoBand(double top, double height) =>
-        top.clamp(bandTop, math.max(bandTop, bandBottom - height));
-
-    final pillTop = intoBand(
-        pillAbove ? bubble.top - gap - pillH : bubble.bottom + gap, pillH);
-    final menuTop = intoBand(
-        menuBelow
-            ? (pillAbove ? bubble.bottom + gap : bubble.bottom + gap + pillH + gap)
-            : (pillAbove
-                ? bubble.top - gap - pillH - gap - menuH
-                : bubble.top - gap - menuH),
-        menuH);
+    // Both entries slide in from the bubble's side, so each reads as growing
+    // out of the message rather than arriving from off-screen. Derived from
+    // where they actually landed, not from where they were asked to go.
+    final pillBelowBubble = pillTop >= bubble.top;
+    final menuBelowBubble = menuTop >= bubble.top;
 
     // Pill / menu align to the bubble's leading edge.
     final (double? edgeLeft, double? edgeRight) = widget.isMine
@@ -366,7 +372,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
-            fromAbove: !pillAbove,
+            fromAbove: pillBelowBubble,
             alignment: widget.isMine ? Alignment.centerRight : Alignment.centerLeft,
             child: _ReactionPill(
               isMine: widget.isMine,
@@ -387,7 +393,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
           right: edgeRight,
           child: _AnimatedEntry(
             t: curved,
-            fromAbove: menuBelow,
+            fromAbove: menuBelowBubble,
             delay: 0.08,
             alignment: widget.isMine ? Alignment.topRight : Alignment.topLeft,
             child: _ActionList(
@@ -819,10 +825,60 @@ class _ActionList extends StatelessWidget {
         // taps to a drag recognizer that has no reason to exist.
         child: maxHeight == null
             ? column
-            : SingleChildScrollView(
-                padding: EdgeInsets.zero,
-                child: column,
-              ),
+            : _ScrollableMenuBody(theme: theme, child: column),
+      ),
+    );
+  }
+}
+
+/// The action list when it does not fit the space it was given.
+///
+/// A menu that silently ends mid-list looks like a menu with fewer actions in
+/// it — there is nothing at the fold to say DELETE is one flick away. The thumb
+/// is what says so.
+///
+/// Its own widget purely to own the [ScrollController]: [_ActionList] is
+/// stateless, and `thumbVisibility` needs a controller shared with the view it
+/// is measuring.
+class _ScrollableMenuBody extends StatefulWidget {
+  const _ScrollableMenuBody({required this.theme, required this.child});
+
+  final AppTheme theme;
+  final Widget child;
+
+  @override
+  State<_ScrollableMenuBody> createState() => _ScrollableMenuBodyState();
+}
+
+class _ScrollableMenuBodyState extends State<_ScrollableMenuBody> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = widget.theme.ink;
+    return RawScrollbar(
+      controller: _controller,
+      // Drawn from the moment the menu opens, not faded in on first scroll.
+      // A scrollbar that appears once you scroll answers a question you have
+      // already answered yourself; this one has to be there before the flick.
+      thumbVisibility: true,
+      thumbColor: ink.withValues(alpha: 0.32),
+      thickness: 3,
+      radius: const Radius.circular(2),
+      // Clear of the glass surface's rounded corner, and short of both ends so
+      // the thumb never sits against the edge of the menu.
+      crossAxisMargin: 3,
+      mainAxisMargin: 8,
+      child: SingleChildScrollView(
+        controller: _controller,
+        padding: EdgeInsets.zero,
+        child: widget.child,
       ),
     );
   }
