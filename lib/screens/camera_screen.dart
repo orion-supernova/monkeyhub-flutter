@@ -30,22 +30,44 @@ import '../widgets/photo_chrome.dart';
 /// [CameraUnavailable] exists: if the hardware or the plugin will not start,
 /// the caller falls back to the system camera rather than dead-ending.
 ///
+/// The photo is reviewed *over* this route, not after it — see [review].
+///
 /// Pops a [CameraResult], or null if the user backed out.
-class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key, this.initialLens = CameraLensDirection.back});
+class CameraScreen<T> extends StatefulWidget {
+  const CameraScreen({
+    super.key,
+    required this.review,
+    this.initialLens = CameraLensDirection.back,
+  });
 
   /// Which lens to open on. Avatars open front — you are photographing
   /// yourself; chat opens back.
   final CameraLensDirection initialLens;
 
-  static Future<CameraResult?> open(
+  /// Shows the caller's review surface for a fresh capture, and says what to do
+  /// with the result. Chat reviews in the editor, avatars in the circle cropper.
+  ///
+  /// Called while the camera is still mounted, and expected to push on top of
+  /// it. The shutter used to pop this route and let the caller push the review
+  /// afterwards, which is two route animations overlapping: the camera slid
+  /// away revealing the chat, and the editor presented itself over that. What
+  /// looked like a bug was the chat showing through the seam. Reviewing on top
+  /// of a route that is still there removes the seam, and makes
+  /// [ReviewRetake] free — there is no camera to reopen, it never left.
+  final CameraReviewer<T> review;
+
+  static Future<CameraResult<T>?> open<T>(
     BuildContext context, {
+    required CameraReviewer<T> review,
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) {
-    return Navigator.of(context).push<CameraResult>(
+    return Navigator.of(context).push<CameraResult<T>>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => CameraScreen(initialLens: initialLens),
+        builder: (_) => CameraScreen<T>(
+          review: review,
+          initialLens: initialLens,
+        ),
       ),
     );
   }
@@ -61,16 +83,51 @@ class CameraScreen extends StatefulWidget {
   }
 
   @override
-  State<CameraScreen> createState() => _CameraScreenState();
+  State<CameraScreen<T>> createState() => _CameraScreenState<T>();
+}
+
+/// Reviews a capture on top of the camera. See [CameraScreen.review].
+typedef CameraReviewer<T> = Future<ReviewDecision<T>> Function(
+  BuildContext context,
+  CameraPhoto photo,
+);
+
+/// What the review surface decided about a capture.
+sealed class ReviewDecision<T> {
+  const ReviewDecision();
+}
+
+/// Done with this photo. The camera closes and [value] becomes the result of
+/// [CameraScreen.open] — null when the user threw the picture away, which ends
+/// the flow just as surely as keeping it does.
+class ReviewDone<T> extends ReviewDecision<T> {
+  const ReviewDone(this.value);
+  final T? value;
+}
+
+/// Throw this one away and shoot again.
+///
+/// Costs a controller restart rather than a route: the camera is still on the
+/// stack under the review surface, so RETAKE is that surface popping.
+class ReviewRetake<T> extends ReviewDecision<T> {
+  const ReviewRetake();
 }
 
 /// How the camera screen finished.
-sealed class CameraResult {
+sealed class CameraResult<T> {
   const CameraResult();
 }
 
-/// A photograph.
-class CameraPhoto extends CameraResult {
+/// The user reviewed a photograph and left. [value] is whatever their review
+/// surface produced, or null if they discarded it.
+class CameraReviewed<T> extends CameraResult<T> {
+  const CameraReviewed(this.value);
+  final T? value;
+}
+
+/// A photograph, on its way to [CameraScreen.review]. Never a [CameraResult] —
+/// a raw capture no longer leaves this screen, it is reviewed on top of it.
+class CameraPhoto {
   const CameraPhoto({required this.bytes, required this.mirrored});
 
   final Uint8List bytes;
@@ -86,17 +143,17 @@ class CameraPhoto extends CameraResult {
 }
 
 /// The user asked for the photo library instead. The caller owns the picker.
-class CameraPickLibrary extends CameraResult {
+class CameraPickLibrary<T> extends CameraResult<T> {
   const CameraPickLibrary();
 }
 
 /// The camera could not be started, for a reason that is not the user saying
 /// no. Callers should fall back to `ImagePicker(source: camera)`.
-class CameraUnavailable extends CameraResult {
+class CameraUnavailable<T> extends CameraResult<T> {
   const CameraUnavailable();
 }
 
-class _CameraScreenState extends State<CameraScreen>
+class _CameraScreenState<T> extends State<CameraScreen<T>>
     with WidgetsBindingObserver {
   /// Front-lens *captures* come back un-mirrored on every platform: iOS gives
   /// `AVCapturePhotoOutput` an auto-formed connection that `isVideoMirrored`
@@ -141,6 +198,17 @@ class _CameraScreenState extends State<CameraScreen>
 
   _Fault? _fault;
   bool _capturing = false;
+
+  /// The capture being reviewed on top of this route, or null when the camera
+  /// is the thing on screen.
+  ///
+  /// Doubles as the backdrop while it is set: this screen paints the photo
+  /// instead of a preview it has already let go of. Nothing of it is visible
+  /// under the review surface — it is for the frame either side. Going in,
+  /// releasing the session would otherwise flash black behind a route that has
+  /// not painted yet; coming out, the route dismisses carrying the picture the
+  /// user was just looking at rather than the black of a dead camera.
+  CameraPhoto? _reviewing;
 
   /// Where the last tap-to-focus landed, in this widget's local coordinates.
   /// Null once the reticle has faded out.
@@ -208,20 +276,34 @@ class _CameraScreenState extends State<CameraScreen>
   /// prescribes; lifecycle has not been the plugin's job since 0.5.0.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      _controller = null;
-      // The stream dies with the controller; leaving the flag set would make
-      // _syncMetering believe it was already running on the next resume.
-      _metering = false;
-      controller.removeListener(_onControllerUpdate);
-      controller.dispose();
-      if (mounted) setState(() {});
+      unawaited(_release());
     } else if (state == AppLifecycleState.resumed) {
-      _select(_lens);
+      // Not while the review surface is up: the user is looking at a photo, and
+      // starting a capture session behind it would light the recording
+      // indicator for a camera nobody is pointing at anything. _review binds a
+      // controller again if they ask to retake.
+      if (_reviewing == null) _select(_lens);
     }
+  }
+
+  /// Lets go of the capture session, leaving the screen mounted.
+  ///
+  /// Used for backgrounding and while a photo is being reviewed on top of this
+  /// route — both are "someone else has the screen now", and a session held
+  /// through either is battery, heat, and a recording indicator with nothing
+  /// behind it.
+  Future<void> _release() async {
+    final controller = _controller;
+    if (controller == null) return;
+    _controller = null;
+    // The stream dies with the controller; leaving the flag set would make
+    // _syncMetering believe it was already running on the next resume.
+    _metering = false;
+    controller.removeListener(_onControllerUpdate);
+    if (mounted) setState(() {});
+    await controller.dispose();
   }
 
   // ------------------------------------------------------------------ startup
@@ -588,51 +670,103 @@ class _CameraScreenState extends State<CameraScreen>
       if (!mounted) return;
     }
 
+    final Uint8List bytes;
     try {
       final shot = await controller.takePicture();
       // XFile.readAsBytes, not File(shot.path): on web `takePicture` hands back
       // a `blob:` URL, and cross_file fetches it. On mobile it reads the temp
       // file the plugin just wrote.
-      final bytes = await shot.readAsBytes();
-      if (!mounted) return;
-      Navigator.of(context).pop<CameraResult>(
-        CameraPhoto(
-          bytes: bytes,
-          // Not mirrored here — the screen that receives this rasterizes once
-          // anyway and folds the flip into that pass, so the shutter returns
-          // immediately instead of stalling on a full-resolution re-encode.
-          mirrored: _isFront && _captureNeedsMirroring,
-        ),
-      );
+      bytes = await shot.readAsBytes();
     } catch (_) {
       if (!mounted) return;
-      // Back to a usable camera rather than a stuck shutter: drop the flash,
-      // clear the busy state, and put the light meter back if it was running.
-      setState(() {
-        _capturing = false;
-        _screenFlash = false;
-      });
-      await _syncMetering();
+      await _recover();
+      return;
+    }
+    if (!mounted) return;
+    await _review(
+      CameraPhoto(
+        bytes: bytes,
+        // Not mirrored here — the screen that receives this rasterizes once
+        // anyway and folds the flip into that pass, so the shutter returns
+        // immediately instead of stalling on a full-resolution re-encode.
+        mirrored: _isFront && _captureNeedsMirroring,
+      ),
+    );
+  }
+
+  /// Hands [photo] to the caller's review surface and does what it says.
+  ///
+  /// The review is pushed on top of this route while it is still live — see
+  /// [CameraScreen.review] for why — so the two things that follow are not a
+  /// pop and a push but a pop and *nothing*: RETAKE reveals the camera that was
+  /// there all along, and finishing closes it with the reviewed value.
+  Future<void> _review(CameraPhoto photo) async {
+    setState(() => _reviewing = photo);
+    // Started, not awaited, before the session is let go: the review surface
+    // pushes its route synchronously, so the frame that swaps the preview for
+    // the still is the same frame the review covers it.
+    final decision = widget.review(context, photo);
+    final released = _release();
+
+    final outcome = await decision;
+    if (!mounted) return;
+
+    switch (outcome) {
+      case ReviewDone(:final value):
+        // _reviewing deliberately left set — this route is about to dismiss and
+        // should carry the photo out with it. See the field.
+        Navigator.of(context).pop<CameraResult<T>>(CameraReviewed<T>(value));
+      case ReviewRetake():
+        // The old session has to be all the way down before the next one is
+        // built, or the two overlap on the platform and the second is refused
+        // the camera. Long done in practice — nobody reviews a photo in the
+        // time a dispose takes — but not something to leave to the user's
+        // reflexes.
+        await released;
+        if (!mounted) return;
+        setState(() => _reviewing = null);
+        await _recover();
+        await _select(_lens);
     }
   }
 
-  void _pop(CameraResult result) {
+  /// Back to a usable camera rather than a stuck shutter: drop the flash and
+  /// clear the busy state. The caller restores the session — [_syncMetering]
+  /// after a failed capture, which still holds its controller, or a fresh
+  /// [_select] after a retake, which let go of it.
+  Future<void> _recover() async {
+    setState(() {
+      _capturing = false;
+      _screenFlash = false;
+    });
+    if (_controller != null) await _syncMetering();
+  }
+
+  void _pop(CameraResult<T> result) {
     if (_capturing) return;
-    Navigator.of(context).pop<CameraResult>(result);
+    Navigator.of(context).pop<CameraResult<T>>(result);
   }
 
   // --------------------------------------------------------------------- view
 
   @override
   Widget build(BuildContext context) {
+    final reviewing = _reviewing;
     return Scaffold(
       backgroundColor: Colors.black,
       body: BackdropGroup(
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (_fault != null) _faultBody() else _previewBody(),
-            SafeArea(child: _chrome()),
+            if (reviewing != null)
+              _stillBody(reviewing)
+            else if (_fault != null)
+              _faultBody()
+            else
+              _previewBody(),
+            // No camera chrome over a still: the shutter and the flash toggle
+            // belong to a preview, and this screen is not showing one.
+            if (reviewing == null) SafeArea(child: _chrome()),
             // Above everything, including the chrome: a selfie camera with no
             // flash unit uses the screen itself as the light. Warm rather than
             // pure white, which renders skin as a lamp does instead of as a
@@ -644,6 +778,25 @@ class _CameraScreenState extends State<CameraScreen>
           ],
         ),
       ),
+    );
+  }
+
+  /// The capture, laid out the way the review surface lays it out: contained on
+  /// black, mirrored if it is a selfie that has not been flipped yet. Matching
+  /// that is the whole point — this is what shows in the seam either side of the
+  /// review, and a different fit would make the seam visible again.
+  Widget _stillBody(CameraPhoto photo) {
+    final image = Image.memory(
+      photo.bytes,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      height: double.infinity,
+    );
+    if (!photo.mirrored) return image;
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
+      child: image,
     );
   }
 
@@ -747,7 +900,9 @@ class _CameraScreenState extends State<CameraScreen>
     // completes before the route pops.
     if (_fault != _Fault.denied) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop(const CameraUnavailable());
+        if (mounted) {
+          Navigator.of(context).pop<CameraResult<T>>(CameraUnavailable<T>());
+        }
       });
     }
     return Center(
@@ -844,7 +999,7 @@ class _CameraScreenState extends State<CameraScreen>
                       iconSize: 17,
                       onTap: _capturing
                           ? null
-                          : () => _pop(const CameraPickLibrary()),
+                          : () => _pop(CameraPickLibrary<T>()),
                     ),
                   ),
                 ),

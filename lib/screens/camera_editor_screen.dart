@@ -12,6 +12,7 @@ import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
+import 'review_route.dart';
 
 /// Post-capture editor: draw on the photo, frame it, send it.
 ///
@@ -59,20 +60,26 @@ class CameraEditorScreen extends StatefulWidget {
   /// re-encode.
   final bool mirrored;
 
+  /// [overCamera] pushes with no transition, for the camera's in-place review:
+  /// the editor takes the preview's place in the frame after the shutter rather
+  /// than presenting itself as a second screen. A photo from the library has no
+  /// camera under it and animates in normally.
   static Future<EditorOutcome?> open(
     BuildContext context, {
     required Uint8List source,
     bool canRetake = false,
     bool mirrored = false,
+    bool overCamera = false,
   }) {
+    final screen = CameraEditorScreen(
+      source: source,
+      canRetake: canRetake,
+      mirrored: mirrored,
+    );
     return Navigator.of(context).push<EditorOutcome>(
-      MaterialPageRoute(
-        builder: (_) => CameraEditorScreen(
-          source: source,
-          canRetake: canRetake,
-          mirrored: mirrored,
-        ),
-      ),
+      overCamera
+          ? reviewRoute<EditorOutcome>(screen)
+          : MaterialPageRoute(builder: (_) => screen),
     );
   }
 

@@ -1252,86 +1252,83 @@ class _RoomScreenState extends State<RoomScreen>
     }
   }
 
-  /// Camera → editor → send, looping while the user keeps asking to retake.
+  /// Camera → editor → send, with the editor opening *over* the camera.
   ///
-  /// The loop is what makes RETAKE mean what it says. It used to pop null,
-  /// which is the same thing discarding does, so the button dropped the user
-  /// back in the chat rather than back at the camera.
+  /// There is no reopen-the-camera loop here any more, because there is nothing
+  /// to reopen: the camera route stays on the stack under the editor, so RETAKE
+  /// is the editor popping. That is also what fixes the shutter looking like a
+  /// bug — the camera used to pop and the editor push after it, and the chat
+  /// showed through the seam between the two animations.
   ///
-  /// [initialLens] is which lens to open on, and RETAKE returns to the same one
-  /// — a retake is a second attempt at the shot the entry point was for, not a
-  /// different one.
+  /// [initialLens] is which lens to open on, and RETAKE stays on it — a retake
+  /// is a second attempt at the shot the entry point was for, not a different
+  /// one.
   Future<void> _captureAndSend({
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) async {
-    var result = await CameraScreen.open(context, initialLens: initialLens);
-    while (result != null) {
-      if (!mounted) return;
+    final result = await CameraScreen.open<EditorSend>(
+      context,
+      initialLens: initialLens,
+      review: (context, photo) async {
+        final outcome = await CameraEditorScreen.open(
+          context,
+          source: photo.bytes,
+          canRetake: true,
+          mirrored: photo.mirrored,
+          overCamera: true,
+        );
+        return switch (outcome) {
+          EditorRetake() => const ReviewRetake<EditorSend>(),
+          final EditorSend send => ReviewDone(send),
+          null => const ReviewDone<EditorSend>(null),
+        };
+      },
+    );
+    if (!mounted) return;
 
-      switch (result) {
-        case CameraPickLibrary():
-          // The camera's own shortcut into the photo library.
-          await _pickAndSendFromGallery();
-          return;
+    switch (result) {
+      case CameraReviewed(:final value):
+        // Sent from here rather than inside the review so the upload starts
+        // against a chat that is already back on screen.
+        if (value != null) _sendEdited(value);
 
-        case CameraUnavailable():
-          // The in-app camera could not start for a reason that isn't the user
-          // saying no. Fall back to the system camera rather than leaving them
-          // with no way to take a picture at all. No mirroring on this path:
-          // `image_picker` never reports which lens fired, and reflecting a
-          // photo of a document would be worse than leaving a selfie unflipped.
-          final picked = await ImagePicker().pickImage(
-            source: ImageSource.camera,
-            imageQuality: pickerImageQuality,
-          );
-          if (picked == null || !mounted) return;
-          final bytes = await picked.readAsBytes();
-          if (!mounted) return;
-          await _editAndSend(bytes, canRetake: false, mirrored: false);
-          return;
+      case CameraPickLibrary():
+        // The camera's own shortcut into the photo library.
+        await _pickAndSendFromGallery();
 
-        case CameraPhoto(:final bytes, :final mirrored):
-          final retake = await _editAndSend(
-            bytes,
-            canRetake: true,
-            mirrored: mirrored,
-          );
-          if (!retake || !mounted) return;
-          result = await CameraScreen.open(context, initialLens: initialLens);
-      }
+      case CameraUnavailable():
+        // The in-app camera could not start for a reason that isn't the user
+        // saying no. Fall back to the system camera rather than leaving them
+        // with no way to take a picture at all. No mirroring on this path:
+        // `image_picker` never reports which lens fired, and reflecting a
+        // photo of a document would be worse than leaving a selfie unflipped.
+        // No retake either: the system camera has its own, and there is no
+        // route of ours underneath to go back to.
+        final picked = await ImagePicker().pickImage(
+          source: ImageSource.camera,
+          imageQuality: pickerImageQuality,
+        );
+        if (picked == null || !mounted) return;
+        final bytes = await picked.readAsBytes();
+        if (!mounted) return;
+        final outcome = await CameraEditorScreen.open(context, source: bytes);
+        if (outcome is EditorSend) _sendEdited(outcome);
+
+      case null:
+        return; // backed out of the camera
     }
   }
 
-  /// Runs the editor over [bytes] and sends what comes out.
-  ///
-  /// Returns true only when the user asked to retake, so the caller's loop
-  /// knows to reopen the camera. Discarding and sending both end the flow —
-  /// conflating those two is what made the old RETAKE button drop the user back
-  /// into the chat.
-  Future<bool> _editAndSend(
-    Uint8List bytes, {
-    required bool canRetake,
-    required bool mirrored,
-  }) async {
-    final outcome = await CameraEditorScreen.open(
-      context,
-      source: bytes,
-      canRetake: canRetake,
-      mirrored: mirrored,
-    );
-    if (outcome is EditorRetake) return true;
-    if (outcome is! EditorSend) return false;
+  /// Sends what came out of the editor.
+  void _sendEdited(EditorSend outcome) {
+    final img = outcome.image;
     _sendMedia(
-      bytes: outcome.image.bytes,
+      bytes: img.bytes,
       type: MessageType.image,
-      contentType: outcome.image.contentType,
-      pixelSize: Size(
-        outcome.image.width.toDouble(),
-        outcome.image.height.toDouble(),
-      ),
+      contentType: img.contentType,
+      pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
       viewOnce: outcome.viewOnce,
     );
-    return false;
   }
 
   /// Spends this viewer's one look at a view-once photo and shows it.
@@ -1390,15 +1387,7 @@ class _RoomScreenState extends State<RoomScreen>
       // shipping the photo the moment they pick it. No retake: there is no
       // camera behind this photo to go back to.
       final outcome = await CameraEditorScreen.open(context, source: bytes);
-      if (outcome is! EditorSend) return;
-      final img = outcome.image;
-      _sendMedia(
-        bytes: img.bytes,
-        type: MessageType.image,
-        contentType: img.contentType,
-        pixelSize: Size(img.width.toDouble(), img.height.toDouble()),
-        viewOnce: outcome.viewOnce,
-      );
+      if (outcome is EditorSend) _sendEdited(outcome);
     } finally {
       _setMediaBusy(false);
     }

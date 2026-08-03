@@ -598,15 +598,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _busy = true;
       _changingAvatar = true;
     });
-    final result = await CameraScreen.open(
+    final result = await CameraScreen.open<CroppedImage>(
       context,
       initialLens: CameraLensDirection.front,
+      // The crop opens over the camera, so the shutter reads as the preview
+      // becoming the picture rather than one screen dismissing and another
+      // presenting. Never a retake: the cropper has no such button, and its
+      // X means the same thing here as the editor's does in a chat — the user
+      // is done, not asking for another go.
+      review: (context, photo) async {
+        final cropped = await ImageCropScreen.open(
+          context,
+          source: photo.bytes,
+          shape: CropShape.circle,
+          mirrored: photo.mirrored,
+          overCamera: true,
+        );
+        return ReviewDone(cropped);
+      },
     );
     if (!mounted) return;
 
     switch (result) {
-      case CameraPhoto(:final bytes, :final mirrored):
-        await _cropAndUploadAvatar(bytes, mirrored: mirrored);
+      case CameraReviewed(:final value):
+        await _uploadAvatar(value);
       case CameraPickLibrary():
         // The camera's own shortcut into the photo library. `_busy` is already
         // raised, and the library path re-raises it harmlessly.
@@ -623,7 +638,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         await _cropAndUploadAvatar(await picked?.readAsBytes());
       case null:
-        await _cropAndUploadAvatar(null); // cancelled — clears the spinner
+        await _uploadAvatar(null); // cancelled — clears the spinner
     }
   }
 
@@ -654,27 +669,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Uint8List? source, {
     bool mirrored = false,
   }) async {
-    final api = widget.api;
-    final repo = widget.repo;
-    if (source == null || api == null || repo?.userId == null) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _changingAvatar = false;
-        });
-      }
+    if (source == null || !mounted) {
+      await _uploadAvatar(null);
       return;
     }
-    if (!mounted) return;
     // _busy/_changingAvatar stay set across the crop screen: the avatar keeps
     // its spinner underneath and the sheet can't be reopened behind it.
-    final cropped = await ImageCropScreen.open(
-      context,
-      source: source,
-      shape: CropShape.circle,
-      mirrored: mirrored,
+    await _uploadAvatar(
+      await ImageCropScreen.open(
+        context,
+        source: source,
+        shape: CropShape.circle,
+        mirrored: mirrored,
+      ),
     );
-    if (cropped == null) {
+  }
+
+  /// Puts [cropped] on the account. Null is a cancel — the crop was backed out
+  /// of, or there was never a picture — which clears the spinner and nothing
+  /// else.
+  ///
+  /// Split out from [_cropAndUploadAvatar] because the camera path crops
+  /// *inside* the camera route now, and lands here with the framed picture
+  /// already in hand.
+  Future<void> _uploadAvatar(CroppedImage? cropped) async {
+    final api = widget.api;
+    final repo = widget.repo;
+    if (cropped == null || api == null || repo?.userId == null) {
       if (mounted) {
         setState(() {
           _busy = false;
