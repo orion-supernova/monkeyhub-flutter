@@ -94,11 +94,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// The breadcrumb under the avatar card. A child's account has no family
-  /// controls to offer and no sign-in methods to manage, so it gets the two
-  /// things that are actually behind the card for them.
+  /// controls to offer and nothing to link, so it gets the things that are
+  /// actually behind the card for them.
   String get _accountHint => widget.auth.isChild
       ? 'profile · privacy · my grown-ups'
-      : 'profile · family · sign-in · privacy';
+      : 'profile · family · linked accounts · privacy';
 
   String get _layoutLabel =>
       SettingsStore.instance.roomLayout == RoomLayout.list

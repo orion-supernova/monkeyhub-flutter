@@ -43,7 +43,7 @@ import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
 import 'profile_visibility_screen.dart';
 import 'release_device_screen.dart';
-import 'sign_in_methods_screen.dart';
+import 'linked_accounts_screen.dart';
 import 'navigation/open_room.dart';
 
 /// Profile screen.
@@ -65,7 +65,7 @@ class ProfileScreen extends StatefulWidget {
   final ChatApi? api;
 
   /// When provided AND viewing one's own profile, an ACCOUNT section
-  /// (family / sign-in methods / recovery phrase / sign out / delete) is
+  /// (family / linked accounts / recovery phrase / sign out / delete) is
   /// exposed at the bottom.
   final AuthService? auth;
 
@@ -243,16 +243,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Providers currently attached to this account. Only ever used to summarise
-  /// the SIGN-IN METHODS row — the linking itself lives on
-  /// [SignInMethodsScreen]. Null while unknown, so the row can say nothing
-  /// rather than claim "none" before the first answer arrives.
+  /// the LINKED ACCOUNTS row — the linking itself lives on
+  /// [LinkedAccountsScreen]. Null while unknown, so the row can say nothing
+  /// rather than claim "nothing linked" before the first answer arrives.
   List<SocialProvider>? _linkedProviders;
 
-  /// What the SIGN-IN METHODS row shows on the right.
-  String get _signInMethodsLabel {
+  /// What the LINKED ACCOUNTS row shows on the right.
+  String get _linkedAccountsLabel {
     final linked = _linkedProviders;
     if (linked == null) return '';
-    if (linked.isEmpty) return 'password only';
+    if (linked.isEmpty) return 'nothing linked';
     return linked.map((p) => p.label.toLowerCase()).join(' · ');
   }
 
@@ -301,13 +301,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Opens the sign-in methods screen, then re-reads what came back from it.
+  /// Opens the linked-accounts screen, then re-reads what came back from it.
   /// That screen owns the linking; this row only ever summarises it.
-  Future<void> _openSignInMethods() async {
+  Future<void> _openLinkedAccounts() async {
     final auth = widget.auth;
     if (auth == null || auth.isChild) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => SignInMethodsScreen(auth: auth)),
+      MaterialPageRoute(builder: (_) => LinkedAccountsScreen(auth: auth)),
     );
     await _refreshLinkedProviders();
   }
@@ -1243,10 +1243,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // that would open empty is worse than no row.
           if (SocialSignInButtons.available.isNotEmpty) ...[
             _RowLink(
-              label: 'SIGN-IN METHODS',
-              value: _signInMethodsLabel,
-              icon: Icons.vpn_key_outlined,
-              onTap: _openSignInMethods,
+              label: 'LINKED ACCOUNTS',
+              value: _linkedAccountsLabel,
+              icon: Icons.link_rounded,
+              onTap: _openLinkedAccounts,
             ),
             const SizedBox(height: 8),
           ],

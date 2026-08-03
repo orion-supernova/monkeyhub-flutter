@@ -50,7 +50,7 @@ class SocialSignInButtons extends StatelessWidget {
   final String? dividerLabel;
 
   /// Narrows the set to specific providers. Null renders every [available] one,
-  /// which is what sign-in wants. Sign-in Methods renders them one per card and
+  /// which is what sign-in wants. Linked Accounts renders them one per card and
   /// passes a single provider — the button still has to be Apple's own widget
   /// there, so it asks for a subset rather than hand-rolling the mark.
   ///

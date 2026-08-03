@@ -8,7 +8,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/social_sign_in_buttons.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// Sign-in Methods renders one card per provider and asks this widget for a
+/// Linked Accounts renders one card per provider and asks this widget for a
 /// single button at a time — the Apple one still has to be Apple's own widget
 /// there, so the card narrows the set rather than hand-rolling the mark.
 void main() {

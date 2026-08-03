@@ -10,26 +10,31 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/password_prompt_sheet.dart';
 import '../widgets/social_sign_in_buttons.dart';
 
-/// Every way back into this account, one card per provider.
+/// The Apple/Google accounts attached to this one, a card per provider.
 ///
 /// This used to be two bare LINK/UNLINK rows buried at the bottom of the
 /// ACCOUNT section, where the label was the only thing telling you the current
 /// state — you had to read "UNLINK APPLE" and work backwards to "so Apple is
 /// linked". Here the state is the headline and the action is secondary.
 ///
+/// NOT called "sign-in methods", though it was for one commit: the password
+/// and the recovery phrase are also ways into the account, and they live in
+/// their own rows outside this screen. A name that claimed to cover them would
+/// send people here looking for something that isn't here.
+///
 /// Linking a provider is offered through [SocialSignInButtons], not a themed
 /// button of our own: on Apple's side the mark, wording and colour treatment
 /// are fixed by the HIG whatever screen the flow starts from.
-class SignInMethodsScreen extends StatefulWidget {
-  const SignInMethodsScreen({super.key, required this.auth});
+class LinkedAccountsScreen extends StatefulWidget {
+  const LinkedAccountsScreen({super.key, required this.auth});
 
   final AuthService auth;
 
   @override
-  State<SignInMethodsScreen> createState() => _SignInMethodsScreenState();
+  State<LinkedAccountsScreen> createState() => _LinkedAccountsScreenState();
 }
 
-class _SignInMethodsScreenState extends State<SignInMethodsScreen> {
+class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
   /// Providers attached to this account. Null while unknown — the cards render
   /// a neutral "checking" state rather than claiming "not linked" and inviting
   /// a duplicate link the backend would only reject.
@@ -139,21 +144,21 @@ class _SignInMethodsScreenState extends State<SignInMethodsScreen> {
                         ),
                       ),
                       Text(
-                        'SIGN-IN METHODS',
+                        'LINKED ACCOUNTS',
                         style: theme.label.copyWith(letterSpacing: 2.4),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'How you get back into this account. Your password always '
-                    'works — these are shortcuts on top of it.',
+                    'Accounts you\'ve attached to this one, so you can sign in '
+                    'without a password.',
                     style: theme.bodySoft,
                   ),
                   const SizedBox(height: 24),
                   if (providers.isEmpty)
                     Text(
-                      'No sign-in shortcuts are available on this device.',
+                      'There\'s nothing to link on this device.',
                       style: theme.body.copyWith(color: theme.inkMuted),
                     )
                   else
