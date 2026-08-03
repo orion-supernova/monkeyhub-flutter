@@ -10,6 +10,8 @@
 /// nothing on the auth side.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -70,6 +72,64 @@ class SocialSignInNoToken implements Exception {
   String toString() => 'No identity token from ${provider.label}.';
 }
 
+/// Debug-only trace of the claims that decide whether the backend will accept a
+/// token: `aud`, `iss`, and whether a `nonce` is present.
+///
+/// This exists because the backend is deliberately opaque — every rejection
+/// comes back as one of two codes that both read "try again" — so from the
+/// client there is otherwise NO way to tell an audience mismatch from a nonce
+/// problem from an expired token. Those three are essentially the whole failure
+/// space, and all three are sitting in plain sight in the payload.
+///
+/// Payload only. The signature is never decoded, nothing is verified here, and
+/// [kDebugMode] keeps every line of it out of release builds — a shipped app
+/// must not print identity tokens to the system log.
+void _traceClaims(SocialProvider provider, String idToken, String? rawNonce) {
+  if (!kDebugMode) return;
+  try {
+    final parts = idToken.split('.');
+    if (parts.length != 3) {
+      debugPrint('[social] ${provider.wire}: token is not a JWT (${parts.length} parts)');
+      return;
+    }
+    final payload = jsonDecode(
+      utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+    ) as Map<String, dynamic>;
+    final exp = payload['exp'];
+    debugPrint(
+      '[social] ${provider.wire} token claims: '
+      'iss=${payload['iss']} '
+      'aud=${payload['aud']} '
+      'sub=${(payload['sub'] as String?)?.substring(0, 6)}… '
+      'nonce=${payload['nonce'] == null ? 'ABSENT' : 'present'} '
+      'weSent rawNonce=${rawNonce == null ? 'NO' : 'yes'} '
+      'expiresIn=${exp is int ? '${exp - DateTime.now().millisecondsSinceEpoch ~/ 1000}s' : '?'}',
+    );
+    // Run the backend's own nonce check here, where the answer is visible.
+    // Server-side this comparison is what decides SOCIAL_NONCE_MISMATCH, and it
+    // reports nothing about why — so failing it locally first is the only way to
+    // see whether the provider echoed the value we actually handed it.
+    final nonceClaim = payload['nonce'];
+    if (nonceClaim != null) {
+      if (rawNonce == null) {
+        debugPrint(
+          '[social] ${provider.wire}: token carries a nonce but no preimage was '
+          'sent — the backend will reject this as SOCIAL_NONCE_MISMATCH',
+        );
+      } else if (nonceClaim != sha256Hash(rawNonce)) {
+        debugPrint(
+          '[social] ${provider.wire}: NONCE MISMATCH — the provider echoed a '
+          'different nonce than the one we set, so it ignored ours',
+        );
+      } else {
+        debugPrint('[social] ${provider.wire}: nonce matches ✓');
+      }
+    }
+  } catch (e) {
+    debugPrint('[social] ${provider.wire}: could not decode token payload: $e');
+  }
+}
+
 class SocialSignIn {
   const SocialSignIn._();
 
@@ -109,6 +169,7 @@ class SocialSignIn {
           .where((s) => s.isNotEmpty)
           .join(' ');
 
+      _traceClaims(SocialProvider.apple, idToken, rawNonce);
       return SocialCredential(
         provider: SocialProvider.apple,
         idToken: idToken,
@@ -120,6 +181,7 @@ class SocialSignIn {
       if (e.code == AuthorizationErrorCode.canceled) {
         throw const SocialSignInCancelled();
       }
+      debugPrint('[social] apple authorization failed: ${e.code} — ${e.message}');
       rethrow;
     }
   }
@@ -132,24 +194,28 @@ class SocialSignIn {
       if (idToken == null) throw const SocialSignInNoToken(SocialProvider.google);
 
       final name = account.displayName?.trim();
+      _traceClaims(SocialProvider.google, idToken, _googleRawNonce);
       return SocialCredential(
         provider: SocialProvider.google,
         idToken: idToken,
-        // Deliberately no nonce. google_sign_in 7.x takes the nonce in
-        // `initialize()`, not per attempt, so a per-sign-in nonce would mean
-        // re-initialising the plugin on every button press. The backend treats a
-        // token with no `nonce` claim as acceptable, and the protection that
-        // actually matters here — a token minted for a DIFFERENT app being
-        // replayed at ours — is the audience check, which is unaffected.
-        //
-        // Note the backend cannot be tricked by simply omitting this: if a token
-        // does carry a nonce, the preimage becomes mandatory.
+        // The preimage of the nonce handed to `initialize()`. See
+        // [_ensureGoogleInitialised] for why this is per-launch rather than
+        // per-attempt, and why omitting it is not an option.
+        rawNonce: _googleRawNonce,
         suggestedName: name == null || name.isEmpty ? null : name,
       );
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
         throw const SocialSignInCancelled();
       }
+      // `code` is the only field that says WHICH misconfiguration this is —
+      // clientConfigurationError means the ids/URL scheme/SHA-1 don't line up,
+      // providerConfigurationError means Play services or Credential Manager
+      // refused — and none of it survives into the copy the user sees.
+      debugPrint(
+        '[social] google sign-in failed: code=${e.code} '
+        'description=${e.description} details=${e.details}',
+      );
       rethrow;
     }
   }
@@ -170,18 +236,56 @@ class SocialSignIn {
 
   static bool _googleInitialised = false;
 
+  /// The preimage behind the nonce Google echoes into every ID token it mints
+  /// for this app launch. Null until [_ensureGoogleInitialised] has run.
+  static String? _googleRawNonce;
+
   /// `initialize()` is required before any other google_sign_in call, and is
   /// idempotent from our side because of the latch.
   ///
   /// `serverClientId` is the WEB client id on BOTH platforms on purpose: it is
   /// what lands in the token's `aud`, so setting it makes the backend's
   /// allow-list a single value instead of one per platform.
+  ///
+  /// THE NONCE IS NOT OPTIONAL, even though the parameter is. Google mints an
+  /// ID token carrying a `nonce` claim whether or not we ask for one — Android's
+  /// Credential Manager generates its own internally — and a nonce we did not
+  /// choose is a nonce we can never produce the preimage for. The backend
+  /// (`idToken.ts`) treats any nonce-bearing token whose preimage is missing as
+  /// a failed sign-in, deliberately, because the alternative is a check that an
+  /// attacker disables by leaving a field out. So the choice is not "nonce or no
+  /// nonce" but "our nonce or theirs", and only ours is verifiable.
+  ///
+  /// Hashed on the way in, exactly like Apple: Google echoes the string it was
+  /// given, so handing it `sha256(raw)` keeps the preimage on the device until
+  /// it goes to our own backend, and lets the backend run one identical check
+  /// for both providers.
+  ///
+  /// Per LAUNCH, not per attempt — `initialize()` is documented as
+  /// exactly-once, and it is the only place the nonce can be set, so re-rolling
+  /// it per button press would mean re-initialising into undefined behaviour.
+  /// That is weaker than a per-attempt nonce and still worth having: a token
+  /// minted for this same `aud` on some other device or in some earlier session
+  /// carries a different nonce and cannot be replayed here.
   static Future<void> _ensureGoogleInitialised() async {
     if (_googleInitialised) return;
+    // `generateNonce` comes from sign_in_with_apple, but there is nothing
+    // Apple-specific about it — it is a cryptographically random string, and
+    // reusing it keeps one source of entropy rather than two.
+    _googleRawNonce = generateNonce();
+    // Worth printing once: `env.local` is bundled at BUILD time, so a hot
+    // restart after editing it leaves the old ids in place and every symptom
+    // looks like a console misconfiguration instead of a stale binary.
+    debugPrint(
+      '[social] google initialize: clientId=${Env.googleIosClientId} '
+      'serverClientId=${Env.googleServerClientId} '
+      'nonce=${sha256Hash(_googleRawNonce!).substring(0, 12)}…',
+    );
     await GoogleSignIn.instance.initialize(
       clientId: Env.googleIosClientId.isEmpty ? null : Env.googleIosClientId,
       serverClientId:
           Env.googleServerClientId.isEmpty ? null : Env.googleServerClientId,
+      nonce: sha256Hash(_googleRawNonce!),
     );
     _googleInitialised = true;
   }

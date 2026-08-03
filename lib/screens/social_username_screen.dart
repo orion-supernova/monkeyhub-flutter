@@ -129,6 +129,9 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
       // await above, so the swap is already scheduled by the time we get here.
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
+      // Same reasoning as login_screen: the copy is intentionally vague, so the
+      // raw code has to reach the console or it reaches nobody.
+      debugPrint('[social] completeSignUp/link failed: $e');
       if (!mounted) return;
       final taken = e.toString().contains('USERNAME_TAKEN');
       setState(() {

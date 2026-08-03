@@ -127,7 +127,12 @@ class _LoginScreenState extends State<LoginScreen> {
     } on SocialSignInCancelled {
       // They backed out of the native sheet. Say nothing at all — an error
       // banner for "changed my mind" reads as a failure that wasn't one.
-    } catch (e) {
+    } catch (e, stack) {
+      // The banner copy is deliberately vague ("didn't go through") because the
+      // backend's codes are opaque by design. That leaves the console as the
+      // ONLY place the real cause can appear, so it has to appear there.
+      debugPrint('[social] ${provider.wire} sign-in failed: $e');
+      debugPrintStack(stackTrace: stack, maxFrames: 8);
       if (mounted) setState(() => _error = _humanize(e));
     } finally {
       if (mounted) setState(() => _socialBusy = null);
