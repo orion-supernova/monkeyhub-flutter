@@ -141,6 +141,37 @@ void main() {
     });
   }
 
+  testWidgets('a long name wraps rather than falling into an ellipsis',
+      (tester) async {
+    await tester.pumpWidget(host(bubble(doc(name: 'a.epub'), isMine: false)));
+    final short = rowRect(tester).height;
+
+    const long = 'The Long Book Title That Someone Actually Sent.epub';
+    await tester.pumpWidget(host(bubble(doc(name: long), isMine: false)));
+    expect(tester.takeException(), isNull);
+
+    expect(rowRect(tester).height, greaterThan(short),
+        reason: 'a name too long for one line takes another one');
+    expect(
+      tester.widget<Text>(find.text(long)).maxLines,
+      greaterThan(1),
+      reason: 'the name is the only thing this bubble says about itself',
+    );
+  });
+
+  testWidgets('a wrapped name still leaves the stamp its corner',
+      (tester) async {
+    await tester.pumpWidget(host(bubble(doc(), isMine: true, seen: true)));
+    expect(tester.takeException(), isNull);
+
+    final stamp = tester.getRect(visibleStamp);
+    final body = bubbleRect(tester);
+    expect(stamp.right, lessThanOrEqualTo(body.right + 0.5));
+    expect(stamp.bottom, lessThanOrEqualTo(body.bottom + 0.5));
+    // It rides the bottom of a now-taller row, beside the size line.
+    expect(stamp.bottom, greaterThan(body.top + 0.5 * body.height));
+  });
+
   testWidgets('an unsent document dims its save control instead of losing it',
       (tester) async {
     await tester.pumpWidget(host(bubble(

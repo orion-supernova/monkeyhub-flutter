@@ -22,6 +22,11 @@ import 'photo_chrome.dart';
 /// no in-app viewer: a chat app that renders PDFs is a chat app that renders
 /// PDFs badly, and every platform this ships on already has a better one.
 class FileMessage extends StatefulWidget {
+  /// Ceiling on how tall a filename may make the row — see the [Text] that
+  /// reads it. Shared with [OutboundFileRow] so a document does not reflow the
+  /// instant its upload lands.
+  static const int nameLines = 6;
+
   const FileMessage({
     super.key,
     required this.api,
@@ -111,11 +116,17 @@ class _FileMessageState extends State<FileMessage> {
             children: [
               Text(
                 name,
-                maxLines: 1,
-                // Truncating from the right eats the extension first, which is
-                // usually a filename's most useful part. Acceptable only
-                // because the badge to the left already says what it is —
-                // without that this would need middle truncation.
+                // A filename is the ONLY thing a document bubble says about
+                // itself — there is no thumbnail, no waveform, no poster. One
+                // line of it plus an ellipsis turned every book, invoice and
+                // scan into "The Long Bo…", which is not a name. It wraps
+                // instead, and the bubble gets taller.
+                //
+                // [FileMessage.nameLines] is a backstop against a pathological
+                // 255-char filename, not a budget: at this size it is well past
+                // a hundred characters, so no name a person actually types will
+                // reach it.
+                maxLines: FileMessage.nameLines,
                 overflow: TextOverflow.ellipsis,
                 style: theme.bodyEmph.copyWith(color: ink),
               ),
@@ -313,7 +324,11 @@ class OutboundFileRow extends StatelessWidget {
               children: [
                 Text(
                   fileName,
-                  maxLines: 1,
+                  // Same wrap as the finished row, for the same reason it keeps
+                  // the finished row's badge and spacing: a name that fits on
+                  // three lines while sending must not snap to one the moment
+                  // the bytes land.
+                  maxLines: FileMessage.nameLines,
                   overflow: TextOverflow.ellipsis,
                   style: theme.bodyEmph.copyWith(color: ink),
                 ),
