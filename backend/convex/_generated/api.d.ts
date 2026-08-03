@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as appleTokens from "../appleTokens.js";
 import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
 import type * as calls from "../calls.js";
@@ -18,6 +19,7 @@ import type * as files from "../files.js";
 import type * as friends from "../friends.js";
 import type * as groupCalls from "../groupCalls.js";
 import type * as http from "../http.js";
+import type * as idToken from "../idToken.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
@@ -29,6 +31,7 @@ import type * as releases from "../releases.js";
 import type * as roomCleanup from "../roomCleanup.js";
 import type * as roomContent from "../roomContent.js";
 import type * as rooms from "../rooms.js";
+import type * as socialAuth from "../socialAuth.js";
 import type * as typing from "../typing.js";
 import type * as users from "../users.js";
 import type * as voipPush from "../voipPush.js";
@@ -41,6 +44,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  appleTokens: typeof appleTokens;
   auth: typeof auth;
   badges: typeof badges;
   calls: typeof calls;
@@ -51,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   friends: typeof friends;
   groupCalls: typeof groupCalls;
   http: typeof http;
+  idToken: typeof idToken;
   messages: typeof messages;
   migrations: typeof migrations;
   notifications: typeof notifications;
@@ -62,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   roomCleanup: typeof roomCleanup;
   roomContent: typeof roomContent;
   rooms: typeof rooms;
+  socialAuth: typeof socialAuth;
   typing: typeof typing;
   users: typeof users;
   voipPush: typeof voipPush;

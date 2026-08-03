@@ -6,6 +6,7 @@ import {
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
 import { deleteStored } from "./files";
+import { SOCIAL_ONLY_PASSWORD_SENTINEL } from "./socialAuth";
 import {
   ACCOUNT_ADULT,
   ACCOUNT_CHILD,
@@ -97,8 +98,19 @@ export const getProfile = query({
       // phrase" nag on every kid's phone, pointing at a screen that cannot
       // work for them. `undefined` reads as "unknown" on the client, which is
       // treated as do-not-prompt.
+      //
+      // Accounts created through Apple/Google are excluded for exactly the same
+      // reason as children: they have no password either, and the recovery
+      // phrase's only power is resetting one. Prompting them would open a gate
+      // whose commit step (`auth.setRecoveryKey`) demands a password they do not
+      // have. Their provider IS the recovery path.
+      //
+      // Note this un-excludes itself: if such a user later sets a real password
+      // the sentinel is gone, and the phrase prompt becomes meaningful again.
       hasRecoveryKey:
-        isSelf && user.accountType !== ACCOUNT_CHILD
+        isSelf &&
+        user.accountType !== ACCOUNT_CHILD &&
+        user.passwordHash !== SOCIAL_ONLY_PASSWORD_SENTINEL
           ? user.recoveryKeyHash !== undefined
           : undefined,
       avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,

@@ -28,6 +28,24 @@ class Env {
     return explicit.isNotEmpty ? explicit : convexUrl;
   }
 
+  /// Google OAuth client ids, from GCP project `monkeyhub-2b2c6`.
+  ///
+  /// Both are PUBLIC identifiers — they are safe in `env.local` even though it
+  /// ships inside the app bundle. The Sign in with Apple `.p8` is NOT, and lives
+  /// in Convex deployment env instead; see `backend/convex/appleTokens.ts`.
+  ///
+  /// [googleIosClientId] is the iOS OAuth client. [googleServerClientId] is the
+  /// WEB client, passed as `serverClientId` on both platforms so that the ID
+  /// token's `aud` is one single value on iOS and Android — which is what the
+  /// backend allow-lists via `GOOGLE_CLIENT_IDS`. Getting these two confused is
+  /// the usual cause of an audience mismatch that reads as "invalid token".
+  static String get googleIosClientId => _get('GOOGLE_IOS_CLIENT_ID');
+  static String get googleServerClientId => _get('GOOGLE_SERVER_CLIENT_ID');
+
+  /// Google sign-in is hidden entirely until the OAuth clients exist, so the
+  /// app stays shippable between now and the console work.
+  static bool get googleSignInConfigured => googleServerClientId.isNotEmpty;
+
   static const String clientId = 'monkeyhub-flutter';
 
   /// Returns missing required keys so the app can surface a clean error.

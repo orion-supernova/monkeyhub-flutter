@@ -12,7 +12,12 @@
           "package_name": "com.walhallaa.chattest20241220"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "691782206017-u82ooanr6la6o8p1k9p73fff20e3lsqq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyACKq2JwFCP2Fv114z_bCX8BijPoDJ9CKc"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "691782206017-u82ooanr6la6o8p1k9p73fff20e3lsqq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "691782206017-5shp2ce3g12b8raojl263fg6u711jrhr.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.walhallaa.chatTest-20241220"
+              }
+            }
+          ]
         }
       }
     }

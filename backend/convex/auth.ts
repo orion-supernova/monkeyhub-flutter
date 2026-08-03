@@ -1,6 +1,8 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
+import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
 import { deleteStored, releaseMessageBlobs } from "./files";
 import {
@@ -63,6 +65,17 @@ export const login = mutation({
     // sentinel can never be brute-forced into a session, and so a child who
     // somehow learned a password can't sign in on an unsupervised device.
     if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+
+    // Same shape, different reason: an account created through Apple/Google has
+    // no password either. Answering WRONG_PASSWORD here would send someone to
+    // the reset flow, which cannot help them — they have no recovery phrase
+    // either. Point them at the button that actually works.
+    //
+    // Also before the hash compare, for the same sentinel-safety reason as the
+    // child case above.
+    if (user.passwordHash === SOCIAL_ONLY_PASSWORD_SENTINEL) {
+      throw new Error(ERR_USE_SOCIAL);
+    }
 
     // Before this, login accepted unlimited password guesses. Keyed by the
     // resolved user, so a nonexistent username never creates a row.
@@ -498,6 +511,29 @@ async function purgeUser(ctx: any, userId: any) {
     ctx,
     await ctx.db.query("userDevices").withIndex("by_user", byUser(userId)).collect(),
   );
+
+  // ── Social identities ────────────────────────────────────────────────────
+  // Missing these would be worse than untidy: the (provider, subject) row is
+  // what `socialAuth.signIn` looks up, so an orphan left pointing at a deleted
+  // user would let that Apple ID sign straight into a ghost account — and would
+  // also block the same person from ever creating a fresh one.
+  //
+  // Apple additionally requires that deleting the account revokes the grant
+  // (5.1.1(v) / TN3194). Revocation needs `fetch`, which a mutation cannot do,
+  // so it is SCHEDULED — and the token is passed by value because the row it
+  // came from is deleted in this same transaction.
+  const identities = await ctx.db
+    .query("socialIdentities")
+    .withIndex("by_user", byUser(userId))
+    .collect();
+  for (const identity of identities) {
+    if (identity.appleRefreshToken) {
+      await ctx.scheduler.runAfter(0, internal.socialAuth.revokeAppleGrant, {
+        refreshToken: identity.appleRefreshToken,
+      });
+    }
+  }
+  await deleteRows(ctx, identities);
 
   // ── Reports ──────────────────────────────────────────────────────────────
   // Kept, not deleted: a moderation record has to outlive the person who filed

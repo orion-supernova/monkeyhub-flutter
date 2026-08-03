@@ -37,6 +37,33 @@ const Map<String, String> kAuthErrorMessages = {
   'PAIRING_CODE_EXPIRED': 'That code has run out. Ask for a new one.',
   'PAIRING_CODE_INVALID':
       'That code didn\'t work. It may have been used already.',
+
+  // ── socialAuth.ts ──────────────────────────────────────────────────────
+  // socialAuth.ERR_USE_SOCIAL. Thrown by auth.login when the account has no
+  // password because it was created with a provider. Must NOT read like a
+  // wrong password: the reset flow cannot help these accounts either, since
+  // they have no recovery phrase.
+  'USE_SOCIAL_SIGN_IN':
+      'That account signs in with Apple or Google — use the buttons below.',
+  // idToken.ERR_TOKEN_INVALID / ERR_NONCE_MISMATCH. Both are deliberately
+  // opaque server-side, and both mean the same thing to a user: start over.
+  'SOCIAL_TOKEN_INVALID': 'That sign-in didn\'t go through. Please try again.',
+  'SOCIAL_NONCE_MISMATCH': 'That sign-in didn\'t go through. Please try again.',
+  // idToken.ERR_MISCONFIG — ours, not theirs. Says so, so nobody wastes time
+  // re-entering a password that was never the problem.
+  'SOCIAL_MISCONFIG': 'Sign-in isn\'t set up yet on our side. Try again later.',
+  // socialAuth.ERR_LINKED_ELSEWHERE vs ERR_ALREADY_LINKED — different
+  // remedies, so deliberately different copy.
+  'SOCIAL_LINKED_TO_OTHER_ACCOUNT':
+      'That Apple or Google account is already linked to a different MonkeyHub account.',
+  'SOCIAL_ALREADY_LINKED': 'That\'s already linked to this account.',
+  'SOCIAL_NOT_LINKED': 'That isn\'t linked to this account.',
+  // socialAuth.ERR_LAST_CREDENTIAL. There is no email in this app, so an
+  // account with nothing left to sign in with is gone for good.
+  'SOCIAL_LAST_CREDENTIAL':
+      'That\'s the only way into this account. Set a password first.',
+  // socialAuth.normaliseUsername
+  'USERNAME_INVALID': 'Pick a username between 1 and 32 characters.',
 };
 
 /// Maps a thrown backend error onto human copy.

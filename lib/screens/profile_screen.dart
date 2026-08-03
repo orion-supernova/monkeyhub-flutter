@@ -7,8 +7,10 @@ import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
+import '../auth/social_sign_in.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
@@ -25,7 +27,9 @@ import '../widgets/adaptive_sheet.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_prompt_sheet.dart';
 import '../widgets/recovery_banner.dart';
+import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
@@ -96,6 +100,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // so re-resolve rather than leaving "REQUEST PENDING" up forever.
     widget.repo?.addListener(_onFriendship);
     _refresh();
+    // Separate from _refresh: that one runs for anyone's profile, while linked
+    // providers only exist on your own. It no-ops for a child or a stranger.
+    _refreshLinkedProviders();
   }
 
   @override
@@ -211,6 +218,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Refresh so hasRecoveryKey flips and the banner clears.
     if (saved == true && mounted) await _refresh();
   }
+
+  /// Providers currently attached to this account. Null while unknown, so the
+  /// rows can stay hidden rather than flashing "not linked" before the first
+  /// answer arrives.
+  List<SocialProvider>? _linkedProviders;
+  SocialProvider? _linkBusy;
+  String? _linkError;
+
+  Future<void> _refreshLinkedProviders() async {
+    final auth = widget.auth;
+    // `_isMe` matters as much as the auth checks: this screen also renders other
+    // people's profiles, and linked providers are only ever your own — fetching
+    // there would be a pointless round trip behind a section that never draws.
+    if (!_isMe || auth == null || auth.isChild || !auth.isSignedIn) return;
+    try {
+      final linked = await auth.linkedProviders();
+      if (mounted) setState(() => _linkedProviders = linked);
+    } catch (_) {
+      // Offline or an older backend. Leaving it null keeps the section hidden,
+      // which is the right failure: an empty list would claim "nothing linked"
+      // and invite a duplicate link attempt that the backend would reject.
+    }
+  }
+
+  /// Attaches or detaches a provider, password-gated in both directions.
+  ///
+  /// Linking runs the native provider sheet FIRST and asks for the password
+  /// second: the provider flow is the one that can be cancelled casually, and
+  /// making someone type their password before finding that out would be rude.
+  Future<void> _toggleProvider(SocialProvider provider) async {
+    final auth = widget.auth;
+    if (auth == null || auth.isChild || _linkBusy != null) return;
+    final linked = _linkedProviders?.contains(provider) ?? false;
+
+    setState(() => _linkError = null);
+    try {
+      if (linked) {
+        final password = await _askAccountPassword(
+          title: 'UNLINK ${provider.label.toUpperCase()}',
+          actionLabel: 'UNLINK',
+          subtitle:
+              'Enter your password to stop signing in with ${provider.label}.',
+        );
+        if (password == null) return;
+        setState(() => _linkBusy = provider);
+        await auth.unlinkSocialIdentity(password: password, provider: provider);
+      } else {
+        final credential = await SocialSignIn.forProvider(provider);
+        if (!mounted) return;
+        final password = await _askAccountPassword(
+          title: 'LINK ${provider.label.toUpperCase()}',
+          actionLabel: 'LINK',
+          subtitle:
+              'Enter your password to add ${provider.label} as a way to sign in.',
+        );
+        if (password == null) return;
+        setState(() => _linkBusy = provider);
+        await auth.linkSocialIdentity(
+          password: password,
+          credential: credential,
+        );
+      }
+      await _refreshLinkedProviders();
+    } on SocialSignInCancelled {
+      // Backed out of the native sheet — not a failure, say nothing.
+    } catch (e) {
+      if (mounted) setState(() => _linkError = humanizeAuthError(e));
+    } finally {
+      if (mounted) setState(() => _linkBusy = null);
+    }
+  }
+
+  Future<String?> _askAccountPassword({
+    required String title,
+    required String actionLabel,
+    required String subtitle,
+  }) =>
+      askPassword(
+        context,
+        title: title,
+        actionLabel: actionLabel,
+        subtitle: subtitle,
+      );
 
   Future<void> _updateEmail(String next) async {
     final api = widget.api;
@@ -1101,6 +1191,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: _openRecoveryPhrase,
           ),
           const SizedBox(height: 8),
+          // Hidden until the first successful fetch — see `_linkedProviders`.
+          if (_linkedProviders != null)
+            for (final provider in SocialSignInButtons.available) ...[
+              _RowActionTile(
+                label: _linkedProviders!.contains(provider)
+                    ? 'UNLINK ${provider.label.toUpperCase()}'
+                    : 'LINK ${provider.label.toUpperCase()}',
+                danger: false,
+                busy: _linkBusy == provider,
+                onTap: () => _toggleProvider(provider),
+              ),
+              const SizedBox(height: 8),
+            ],
+          if (_linkError != null) ...[
+            Text(
+              _linkError!,
+              style: theme.body.copyWith(color: theme.danger),
+            ),
+            const SizedBox(height: 8),
+          ],
           _RowActionTile(label: 'SIGN OUT', danger: false, busy: _signingOut, onTap: _signOut),
           const SizedBox(height: 8),
           _RowActionTile(

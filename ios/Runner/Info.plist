@@ -380,6 +380,25 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<!-- Google Sign-In. The GoogleSignIn SDK hands off to Safari and needs a URL
+	     scheme registered to come back; the scheme is the iOS OAuth client ID
+	     with its dot-separated components REVERSED. Public identifiers, not
+	     secrets — they ship inside every copy of the binary by design.
+	     Sign in with Apple needs nothing here: it is fully native and never
+	     leaves the app. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.691782206017-5shp2ce3g12b8raojl263fg6u711jrhr</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>691782206017-5shp2ce3g12b8raojl263fg6u711jrhr.apps.googleusercontent.com</string>
 	<key>CFBundleName</key>
 	<string>MonkeyHub</string>
 	<key>CFBundlePackageType</key>

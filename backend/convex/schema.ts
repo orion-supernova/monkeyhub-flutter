@@ -800,4 +800,42 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_updatedAt", ["updatedAt"]),
+
+  // Apple / Google identities attached to an account.
+  //
+  // A separate table rather than columns on `users` because one account may
+  // carry both providers, and because the hot lookup is provider+subject → user
+  // (sign-in), which wants its own index.
+  //
+  // KEYED ON `subject`, NEVER ON EMAIL. Apple stops sending the email after the
+  // first authorization and its private-relay addresses are not stable identity,
+  // so email is stored for display only. Matching an inbound identity to an
+  // existing account by email would also be an account-takeover path — two
+  // providers can assert the same unverified address. Attaching a provider to an
+  // existing account is therefore always an explicit, password-gated act
+  // (`socialAuth.link`), never an automatic merge.
+  //
+  // Uniqueness on (provider, subject) is PROCEDURAL, like `users.by_username` —
+  // Convex has no unique constraints. Same accepted race as `auth.signup`.
+  socialIdentities: defineTable({
+    provider: v.string(), // "apple" | "google"
+    subject: v.string(), // the provider's `sub` claim
+    userId: v.id("users"),
+    email: v.optional(v.string()),
+    isPrivateRelay: v.optional(v.boolean()),
+    createdAt: v.number(),
+    lastUsedAt: v.number(),
+    // Apple only, and the reason `socialAuth.signIn` bothers to exchange the
+    // authorization code at all: Apple requires that deleting an account also
+    // revokes the token (TN3194), and revocation needs a refresh token.
+    //
+    // Apple returns a fresh authorization code on EVERY authorization, so this
+    // is not strictly one-shot — but this app's sessions never expire, so a user
+    // who signed in once may never present another code. Capture it the first
+    // time or you may not get another chance for that user.
+    appleRefreshToken: v.optional(v.string()),
+    appleRefreshCheckedAt: v.optional(v.number()),
+  })
+    .index("by_provider_subject", ["provider", "subject"])
+    .index("by_user", ["userId"]),
 });

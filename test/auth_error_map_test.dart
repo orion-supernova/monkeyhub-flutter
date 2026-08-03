@@ -37,9 +37,9 @@ void main() {
   });
 
   group('coverage of what the backend actually throws', () {
-    // Mirrors backend/convex/auth.ts, rateLimit.ts and childGuard.ts:37-50.
-    // Update BOTH sides together — there is no shared Dart↔TS constants
-    // mechanism in this repo.
+    // Mirrors backend/convex/auth.ts, rateLimit.ts, childGuard.ts:37-50,
+    // socialAuth.ts and idToken.ts. Update BOTH sides together — there is no
+    // shared Dart↔TS constants mechanism in this repo.
     const backendCodes = <String>{
       'USERNAME_TAKEN',
       'USER_NOT_FOUND',
@@ -49,6 +49,17 @@ void main() {
       'CHILD_MUST_PAIR',
       'PAIRING_CODE_EXPIRED',
       'PAIRING_CODE_INVALID',
+      // socialAuth.ts
+      'USE_SOCIAL_SIGN_IN',
+      'SOCIAL_ALREADY_LINKED',
+      'SOCIAL_LINKED_TO_OTHER_ACCOUNT',
+      'SOCIAL_NOT_LINKED',
+      'SOCIAL_LAST_CREDENTIAL',
+      'USERNAME_INVALID',
+      // idToken.ts
+      'SOCIAL_TOKEN_INVALID',
+      'SOCIAL_NONCE_MISMATCH',
+      'SOCIAL_MISCONFIG',
     };
 
     test('every mapped key is one the backend throws', () {
@@ -63,6 +74,21 @@ void main() {
       for (final code in backendCodes) {
         final msg = humanizeAuthError(thrown(code));
         expect(msg, kAuthErrorMessages[code], reason: code);
+      }
+    });
+
+    test('no code is a substring of another', () {
+      // Matching is by substring, so a key contained in another key would make
+      // the map order-dependent: whichever came first in insertion order would
+      // swallow the other and show the wrong copy. Harmless until the
+      // `SOCIAL_*` family arrived — `SOCIAL_NOT_LINKED` and
+      // `SOCIAL_ALREADY_LINKED` are exactly the shape that would collide if
+      // either were ever shortened to `SOCIAL_LINKED`.
+      for (final a in kAuthErrorMessages.keys) {
+        for (final b in kAuthErrorMessages.keys) {
+          if (a == b) continue;
+          expect(b.contains(a), isFalse, reason: '"$a" is inside "$b"');
+        }
       }
     });
 

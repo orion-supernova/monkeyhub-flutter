@@ -6,14 +6,17 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
+import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
+import '../widgets/social_sign_in_buttons.dart';
 import 'child_pair_screen.dart';
 import 'recovery_phrase_screen.dart';
+import 'social_username_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.auth});
@@ -90,6 +93,46 @@ class _LoginScreenState extends State<LoginScreen> {
         _pendingPhrase = null;
         _phraseConfirmed = false;
       });
+
+  /// Which provider button is mid-flight, so only one native sheet can be open.
+  SocialProvider? _socialBusy;
+
+  /// Apple/Google sign-in.
+  ///
+  /// Two outcomes: either the identity already had an account and we are simply
+  /// signed in, or it is new and we push the username step. Nothing is created
+  /// on the server in the second case — the account appears only once
+  /// [SocialUsernameScreen] succeeds.
+  Future<void> _socialSignIn(SocialProvider provider) async {
+    if (_busy || _socialBusy != null) return;
+    setState(() {
+      _socialBusy = provider;
+      _error = null;
+    });
+    try {
+      final credential = await SocialSignIn.forProvider(provider);
+      final outcome = await widget.auth.signInWithProvider(credential);
+      if (!mounted || outcome == null) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => SocialUsernameScreen(
+            auth: widget.auth,
+            credential: credential,
+            suggestedName: outcome.suggestedName,
+          ),
+        ),
+      );
+    } on SocialSignInCancelled {
+      // They backed out of the native sheet. Say nothing at all — an error
+      // banner for "changed my mind" reads as a failure that wasn't one.
+    } catch (e) {
+      if (mounted) setState(() => _error = _humanize(e));
+    } finally {
+      if (mounted) setState(() => _socialBusy = null);
+    }
+  }
 
   Future<void> _submit() async {
     if (_busy) return;
@@ -244,6 +287,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                   label: _mode.cta,
                                   onTap: _submit,
                                 ),
+                                // Not on `reset`: a recovery phrase resets a
+                                // password, and these accounts may not have one.
+                                if (_mode != _AuthMode.reset)
+                                  SocialSignInButtons(
+                                    onProvider: _socialSignIn,
+                                    busyProvider: _socialBusy,
+                                    enabled: !_busy,
+                                  ),
                               ],
                             ),
                           ),

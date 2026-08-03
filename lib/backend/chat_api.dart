@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../auth/recovery_phrase.dart';
+import '../auth/social_sign_in.dart';
 import '../env.dart';
 import '../models/app_release.dart';
 import '../models/chat_message.dart';
@@ -100,6 +101,131 @@ class ChatApi {
 
   Future<void> deleteAccount({required String userId}) async {
     await _cv.mutation('auth:deleteAccount', {'userId': userId});
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Social sign-in (Apple / Google)
+  //
+  // ACTIONS, not mutations: verifying a provider token means fetching that
+  // provider's JWKS, and only actions can reach the network.
+  //
+  // These return the same `{userId, username, name}` shape `auth:login` does,
+  // so `AuthService` persists the session through the identical code path.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Verifies a provider token and either signs in or reports that this
+  /// identity has no account yet.
+  ///
+  /// Returns `null` when the backend answered `needsUsername` — the caller then
+  /// collects a username and calls [completeSocialSignUp] with the SAME
+  /// credential, which the backend re-verifies. Holding a verified-but-unclaimed
+  /// state server-side would need a table and a forgeable handle; re-verifying
+  /// needs neither.
+  Future<SocialSignInOutcome> socialSignIn(SocialCredential credential) async {
+    final res = await _cv.action('socialAuth:signIn', {
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+      if (credential.authorizationCode != null)
+        'authorizationCode': credential.authorizationCode,
+      if (credential.suggestedName != null) 'fullName': credential.suggestedName,
+    });
+    final map = res as Map<String, dynamic>;
+    if (map['status'] == 'needsUsername') {
+      return SocialSignInOutcome.needsUsername(
+        suggestedName: map['suggestedName'] as String?,
+        email: map['email'] as String?,
+      );
+    }
+    return SocialSignInOutcome.signedIn(AuthResult.fromJson(map));
+  }
+
+  Future<AuthResult> completeSocialSignUp({
+    required SocialCredential credential,
+    required String username,
+    String? name,
+  }) async {
+    final res = await _cv.action('socialAuth:completeSignUp', {
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+      if (credential.authorizationCode != null)
+        'authorizationCode': credential.authorizationCode,
+      'username': username,
+      if (name != null && name.isNotEmpty) 'name': name,
+    });
+    return AuthResult.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// Signs in to an existing username/password account AND attaches the
+  /// provider to it, in one call.
+  ///
+  /// The "I already have an account" path. Distinct from [linkSocialIdentity]
+  /// because the caller is not signed in yet and has no `userId` — the username
+  /// is the lookup and the password is the proof.
+  Future<AuthResult> linkSocialToExistingAccount({
+    required SocialCredential credential,
+    required String username,
+    required String password,
+  }) async {
+    final res = await _cv.action('socialAuth:linkExistingAccount', {
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+      if (credential.authorizationCode != null)
+        'authorizationCode': credential.authorizationCode,
+      'username': username,
+      'passwordHash': sha256Hash(password),
+    });
+    return AuthResult.fromJson(res as Map<String, dynamic>);
+  }
+
+  /// Attaches a provider to an account that already exists.
+  ///
+  /// Password-authenticated for the same reason [setRecoveryKey] is: without it
+  /// this would let anyone who learned a `userId` bolt their own Apple ID onto
+  /// that account and sign in as it.
+  Future<void> linkSocialIdentity({
+    required String userId,
+    required String password,
+    required SocialCredential credential,
+  }) async {
+    await _cv.action('socialAuth:link', {
+      'userId': userId,
+      'passwordHash': sha256Hash(password),
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+      if (credential.authorizationCode != null)
+        'authorizationCode': credential.authorizationCode,
+    });
+  }
+
+  Future<void> unlinkSocialIdentity({
+    required String userId,
+    required String password,
+    required SocialProvider provider,
+  }) async {
+    await _cv.mutation('socialAuth:unlink', {
+      'userId': userId,
+      'passwordHash': sha256Hash(password),
+      'provider': provider.wire,
+    });
+  }
+
+  /// Which providers are attached to this account. Provider names only — the
+  /// backend deliberately withholds the provider email; see `socialAuth.dart`.
+  Future<List<SocialProvider>> linkedProviders({required String userId}) async {
+    final res = await _cv.query('socialAuth:linkedProviders', {'userId': userId});
+    final rows = (res as List?) ?? const [];
+    final out = <SocialProvider>[];
+    for (final row in rows) {
+      final wire = (row as Map<String, dynamic>)['provider'] as String?;
+      for (final provider in SocialProvider.values) {
+        if (provider.wire == wire) out.add(provider);
+      }
+    }
+    return out;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1429,4 +1555,33 @@ class AuthResult {
         username: (j['username']).toString(),
         name: (j['name']).toString(),
       );
+}
+
+/// What `socialAuth:signIn` came back with.
+///
+/// Two outcomes, because Apple and Google give us a subject and maybe an email,
+/// but this app's public identity is a user-chosen username — so a first-time
+/// social sign-in has to stop and ask for one.
+class SocialSignInOutcome {
+  const SocialSignInOutcome._({this.result, this.suggestedName, this.email});
+
+  /// Present exactly when this identity already had an account.
+  final AuthResult? result;
+
+  /// Prefill for the username step. Apple supplies a name only on the very
+  /// first authorization for an Apple ID, so this is frequently null even when
+  /// the account is genuinely new.
+  final String? suggestedName;
+  final String? email;
+
+  factory SocialSignInOutcome.signedIn(AuthResult result) =>
+      SocialSignInOutcome._(result: result);
+
+  factory SocialSignInOutcome.needsUsername({
+    String? suggestedName,
+    String? email,
+  }) =>
+      SocialSignInOutcome._(suggestedName: suggestedName, email: email);
+
+  bool get needsUsername => result == null;
 }

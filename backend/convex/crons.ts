@@ -113,4 +113,19 @@ crons.interval(
   {},
 );
 
+// Re-check stored Sign in with Apple refresh tokens. Unlike everything above
+// this is not a garbage collector — Apple's TN3194 asks that grants be
+// validated periodically, so that one the user revoked from their own Apple ID
+// settings is noticed rather than sat on indefinitely.
+//
+// Cheap by construction: each identity is only re-checked once a day, the batch
+// is capped at 50, and only accounts that actually signed in with Apple have a
+// token at all. See socialAuth.validateAppleGrants.
+crons.interval(
+  "socialAuth.validateAppleGrants",
+  { hours: 12 },
+  internal.socialAuth.validateAppleGrants,
+  {},
+);
+
 export default crons;

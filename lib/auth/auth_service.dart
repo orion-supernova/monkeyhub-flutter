@@ -5,6 +5,7 @@ import '../data/cache_store.dart';
 import '../models/family.dart';
 import '../push/device_identity.dart';
 import 'session_store.dart';
+import 'social_sign_in.dart';
 export 'session_store.dart' show Session;
 
 /// AuthService = ConvexAuthService from v02. Wraps the Convex auth mutations
@@ -61,6 +62,97 @@ class AuthService extends ChangeNotifier {
     debugPrint('[auth] signIn: notifyListeners returned');
     _persistSession(res);
     debugPrint('[auth] signIn: _persistSession scheduled, returning');
+  }
+
+  /// Signs in — or reports that we need a username first — with Apple/Google.
+  ///
+  /// Returns null once the session is live. Returns the outcome when the backend
+  /// asked for a username, in which case the caller shows the username step and
+  /// finishes with [completeSocialSignUp] using the SAME credential.
+  ///
+  /// Social accounts are adults only, and not by choice: Apple refuses Sign in
+  /// with Apple to under-13 Child Accounts outright, and Google says the same
+  /// for child-directed apps. Children keep pairing codes.
+  Future<SocialSignInOutcome?> signInWithProvider(
+    SocialCredential credential,
+  ) async {
+    final outcome = await _api.socialSignIn(credential);
+    if (outcome.needsUsername) return outcome;
+    _adoptSession(outcome.result!);
+    return null;
+  }
+
+  /// Second half of a first-time social sign-up.
+  Future<void> completeSocialSignUp({
+    required SocialCredential credential,
+    required String username,
+    String? name,
+  }) async {
+    final res = await _api.completeSocialSignUp(
+      credential: credential,
+      username: username,
+      name: name,
+    );
+    _adoptSession(res);
+  }
+
+  /// Shared tail of every social entry point. Mirrors [signIn] exactly,
+  /// including the notify-before-persist ordering and why.
+  void _adoptSession(AuthResult res) {
+    _session = Session(userId: res.userId, username: res.username, name: res.name);
+    notifyListeners();
+    _persistSession(res);
+  }
+
+  /// Signs in to an existing account and attaches the provider to it, so the
+  /// next tap of that button goes straight in.
+  ///
+  /// The "I already have an account" branch of the username step.
+  Future<void> linkSocialToExistingAccount({
+    required SocialCredential credential,
+    required String username,
+    required String password,
+  }) async {
+    final res = await _api.linkSocialToExistingAccount(
+      credential: credential,
+      username: username,
+      password: password,
+    );
+    _adoptSession(res);
+  }
+
+  /// Attaches a provider to the signed-in account, from Profile. The password
+  /// is what proves ownership — see `chat_api.linkSocialIdentity`.
+  Future<void> linkSocialIdentity({
+    required String password,
+    required SocialCredential credential,
+  }) async {
+    final s = _session;
+    if (s == null || s.isChild) return;
+    await _api.linkSocialIdentity(
+      userId: s.userId,
+      password: password,
+      credential: credential,
+    );
+  }
+
+  Future<void> unlinkSocialIdentity({
+    required String password,
+    required SocialProvider provider,
+  }) async {
+    final s = _session;
+    if (s == null || s.isChild) return;
+    await _api.unlinkSocialIdentity(
+      userId: s.userId,
+      password: password,
+      provider: provider,
+    );
+  }
+
+  Future<List<SocialProvider>> linkedProviders() async {
+    final s = _session;
+    if (s == null) return const [];
+    return _api.linkedProviders(userId: s.userId);
   }
 
   /// Signs in a child device by redeeming a guardian-issued pairing code.
@@ -182,6 +274,10 @@ class AuthService extends ChangeNotifier {
     try {
       await _api.logout(userId: s.userId);
     } catch (_) {}
+    // Otherwise the provider SDK silently reuses the last account and the next
+    // "Sign in with Google" tap lands straight back in the account they just
+    // left, with no chooser — which reads as sign-out being broken.
+    await SocialSignIn.forgetProviders();
     await SessionStore.instance.clearSession();
     _session = null;
     // A pending rotation belongs to the account that just left. Carrying it

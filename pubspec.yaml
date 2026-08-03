@@ -125,6 +125,21 @@ dependencies:
   crypto: ^3.0.3
   flutter_secure_storage: ^10.3.1
 
+  # Social sign-in. NATIVE flows only, on purpose: the native SDKs hand back an
+  # ID token the backend verifies itself (`backend/convex/idToken.ts`), so there
+  # is no redirect URI, no Apple Services ID and no domain-bound OAuth config
+  # anywhere — which is what keeps a later move off the Oracle box free.
+  #
+  # Apple is iOS/macOS only here. Sign in with Apple ON ANDROID would need the
+  # web flow (Services ID + an HTTPS return URL that bounces back into the app),
+  # which is the one thing that would pin us to a domain. Android gets Google.
+  #
+  # Offering Google WITHOUT Apple on iOS would fail App Store guideline 4.8 —
+  # this app currently qualifies for the "own account setup" exemption, and
+  # adding a third-party login destroys it. Ship both or neither on iOS.
+  sign_in_with_apple: ^8.1.0
+  google_sign_in: ^7.2.0
+
   # Child-device pairing. The parent's phone renders a short-lived code as a
   # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
   # six digits get typed in by hand.
@@ -272,15 +287,24 @@ flutter:
     - branding/monkey/monkey-fields.png
     - branding/monkey/monkey-hiking.png
     - branding/monkey/monkey-astronaut.png
-    # Bundled Google Fonts used by 4 theme brandMarks. The google_fonts
-    # package looks up <Family>-<Variant>.ttf in declared asset paths and
-    # prefers them over a network fetch — so launcher-icon generation works
-    # offline AND launcher icons render with the real typeface (not a
-    # Material fallback).
-    - assets/google_fonts/Anta-Regular.ttf
-    - assets/google_fonts/JetBrainsMono-Regular.ttf
-    - assets/google_fonts/Spectral-Regular.ttf
-    - assets/google_fonts/Audiowide-Regular.ttf
+    # EVERY typeface the themes use, bundled. The google_fonts package looks up
+    # <Family>-<Variant>.ttf in declared asset paths and prefers a bundled file
+    # over a network fetch; `GoogleFonts.config.allowRuntimeFetching = false` in
+    # main.dart then makes that a hard guarantee rather than a preference.
+    #
+    # WHY, beyond offline launcher-icon generation (the original reason four of
+    # these were here): left to fetch at runtime, the package contacts Google's
+    # font CDN on launch and hands them every user's IP address. In a family
+    # messaging app that is a third-party data flow we neither need nor want to
+    # disclose, and it is the sort of thing the Kids-category rules bar outright.
+    #
+    # Six of the eleven families ship only as VARIABLE fonts upstream, so those
+    # variants are static instances cut with fontTools at the exact weights the
+    # themes ask for. All are subset to Latin + Latin Extended — Turkish
+    # (ı İ ş ğ ç ö ü) is verified present in all 37 files. Re-cutting them means
+    # instancing from google/fonts and subsetting again; do not hand-edit.
+    - assets/google_fonts/
+
     # Alert sounds — incoming-call ringtone (looped) + new-message ping. Used
     # on web/desktop where there is no native OS ringer. See lib/audio/.
     - assets/audio/ringtone.mp3
