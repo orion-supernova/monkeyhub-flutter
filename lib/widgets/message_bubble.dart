@@ -1031,11 +1031,18 @@ Widget buildMessageContent({
                 // play button sets the height, so this costs nothing.
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  player,
+                  // Flexible, not bare: a `Row` hands a non-flex child
+                  // UNBOUNDED width, so the player would take its natural size
+                  // and push the stamp past the bubble's edge on a narrow
+                  // phone. Loose fit, so a short player still hugs.
+                  Flexible(child: player),
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 1),
-                    child: audioStamp,
+                    child: KeyedSubtree(
+                      key: kVisibleStampKey,
+                      child: audioStamp,
+                    ),
                   ),
                 ],
               ),
@@ -1135,11 +1142,20 @@ Widget buildMessageContent({
                 // tiny type — the 40pt badge sets the height, so it is free.
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  fileRow,
+                  // Flexible is load-bearing. A `Row` lays a non-flex child out
+                  // with UNBOUNDED width, so the document row took its own
+                  // `maxWidth` (a phone's `videoMaxWidth`, 280) — wider than
+                  // the whole bubble body — and the stamp was pushed off the
+                  // end: ~68pt of overflow, a timestamp nobody could see, and a
+                  // save control clipped at the bubble's edge. Flexible hands
+                  // the row what is actually left after the stamp, and its own
+                  // name/size column ellipsizes into it.
+                  Flexible(child: fileRow),
                   const SizedBox(width: 10),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 1),
-                    child: fileStamp,
+                    child:
+                        KeyedSubtree(key: kVisibleStampKey, child: fileStamp),
                   ),
                 ],
               ),

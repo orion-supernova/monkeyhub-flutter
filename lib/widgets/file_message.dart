@@ -102,7 +102,7 @@ class _FileMessageState extends State<FileMessage> {
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TypeBadge(theme: theme, fileName: name, ink: ink, busy: _busy),
+        _TypeBadge(theme: theme, fileName: name, ink: ink),
         const SizedBox(width: 11),
         Flexible(
           child: Column(
@@ -127,12 +127,8 @@ class _FileMessageState extends State<FileMessage> {
             ],
           ),
         ),
-        const SizedBox(width: 12),
-        Icon(
-          _busy ? CupertinoIcons.ellipsis : CupertinoIcons.arrow_down_circle,
-          size: 19,
-          color: enabled ? soft : soft.withValues(alpha: 0.4),
-        ),
+        const SizedBox(width: 10),
+        _SaveChip(theme: theme, ink: ink, enabled: enabled, busy: _busy),
       ],
     );
 
@@ -167,18 +163,21 @@ class _FileMessageState extends State<FileMessage> {
 
 /// The square extension chip. Fixed width so a column of documents lines its
 /// names up regardless of whether they are `.pdf` or `.pptx`.
+///
+/// It says what the file IS, and goes on saying it while the row is busy — the
+/// progress indication belongs to [_SaveChip], which is where the tap landed.
+/// Swapping this for a spinner as well signalled the same thing twice and threw
+/// away the one label that answers "what am I about to open".
 class _TypeBadge extends StatelessWidget {
   const _TypeBadge({
     required this.theme,
     required this.fileName,
     required this.ink,
-    required this.busy,
   });
 
   final AppTheme theme;
   final String fileName;
   final Color ink;
-  final bool busy;
 
   @override
   Widget build(BuildContext context) {
@@ -191,16 +190,66 @@ class _TypeBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(theme.radiusSm),
         border: Border.all(color: ink.withValues(alpha: 0.16), width: 0.8),
       ),
+      child: Text(
+        fileTypeBadge(fileName),
+        maxLines: 1,
+        style: theme.monoTiny.copyWith(
+          color: ink,
+          letterSpacing: 0.2,
+          fontSize: 9.5,
+        ),
+      ),
+    );
+  }
+}
+
+/// The trailing save affordance.
+///
+/// A bare 19pt glyph floating beside a 40pt badge read as decoration rather
+/// than a control, and swapped to an ellipsis of a different width while
+/// saving, which moved the name column under the user's thumb. A fixed 28pt
+/// circle fixes both: the footprint never changes, and the disc reads as
+/// something you can press. It carries no gesture of its own — the whole row is
+/// the tap target, as it has always been.
+class _SaveChip extends StatelessWidget {
+  const _SaveChip({
+    required this.theme,
+    required this.ink,
+    required this.enabled,
+    required this.busy,
+  });
+
+  final AppTheme theme;
+  final Color ink;
+
+  /// False while the bytes are still going up, or on a message whose upload
+  /// failed — there is nothing to save, and the disc says so by fading.
+  final bool enabled;
+  final bool busy;
+
+  static const double _size = 28;
+
+  @override
+  Widget build(BuildContext context) {
+    final strength = enabled || busy ? 1.0 : 0.4;
+    return Container(
+      width: _size,
+      height: _size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: ink.withValues(alpha: 0.10 * strength),
+        border: Border.all(
+          color: ink.withValues(alpha: 0.16 * strength),
+          width: 0.8,
+        ),
+      ),
       child: busy
-          ? PhotoSpinner(size: 18, color: ink)
-          : Text(
-              fileTypeBadge(fileName),
-              maxLines: 1,
-              style: theme.monoTiny.copyWith(
-                color: ink,
-                letterSpacing: 0.2,
-                fontSize: 9.5,
-              ),
+          ? PhotoSpinner(size: 15, color: ink)
+          : Icon(
+              CupertinoIcons.arrow_down,
+              size: 15,
+              color: ink.withValues(alpha: 0.72 * strength),
             ),
     );
   }
