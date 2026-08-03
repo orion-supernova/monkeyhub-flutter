@@ -264,7 +264,13 @@ export default defineSchema({
     status: v.optional(v.string()), // "open" | "resolved" | "rejected"
   })
     .index("by_reporter", ["reporterId"])
-    .index("by_target", ["targetType", "targetId"]),
+    .index("by_target", ["targetType", "targetId"])
+    // Retention sweep only. Reports used to be kept forever, which is a weak
+    // answer under GDPR Art. 13(2)(a) and is not one the amended COPPA Rule
+    // permits at all for a service children use — it requires a published
+    // retention policy and forbids holding children's data indefinitely.
+    // The published period is 24 months; see users.gcExpiredReports.
+    .index("by_createdAt", ["createdAt"]),
 
   messages: defineTable({
     roomId: v.id("rooms"),

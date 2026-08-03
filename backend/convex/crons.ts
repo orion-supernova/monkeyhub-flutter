@@ -128,4 +128,16 @@ crons.interval(
   {},
 );
 
+// Delete moderation reports past the 24-month retention period. Like the Apple
+// grant check above, this is not a garbage collector: nothing else ever deletes
+// a report, so this job IS the retention policy the privacy policy publishes.
+// Daily rather than hourly — the cutoff moves by a day at a time, so anything
+// more frequent is a scan for nothing. See users.gcExpiredReports.
+crons.interval(
+  "users.gcExpiredReports",
+  { hours: 24 },
+  internal.users.gcExpiredReports,
+  {},
+);
+
 export default crons;

@@ -596,3 +596,36 @@ export const report = mutation({
     });
   },
 });
+
+/** How long a moderation report is kept. Stated in the privacy policy. */
+export const REPORT_RETENTION_MS = 24 * 30 * 24 * 60 * 60 * 1000; // ~24 months
+
+/**
+ * Deletes reports past the retention period.
+ *
+ * Unlike every other sweep in `crons.ts`, this one is not a garbage collector
+ * cleaning up after a path that already tidies itself — it is the mechanism
+ * that makes a published promise true. The privacy policy states a 24-month
+ * retention period for reports, and a stated period with no job behind it is
+ * just a longer way of saying "indefinitely".
+ *
+ * Deliberately unconditional on `status`. A resolved report and one nobody ever
+ * looked at are the same thing to a data subject, and carving out the open ones
+ * would quietly reintroduce indefinite retention for exactly the records most
+ * likely to name a child.
+ *
+ * Batched at 200 like the other sweeps: the cron runs daily and the table is
+ * small, so a backlog drains over a few days rather than risking the 1s
+ * function limit on a box that is also serving live traffic.
+ */
+export const gcExpiredReports = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - REPORT_RETENTION_MS;
+    const expired = await ctx.db
+      .query("reports")
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
+      .take(200);
+    for (const r of expired) await ctx.db.delete(r._id);
+  },
+});
