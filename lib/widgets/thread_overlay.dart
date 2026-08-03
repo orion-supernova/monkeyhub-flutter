@@ -627,6 +627,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
           m.status == MessageStatus.sent &&
           m.type != MessageType.system,
       isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
+      // Same reason as in the room: a document's row can only afford one line
+      // of its name, and this is where the whole thing is legible.
+      fileName: m.type == MessageType.file ? m.fileName : null,
       bubbleBuilder: (_) => _bubbleFor(
         m,
         author,
@@ -660,6 +663,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
       case MessageAction.copy:
         await Clipboard.setData(ClipboardData(text: m.content));
         _showToast('copied');
+        break;
+      case MessageAction.copyName:
+        await Clipboard.setData(ClipboardData(text: m.fileName ?? ''));
+        _showToast('name copied');
         break;
       case MessageAction.viewProfile:
         if (author != null && context.mounted) {

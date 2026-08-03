@@ -9,6 +9,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/file_message.dart';
+import 'package:monkeyhub/widgets/message_action_menu.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/message_stamp.dart';
 
@@ -141,7 +142,7 @@ void main() {
     });
   }
 
-  testWidgets('a long name wraps rather than falling into an ellipsis',
+  testWidgets('a long name costs the transcript no extra lines',
       (tester) async {
     await tester.pumpWidget(host(bubble(doc(name: 'a.epub'), isMine: false)));
     final short = rowRect(tester).height;
@@ -150,26 +151,101 @@ void main() {
     await tester.pumpWidget(host(bubble(doc(name: long), isMine: false)));
     expect(tester.takeException(), isNull);
 
-    expect(rowRect(tester).height, greaterThan(short),
-        reason: 'a name too long for one line takes another one');
-    expect(
-      tester.widget<Text>(find.text(long)).maxLines,
-      greaterThan(1),
-      reason: 'the name is the only thing this bubble says about itself',
-    );
+    // A document sits in a run of other messages and keeps a message's
+    // rhythm: however long the name, the row is the same height. Letting it
+    // wrap turned one filename into a six-line bubble.
+    expect(rowRect(tester).height, short);
+    expect(tester.widget<Text>(find.text(long)).maxLines, 1);
   });
 
-  testWidgets('a wrapped name still leaves the stamp its corner',
+  // The other half of the bargain above: the row gives up the name, so the
+  // long-press menu has to print it in full. Without this the ellipsis is not
+  // a trade, it is just a loss.
+  testWidgets('long-press prints the whole name and offers to copy it',
       (tester) async {
-    await tester.pumpWidget(host(bubble(doc(), isMine: true, seen: true)));
-    expect(tester.takeException(), isNull);
+    const long = 'The Long Book Title That Someone Actually Sent.epub';
+    final anchor = GlobalKey();
+    MessageActionResult? picked;
 
-    final stamp = tester.getRect(visibleStamp);
-    final body = bubbleRect(tester);
-    expect(stamp.right, lessThanOrEqualTo(body.right + 0.5));
-    expect(stamp.bottom, lessThanOrEqualTo(body.bottom + 0.5));
-    // It rides the bottom of a now-taller row, beside the size line.
-    expect(stamp.bottom, greaterThan(body.top + 0.5 * body.height));
+    // ThemeScope above MaterialApp, exactly as the app wires it: the menu
+    // inserts into the ROOT overlay, so a scope nested inside `home` is not an
+    // ancestor of the thing that has to read it.
+    await tester.pumpWidget(ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Builder(
+              builder: (ctx) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () async {
+                  picked = await showMessageActionMenu(
+                    context: ctx,
+                    anchorKey: anchor,
+                    bubbleBuilder: (_) =>
+                        const SizedBox(width: 200, height: 60),
+                    isMine: false,
+                    canCopy: false,
+                    fileName: long,
+                  );
+                },
+                child: SizedBox(key: anchor, width: 200, height: 60),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byKey(anchor), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text(long), findsOneWidget,
+        reason: 'the whole name, over as many lines as it takes');
+    expect(
+      tester.widget<Text>(find.text(long)).maxLines,
+      isNull,
+      reason: 'nothing clamps it a second time',
+    );
+
+    await tester.tap(find.text('COPY NAME'));
+    await tester.pumpAndSettle();
+    expect(picked?.action, MessageAction.copyName);
+  });
+
+  testWidgets('a message with no document gets no name header',
+      (tester) async {
+    final anchor = GlobalKey();
+    // ThemeScope above MaterialApp, exactly as the app wires it: the menu
+    // inserts into the ROOT overlay, so a scope nested inside `home` is not an
+    // ancestor of the thing that has to read it.
+    await tester.pumpWidget(ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Builder(
+              builder: (ctx) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => showMessageActionMenu(
+                  context: ctx,
+                  anchorKey: anchor,
+                  bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
+                  isMine: false,
+                  canCopy: true,
+                ),
+                child: SizedBox(key: anchor, width: 200, height: 60),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byKey(anchor), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.text('COPY NAME'), findsNothing);
+    expect(find.text('COPY'), findsOneWidget);
   });
 
   testWidgets('an unsent document dims its save control instead of losing it',

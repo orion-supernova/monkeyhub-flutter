@@ -2107,6 +2107,10 @@ class _RoomScreenState extends State<RoomScreen>
                     // forwarded, because SELECT is how you reach the bar that
                     // says which of the two actions apply.
                     canSelect: !isPending,
+                    // The transcript row holds a document's name to one line;
+                    // this is where the whole thing is legible.
+                    fileName:
+                        m.type == MessageType.file ? m.fileName : null,
                     bubbleBuilder: (_) {
                       final parentAuthor = m.isReply
                           ? _members[m.replyToPreview?.senderId]
@@ -2177,6 +2181,12 @@ class _RoomScreenState extends State<RoomScreen>
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
                       messenger.showSnackBar(const SnackBar(content: Text('copied')));
+                      break;
+                    case MessageAction.copyName:
+                      await Clipboard.setData(
+                          ClipboardData(text: m.fileName ?? ''));
+                      messenger.showSnackBar(
+                          const SnackBar(content: Text('name copied')));
                       break;
                     case MessageAction.pin:
                       final err = await widget.repo.pinMessage(room.id, m.id);

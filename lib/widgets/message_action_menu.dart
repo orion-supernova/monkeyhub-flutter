@@ -22,6 +22,11 @@ enum MessageAction {
   forward,
   viewThread,
   copy,
+
+  /// Puts a document's filename on the clipboard. Distinct from [copy], which
+  /// takes a message's body — a document has no body, and its name is the one
+  /// thing about it worth carrying somewhere else.
+  copyName,
   pin,
   unpin,
   select,
@@ -71,6 +76,14 @@ Future<MessageActionResult?> showMessageActionMenu({
   bool isPinned = false,
   bool canForward = false,
   bool canSelect = false,
+
+  /// A document's full filename, when this bubble is one.
+  ///
+  /// The row in the transcript holds the name to a single line — a document
+  /// keeps a message's rhythm, and a name that wrapped made a six-line bubble
+  /// out of one file. This is where the whole thing is legible: the menu prints
+  /// it in full, over as many lines as it takes, and offers to copy it.
+  String? fileName,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -105,6 +118,7 @@ Future<MessageActionResult?> showMessageActionMenu({
       isPinned: isPinned,
       canForward: canForward,
       canSelect: canSelect,
+      fileName: fileName,
       screenSize: screenSize,
       safeInsets: safeInsets,
       onResolve: (result) {
@@ -134,6 +148,7 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.isPinned,
     required this.canForward,
     required this.canSelect,
+    required this.fileName,
     required this.screenSize,
     required this.safeInsets,
     required this.onResolve,
@@ -153,6 +168,9 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final bool isPinned;
   final bool canForward;
   final bool canSelect;
+
+  /// Non-null only for a document bubble — see [showMessageActionMenu].
+  final String? fileName;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final ValueChanged<MessageActionResult?> onResolve;
@@ -197,6 +215,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     if (widget.canForward) n++;
     if (widget.hasParent) n++; // view thread
     if (widget.canCopy) n++;
+    if (widget.fileName != null) n++; // copy name
     // Load-bearing, not bookkeeping: this drives `menuH` below, which decides
     // whether the list flips above or below the bubble. A row missing from this
     // count mispositions the whole menu by 48pt, silently, and only near the
@@ -207,6 +226,25 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     if (widget.isMine) n++; // delete
     if (!widget.isMine) n++; // report
     return n;
+  }
+
+  /// How tall the filename header will lay out, measured rather than guessed.
+  ///
+  /// Every other element in this menu is a fixed 48, which is why `menuH` could
+  /// be arithmetic. A filename is not: it wraps to as many lines as it needs,
+  /// and at three lines an estimate is off by enough to flip the menu to the
+  /// wrong side of the bubble near a screen edge. Measured against the same
+  /// width and text scale [_ActionList] will hand the real one — see
+  /// [_FileNameHeader], which owns the padding both of these read.
+  double _headerHeight(BuildContext context, AppTheme theme) {
+    final name = widget.fileName;
+    if (name == null) return 0;
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: theme.bodyEmph),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: _ActionList.maxWidth - _FileNameHeader.padding.horizontal);
+    return painter.height + _FileNameHeader.padding.vertical + 1; // + divider
   }
 
   @override
@@ -222,7 +260,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     final topSafe = widget.safeInsets.top + 12;
     final bottomSafe = widget.safeInsets.bottom + 12;
 
-    final menuH = (_actionCount() * rowH) + 12;
+    final menuH = (_actionCount() * rowH) + 12 + _headerHeight(context, theme);
 
     final spaceAbove = bubble.top - topSafe;
     final spaceBelow = widget.screenSize.height - bubble.bottom - bottomSafe;
@@ -315,6 +353,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               isPinned: widget.isPinned,
               canForward: widget.canForward,
               canSelect: widget.canSelect,
+              fileName: widget.fileName,
               onAction: (a) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.action(a));
@@ -573,7 +612,13 @@ class _ActionList extends StatelessWidget {
     required this.canForward,
     required this.canSelect,
     required this.onAction,
+    this.fileName,
   });
+
+  /// Shared with `_MessageActionMenuOverlay._headerHeight`, which has to
+  /// measure the header against exactly the width it will get.
+  static const double maxWidth = 240;
+
   final bool isMine;
   final bool canCopy;
   final bool canReply;
@@ -583,6 +628,10 @@ class _ActionList extends StatelessWidget {
   final bool canForward;
   final bool canSelect;
   final ValueChanged<MessageAction> onAction;
+
+  /// Non-null for a document bubble, whose name the transcript row can only
+  /// afford one line of — see [showMessageActionMenu].
+  final String? fileName;
 
   @override
   Widget build(BuildContext context) {
@@ -594,6 +643,12 @@ class _ActionList extends StatelessWidget {
       }
       rows.add(_ActionRow(spec: spec, onTap: () => onAction(spec.action)));
     }
+
+    // Ahead of every action: this is the thing the user long-pressed to read.
+    // Seeded into `rows` rather than prepended after, so `add`'s own
+    // between-rows divider separates it from REPLY without a special case.
+    final name = fileName;
+    if (name != null) rows.add(_FileNameHeader(name: name, theme: theme));
 
     if (canReply) {
       add(const _ActionRowSpec(
@@ -626,6 +681,17 @@ class _ActionList extends StatelessWidget {
         action: MessageAction.copy,
         icon: CupertinoIcons.doc_on_doc,
         label: 'COPY',
+        destructive: false,
+      ));
+    }
+    // Takes COPY's slot rather than sitting beside it: `canCopy` is a text
+    // message with a body, and a document has neither. Reading the name off the
+    // header above is one thing; getting it into a search field is another.
+    if (name != null) {
+      add(const _ActionRowSpec(
+        action: MessageAction.copyName,
+        icon: CupertinoIcons.doc_on_doc,
+        label: 'COPY NAME',
         destructive: false,
       ));
     }
@@ -678,7 +744,7 @@ class _ActionList extends StatelessWidget {
     }
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 200, maxWidth: 240),
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: maxWidth),
       child: GlassSurface(
         radius: theme.radiusLg + 6,
         padding: const EdgeInsets.symmetric(vertical: 6),
@@ -688,6 +754,34 @@ class _ActionList extends StatelessWidget {
           children: rows,
         ),
       ),
+    );
+  }
+}
+
+/// The whole filename, printed over as many lines as it takes.
+///
+/// Not a row and not tappable — nothing happens when you press it. It is the
+/// answer to "what is this file actually called", which the transcript's
+/// single-line row cannot give without costing every document bubble the height
+/// of a paragraph.
+class _FileNameHeader extends StatelessWidget {
+  const _FileNameHeader({required this.name, required this.theme});
+
+  /// Read by `_MessageActionMenuOverlay._headerHeight` to measure this before
+  /// it exists. Changing it here changes the measurement.
+  static const EdgeInsets padding = EdgeInsets.fromLTRB(16, 12, 16, 12);
+
+  final String name;
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: padding,
+      // No `maxLines`. A filename is bounded by the filesystem at 255
+      // characters, and a menu tall enough to prove it is still better than one
+      // that ends the name in an ellipsis for the second time.
+      child: Text(name, style: theme.bodyEmph.copyWith(color: theme.ink)),
     );
   }
 }
