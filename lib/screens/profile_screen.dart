@@ -7,12 +7,12 @@ import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
-import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/social_sign_in.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
@@ -26,21 +26,24 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
+import '../widgets/count_badge.dart';
 import '../widgets/labeled_field.dart';
-import '../widgets/password_prompt_sheet.dart';
 import '../widgets/recovery_banner.dart';
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
+import 'approvals_screen.dart';
 import 'blocked_users_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'camera_screen.dart';
+import 'family_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'fullscreen_image_viewer.dart';
 import 'image_crop_screen.dart';
 import 'profile_visibility_screen.dart';
 import 'release_device_screen.dart';
+import 'sign_in_methods_screen.dart';
 import 'navigation/open_room.dart';
 
 /// Profile screen.
@@ -49,14 +52,29 @@ import 'navigation/open_room.dart';
 /// send/cancel friend requests, open DM). If both are null this renders a
 /// read-only view (used as a Phase-1 fallback).
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, required this.user, this.repo, this.api, this.auth});
+  const ProfileScreen({
+    super.key,
+    required this.user,
+    this.repo,
+    this.api,
+    this.auth,
+    this.family,
+  });
   final ChatUser user;
   final ChatRepository? repo;
   final ChatApi? api;
 
   /// When provided AND viewing one's own profile, an ACCOUNT section
-  /// (sign out / delete) is exposed at the bottom.
+  /// (family / sign-in methods / recovery phrase / sign out / delete) is
+  /// exposed at the bottom.
   final AuthService? auth;
+
+  /// Enables the family rows inside that ACCOUNT section. Who looks after whom
+  /// is an account fact, not a preference, so it lives here rather than up in
+  /// Settings among the themes and bubble shapes. Only Settings passes it —
+  /// every other entry point opens somebody else's profile, which has no
+  /// ACCOUNT section at all.
+  final FamilyService? family;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -99,6 +117,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // All three land over the repository's live request/friend subscriptions,
     // so re-resolve rather than leaving "REQUEST PENDING" up forever.
     widget.repo?.addListener(_onFriendship);
+    // The family rows carry a live pending-approvals count, and approvals land
+    // from the child's phone while this screen is open.
+    widget.family?.addListener(_onAuth);
+    widget.family?.refresh();
     _refresh();
     // Separate from _refresh: that one runs for anyone's profile, while linked
     // providers only exist on your own. It no-ops for a child or a stranger.
@@ -108,6 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     widget.auth?.removeListener(_onAuth);
+    widget.family?.removeListener(_onAuth);
     widget.repo?.removeListener(_onFriendship);
     super.dispose();
   }
@@ -219,12 +242,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (saved == true && mounted) await _refresh();
   }
 
-  /// Providers currently attached to this account. Null while unknown, so the
-  /// rows can stay hidden rather than flashing "not linked" before the first
-  /// answer arrives.
+  /// Providers currently attached to this account. Only ever used to summarise
+  /// the SIGN-IN METHODS row — the linking itself lives on
+  /// [SignInMethodsScreen]. Null while unknown, so the row can say nothing
+  /// rather than claim "none" before the first answer arrives.
   List<SocialProvider>? _linkedProviders;
-  SocialProvider? _linkBusy;
-  String? _linkError;
+
+  /// What the SIGN-IN METHODS row shows on the right.
+  String get _signInMethodsLabel {
+    final linked = _linkedProviders;
+    if (linked == null) return '';
+    if (linked.isEmpty) return 'password only';
+    return linked.map((p) => p.label.toLowerCase()).join(' · ');
+  }
+
+  String get _familyLabel {
+    final n = widget.family?.context.children.length ?? 0;
+    if (n == 0) return 'add a child';
+    return n == 1 ? '1 child' : '$n children';
+  }
+
+  void _openFamily() {
+    final family = widget.family;
+    final id = widget.api == null ? null : widget.repo?.userId;
+    if (family == null || id == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FamilyScreen(api: widget.api!, userId: id, family: family),
+      ),
+    );
+  }
+
+  void _openApprovals() {
+    final family = widget.family;
+    final id = widget.api == null ? null : widget.repo?.userId;
+    if (family == null || id == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            ApprovalsScreen(api: widget.api!, guardianId: id, family: family),
+      ),
+    );
+  }
 
   Future<void> _refreshLinkedProviders() async {
     final auth = widget.auth;
@@ -242,65 +301,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  /// Attaches or detaches a provider, password-gated in both directions.
-  ///
-  /// Linking runs the native provider sheet FIRST and asks for the password
-  /// second: the provider flow is the one that can be cancelled casually, and
-  /// making someone type their password before finding that out would be rude.
-  Future<void> _toggleProvider(SocialProvider provider) async {
+  /// Opens the sign-in methods screen, then re-reads what came back from it.
+  /// That screen owns the linking; this row only ever summarises it.
+  Future<void> _openSignInMethods() async {
     final auth = widget.auth;
-    if (auth == null || auth.isChild || _linkBusy != null) return;
-    final linked = _linkedProviders?.contains(provider) ?? false;
-
-    setState(() => _linkError = null);
-    try {
-      if (linked) {
-        final password = await _askAccountPassword(
-          title: 'UNLINK ${provider.label.toUpperCase()}',
-          actionLabel: 'UNLINK',
-          subtitle:
-              'Enter your password to stop signing in with ${provider.label}.',
-        );
-        if (password == null) return;
-        setState(() => _linkBusy = provider);
-        await auth.unlinkSocialIdentity(password: password, provider: provider);
-      } else {
-        final credential = await SocialSignIn.forProvider(provider);
-        if (!mounted) return;
-        final password = await _askAccountPassword(
-          title: 'LINK ${provider.label.toUpperCase()}',
-          actionLabel: 'LINK',
-          subtitle:
-              'Enter your password to add ${provider.label} as a way to sign in.',
-        );
-        if (password == null) return;
-        setState(() => _linkBusy = provider);
-        await auth.linkSocialIdentity(
-          password: password,
-          credential: credential,
-        );
-      }
-      await _refreshLinkedProviders();
-    } on SocialSignInCancelled {
-      // Backed out of the native sheet — not a failure, say nothing.
-    } catch (e) {
-      if (mounted) setState(() => _linkError = humanizeAuthError(e));
-    } finally {
-      if (mounted) setState(() => _linkBusy = null);
-    }
+    if (auth == null || auth.isChild) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => SignInMethodsScreen(auth: auth)),
+    );
+    await _refreshLinkedProviders();
   }
-
-  Future<String?> _askAccountPassword({
-    required String title,
-    required String actionLabel,
-    required String subtitle,
-  }) =>
-      askPassword(
-        context,
-        title: title,
-        actionLabel: actionLabel,
-        subtitle: subtitle,
-      );
 
   Future<void> _updateEmail(String next) async {
     final api = widget.api;
@@ -1160,6 +1170,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // is the real gate. A parent who can't find the button can't use it.
     final canAccount = widget.auth != null && !widget.auth!.isChild;
     final isChildAccount = widget.auth != null && widget.auth!.isChild;
+    final family = widget.family;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1204,6 +1215,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             RecoveryPhraseBanner(onTap: _openRecoveryPhrase),
             const SizedBox(height: 8),
           ],
+          if (family != null) ...[
+            _RowLink(
+              label: 'FAMILY',
+              value: _familyLabel,
+              badge: family.pendingCount,
+              icon: Icons.family_restroom,
+              onTap: _openFamily,
+            ),
+            const SizedBox(height: 8),
+            // No children, nothing to approve — the row would be a permanent
+            // "nothing waiting" for everyone who never adds one.
+            if (family.context.children.isNotEmpty) ...[
+              _RowLink(
+                label: 'APPROVALS',
+                value: family.pendingCount == 0
+                    ? 'nothing waiting'
+                    : '${family.pendingCount} waiting',
+                icon: Icons.pending_actions,
+                iconColor: family.pendingCount > 0 ? theme.accent : null,
+                onTap: _openApprovals,
+              ),
+              const SizedBox(height: 8),
+            ],
+          ],
+          // Hidden where neither provider is offered — a row promising a screen
+          // that would open empty is worse than no row.
+          if (SocialSignInButtons.available.isNotEmpty) ...[
+            _RowLink(
+              label: 'SIGN-IN METHODS',
+              value: _signInMethodsLabel,
+              icon: Icons.vpn_key_outlined,
+              onTap: _openSignInMethods,
+            ),
+            const SizedBox(height: 8),
+          ],
           _RowLink(
             label: _u.hasRecoveryKey == true
                 ? 'CHANGE RECOVERY PHRASE'
@@ -1212,26 +1258,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: _openRecoveryPhrase,
           ),
           const SizedBox(height: 8),
-          // Hidden until the first successful fetch — see `_linkedProviders`.
-          if (_linkedProviders != null)
-            for (final provider in SocialSignInButtons.available) ...[
-              _RowActionTile(
-                label: _linkedProviders!.contains(provider)
-                    ? 'UNLINK ${provider.label.toUpperCase()}'
-                    : 'LINK ${provider.label.toUpperCase()}',
-                danger: false,
-                busy: _linkBusy == provider,
-                onTap: () => _toggleProvider(provider),
-              ),
-              const SizedBox(height: 8),
-            ],
-          if (_linkError != null) ...[
-            Text(
-              _linkError!,
-              style: theme.body.copyWith(color: theme.danger),
-            ),
-            const SizedBox(height: 8),
-          ],
           _RowActionTile(label: 'SIGN OUT', danger: false, busy: _signingOut, onTap: _signOut),
           const SizedBox(height: 8),
           _RowActionTile(
@@ -1249,6 +1275,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             },
           ),
+        ],
+        // A child's half of the same idea. Read-only — there's nothing here for
+        // them to change, and pretending otherwise would be worse than saying
+        // so plainly.
+        if (isChildAccount && family != null) ...[
+          const SizedBox(height: 28),
+          _sectionHeader(theme, 'FAMILY'),
+          const SizedBox(height: 10),
+          _GuardiansCard(family: family),
         ],
         if (isChildAccount) ...[
           const SizedBox(height: 28),
@@ -1284,16 +1319,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _RowLink extends StatelessWidget {
-  const _RowLink({required this.label, required this.icon, required this.onTap});
+  const _RowLink({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.value,
+    this.badge = 0,
+    this.iconColor,
+  });
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
+  /// Current state, right-aligned. Null or empty leaves the row a plain link —
+  /// which is what an action like SET UP RECOVERY PHRASE wants, since its label
+  /// already says everything there is to say.
+  final String? value;
+
+  /// Count shown as an accent pill before the chevron. Zero hides it.
+  final int badge;
+
+  /// Overrides the leading icon's colour to call attention to the row.
+  final Color? iconColor;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final v = value;
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
@@ -1303,12 +1358,81 @@ class _RowLink extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: theme.inkSoft),
+            Icon(icon, size: 16, color: iconColor ?? theme.inkSoft),
             const SizedBox(width: 12),
-            Expanded(child: Text(label, style: theme.label)),
+            // Flexible rather than Expanded: with a value present the label
+            // takes only what it needs and leaves the rest to the value.
+            Flexible(child: Text(label, style: theme.label)),
+            if (v != null && v.isNotEmpty)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(
+                    v,
+                    style: theme.body.copyWith(color: theme.inkSoft),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              )
+            else
+              const Spacer(),
+            if (badge > 0) ...[
+              const SizedBox(width: 8),
+              CountBadge(count: badge),
+            ],
+            const SizedBox(width: 8),
             Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Who looks after this child, stated plainly. Moved here from Settings when
+/// family became an account fact rather than a preference.
+class _GuardiansCard extends StatelessWidget {
+  const _GuardiansCard({required this.family});
+  final FamilyService family;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final guardians = family.context.guardians;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('MY GROWN-UPS', style: theme.label),
+                const SizedBox(height: 4),
+                Text(
+                  guardians.isEmpty
+                      ? 'nobody looking after this account yet'
+                      : guardians.map((g) => g.displayName).join(' · '),
+                  style: theme.body.copyWith(color: theme.inkSoft),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'They can see when you\'re online and who you talk to.',
+                  style: theme.bodySoft,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

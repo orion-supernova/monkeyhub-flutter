@@ -17,10 +17,8 @@ import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
-import 'approvals_screen.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
-import 'family_screen.dart';
 import 'glass_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
@@ -95,11 +93,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  String get _familyLabel {
-    final n = widget.family.context.children.length;
-    if (n == 0) return 'add a child';
-    return n == 1 ? '1 child' : '$n children';
-  }
+  /// The breadcrumb under the avatar card. A child's account has no family
+  /// controls to offer and no sign-in methods to manage, so it gets the two
+  /// things that are actually behind the card for them.
+  String get _accountHint => widget.auth.isChild
+      ? 'profile · privacy · my grown-ups'
+      : 'profile · family · sign-in · privacy';
 
   String get _layoutLabel =>
       SettingsStore.instance.roomLayout == RoomLayout.list
@@ -223,6 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         repo: widget.repo,
                         api: widget.api,
                         auth: widget.auth,
+                        family: widget.family,
                       ),
                     ),
                   ),
@@ -245,13 +245,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         repo: widget.repo,
                         api: widget.api,
                         auth: widget.auth,
+                        family: widget.family,
                       ),
                     ),
+                    behavior: HitTestBehavior.opaque,
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: theme.roomCardDecoration(
                         ephemeral: false,
-                        active: false,
+                        active: _isOpen('profile'),
                       ),
                       child: Row(
                         children: [
@@ -268,9 +270,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: theme.inkMuted,
                                   ),
                                 ),
+                                const SizedBox(height: 6),
+                                // Says where the account settings went, now
+                                // that family is one of them.
+                                Text(
+                                  _accountHint,
+                                  style: theme.monoTiny.copyWith(
+                                    color: theme.inkMuted,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
                             ),
                           ),
+                          // Approvals used to badge their own top-level row.
+                          // That row now lives inside the account screen, so
+                          // the count rides the way in — otherwise a guardian
+                          // would have to go looking to find out anything was
+                          // waiting.
+                          if (widget.family.pendingCount > 0) ...[
+                            CountBadge(count: widget.family.pendingCount),
+                            const SizedBox(width: 8),
+                          ],
                           Icon(
                             Icons.chevron_right,
                             size: 18,
@@ -410,68 +431,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
-              _SectionHeader(label: 'FAMILY'),
-              const SizedBox(height: 12),
-              if (widget.family.isChild)
-                _GuardiansRow(family: widget.family)
-              else ...[
-                _DisclosureRow(
-                  label: 'FAMILY',
-                  value: _familyLabel,
-                  badge: widget.family.pendingCount,
-                  selected: _isOpen('family'),
-                  leading: Icon(
-                    Icons.family_restroom,
-                    size: 16,
-                    color: theme.inkSoft,
-                  ),
-                  onTap: () {
-                    final s = widget.auth.session;
-                    if (s == null) return;
-                    openSettingsDetail(
-                      context,
-                      key: 'family',
-                      builder: (_) => FamilyScreen(
-                        api: widget.api,
-                        userId: s.userId,
-                        family: widget.family,
-                      ),
-                    );
-                  },
-                ),
-                if (widget.family.context.children.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _DisclosureRow(
-                    label: 'APPROVALS',
-                    value: widget.family.pendingCount == 0
-                        ? 'nothing waiting'
-                        : '${widget.family.pendingCount} waiting',
-                    selected: _isOpen('approvals'),
-                    leading: Icon(
-                      Icons.pending_actions,
-                      size: 16,
-                      color: widget.family.pendingCount > 0
-                          ? theme.accent
-                          : theme.inkSoft,
-                    ),
-                    onTap: () {
-                      final s = widget.auth.session;
-                      if (s == null) return;
-                      openSettingsDetail(
-                        context,
-                        key: 'approvals',
-                        builder: (_) => ApprovalsScreen(
-                          api: widget.api,
-                          guardianId: s.userId,
-                          family: widget.family,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ],
-
-              const SizedBox(height: 28),
               _SectionHeader(label: 'LINKS'),
               const SizedBox(height: 12),
               _ShowLinkUrlsToggle(),
@@ -527,16 +486,12 @@ class _DisclosureRow extends StatelessWidget {
     required this.value,
     required this.onTap,
     this.leading,
-    this.badge = 0,
     this.selected = false,
   });
   final String label;
   final String value;
   final VoidCallback onTap;
   final Widget? leading;
-
-  /// Pending count shown as an accent pill before the chevron. Zero hides it.
-  final int badge;
 
   /// Whether this row's sub-screen is currently open in the desktop detail
   /// pane. Renders an accent-tinted surface so the two-pane selection is clear.
@@ -573,10 +528,6 @@ class _DisclosureRow extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
             ),
-            if (badge > 0) ...[
-              const SizedBox(width: 8),
-              CountBadge(count: badge),
-            ],
             const SizedBox(width: 8),
             Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
           ],
@@ -599,55 +550,6 @@ class _SwatchDot extends StatelessWidget {
         color: color,
         shape: BoxShape.circle,
         border: Border.all(color: theme.divider, width: 0.5),
-      ),
-    );
-  }
-}
-
-/// The child's side of the FAMILY section: who looks after them, stated
-/// plainly. Read-only — there's nothing here for them to change, and
-/// pretending otherwise would be worse than saying so.
-class _GuardiansRow extends StatelessWidget {
-  const _GuardiansRow({required this.family});
-  final FamilyService family;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final guardians = family.context.guardians;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: theme.surface,
-        border: Border.all(color: theme.divider),
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.shield_outlined, size: 16, color: theme.accent),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('MY GROWN-UPS', style: theme.label),
-                const SizedBox(height: 4),
-                Text(
-                  guardians.isEmpty
-                      ? 'nobody looking after this account yet'
-                      : guardians.map((g) => g.displayName).join(' · '),
-                  style: theme.body.copyWith(color: theme.inkSoft),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'They can see when you\'re online and who you talk to.',
-                  style: theme.bodySoft,
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
