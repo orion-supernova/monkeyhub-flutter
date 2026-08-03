@@ -87,17 +87,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // section, whether visibility is read-only, whether "hand this phone back"
     // is offered — so repaint rather than leaving the supervised UI up.
     widget.auth?.addListener(_onAuth);
+    // The friendship itself can change underneath an open profile too, and
+    // from the other person's phone: they accept, they decline, they withdraw.
+    // All three land over the repository's live request/friend subscriptions,
+    // so re-resolve rather than leaving "REQUEST PENDING" up forever.
+    widget.repo?.addListener(_onFriendship);
     _refresh();
   }
 
   @override
   void dispose() {
     widget.auth?.removeListener(_onAuth);
+    widget.repo?.removeListener(_onFriendship);
     super.dispose();
   }
 
   void _onAuth() {
     if (mounted) setState(() {});
+  }
+
+  void _onFriendship() {
+    if (!mounted) return;
+    final resolved = _resolveFriendship(widget.user.id);
+    if (resolved.status == _u.friendshipStatus) return;
+    setState(() {
+      _user = _u.copyWith(
+        friendshipStatus: resolved.status,
+        requestId: resolved.requestId,
+      );
+    });
   }
 
   Future<void> _refresh() async {

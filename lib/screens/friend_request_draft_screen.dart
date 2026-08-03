@@ -3,7 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
+import '../data/request_outcome.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
@@ -51,13 +53,30 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   final _composerFocus = FocusNode();
   final _scroll = ScrollController();
   List<FriendRequestMessage> _messages = [];
-  Timer? _poll;
+  Subscription? _messagesSub;
 
   // Compose-only state (when sending fresh)
   RoomType _roomType = RoomType.regular;
   Duration _ttl = const Duration(seconds: 60);
   String? _newRequestId;
   bool _busy = false;
+
+  /// True once this screen's request has actually been seen in the repository's
+  /// live list. A subscription that hasn't delivered yet looks exactly like a
+  /// request that has just been answered, so nothing may be concluded from an
+  /// absence until presence has been observed at least once.
+  bool _sawPending = false;
+
+  /// Set the moment the request stops being pending, so the repository listener
+  /// and the local Approve/Decline/Cancel handlers can't both navigate.
+  bool _resolved = false;
+
+  /// Whether the draft thread ever carried a message — latched, because
+  /// `approveDirectRequest` migrates those messages into the new room and
+  /// clears the thread, after which an empty payload no longer distinguishes
+  /// "had a conversation" from "never wrote anything". It's the same condition
+  /// the backend uses to decide whether approval creates a room at all.
+  bool _hadDraftMessages = false;
 
   static const _ttls = [
     Duration(seconds: 30),
@@ -72,32 +91,144 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   @override
   void initState() {
     super.initState();
+    // Both request lists on the repository are live Convex subscriptions, so
+    // the answer to this request arrives here as an ordinary change
+    // notification — see [_onRepoChanged].
+    widget.repo.addListener(_onRepoChanged);
     if (widget.req != null) {
       _roomType = widget.req!.roomType;
       _ttl = widget.req!.messageLifetime ?? _ttl;
-      _refresh();
-      _poll = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());
+      _watchMessages();
     }
     // Pull the composer up the moment the screen lands — the user opened this
     // screen to write something, so the keyboard should already be there.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _composerFocus.requestFocus();
+      // First read of the live lists deferred to here: a request already
+      // answered before this screen opened resolves by navigating, which is
+      // not something [initState] may do.
+      _onRepoChanged();
     });
   }
 
-  Future<void> _refresh() async {
-    if (_requestId.isEmpty) return;
+  /// Live draft thread.
+  ///
+  /// This used to be a 3-second poll that only ran on the receiving side, which
+  /// left the sender's half of the exchange frozen the whole time it mattered:
+  /// they'd send, and then nothing on the screen ever moved again.
+  Future<void> _watchMessages() async {
+    final id = _requestId;
+    if (id.isEmpty) return;
     try {
-      final ms = await widget.api.listDirectRequestMessages(_requestId);
+      _messagesSub?.cancel();
+      _messagesSub = await widget.repo.cv.subscribe(
+        'friends:listDirectRequestMessages',
+        {'requestId': id},
+        onData: (data) {
+          if (!mounted) return;
+          final list = (data as List?) ?? const [];
+          final ms = list
+              .map((e) => FriendRequestMessage.fromJson(
+                  (e as Map).cast<String, dynamic>()))
+              .toList();
+          if (ms.isNotEmpty) _hadDraftMessages = true;
+          setState(() => _messages = ms);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scroll.hasClients) {
+              _scroll.jumpTo(_scroll.position.maxScrollExtent);
+            }
+          });
+        },
+        onError: (err) => debugPrint('request messages sub error: $err'),
+      );
+    } catch (_) {/* live list still resolves the request either way */}
+  }
+
+  /// The other side answered — or withdrew — while this screen was open.
+  ///
+  /// The rule itself lives in `request_outcome.dart`; see there for why an
+  /// absent row is not on its own an answer.
+  void _onRepoChanged() {
+    if (_resolved) return;
+    final id = _requestId;
+    if (id.isEmpty) return;
+
+    final live = _isIncoming
+        ? widget.repo.incomingRequests
+        : widget.repo.outgoingRequests;
+    if (live.any((r) => r.id == id)) _sawPending = true;
+
+    final outcome = requestOutcome(
+      requestId: id,
+      otherUserId: _otherUser.id,
+      live: live,
+      friends: widget.repo.friends,
+      sawPending: _sawPending,
+    );
+    if (outcome == RequestOutcome.pending) return;
+
+    _resolved = true;
+    _finish(accepted: outcome == RequestOutcome.accepted);
+  }
+
+  void _finish({required bool accepted}) {
+    _messagesSub?.cancel();
+    _messagesSub = null;
+    if (!mounted) return;
+    // Approval turns a draft thread into a real room, and the messages move
+    // with it — so land in the room, exactly where the approver lands. With no
+    // messages the backend creates no room, and there is nothing to open.
+    if (accepted && _hadDraftMessages) {
+      _openAcceptedRoom();
+      return;
+    }
+    final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    nav.pop();
+    messenger.showSnackBar(SnackBar(
+      content: Text(accepted
+          ? '${_otherUser.displayName} accepted your request'
+          : _isIncoming
+              ? 'that request was withdrawn'
+              // Deliberately not "they declined": for a supervised sender the
+              // "no" may have come from a grown-up, and the row's absence
+              // can't tell the two apart.
+              : 'request declined'),
+    ));
+  }
+
+  Future<void> _openAcceptedRoom() async {
+    try {
+      // Get-or-create against the same `dm:<key>:<a>:<b>` name approval used,
+      // so this returns the room approval just made rather than a second one.
+      final roomId = await widget.repo.openDmWith(
+        _otherUser,
+        roomType: _roomType,
+        messageLifetime: _roomType == RoomType.secret ? _ttl : null,
+      );
       if (!mounted) return;
-      setState(() => _messages = ms);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scroll.hasClients) {
-          _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        }
-      });
-    } catch (_) {}
+      _leaveFor(roomId);
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Swaps this screen for [roomId] — the draft is spent once it has a room.
+  void _leaveFor(String roomId) {
+    final nav = Navigator.of(context);
+    if (context.isExpanded) {
+      // Desktop: dismiss this full-screen draft and open the room in the
+      // chat pane instead of replacing the route.
+      nav.pop();
+      SettingsStore.instance.setSection(HomeSection.chat);
+      UiSelectionStore.instance.selectRoom(roomId);
+    } else {
+      nav.pushReplacement(MaterialPageRoute(
+          builder: (_) =>
+              RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
+    }
   }
 
   Future<void> _send() async {
@@ -120,13 +251,15 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
           initialMessage: text.isEmpty ? null : text,
         );
         setState(() => _newRequestId = id);
+        // Only now does the sender have a request to watch: the draft thread
+        // and the accept/decline that ends it.
+        await _watchMessages();
       } else {
         await widget.repo.appendDirectRequestMessage(
           requestId: _requestId,
           content: text,
         );
       }
-      await _refresh();
     } catch (e) {
       // Re-fill composer so user doesn't lose what they typed.
       if (text.isNotEmpty) _composer.text = text;
@@ -145,27 +278,21 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   }
 
   Future<void> _approve() async {
+    // Claimed before the round trip: the same accept lands on the live lists a
+    // moment later, and [_onRepoChanged] must not navigate on top of this.
+    _resolved = true;
     final nav = Navigator.of(context);
     final roomId = await widget.repo.approveDirectRequest(_otherUser.id);
     if (!mounted) return;
     if (roomId != null) {
-      if (context.isExpanded) {
-        // Desktop: dismiss this full-screen draft and open the room in the
-        // chat pane instead of replacing the route.
-        nav.pop();
-        SettingsStore.instance.setSection(HomeSection.chat);
-        UiSelectionStore.instance.selectRoom(roomId);
-      } else {
-        nav.pushReplacement(MaterialPageRoute(
-            builder: (_) =>
-                RoomScreen(roomId: roomId, repo: widget.repo, api: widget.api)));
-      }
+      _leaveFor(roomId);
     } else {
       nav.pop();
     }
   }
 
   Future<void> _reject() async {
+    _resolved = true;
     final nav = Navigator.of(context);
     await widget.repo.rejectDirectRequest(_otherUser.id);
     if (!mounted) return;
@@ -173,6 +300,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   }
 
   Future<void> _cancel() async {
+    _resolved = true;
     final nav = Navigator.of(context);
     await widget.repo.cancelDirectRequest(_otherUser.id);
     if (!mounted) return;
@@ -181,7 +309,8 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
 
   @override
   void dispose() {
-    _poll?.cancel();
+    widget.repo.removeListener(_onRepoChanged);
+    _messagesSub?.cancel();
     _composer.dispose();
     _composerFocus.dispose();
     _scroll.dispose();
