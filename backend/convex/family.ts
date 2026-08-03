@@ -431,7 +431,10 @@ export const setChildPolicy = mutation({
   args: {
     guardianId: v.id("users"),
     childId: v.id("users"),
-    publicRoomsEnabled: v.optional(v.boolean()),
+    // `publicRoomsEnabled` is deliberately NOT here. It is no longer a guardian
+    // decision — see DEFAULT_CHILD_POLICY in childGuard.ts. Removing the
+    // argument rather than ignoring it means an old client that still sends it
+    // gets a validation error instead of silently believing it worked.
     callsEnabled: v.optional(v.boolean()),
     mediaEnabled: v.optional(v.boolean()),
     canRequestContacts: v.optional(v.boolean()),
@@ -447,6 +450,11 @@ export const setChildPolicy = mutation({
     for (const [k, val] of Object.entries(flags)) {
       if (val !== undefined) (next as any)[k] = val;
     }
+    // Forced, not merged. Any child whose guardian switched Discover on before
+    // this became fixed gets it switched back the next time any policy is
+    // touched. `rooms.listPublic` ignores the stored value regardless, so this
+    // is tidiness rather than the enforcement point.
+    next.publicRoomsEnabled = false;
     await ctx.db.patch(childId, { childPolicy: next });
     return next;
   },

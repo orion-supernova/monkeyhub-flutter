@@ -23,6 +23,20 @@ export const STAGE_RECIPIENT = "awaitingRecipient";
  * A brand-new child account starts locked down: no public rooms, no room
  * creation. Calls, media, and asking-to-add stay on because the whole point
  * of the account is talking to family — a guardian can tighten any of them.
+ *
+ * `publicRoomsEnabled` is the exception: it is FIXED at false for every child,
+ * and `family.setChildPolicy` no longer accepts it. It gated Discover — the
+ * public room *directory*, i.e. the one surface where a child could end up
+ * talking to a stranger — and Google Play's Families policy (effective
+ * 26 August 2026) bars apps whose focus is chatting with strangers from
+ * targeting children. Rather than argue about where this app's "focus" lies,
+ * the surface is simply gone for children.
+ *
+ * Note what this does NOT take away, because it is the whole reason the
+ * decision is cheap: a child can still be in any room they were invited to.
+ * Joining a room your friends gave you the name of — the Minecraft or D&D
+ * group — never went through Discover. Only browsing rooms belonging to people
+ * you have never met did.
  */
 export const DEFAULT_CHILD_POLICY = {
   publicRoomsEnabled: false,

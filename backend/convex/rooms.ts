@@ -230,17 +230,18 @@ export const updateRoomAvatar = mutation({
 export const listPublic = query({
   args: { viewerUserId: v.optional(v.id("users")) },
   handler: async (ctx, { viewerUserId }) => {
-    // A child without `publicRoomsEnabled` doesn't get a filtered Discover —
-    // they get no Discover at all. Returning [] here is the backstop; the
-    // client also hides the tab outright.
+    // A child doesn't get a filtered Discover — they get no Discover at all.
+    // Returning [] here is the enforcement point; the client also hides the tab.
+    //
+    // Deliberately NOT conditioned on `childPolicy.publicRoomsEnabled` any
+    // more. That flag is fixed at false and no longer settable (see
+    // childGuard.DEFAULT_CHILD_POLICY), but rows written before that change can
+    // still carry `true`, so reading it here would leave exactly the accounts
+    // this is meant to protect still browsing strangers' rooms. The account
+    // type is the whole test.
     if (viewerUserId) {
       const viewer = await ctx.db.get(viewerUserId);
-      if (
-        viewer?.accountType === "child" &&
-        !(viewer.childPolicy?.publicRoomsEnabled ?? false)
-      ) {
-        return [];
-      }
+      if (viewer?.accountType === "child") return [];
     }
     const rooms = await ctx.db
       .query("rooms")

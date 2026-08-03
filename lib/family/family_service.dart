@@ -68,9 +68,14 @@ class FamilyService extends ChangeNotifier {
   ChildPolicy get policy => _context.policy;
   int get pendingCount => _context.pendingCount;
 
-  /// True when this account may see Discover / public rooms at all. Adults
-  /// always can; a child only once a guardian unlocks it.
-  bool get canSeePublicRooms => !isChild || policy.publicRoomsEnabled;
+  /// True when this account may see Discover / public rooms at all.
+  ///
+  /// Adults always can; a child never can, and there is no guardian override —
+  /// Discover is the one surface where a child could reach a stranger, so it is
+  /// simply absent for them. See `DEFAULT_CHILD_POLICY` in
+  /// `backend/convex/childGuard.ts` for why. `rooms.listPublic` enforces the
+  /// same rule server-side; this only decides whether the tab is drawn.
+  bool get canSeePublicRooms => !isChild;
 
   /// True when the call button should render for this account.
   bool get canCall => !isChild || policy.callsEnabled;

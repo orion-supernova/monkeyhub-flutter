@@ -1425,10 +1425,13 @@ class ChatApi {
   }
 
   /// Only the flags you pass are touched.
+  ///
+  /// There is no `publicRoomsEnabled`. Discover is off for every child with no
+  /// guardian override, and the backend rejects the argument outright rather
+  /// than accepting and ignoring it.
   Future<ChildPolicy> setChildPolicy({
     required String guardianId,
     required String childId,
-    bool? publicRoomsEnabled,
     bool? callsEnabled,
     bool? mediaEnabled,
     bool? canRequestContacts,
@@ -1437,7 +1440,6 @@ class ChatApi {
     final res = await _cv.mutation('family:setChildPolicy', {
       'guardianId': guardianId,
       'childId': childId,
-      'publicRoomsEnabled': ?publicRoomsEnabled,
       'callsEnabled': ?callsEnabled,
       'mediaEnabled': ?mediaEnabled,
       'canRequestContacts': ?canRequestContacts,

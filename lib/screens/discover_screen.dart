@@ -97,12 +97,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   /// Whether the public-rooms world may render.
   ///
-  /// Gated on `hasContext` as well as the policy flag. [FamilyContext.empty]
+  /// Gated on `hasContext` as well as the account type. [FamilyContext.empty]
   /// reads as an unrestricted adult until the family subscription lands, and
-  /// `publicRoomsEnabled` is *false* by default for a child — so without this a
-  /// gated child gets a fully-composed ROOMS world on every cold start, which
-  /// then vanishes. That flash is new: when Discover was a tab it simply never
-  /// appeared for those accounts.
+  /// Discover is off for every child — so without this a child gets a
+  /// fully-composed ROOMS world on every cold start, which then vanishes. That
+  /// flash is new: when Discover was a tab it simply never appeared for those
+  /// accounts.
   bool get _roomsUnlocked =>
       widget.family.hasContext && widget.family.canSeePublicRooms;
 

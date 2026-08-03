@@ -44,14 +44,16 @@ extension AccountTypeWire on AccountType {
 /// `backend/convex/childGuard.ts` — keep the two in step.
 class ChildPolicy {
   const ChildPolicy({
-    this.publicRoomsEnabled = false,
     this.callsEnabled = true,
     this.mediaEnabled = true,
     this.canRequestContacts = true,
     this.canCreateRooms = false,
   });
 
-  final bool publicRoomsEnabled;
+  // No `publicRoomsEnabled`. The backend still stores the field on existing
+  // rows, but it is fixed at false and no longer settable, so mirroring it here
+  // would only invite something to read it and branch on a value that can never
+  // be true. `FamilyService.canSeePublicRooms` keys off the account type.
   final bool callsEnabled;
   final bool mediaEnabled;
   final bool canRequestContacts;
@@ -60,7 +62,6 @@ class ChildPolicy {
   static const locked = ChildPolicy();
 
   factory ChildPolicy.fromJson(Map<String, dynamic> j) => ChildPolicy(
-        publicRoomsEnabled: (j['publicRoomsEnabled'] as bool?) ?? false,
         callsEnabled: (j['callsEnabled'] as bool?) ?? true,
         mediaEnabled: (j['mediaEnabled'] as bool?) ?? true,
         canRequestContacts: (j['canRequestContacts'] as bool?) ?? true,
@@ -68,14 +69,12 @@ class ChildPolicy {
       );
 
   ChildPolicy copyWith({
-    bool? publicRoomsEnabled,
     bool? callsEnabled,
     bool? mediaEnabled,
     bool? canRequestContacts,
     bool? canCreateRooms,
   }) =>
       ChildPolicy(
-        publicRoomsEnabled: publicRoomsEnabled ?? this.publicRoomsEnabled,
         callsEnabled: callsEnabled ?? this.callsEnabled,
         mediaEnabled: mediaEnabled ?? this.mediaEnabled,
         canRequestContacts: canRequestContacts ?? this.canRequestContacts,

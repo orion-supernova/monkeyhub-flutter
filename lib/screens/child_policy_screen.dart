@@ -79,7 +79,6 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   }
 
   Future<void> _set({
-    bool? publicRoomsEnabled,
     bool? callsEnabled,
     bool? mediaEnabled,
     bool? canRequestContacts,
@@ -92,7 +91,6 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     setState(() {
       _saving = true;
       _policy = _policy.copyWith(
-        publicRoomsEnabled: publicRoomsEnabled,
         callsEnabled: callsEnabled,
         mediaEnabled: mediaEnabled,
         canRequestContacts: canRequestContacts,
@@ -103,7 +101,6 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       final next = await widget.api.setChildPolicy(
         guardianId: widget.guardianId,
         childId: widget.child.user.id,
-        publicRoomsEnabled: publicRoomsEnabled,
         callsEnabled: callsEnabled,
         mediaEnabled: mediaEnabled,
         canRequestContacts: canRequestContacts,
@@ -404,12 +401,19 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                     children: [
                       _SectionHeader('WHAT THEY CAN DO'),
                       const SizedBox(height: 12),
-                      _Toggle(
+                      // Public rooms used to be a toggle here. It is now fixed
+                      // off for every kid and cannot be switched on, so it is a
+                      // statement rather than a control — but it still has to
+                      // be SAID. A guardian who saw the switch before would
+                      // otherwise assume the setting was lost or reset, and one
+                      // who never did deserves to know the limit exists.
+                      _FixedNote(
                         label: 'PUBLIC ROOMS',
-                        on: _policy.publicRoomsEnabled,
-                        onDesc: 'they can browse and ask to join rooms',
-                        offDesc: 'Discover is hidden completely',
-                        onChanged: (v) => _set(publicRoomsEnabled: v),
+                        body: 'Always off for kids. Discover — the list of '
+                            'rooms belonging to people you don\'t know — is '
+                            'hidden completely and can\'t be switched on. '
+                            'Rooms someone invites them to still work as '
+                            'normal.',
                       ),
                       const SizedBox(height: 10),
                       _Toggle(
@@ -993,6 +997,46 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(child: Container(height: 1, color: theme.divider)),
       ],
+    );
+  }
+}
+
+/// A rule that is stated rather than offered — same shape as [_Toggle] so it
+/// reads as part of the same list, minus the switch and minus the tap target.
+///
+/// No disabled Switch on purpose. A greyed-out control still says "this is a
+/// setting, and someone could turn it on"; the point here is the opposite.
+class _FixedNote extends StatelessWidget {
+  const _FixedNote({required this.label, required this.body});
+
+  final String label;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(label, style: theme.label),
+              const SizedBox(width: 8),
+              Text('LOCKED',
+                  style: theme.label.copyWith(color: theme.inkMuted)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(body, style: theme.bodySoft),
+        ],
+      ),
     );
   }
 }

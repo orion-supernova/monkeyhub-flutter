@@ -68,9 +68,8 @@ void main() {
   });
 
   group('child policy', () {
-    test('defaults lock down public rooms and room creation', () {
+    test('defaults lock down room creation', () {
       const p = ChildPolicy();
-      expect(p.publicRoomsEnabled, isFalse);
       expect(p.canCreateRooms, isFalse);
       expect(p.callsEnabled, isTrue);
       expect(p.mediaEnabled, isTrue);
@@ -79,17 +78,17 @@ void main() {
 
     test('a missing flag falls back to the locked-down default', () {
       // An older backend, or a partial write, must not silently unlock
-      // public rooms.
+      // anything.
       final p = ChildPolicy.fromJson(const {'callsEnabled': false});
-      expect(p.publicRoomsEnabled, isFalse);
+      expect(p.canCreateRooms, isFalse);
       expect(p.callsEnabled, isFalse);
     });
 
     test('copyWith leaves untouched flags alone', () {
       const p = ChildPolicy();
-      final next = p.copyWith(publicRoomsEnabled: true);
-      expect(next.publicRoomsEnabled, isTrue);
-      expect(next.canCreateRooms, isFalse);
+      final next = p.copyWith(canCreateRooms: true);
+      expect(next.canCreateRooms, isTrue);
+      expect(next.callsEnabled, isTrue);
     });
   });
 
@@ -107,7 +106,6 @@ void main() {
       final ctx = FamilyContext.fromJson(const {
         'accountType': 'child',
         'childPolicy': {
-          'publicRoomsEnabled': true,
           'callsEnabled': false,
           'mediaEnabled': true,
           'canRequestContacts': true,
@@ -116,9 +114,32 @@ void main() {
         'pendingCount': 2,
       });
       expect(ctx.isChild, isTrue);
-      expect(ctx.policy.publicRoomsEnabled, isTrue);
       expect(ctx.policy.callsEnabled, isFalse);
       expect(ctx.pendingCount, 2);
+    });
+
+    test('a legacy row that unlocked public rooms cannot unlock them now', () {
+      // Rows written before Discover became unconditionally off for children
+      // still carry `publicRoomsEnabled: true` on the server, and nothing
+      // rewrites them until a guardian next touches some other setting. This
+      // is the regression guard: the flag must be inert, and the account type
+      // must be the entire test. `FamilyService.canSeePublicRooms` is `!isChild`
+      // and `rooms.listPublic` refuses on accountType alone, so a child stays a
+      // child no matter what the stale document says.
+      final ctx = FamilyContext.fromJson(const {
+        'accountType': 'child',
+        'childPolicy': {
+          'publicRoomsEnabled': true,
+          'callsEnabled': true,
+          'mediaEnabled': true,
+          'canRequestContacts': true,
+          'canCreateRooms': false,
+        },
+      });
+      expect(ctx.isChild, isTrue);
+      // Parsing must not choke on the extra key either — an unknown field on
+      // the wire is a normal consequence of a client older than the server.
+      expect(ctx.policy.callsEnabled, isTrue);
     });
 
     test('the empty context reads as an unrestricted adult', () {

@@ -116,9 +116,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ? const []
             : await widget.api.searchUsers(query: _query, currentUserId: me);
       } else {
-        // Pass the viewer — the backend blanks this list for a child without
-        // `publicRoomsEnabled` (rooms.ts listPublic). Omitting it here would
-        // route around the very gate Discover relies on.
+        // Pass the viewer — the backend blanks this list for any child account
+        // (rooms.ts listPublic). Omitting it here would route around the very
+        // gate Discover relies on.
         final rs = await widget.api.listPublic(
           viewerUserId: widget.repo.userId,
         );
