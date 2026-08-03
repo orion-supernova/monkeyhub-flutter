@@ -819,9 +819,13 @@ deploy_site() {
     sed -e "s/__APP_VERSION__/$DISPLAY_VERSION/g" \
         -e "s/__UPDATED_AT__/$STAMP_DATE/g" \
         hosting/site.template.html | strip_doc > hosting/public/site/index.html
-    # robots.txt and the service-worker tombstone are served from the site root
-    # alongside the page — see hosting/static/flutter_service_worker.js.
-    cp hosting/static/* hosting/public/site/
+    # robots.txt, the service-worker tombstone and the self-hosted webfonts are
+    # served from the site root alongside the page — see
+    # hosting/static/flutter_service_worker.js and hosting/static/fonts/.
+    #
+    # `-R … /.` rather than `*`: the fonts live in a subdirectory, and plain cp
+    # skips directories with a non-zero exit that would abort the deploy.
+    cp -R hosting/static/. hosting/public/site/
 
     if [ "$RUN_UPLOAD" = false ]; then
         echo "⏭️  Skipping page upload (--no-upload). Staged in hosting/public/site/."

@@ -20,10 +20,53 @@
 <meta property="og:url" content="https://monkeyhub.walhallaa.com/">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<!-- MH:DOC — the fonts are SELF-HOSTED, and that is the point.
+
+     This page used to pull both families from fonts.googleapis.com, which
+     handed Google the IP address of every visitor before a single pixel was
+     drawn. That is a third-party data flow the product otherwise does not have:
+     the app ships no analytics and no ads, and lib/main.dart sets
+     GoogleFonts.config.allowRuntimeFetching = false for exactly this reason.
+     A landing page that quietly does what the app refuses to do makes the
+     privacy policy this site links to untrue.
+
+     So the four files are served from our own origin, out of
+     hosting/static/fonts/, and this page now makes ZERO cross-origin requests.
+     Both families are SIL Open Font License 1.1 — redistribution is explicitly
+     permitted, and OFL-Fredoka.txt / OFL-Atkinson.txt ship alongside them as
+     the licence requires.
+
+     Cut from the upstream google/fonts sources with fontTools: Fredoka is a
+     variable font, pinned to wght 500 and 600 at wdth 100, and everything is
+     subset to latin + latin-ext + punctuation, then compressed to woff2.
+     ~70 KB for all four, against ~110 KB of TTF and two DNS lookups before.
+
+     To change a weight you must regenerate the file — the whole point of a
+     static instance is that the browser can no longer interpolate one. Adding
+     a `font-weight: 700` to a Fredoka rule will silently give you a synthesised
+     fake-bold instead. -->
 <style>
+  /* Self-hosted; see hosting/static/fonts/. No third-party request. */
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Regular.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Bold.woff2") format("woff2");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("/fonts/Fredoka-Medium.woff2") format("woff2");
+    font-weight: 500; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("/fonts/Fredoka-SemiBold.woff2") format("woff2");
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
   :root {
     --jungle: #0d1410;
     --jungle-2: #131c16;

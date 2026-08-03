@@ -49,10 +49,37 @@
 <meta name="description" content="Get MonkeyHub on Android through Google Play, on iPhone through TestFlight, or right in your browser.">
 <link rel="canonical" href="https://monkeyhub.walhallaa.com/downloads/">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐵</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<!-- MH:DOC — self-hosted fonts, same as the landing page; the rationale lives
+     in hosting/site.template.html's MH:DOC block next to its @font-face rules.
+
+     The URLs are ROOT-ABSOLUTE, and have to be. This page is served from
+     /srv/monkeyhub/downloads under a `handle_path /downloads/*` block that
+     strips the prefix, so a relative `fonts/…` would resolve inside that
+     directory and 404. `/fonts/…` falls through Caddy's matchers to the
+     catch-all site block, which is where the files actually are — one copy,
+     shared by both pages. See hosting/caddy-monkeyhub.conf. -->
 <style>
+  /* Self-hosted; see hosting/static/fonts/. No third-party request. */
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Regular.woff2") format("woff2");
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Atkinson Hyperlegible";
+    src: url("/fonts/AtkinsonHyperlegible-Bold.woff2") format("woff2");
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("/fonts/Fredoka-Medium.woff2") format("woff2");
+    font-weight: 500; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: "Fredoka";
+    src: url("/fonts/Fredoka-SemiBold.woff2") format("woff2");
+    font-weight: 600; font-style: normal; font-display: swap;
+  }
   :root {
     --jungle: #0d1410;
     --jungle-2: #131c16;
