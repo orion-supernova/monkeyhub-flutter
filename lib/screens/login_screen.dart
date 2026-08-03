@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart' show TapGestureRecognizer;
 import 'package:flutter/material.dart';
 
 import '../auth/auth_errors.dart';
@@ -8,7 +9,10 @@ import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
+import '../legal_links.dart';
 import '../platform.dart';
+import '../services/link_opener.dart';
+import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
@@ -434,8 +438,61 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ],
           ],
+          // Sign-up only. The Profile screen carries the permanent link that
+          // Guideline 5.1.1(i) requires; this one is here because sign-up is
+          // the moment the agreement is actually formed — and because a
+          // guardian creating a child account is consenting on someone else's
+          // behalf, which is only meaningful if the document was reachable
+          // before they tapped.
+          if (_mode == _AuthMode.signUp) ...[
+            const SizedBox(height: 14),
+            _LegalNote(theme: ThemeScope.of(context)),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// "By opening an account you agree to …", with the two documents tappable.
+///
+/// Deliberately quiet — this is a disclosure, not a call to action, and styling
+/// it to compete with OPEN ACCOUNT would be dishonest about which one the user
+/// came here to press.
+class _LegalNote extends StatelessWidget {
+  const _LegalNote({required this.theme});
+  final AppTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = theme.monoTiny.copyWith(color: theme.inkMuted);
+    final link = base.copyWith(
+      color: theme.inkSoft,
+      decoration: TextDecoration.underline,
+      decorationColor: theme.inkSoft,
+    );
+    return Text.rich(
+      TextSpan(
+        style: base,
+        children: [
+          const TextSpan(text: 'By opening an account you agree to the '),
+          TextSpan(
+            text: 'Terms',
+            style: link,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => LinkOpener.open(context, kTermsOfServiceUrl),
+          ),
+          const TextSpan(text: ' and the '),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: link,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => LinkOpener.open(context, kPrivacyPolicyUrl),
+          ),
+          const TextSpan(text: '.'),
+        ],
+      ),
+      textAlign: TextAlign.center,
     );
   }
 }

@@ -14,11 +14,13 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../legal_links.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -1305,6 +1307,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: theme.monoTiny.copyWith(color: theme.inkMuted),
           ),
         ],
+        // Shown to EVERY account, children included, and outside all the
+        // conditionals above on purpose. Guideline 5.1.1(i) and Google's User
+        // Data policy both require a privacy policy reachable from inside the
+        // app, with no carve-out for supervised accounts — and a child is the
+        // reader with the most at stake in the deletion section.
+        const SizedBox(height: 28),
+        _sectionHeader(theme, 'LEGAL'),
+        const SizedBox(height: 10),
+        _RowLink(
+          label: 'PRIVACY POLICY',
+          icon: Icons.privacy_tip_outlined,
+          onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
+        ),
+        const SizedBox(height: 8),
+        _RowLink(
+          label: 'TERMS OF SERVICE',
+          icon: Icons.gavel_outlined,
+          onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
+        ),
+        const SizedBox(height: 8),
+        _RowLink(
+          label: 'LICENCE',
+          icon: Icons.description_outlined,
+          onTap: () => LinkOpener.open(context, kEulaUrl),
+        ),
       ],
     );
   }

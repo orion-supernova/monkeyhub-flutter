@@ -181,6 +181,10 @@
     color: var(--ink-dim); font-size: .85rem; line-height: 1.7;
     animation: rise .55s .58s ease-out both;
   }
+  /* Matches .where a — the legal links are the only other anchors on the page,
+     and default browser blue on this palette looks like a broken stylesheet. */
+  footer a { color: var(--banana); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
 
   @keyframes drop { from { transform: translateY(-40px) scale(.8); opacity: 0; } }
   @keyframes rise { from { transform: translateY(14px); opacity: 0; } }
@@ -256,6 +260,17 @@
   </p>
 
   <footer>
+    <!-- MH:DOC — these four links are a store requirement, not decoration.
+         Apple 5.1.1(i) and Google's User Data policy both want the privacy
+         policy reachable from the listing AND from inside the app; Google
+         separately requires a WEB account-deletion page that works for someone
+         who has already uninstalled. They live on walhallaa.com rather than
+         here because that is the domain both store listings already point at,
+         and a second copy would be a second thing to keep true. -->
+    <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#privacy">Privacy</a> ·
+    <a href="https://walhallaa.com/monkeyhub-privacy-terms.html#terms">Terms</a> ·
+    <a href="https://walhallaa.com/monkeyhub-eula.html">Licence</a> ·
+    <a href="https://walhallaa.com/monkeyhub-delete-account.html">Delete account</a><br>
     v__APP_VERSION__ · updated __UPDATED_AT__<br>
     monkeyhub.walhallaa.com
   </footer>
