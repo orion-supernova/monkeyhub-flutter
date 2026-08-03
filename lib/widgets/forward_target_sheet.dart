@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
+import 'selection_check.dart';
 import 'user_avatar.dart';
 
 /// Most rooms one forward may target at once.
@@ -318,38 +319,11 @@ class _RoomRow extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: 8),
-              _Check(theme: theme, picked: picked),
+              SelectionCheck(picked: picked),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _Check extends StatelessWidget {
-  const _Check({required this.theme, required this.picked});
-
-  final AppTheme theme;
-  final bool picked;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: theme.motionFast,
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        color: picked ? theme.accent : Colors.transparent,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: picked ? theme.accent : theme.divider,
-          width: 1.4,
-        ),
-      ),
-      child: picked
-          ? Icon(CupertinoIcons.check_mark, size: 13, color: theme.accentInk)
-          : null,
     );
   }
 }

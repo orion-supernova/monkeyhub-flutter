@@ -18,6 +18,7 @@ import '../calls/group_call_button.dart';
 import '../calls/group_call_service.dart';
 import '../data/chat_repository.dart';
 import '../data/mention_session.dart';
+import '../data/room_content_selection.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -41,9 +42,12 @@ import '../theme/theme_scope.dart';
 import '../widgets/anchored_scroll.dart';
 import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
+import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
 import '../widgets/chat_composer.dart';
 import '../widgets/chat_pane.dart';
+import '../widgets/destructive_sheet.dart' show showConfirmSheet;
+import '../widgets/forward_target_sheet.dart';
 import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
@@ -56,6 +60,7 @@ import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
 import '../widgets/scroll_to_latest.dart';
+import '../widgets/selection_check.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/remote_image.dart';
 import '../widgets/steady_hero.dart';
@@ -67,6 +72,7 @@ import '../widgets/report_sheet.dart';
 import '../widgets/visibility_badge.dart';
 import 'camera_editor_screen.dart';
 import 'camera_screen.dart';
+import 'room_content_actions.dart';
 import 'fullscreen_image_viewer.dart';
 import 'profile_screen.dart';
 import 'room_info_screen.dart';
@@ -175,6 +181,27 @@ class _RoomScreenState extends State<RoomScreen>
   /// between subscription frames, so this is allowed to be briefly stale.
   int _pinCursor = 0;
 
+  // ──── multi-select ────
+  // Entered from the long-press menu's SELECT row. While it is active the
+  // composer is replaced by the selection bar, every bubble becomes a checkbox
+  // row, and the gestures a bubble normally owns (play, open, swipe-to-reply)
+  // are suppressed — a tap has exactly one meaning in this mode.
+  //
+  // The same object the shared-content browser uses, deliberately: a selection
+  // made in the gallery and one made in the transcript answer to the same two
+  // server calls, and holding ids rather than messages is what keeps a bulk
+  // action from operating on a message that expired under it.
+  final RoomContentSelection _selection = RoomContentSelection();
+
+  /// Most messages one selection may hold, from `messages:deleteMany`'s cap.
+  /// Enforced here rather than only at the button so the count on screen is
+  /// never a number the server would refuse outright.
+  static const int _kMaxSelected = 25;
+
+  /// Most messages one FORWARD may carry, from `messages:forwardToRoom`. Lower
+  /// than [_kMaxSelected], so the button dims rather than the selection capping.
+  static const int _kMaxForwarded = 10;
+
   // ──── thread folding ────
   // Ids folded out of the list by the last _buildItems pass. Read from async
   // callbacks (scroll-to-parent) to tell "collapsed" apart from "not loaded".
@@ -248,6 +275,10 @@ class _RoomScreenState extends State<RoomScreen>
     _scroll.addListener(_onScroll);
     _scrolledUp.addListener(_onBottomProximity);
     _jumpBack.addListener(_onJumpBackChanged);
+    // Entering, leaving and every tick of the selection swap the bottom chrome
+    // and re-skin every visible bubble, so this one is a whole-screen rebuild
+    // rather than something a local ValueListenable could scope down.
+    _selection.addListener(_onSelectionChanged);
     SettingsStore.instance.addListener(_onSettings);
     // If the room is already in the rooms cache from the subscription, we
     // can push the capture scope immediately. Otherwise _onRepoChange will
@@ -258,6 +289,10 @@ class _RoomScreenState extends State<RoomScreen>
   // Pushes, pops and the idle expiry all change whether the back pill is there
   // and what it says.
   void _onJumpBackChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onSelectionChanged() {
     if (mounted) setState(() {});
   }
 
@@ -616,6 +651,8 @@ class _RoomScreenState extends State<RoomScreen>
     _scrolledUp.dispose();
     _jumpBack.removeListener(_onJumpBackChanged);
     _jumpBack.dispose();
+    _selection.removeListener(_onSelectionChanged);
+    _selection.dispose();
     _membersSub?.cancel();
     widget.repo.removeListener(_onRepoChange);
     SettingsStore.instance.removeListener(_onSettings);
@@ -724,6 +761,124 @@ class _RoomScreenState extends State<RoomScreen>
       if (!mounted) return;
       _composerFocus.requestFocus();
     });
+  }
+
+  // ───────────────────────── multi-select ─────────────────────────
+
+  /// The messages the selection bar would act on, resolved against the
+  /// transcript as it is right now.
+  ///
+  /// Never the raw id count: a selected message can self-destruct, expire or be
+  /// deleted by its sender while the bar is up, and offering to forward four
+  /// things that are now three is how a bulk action lies about what it did.
+  List<ChatMessage> get _selectedMessages =>
+      _selection.resolve(widget.repo.timelineFor(widget.roomId));
+
+  /// Enters selection mode with [m] already picked.
+  void _beginSelection(ChatMessage m) {
+    // The composer is about to be replaced by the selection bar, and a keyboard
+    // left standing over it would cover the actions it was opened for.
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _replyingTo = null);
+    _selection.begin(m.id);
+  }
+
+  void _toggleSelection(ChatMessage m) {
+    if (!_selection.contains(m.id) && _selection.count >= _kMaxSelected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('up to $_kMaxSelected at a time')),
+      );
+      return;
+    }
+    _selection.toggle(m.id);
+  }
+
+  /// Whether every message in [picked] can leave this room.
+  ///
+  /// Mirrors what `messages:forwardToRoom` enforces, so the button never
+  /// promises something the server refuses: a Chamber of Secrets room is
+  /// refused wholesale (its expiry would be laundered away by the target
+  /// room's), a view-once message has no readable body to carry, and a system
+  /// notice was never anybody's message to send.
+  bool _canForward(ChatRoom room, List<ChatMessage> picked) {
+    if (picked.isEmpty || picked.length > _kMaxForwarded) return false;
+    if (room.isEphemeral) return false;
+    return picked.every((m) =>
+        !m.viewOnce &&
+        m.type != MessageType.system &&
+        m.status == MessageStatus.sent &&
+        !m.id.startsWith('tmp_'));
+  }
+
+  /// Whether every message in [picked] is one the server would let us delete.
+  ///
+  /// Same rule as `messages:deleteMany`: your own messages, and only those.
+  /// Deleting here is delete-for-everyone — it takes the message off the other
+  /// person's screen too — so it is scoped to what you actually said. Owning
+  /// the room does not extend it. The server enforces this as well; this is the
+  /// UX half, which is why one message of someone else's in the selection dims
+  /// the whole button rather than silently deleting the rest.
+  bool _canDelete(List<ChatMessage> picked, String me) {
+    if (picked.isEmpty || me.isEmpty) return false;
+    if (picked.any((m) => m.id.startsWith('tmp_'))) return false;
+    return picked.every((m) => m.senderId == me);
+  }
+
+  /// Forwards [picked] into whichever chats the sheet comes back with.
+  ///
+  /// Shared by the selection bar and the long-press menu's FORWARD row — one
+  /// message is just the one-item case, and the two must not drift.
+  Future<void> _forwardMessages(List<ChatMessage> picked) async {
+    if (picked.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final targets = await showForwardTargetSheet(
+      context,
+      repo: widget.repo,
+      messageCount: picked.length,
+      excludeRoomId: widget.roomId,
+    );
+    if (targets == null || targets.isEmpty || !mounted) return;
+
+    final result = await forwardMessages(
+      api: widget.api,
+      repo: widget.repo,
+      sourceRoomId: widget.roomId,
+      targets: [for (final t in targets) t.id],
+      messages: picked,
+    );
+    if (!mounted) return;
+
+    _selection.clear();
+    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
+  }
+
+  Future<void> _deleteSelected() async {
+    final picked = _selectedMessages;
+    if (picked.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+
+    final confirmed = await showConfirmSheet(
+      context,
+      headline: picked.length == 1
+          ? 'DELETE MESSAGE'
+          : 'DELETE ${picked.length} MESSAGES',
+      body: 'This removes them for everyone in this chat. It cannot be undone.',
+      confirmLabel: 'DELETE FOR EVERYONE',
+    );
+    if (!confirmed || !mounted) return;
+
+    final result = await deleteMessages(
+      api: widget.api,
+      repo: widget.repo,
+      messageIds: [for (final m in picked) m.id],
+    );
+    if (!mounted) return;
+
+    // No local removal: the room subscription carries the deletion back, the
+    // same way it does for the single-message DELETE in the action menu.
+    _selection.clear();
+    messenger.showSnackBar(SnackBar(content: Text(result.summary)));
   }
 
   /// Open the thread containing [m], scrolled to [m] itself.
@@ -1479,20 +1634,29 @@ class _RoomScreenState extends State<RoomScreen>
     // but the width doesn't move, so ChatMetricsScope.updateShouldNotify
     // returns false and nothing below rebuilds.)
     return ChatPane(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            theme.backgroundLayer(context),
-            if (chatStyle == ChatStyle.classic)
-              _buildClassic(context, room, messages, items, me)
-            else
-              _buildLiquid(context, room, messages, items, me),
-            // Last, so it covers the header and the composer too — a scrim that
-            // dims the transcript but leaves a live attach button underneath it
-            // is an invitation to make the problem worse.
-            if (_mediaBusy) const BusyScrim(),
-          ],
+      // Back cancels a selection before it leaves the room — the selection bar
+      // has its own CANCEL, but a system back that walked out of the chat
+      // instead of out of the mode would be the wrong kind of surprising.
+      child: PopScope(
+        canPop: !_selection.active,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _selection.clear();
+        },
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Stack(
+            children: [
+              theme.backgroundLayer(context),
+              if (chatStyle == ChatStyle.classic)
+                _buildClassic(context, room, messages, items, me)
+              else
+                _buildLiquid(context, room, messages, items, me),
+              // Last, so it covers the header and the composer too — a scrim that
+              // dims the transcript but leaves a live attach button underneath it
+              // is an invitation to make the problem worse.
+              if (_mediaBusy) const BusyScrim(),
+            ],
+          ),
         ),
       ),
     );
@@ -1556,7 +1720,9 @@ class _RoomScreenState extends State<RoomScreen>
               duration: theme.motionFast,
               curve: theme.motionEntrance,
               alignment: Alignment.bottomCenter,
-              child: Column(
+              child: _selection.active
+                  ? _selectionBar(room, me)
+                  : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_replyingTo != null)
@@ -1666,7 +1832,9 @@ class _RoomScreenState extends State<RoomScreen>
                 duration: theme.motionFast,
                 curve: theme.motionEntrance,
                 alignment: Alignment.bottomCenter,
-                child: Column(
+                child: _selection.active
+                    ? _selectionBar(room, me)
+                    : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (_replyingTo != null)
@@ -1694,6 +1862,23 @@ class _RoomScreenState extends State<RoomScreen>
           ),
         ],
       ),
+    );
+  }
+
+  /// The bottom chrome while a selection is live, in both chat styles.
+  ///
+  /// Built here rather than passed down because what the two buttons are
+  /// allowed to do depends on the room, the viewer and the picks — three things
+  /// the bar itself has no business knowing.
+  Widget _selectionBar(ChatRoom room, String me) {
+    final picked = _selectedMessages;
+    return TranscriptSelectionBar(
+      count: picked.length,
+      onCancel: _selection.clear,
+      onForward: () => _forwardMessages(picked),
+      onDelete: _deleteSelected,
+      canForward: _canForward(room, picked),
+      canDelete: _canDelete(picked, me),
     );
   }
 
@@ -1839,12 +2024,19 @@ class _RoomScreenState extends State<RoomScreen>
                       // carries no date, and registering it would let it win
                       // the topmost-tracked-item contest in
                       // _recomputePositionState and show a wrong floating date.
-                      return _ThreadFoldChip(
+                      final chip = _ThreadFoldChip(
                         fold: item,
                         api: widget.api,
                         members: _members,
                         onTap: () => _openFoldedThread(item),
                       );
+                      // Scenery while a selection is live. The chip stands for
+                      // messages that are NOT on screen, so there is nothing
+                      // here to pick — and opening the thread overlay on top of
+                      // a live selection would strand it behind another surface.
+                      return _selection.active
+                          ? IgnorePointer(child: chip)
+                          : chip;
                     }
                     final messageItem = item as MessageItem;
                     final m = messageItem.message;
@@ -1868,6 +2060,13 @@ class _RoomScreenState extends State<RoomScreen>
                 final othersRead = widget.repo.latestOthersReadAt;
                 final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
                 final isPending = m.id.startsWith('tmp_');
+                final selecting = _selection.active;
+                // Same rule the selection bar applies to a whole batch, asked
+                // of one message — see [_canForward].
+                final canForwardOne =
+                    !isPending && !room.isEphemeral && !m.viewOnce &&
+                        m.type != MessageType.system &&
+                        m.status == MessageStatus.sent;
                 final canReply = !isPending &&
                     m.status == MessageStatus.sent &&
                     m.type != MessageType.system;
@@ -1902,6 +2101,12 @@ class _RoomScreenState extends State<RoomScreen>
                         m.status == MessageStatus.sent &&
                         m.type != MessageType.system,
                     isPinned: widget.repo.isMessagePinned(room.id, m.id),
+                    canForward: canForwardOne,
+                    // Offered on anything the transcript will let you long-press
+                    // — including messages that aren't yours and can't be
+                    // forwarded, because SELECT is how you reach the bar that
+                    // says which of the two actions apply.
+                    canSelect: !isPending,
                     bubbleBuilder: (_) {
                       final parentAuthor = m.isReply
                           ? _members[m.replyToPreview?.senderId]
@@ -1959,6 +2164,12 @@ class _RoomScreenState extends State<RoomScreen>
                   switch (result.action!) {
                     case MessageAction.reply:
                       _armReply(m);
+                      break;
+                    case MessageAction.forward:
+                      await _forwardMessages([m]);
+                      break;
+                    case MessageAction.select:
+                      _beginSelection(m);
                       break;
                     case MessageAction.viewThread:
                       await _openThread(m);
@@ -2101,20 +2312,30 @@ class _RoomScreenState extends State<RoomScreen>
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
                       );
+                final row = AnimatedSwitcher(
+                  duration: theme.motionMed,
+                  switchInCurve: theme.motionEntrance,
+                  child: SwipeToReply(
+                    key: ValueKey('sw_${m.id}'),
+                    // A swipe that armed a reply mid-selection would put a
+                    // composer card under a bar that has no composer.
+                    enabled: canReply && !selecting,
+                    onReplyTriggered: () => _armReply(m, haptic: false),
+                    child: bubble,
+                  ),
+                );
                 return _trackedDate(
                   stableId: 'm_${m.id}',
                   label: humanDay(DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day)),
                   isDivider: false,
-                  child: AnimatedSwitcher(
-                    duration: theme.motionMed,
-                    switchInCurve: theme.motionEntrance,
-                    child: SwipeToReply(
-                      key: ValueKey('sw_${m.id}'),
-                      enabled: canReply,
-                      onReplyTriggered: () => _armReply(m, haptic: false),
-                      child: bubble,
-                    ),
-                  ),
+                  child: selecting
+                      ? _SelectableRow(
+                          selected: _selection.contains(m.id),
+                          isMine: isMine,
+                          onTap: () => _toggleSelection(m),
+                          child: row,
+                        )
+                      : row,
                 );
               },
                   ),
@@ -2218,6 +2439,102 @@ class _RoomScreenState extends State<RoomScreen>
       track.label = label;
     }
     return KeyedSubtree(key: track.key, child: child);
+  }
+}
+
+/// A transcript row while multi-select is on: the bubble exactly where it was,
+/// a check in the margin opposite it, and one tap target over both.
+///
+/// The check goes in the EMPTY half of the row — left of a sent bubble, right
+/// of a received one — rather than in a leading gutter every row shares. A
+/// gutter is what a settings list does, and it costs the one thing a transcript
+/// cannot afford: turning selection on would shove the entire conversation
+/// sideways, so the message you long-pressed is no longer where you left it.
+/// Here nothing moves. The reserved width is smaller than the slack a bubble
+/// already leaves at [ChatMetrics.bubbleFraction], so even a message at full
+/// width holds its position.
+///
+/// Picked rows take the same treatment as a picked row in the forward-target
+/// sheet — a soft accent plate under a hairline accent border, on the theme's
+/// own radius and timing — because they are the same act. Unpicked rows keep
+/// their empty ring: the surface has to say it is asking, not just answer for
+/// the rows already chosen.
+///
+/// The bubble is wrapped in [IgnorePointer] rather than handed a different set
+/// of callbacks. A message carries live gestures of its own — a video's play
+/// button, a link, a reaction chip, the avatar — and selection mode has to mean
+/// that a tap anywhere on the row picks it. Suppressing them at the boundary is
+/// one place to be right about; rewiring each one is many.
+class _SelectableRow extends StatelessWidget {
+  const _SelectableRow({
+    required this.selected,
+    required this.isMine,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool selected;
+
+  /// Which side the bubble hugs, and so which margin is free for the check.
+  final bool isMine;
+  final VoidCallback onTap;
+  final Widget child;
+
+  /// Width given to the check and its breathing room.
+  static const double _gutter = 30;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: selected ? 'Deselect message' : 'Select message',
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          curve: theme.motionEntrance,
+          margin: const EdgeInsets.symmetric(vertical: 1),
+          padding: const EdgeInsets.symmetric(vertical: 3),
+          decoration: BoxDecoration(
+            color: selected
+                ? theme.accent.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+            border: Border.all(
+              color: selected
+                  ? theme.accent.withValues(alpha: 0.55)
+                  : Colors.transparent,
+              width: 1.2,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  left: isMine ? _gutter : 0,
+                  right: isMine ? 0 : _gutter,
+                ),
+                child: IgnorePointer(child: child),
+              ),
+              // Centred on the row's own height, so it reads as a mark against
+              // the whole message rather than something pinned to its first
+              // line — which is what a tall photo would otherwise look like.
+              Positioned(
+                top: 0,
+                bottom: 0,
+                left: isMine ? 0 : null,
+                right: isMine ? null : 0,
+                width: _gutter,
+                child: Center(child: SelectionCheck(picked: selected)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

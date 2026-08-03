@@ -658,15 +658,18 @@ export const deleteMessage = mutation({
     const msg = await ctx.db.get(messageId);
     if (!msg) throw new Error("MESSAGE_NOT_FOUND");
 
-    // Only sender or room owner can delete
+    // Sender only. This is delete-for-everyone — the row leaves the other
+    // person's transcript, their gallery and their notification shade — so it
+    // is scoped to what the caller themselves said.
+    //
+    // Room owners used to be allowed here too, and that was worse than it
+    // looked: `roomMembers.role` is set at join time and there is no
+    // promote/demote mutation anywhere, so in a DM it silently meant "whoever
+    // opened the conversation may delete the other person's messages". A
+    // moderator's remove-this-post is a different feature with a different
+    // audit story, not a side effect of having tapped NEW CHAT first.
     if (msg.userId.toString() !== userId.toString()) {
-      const membership = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) => q.eq("roomId", msg.roomId).eq("userId", userId))
-        .first();
-      if (!membership || membership.role !== "owner") {
-        throw new Error("NOT_AUTHORIZED");
-      }
+      throw new Error("NOT_AUTHORIZED");
     }
 
     await removeMessageAndFanout(ctx, msg, messageId);
@@ -882,21 +885,22 @@ export const forwardToRoom = mutation({
  * Deletes up to [MAX_DELETE_MESSAGES] messages the caller is entitled to.
  *
  * Per-message authorization SKIPS rather than throws, and that is the whole
- * design. A selection made in a gallery will routinely mix the caller's own
- * messages with other people's; throwing on the first one they don't own would
+ * design. A selection made in a gallery can still reach this holding something
+ * that isn't the caller's — a message whose sender changed under a stale
+ * screen, or simply a client that got it wrong; throwing on the first one would
  * roll back the deletions they were entitled to and leave the UI unable to say
  * which of the twenty was the problem. The `{deleted, refused}` return is what
  * the caller reports.
  *
  * The client is expected to have filtered the selection already — the DELETE
- * action only appears when every selected message is deletable — so a non-zero
- * `refused` means the two disagreed, which is exactly when a silent partial
- * success would be worst.
+ * action only appears when every selected message is the caller's own — so a
+ * non-zero `refused` means the two disagreed, which is exactly when a silent
+ * partial success would be worst.
  *
- * Same rule as `deleteMessage`: sender, or the room's owner. Note that
- * `roomMembers.role` is fixed at join time and there is no promote/demote
- * mutation anywhere, so in a DM only the initiator is ever "owner". This is
- * delete-for-everyone, not delete-for-me.
+ * Same rule as `deleteMessage`: sender, and only the sender. This is
+ * delete-for-everyone, not delete-for-me, so it is scoped to what the caller
+ * said themselves — see the note there on why owning the room does not extend
+ * it.
  */
 export const deleteMany = mutation({
   args: {
@@ -909,26 +913,6 @@ export const deleteMany = mutation({
       throw new Error("TOO_MANY_MESSAGES");
     }
 
-    // Owner status is per room, and a selection comes from one room, but that
-    // is the caller's claim rather than a fact — so this resolves each room it
-    // actually meets and remembers the answer. One read per distinct room,
-    // not one per message.
-    const ownerOf = new Map<string, boolean>();
-    const isOwner = async (roomId: any) => {
-      const key = roomId.toString();
-      const known = ownerOf.get(key);
-      if (known !== undefined) return known;
-      const membership = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) =>
-          q.eq("roomId", roomId).eq("userId", userId)
-        )
-        .first();
-      const owner = membership?.role === "owner";
-      ownerOf.set(key, owner);
-      return owner;
-    };
-
     let deleted = 0;
     let refused = 0;
 
@@ -938,8 +922,7 @@ export const deleteMany = mutation({
       // landing first. Not a refusal: the caller wanted it gone and it is.
       if (!msg) continue;
 
-      const mine = msg.userId.toString() === userId.toString();
-      if (!mine && !(await isOwner(msg.roomId))) {
+      if (msg.userId.toString() !== userId.toString()) {
         refused++;
         continue;
       }

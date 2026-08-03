@@ -705,8 +705,14 @@ class _ThreadSheetState extends State<_ThreadSheet>
         } catch (_) {}
         break;
       case MessageAction.viewThread:
-        // Suppressed (hasParent: false above ensures this row isn't shown),
-        // but the switch must be exhaustive.
+      case MessageAction.forward:
+      case MessageAction.select:
+        // None of these rows are offered in here. VIEW THREAD would recurse
+        // (see `hasParent: false` above); FORWARD and SELECT belong to the
+        // transcript, which owns the selection bar and the target sheet — an
+        // overlay with its own composer and its own scroll position is not
+        // where a bulk action should start. The switch must still be
+        // exhaustive.
         break;
     }
   }

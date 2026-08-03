@@ -19,6 +19,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/audio_message.dart';
+import '../widgets/bulk_action_bar.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_grid_tile.dart';
@@ -301,8 +302,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       context,
       headline: picked.length == 1 ? 'DELETE MESSAGE' : 'DELETE ${picked.length} MESSAGES',
       // Named plainly, because it is not "remove from my gallery": the rows go
-      // for everyone in the room, and `roomMembers.role` is fixed at join time
-      // so a DM's initiator can do this to the other person's messages.
+      // for everyone in the room. They are all the caller's own — see
+      // [_canDeleteAll] — so this asks about reach, not about ownership.
       body: 'This removes them for everyone in this chat. It cannot be undone.',
       confirmLabel: 'DELETE FOR EVERYONE',
     );
@@ -378,17 +379,19 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     );
   }
 
-  /// DELETE only appears when every pick is deletable, so the button never
-  /// promises something the server will refuse. The server still enforces it —
-  /// this is the UX half, and `deleteMany` reports what it skipped.
+  /// DELETE only appears when every pick is yours, so the button never promises
+  /// something the server will refuse.
+  ///
+  /// Your own messages, and only those — the same rule the transcript's
+  /// selection bar applies. This is delete-for-everyone, so it is scoped to
+  /// what you sent; owning the room does not extend it to other people's
+  /// photos. The server enforces it too, and `deleteMany` reports what it
+  /// skipped if the two ever disagree.
   bool _canDeleteAll(List<ChatMessage> picked) {
     if (picked.isEmpty) return false;
     final me = widget.repo.userId;
     if (me == null) return false;
-    if (picked.every((m) => m.senderId == me)) return true;
-    // Room owners may delete anything. `roomMembers.role` is set at join time
-    // and never changes, so this cannot go stale mid-session.
-    return widget.repo.roomById(widget.roomId)?.createdBy == me;
+    return picked.every((m) => m.senderId == me);
   }
 
   Widget _header(AppTheme theme) {
@@ -1048,14 +1051,14 @@ class RoomContentActionBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _BarAction(
+              BulkActionButton(
                 theme: theme,
                 icon: CupertinoIcons.arrowshape_turn_up_right,
                 label: 'FORWARD',
                 onTap: onForward,
               ),
               if (isLinks)
-                _BarAction(
+                BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.doc_on_clipboard,
                   label: 'COPY',
@@ -1066,13 +1069,13 @@ class RoomContentActionBar extends StatelessWidget {
                 // note in profile_screen.dart. Hidden rather than offered and
                 // then failed.
                 if (savable && !kIsWeb)
-                  _BarAction(
+                  BulkActionButton(
                     theme: theme,
                     icon: CupertinoIcons.arrow_down_to_line,
                     label: 'SAVE',
                     onTap: onSave,
                   ),
-                _BarAction(
+                BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.share,
                   label: 'SHARE',
@@ -1080,14 +1083,14 @@ class RoomContentActionBar extends StatelessWidget {
                 ),
               ],
               if (onShowInChat != null)
-                _BarAction(
+                BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.chat_bubble,
                   label: 'IN CHAT',
                   onTap: onShowInChat!,
                 ),
               if (canDelete)
-                _BarAction(
+                BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.trash,
                   label: 'DELETE',
@@ -1102,46 +1105,3 @@ class RoomContentActionBar extends StatelessWidget {
   }
 }
 
-class _BarAction extends StatelessWidget {
-  const _BarAction({
-    required this.theme,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.destructive = false,
-  });
-
-  final AppTheme theme;
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = destructive ? theme.danger : theme.ink;
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusSm,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 19, color: ink),
-              const SizedBox(height: 5),
-              Text(
-                label,
-                style: theme.monoTiny.copyWith(color: ink, letterSpacing: 0.8),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

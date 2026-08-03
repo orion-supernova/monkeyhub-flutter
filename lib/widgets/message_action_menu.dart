@@ -17,7 +17,18 @@ import 'glass_surface.dart';
 /// affordance, and a single `pin` case would force both switch sites to re-derive
 /// the current state just to know what they had done. Exactly one of the two is
 /// ever offered, chosen by `isPinned`.
-enum MessageAction { reply, viewThread, copy, pin, unpin, delete, report, viewProfile }
+enum MessageAction {
+  reply,
+  forward,
+  viewThread,
+  copy,
+  pin,
+  unpin,
+  select,
+  delete,
+  report,
+  viewProfile,
+}
 
 /// Resolved choice from [showMessageActionMenu]. Exactly one of the three
 /// shapes is filled in:
@@ -58,6 +69,8 @@ Future<MessageActionResult?> showMessageActionMenu({
   bool hasParent = false,
   bool canPin = false,
   bool isPinned = false,
+  bool canForward = false,
+  bool canSelect = false,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -90,6 +103,8 @@ Future<MessageActionResult?> showMessageActionMenu({
       hasParent: hasParent,
       canPin: canPin,
       isPinned: isPinned,
+      canForward: canForward,
+      canSelect: canSelect,
       screenSize: screenSize,
       safeInsets: safeInsets,
       onResolve: (result) {
@@ -117,6 +132,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.hasParent,
     required this.canPin,
     required this.isPinned,
+    required this.canForward,
+    required this.canSelect,
     required this.screenSize,
     required this.safeInsets,
     required this.onResolve,
@@ -134,6 +151,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final bool hasParent;
   final bool canPin;
   final bool isPinned;
+  final bool canForward;
+  final bool canSelect;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final ValueChanged<MessageActionResult?> onResolve;
@@ -175,6 +194,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
   int _actionCount() {
     var n = 0;
     if (widget.canReply) n++;
+    if (widget.canForward) n++;
     if (widget.hasParent) n++; // view thread
     if (widget.canCopy) n++;
     // Load-bearing, not bookkeeping: this drives `menuH` below, which decides
@@ -182,6 +202,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // count mispositions the whole menu by 48pt, silently, and only near the
     // top and bottom edges of the screen.
     if (widget.canPin) n++;
+    if (widget.canSelect) n++;
     if (!widget.isMine) n++; // view profile
     if (widget.isMine) n++; // delete
     if (!widget.isMine) n++; // report
@@ -292,6 +313,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               hasParent: widget.hasParent,
               canPin: widget.canPin,
               isPinned: widget.isPinned,
+              canForward: widget.canForward,
+              canSelect: widget.canSelect,
               onAction: (a) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.action(a));
@@ -547,6 +570,8 @@ class _ActionList extends StatelessWidget {
     required this.hasParent,
     required this.canPin,
     required this.isPinned,
+    required this.canForward,
+    required this.canSelect,
     required this.onAction,
   });
   final bool isMine;
@@ -555,6 +580,8 @@ class _ActionList extends StatelessWidget {
   final bool hasParent;
   final bool canPin;
   final bool isPinned;
+  final bool canForward;
+  final bool canSelect;
   final ValueChanged<MessageAction> onAction;
 
   @override
@@ -573,6 +600,16 @@ class _ActionList extends StatelessWidget {
         action: MessageAction.reply,
         icon: CupertinoIcons.arrowshape_turn_up_left,
         label: 'REPLY',
+        destructive: false,
+      ));
+    }
+    // Right after REPLY: both are "send this somewhere", and forwarding one
+    // message is the single-item case of what the selection bar does for many.
+    if (canForward) {
+      add(const _ActionRowSpec(
+        action: MessageAction.forward,
+        icon: CupertinoIcons.arrowshape_turn_up_right,
+        label: 'FORWARD',
         destructive: false,
       ));
     }
@@ -601,6 +638,17 @@ class _ActionList extends StatelessWidget {
         action: isPinned ? MessageAction.unpin : MessageAction.pin,
         icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
         label: isPinned ? 'UNPIN' : 'PIN',
+        destructive: false,
+      ));
+    }
+    // Last of the neutral rows, because it is the only one that does nothing to
+    // this message: it hands the transcript over to multi-select with this one
+    // already picked, and everything after that happens in the selection bar.
+    if (canSelect) {
+      add(const _ActionRowSpec(
+        action: MessageAction.select,
+        icon: CupertinoIcons.checkmark_circle,
+        label: 'SELECT',
         destructive: false,
       ));
     }

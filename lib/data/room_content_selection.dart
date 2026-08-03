@@ -2,11 +2,16 @@ import 'package:flutter/foundation.dart';
 
 import '../models/chat_message.dart';
 
-/// Multi-select state for the shared-content browser.
+/// Multi-select state for a list of messages: the shared-content browser's
+/// grid, and the room transcript.
+///
+/// One class for both because the two selections end in the same two server
+/// calls (`messages:forwardToRoom`, `messages:deleteMany`) and have the same
+/// awkward property — the list underneath them is live.
 ///
 /// Owned by the screen, not a singleton like `UiSelectionStore` — a selection
-/// is meaningless once the browser closes, and two browsers open on a tablet
-/// must not share one.
+/// is meaningless once the screen closes, and a browser and a transcript open
+/// side by side on a tablet must not share one.
 ///
 /// Holds ids rather than messages on purpose. The underlying list is live: an
 /// ephemeral message can self-destruct while selected, and a bulk delete
