@@ -248,6 +248,77 @@ void main() {
     expect(find.text('COPY'), findsOneWidget);
   });
 
+  // The menu is the tallest thing this app puts on screen, and the filename
+  // header made it taller. With a keyboard up it had nowhere to go: it was laid
+  // out against the full screen height and ran straight under the keyboard,
+  // taking the destructive rows with it.
+  testWidgets('the menu stays clear of the keyboard', (tester) async {
+    const keyboard = 336.0;
+    final anchor = GlobalKey();
+
+    // Set on the VIEW, not via a wrapping MediaQuery: the Scaffold would strip
+    // a bottom inset out of its body's MediaQuery before the call site could
+    // read it, which is exactly the trap the production code fell into.
+    tester.view
+      ..physicalSize = const Size(390, 700)
+      ..devicePixelRatio = 1.0
+      ..viewInsets = const FakeViewPadding(bottom: keyboard);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(ThemeScope(
+      controller: ThemeController(BasicTheme.midnight()),
+      child: MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: Builder(
+              builder: (ctx) => GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => showMessageActionMenu(
+                  context: ctx,
+                  anchorKey: anchor,
+                  bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
+                  isMine: false,
+                  canCopy: false,
+                  canReply: true,
+                  canForward: true,
+                  canPin: true,
+                  canSelect: true,
+                  fileName:
+                      'The Long Book Title That Someone Actually Sent.epub',
+                ),
+                child: SizedBox(key: anchor, width: 200, height: 60),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byKey(anchor), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    const bandBottom = 700 - keyboard;
+
+    // The menu box itself sits entirely in the band left over above the
+    // keyboard. This is the thing that was wrong: it was placed against the
+    // full 700 and ran under it.
+    final list = tester.getRect(find.byType(SingleChildScrollView));
+    expect(list.bottom, lessThanOrEqualTo(bandBottom + 0.5));
+    expect(list.top, greaterThanOrEqualTo(0));
+
+    // Too tall to show at once, so it scrolls — and REPORT, the last row and
+    // the first casualty, comes into the band when you reach for it.
+    expect(tester.getRect(find.text('REPLY')).bottom,
+        lessThanOrEqualTo(bandBottom + 0.5));
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    final report = tester.getRect(find.text('REPORT'));
+    expect(report.bottom, lessThanOrEqualTo(bandBottom + 0.5));
+    expect(report.top, greaterThanOrEqualTo(list.top - 0.5));
+  });
+
   testWidgets('an unsent document dims its save control instead of losing it',
       (tester) async {
     await tester.pumpWidget(host(bubble(

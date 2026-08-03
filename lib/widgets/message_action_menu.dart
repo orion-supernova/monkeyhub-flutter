@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -95,6 +96,15 @@ Future<MessageActionResult?> showMessageActionMenu({
   final bubbleRect = topLeft & rb.size;
   final screenSize = MediaQuery.sizeOf(context);
   final safeInsets = MediaQuery.paddingOf(context);
+  // From the VIEW, not from `MediaQuery.viewInsetsOf`. Every call site is
+  // inside a Scaffold body, and a Scaffold with `resizeToAvoidBottomInset`
+  // (the default) strips the bottom inset out of the MediaQuery it hands its
+  // body — it has already resized the body, so from in there the keyboard has
+  // been dealt with. This menu is not in there: it is a full-screen root
+  // overlay laid over everything, and for it the keyboard is still very much
+  // covering the bottom of the screen. Asking the MediaQuery gets a confident
+  // zero and a menu with its last rows underneath the keys.
+  final viewInsets = MediaQueryData.fromView(View.of(context)).viewInsets;
 
   // The entry lands on the ROOT overlay, so `bubbleBuilder` runs outside the
   // room's ChatPane and would see no chat metrics at all. Today that is
@@ -121,6 +131,7 @@ Future<MessageActionResult?> showMessageActionMenu({
       fileName: fileName,
       screenSize: screenSize,
       safeInsets: safeInsets,
+      viewInsets: viewInsets,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         try {
@@ -151,6 +162,7 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.fileName,
     required this.screenSize,
     required this.safeInsets,
+    required this.viewInsets,
     required this.onResolve,
   });
 
@@ -173,6 +185,9 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final String? fileName;
   final Size screenSize;
   final EdgeInsets safeInsets;
+
+  /// Keyboard occlusion at the moment of the press — see [showMessageActionMenu].
+  final EdgeInsets viewInsets;
   final ValueChanged<MessageActionResult?> onResolve;
 
   @override
@@ -258,20 +273,41 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     const rowH = 48.0;
     const sidePadding = 16.0;
     final topSafe = widget.safeInsets.top + 12;
-    final bottomSafe = widget.safeInsets.bottom + 12;
+    // The keyboard is screen the menu does not have. A long-press in the room
+    // unfocuses the composer first, but the hide is animated and this rect is
+    // measured on the frame the press lands — and the thread overlay never
+    // unfocuses at all. Counted here, the menu is laid out against the band it
+    // can actually occupy rather than against a screen half of which is covered.
+    final bottomSafe =
+        widget.safeInsets.bottom + widget.viewInsets.bottom + 12;
 
-    final menuH = (_actionCount() * rowH) + 12 + _headerHeight(context, theme);
+    // The band the menu is allowed to live in, and the ceiling that follows
+    // from it: pill, menu, and the gaps between them all have to come out of
+    // the same height.
+    final bandTop = topSafe;
+    final bandBottom = widget.screenSize.height - bottomSafe;
+    final maxMenuH = math.max(0.0, (bandBottom - bandTop) - pillH - gap * 2);
+
+    // What the list WANTS. It gets [menuH], which is that clamped to the band —
+    // and when the clamp bites, `_ActionList` scrolls inside it rather than
+    // running off the screen.
+    final wantedMenuH =
+        (_actionCount() * rowH) + 12 + _headerHeight(context, theme);
+    final menuH = math.min(wantedMenuH, maxMenuH);
+    final menuScrolls = menuH < wantedMenuH;
 
     final spaceAbove = bubble.top - topSafe;
-    final spaceBelow = widget.screenSize.height - bubble.bottom - bottomSafe;
+    final spaceBelow = bandBottom - bubble.bottom;
 
     // Pill prefers above; menu prefers below. Flip when there is no room
     // and the opposite side has more space.
     var pillAbove = spaceAbove >= pillH + gap;
     var menuBelow = spaceBelow >= menuH + gap;
     if (!pillAbove && !menuBelow) {
-      // Pathological — pick whichever side has more room and live with
-      // the overflow; bubble is huge or screen is tiny.
+      // Pathological — pick whichever side has more room. Nothing overflows
+      // off-screen any more; the clamp below pulls both back into the band and
+      // they overlap the lifted bubble instead, which is recoverable in a way
+      // that a row under the keyboard is not.
       pillAbove = spaceAbove >= spaceBelow;
       menuBelow = !pillAbove;
     } else if (!pillAbove && menuBelow) {
@@ -280,10 +316,20 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       // Menu goes above, between the pill and the bubble.
     }
 
-    final pillTop = pillAbove ? bubble.top - gap - pillH : bubble.bottom + gap;
-    final menuTop = menuBelow
-        ? (pillAbove ? bubble.bottom + gap : bubble.bottom + gap + pillH + gap)
-        : (pillAbove ? bubble.top - gap - pillH - gap - menuH : bubble.top - gap - menuH);
+    /// Pulls a placed element back inside the band. `max` on the low end so a
+    /// band shorter than the element pins it to the top rather than inverting.
+    double intoBand(double top, double height) =>
+        top.clamp(bandTop, math.max(bandTop, bandBottom - height));
+
+    final pillTop = intoBand(
+        pillAbove ? bubble.top - gap - pillH : bubble.bottom + gap, pillH);
+    final menuTop = intoBand(
+        menuBelow
+            ? (pillAbove ? bubble.bottom + gap : bubble.bottom + gap + pillH + gap)
+            : (pillAbove
+                ? bubble.top - gap - pillH - gap - menuH
+                : bubble.top - gap - menuH),
+        menuH);
 
     // Pill / menu align to the bubble's leading edge.
     final (double? edgeLeft, double? edgeRight) = widget.isMine
@@ -354,6 +400,9 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               canForward: widget.canForward,
               canSelect: widget.canSelect,
               fileName: widget.fileName,
+              // Null unless the band forced a clamp — an unconstrained list
+              // shrink-wraps exactly as it always has.
+              maxHeight: menuScrolls ? menuH : null,
               onAction: (a) {
                 HapticFeedback.lightImpact();
                 _resolve(MessageActionResult.action(a));
@@ -613,6 +662,7 @@ class _ActionList extends StatelessWidget {
     required this.canSelect,
     required this.onAction,
     this.fileName,
+    this.maxHeight,
   });
 
   /// Shared with `_MessageActionMenuOverlay._headerHeight`, which has to
@@ -632,6 +682,11 @@ class _ActionList extends StatelessWidget {
   /// Non-null for a document bubble, whose name the transcript row can only
   /// afford one line of — see [showMessageActionMenu].
   final String? fileName;
+
+  /// Set only when the list is taller than the space it has — a small screen,
+  /// an open keyboard, a long filename header, or all three. The list then
+  /// scrolls inside this instead of running past the edge of the screen.
+  final double? maxHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -743,16 +798,31 @@ class _ActionList extends StatelessWidget {
       ));
     }
 
+    final column = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: rows,
+    );
+
     return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 200, maxWidth: maxWidth),
+      constraints: BoxConstraints(
+        minWidth: 200,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight ?? double.infinity,
+      ),
       child: GlassSurface(
         radius: theme.radiusLg + 6,
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: rows,
-        ),
+        // Only when clamped. A `SingleChildScrollView` takes the smaller of its
+        // content and the constraint either way, but wrapping unconditionally
+        // would make every menu in the app a scrollable — and hand the rows'
+        // taps to a drag recognizer that has no reason to exist.
+        child: maxHeight == null
+            ? column
+            : SingleChildScrollView(
+                padding: EdgeInsets.zero,
+                child: column,
+              ),
       ),
     );
   }
