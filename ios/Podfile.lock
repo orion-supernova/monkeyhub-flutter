@@ -10,6 +10,8 @@ PODS:
   - CryptoSwift (1.10.0)
   - emoji_picker_flutter (0.0.1):
     - Flutter
+  - file_selector_ios (0.0.1):
+    - Flutter
   - Flutter (1.0.0)
   - flutter_callkit_incoming (0.0.1):
     - CryptoSwift
@@ -32,6 +34,18 @@ PODS:
   - just_audio (0.0.1):
     - Flutter
     - FlutterMacOS
+  - libwebp (1.6.0):
+    - libwebp/demux (= 1.6.0)
+    - libwebp/mux (= 1.6.0)
+    - libwebp/sharpyuv (= 1.6.0)
+    - libwebp/webp (= 1.6.0)
+  - libwebp/demux (1.6.0):
+    - libwebp/webp
+  - libwebp/mux (1.6.0):
+    - libwebp/demux
+  - libwebp/sharpyuv (1.6.0)
+  - libwebp/webp (1.6.0):
+    - libwebp/sharpyuv
   - mobile_scanner (7.0.0):
     - Flutter
     - FlutterMacOS
@@ -94,6 +108,9 @@ PODS:
   - video_player_avfoundation (0.0.1):
     - Flutter
     - FlutterMacOS
+  - video_thumbnail (0.0.1):
+    - Flutter
+    - libwebp
   - WebRTC-SDK (144.7559.01)
 
 DEPENDENCIES:
@@ -102,6 +119,7 @@ DEPENDENCIES:
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - convex_flutter (from `.symlinks/plugins/convex_flutter/ios`)
   - emoji_picker_flutter (from `.symlinks/plugins/emoji_picker_flutter/ios`)
+  - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
   - Flutter (from `Flutter`)
   - flutter_callkit_incoming (from `.symlinks/plugins/flutter_callkit_incoming/ios`)
   - flutter_custom_tabs_ios (from `.symlinks/plugins/flutter_custom_tabs_ios/ios`)
@@ -120,10 +138,12 @@ DEPENDENCIES:
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - video_player_avfoundation (from `.symlinks/plugins/video_player_avfoundation/darwin`)
+  - video_thumbnail (from `.symlinks/plugins/video_thumbnail/ios`)
 
 SPEC REPOS:
   trunk:
     - CryptoSwift
+    - libwebp
     - OneSignalXCFramework
     - WebRTC-SDK
 
@@ -138,6 +158,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/convex_flutter/ios"
   emoji_picker_flutter:
     :path: ".symlinks/plugins/emoji_picker_flutter/ios"
+  file_selector_ios:
+    :path: ".symlinks/plugins/file_selector_ios/ios"
   Flutter:
     :path: Flutter
   flutter_callkit_incoming:
@@ -174,6 +196,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
   video_player_avfoundation:
     :path: ".symlinks/plugins/video_player_avfoundation/darwin"
+  video_thumbnail:
+    :path: ".symlinks/plugins/video_thumbnail/ios"
 
 SPEC CHECKSUMS:
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
@@ -182,6 +206,7 @@ SPEC CHECKSUMS:
   convex_flutter: 8581c72fdb31ffdbfef9908f23f21668035a032a
   CryptoSwift: e2e7776512f250e66205955da748e7a4e4abffe0
   emoji_picker_flutter: ece213fc274bdddefb77d502d33080dc54e616cc
+  file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_callkit_incoming: a143995975818a3717524decd3566d5ca7a8c608
   flutter_custom_tabs_ios: 988b8df5821307c16ece71c39667751b01926352
@@ -191,6 +216,7 @@ SPEC CHECKSUMS:
   gal: baecd024ebfd13c441269ca7404792a7152fde89
   image_picker_ios: e0ece4aa2a75771a7de3fa735d26d90817041326
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
+  libwebp: af5937a13536ef73f3784d69cc342b98961acf33
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
   onesignal_flutter: 549b144b6aa1dd226f54fa920c3e73f32499d4eb
   OneSignalXCFramework: 48e5b7c5b51d4e67bab3405229f963efde1a3894
@@ -201,6 +227,7 @@ SPEC CHECKSUMS:
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   video_player_avfoundation: 3453f792138786248960ca029747fcd9f318ef52
+  video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
 PODFILE CHECKSUM: 47f33ecc22a6e3dd177df5ed3f2435d887a29982
