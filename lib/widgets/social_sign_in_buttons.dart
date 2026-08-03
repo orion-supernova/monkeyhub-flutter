@@ -37,6 +37,7 @@ class SocialSignInButtons extends StatelessWidget {
     this.busyProvider,
     this.enabled = true,
     this.dividerLabel = 'or',
+    this.only,
   });
 
   final ValueChanged<SocialProvider> onProvider;
@@ -48,6 +49,15 @@ class SocialSignInButtons extends StatelessWidget {
   /// Null drops the divider — the Profile screen wants the buttons bare.
   final String? dividerLabel;
 
+  /// Narrows the set to specific providers. Null renders every [available] one,
+  /// which is what sign-in wants. Sign-in Methods renders them one per card and
+  /// passes a single provider — the button still has to be Apple's own widget
+  /// there, so it asks for a subset rather than hand-rolling the mark.
+  ///
+  /// Still intersected with [available]: a provider this platform can't do is
+  /// dropped however loudly it was asked for.
+  final List<SocialProvider>? only;
+
   /// Apple's minimum. The Google button matches it so the pair lines up.
   static const double _buttonHeight = 44;
 
@@ -58,7 +68,9 @@ class SocialSignInButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final providers = available;
+    final providers = only == null
+        ? available
+        : available.where(only!.contains).toList();
     if (providers.isEmpty) return const SizedBox.shrink();
 
     final theme = ThemeScope.of(context);
