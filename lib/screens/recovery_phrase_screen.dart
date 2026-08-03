@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,7 +8,6 @@ import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 
 /// Why this screen is being shown, which decides where it starts and what the
@@ -30,14 +27,14 @@ enum RecoveryGateMode {
   rotate,
 }
 
-/// Shows a freshly minted 12-word recovery phrase and makes the user prove
-/// they wrote it down before letting them past.
+/// Shows a freshly minted 12-word recovery phrase and asks the user to save it
+/// before letting them past.
 ///
-/// A full-screen route rather than a sheet: twelve words plus two text fields
-/// plus a soft keyboard does not fit a bottom sheet on a small phone, and the
-/// desktop popover from `showAdaptiveSheet` caps at 460px. Being a route also
-/// means there is no barrier to tap and no drag to dismiss, and it inherits
-/// the same auth shell as LoginScreen and ChildPairScreen for free.
+/// A full-screen route rather than a sheet: twelve numbered words plus the
+/// explanation and two buttons does not fit a bottom sheet on a small phone,
+/// and the desktop popover from `showAdaptiveSheet` caps at 460px. Being a
+/// route also means there is no barrier to tap and no drag to dismiss, and it
+/// inherits the same auth shell as LoginScreen and ChildPairScreen for free.
 ///
 /// **The phrase is deliberately NOT cleared when the app is backgrounded.**
 /// This looks like an oversight and is not. The single most likely thing a
@@ -82,50 +79,38 @@ class RecoveryPhraseScreen extends StatefulWidget {
   State<RecoveryPhraseScreen> createState() => _RecoveryPhraseScreenState();
 }
 
-/// The three steps, held as state on ONE route rather than pushed as three.
+/// The two steps, held as state on ONE route rather than pushed as two, so
+/// there is exactly one [PopScope] guarding the flow instead of two that could
+/// disagree.
 ///
-/// That way "back" from [confirm] returns to the words the user may still be
-/// transcribing, and there is exactly one [PopScope] guarding the whole flow
-/// instead of three that could disagree.
-enum _Step { password, show, confirm }
+/// There is deliberately NO "type word #4 and #7 back" step. It was tried and
+/// removed: it reads as a test, it lands right after the user has already done
+/// the work of saving the words, and the phrase is on screen the whole time so
+/// it stops nobody who is determined to skip. "I saved them" is taken at face
+/// value.
+enum _Step { password, show }
 
 class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
-  late _Step _step;
+  // `late` so the initializer can read `widget`; assignable because the
+  // password step advances to the words.
+  late _Step _step = _initialStep();
   bool _busy = false;
   String? _error;
 
   final _password = TextEditingController();
-  final _wordA = TextEditingController();
-  final _wordB = TextEditingController();
 
-  /// The two word positions the user must type back, chosen once in
-  /// [initState]. Picking them in `build` would reroll them on every keystroke.
-  late final int _askA;
-  late final int _askB;
-
-  @override
-  void initState() {
-    super.initState();
-    final r = Random.secure();
-    final a = r.nextInt(12);
-    var b = r.nextInt(11);
-    if (b >= a) b++; // uniform over the 11 remaining positions
-    _askA = a < b ? a : b;
-    _askB = a < b ? b : a;
-
+  _Step _initialStep() {
     // Password first, always — otherwise the user reads twelve words, writes
-    // them down, taps "I saved it", and only then discovers they can't
+    // them down, taps "I saved them", and only then discovers they can't
     // remember the password needed to save them.
     final needsPassword =
         widget.mode != RecoveryGateMode.setup && widget.knownPassword == null;
-    _step = needsPassword ? _Step.password : _Step.show;
+    return needsPassword ? _Step.password : _Step.show;
   }
 
   @override
   void dispose() {
     _password.dispose();
-    _wordA.dispose();
-    _wordB.dispose();
     super.dispose();
   }
 
@@ -146,18 +131,9 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     );
   }
 
-  Future<void> _confirm() async {
+  /// Takes "I saved them" at its word and moves on.
+  Future<void> _save() async {
     if (_busy) return;
-    final a = _wordA.text.trim().toLowerCase();
-    final b = _wordB.text.trim().toLowerCase();
-    if (a != widget.phrase.words[_askA]) {
-      setState(() => _error = 'That\'s not word #${_askA + 1}. Check again.');
-      return;
-    }
-    if (b != widget.phrase.words[_askB]) {
-      setState(() => _error = 'That\'s not word #${_askB + 1}. Check again.');
-      return;
-    }
 
     // Signup has no account to write to yet — the caller runs signup with this
     // hash the moment we pop, so that killing the app mid-gate leaves no
@@ -231,7 +207,6 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   List<Widget> _body(AppTheme theme) => switch (_step) {
         _Step.password => _passwordStep(theme),
         _Step.show => _showStep(theme),
-        _Step.confirm => _confirmStep(theme),
       };
 
   // ───────────────────────────── password ─────────────────────────────
@@ -302,8 +277,12 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
           'lost with the phone.',
           style: theme.monoTiny.copyWith(color: theme.inkMuted),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 14),
+          _ErrorBanner(_error!),
+        ],
         const SizedBox(height: 24),
-        _Cta(label: 'I SAVED THEM', busy: false, onTap: () => _goTo(_Step.confirm)),
+        _Cta(label: 'I SAVED THEM', busy: _busy, onTap: _save),
         if (_backLabel != null) ...[
           const SizedBox(height: 16),
           _TextLink(
@@ -325,65 +304,13 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     return null;
   }
 
-  // ────────────────────────────── confirm ─────────────────────────────
-
-  List<Widget> _confirmStep(AppTheme theme) => [
-        _Hero(
-          muted: 'quick\n',
-          ink: 'check.',
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Type two of the words back, so we know the copy you saved is '
-          'readable.',
-          style: theme.bodySoft,
-        ),
-        const SizedBox(height: 24),
-        LabeledField(
-          label: 'WORD #${_askA + 1}',
-          controller: _wordA,
-          hint: 'type it',
-          // Mandatory, not cosmetic: iOS autocorrect rewrites short words
-          // (it turns "aunt" into "aren't") and would fail an honest user who
-          // copied the phrase down perfectly.
-          autocorrect: false,
-          enableSuggestions: false,
-          autofocus: isPhysicalKeyboardPlatform,
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-        ),
-        const SizedBox(height: 12),
-        LabeledField(
-          label: 'WORD #${_askB + 1}',
-          controller: _wordB,
-          hint: 'type it',
-          autocorrect: false,
-          enableSuggestions: false,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _confirm(),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 14),
-          _ErrorBanner(_error!),
-        ],
-        const SizedBox(height: 20),
-        _Cta(label: 'DONE', busy: _busy, onTap: _confirm),
-        const SizedBox(height: 16),
-        // No attempt limit anywhere on this step. There is no attacker here —
-        // the phrase is already on screen — only a user who mistyped.
-        _TextLink(
-          label: 'show me the words again',
-          onTap: _busy ? null : () => _goTo(_Step.show),
-        ),
-      ];
 }
 
 /// The twelve words, numbered, two columns by six rows.
 ///
 /// Built as a Column of Rows rather than a GridView: twelve fixed items inside
-/// a SingleChildScrollView must not introduce a second scrollable. Numbering is
-/// what makes a hand-written copy checkable, and it is what the confirm step
-/// refers to.
+/// a SingleChildScrollView must not introduce a second scrollable. The numbers
+/// are there so a hand-written copy can be checked against the screen.
 class _PhraseGrid extends StatelessWidget {
   const _PhraseGrid({required this.words});
   final List<String> words;

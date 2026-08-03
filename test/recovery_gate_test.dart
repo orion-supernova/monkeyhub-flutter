@@ -16,7 +16,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 /// pairing_code_screen.dart, whose one-second ticker would leave the binding
 /// with pending timers at the end of every pump.
 void main() {
-  // Seeded so the words are deterministic and the confirm step can be driven.
+  // Seeded so the rendered words are deterministic.
   final phrase = RecoveryPhrase.generate(random: Random(42));
 
   /// Twelve word cells plus a hero, two paragraphs, a copy button and a CTA is
@@ -70,7 +70,7 @@ void main() {
         mode: mode,
         dismissible: dismissible,
         knownPassword: knownPassword,
-        onCommit: (_, __) async {},
+        onCommit: (_, _) async {},
       );
 
   group('show step', () {
@@ -170,70 +170,83 @@ void main() {
     });
   });
 
-  group('confirm step', () {
-    /// Reads the two "WORD #n" labels the screen picked, and returns the
-    /// expected answers. The positions are chosen with Random.secure() in
-    /// initState, so the test has to discover them rather than assume them.
-    List<String> expectedAnswers(WidgetTester tester) {
-      final labels = tester
-          .widgetList<Text>(find.byType(Text))
-          .map((t) => t.data ?? '')
-          .where((s) => s.startsWith('WORD #'))
-          .toList();
-      expect(labels.length, 2, reason: 'exactly two words are asked');
-      return labels
-          .map((s) => phrase.words[int.parse(s.substring(6)) - 1])
-          .toList();
-    }
-
-    testWidgets('rejects a wrong word and does not pop', (tester) async {
+  group('saving', () {
+    // "I saved them" is taken at face value — there is deliberately no
+    // type-the-words-back step. It read as a test, it landed after the user
+    // had already done the work, and with the phrase on screen throughout it
+    // stopped nobody who wanted to skip.
+    testWidgets('asks the user to type nothing back', (tester) async {
       roomToBreathe(tester);
       await tester.pumpWidget(host(gate()));
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.textContaining('WORD #'), findsNothing);
+    });
+
+    testWidgets('setup pops true without touching the network',
+        (tester) async {
+      roomToBreathe(tester);
+      final nav = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(pushHost(nav, () => gate()));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.text('I SAVED THEM'));
       await tester.pumpAndSettle();
 
-      final answers = expectedAnswers(tester);
-      final fields = find.byType(TextField);
-      await tester.enterText(fields.at(0), answers[0]);
-      await tester.enterText(fields.at(1), 'definitelywrong');
-      await tester.tap(find.text('DONE'));
+      expect(find.byType(RecoveryPhraseScreen), findsNothing);
+    });
+
+    testWidgets('repair commits before it pops', (tester) async {
+      roomToBreathe(tester);
+      var committed = false;
+      final nav = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(pushHost(
+        nav,
+        () => RecoveryPhraseScreen(
+          phrase: phrase,
+          mode: RecoveryGateMode.repair,
+          knownPassword: 'pw',
+          onCommit: (password, hash) async {
+            committed = true;
+            expect(password, 'pw');
+            expect(hash, recoveryPhraseHash(phrase.canonical));
+          },
+        ),
+      ));
+      await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('That\'s not word #'), findsOneWidget);
+      await tester.tap(find.text('I SAVED THEM'));
+      await tester.pumpAndSettle();
+
+      expect(committed, isTrue);
+      expect(find.byType(RecoveryPhraseScreen), findsNothing);
+    });
+
+    testWidgets('a failed commit keeps the user here and says why',
+        (tester) async {
+      roomToBreathe(tester);
+      final nav = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(pushHost(
+        nav,
+        () => RecoveryPhraseScreen(
+          phrase: phrase,
+          mode: RecoveryGateMode.repair,
+          knownPassword: 'pw',
+          // The user must never walk away believing a phrase is live when the
+          // server rejected it.
+          onCommit: (_, _) async => throw Exception('TOO_MANY_ATTEMPTS'),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('I SAVED THEM'));
+      await tester.pumpAndSettle();
+
       expect(find.byType(RecoveryPhraseScreen), findsOneWidget);
-    });
-
-    testWidgets('accepts the right words despite case and stray spaces',
-        (tester) async {
-      roomToBreathe(tester);
-      await tester.pumpWidget(host(gate()));
-      await tester.tap(find.text('I SAVED THEM'));
-      await tester.pumpAndSettle();
-
-      final answers = expectedAnswers(tester);
-      final fields = find.byType(TextField);
-      // Upper-cased and padded on purpose: a user copying from paper should
-      // not be punished for either.
-      await tester.enterText(fields.at(0), '  ${answers[0].toUpperCase()} ');
-      await tester.enterText(fields.at(1), answers[1]);
-      await tester.tap(find.text('DONE'));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('That\'s not word #'), findsNothing);
-    });
-
-    testWidgets('can go back to the words without losing the flow',
-        (tester) async {
-      roomToBreathe(tester);
-      await tester.pumpWidget(host(gate()));
-      await tester.tap(find.text('I SAVED THEM'));
-      await tester.pumpAndSettle();
-      expect(find.text('DONE'), findsOneWidget);
-
-      await tester.tap(find.text('show me the words again'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('I SAVED THEM'), findsOneWidget);
+      expect(find.textContaining('Too many tries'), findsOneWidget);
     });
   });
 
