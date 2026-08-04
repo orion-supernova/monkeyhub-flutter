@@ -7173,6 +7173,540 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'mentions'**
   String get roomFacetLabelMentions;
+
+  /// All-caps header at the top of the main Settings screen, next to the brand mark.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get settingsScreenTitle;
+
+  /// Lowercase sentence-fragment tagline under the Settings header, matching the app's other picker-screen headings (e.g. 'theme.', 'reply style.').
+  ///
+  /// In en, this message translates to:
+  /// **'look. feel. you.'**
+  String get settingsScreenTagline;
+
+  /// Breadcrumb caption under a child account's name on the account card, listing what's reachable from there.
+  ///
+  /// In en, this message translates to:
+  /// **'profile · privacy · my grown-ups'**
+  String get settingsScreenAccountHintChild;
+
+  /// Breadcrumb caption under an adult account's name on the account card, listing what's reachable from there.
+  ///
+  /// In en, this message translates to:
+  /// **'profile · family · linked accounts · privacy'**
+  String get settingsScreenAccountHintAdult;
+
+  /// All-caps section header grouping Theme/App Logo/Glass rows.
+  ///
+  /// In en, this message translates to:
+  /// **'APPEARANCE'**
+  String get settingsScreenSectionAppearance;
+
+  /// All-caps section header grouping Chat List/Navigation/Chat Style/Bubble Style/Reply Style rows.
+  ///
+  /// In en, this message translates to:
+  /// **'LAYOUT'**
+  String get settingsScreenSectionLayout;
+
+  /// All-caps section header grouping the Language row.
+  ///
+  /// In en, this message translates to:
+  /// **'GENERAL'**
+  String get settingsScreenSectionGeneral;
+
+  /// All-caps section header above the Show Link URLs toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'LINKS'**
+  String get settingsScreenSectionLinks;
+
+  /// All-caps section header above the Push Notifications toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTIFICATIONS'**
+  String get settingsScreenSectionNotifications;
+
+  /// All-caps row label that opens the Theme picker screen.
+  ///
+  /// In en, this message translates to:
+  /// **'THEME'**
+  String get settingsScreenRowTheme;
+
+  /// All-caps row label that opens the App Logo picker screen.
+  ///
+  /// In en, this message translates to:
+  /// **'APP LOGO'**
+  String get settingsScreenRowAppLogo;
+
+  /// All-caps row label that opens the Glass (liquid-glass tuning) screen.
+  ///
+  /// In en, this message translates to:
+  /// **'GLASS'**
+  String get settingsScreenRowGlass;
+
+  /// All-caps row label that opens the Chat List layout picker.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAT LIST'**
+  String get settingsScreenRowChatList;
+
+  /// All-caps row label that opens the Navigation style picker.
+  ///
+  /// In en, this message translates to:
+  /// **'NAVIGATION'**
+  String get settingsScreenRowNavigation;
+
+  /// All-caps row label that opens the Chat Style picker.
+  ///
+  /// In en, this message translates to:
+  /// **'CHAT STYLE'**
+  String get settingsScreenRowChatStyle;
+
+  /// All-caps row label that opens the Bubble Style picker.
+  ///
+  /// In en, this message translates to:
+  /// **'BUBBLE STYLE'**
+  String get settingsScreenRowBubbleStyle;
+
+  /// All-caps row label that opens the Reply Style picker.
+  ///
+  /// In en, this message translates to:
+  /// **'REPLY STYLE'**
+  String get settingsScreenRowReplyStyle;
+
+  /// Sentence-case value shown next to CHAT LIST when the room list layout is a scrolling list.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll list'**
+  String get settingsScreenValueScrollList;
+
+  /// Sentence-case value shown next to CHAT LIST when the room list layout is a grid.
+  ///
+  /// In en, this message translates to:
+  /// **'Grid sheet'**
+  String get settingsScreenValueGridSheet;
+
+  /// Sentence-case value shown next to NAVIGATION when the nav style is the radial fan menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Radial orb'**
+  String get settingsScreenValueRadialOrb;
+
+  /// Sentence-case value shown next to NAVIGATION when the nav style is the floating bottom pill.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottom pill'**
+  String get settingsScreenValueBottomPill;
+
+  /// Sentence-case value shown next to GLASS when the live glass profile doesn't match any saved preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get settingsScreenValueCustom;
+
+  /// Value shown next to GLASS when a saved preset has been tuned away from its saved values. {name} is the preset's own name.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · edited'**
+  String settingsScreenValueEdited(Object name);
+
+  /// Sentence-case value shown next to CHAT STYLE or REPLY STYLE when set to the classic variant — one shared key since both rows show the identical word.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get settingsScreenValueClassic;
+
+  /// Sentence-case value shown next to CHAT STYLE when set to the compact variant.
+  ///
+  /// In en, this message translates to:
+  /// **'Compact'**
+  String get settingsScreenValueCompact;
+
+  /// Sentence-case value shown next to BUBBLE STYLE for the tailed bubble shape.
+  ///
+  /// In en, this message translates to:
+  /// **'Tailed'**
+  String get settingsScreenValueBubbleTailed;
+
+  /// Sentence-case value shown next to BUBBLE STYLE for the soft bubble shape.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get settingsScreenValueBubbleSoft;
+
+  /// Sentence-case value shown next to BUBBLE STYLE for the pill bubble shape.
+  ///
+  /// In en, this message translates to:
+  /// **'Pill'**
+  String get settingsScreenValueBubblePill;
+
+  /// Sentence-case value shown next to BUBBLE STYLE for the slab bubble shape.
+  ///
+  /// In en, this message translates to:
+  /// **'Slab'**
+  String get settingsScreenValueBubbleSlab;
+
+  /// Title-case value shown next to REPLY STYLE for the phantom-echo reply preview style.
+  ///
+  /// In en, this message translates to:
+  /// **'Phantom Echo'**
+  String get settingsScreenValueReplyPhantomEcho;
+
+  /// Title-case value shown next to REPLY STYLE for the sticky-note reply preview style.
+  ///
+  /// In en, this message translates to:
+  /// **'Sticky Note'**
+  String get settingsScreenValueReplyStickyNote;
+
+  /// Title-case value shown next to REPLY STYLE for the comic-tail reply preview style.
+  ///
+  /// In en, this message translates to:
+  /// **'Comic Tail'**
+  String get settingsScreenValueReplyComicTail;
+
+  /// Sentence-case value shown next to APP LOGO when the icon follows the active theme automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get settingsScreenValueLogoAuto;
+
+  /// Sentence-case value shown next to APP LOGO when the icon is pinned to a specific choice, if no theme/monkey name matched.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get settingsScreenValueLogoManual;
+
+  /// All-caps label on the Show Link URLs toggle row.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOW LINK URLS'**
+  String get settingsScreenShowLinkUrlsLabel;
+
+  /// Caption under SHOW LINK URLS when the toggle is on.
+  ///
+  /// In en, this message translates to:
+  /// **'raw URLs appear alongside the preview card'**
+  String get settingsScreenLinksUrlsOnBody;
+
+  /// Caption under SHOW LINK URLS when the toggle is off.
+  ///
+  /// In en, this message translates to:
+  /// **'preview only — cleaner bubbles, tap to open'**
+  String get settingsScreenLinksUrlsOffBody;
+
+  /// All-caps label on the Push Notifications toggle row.
+  ///
+  /// In en, this message translates to:
+  /// **'PUSH NOTIFICATIONS'**
+  String get settingsScreenPushNotificationsLabel;
+
+  /// Caption under PUSH NOTIFICATIONS when the toggle is on.
+  ///
+  /// In en, this message translates to:
+  /// **'pings for new messages + requests'**
+  String get settingsScreenPushOnBody;
+
+  /// Caption under PUSH NOTIFICATIONS when the toggle is off.
+  ///
+  /// In en, this message translates to:
+  /// **'silent — you’ll only see things when you open the app'**
+  String get settingsScreenPushOffBody;
+
+  /// Shown on signup when USERNAME_TAKEN comes back from the backend.
+  ///
+  /// In en, this message translates to:
+  /// **'That username is already taken.'**
+  String get authErrorUsernameTaken;
+
+  /// Shown on login when USER_NOT_FOUND comes back from the backend. Some screens override this with more specific copy (e.g. the child pairing screen).
+  ///
+  /// In en, this message translates to:
+  /// **'No account with that username.'**
+  String get authErrorUserNotFound;
+
+  /// Shown on login when WRONG_PASSWORD comes back from the backend.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong password.'**
+  String get authErrorWrongPassword;
+
+  /// Shown on password reset when INVALID_RECOVERY_KEY comes back. Deliberately vague — this one code covers 'no such user', 'that's a child account', and 'wrong phrase' so a stranger probing the reset flow can't distinguish which.
+  ///
+  /// In en, this message translates to:
+  /// **'That username and recovery phrase don’t match.'**
+  String get authErrorInvalidRecoveryKey;
+
+  /// Shown when TOO_MANY_ATTEMPTS (rate limit) comes back from the backend.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait 15 minutes and try again.'**
+  String get authErrorTooManyAttempts;
+
+  /// Shown on login when CHILD_MUST_PAIR comes back — a child account can't password-login, only pair.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s a kid’s account — ask a grown-up for a pairing code.'**
+  String get authErrorChildMustPair;
+
+  /// Shown on the child pairing screen when PAIRING_CODE_EXPIRED comes back.
+  ///
+  /// In en, this message translates to:
+  /// **'That code has run out. Ask for a new one.'**
+  String get authErrorPairingCodeExpired;
+
+  /// Shown on the child pairing screen when PAIRING_CODE_INVALID comes back.
+  ///
+  /// In en, this message translates to:
+  /// **'That code didn’t work. It may have been used already.'**
+  String get authErrorPairingCodeInvalid;
+
+  /// Shown on login when USE_SOCIAL_SIGN_IN comes back — the account has no password because it was created via a social provider.
+  ///
+  /// In en, this message translates to:
+  /// **'That account signs in with Apple or Google — use the buttons below.'**
+  String get authErrorUseSocialSignIn;
+
+  /// Shown when SOCIAL_TOKEN_INVALID comes back from a failed Apple/Google sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'That sign-in didn’t go through. Please try again.'**
+  String get authErrorSocialTokenInvalid;
+
+  /// Shown when SOCIAL_NONCE_MISMATCH comes back — identical copy to SOCIAL_TOKEN_INVALID, both mean 'start over' to the user.
+  ///
+  /// In en, this message translates to:
+  /// **'That sign-in didn’t go through. Please try again.'**
+  String get authErrorSocialNonceMismatch;
+
+  /// Shown when SOCIAL_MISCONFIG comes back — a server-side configuration problem, not the user's fault.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in isn’t set up yet on our side. Try again later.'**
+  String get authErrorSocialMisconfig;
+
+  /// Shown when SOCIAL_LINKED_TO_OTHER_ACCOUNT comes back while trying to link a social account.
+  ///
+  /// In en, this message translates to:
+  /// **'That Apple or Google account is already linked to a different MonkeyHub account.'**
+  String get authErrorSocialLinkedToOtherAccount;
+
+  /// Shown when SOCIAL_ALREADY_LINKED comes back.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s already linked to this account.'**
+  String get authErrorSocialAlreadyLinked;
+
+  /// Shown when SOCIAL_NOT_LINKED comes back while trying to unlink a social account that was never linked.
+  ///
+  /// In en, this message translates to:
+  /// **'That isn’t linked to this account.'**
+  String get authErrorSocialNotLinked;
+
+  /// Shown when SOCIAL_LAST_CREDENTIAL comes back — unlinking would leave the account with no way to sign in.
+  ///
+  /// In en, this message translates to:
+  /// **'That’s the only way into this account. Set a password first.'**
+  String get authErrorSocialLastCredential;
+
+  /// Shown when USERNAME_INVALID comes back from username normalisation.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a username between 1 and 32 characters.'**
+  String get authErrorUsernameInvalid;
+
+  /// All-caps name of the 'frost' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'FROST'**
+  String get glassKnobLabelFrost;
+
+  /// One-line caption under the 'frost' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how much white sits on the glass. down for see-through'**
+  String get glassKnobHintFrost;
+
+  /// All-caps name of the 'blur' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'BLUR'**
+  String get glassKnobLabelBlur;
+
+  /// One-line caption under the 'blur' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'frosted at the top of the range, clear glass at the bottom'**
+  String get glassKnobHintBlur;
+
+  /// All-caps name of the 'colour bleed' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'COLOUR BLEED'**
+  String get glassKnobLabelSaturation;
+
+  /// One-line caption under the 'colour bleed' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how much colour survives the blur. past 2 it posterizes'**
+  String get glassKnobHintSaturation;
+
+  /// All-caps name of the 'rim' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'RIM'**
+  String get glassKnobLabelRimOpacity;
+
+  /// One-line caption under the 'rim' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'the accent outline. zero for a borderless surface'**
+  String get glassKnobHintRimOpacity;
+
+  /// All-caps name of the 'rim width' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'RIM WIDTH'**
+  String get glassKnobLabelRimWidth;
+
+  /// One-line caption under the 'rim width' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'thickness of that outline'**
+  String get glassKnobHintRimWidth;
+
+  /// All-caps name of the 'shadow' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'SHADOW'**
+  String get glassKnobLabelShadowOpacity;
+
+  /// One-line caption under the 'shadow' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how far the surface floats above what is behind it'**
+  String get glassKnobHintShadowOpacity;
+
+  /// All-caps name of the 'shadow spread' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'SHADOW SPREAD'**
+  String get glassKnobLabelShadowBlur;
+
+  /// One-line caption under the 'shadow spread' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'soft and wide, or tight and hard'**
+  String get glassKnobHintShadowBlur;
+
+  /// All-caps name of the 'shadow drop' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'SHADOW DROP'**
+  String get glassKnobLabelShadowY;
+
+  /// One-line caption under the 'shadow drop' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how far below the surface it falls'**
+  String get glassKnobHintShadowY;
+
+  /// All-caps name of the 'side margin' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'SIDE MARGIN'**
+  String get glassKnobLabelBarMargin;
+
+  /// One-line caption under the 'side margin' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'gap between the bar and the edge of the screen'**
+  String get glassKnobHintBarMargin;
+
+  /// All-caps name of the 'bottom gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'BOTTOM GAP'**
+  String get glassKnobLabelBarBottom;
+
+  /// One-line caption under the 'bottom gap' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how high the bar floats off the bottom'**
+  String get glassKnobHintBarBottom;
+
+  /// All-caps name of the 'end padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'END PADDING'**
+  String get glassKnobLabelShellPadH;
+
+  /// One-line caption under the 'end padding' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'bar edge to the first pill. small, or the ends look marooned'**
+  String get glassKnobHintShellPadH;
+
+  /// All-caps name of the 'top padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'TOP PADDING'**
+  String get glassKnobLabelShellPadV;
+
+  /// One-line caption under the 'top padding' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'bar edge to the top of the pill'**
+  String get glassKnobHintShellPadV;
+
+  /// All-caps name of the 'pill inset' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'PILL INSET'**
+  String get glassKnobLabelIndicatorInset;
+
+  /// One-line caption under the 'pill inset' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'how far the selection pill sits inside its slot'**
+  String get glassKnobHintIndicatorInset;
+
+  /// All-caps name of the 'row padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'ROW PADDING'**
+  String get glassKnobLabelSegmentPadV;
+
+  /// One-line caption under the 'row padding' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'air above and below the icon and its label'**
+  String get glassKnobHintSegmentPadV;
+
+  /// All-caps name of the 'icon gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'ICON GAP'**
+  String get glassKnobLabelIconLabelGap;
+
+  /// One-line caption under the 'icon gap' slider explaining what it does to the look.
+  ///
+  /// In en, this message translates to:
+  /// **'space between an icon and the word under it'**
+  String get glassKnobHintIconLabelGap;
+
+  /// All-caps name of the 'icon size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'ICON SIZE'**
+  String get glassKnobLabelIconSize;
+
+  /// All-caps name of the 'label size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
+  ///
+  /// In en, this message translates to:
+  /// **'LABEL SIZE'**
+  String get glassKnobLabelLabelSize;
 }
 
 class _AppLocalizationsDelegate

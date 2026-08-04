@@ -73,7 +73,12 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     children: [
                       Container(width: 18, height: 1, color: theme.accent),
                       const SizedBox(width: 8),
-                      Text(l10n.languageScreenSubtitle, style: theme.caption),
+                      Expanded(
+                        child: Text(
+                          l10n.languageScreenSubtitle,
+                          style: theme.caption,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 28),

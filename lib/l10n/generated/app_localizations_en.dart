@@ -4209,4 +4209,301 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomFacetLabelMentions => 'mentions';
+
+  @override
+  String get settingsScreenTitle => 'SETTINGS';
+
+  @override
+  String get settingsScreenTagline => 'look. feel. you.';
+
+  @override
+  String get settingsScreenAccountHintChild =>
+      'profile · privacy · my grown-ups';
+
+  @override
+  String get settingsScreenAccountHintAdult =>
+      'profile · family · linked accounts · privacy';
+
+  @override
+  String get settingsScreenSectionAppearance => 'APPEARANCE';
+
+  @override
+  String get settingsScreenSectionLayout => 'LAYOUT';
+
+  @override
+  String get settingsScreenSectionGeneral => 'GENERAL';
+
+  @override
+  String get settingsScreenSectionLinks => 'LINKS';
+
+  @override
+  String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
+
+  @override
+  String get settingsScreenRowTheme => 'THEME';
+
+  @override
+  String get settingsScreenRowAppLogo => 'APP LOGO';
+
+  @override
+  String get settingsScreenRowGlass => 'GLASS';
+
+  @override
+  String get settingsScreenRowChatList => 'CHAT LIST';
+
+  @override
+  String get settingsScreenRowNavigation => 'NAVIGATION';
+
+  @override
+  String get settingsScreenRowChatStyle => 'CHAT STYLE';
+
+  @override
+  String get settingsScreenRowBubbleStyle => 'BUBBLE STYLE';
+
+  @override
+  String get settingsScreenRowReplyStyle => 'REPLY STYLE';
+
+  @override
+  String get settingsScreenValueScrollList => 'Scroll list';
+
+  @override
+  String get settingsScreenValueGridSheet => 'Grid sheet';
+
+  @override
+  String get settingsScreenValueRadialOrb => 'Radial orb';
+
+  @override
+  String get settingsScreenValueBottomPill => 'Bottom pill';
+
+  @override
+  String get settingsScreenValueCustom => 'Custom';
+
+  @override
+  String settingsScreenValueEdited(Object name) {
+    return '$name · edited';
+  }
+
+  @override
+  String get settingsScreenValueClassic => 'Classic';
+
+  @override
+  String get settingsScreenValueCompact => 'Compact';
+
+  @override
+  String get settingsScreenValueBubbleTailed => 'Tailed';
+
+  @override
+  String get settingsScreenValueBubbleSoft => 'Soft';
+
+  @override
+  String get settingsScreenValueBubblePill => 'Pill';
+
+  @override
+  String get settingsScreenValueBubbleSlab => 'Slab';
+
+  @override
+  String get settingsScreenValueReplyPhantomEcho => 'Phantom Echo';
+
+  @override
+  String get settingsScreenValueReplyStickyNote => 'Sticky Note';
+
+  @override
+  String get settingsScreenValueReplyComicTail => 'Comic Tail';
+
+  @override
+  String get settingsScreenValueLogoAuto => 'Auto';
+
+  @override
+  String get settingsScreenValueLogoManual => 'Manual';
+
+  @override
+  String get settingsScreenShowLinkUrlsLabel => 'SHOW LINK URLS';
+
+  @override
+  String get settingsScreenLinksUrlsOnBody =>
+      'raw URLs appear alongside the preview card';
+
+  @override
+  String get settingsScreenLinksUrlsOffBody =>
+      'preview only — cleaner bubbles, tap to open';
+
+  @override
+  String get settingsScreenPushNotificationsLabel => 'PUSH NOTIFICATIONS';
+
+  @override
+  String get settingsScreenPushOnBody => 'pings for new messages + requests';
+
+  @override
+  String get settingsScreenPushOffBody =>
+      'silent — you’ll only see things when you open the app';
+
+  @override
+  String get authErrorUsernameTaken => 'That username is already taken.';
+
+  @override
+  String get authErrorUserNotFound => 'No account with that username.';
+
+  @override
+  String get authErrorWrongPassword => 'Wrong password.';
+
+  @override
+  String get authErrorInvalidRecoveryKey =>
+      'That username and recovery phrase don’t match.';
+
+  @override
+  String get authErrorTooManyAttempts =>
+      'Too many tries. Wait 15 minutes and try again.';
+
+  @override
+  String get authErrorChildMustPair =>
+      'That’s a kid’s account — ask a grown-up for a pairing code.';
+
+  @override
+  String get authErrorPairingCodeExpired =>
+      'That code has run out. Ask for a new one.';
+
+  @override
+  String get authErrorPairingCodeInvalid =>
+      'That code didn’t work. It may have been used already.';
+
+  @override
+  String get authErrorUseSocialSignIn =>
+      'That account signs in with Apple or Google — use the buttons below.';
+
+  @override
+  String get authErrorSocialTokenInvalid =>
+      'That sign-in didn’t go through. Please try again.';
+
+  @override
+  String get authErrorSocialNonceMismatch =>
+      'That sign-in didn’t go through. Please try again.';
+
+  @override
+  String get authErrorSocialMisconfig =>
+      'Sign-in isn’t set up yet on our side. Try again later.';
+
+  @override
+  String get authErrorSocialLinkedToOtherAccount =>
+      'That Apple or Google account is already linked to a different MonkeyHub account.';
+
+  @override
+  String get authErrorSocialAlreadyLinked =>
+      'That’s already linked to this account.';
+
+  @override
+  String get authErrorSocialNotLinked => 'That isn’t linked to this account.';
+
+  @override
+  String get authErrorSocialLastCredential =>
+      'That’s the only way into this account. Set a password first.';
+
+  @override
+  String get authErrorUsernameInvalid =>
+      'Pick a username between 1 and 32 characters.';
+
+  @override
+  String get glassKnobLabelFrost => 'FROST';
+
+  @override
+  String get glassKnobHintFrost =>
+      'how much white sits on the glass. down for see-through';
+
+  @override
+  String get glassKnobLabelBlur => 'BLUR';
+
+  @override
+  String get glassKnobHintBlur =>
+      'frosted at the top of the range, clear glass at the bottom';
+
+  @override
+  String get glassKnobLabelSaturation => 'COLOUR BLEED';
+
+  @override
+  String get glassKnobHintSaturation =>
+      'how much colour survives the blur. past 2 it posterizes';
+
+  @override
+  String get glassKnobLabelRimOpacity => 'RIM';
+
+  @override
+  String get glassKnobHintRimOpacity =>
+      'the accent outline. zero for a borderless surface';
+
+  @override
+  String get glassKnobLabelRimWidth => 'RIM WIDTH';
+
+  @override
+  String get glassKnobHintRimWidth => 'thickness of that outline';
+
+  @override
+  String get glassKnobLabelShadowOpacity => 'SHADOW';
+
+  @override
+  String get glassKnobHintShadowOpacity =>
+      'how far the surface floats above what is behind it';
+
+  @override
+  String get glassKnobLabelShadowBlur => 'SHADOW SPREAD';
+
+  @override
+  String get glassKnobHintShadowBlur => 'soft and wide, or tight and hard';
+
+  @override
+  String get glassKnobLabelShadowY => 'SHADOW DROP';
+
+  @override
+  String get glassKnobHintShadowY => 'how far below the surface it falls';
+
+  @override
+  String get glassKnobLabelBarMargin => 'SIDE MARGIN';
+
+  @override
+  String get glassKnobHintBarMargin =>
+      'gap between the bar and the edge of the screen';
+
+  @override
+  String get glassKnobLabelBarBottom => 'BOTTOM GAP';
+
+  @override
+  String get glassKnobHintBarBottom => 'how high the bar floats off the bottom';
+
+  @override
+  String get glassKnobLabelShellPadH => 'END PADDING';
+
+  @override
+  String get glassKnobHintShellPadH =>
+      'bar edge to the first pill. small, or the ends look marooned';
+
+  @override
+  String get glassKnobLabelShellPadV => 'TOP PADDING';
+
+  @override
+  String get glassKnobHintShellPadV => 'bar edge to the top of the pill';
+
+  @override
+  String get glassKnobLabelIndicatorInset => 'PILL INSET';
+
+  @override
+  String get glassKnobHintIndicatorInset =>
+      'how far the selection pill sits inside its slot';
+
+  @override
+  String get glassKnobLabelSegmentPadV => 'ROW PADDING';
+
+  @override
+  String get glassKnobHintSegmentPadV =>
+      'air above and below the icon and its label';
+
+  @override
+  String get glassKnobLabelIconLabelGap => 'ICON GAP';
+
+  @override
+  String get glassKnobHintIconLabelGap =>
+      'space between an icon and the word under it';
+
+  @override
+  String get glassKnobLabelIconSize => 'ICON SIZE';
+
+  @override
+  String get glassKnobLabelLabelSize => 'LABEL SIZE';
 }

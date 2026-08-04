@@ -272,7 +272,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return true;
   }
 
-  String _humanize(Object e) => humanizeAuthError(e);
+  String _humanize(Object e) =>
+      humanizeAuthError(e, AppLocalizations.of(context));
 
   @override
   Widget build(BuildContext context) {

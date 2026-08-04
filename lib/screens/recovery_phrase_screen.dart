@@ -163,7 +163,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = humanizeAuthError(e);
+          _error = humanizeAuthError(e, AppLocalizations.of(context));
           _busy = false;
           // A wrong password can only be fixed on the password step, and only
           // when we own that step at all.

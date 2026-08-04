@@ -4194,4 +4194,299 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomFacetLabelMentions => 'bahsedilen';
+
+  @override
+  String get settingsScreenTitle => 'AYARLAR';
+
+  @override
+  String get settingsScreenTagline => 'görünüş. his. sen.';
+
+  @override
+  String get settingsScreenAccountHintChild => 'profil · gizlilik · büyüklerim';
+
+  @override
+  String get settingsScreenAccountHintAdult =>
+      'profil · aile · bağlı hesaplar · gizlilik';
+
+  @override
+  String get settingsScreenSectionAppearance => 'GÖRÜNÜM';
+
+  @override
+  String get settingsScreenSectionLayout => 'DÜZEN';
+
+  @override
+  String get settingsScreenSectionGeneral => 'GENEL';
+
+  @override
+  String get settingsScreenSectionLinks => 'BAĞLANTILAR';
+
+  @override
+  String get settingsScreenSectionNotifications => 'BİLDİRİMLER';
+
+  @override
+  String get settingsScreenRowTheme => 'TEMA';
+
+  @override
+  String get settingsScreenRowAppLogo => 'UYGULAMA LOGOSU';
+
+  @override
+  String get settingsScreenRowGlass => 'CAM';
+
+  @override
+  String get settingsScreenRowChatList => 'SOHBET LİSTESİ';
+
+  @override
+  String get settingsScreenRowNavigation => 'GEZİNME';
+
+  @override
+  String get settingsScreenRowChatStyle => 'SOHBET STİLİ';
+
+  @override
+  String get settingsScreenRowBubbleStyle => 'BALONCUK STİLİ';
+
+  @override
+  String get settingsScreenRowReplyStyle => 'YANIT STİLİ';
+
+  @override
+  String get settingsScreenValueScrollList => 'Kaydırmalı liste';
+
+  @override
+  String get settingsScreenValueGridSheet => 'Izgara görünümü';
+
+  @override
+  String get settingsScreenValueRadialOrb => 'Radyal küre';
+
+  @override
+  String get settingsScreenValueBottomPill => 'Alt hap';
+
+  @override
+  String get settingsScreenValueCustom => 'Özel';
+
+  @override
+  String settingsScreenValueEdited(Object name) {
+    return '$name · düzenlendi';
+  }
+
+  @override
+  String get settingsScreenValueClassic => 'Klasik';
+
+  @override
+  String get settingsScreenValueCompact => 'Kompakt';
+
+  @override
+  String get settingsScreenValueBubbleTailed => 'Kuyruklu';
+
+  @override
+  String get settingsScreenValueBubbleSoft => 'Yumuşak';
+
+  @override
+  String get settingsScreenValueBubblePill => 'Hap';
+
+  @override
+  String get settingsScreenValueBubbleSlab => 'Blok';
+
+  @override
+  String get settingsScreenValueReplyPhantomEcho => 'Hayalet Yankı';
+
+  @override
+  String get settingsScreenValueReplyStickyNote => 'Yapışkan Not';
+
+  @override
+  String get settingsScreenValueReplyComicTail => 'Çizgi Kuyruk';
+
+  @override
+  String get settingsScreenValueLogoAuto => 'Otomatik';
+
+  @override
+  String get settingsScreenValueLogoManual => 'Manuel';
+
+  @override
+  String get settingsScreenShowLinkUrlsLabel => 'BAĞLANTI ADRESLERİNİ GÖSTER';
+
+  @override
+  String get settingsScreenLinksUrlsOnBody =>
+      'önizleme kartının yanında tam adres de görünür';
+
+  @override
+  String get settingsScreenLinksUrlsOffBody =>
+      'sadece önizleme — daha sade baloncuklar, açmak için dokun';
+
+  @override
+  String get settingsScreenPushNotificationsLabel => 'ANLIK BİLDİRİMLER';
+
+  @override
+  String get settingsScreenPushOnBody => 'yeni mesaj ve isteklerde seni uyarır';
+
+  @override
+  String get settingsScreenPushOffBody =>
+      'sessiz — her şeyi ancak uygulamayı açınca görürsün';
+
+  @override
+  String get authErrorUsernameTaken => 'Bu kullanıcı adı zaten alınmış.';
+
+  @override
+  String get authErrorUserNotFound => 'Bu kullanıcı adında bir hesap yok.';
+
+  @override
+  String get authErrorWrongPassword => 'Yanlış şifre.';
+
+  @override
+  String get authErrorInvalidRecoveryKey =>
+      'Bu kullanıcı adı ve kurtarma ifadesi eşleşmiyor.';
+
+  @override
+  String get authErrorTooManyAttempts =>
+      'Çok fazla deneme yaptın. 15 dakika bekleyip tekrar dene.';
+
+  @override
+  String get authErrorChildMustPair =>
+      'Bu bir çocuk hesabı — bir yetişkinden eşleştirme kodu iste.';
+
+  @override
+  String get authErrorPairingCodeExpired =>
+      'Bu kodun süresi doldu. Yeni bir tane iste.';
+
+  @override
+  String get authErrorPairingCodeInvalid =>
+      'Bu kod çalışmadı. Daha önce kullanılmış olabilir.';
+
+  @override
+  String get authErrorUseSocialSignIn =>
+      'Bu hesap Apple veya Google ile giriş yapıyor — aşağıdaki butonları kullan.';
+
+  @override
+  String get authErrorSocialTokenInvalid =>
+      'Bu giriş işlemi tamamlanamadı. Lütfen tekrar dene.';
+
+  @override
+  String get authErrorSocialNonceMismatch =>
+      'Bu giriş işlemi tamamlanamadı. Lütfen tekrar dene.';
+
+  @override
+  String get authErrorSocialMisconfig =>
+      'Giriş sistemi bizim tarafımızda henüz hazır değil. Daha sonra tekrar dene.';
+
+  @override
+  String get authErrorSocialLinkedToOtherAccount =>
+      'Bu Apple veya Google hesabı zaten başka bir MonkeyHub hesabına bağlı.';
+
+  @override
+  String get authErrorSocialAlreadyLinked => 'Bu zaten bu hesaba bağlı.';
+
+  @override
+  String get authErrorSocialNotLinked => 'Bu, bu hesaba bağlı değil.';
+
+  @override
+  String get authErrorSocialLastCredential =>
+      'Bu hesaba girişin tek yolu bu. Önce bir şifre belirle.';
+
+  @override
+  String get authErrorUsernameInvalid =>
+      '1 ile 32 karakter arasında bir kullanıcı adı seç.';
+
+  @override
+  String get glassKnobLabelFrost => 'BUZLANMA';
+
+  @override
+  String get glassKnobHintFrost =>
+      'camın üzerinde ne kadar beyazlık olduğu. azalt, şeffaflaşsın';
+
+  @override
+  String get glassKnobLabelBlur => 'BULANIKLIK';
+
+  @override
+  String get glassKnobHintBlur => 'üst uçta buzlu, alt uçta duru cam';
+
+  @override
+  String get glassKnobLabelSaturation => 'RENK SIZMASI';
+
+  @override
+  String get glassKnobHintSaturation =>
+      'renklerin bulanıklıktan ne kadarının kurtulduğu. 2’den sonra posterize olur';
+
+  @override
+  String get glassKnobLabelRimOpacity => 'KENARLIK';
+
+  @override
+  String get glassKnobHintRimOpacity =>
+      'vurgu rengindeki kenar çizgisi. kenarlıksız yüzey için sıfırla';
+
+  @override
+  String get glassKnobLabelRimWidth => 'KENARLIK KALINLIĞI';
+
+  @override
+  String get glassKnobHintRimWidth => 'o çizginin kalınlığı';
+
+  @override
+  String get glassKnobLabelShadowOpacity => 'GÖLGE';
+
+  @override
+  String get glassKnobHintShadowOpacity =>
+      'yüzeyin arkasındakinden ne kadar yukarıda süzüldüğü';
+
+  @override
+  String get glassKnobLabelShadowBlur => 'GÖLGE YAYILIMI';
+
+  @override
+  String get glassKnobHintShadowBlur =>
+      'yumuşak ve geniş, ya da sıkı ve keskin';
+
+  @override
+  String get glassKnobLabelShadowY => 'GÖLGE DÜŞÜŞÜ';
+
+  @override
+  String get glassKnobHintShadowY => 'yüzeyin ne kadar altına düştüğü';
+
+  @override
+  String get glassKnobLabelBarMargin => 'YAN BOŞLUK';
+
+  @override
+  String get glassKnobHintBarMargin =>
+      'çubukla ekranın kenarı arasındaki boşluk';
+
+  @override
+  String get glassKnobLabelBarBottom => 'ALT BOŞLUK';
+
+  @override
+  String get glassKnobHintBarBottom => 'çubuğun alttan ne kadar yükseldiği';
+
+  @override
+  String get glassKnobLabelShellPadH => 'UÇ BOŞLUĞU';
+
+  @override
+  String get glassKnobHintShellPadH =>
+      'çubuğun kenarından ilk hapa kadar. küçük tut, yoksa uçlar yalnız kalır';
+
+  @override
+  String get glassKnobLabelShellPadV => 'ÜST BOŞLUK';
+
+  @override
+  String get glassKnobHintShellPadV => 'çubuğun kenarından hapın üstüne kadar';
+
+  @override
+  String get glassKnobLabelIndicatorInset => 'HAP GİRİNTİSİ';
+
+  @override
+  String get glassKnobHintIndicatorInset =>
+      'seçim hapının kendi bölmesinin ne kadar içinde durduğu';
+
+  @override
+  String get glassKnobLabelSegmentPadV => 'SATIR BOŞLUĞU';
+
+  @override
+  String get glassKnobHintSegmentPadV =>
+      'ikonun ve etiketinin üstündeki ve altındaki boşluk';
+
+  @override
+  String get glassKnobLabelIconLabelGap => 'İKON BOŞLUĞU';
+
+  @override
+  String get glassKnobHintIconLabelGap =>
+      'bir ikonla altındaki kelime arasındaki boşluk';
+
+  @override
+  String get glassKnobLabelIconSize => 'İKON BOYUTU';
+
+  @override
+  String get glassKnobLabelLabelSize => 'ETİKET BOYUTU';
 }

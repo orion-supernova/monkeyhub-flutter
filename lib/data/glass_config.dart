@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../l10n/generated/app_localizations.dart';
+
 /// One tunable knob: its identity in storage, its range, and how to say what it
 /// does.
 ///
@@ -47,6 +49,95 @@ class GlassKnob {
   double fromSlider(double t) => min + (max - min) * t.clamp(0, 1);
 
   String format(double v) => v.toStringAsFixed(decimals);
+}
+
+/// Localized display name for [knob], keyed by [GlassKnob.id] — the stable
+/// persistence key — rather than by identity, so this stays a plain lookup
+/// with no dependency on which const instance the caller happens to hold.
+///
+/// [GlassKnob.label] itself stays a hardcoded English field: it is a `const`
+/// data table consumed in a lot of places, and localizing it in place would
+/// mean threading a BuildContext through a compile-time constant. This
+/// function is the one seam where the tuning panel actually displays it.
+String glassKnobLabel(AppLocalizations l10n, GlassKnob knob) {
+  switch (knob.id) {
+    case 'frost':
+      return l10n.glassKnobLabelFrost;
+    case 'blur':
+      return l10n.glassKnobLabelBlur;
+    case 'saturation':
+      return l10n.glassKnobLabelSaturation;
+    case 'rimOpacity':
+      return l10n.glassKnobLabelRimOpacity;
+    case 'rimWidth':
+      return l10n.glassKnobLabelRimWidth;
+    case 'shadowOpacity':
+      return l10n.glassKnobLabelShadowOpacity;
+    case 'shadowBlur':
+      return l10n.glassKnobLabelShadowBlur;
+    case 'shadowY':
+      return l10n.glassKnobLabelShadowY;
+    case 'barMargin':
+      return l10n.glassKnobLabelBarMargin;
+    case 'barBottom':
+      return l10n.glassKnobLabelBarBottom;
+    case 'shellPadH':
+      return l10n.glassKnobLabelShellPadH;
+    case 'shellPadV':
+      return l10n.glassKnobLabelShellPadV;
+    case 'indicatorInset':
+      return l10n.glassKnobLabelIndicatorInset;
+    case 'segmentPadV':
+      return l10n.glassKnobLabelSegmentPadV;
+    case 'iconLabelGap':
+      return l10n.glassKnobLabelIconLabelGap;
+    case 'iconSize':
+      return l10n.glassKnobLabelIconSize;
+    case 'labelSize':
+      return l10n.glassKnobLabelLabelSize;
+    default:
+      return knob.label;
+  }
+}
+
+/// Localized one-line caption for [knob], or '' for the two dials
+/// ([kIconSize], [kLabelSize]) that never had one. See [glassKnobLabel] for
+/// why this is a lookup rather than a field on [GlassKnob].
+String glassKnobHint(AppLocalizations l10n, GlassKnob knob) {
+  switch (knob.id) {
+    case 'frost':
+      return l10n.glassKnobHintFrost;
+    case 'blur':
+      return l10n.glassKnobHintBlur;
+    case 'saturation':
+      return l10n.glassKnobHintSaturation;
+    case 'rimOpacity':
+      return l10n.glassKnobHintRimOpacity;
+    case 'rimWidth':
+      return l10n.glassKnobHintRimWidth;
+    case 'shadowOpacity':
+      return l10n.glassKnobHintShadowOpacity;
+    case 'shadowBlur':
+      return l10n.glassKnobHintShadowBlur;
+    case 'shadowY':
+      return l10n.glassKnobHintShadowY;
+    case 'barMargin':
+      return l10n.glassKnobHintBarMargin;
+    case 'barBottom':
+      return l10n.glassKnobHintBarBottom;
+    case 'shellPadH':
+      return l10n.glassKnobHintShellPadH;
+    case 'shellPadV':
+      return l10n.glassKnobHintShellPadV;
+    case 'indicatorInset':
+      return l10n.glassKnobHintIndicatorInset;
+    case 'segmentPadV':
+      return l10n.glassKnobHintSegmentPadV;
+    case 'iconLabelGap':
+      return l10n.glassKnobHintIconLabelGap;
+    default:
+      return '';
+  }
 }
 
 // ---------------------------------------------------------------- glass dials

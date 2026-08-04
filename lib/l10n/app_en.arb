@@ -4699,5 +4699,361 @@
   "roomFacetLabelMentions": "mentions",
   "@roomFacetLabelMentions": {
     "description": "Lowercase chip/filter label for the 'has a mention of me' status facet."
+  },
+  "settingsScreenTitle": "SETTINGS",
+  "@settingsScreenTitle": {
+    "description": "All-caps header at the top of the main Settings screen, next to the brand mark."
+  },
+  "settingsScreenTagline": "look. feel. you.",
+  "@settingsScreenTagline": {
+    "description": "Lowercase sentence-fragment tagline under the Settings header, matching the app's other picker-screen headings (e.g. 'theme.', 'reply style.')."
+  },
+  "settingsScreenAccountHintChild": "profile · privacy · my grown-ups",
+  "@settingsScreenAccountHintChild": {
+    "description": "Breadcrumb caption under a child account's name on the account card, listing what's reachable from there."
+  },
+  "settingsScreenAccountHintAdult": "profile · family · linked accounts · privacy",
+  "@settingsScreenAccountHintAdult": {
+    "description": "Breadcrumb caption under an adult account's name on the account card, listing what's reachable from there."
+  },
+  "settingsScreenSectionAppearance": "APPEARANCE",
+  "@settingsScreenSectionAppearance": {
+    "description": "All-caps section header grouping Theme/App Logo/Glass rows."
+  },
+  "settingsScreenSectionLayout": "LAYOUT",
+  "@settingsScreenSectionLayout": {
+    "description": "All-caps section header grouping Chat List/Navigation/Chat Style/Bubble Style/Reply Style rows."
+  },
+  "settingsScreenSectionGeneral": "GENERAL",
+  "@settingsScreenSectionGeneral": {
+    "description": "All-caps section header grouping the Language row."
+  },
+  "settingsScreenSectionLinks": "LINKS",
+  "@settingsScreenSectionLinks": {
+    "description": "All-caps section header above the Show Link URLs toggle."
+  },
+  "settingsScreenSectionNotifications": "NOTIFICATIONS",
+  "@settingsScreenSectionNotifications": {
+    "description": "All-caps section header above the Push Notifications toggle."
+  },
+  "settingsScreenRowTheme": "THEME",
+  "@settingsScreenRowTheme": {
+    "description": "All-caps row label that opens the Theme picker screen."
+  },
+  "settingsScreenRowAppLogo": "APP LOGO",
+  "@settingsScreenRowAppLogo": {
+    "description": "All-caps row label that opens the App Logo picker screen."
+  },
+  "settingsScreenRowGlass": "GLASS",
+  "@settingsScreenRowGlass": {
+    "description": "All-caps row label that opens the Glass (liquid-glass tuning) screen."
+  },
+  "settingsScreenRowChatList": "CHAT LIST",
+  "@settingsScreenRowChatList": {
+    "description": "All-caps row label that opens the Chat List layout picker."
+  },
+  "settingsScreenRowNavigation": "NAVIGATION",
+  "@settingsScreenRowNavigation": {
+    "description": "All-caps row label that opens the Navigation style picker."
+  },
+  "settingsScreenRowChatStyle": "CHAT STYLE",
+  "@settingsScreenRowChatStyle": {
+    "description": "All-caps row label that opens the Chat Style picker."
+  },
+  "settingsScreenRowBubbleStyle": "BUBBLE STYLE",
+  "@settingsScreenRowBubbleStyle": {
+    "description": "All-caps row label that opens the Bubble Style picker."
+  },
+  "settingsScreenRowReplyStyle": "REPLY STYLE",
+  "@settingsScreenRowReplyStyle": {
+    "description": "All-caps row label that opens the Reply Style picker."
+  },
+  "settingsScreenValueScrollList": "Scroll list",
+  "@settingsScreenValueScrollList": {
+    "description": "Sentence-case value shown next to CHAT LIST when the room list layout is a scrolling list."
+  },
+  "settingsScreenValueGridSheet": "Grid sheet",
+  "@settingsScreenValueGridSheet": {
+    "description": "Sentence-case value shown next to CHAT LIST when the room list layout is a grid."
+  },
+  "settingsScreenValueRadialOrb": "Radial orb",
+  "@settingsScreenValueRadialOrb": {
+    "description": "Sentence-case value shown next to NAVIGATION when the nav style is the radial fan menu."
+  },
+  "settingsScreenValueBottomPill": "Bottom pill",
+  "@settingsScreenValueBottomPill": {
+    "description": "Sentence-case value shown next to NAVIGATION when the nav style is the floating bottom pill."
+  },
+  "settingsScreenValueCustom": "Custom",
+  "@settingsScreenValueCustom": {
+    "description": "Sentence-case value shown next to GLASS when the live glass profile doesn't match any saved preset."
+  },
+  "settingsScreenValueEdited": "{name} · edited",
+  "@settingsScreenValueEdited": {
+    "description": "Value shown next to GLASS when a saved preset has been tuned away from its saved values. {name} is the preset's own name."
+  },
+  "settingsScreenValueClassic": "Classic",
+  "@settingsScreenValueClassic": {
+    "description": "Sentence-case value shown next to CHAT STYLE or REPLY STYLE when set to the classic variant — one shared key since both rows show the identical word."
+  },
+  "settingsScreenValueCompact": "Compact",
+  "@settingsScreenValueCompact": {
+    "description": "Sentence-case value shown next to CHAT STYLE when set to the compact variant."
+  },
+  "settingsScreenValueBubbleTailed": "Tailed",
+  "@settingsScreenValueBubbleTailed": {
+    "description": "Sentence-case value shown next to BUBBLE STYLE for the tailed bubble shape."
+  },
+  "settingsScreenValueBubbleSoft": "Soft",
+  "@settingsScreenValueBubbleSoft": {
+    "description": "Sentence-case value shown next to BUBBLE STYLE for the soft bubble shape."
+  },
+  "settingsScreenValueBubblePill": "Pill",
+  "@settingsScreenValueBubblePill": {
+    "description": "Sentence-case value shown next to BUBBLE STYLE for the pill bubble shape."
+  },
+  "settingsScreenValueBubbleSlab": "Slab",
+  "@settingsScreenValueBubbleSlab": {
+    "description": "Sentence-case value shown next to BUBBLE STYLE for the slab bubble shape."
+  },
+  "settingsScreenValueReplyPhantomEcho": "Phantom Echo",
+  "@settingsScreenValueReplyPhantomEcho": {
+    "description": "Title-case value shown next to REPLY STYLE for the phantom-echo reply preview style."
+  },
+  "settingsScreenValueReplyStickyNote": "Sticky Note",
+  "@settingsScreenValueReplyStickyNote": {
+    "description": "Title-case value shown next to REPLY STYLE for the sticky-note reply preview style."
+  },
+  "settingsScreenValueReplyComicTail": "Comic Tail",
+  "@settingsScreenValueReplyComicTail": {
+    "description": "Title-case value shown next to REPLY STYLE for the comic-tail reply preview style."
+  },
+  "settingsScreenValueLogoAuto": "Auto",
+  "@settingsScreenValueLogoAuto": {
+    "description": "Sentence-case value shown next to APP LOGO when the icon follows the active theme automatically."
+  },
+  "settingsScreenValueLogoManual": "Manual",
+  "@settingsScreenValueLogoManual": {
+    "description": "Sentence-case value shown next to APP LOGO when the icon is pinned to a specific choice, if no theme/monkey name matched."
+  },
+  "settingsScreenShowLinkUrlsLabel": "SHOW LINK URLS",
+  "@settingsScreenShowLinkUrlsLabel": {
+    "description": "All-caps label on the Show Link URLs toggle row."
+  },
+  "settingsScreenLinksUrlsOnBody": "raw URLs appear alongside the preview card",
+  "@settingsScreenLinksUrlsOnBody": {
+    "description": "Caption under SHOW LINK URLS when the toggle is on."
+  },
+  "settingsScreenLinksUrlsOffBody": "preview only — cleaner bubbles, tap to open",
+  "@settingsScreenLinksUrlsOffBody": {
+    "description": "Caption under SHOW LINK URLS when the toggle is off."
+  },
+  "settingsScreenPushNotificationsLabel": "PUSH NOTIFICATIONS",
+  "@settingsScreenPushNotificationsLabel": {
+    "description": "All-caps label on the Push Notifications toggle row."
+  },
+  "settingsScreenPushOnBody": "pings for new messages + requests",
+  "@settingsScreenPushOnBody": {
+    "description": "Caption under PUSH NOTIFICATIONS when the toggle is on."
+  },
+  "settingsScreenPushOffBody": "silent — you’ll only see things when you open the app",
+  "@settingsScreenPushOffBody": {
+    "description": "Caption under PUSH NOTIFICATIONS when the toggle is off."
+  },
+  "authErrorUsernameTaken": "That username is already taken.",
+  "@authErrorUsernameTaken": {
+    "description": "Shown on signup when USERNAME_TAKEN comes back from the backend."
+  },
+  "authErrorUserNotFound": "No account with that username.",
+  "@authErrorUserNotFound": {
+    "description": "Shown on login when USER_NOT_FOUND comes back from the backend. Some screens override this with more specific copy (e.g. the child pairing screen)."
+  },
+  "authErrorWrongPassword": "Wrong password.",
+  "@authErrorWrongPassword": {
+    "description": "Shown on login when WRONG_PASSWORD comes back from the backend."
+  },
+  "authErrorInvalidRecoveryKey": "That username and recovery phrase don’t match.",
+  "@authErrorInvalidRecoveryKey": {
+    "description": "Shown on password reset when INVALID_RECOVERY_KEY comes back. Deliberately vague — this one code covers 'no such user', 'that's a child account', and 'wrong phrase' so a stranger probing the reset flow can't distinguish which."
+  },
+  "authErrorTooManyAttempts": "Too many tries. Wait 15 minutes and try again.",
+  "@authErrorTooManyAttempts": {
+    "description": "Shown when TOO_MANY_ATTEMPTS (rate limit) comes back from the backend."
+  },
+  "authErrorChildMustPair": "That’s a kid’s account — ask a grown-up for a pairing code.",
+  "@authErrorChildMustPair": {
+    "description": "Shown on login when CHILD_MUST_PAIR comes back — a child account can't password-login, only pair."
+  },
+  "authErrorPairingCodeExpired": "That code has run out. Ask for a new one.",
+  "@authErrorPairingCodeExpired": {
+    "description": "Shown on the child pairing screen when PAIRING_CODE_EXPIRED comes back."
+  },
+  "authErrorPairingCodeInvalid": "That code didn’t work. It may have been used already.",
+  "@authErrorPairingCodeInvalid": {
+    "description": "Shown on the child pairing screen when PAIRING_CODE_INVALID comes back."
+  },
+  "authErrorUseSocialSignIn": "That account signs in with Apple or Google — use the buttons below.",
+  "@authErrorUseSocialSignIn": {
+    "description": "Shown on login when USE_SOCIAL_SIGN_IN comes back — the account has no password because it was created via a social provider."
+  },
+  "authErrorSocialTokenInvalid": "That sign-in didn’t go through. Please try again.",
+  "@authErrorSocialTokenInvalid": {
+    "description": "Shown when SOCIAL_TOKEN_INVALID comes back from a failed Apple/Google sign-in."
+  },
+  "authErrorSocialNonceMismatch": "That sign-in didn’t go through. Please try again.",
+  "@authErrorSocialNonceMismatch": {
+    "description": "Shown when SOCIAL_NONCE_MISMATCH comes back — identical copy to SOCIAL_TOKEN_INVALID, both mean 'start over' to the user."
+  },
+  "authErrorSocialMisconfig": "Sign-in isn’t set up yet on our side. Try again later.",
+  "@authErrorSocialMisconfig": {
+    "description": "Shown when SOCIAL_MISCONFIG comes back — a server-side configuration problem, not the user's fault."
+  },
+  "authErrorSocialLinkedToOtherAccount": "That Apple or Google account is already linked to a different MonkeyHub account.",
+  "@authErrorSocialLinkedToOtherAccount": {
+    "description": "Shown when SOCIAL_LINKED_TO_OTHER_ACCOUNT comes back while trying to link a social account."
+  },
+  "authErrorSocialAlreadyLinked": "That’s already linked to this account.",
+  "@authErrorSocialAlreadyLinked": {
+    "description": "Shown when SOCIAL_ALREADY_LINKED comes back."
+  },
+  "authErrorSocialNotLinked": "That isn’t linked to this account.",
+  "@authErrorSocialNotLinked": {
+    "description": "Shown when SOCIAL_NOT_LINKED comes back while trying to unlink a social account that was never linked."
+  },
+  "authErrorSocialLastCredential": "That’s the only way into this account. Set a password first.",
+  "@authErrorSocialLastCredential": {
+    "description": "Shown when SOCIAL_LAST_CREDENTIAL comes back — unlinking would leave the account with no way to sign in."
+  },
+  "authErrorUsernameInvalid": "Pick a username between 1 and 32 characters.",
+  "@authErrorUsernameInvalid": {
+    "description": "Shown when USERNAME_INVALID comes back from username normalisation."
+  },
+  "glassKnobLabelFrost": "FROST",
+  "@glassKnobLabelFrost": {
+    "description": "All-caps name of the 'frost' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintFrost": "how much white sits on the glass. down for see-through",
+  "@glassKnobHintFrost": {
+    "description": "One-line caption under the 'frost' slider explaining what it does to the look."
+  },
+  "glassKnobLabelBlur": "BLUR",
+  "@glassKnobLabelBlur": {
+    "description": "All-caps name of the 'blur' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintBlur": "frosted at the top of the range, clear glass at the bottom",
+  "@glassKnobHintBlur": {
+    "description": "One-line caption under the 'blur' slider explaining what it does to the look."
+  },
+  "glassKnobLabelSaturation": "COLOUR BLEED",
+  "@glassKnobLabelSaturation": {
+    "description": "All-caps name of the 'colour bleed' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintSaturation": "how much colour survives the blur. past 2 it posterizes",
+  "@glassKnobHintSaturation": {
+    "description": "One-line caption under the 'colour bleed' slider explaining what it does to the look."
+  },
+  "glassKnobLabelRimOpacity": "RIM",
+  "@glassKnobLabelRimOpacity": {
+    "description": "All-caps name of the 'rim' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintRimOpacity": "the accent outline. zero for a borderless surface",
+  "@glassKnobHintRimOpacity": {
+    "description": "One-line caption under the 'rim' slider explaining what it does to the look."
+  },
+  "glassKnobLabelRimWidth": "RIM WIDTH",
+  "@glassKnobLabelRimWidth": {
+    "description": "All-caps name of the 'rim width' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintRimWidth": "thickness of that outline",
+  "@glassKnobHintRimWidth": {
+    "description": "One-line caption under the 'rim width' slider explaining what it does to the look."
+  },
+  "glassKnobLabelShadowOpacity": "SHADOW",
+  "@glassKnobLabelShadowOpacity": {
+    "description": "All-caps name of the 'shadow' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintShadowOpacity": "how far the surface floats above what is behind it",
+  "@glassKnobHintShadowOpacity": {
+    "description": "One-line caption under the 'shadow' slider explaining what it does to the look."
+  },
+  "glassKnobLabelShadowBlur": "SHADOW SPREAD",
+  "@glassKnobLabelShadowBlur": {
+    "description": "All-caps name of the 'shadow spread' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintShadowBlur": "soft and wide, or tight and hard",
+  "@glassKnobHintShadowBlur": {
+    "description": "One-line caption under the 'shadow spread' slider explaining what it does to the look."
+  },
+  "glassKnobLabelShadowY": "SHADOW DROP",
+  "@glassKnobLabelShadowY": {
+    "description": "All-caps name of the 'shadow drop' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintShadowY": "how far below the surface it falls",
+  "@glassKnobHintShadowY": {
+    "description": "One-line caption under the 'shadow drop' slider explaining what it does to the look."
+  },
+  "glassKnobLabelBarMargin": "SIDE MARGIN",
+  "@glassKnobLabelBarMargin": {
+    "description": "All-caps name of the 'side margin' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintBarMargin": "gap between the bar and the edge of the screen",
+  "@glassKnobHintBarMargin": {
+    "description": "One-line caption under the 'side margin' slider explaining what it does to the look."
+  },
+  "glassKnobLabelBarBottom": "BOTTOM GAP",
+  "@glassKnobLabelBarBottom": {
+    "description": "All-caps name of the 'bottom gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintBarBottom": "how high the bar floats off the bottom",
+  "@glassKnobHintBarBottom": {
+    "description": "One-line caption under the 'bottom gap' slider explaining what it does to the look."
+  },
+  "glassKnobLabelShellPadH": "END PADDING",
+  "@glassKnobLabelShellPadH": {
+    "description": "All-caps name of the 'end padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintShellPadH": "bar edge to the first pill. small, or the ends look marooned",
+  "@glassKnobHintShellPadH": {
+    "description": "One-line caption under the 'end padding' slider explaining what it does to the look."
+  },
+  "glassKnobLabelShellPadV": "TOP PADDING",
+  "@glassKnobLabelShellPadV": {
+    "description": "All-caps name of the 'top padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintShellPadV": "bar edge to the top of the pill",
+  "@glassKnobHintShellPadV": {
+    "description": "One-line caption under the 'top padding' slider explaining what it does to the look."
+  },
+  "glassKnobLabelIndicatorInset": "PILL INSET",
+  "@glassKnobLabelIndicatorInset": {
+    "description": "All-caps name of the 'pill inset' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintIndicatorInset": "how far the selection pill sits inside its slot",
+  "@glassKnobHintIndicatorInset": {
+    "description": "One-line caption under the 'pill inset' slider explaining what it does to the look."
+  },
+  "glassKnobLabelSegmentPadV": "ROW PADDING",
+  "@glassKnobLabelSegmentPadV": {
+    "description": "All-caps name of the 'row padding' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintSegmentPadV": "air above and below the icon and its label",
+  "@glassKnobHintSegmentPadV": {
+    "description": "One-line caption under the 'row padding' slider explaining what it does to the look."
+  },
+  "glassKnobLabelIconLabelGap": "ICON GAP",
+  "@glassKnobLabelIconLabelGap": {
+    "description": "All-caps name of the 'icon gap' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobHintIconLabelGap": "space between an icon and the word under it",
+  "@glassKnobHintIconLabelGap": {
+    "description": "One-line caption under the 'icon gap' slider explaining what it does to the look."
+  },
+  "glassKnobLabelIconSize": "ICON SIZE",
+  "@glassKnobLabelIconSize": {
+    "description": "All-caps name of the 'icon size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "glassKnobLabelLabelSize": "LABEL SIZE",
+  "@glassKnobLabelLabelSize": {
+    "description": "All-caps name of the 'label size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
   }
 }

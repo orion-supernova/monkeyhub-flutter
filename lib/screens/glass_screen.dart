@@ -1231,8 +1231,10 @@ class _KnobRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final value = config.of(knob);
     final standard = value == base.of(knob);
+    final label = glassKnobLabel(l10n, knob);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Column(
@@ -1240,7 +1242,7 @@ class _KnobRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(knob.label, style: theme.label),
+              Text(label, style: theme.label),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -1262,9 +1264,7 @@ class _KnobRow extends StatelessWidget {
                     ? null
                     : _MiniAction(
                         icon: Icons.undo,
-                        tip: AppLocalizations.of(
-                          context,
-                        ).glassScreenResetTooltip(knob.label),
+                        tip: l10n.glassScreenResetTooltip(label),
                         onTap: onReset,
                       ),
               ),
@@ -1275,10 +1275,10 @@ class _KnobRow extends StatelessWidget {
             onChanged: (t) => onChanged(knob.fromSlider(t)),
             onReset: standard ? null : onReset,
           ),
-          if (knob.hint.isNotEmpty)
+          if (glassKnobHint(l10n, knob).isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
-              child: Text(knob.hint, style: theme.bodySoft),
+              child: Text(glassKnobHint(l10n, knob), style: theme.bodySoft),
             ),
         ],
       ),

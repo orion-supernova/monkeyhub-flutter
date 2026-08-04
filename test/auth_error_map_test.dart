@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/auth/auth_errors.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 
 /// Regresses the bug that started the recovery-flow rewrite.
 ///
@@ -10,6 +11,9 @@ import 'package:monkeyhub/auth/auth_errors.dart';
 /// where friendly copy was intended. Nothing caught it because the map was
 /// private to a widget. That is the entire reason it now lives in its own file.
 void main() {
+  final l10n = AppLocalizationsEn();
+  final messages = authErrorMessages(l10n);
+
   /// The shape Convex errors actually arrive in: the code is embedded in a
   /// longer server-side string, never on its own. Matching must be substring.
   String thrown(String code) => Exception(
@@ -19,9 +23,9 @@ void main() {
 
   group('the bug that started this', () {
     test('INVALID_RECOVERY_KEY gets friendly copy, not a stack trace', () {
-      final msg = humanizeAuthError(thrown('INVALID_RECOVERY_KEY'));
+      final msg = humanizeAuthError(thrown('INVALID_RECOVERY_KEY'), l10n);
 
-      expect(msg, kAuthErrorMessages['INVALID_RECOVERY_KEY']);
+      expect(msg, messages['INVALID_RECOVERY_KEY']);
       expect(msg, isNot(contains('CONVEX')));
       expect(msg, isNot(contains('auth.ts')));
       expect(msg, isNot(endsWith('…')),
@@ -31,8 +35,8 @@ void main() {
     test('the dead keys are gone', () {
       // Keeping a key the backend never throws is worse than having none: it
       // reads as handled while the raw exception is what reaches the user.
-      expect(kAuthErrorMessages.containsKey('WRONG_RECOVERY_KEY'), isFalse);
-      expect(kAuthErrorMessages.containsKey('NO_RECOVERY_KEY'), isFalse);
+      expect(messages.containsKey('WRONG_RECOVERY_KEY'), isFalse);
+      expect(messages.containsKey('NO_RECOVERY_KEY'), isFalse);
     });
   });
 
@@ -63,17 +67,17 @@ void main() {
     };
 
     test('every mapped key is one the backend throws', () {
-      expect(kAuthErrorMessages.keys.toSet().difference(backendCodes), isEmpty);
+      expect(messages.keys.toSet().difference(backendCodes), isEmpty);
     });
 
     test('every backend code has copy', () {
-      expect(backendCodes.difference(kAuthErrorMessages.keys.toSet()), isEmpty);
+      expect(backendCodes.difference(messages.keys.toSet()), isEmpty);
     });
 
     test('each one humanizes rather than leaking the exception', () {
       for (final code in backendCodes) {
-        final msg = humanizeAuthError(thrown(code));
-        expect(msg, kAuthErrorMessages[code], reason: code);
+        final msg = humanizeAuthError(thrown(code), l10n);
+        expect(msg, messages[code], reason: code);
       }
     });
 
@@ -84,8 +88,8 @@ void main() {
       // `SOCIAL_*` family arrived — `SOCIAL_NOT_LINKED` and
       // `SOCIAL_ALREADY_LINKED` are exactly the shape that would collide if
       // either were ever shortened to `SOCIAL_LINKED`.
-      for (final a in kAuthErrorMessages.keys) {
-        for (final b in kAuthErrorMessages.keys) {
+      for (final a in messages.keys) {
+        for (final b in messages.keys) {
           if (a == b) continue;
           expect(b.contains(a), isFalse, reason: '"$a" is inside "$b"');
         }
@@ -93,7 +97,7 @@ void main() {
     });
 
     test('no copy names the code itself', () {
-      for (final entry in kAuthErrorMessages.entries) {
+      for (final entry in messages.entries) {
         expect(entry.value, isNot(contains(entry.key)), reason: entry.key);
       }
     });
@@ -107,7 +111,7 @@ void main() {
       // would hand back the distinction the backend went out of its way to
       // hide — the child case especially, which would make reset an "is this
       // username a kid?" oracle.
-      final copy = kAuthErrorMessages['INVALID_RECOVERY_KEY']!.toLowerCase();
+      final copy = messages['INVALID_RECOVERY_KEY']!.toLowerCase();
       for (final leak in ['no account', 'doesn\'t exist', 'kid', 'child']) {
         expect(copy, isNot(contains(leak)), reason: leak);
       }
@@ -118,7 +122,7 @@ void main() {
     test('unknown errors truncate rather than dump, when no fallback given',
         () {
       final long = 'X' * 500;
-      final msg = humanizeAuthError(Exception(long));
+      final msg = humanizeAuthError(Exception(long), l10n);
 
       expect(msg.length, lessThanOrEqualTo(141));
       expect(msg, endsWith('…'));
@@ -127,6 +131,7 @@ void main() {
     test('a supplied fallback wins — the child screen never sees a trace', () {
       final msg = humanizeAuthError(
         Exception('something nobody mapped'),
+        l10n,
         fallback: 'Something went wrong. Try again.',
       );
 
@@ -138,6 +143,7 @@ void main() {
       // no username was ever typed.
       final msg = humanizeAuthError(
         thrown('USER_NOT_FOUND'),
+        l10n,
         overrides: const {'USER_NOT_FOUND': 'That account isn\'t there.'},
       );
 
@@ -147,10 +153,11 @@ void main() {
     test('a known code still wins over the fallback', () {
       final msg = humanizeAuthError(
         thrown('WRONG_PASSWORD'),
+        l10n,
         fallback: 'Something went wrong. Try again.',
       );
 
-      expect(msg, kAuthErrorMessages['WRONG_PASSWORD']);
+      expect(msg, messages['WRONG_PASSWORD']);
     });
   });
 }

@@ -138,7 +138,11 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
       if (!mounted) return;
       final taken = e.toString().contains('USERNAME_TAKEN');
       setState(() {
-        _error = humanizeAuthError(e, fallback: null);
+        _error = humanizeAuthError(
+          e,
+          AppLocalizations.of(context),
+          fallback: null,
+        );
         // The whole point of the second mode — surface it exactly when it is
         // the answer, rather than making them find it.
         _offerLink = taken && _mode == _Mode.create;

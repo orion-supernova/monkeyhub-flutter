@@ -17,53 +17,53 @@
 /// real fix and is deliberately out of scope here.
 library;
 
-const Map<String, String> kAuthErrorMessages = {
+import '../l10n/generated/app_localizations.dart';
+
+/// A function rather than a top-level const — the copy comes from
+/// [AppLocalizations], which needs a resolved instance, not a BuildContext,
+/// so this stays plain-Dart testable (see test/auth_error_map_test.dart).
+Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   // auth.signup
-  'USERNAME_TAKEN': 'That username is already taken.',
+  'USERNAME_TAKEN': l10n.authErrorUsernameTaken,
   // auth.login
-  'USER_NOT_FOUND': 'No account with that username.',
-  'WRONG_PASSWORD': 'Wrong password.',
+  'USER_NOT_FOUND': l10n.authErrorUserNotFound,
+  'WRONG_PASSWORD': l10n.authErrorWrongPassword,
   // auth.resetPasswordWithRecoveryKey — ONE code covers "no such user",
   // "that's a child account", and "wrong phrase", so the copy must not imply
   // which. Reset is the only endpoint a stranger can probe with no credential.
-  'INVALID_RECOVERY_KEY': 'That username and recovery phrase don\'t match.',
+  'INVALID_RECOVERY_KEY': l10n.authErrorInvalidRecoveryKey,
   // rateLimit.ERR_TOO_MANY. Naming the wait is what stops a locked-out user
   // from assuming the account is gone.
-  'TOO_MANY_ATTEMPTS': 'Too many tries. Wait 15 minutes and try again.',
+  'TOO_MANY_ATTEMPTS': l10n.authErrorTooManyAttempts,
   // childGuard.ERR_MUST_PAIR
-  'CHILD_MUST_PAIR':
-      'That\'s a kid\'s account — ask a grown-up for a pairing code.',
+  'CHILD_MUST_PAIR': l10n.authErrorChildMustPair,
   // childGuard.ERR_CODE_EXPIRED / ERR_CODE_INVALID
-  'PAIRING_CODE_EXPIRED': 'That code has run out. Ask for a new one.',
-  'PAIRING_CODE_INVALID':
-      'That code didn\'t work. It may have been used already.',
+  'PAIRING_CODE_EXPIRED': l10n.authErrorPairingCodeExpired,
+  'PAIRING_CODE_INVALID': l10n.authErrorPairingCodeInvalid,
 
   // ── socialAuth.ts ──────────────────────────────────────────────────────
   // socialAuth.ERR_USE_SOCIAL. Thrown by auth.login when the account has no
   // password because it was created with a provider. Must NOT read like a
   // wrong password: the reset flow cannot help these accounts either, since
   // they have no recovery phrase.
-  'USE_SOCIAL_SIGN_IN':
-      'That account signs in with Apple or Google — use the buttons below.',
+  'USE_SOCIAL_SIGN_IN': l10n.authErrorUseSocialSignIn,
   // idToken.ERR_TOKEN_INVALID / ERR_NONCE_MISMATCH. Both are deliberately
   // opaque server-side, and both mean the same thing to a user: start over.
-  'SOCIAL_TOKEN_INVALID': 'That sign-in didn\'t go through. Please try again.',
-  'SOCIAL_NONCE_MISMATCH': 'That sign-in didn\'t go through. Please try again.',
+  'SOCIAL_TOKEN_INVALID': l10n.authErrorSocialTokenInvalid,
+  'SOCIAL_NONCE_MISMATCH': l10n.authErrorSocialNonceMismatch,
   // idToken.ERR_MISCONFIG — ours, not theirs. Says so, so nobody wastes time
   // re-entering a password that was never the problem.
-  'SOCIAL_MISCONFIG': 'Sign-in isn\'t set up yet on our side. Try again later.',
+  'SOCIAL_MISCONFIG': l10n.authErrorSocialMisconfig,
   // socialAuth.ERR_LINKED_ELSEWHERE vs ERR_ALREADY_LINKED — different
   // remedies, so deliberately different copy.
-  'SOCIAL_LINKED_TO_OTHER_ACCOUNT':
-      'That Apple or Google account is already linked to a different MonkeyHub account.',
-  'SOCIAL_ALREADY_LINKED': 'That\'s already linked to this account.',
-  'SOCIAL_NOT_LINKED': 'That isn\'t linked to this account.',
+  'SOCIAL_LINKED_TO_OTHER_ACCOUNT': l10n.authErrorSocialLinkedToOtherAccount,
+  'SOCIAL_ALREADY_LINKED': l10n.authErrorSocialAlreadyLinked,
+  'SOCIAL_NOT_LINKED': l10n.authErrorSocialNotLinked,
   // socialAuth.ERR_LAST_CREDENTIAL. There is no email in this app, so an
   // account with nothing left to sign in with is gone for good.
-  'SOCIAL_LAST_CREDENTIAL':
-      'That\'s the only way into this account. Set a password first.',
+  'SOCIAL_LAST_CREDENTIAL': l10n.authErrorSocialLastCredential,
   // socialAuth.normaliseUsername
-  'USERNAME_INVALID': 'Pick a username between 1 and 32 characters.',
+  'USERNAME_INVALID': l10n.authErrorUsernameInvalid,
 };
 
 /// Maps a thrown backend error onto human copy.
@@ -77,12 +77,13 @@ const Map<String, String> kAuthErrorMessages = {
 /// child pairing screen passes friendly copy instead, because showing a kid a
 /// stack trace helps nobody.
 ///
-/// [overrides] wins over [kAuthErrorMessages] for codes whose right wording
+/// [overrides] wins over [authErrorMessages] for codes whose right wording
 /// depends on the screen. `USER_NOT_FOUND` is the live example: on the login
 /// form it means "you typed a username nobody has", but on the pairing screen
 /// no username was typed at all — it means the child's account was deleted.
 String humanizeAuthError(
-  Object e, {
+  Object e,
+  AppLocalizations l10n, {
   String? fallback,
   Map<String, String>? overrides,
 }) {
@@ -92,7 +93,7 @@ String humanizeAuthError(
       if (s.contains(entry.key)) return entry.value;
     }
   }
-  for (final entry in kAuthErrorMessages.entries) {
+  for (final entry in authErrorMessages(l10n).entries) {
     if (s.contains(entry.key)) return entry.value;
   }
   if (fallback != null) return fallback;

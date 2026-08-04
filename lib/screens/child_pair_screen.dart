@@ -122,14 +122,15 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
   /// No username is typed here, so the shared USER_NOT_FOUND copy ("no account
   /// with that username") would make no sense: on this screen it means the
   /// child's account was deleted out from under the handset.
-  String _humanize(Object e) => humanizeAuthError(
-        e,
-        fallback: AppLocalizations.of(context).childPairScreenGenericError,
-        overrides: {
-          'USER_NOT_FOUND':
-              AppLocalizations.of(context).childPairScreenAccountGoneError,
-        },
-      );
+  String _humanize(Object e) {
+    final l10n = AppLocalizations.of(context);
+    return humanizeAuthError(
+      e,
+      l10n,
+      fallback: l10n.childPairScreenGenericError,
+      overrides: {'USER_NOT_FOUND': l10n.childPairScreenAccountGoneError},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

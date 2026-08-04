@@ -113,7 +113,11 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     } on SocialSignInCancelled {
       // Backed out of the native sheet — not a failure, say nothing.
     } catch (e) {
-      if (mounted) setState(() => _error = humanizeAuthError(e));
+      if (mounted) {
+        setState(
+          () => _error = humanizeAuthError(e, AppLocalizations.of(context)),
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = null);
     }

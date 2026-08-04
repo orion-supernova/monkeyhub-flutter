@@ -98,37 +98,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// The breadcrumb under the avatar card. A child's account has no family
   /// controls to offer and nothing to link, so it gets the things that are
   /// actually behind the card for them.
-  String get _accountHint => widget.auth.isChild
-      ? 'profile · privacy · my grown-ups'
-      : 'profile · family · linked accounts · privacy';
+  String get _accountHint {
+    final l10n = AppLocalizations.of(context);
+    return widget.auth.isChild
+        ? l10n.settingsScreenAccountHintChild
+        : l10n.settingsScreenAccountHintAdult;
+  }
 
-  String get _layoutLabel =>
-      SettingsStore.instance.roomLayout == RoomLayout.list
-      ? 'Scroll list'
-      : 'Grid sheet';
+  String get _layoutLabel {
+    final l10n = AppLocalizations.of(context);
+    return SettingsStore.instance.roomLayout == RoomLayout.list
+        ? l10n.settingsScreenValueScrollList
+        : l10n.settingsScreenValueGridSheet;
+  }
 
-  String get _navLabel => SettingsStore.instance.navStyle == NavStyle.radial
-      ? 'Radial orb'
-      : 'Bottom pill';
+  String get _navLabel {
+    final l10n = AppLocalizations.of(context);
+    return SettingsStore.instance.navStyle == NavStyle.radial
+        ? l10n.settingsScreenValueRadialOrb
+        : l10n.settingsScreenValueBottomPill;
+  }
 
   /// The active look's name, marked when it has been tuned away from what it
   /// saved. 'Custom' only when nothing is selected at all.
   String get _glassLabel {
+    final l10n = AppLocalizations.of(context);
     final store = SettingsStore.instance;
     final id = store.glassPresetId;
-    if (id == null) return 'Custom';
+    if (id == null) return l10n.settingsScreenValueCustom;
     for (final p in store.glassPresets) {
       if (p.id == id) {
-        return store.glass == p.profile ? p.name : '${p.name} · edited';
+        return store.glass == p.profile
+            ? p.name
+            : l10n.settingsScreenValueEdited(p.name);
       }
     }
-    return 'Custom';
+    return l10n.settingsScreenValueCustom;
   }
 
-  String get _chatStyleLabel =>
-      SettingsStore.instance.chatStyle == ChatStyle.classic
-      ? 'Classic'
-      : 'Compact';
+  String get _chatStyleLabel {
+    final l10n = AppLocalizations.of(context);
+    return SettingsStore.instance.chatStyle == ChatStyle.classic
+        ? l10n.settingsScreenValueClassic
+        : l10n.settingsScreenValueCompact;
+  }
 
   String get _languageLabel {
     final l10n = AppLocalizations.of(context);
@@ -143,41 +156,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String get _bubbleStyleLabel {
+    final l10n = AppLocalizations.of(context);
     switch (SettingsStore.instance.bubbleStyle) {
       case BubbleStyle.tailed:
-        return 'Tailed';
+        return l10n.settingsScreenValueBubbleTailed;
       case BubbleStyle.soft:
-        return 'Soft';
+        return l10n.settingsScreenValueBubbleSoft;
       case BubbleStyle.pill:
-        return 'Pill';
+        return l10n.settingsScreenValueBubblePill;
       case BubbleStyle.slab:
-        return 'Slab';
+        return l10n.settingsScreenValueBubbleSlab;
     }
   }
 
   String get _replyStyleLabel {
+    final l10n = AppLocalizations.of(context);
     switch (SettingsStore.instance.replyStyle) {
       case ReplyStyle.phantomEcho:
-        return 'Phantom Echo';
+        return l10n.settingsScreenValueReplyPhantomEcho;
       case ReplyStyle.stickyNote:
-        return 'Sticky Note';
+        return l10n.settingsScreenValueReplyStickyNote;
       case ReplyStyle.comicTail:
-        return 'Comic Tail';
+        return l10n.settingsScreenValueReplyComicTail;
       case ReplyStyle.classic:
-        return 'Classic';
+        return l10n.settingsScreenValueClassic;
     }
   }
 
   String get _logoLabel {
+    final l10n = AppLocalizations.of(context);
     final s = SettingsStore.instance;
     switch (s.logoMode) {
       case LogoMode.auto:
-        return 'Auto';
+        return l10n.settingsScreenValueLogoAuto;
       case LogoMode.alwaysDefault:
         return 'MonkeyHub';
       case LogoMode.manual:
         final id = s.manualLogoThemeId;
-        if (id == null) return 'Manual';
+        if (id == null) return l10n.settingsScreenValueLogoManual;
         if (id == canonicalLogoId) return 'MonkeyHub';
         final monkey = monkeyVariantById(id);
         if (monkey != null) return monkey.displayName;
@@ -189,6 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final activeTheme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final s = widget.auth.session;
     return Stack(
       children: [
@@ -207,13 +224,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const AppBrandMark(size: 30),
                   const SizedBox(width: 10),
                   Text(
-                    'SETTINGS',
+                    l10n.settingsScreenTitle,
                     style: theme.label.copyWith(letterSpacing: 3),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
-              Text('look. feel. you.', style: theme.displayLarge),
+              Text(l10n.settingsScreenTagline, style: theme.displayLarge),
               const SizedBox(height: 28),
               if (s != null) ...[
                 // An account with no recovery phrase is one forgotten password
@@ -319,10 +336,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
               const SizedBox(height: 24),
 
-              _SectionHeader(label: 'APPEARANCE'),
+              _SectionHeader(label: l10n.settingsScreenSectionAppearance),
               const SizedBox(height: 12),
               _DisclosureRow(
-                label: 'THEME',
+                label: l10n.settingsScreenRowTheme,
                 value: activeTheme.name,
                 selected: _isOpen('theme'),
                 leading: _SwatchDot(color: activeTheme.accent),
@@ -334,7 +351,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'APP LOGO',
+                label: l10n.settingsScreenRowAppLogo,
                 value: _logoLabel,
                 selected: _isOpen('logo'),
                 leading: Icon(
@@ -350,7 +367,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'GLASS',
+                label: l10n.settingsScreenRowGlass,
                 value: _glassLabel,
                 selected: _isOpen('glass'),
                 leading: Icon(
@@ -366,10 +383,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
-              _SectionHeader(label: 'LAYOUT'),
+              _SectionHeader(label: l10n.settingsScreenSectionLayout),
               const SizedBox(height: 12),
               _DisclosureRow(
-                label: 'CHAT LIST',
+                label: l10n.settingsScreenRowChatList,
                 value: _layoutLabel,
                 selected: _isOpen('roomLayout'),
                 leading: Icon(
@@ -385,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'NAVIGATION',
+                label: l10n.settingsScreenRowNavigation,
                 value: _navLabel,
                 selected: _isOpen('navigation'),
                 leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
@@ -397,7 +414,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'CHAT STYLE',
+                label: l10n.settingsScreenRowChatStyle,
                 value: _chatStyleLabel,
                 selected: _isOpen('chatStyle'),
                 leading: Icon(
@@ -413,7 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'BUBBLE STYLE',
+                label: l10n.settingsScreenRowBubbleStyle,
                 value: _bubbleStyleLabel,
                 selected: _isOpen('bubbleStyle'),
                 leading: Icon(
@@ -429,7 +446,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 10),
               _DisclosureRow(
-                label: 'REPLY STYLE',
+                label: l10n.settingsScreenRowReplyStyle,
                 value: _replyStyleLabel,
                 selected: _isOpen('replyStyle'),
                 leading: Icon(
@@ -445,10 +462,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
-              _SectionHeader(label: 'GENERAL'),
+              _SectionHeader(label: l10n.settingsScreenSectionGeneral),
               const SizedBox(height: 12),
               _DisclosureRow(
-                label: AppLocalizations.of(context).settingsLanguageRowLabel,
+                label: l10n.settingsLanguageRowLabel,
                 value: _languageLabel,
                 selected: _isOpen('language'),
                 leading: Icon(
@@ -464,12 +481,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 28),
-              _SectionHeader(label: 'LINKS'),
+              _SectionHeader(label: l10n.settingsScreenSectionLinks),
               const SizedBox(height: 12),
               _ShowLinkUrlsToggle(),
 
               const SizedBox(height: 28),
-              _SectionHeader(label: 'NOTIFICATIONS'),
+              _SectionHeader(label: l10n.settingsScreenSectionNotifications),
               const SizedBox(height: 12),
               _PushToggle(),
 
@@ -609,6 +626,7 @@ class _PushToggleState extends State<_PushToggle> {
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
         final on = SettingsStore.instance.pushEnabled;
         return GestureDetector(
           onTap: () => _toggle(!on),
@@ -633,12 +651,15 @@ class _PushToggleState extends State<_PushToggle> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('PUSH NOTIFICATIONS', style: theme.label),
+                      Text(
+                        l10n.settingsScreenPushNotificationsLabel,
+                        style: theme.label,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         on
-                            ? 'pings for new messages + requests'
-                            : 'silent — you\'ll only see things when you open the app',
+                            ? l10n.settingsScreenPushOnBody
+                            : l10n.settingsScreenPushOffBody,
                         style: theme.bodySoft,
                       ),
                     ],
@@ -668,6 +689,7 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
     return AnimatedBuilder(
       animation: SettingsStore.instance,
       builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
         final on = SettingsStore.instance.showLinkUrls;
         return GestureDetector(
           onTap: () => _toggle(!on),
@@ -690,12 +712,15 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('SHOW LINK URLS', style: theme.label),
+                      Text(
+                        l10n.settingsScreenShowLinkUrlsLabel,
+                        style: theme.label,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         on
-                            ? 'raw URLs appear alongside the preview card'
-                            : 'preview only — cleaner bubbles, tap to open',
+                            ? l10n.settingsScreenLinksUrlsOnBody
+                            : l10n.settingsScreenLinksUrlsOffBody,
                         style: theme.bodySoft,
                       ),
                     ],
