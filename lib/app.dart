@@ -597,9 +597,19 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             // the first entry — English — when the device locale isn't
             // supported). A saved SettingsStore.localeCode pins the app to
             // that language regardless of the device. See LanguageScreen.
-            locale: SettingsStore.instance.localeCode != null
-                ? Locale(SettingsStore.instance.localeCode!)
-                : null,
+            //
+            // A code may carry a region ('pt_BR', to pick Brazilian
+            // Portuguese apart from European) — Locale(languageCode,
+            // countryCode) needs those passed separately, not concatenated
+            // into one string, so split on the underscore.
+            locale: () {
+              final code = SettingsStore.instance.localeCode;
+              if (code == null) return null;
+              final parts = code.split('_');
+              return parts.length > 1
+                  ? Locale(parts[0], parts[1])
+                  : Locale(parts[0]);
+            }(),
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,

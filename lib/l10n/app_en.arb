@@ -5055,5 +5055,45 @@
   "glassKnobLabelLabelSize": "LABEL SIZE",
   "@glassKnobLabelLabelSize": {
     "description": "All-caps name of the 'label size' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated)."
+  },
+  "languageOptionSpanish": "ESPAÑOL",
+  "@languageOptionSpanish": {
+    "description": "All-caps option label for Spanish in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated."
+  },
+  "languageValueSpanish": "Español",
+  "@languageValueSpanish": {
+    "description": "Sentence-case value shown next to the LANGUAGE row in Settings when Spanish is the active/pinned language. Same autonym as languageOptionSpanish, same string in every ARB file, never translated."
+  },
+  "languageOptionFrench": "FRANÇAIS",
+  "@languageOptionFrench": {
+    "description": "All-caps option label for French in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated."
+  },
+  "languageValueFrench": "Français",
+  "@languageValueFrench": {
+    "description": "Sentence-case value shown next to the LANGUAGE row in Settings when French is the active/pinned language. Same autonym as languageOptionFrench, same string in every ARB file, never translated."
+  },
+  "languageOptionPortuguese": "PORTUGUÊS (PORTUGAL)",
+  "@languageOptionPortuguese": {
+    "description": "All-caps option label for European (Portugal) Portuguese in the language picker, distinct from Brazilian Portuguese (languageOptionPortugueseBrazil). Autonym — same string in every ARB file, never translated."
+  },
+  "languageValuePortuguese": "Português (Portugal)",
+  "@languageValuePortuguese": {
+    "description": "Sentence-case value shown next to the LANGUAGE row in Settings when European (Portugal) Portuguese is the active/pinned language. Autonym — same string in every ARB file, never translated."
+  },
+  "languageOptionSwedish": "SVENSKA",
+  "@languageOptionSwedish": {
+    "description": "All-caps option label for Swedish in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated."
+  },
+  "languageValueSwedish": "Svenska",
+  "@languageValueSwedish": {
+    "description": "Sentence-case value shown next to the LANGUAGE row in Settings when Swedish is the active/pinned language. Same autonym as languageOptionSwedish, same string in every ARB file, never translated."
+  },
+  "languageOptionPortugueseBrazil": "PORTUGUÊS (BRASIL)",
+  "languageValuePortugueseBrazil": "Português (Brasil)",
+  "@languageOptionPortugueseBrazil": {
+    "description": "All-caps option label for Brazilian Portuguese in the language picker, distinct from European Portuguese (languageOptionPortuguese). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValuePortugueseBrazil": {
+    "description": "Sentence-case value shown next to the LANGUAGE row in Settings when Brazilian Portuguese is the active/pinned language. Autonym — same string in every ARB file, never translated."
   }
 }

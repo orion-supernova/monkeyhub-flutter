@@ -4325,7 +4325,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsScreenLinksUrlsOffBody =>
-      'preview only — cleaner bubbles, tap to open';
+      'currently preview only — cleaner bubbles, tap to open';
 
   @override
   String get settingsScreenPushNotificationsLabel => 'PUSH NOTIFICATIONS';
@@ -4506,4 +4506,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get glassKnobLabelLabelSize => 'LABEL SIZE';
+
+  @override
+  String get languageOptionSpanish => 'ESPAÑOL';
+
+  @override
+  String get languageValueSpanish => 'Español';
+
+  @override
+  String get languageOptionFrench => 'FRANÇAIS';
+
+  @override
+  String get languageValueFrench => 'Français';
+
+  @override
+  String get languageOptionPortuguese => 'PORTUGUÊS (PORTUGAL)';
+
+  @override
+  String get languageValuePortuguese => 'Português (Portugal)';
+
+  @override
+  String get languageOptionSwedish => 'SVENSKA';
+
+  @override
+  String get languageValueSwedish => 'Svenska';
+
+  @override
+  String get languageOptionPortugueseBrazil => 'PORTUGUÊS (BRASIL)';
+
+  @override
+  String get languageValuePortugueseBrazil => 'Português (Brasil)';
 }

@@ -6,6 +6,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
+import 'app_localizations_fr.dart';
+import 'app_localizations_pt.dart';
+import 'app_localizations_sv.dart';
 import 'app_localizations_tr.dart';
 
 // ignore_for_file: type=lint
@@ -95,6 +99,11 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
+    Locale('es'),
+    Locale('fr'),
+    Locale('pt'),
+    Locale('pt', 'BR'),
+    Locale('sv'),
     Locale('tr'),
   ];
 
@@ -7393,7 +7402,7 @@ abstract class AppLocalizations {
   /// Caption under SHOW LINK URLS when the toggle is off.
   ///
   /// In en, this message translates to:
-  /// **'preview only — cleaner bubbles, tap to open'**
+  /// **'currently preview only — cleaner bubbles, tap to open'**
   String get settingsScreenLinksUrlsOffBody;
 
   /// All-caps label on the Push Notifications toggle row.
@@ -7707,6 +7716,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'LABEL SIZE'**
   String get glassKnobLabelLabelSize;
+
+  /// All-caps option label for Spanish in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'ESPAÑOL'**
+  String get languageOptionSpanish;
+
+  /// Sentence-case value shown next to the LANGUAGE row in Settings when Spanish is the active/pinned language. Same autonym as languageOptionSpanish, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Español'**
+  String get languageValueSpanish;
+
+  /// All-caps option label for French in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'FRANÇAIS'**
+  String get languageOptionFrench;
+
+  /// Sentence-case value shown next to the LANGUAGE row in Settings when French is the active/pinned language. Same autonym as languageOptionFrench, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Français'**
+  String get languageValueFrench;
+
+  /// All-caps option label for European (Portugal) Portuguese in the language picker, distinct from Brazilian Portuguese (languageOptionPortugueseBrazil). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'PORTUGUÊS (PORTUGAL)'**
+  String get languageOptionPortuguese;
+
+  /// Sentence-case value shown next to the LANGUAGE row in Settings when European (Portugal) Portuguese is the active/pinned language. Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Português (Portugal)'**
+  String get languageValuePortuguese;
+
+  /// All-caps option label for Swedish in the language picker. This is the language's own autonym (how it names itself), conventionally shown the same way regardless of the active UI language — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'SVENSKA'**
+  String get languageOptionSwedish;
+
+  /// Sentence-case value shown next to the LANGUAGE row in Settings when Swedish is the active/pinned language. Same autonym as languageOptionSwedish, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Svenska'**
+  String get languageValueSwedish;
+
+  /// All-caps option label for Brazilian Portuguese in the language picker, distinct from European Portuguese (languageOptionPortuguese). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'PORTUGUÊS (BRASIL)'**
+  String get languageOptionPortugueseBrazil;
+
+  /// Sentence-case value shown next to the LANGUAGE row in Settings when Brazilian Portuguese is the active/pinned language. Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'Português (Brasil)'**
+  String get languageValuePortugueseBrazil;
 }
 
 class _AppLocalizationsDelegate
@@ -7719,18 +7788,44 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'tr'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'en',
+    'es',
+    'fr',
+    'pt',
+    'sv',
+    'tr',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+country codes are specified.
+  switch (locale.languageCode) {
+    case 'pt':
+      {
+        switch (locale.countryCode) {
+          case 'BR':
+            return AppLocalizationsPtBr();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
+    case 'fr':
+      return AppLocalizationsFr();
+    case 'pt':
+      return AppLocalizationsPt();
+    case 'sv':
+      return AppLocalizationsSv();
     case 'tr':
       return AppLocalizationsTr();
   }

@@ -39,11 +39,31 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   void _set(String? code) => SettingsStore.instance.setLocaleCode(code);
 
+  /// (locale code, autonym) for every language the app ships, in the order
+  /// shown below the SYSTEM card. `null` is reserved for SYSTEM itself, so
+  /// it's never a key here. Codes match SettingsStore.localeCode /
+  /// AppLocalizations.supportedLocales exactly, including the region suffix
+  /// on 'pt_BR' — see app.dart's locale-parsing comment for why that one
+  /// needs a region.
+  // Arabic, Chinese and Hindi are deliberately not offered yet — parked for
+  // a later pass (RTL layout + non-Latin font glyph coverage need their own
+  // verification before shipping them, unlike the others here).
+  List<(String, String)> _languages(AppLocalizations l10n) => [
+    ('en', l10n.languageOptionEnglish),
+    ('tr', l10n.languageOptionTurkish),
+    ('es', l10n.languageOptionSpanish),
+    ('fr', l10n.languageOptionFrench),
+    ('pt', l10n.languageOptionPortuguese),
+    ('pt_BR', l10n.languageOptionPortugueseBrazil),
+    ('sv', l10n.languageOptionSwedish),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final current = SettingsStore.instance.localeCode;
+    final languages = _languages(l10n);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -89,22 +109,16 @@ class _LanguageScreenState extends State<LanguageScreen> {
                     activeLabel: l10n.languageScreenActiveBadge,
                     onTap: () => _set(null),
                   ),
-                  const SizedBox(height: 14),
-                  _LanguageCard(
-                    label: l10n.languageOptionEnglish,
-                    sub: null,
-                    active: current == 'en',
-                    activeLabel: l10n.languageScreenActiveBadge,
-                    onTap: () => _set('en'),
-                  ),
-                  const SizedBox(height: 14),
-                  _LanguageCard(
-                    label: l10n.languageOptionTurkish,
-                    sub: null,
-                    active: current == 'tr',
-                    activeLabel: l10n.languageScreenActiveBadge,
-                    onTap: () => _set('tr'),
-                  ),
+                  for (final (code, label) in languages) ...[
+                    const SizedBox(height: 14),
+                    _LanguageCard(
+                      label: label,
+                      sub: null,
+                      active: current == code,
+                      activeLabel: l10n.languageScreenActiveBadge,
+                      onTap: () => _set(code),
+                    ),
+                  ],
                 ],
               ),
             ),

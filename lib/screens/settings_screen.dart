@@ -150,6 +150,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return l10n.languageValueEnglish;
       case 'tr':
         return l10n.languageValueTurkish;
+      case 'es':
+        return l10n.languageValueSpanish;
+      case 'fr':
+        return l10n.languageValueFrench;
+      case 'pt':
+        return l10n.languageValuePortuguese;
+      case 'pt_BR':
+        return l10n.languageValuePortugueseBrazil;
+      case 'sv':
+        return l10n.languageValueSwedish;
       default:
         return l10n.languageValueSystem;
     }

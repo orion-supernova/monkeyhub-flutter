@@ -4310,7 +4310,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsScreenLinksUrlsOffBody =>
-      'sadece önizleme — daha sade baloncuklar, açmak için dokun';
+      'şuan sadece önizleme — daha sade baloncuklar, açmak için dokun';
 
   @override
   String get settingsScreenPushNotificationsLabel => 'ANLIK BİLDİRİMLER';
@@ -4491,4 +4491,34 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get glassKnobLabelLabelSize => 'ETİKET BOYUTU';
+
+  @override
+  String get languageOptionSpanish => 'ESPAÑOL';
+
+  @override
+  String get languageValueSpanish => 'Español';
+
+  @override
+  String get languageOptionFrench => 'FRANÇAIS';
+
+  @override
+  String get languageValueFrench => 'Français';
+
+  @override
+  String get languageOptionPortuguese => 'PORTUGUÊS (PORTUGAL)';
+
+  @override
+  String get languageValuePortuguese => 'Português (Portugal)';
+
+  @override
+  String get languageOptionSwedish => 'SVENSKA';
+
+  @override
+  String get languageValueSwedish => 'Svenska';
+
+  @override
+  String get languageOptionPortugueseBrazil => 'PORTUGUÊS (BRASIL)';
+
+  @override
+  String get languageValuePortugueseBrazil => 'Português (Brasil)';
 }

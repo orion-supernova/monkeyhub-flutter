@@ -1263,5 +1263,15 @@
   "glassKnobLabelIconLabelGap": "İKON BOŞLUĞU",
   "glassKnobHintIconLabelGap": "bir ikonla altındaki kelime arasındaki boşluk",
   "glassKnobLabelIconSize": "İKON BOYUTU",
-  "glassKnobLabelLabelSize": "ETİKET BOYUTU"
+  "glassKnobLabelLabelSize": "ETİKET BOYUTU",
+  "languageOptionSpanish": "ESPAÑOL",
+  "languageValueSpanish": "Español",
+  "languageOptionFrench": "FRANÇAIS",
+  "languageValueFrench": "Français",
+  "languageOptionPortuguese": "PORTUGUÊS (PORTUGAL)",
+  "languageValuePortuguese": "Português (Portugal)",
+  "languageOptionSwedish": "SVENSKA",
+  "languageValueSwedish": "Svenska",
+  "languageOptionPortugueseBrazil": "PORTUGUÊS (BRASIL)",
+  "languageValuePortugueseBrazil": "Português (Brasil)"
 }
