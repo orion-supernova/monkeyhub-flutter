@@ -61,13 +61,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get languageValueTurkish => 'Türkçe';
 
   @override
-  String get roomScreenAskGrownUpFailedSnack => 'şu an soramadık — tekrar dene';
+  String get roomScreenAskGrownUpFailedSnack =>
+      'şu an sorulamadı — tekrar dene';
 
   @override
-  String get roomScreenGateSendMessages => 'buraya mesaj gönder';
+  String get roomScreenGateSendMessages => 'buraya mesaj göndermek';
 
   @override
-  String get roomScreenGateSendMedia => 'fotoğraf ya da sesli not gönder';
+  String get roomScreenGateSendMedia => 'fotoğraf ya da sesli not göndermek';
 
   @override
   String roomScreenMaxSelectionSnack(Object max) {
@@ -129,7 +130,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomScreenReportSentSnack =>
-      'bildirim gizlice gönderildi. karşı taraf bilgilendirilmeyecek.';
+      'şikayet gizlice gönderildi. karşı taraf bilgilendirilmeyecek.';
 
   @override
   String get roomScreenDeselectMessageSemantic => 'Mesaj seçimini kaldır';
@@ -408,7 +409,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenLinkedAccountsNone => 'bağlı hesap yok';
 
   @override
-  String get profileScreenMyGrownUps => 'YETİŞKİNLERİM';
+  String get profileScreenMyGrownUps => 'BÜYÜKLERİM';
 
   @override
   String get profileScreenNameHint => 'odada nasıl görüneceğin';
@@ -447,7 +448,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'sınırlı görünüm — arkadaşlarıyla daha fazlasını paylaşıyorlar.';
 
   @override
-  String get profileScreenReportAction => 'ŞIKAYET ET';
+  String get profileScreenReportAction => 'ŞİKAYET ET';
 
   @override
   String get profileScreenReportSent =>
@@ -590,7 +591,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get glassScreenSaveCurrentAs => 'MEVCUDU KAYDET…';
+  String get glassScreenSaveCurrentAs => 'GÖRÜNÜM OLARAK KAYDET…';
 
   @override
   String get glassScreenResetEveryDial => 'TÜM AYARLARI SIFIRLA';
@@ -634,7 +635,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get glassScreenDeleteConfirmBody =>
-      'görünüm ekranda kalmaya devam eder — sadece bir adı olmaktan çıkar.';
+      'görünüm ekranda kalmaya devam eder — sadece adını kaybeder.';
 
   @override
   String get glassScreenKeepButton => 'sakla';
@@ -991,7 +992,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get childPolicyScreenAddGuardianHeading => 'BİR YETİŞKİN EKLE';
 
   @override
-  String get childPolicyScreenAddGuardianHint => 'onların kullanıcı adı';
+  String get childPolicyScreenAddGuardianHint => 'onun kullanıcı adı';
 
   @override
   String get childPolicyScreenAllowCta => 'İZİN VER';
@@ -1005,7 +1006,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get childPolicyScreenAllowSomeoneHeading => 'BİRİNE İZİN VER';
 
   @override
-  String get childPolicyScreenAskToAddLabel => 'İZİN İSTE';
+  String get childPolicyScreenAskToAddLabel => 'EKLEME İZNİ İSTE';
 
   @override
   String get childPolicyScreenAskToAddOffDesc => 'sadece aile — yeni istek yok';
@@ -1083,7 +1084,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get childPolicyScreenErrorCannotAddSelf =>
-      'bu onların kendi kullanıcı adı';
+      'bu onun kendi kullanıcı adı';
 
   @override
   String get childPolicyScreenErrorChildNotAllowed =>
@@ -1123,7 +1124,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String childPolicyScreenGraduateHeading(Object name) {
-    return '$name’İ MEZUN ET';
+    return '$name MEZUN OLSUN';
   }
 
   @override
@@ -1286,7 +1287,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomContentScreenDeleteBody =>
-      'Bu, sohbetteki herkes için kaldırılır. Geri alınamaz.';
+      'Bunlar, sohbetteki herkes için kaldırılır. Geri alınamaz.';
 
   @override
   String get roomContentScreenDeleteForEveryone => 'HERKES İÇİN SİL';
@@ -1337,7 +1338,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String roomContentScreenVoiceMessageFrom(Object name) {
-    return '$name kişisinden sesli mesaj';
+    return '$name adlı kişiden sesli mesaj';
   }
 
   @override
@@ -1562,7 +1563,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get friendRequestDraftScreenIntroOutgoing =>
-      'birkaç satır yaz. onaylayabilir ya da reddedebilirler.';
+      'birkaç satır yaz. onaylayabilir ya da reddedebilir.';
 
   @override
   String get friendRequestDraftScreenIntroFooter =>
@@ -1661,7 +1662,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get discoverScreenInboxQuiet => 'gelen kutusu sessiz';
 
   @override
-  String get discoverScreenNothingPending => 'bekleyen istek yok';
+  String get discoverScreenNothingPending => 'gönderdiğin istek yok';
 
   @override
   String get discoverScreenYourPeopleLabel => 'ARKADAŞLARIN';
@@ -1871,13 +1872,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get searchScreenActionSendRequest => 'İSTEK GÖNDER';
 
   @override
-  String get searchScreenActionCancel => 'İPTAL ET';
+  String get searchScreenActionCancel => 'İPTAL';
 
   @override
   String get searchScreenActionApprove => 'ONAYLA';
 
   @override
-  String get searchScreenActionOpenDm => 'DM\'İ AÇ';
+  String get searchScreenActionOpenDm => 'DM\'Yİ AÇ';
 
   @override
   String get searchScreenAskedLabel => 'soruldu';
@@ -1983,21 +1984,21 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get logoScreenAutoDescription =>
-      'temanı izler. işaret, paletle birlikte değişir.';
+      'temanı izler. simge, paletle birlikte değişir.';
 
   @override
   String get logoScreenManualLabel => 'MANUEL';
 
   @override
   String get logoScreenManualDescription =>
-      'istediğin işareti seç, temanı koru.';
+      'istediğin simgeyi seç, temanı koru.';
 
   @override
   String get logoScreenAlwaysDefaultLabel => 'HER ZAMAN VARSAYILAN';
 
   @override
   String get logoScreenAlwaysDefaultDescription =>
-      'tema fark etmeksizin MonkeyHub işareti.';
+      'tema fark etmeksizin MonkeyHub simgesi.';
 
   @override
   String get logoScreenActiveBadge => 'AKTİF';
@@ -2093,7 +2094,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get groupCallScreenUnmuteLabel => 'sesi aç';
 
   @override
-  String get groupCallScreenMuteLabel => 'sustur';
+  String get groupCallScreenMuteLabel => 'sesi kapat';
 
   @override
   String get groupCallScreenCamOnLabel => 'kamera aç';
@@ -2570,7 +2571,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get approvalsScreenForwardNoChatsYet => 'başka sohbet yok';
+  String get approvalsScreenForwardNoChatsYet => 'henüz başka sohbet yok';
 
   @override
   String get approvalsScreenForwardNoMatches => 'eşleşen bir şey yok';
@@ -2972,7 +2973,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'köşeden basılı tutup sürükle. sessiz duruyor, zamanla alışacağın bir hareket.';
 
   @override
-  String get messageStampBottomPillLabel => 'ALT HAP';
+  String get messageStampBottomPillLabel => 'ALT KAPSÜL';
 
   @override
   String get messageStampBottomPillDescription =>
@@ -3047,7 +3048,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get releaseDeviceScreenAccountKeptNote =>
-      'Hesabı, mesajları ve arkadaşları olduğu gibi kalır. İstediğin zaman tekrar giriş yapabilir.';
+      'Hesabı, mesajları ve arkadaşları olduğu gibi kalır. İstediği zaman tekrar giriş yapabilir.';
 
   @override
   String releaseDeviceScreenAskGrownUp(Object name) {
@@ -3098,7 +3099,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bir şeyler ters gitti. Tekrar dene.';
 
   @override
-  String get activeCallPillMoveHereSemanticLabel => 'Çağrıyı bu cihaza taşı';
+  String get activeCallPillMoveHereSemanticLabel => 'Görüşmeyi bu cihaza taşı';
 
   @override
   String activeCallPillCallWith(Object name) {
@@ -3210,7 +3211,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'balonun köşesine tutturulmuş, hafif eğik polaroid tarzı bir kart.';
 
   @override
-  String get callButtonReplyStyleComicTailLabel => 'ÇİZGİ KUYRUK';
+  String get callButtonReplyStyleComicTailLabel => 'ÇİZGİ ROMAN KUYRUK';
 
   @override
   String get callButtonReplyStyleComicTailDescription =>
@@ -3221,7 +3222,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get callButtonReplyStyleClassicDescription =>
-      'vurgu renkli alıntı hapı, bağlantı çubuğu ve avatarla — WhatsApp’tan aşina olduğun o görünüm.';
+      'vurgu renkli alıntı kapsülü, bağlantı çubuğu ve avatarla — WhatsApp’tan aşina olduğun o görünüm.';
 
   @override
   String get callButtonReplyStyleActiveBadge => 'AKTİF';
@@ -3236,7 +3237,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get childSetupScreenErrorPickUsername =>
-      'Onlar için bir kullanıcı adı seç.';
+      'Onun için bir kullanıcı adı seç.';
 
   @override
   String get childSetupScreenErrorUsernameTaken =>
@@ -3269,15 +3270,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get childSetupScreenUsernameHint => 'arkadaşları onu böyle bulur';
 
   @override
-  String get childSetupScreenWhatTheyGetTitle => 'NE ALACAKLAR';
+  String get childSetupScreenWhatTheyGetTitle => 'NE ALACAK';
 
   @override
   String get childSetupScreenBulletTalkImmediately =>
-      'Seninle ve kardeşleriyle hemen konuşabilirler.';
+      'Seninle ve kardeşleriyle hemen konuşabilir.';
 
   @override
   String get childSetupScreenBulletNeedsApproval =>
-      'Geri kalan herkes için önce senin onayın gerekir — hem onların eklemek istediği kişiler, hem de onları eklemek isteyenler için.';
+      'Geri kalan herkes için önce senin onayın gerekir — hem onun eklemek istediği kişiler, hem de onu eklemek isteyenler için.';
 
   @override
   String get childSetupScreenBulletPublicRoomsOff =>
@@ -3285,7 +3286,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get childSetupScreenBulletCantSignOut =>
-      'Çıkış yapamazlar ve sen her zaman nasıl gittiklerini görebilirsin.';
+      'Çıkış yapamaz ve sen her zaman nasıl gittiğini görebilirsin.';
 
   @override
   String get childSetupScreenCreateButton => 'OLUŞTUR + EŞLE';
@@ -3296,7 +3297,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get childSetupScreenWaitingPillAskedLabel => 'soruldu';
+  String get childSetupScreenWaitingPillAskedLabel => 'istendi';
 
   @override
   String get childSetupScreenMemberCountUnitLabel => 'ÜYE';
@@ -3332,7 +3333,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'kuyruk yok — bir seri yalnızca sıkışan iç köşeleriyle bir arada durur.';
 
   @override
-  String get bubbleStyleScreenPillLabel => 'HAP';
+  String get bubbleStyleScreenPillLabel => 'KAPSÜL';
 
   @override
   String get bubbleStyleScreenPillDescription =>
@@ -3343,7 +3344,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get bubbleStyleScreenSlabDescription =>
-      'keskin omuzlar — sivri, baskı gibi, kararlı.';
+      'köşeli omuzlar — keskin, baskı gibi, kararlı.';
 
   @override
   String get bubbleStyleScreenActiveBadge => 'AKTİF';
@@ -3509,7 +3510,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
     Object contactName,
   ) {
-    return '$contactName’ı izinli listesinden kaldırır.';
+    return '$contactName’ı izin verilenler listesinden kaldırır.';
   }
 
   @override
@@ -3625,7 +3626,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get approvalGateAlreadyAskedLabel => 'ZATEN SORULDU';
 
   @override
-  String get approvalGateAskGrownUpLabel => 'BÜYÜKLERE SOR';
+  String get approvalGateAskGrownUpLabel => 'BÜYÜĞE SOR';
 
   @override
   String approvalGateAlreadyAskedBody(Object what) {
@@ -3869,7 +3870,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomGridTileEmptyLastMessage => 'şimdilik sessiz';
 
   @override
-  String get roomGridTileMemberCountLabel => 'KİŞİ';
+  String get roomGridTileMemberCountLabel => 'İÇERİDE';
 
   @override
   String get roomGridTileThemeChipLabel => 'TEMA';
@@ -4003,7 +4004,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String enterPublicRoomJoinWhat(Object roomName) {
-    return '$roomName odasına katıl';
+    return '$roomName odasına katılmak';
   }
 
   @override
@@ -4193,7 +4194,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomFacetLabelUnread => 'okunmamış';
 
   @override
-  String get roomFacetLabelMentions => 'bahsedilen';
+  String get roomFacetLabelMentions => 'bahsetmeler';
 
   @override
   String get settingsScreenTitle => 'AYARLAR';
@@ -4257,7 +4258,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenValueRadialOrb => 'Radyal küre';
 
   @override
-  String get settingsScreenValueBottomPill => 'Alt hap';
+  String get settingsScreenValueBottomPill => 'Alt kapsül';
 
   @override
   String get settingsScreenValueCustom => 'Özel';
@@ -4280,7 +4281,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenValueBubbleSoft => 'Yumuşak';
 
   @override
-  String get settingsScreenValueBubblePill => 'Hap';
+  String get settingsScreenValueBubblePill => 'Kapsül';
 
   @override
   String get settingsScreenValueBubbleSlab => 'Blok';
@@ -4455,20 +4456,21 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get glassKnobHintShellPadH =>
-      'çubuğun kenarından ilk hapa kadar. küçük tut, yoksa uçlar yalnız kalır';
+      'çubuğun kenarından ilk kapsüle kadar. küçük tut, yoksa uçlar yalnız kalır';
 
   @override
   String get glassKnobLabelShellPadV => 'ÜST BOŞLUK';
 
   @override
-  String get glassKnobHintShellPadV => 'çubuğun kenarından hapın üstüne kadar';
+  String get glassKnobHintShellPadV =>
+      'çubuğun kenarından kapsülün üstüne kadar';
 
   @override
-  String get glassKnobLabelIndicatorInset => 'HAP GİRİNTİSİ';
+  String get glassKnobLabelIndicatorInset => 'KAPSÜL GİRİNTİSİ';
 
   @override
   String get glassKnobHintIndicatorInset =>
-      'seçim hapının kendi bölmesinin ne kadar içinde durduğu';
+      'seçim kapsülünün kendi bölmesinin ne kadar içinde durduğu';
 
   @override
   String get glassKnobLabelSegmentPadV => 'SATIR BOŞLUĞU';

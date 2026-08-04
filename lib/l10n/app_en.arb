@@ -4844,7 +4844,7 @@
   "@settingsScreenLinksUrlsOnBody": {
     "description": "Caption under SHOW LINK URLS when the toggle is on."
   },
-  "settingsScreenLinksUrlsOffBody": "preview only — cleaner bubbles, tap to open",
+  "settingsScreenLinksUrlsOffBody": "currently preview only — cleaner bubbles, tap to open",
   "@settingsScreenLinksUrlsOffBody": {
     "description": "Caption under SHOW LINK URLS when the toggle is off."
   },
