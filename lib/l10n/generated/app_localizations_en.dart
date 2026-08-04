@@ -1801,7 +1801,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginScreenForgotPassword => 'forgot password?';
 
   @override
-  String get loginScreenSettingUpKidsPhone => 'setting up a kid’s phone?';
+  String get loginScreenSettingUpKidsPhone => 'set up a child account';
 
   @override
   String get loginScreenLegalPrefix =>
@@ -3894,7 +3894,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bulkActionBarSelectMessagesLabel => 'SELECT MESSAGES';
 
   @override
-  String bulkActionBarSelectedCountLabel(Object count) {
+  String bulkActionBarSelectedCountLabel(num count) {
     return '$count SELECTED';
   }
 
@@ -4536,4 +4536,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
 }

@@ -2080,7 +2080,7 @@
   "@loginScreenForgotPassword": {
     "description": "Footer link on the sign-in screen that switches to password-reset mode."
   },
-  "loginScreenSettingUpKidsPhone": "setting up a kid’s phone?",
+  "loginScreenSettingUpKidsPhone": "set up a child account",
   "@loginScreenSettingUpKidsPhone": {
     "description": "Footer link on the sign-in screen that switches to the child-device pairing flow."
   },
@@ -5095,5 +5095,45 @@
   },
   "@languageValuePortugueseBrazil": {
     "description": "Sentence-case value shown next to the LANGUAGE row in Settings when Brazilian Portuguese is the active/pinned language. Autonym — same string in every ARB file, never translated."
+  },
+  "languageOptionArabic": "العربية",
+  "languageValueArabic": "العربية",
+  "@languageOptionArabic": {
+    "description": "Option label for Arabic in the language picker. Modern Standard Arabic (the language's own autonym, script has no letter-case distinction so this equals languageValueArabic). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValueArabic": {
+    "description": "Value shown next to the LANGUAGE row in Settings when Arabic is the active/pinned language. Same autonym as languageOptionArabic, same string in every ARB file, never translated."
+  },
+  "languageOptionChinese": "简体中文",
+  "languageValueChinese": "简体中文",
+  "@languageOptionChinese": {
+    "description": "Option label for Chinese in the language picker. Simplified Chinese (the language's own autonym, script has no letter-case distinction so this equals languageValueChinese). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValueChinese": {
+    "description": "Value shown next to the LANGUAGE row in Settings when Chinese is the active/pinned language. Same autonym as languageOptionChinese, same string in every ARB file, never translated."
+  },
+  "languageOptionHindi": "हिन्दी",
+  "languageValueHindi": "हिन्दी",
+  "@languageOptionHindi": {
+    "description": "Option label for Hindi in the language picker. Hindi (the language's own autonym, Devanagari script has no letter-case distinction so this equals languageValueHindi). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValueHindi": {
+    "description": "Value shown next to the LANGUAGE row in Settings when Hindi is the active/pinned language. Same autonym as languageOptionHindi, same string in every ARB file, never translated."
+  },
+  "languageOptionKorean": "한국어",
+  "languageValueKorean": "한국어",
+  "@languageOptionKorean": {
+    "description": "Option label for Korean in the language picker. Korean (the language's own autonym, script has no letter-case distinction so this equals languageValueKorean). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValueKorean": {
+    "description": "Value shown next to the LANGUAGE row in Settings when Korean is the active/pinned language. Same autonym as languageOptionKorean, same string in every ARB file, never translated."
+  },
+  "languageOptionJapanese": "日本語",
+  "languageValueJapanese": "日本語",
+  "@languageOptionJapanese": {
+    "description": "Option label for Japanese in the language picker. Japanese (the language's own autonym, script has no letter-case distinction so this equals languageValueJapanese). Autonym — same string in every ARB file, never translated."
+  },
+  "@languageValueJapanese": {
+    "description": "Value shown next to the LANGUAGE row in Settings when Japanese is the active/pinned language. Same autonym as languageOptionJapanese, same string in every ARB file, never translated."
   }
 }

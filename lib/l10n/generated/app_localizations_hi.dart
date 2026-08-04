@@ -1,0 +1,4589 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Hindi (`hi`).
+class AppLocalizationsHi extends AppLocalizations {
+  AppLocalizationsHi([String locale = 'hi']) : super(locale);
+
+  @override
+  String get splashBrand => 'MONKEYHUB';
+
+  @override
+  String get bootErrorTitle => 'सर्वर से कनेक्ट नहीं हो सका';
+
+  @override
+  String get bootErrorBody => 'Convex शुरू नहीं हो सका।';
+
+  @override
+  String get bootErrorRetry => 'फिर से कोशिश करें';
+
+  @override
+  String get incomingCallNotificationTitle => 'इनकमिंग कॉल';
+
+  @override
+  String get incomingCallFallbackCaller => 'तुम्हें कोई कॉल कर रहा है';
+
+  @override
+  String get settingsLanguageRowLabel => 'भाषा';
+
+  @override
+  String get languageScreenTitle => 'भाषा.';
+
+  @override
+  String get languageScreenSubtitle => 'ऐप के मेन्यू और मैसेज की भाषा चुनो';
+
+  @override
+  String get languageOptionSystem => 'सिस्टम';
+
+  @override
+  String get languageOptionSystemSub =>
+      'तुम्हारे डिवाइस की भाषा सेटिंग के अनुसार';
+
+  @override
+  String get languageOptionEnglish => 'ENGLISH';
+
+  @override
+  String get languageOptionTurkish => 'TÜRKÇE';
+
+  @override
+  String get languageScreenActiveBadge => 'सक्रिय';
+
+  @override
+  String get languageValueSystem => 'सिस्टम';
+
+  @override
+  String get languageValueEnglish => 'English';
+
+  @override
+  String get languageValueTurkish => 'Türkçe';
+
+  @override
+  String get roomScreenAskGrownUpFailedSnack =>
+      'अभी पूछ नहीं पाए — फिर से कोशिश करो';
+
+  @override
+  String get roomScreenGateSendMessages => 'यहां मैसेज भेजना';
+
+  @override
+  String get roomScreenGateSendMedia => 'फ़ोटो या वॉइस नोट भेजना';
+
+  @override
+  String roomScreenMaxSelectionSnack(Object max) {
+    return 'एक बार में $max तक';
+  }
+
+  @override
+  String roomScreenDeleteMessageHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मैसेज डिलीट करें',
+      one: 'मैसेज डिलीट करें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenDeleteConfirmBody =>
+      'ये मैसेज इस चैट में सबके लिए हट जाएंगे। इसे वापस नहीं लिया जा सकता।';
+
+  @override
+  String get roomScreenDeleteConfirmButton => 'सबके लिए डिलीट करें';
+
+  @override
+  String get roomScreenJumpFailedSnack => 'उस मैसेज तक नहीं पहुंच पाए';
+
+  @override
+  String get roomScreenViewOnceAlreadyViewed =>
+      'यह फ़ोटो पहले ही खोली जा चुकी है।';
+
+  @override
+  String get roomScreenViewOnceGone => 'यह फ़ोटो अब उपलब्ध नहीं है।';
+
+  @override
+  String get roomScreenViewOnceNetworkError => 'वह फ़ोटो लोड नहीं हो सकी।';
+
+  @override
+  String get roomScreenFileReadFailedSnack => 'वह फ़ाइल पढ़ी नहीं जा सकी';
+
+  @override
+  String roomScreenFileSizeCapSnack(Object size) {
+    return 'फ़ाइलों की साइज़ सीमा $size है';
+  }
+
+  @override
+  String get roomScreenRoomGone => 'रूम गायब';
+
+  @override
+  String get roomScreenCopiedSnack => 'कॉपी हो गया';
+
+  @override
+  String get roomScreenNameCopiedSnack => 'नाम कॉपी हो गया';
+
+  @override
+  String get roomScreenPinLimitSnack => 'बहुत सारे पिन — पहले एक अनपिन करो';
+
+  @override
+  String get roomScreenPinFailedSnack => 'उसे पिन नहीं किया जा सका';
+
+  @override
+  String get roomScreenReportSentSnack =>
+      'रिपोर्ट गुप्त रूप से भेज दी गई। उन्हें सूचना नहीं मिलेगी।';
+
+  @override
+  String get roomScreenDeselectMessageSemantic => 'मैसेज का चयन हटाएं';
+
+  @override
+  String get roomScreenSelectMessageSemantic => 'मैसेज चुनें';
+
+  @override
+  String roomScreenMemberCountBadge(Object count) {
+    return '$count अंदर';
+  }
+
+  @override
+  String roomScreenTtlSeconds(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सेकंड',
+      one: '$count सेकंड',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlMinutes(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मिनट',
+      one: '$count मिनट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count घंटे',
+      one: '$count घंटा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenEphemeralNotice(Object ttl) {
+    return 'यह रूम अस्थायी है। मैसेज, पढ़े हों या अनपढ़े, $ttl बाद अपने आप मिट जाते हैं।';
+  }
+
+  @override
+  String roomScreenThreadFoldCount(Object count) {
+    return '$count मैसेज';
+  }
+
+  @override
+  String get roomScreenSecretSpaceTitle => 'सीक्रेट स्पेस';
+
+  @override
+  String get roomScreenSecretSpaceBody =>
+      'इस रूम के मैसेज अस्थायी हैं। रूम की सुरक्षा नीति के अनुसार वे अपने आप हट जाते हैं।';
+
+  @override
+  String get roomScreenAutoDeleteTitle => 'ऑटो-डिलीट';
+
+  @override
+  String get roomScreenAutoDeleteVaries => 'अलग-अलग';
+
+  @override
+  String get roomScreenAutoDeleteTimed => 'समयबद्ध';
+
+  @override
+  String get roomScreenNoCaptureTitle => 'नो कैप्चर';
+
+  @override
+  String get roomScreenNoCaptureSubtitle => 'स्क्रीनशॉट प्रतिबंधित';
+
+  @override
+  String get roomScreenMorePrivacyTitle => 'बहुत ज़्यादा प्राइवेसी';
+
+  @override
+  String get roomScreenMorePrivacySubtitle =>
+      'पहले से मौजूद प्राइवेसी फोकस के साथ-साथ अतिरिक्त सुरक्षा फीचर्स का मज़ा लें।';
+
+  @override
+  String get roomScreenNoMessagesTitle => 'कोई मैसेज नहीं';
+
+  @override
+  String get roomScreenNoMessagesSubtitle => 'मैसेज भेजकर बातचीत शुरू करें';
+
+  @override
+  String get roomScreenViewProfilePictureSemantic => 'प्रोफ़ाइल फ़ोटो देखें';
+
+  @override
+  String get roomScreenViewRoomPictureSemantic => 'रूम फ़ोटो देखें';
+
+  @override
+  String get messageBubbleFileFallbackName => 'भेजा गया दस्तावेज़';
+
+  @override
+  String get messageBubbleAttachmentStatusFailed => 'विफल';
+
+  @override
+  String get messageBubbleAttachmentStatusSending => 'भेजा जा रहा है…';
+
+  @override
+  String get messageBubbleViewOnceOpened => 'खुल गया';
+
+  @override
+  String get messageBubbleViewOnceExpired => 'एक्सपायर हो गया';
+
+  @override
+  String get messageBubbleViewOnceLabel => 'एक बार देखें';
+
+  @override
+  String get messageBubbleViewOnceTapToView => 'देखने के लिए टैप करें';
+
+  @override
+  String get messageBubbleViewOncePhotoLabel => 'फोटो';
+
+  @override
+  String get messageBubbleViewOnceSemanticLabel =>
+      'एक बार देखने वाली फोटो, देखने के लिए टैप करें';
+
+  @override
+  String get messageBubbleRetrySendingSemanticLabel => 'भेजना फिर से आज़माएं';
+
+  @override
+  String get messageBubbleDiscardSemanticLabel =>
+      'भेजने में असफल अटैचमेंट हटाएं';
+
+  @override
+  String get profileScreenAccountSection => 'अकाउंट';
+
+  @override
+  String get profileScreenAddEmailPlaceholder => 'ईमेल जोड़ें';
+
+  @override
+  String get profileScreenAddEmailTitle => 'ईमेल जोड़ें?';
+
+  @override
+  String get profileScreenAddNameTitle => 'नाम जोड़ें?';
+
+  @override
+  String profileScreenApprovalsCountWaiting(Object count) {
+    return '$count लंबित';
+  }
+
+  @override
+  String get profileScreenApprovalsLabel => 'स्वीकृतियां';
+
+  @override
+  String get profileScreenApprovalsNothingWaiting => 'कुछ भी लंबित नहीं';
+
+  @override
+  String get profileScreenApproveAction => 'स्वीकार करें';
+
+  @override
+  String get profileScreenBlockAction => 'ब्लॉक करें';
+
+  @override
+  String get profileScreenBlockedDmWiped =>
+      'ब्लॉक कर दिया और डीएम मिटा दी गई। उन्हें पता नहीं चलेगा।';
+
+  @override
+  String get profileScreenBlockedOnly =>
+      'ब्लॉक कर दिया। उन्हें पता नहीं चलेगा।';
+
+  @override
+  String get profileScreenBlockedUsers => 'ब्लॉक किए गए यूज़र्स';
+
+  @override
+  String get profileScreenCancelAction => 'रद्द करें';
+
+  @override
+  String get profileScreenCancelRequestAction => 'रिक्वेस्ट वापस लें';
+
+  @override
+  String get profileScreenChangeAction => 'बदलें';
+
+  @override
+  String get profileScreenChangeEmailTitle => 'ईमेल बदलें?';
+
+  @override
+  String get profileScreenChangeNameTitle => 'नाम बदलें?';
+
+  @override
+  String get profileScreenChangeProfilePictureSemantic =>
+      'प्रोफ़ाइल फ़ोटो बदलें';
+
+  @override
+  String get profileScreenChangeRecoveryPhrase => 'रिकवरी फ़्रेज़ बदलें';
+
+  @override
+  String get profileScreenChooseFromLibrary => 'गैलरी से चुनें';
+
+  @override
+  String get profileScreenCouldNotSaveImage => 'तस्वीर सेव नहीं हो सकी।';
+
+  @override
+  String get profileScreenDeleteAccount => 'अकाउंट डिलीट करें';
+
+  @override
+  String get profileScreenEmailHint => 'वैकल्पिक — किसी को नहीं दिखेगा';
+
+  @override
+  String get profileScreenEmailSectionLabel => 'ईमेल';
+
+  @override
+  String get profileScreenErrorAlreadyFriends => 'तुम पहले से दोस्त हो।';
+
+  @override
+  String get profileScreenErrorGeneric => 'यह पूरा नहीं हो सका।';
+
+  @override
+  String get profileScreenErrorNotAccepting =>
+      'वे अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं।';
+
+  @override
+  String get profileScreenErrorRequestAlreadyReceived =>
+      'उन्होंने तुम्हें पहले ही रिक्वेस्ट भेज दी है — रिक्वेस्ट्स देखो।';
+
+  @override
+  String get profileScreenErrorRequestAlreadySent =>
+      'रिक्वेस्ट पहले ही भेजी जा चुकी है।';
+
+  @override
+  String get profileScreenErrorUnblockFirst =>
+      'तुमने इस यूज़र को ब्लॉक किया है — पहले उन्हें अनब्लॉक करो।';
+
+  @override
+  String get profileScreenErrorUserNotFound => 'यह अभी संभव नहीं है।';
+
+  @override
+  String get profileScreenFamilyAddChild => 'बच्चा जोड़ें';
+
+  @override
+  String profileScreenFamilyChildCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count बच्चे',
+      one: '$count बच्चा',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileScreenFamilyLabel => 'परिवार';
+
+  @override
+  String get profileScreenFriendsChip => 'दोस्त';
+
+  @override
+  String get profileScreenGrownUpOnlyNote =>
+      'यह सिर्फ़ बड़े ही कर सकते हैं — इसके लिए उनका कोड या पासवर्ड ज़रूरी है।';
+
+  @override
+  String get profileScreenGuardiansCanSee =>
+      'वे देख सकते हैं कि तुम कब ऑनलाइन हो और किससे बात करते हो।';
+
+  @override
+  String get profileScreenHandPhoneBack => 'यह फ़ोन वापस सौंपो';
+
+  @override
+  String get profileScreenIncomingRequestChip => 'रिक्वेस्ट मिली';
+
+  @override
+  String get profileScreenJustTappedAction => 'ग़लती से टैप हुआ';
+
+  @override
+  String get profileScreenLegalSection => 'कानूनी';
+
+  @override
+  String get profileScreenLicence => 'लाइसेंस';
+
+  @override
+  String get profileScreenLinkedAccountsLabel => 'लिंक किए गए खाते';
+
+  @override
+  String get profileScreenLinkedAccountsNone => 'कुछ भी लिंक नहीं';
+
+  @override
+  String get profileScreenMyGrownUps => 'मेरे बड़े';
+
+  @override
+  String get profileScreenNameHint => 'रूम में तुम ऐसे नज़र आओगे';
+
+  @override
+  String get profileScreenNobodyLookingAfter =>
+      'अभी कोई बड़ा इस अकाउंट का ध्यान नहीं रख रहा';
+
+  @override
+  String get profileScreenNotAcceptingRequestsAction =>
+      'रिक्वेस्ट स्वीकार नहीं कर रहे';
+
+  @override
+  String get profileScreenNotConnectedChip => 'जुड़े नहीं';
+
+  @override
+  String get profileScreenOpenDmAction => 'डीएम खोलो';
+
+  @override
+  String get profileScreenPhotoPermissionDenied => 'फ़ोटो की परमिशन नहीं मिली।';
+
+  @override
+  String get profileScreenPrivacyPolicy => 'गोपनीयता नीति';
+
+  @override
+  String get profileScreenPrivacySection => 'गोपनीयता';
+
+  @override
+  String get profileScreenProfilePictureTitle => 'प्रोफ़ाइल फ़ोटो';
+
+  @override
+  String get profileScreenRedactedFriend =>
+      'उनकी सेटिंग्स के कारण कुछ जानकारी छिपी है।';
+
+  @override
+  String get profileScreenRedactedStranger =>
+      'सीमित जानकारी — वे दोस्तों के साथ ज़्यादा शेयर करते हैं।';
+
+  @override
+  String get profileScreenReportAction => 'रिपोर्ट करो';
+
+  @override
+  String get profileScreenReportSent =>
+      'रिपोर्ट प्राइवेट तौर पर भेज दी गई। उन्हें कोई सूचना नहीं मिलेगी।';
+
+  @override
+  String get profileScreenRequestPendingChip => 'तुम्हारी रिक्वेस्ट पेंडिंग';
+
+  @override
+  String get profileScreenSaveAction => 'सेव करो';
+
+  @override
+  String get profileScreenSavedToPhotos => 'फ़ोटोज़ में सेव हो गया।';
+
+  @override
+  String get profileScreenSaveToPhotos => 'फ़ोटोज़ में सेव करो';
+
+  @override
+  String get profileScreenSendRequestAction => 'रिक्वेस्ट भेजो';
+
+  @override
+  String get profileScreenSetUpRecoveryPhrase => 'रिकवरी फ्रेज़ सेट करो';
+
+  @override
+  String get profileScreenSignOut => 'साइन आउट करो';
+
+  @override
+  String get profileScreenTakeSelfie => 'सेल्फी लो';
+
+  @override
+  String get profileScreenTapAgainToConfirmDelete =>
+      'डिलीट पक्का करने के लिए फिर टैप करो';
+
+  @override
+  String get profileScreenTermsOfService => 'सेवा की शर्तें';
+
+  @override
+  String get profileScreenThisPhoneSection => 'यह फ़ोन';
+
+  @override
+  String get profileScreenUnfriendAction => 'अनफ्रेंड करो';
+
+  @override
+  String get profileScreenViewProfilePictureSemantic => 'प्रोफ़ाइल फ़ोटो देखें';
+
+  @override
+  String get profileScreenVisibilityPreferences => 'विज़िबिलिटी सेटिंग्स';
+
+  @override
+  String get cameraEditorScreenCropPresetFree => 'फ्री';
+
+  @override
+  String get cameraEditorScreenCropPresetOriginal => 'मूल';
+
+  @override
+  String get cameraEditorScreenCancelCropSemanticLabel => 'क्रॉप रद्द करें';
+
+  @override
+  String get cameraEditorScreenDiscardPhotoSemanticLabel => 'फ़ोटो हटाएं';
+
+  @override
+  String get cameraEditorScreenUndoSemanticLabel => 'पूर्ववत करें';
+
+  @override
+  String get cameraEditorScreenRedoSemanticLabel => 'फिर से करें';
+
+  @override
+  String get cameraEditorScreenResetCropSemanticLabel => 'क्रॉप रीसेट करें';
+
+  @override
+  String get cameraEditorScreenRotateSemanticLabel => 'घुमाएं';
+
+  @override
+  String get cameraEditorScreenCropSemanticLabel => 'क्रॉप करें';
+
+  @override
+  String get cameraEditorScreenHeicUnsupportedMessage =>
+      'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
+
+  @override
+  String get cameraEditorScreenImageLoadFailedMessage => 'वह इमेज नहीं खुल पाई';
+
+  @override
+  String get cameraEditorScreenCropDoneButton => 'हो गया';
+
+  @override
+  String get cameraEditorScreenRetakeSemanticLabel => 'फिर से लें';
+
+  @override
+  String get cameraEditorScreenPenPutAwaySemanticLabel => 'पेन बंद करें';
+
+  @override
+  String get cameraEditorScreenPenDrawSemanticLabel => 'फ़ोटो पर ड्रॉ करें';
+
+  @override
+  String get cameraEditorScreenSendingButton => 'भेजा जा रहा है…';
+
+  @override
+  String get cameraEditorScreenSendButton => 'भेजें';
+
+  @override
+  String get cameraEditorScreenViewOnceNote =>
+      'एक बार खोलने के बाद गायब हो जाएगा';
+
+  @override
+  String get cameraEditorScreenClearDrawingSemanticLabel => 'ड्रॉइंग साफ़ करें';
+
+  @override
+  String get cameraEditorScreenViewOnceOnSemanticLabel => 'एक बार देखें: चालू';
+
+  @override
+  String get cameraEditorScreenViewOnceOffSemanticLabel => 'एक बार देखें: बंद';
+
+  @override
+  String get cameraEditorScreenInkColorSemanticLabel => 'स्याही का रंग';
+
+  @override
+  String get glassScreenPanelLooks => 'लुक्स';
+
+  @override
+  String get glassScreenPanelBottomBar => 'बॉटम बार';
+
+  @override
+  String get glassScreenPanelOtherSurfaces => 'अन्य सतहें';
+
+  @override
+  String get glassScreenPanelBarLayout => 'बार लेआउट';
+
+  @override
+  String get glassScreenTitle => 'काँच.';
+
+  @override
+  String get glassScreenSubtitle => 'पीछे की चीज़ें कितनी नज़र आती हैं';
+
+  @override
+  String glassScreenSaveSlotsFull(Object max) {
+    return 'सभी $max स्लॉट भरे हैं';
+  }
+
+  @override
+  String get glassScreenSaveCurrentAs => 'मौजूदा को सेव करें…';
+
+  @override
+  String get glassScreenResetEveryDial => 'हर घुंडी रीसेट करें';
+
+  @override
+  String glassScreenResetToPreset(Object name) {
+    return '$name पर रीसेट करें';
+  }
+
+  @override
+  String get glassScreenSurfacesNote =>
+      'कंपोज़र, हेडर, कॉल बटन — यानी वह सब कुछ जो स्क्रॉलिंग कंटेंट पर नहीं, बल्कि टेक्स्ट के ऊपर होता है';
+
+  @override
+  String get glassScreenMatchBottomBar => 'बॉटम बार जैसा करें';
+
+  @override
+  String get glassScreenPresetEditedSubtitle =>
+      'बदला गया — इसे नए लुक के रूप में सेव करें, या रीसेट करें';
+
+  @override
+  String get glassScreenCustomPresetName => 'कस्टम';
+
+  @override
+  String get glassScreenUnsavedSubtitle =>
+      'सेव नहीं हुआ — रखने के लिए इसे नाम दो';
+
+  @override
+  String get glassScreenSaveDialogTitle => 'इस लुक को नाम दो';
+
+  @override
+  String get glassScreenNoRoomToast => 'जगह नहीं है — पहले कोई लुक मिटाओ';
+
+  @override
+  String get glassScreenRenameDialogTitle => 'नाम बदलो';
+
+  @override
+  String glassScreenDeleteConfirmTitle(Object name) {
+    return '$name मिटाना है?';
+  }
+
+  @override
+  String get glassScreenDeleteConfirmBody =>
+      'लुक स्क्रीन पर बना रहेगा — बस उसका नाम नहीं रहेगा।';
+
+  @override
+  String get glassScreenKeepButton => 'रखो';
+
+  @override
+  String get glassScreenDeleteButton => 'मिटाओ';
+
+  @override
+  String get glassScreenNameHint => 'देर रात';
+
+  @override
+  String get glassScreenCancelButton => 'रद्द करो';
+
+  @override
+  String get glassScreenSaveButton => 'सेव करो';
+
+  @override
+  String get glassScreenPreviewRoomName => '# बालकनी';
+
+  @override
+  String get glassScreenPreviewOnlineCount => '4 ऑनलाइन';
+
+  @override
+  String get glassScreenPreviewMessageHint => 'मैसेज';
+
+  @override
+  String get glassScreenPreviewCollapseLabel => 'प्रीव्यू छोटा करो';
+
+  @override
+  String get glassScreenPreviewExpandLabel => 'प्रीव्यू बड़ा करो';
+
+  @override
+  String get glassScreenPreviewBadge => 'प्रीव्यू';
+
+  @override
+  String get glassScreenBuiltInLabel => 'बिल्ट-इन';
+
+  @override
+  String glassScreenOverwriteTooltip(Object name) {
+    return '$name ओवरराइट करो';
+  }
+
+  @override
+  String glassScreenRenameTooltip(Object name) {
+    return '$name का नाम बदलो';
+  }
+
+  @override
+  String glassScreenDeleteTooltip(Object name) {
+    return '$name मिटाओ';
+  }
+
+  @override
+  String glassScreenResetTooltip(Object label) {
+    return '$label रीसेट करो';
+  }
+
+  @override
+  String get glassScreenBackdropMsgDilan =>
+      'छत की फ़ोटो भेजी — सारी टाइलें टूटी हुई हैं';
+
+  @override
+  String get glassScreenBackdropMsgMert =>
+      'ठीक है पर स्पीकर असल में कौन ला रहा है';
+
+  @override
+  String get glassScreenBackdropGroupFamily => 'परिवार';
+
+  @override
+  String get glassScreenBackdropMsgFamily =>
+      'मम्मी: रात 8 बजे खाना है, फिर लेट मत होना';
+
+  @override
+  String get glassScreenBackdropMsgZeynep => 'मैं बाहर हूँ';
+
+  @override
+  String get glassScreenBackdropMsgKerem => 'कोने वाली दुकान की कॉफी बढ़िया है';
+
+  @override
+  String get glassScreenBackdropGroupWork => 'ऑफ़िस';
+
+  @override
+  String get glassScreenBackdropMsgWork =>
+      'स्टैंडअप अब हफ्ते के बाकी दिनों 10:30 बजे होगा';
+
+  @override
+  String get glassScreenBackdropMsgElif =>
+      'नहीं यार। दोबारा भेजो, मुझसे खो गया।';
+
+  @override
+  String get glassScreenBackdropMsgBaran => 'लैंड हो गया 👍';
+
+  @override
+  String get glassScreenBackdropMsgAyse =>
+      'बिल्ली ने बालकनी का दरवाज़ा खोलना सीख लिया है';
+
+  @override
+  String get glassScreenBackdropMsgCan => 'तो फिर शनिवार को मिलते हैं';
+
+  @override
+  String replyIndicatorInReplyToSemanticLabel(Object name) {
+    return '$name के जवाब में';
+  }
+
+  @override
+  String get replyIndicatorViewOnceLabel => 'फ़ोटो · एक बार देखें';
+
+  @override
+  String get replyIndicatorVoiceMessageLabel => 'वॉइस मैसेज';
+
+  @override
+  String get replyIndicatorDocumentLabel => 'दस्तावेज़';
+
+  @override
+  String get replyIndicatorMessageRemoved => 'मैसेज हटाया गया';
+
+  @override
+  String get threadOverlayMessageNotFound => 'इस थ्रेड में वह मैसेज नहीं मिला';
+
+  @override
+  String get threadOverlayReplyTargetNotFound =>
+      'जवाब देने के लिए थ्रेड नहीं मिला';
+
+  @override
+  String get threadOverlayStillSending =>
+      'अभी भेजा जा रहा है — थोड़ी देर में फिर कोशिश करें';
+
+  @override
+  String get threadOverlayCopiedToast => 'कॉपी हो गया';
+
+  @override
+  String get threadOverlayNameCopiedToast => 'नाम कॉपी हो गया';
+
+  @override
+  String get threadOverlayPinLimitToast =>
+      'बहुत ज़्यादा पिन — पहले एक अनपिन करें';
+
+  @override
+  String get threadOverlayPinFailedToast => 'उसे पिन नहीं कर सके';
+
+  @override
+  String get threadOverlayReportedToast => 'रिपोर्ट किया गया';
+
+  @override
+  String get threadOverlayUnavailable => 'थ्रेड उपलब्ध नहीं है';
+
+  @override
+  String get roomInfoScreenNameRequiredError => 'नाम ज़रूरी है';
+
+  @override
+  String get roomInfoScreenSavedSnackbar => 'सेव हो गया';
+
+  @override
+  String get roomInfoScreenPasswordClearedSnackbar => 'पासवर्ड हटा दिया गया';
+
+  @override
+  String get roomInfoScreenLeaveConfirmTitle => 'रूम छोड़ें?';
+
+  @override
+  String get roomInfoScreenLeaveConfirmBody =>
+      'अगर यह खुला रहा, तो तुम दोबारा जुड़ सकते हो।';
+
+  @override
+  String get roomInfoScreenLeaveConfirmButton => 'छोड़ें';
+
+  @override
+  String get roomInfoScreenDeleteConfirmTitle => 'रूम डिलीट करें?';
+
+  @override
+  String get roomInfoScreenDeleteConfirmBody =>
+      'यहाँ का हर मैसेज भी इसके साथ चला जाएगा। यह हमेशा के लिए है।';
+
+  @override
+  String get roomInfoScreenDeleteConfirmButton => 'डिलीट करें';
+
+  @override
+  String get roomInfoScreenConfirmCancelButton => 'रद्द करें';
+
+  @override
+  String get roomInfoScreenErrorRoomExists => 'इस नाम का रूम पहले से मौजूद है';
+
+  @override
+  String get roomInfoScreenErrorNotOwner => 'यह सिर्फ़ ओनर ही कर सकता है';
+
+  @override
+  String get roomInfoScreenErrorNotAuthorized =>
+      'तुम्हारे पास इसकी अनुमति नहीं है';
+
+  @override
+  String get roomInfoScreenErrorRoomNotFound => 'यह रूम अब मौजूद नहीं है';
+
+  @override
+  String get roomInfoScreenRoomGone => 'रूम मौजूद नहीं है';
+
+  @override
+  String get roomInfoScreenNameLabel => 'नाम';
+
+  @override
+  String get roomInfoScreenNameHint => 'रूम का नाम';
+
+  @override
+  String get roomInfoScreenDescriptionLabel => 'विवरण';
+
+  @override
+  String get roomInfoScreenDescriptionHint => 'रूम के बारे में एक लाइन…';
+
+  @override
+  String get roomInfoScreenVisibilityLabel => 'दृश्यता';
+
+  @override
+  String get roomInfoScreenPublicTitle => 'पब्लिक';
+
+  @override
+  String get roomInfoScreenPublicSub => 'कोई भी इसे ढूंढ सकता है';
+
+  @override
+  String get roomInfoScreenPrivateTitle => 'निजी';
+
+  @override
+  String get roomInfoScreenPrivateSub => 'सिर्फ़ इनवाइट से';
+
+  @override
+  String get roomInfoScreenMessageLifeLabel => 'मैसेज लाइफ';
+
+  @override
+  String roomInfoScreenTtlSeconds(Object value) {
+    return '$valueसे';
+  }
+
+  @override
+  String roomInfoScreenTtlMinutes(Object value) {
+    return '$valueमि';
+  }
+
+  @override
+  String roomInfoScreenTtlHours(Object value) {
+    return '$valueघं';
+  }
+
+  @override
+  String get roomInfoScreenPasswordLabel => 'पासवर्ड';
+
+  @override
+  String get roomInfoScreenLockedBadge => 'लॉक';
+
+  @override
+  String get roomInfoScreenNoneBadge => 'कोई नहीं';
+
+  @override
+  String get roomInfoScreenPasswordProtectedNote =>
+      'यह रूम सुरक्षित है। सुरक्षा कारणों से मौजूदा पासफ़्रेज़ नहीं दिखाया जाता — इसे बदलने के लिए नया डालें।';
+
+  @override
+  String get roomInfoScreenReplacePasswordHint => 'पासफ़्रेज़ बदलें…';
+
+  @override
+  String get roomInfoScreenSetPasswordHint => 'पासफ़्रेज़ से लॉक करें…';
+
+  @override
+  String get roomInfoScreenRemovePasswordButton => 'पासवर्ड हटाएं';
+
+  @override
+  String get roomInfoScreenSharedContentLabel => 'शेयर किया गया कंटेंट';
+
+  @override
+  String roomInfoScreenMembersLabel(Object count) {
+    return 'सदस्य · $count';
+  }
+
+  @override
+  String get roomInfoScreenLeavingButton => 'छोड़ा जा रहा है…';
+
+  @override
+  String get roomInfoScreenLeaveRoomButton => 'रूम छोड़ें';
+
+  @override
+  String get roomInfoScreenDeletingButton => 'डिलीट हो रहा है…';
+
+  @override
+  String get roomInfoScreenDeleteButtonLabel => 'डिलीट करें';
+
+  @override
+  String get roomInfoScreenHeaderConversation => 'बातचीत';
+
+  @override
+  String get roomInfoScreenHeaderRoomSettings => 'रूम सेटिंग्स';
+
+  @override
+  String get roomInfoScreenViewProfilePictureSemantic =>
+      'प्रोफ़ाइल तस्वीर देखें';
+
+  @override
+  String get roomInfoScreenViewRoomPictureSemantic => 'रूम की तस्वीर देखें';
+
+  @override
+  String get roomInfoScreenChangeRoomPictureSemantic => 'रूम की तस्वीर बदलें';
+
+  @override
+  String get roomInfoScreenAddRoomPictureSemantic => 'रूम की तस्वीर जोड़ें';
+
+  @override
+  String get roomInfoScreenLoadingMembers => 'सदस्य लोड हो रहे हैं…';
+
+  @override
+  String get roomInfoScreenOwnerBadge => 'मालिक';
+
+  @override
+  String get roomInfoScreenSaveButton => 'सेव करें';
+
+  @override
+  String get roomInfoScreenNoneCount => 'कोई नहीं';
+
+  @override
+  String get cameraScreenAccessDeniedMessage =>
+      'कैमरा एक्सेस बंद है।\nफ़ोटो लेने के लिए सेटिंग्स में इसे ऑन करें।';
+
+  @override
+  String get cameraScreenOpeningSystemCamera => 'सिस्टम कैमरा खुल रहा है…';
+
+  @override
+  String get cameraScreenCloseButtonLabel => 'कैमरा बंद करें';
+
+  @override
+  String get cameraScreenLowLightBoostOnLabel => 'लो-लाइट बूस्ट: ऑन';
+
+  @override
+  String get cameraScreenLowLightBoostOffLabel => 'लो-लाइट बूस्ट: ऑफ';
+
+  @override
+  String cameraScreenFlashStatusLabel(Object mode) {
+    return 'फ़्लैश: $mode';
+  }
+
+  @override
+  String get cameraScreenChooseFromLibraryLabel => 'लाइब्रेरी से चुनें';
+
+  @override
+  String get cameraScreenSwitchCameraLabel => 'कैमरा बदलें';
+
+  @override
+  String get cameraScreenTakePhotoLabel => 'फ़ोटो लें';
+
+  @override
+  String get childPolicyScreenAddByUsernameLabel => 'यूज़रनेम से जोड़ें';
+
+  @override
+  String get childPolicyScreenAddCta => 'जोड़ें';
+
+  @override
+  String childPolicyScreenAddGuardianBlurb(Object name) {
+    return 'उन्हें बिल्कुल वही मिलता है जो तुम्हारे पास है: हर रिक्वेस्ट को अप्रूव करने का अधिकार, हर सेटिंग को बदलने का अधिकार, और तुम्हें हटाने की ताकत। $name के लिए वे अभी से परिवार हैं।';
+  }
+
+  @override
+  String get childPolicyScreenAddGuardianHeading => 'बड़ा जोड़ें';
+
+  @override
+  String get childPolicyScreenAddGuardianHint => 'उनका यूज़रनेम';
+
+  @override
+  String get childPolicyScreenAllowCta => 'अनुमति दें';
+
+  @override
+  String childPolicyScreenAllowSomeoneBlurb(Object childName) {
+    return 'अब तुमसे उनके बारे में दोबारा नहीं पूछा जाएगा — चाहे $childName उन्हें जोड़े या वे $childName को जोड़ें।';
+  }
+
+  @override
+  String get childPolicyScreenAllowSomeoneHeading => 'किसी को अनुमति दें';
+
+  @override
+  String get childPolicyScreenAskToAddLabel => 'जोड़ने के लिए पूछें';
+
+  @override
+  String get childPolicyScreenAskToAddOffDesc =>
+      'सिर्फ़ परिवार — कोई नई रिक्वेस्ट नहीं';
+
+  @override
+  String get childPolicyScreenAskToAddOnDesc =>
+      'वे नए लोगों के बारे में तुमसे पूछ सकते हैं';
+
+  @override
+  String get childPolicyScreenBothFinalNote =>
+      'ये दोनों फ़ैसले पक्के हैं। इसके बजाय अलग होने का विकल्प ऊपर बड़े सेक्शन में मिलेगा।';
+
+  @override
+  String get childPolicyScreenCallsLabel => 'कॉल्स';
+
+  @override
+  String get childPolicyScreenCallsOffDesc => 'सिर्फ़ मैसेज';
+
+  @override
+  String get childPolicyScreenCallsOnDesc =>
+      'अनुमति वाले लोगों के साथ वॉइस + वीडियो कॉल';
+
+  @override
+  String get childPolicyScreenCancelLabel => 'रद्द करें';
+
+  @override
+  String get childPolicyScreenCancelSemanticLabel => 'रद्द करें';
+
+  @override
+  String get childPolicyScreenContactAddedRequestSent =>
+      'जोड़ दिया — रिक्वेस्ट रास्ते में है';
+
+  @override
+  String get childPolicyScreenContactAddedToList =>
+      'अनुमति वाली लिस्ट में जोड़ दिया';
+
+  @override
+  String get childPolicyScreenCreateRoomsLabel => 'रूम बनाएं';
+
+  @override
+  String get childPolicyScreenCreateRoomsOffDesc => 'वे रूम शुरू नहीं कर सकते';
+
+  @override
+  String get childPolicyScreenCreateRoomsOnDesc =>
+      'वे अपने प्राइवेट रूम शुरू कर सकते हैं';
+
+  @override
+  String get childPolicyScreenDeleteAccountBody =>
+      'सब कुछ मिट जाएगा: उनके मैसेज, फ़ोटो, रूम और दोस्त। इसे पलटा नहीं जा सकता, और यूज़रनेम किसी और के लिए खुला हो जाएगा।';
+
+  @override
+  String get childPolicyScreenDeleteAccountFailed =>
+      'अकाउंट डिलीट नहीं हो पाया — फिर से कोशिश करो';
+
+  @override
+  String childPolicyScreenDeleteAccountHeadline(Object name) {
+    return '$name का अकाउंट डिलीट करें?';
+  }
+
+  @override
+  String get childPolicyScreenDeleteDangerDetail =>
+      'मैसेज, फ़ोटो, रूम और दोस्त — सब मिट जाएंगे। इसे पलटा नहीं जा सकता।';
+
+  @override
+  String childPolicyScreenDeleteDangerLabel(Object name) {
+    return '$name का अकाउंट डिलीट करें';
+  }
+
+  @override
+  String get childPolicyScreenDeleteForeverCta => 'हमेशा के लिए डिलीट करें';
+
+  @override
+  String get childPolicyScreenErrorAddContactGeneric =>
+      'उन्हें जोड़ा नहीं जा सका — फिर से कोशिश करो';
+
+  @override
+  String get childPolicyScreenErrorCannotAddSelf =>
+      'यह तो उनका अपना यूज़रनेम है';
+
+  @override
+  String get childPolicyScreenErrorChildNotAllowed =>
+      'कोई बच्चा बड़ा नहीं हो सकता';
+
+  @override
+  String get childPolicyScreenErrorGenericGuardian =>
+      'यह नहीं हो सका — फिर से कोशिश करें';
+
+  @override
+  String get childPolicyScreenErrorLastGuardian =>
+      'किसी को तो उनकी देखभाल करनी होगी — पहले एक और बड़ा जोड़ें';
+
+  @override
+  String get childPolicyScreenErrorNotYours =>
+      'इसे बदलने का अधिकार तुम्हें नहीं है';
+
+  @override
+  String get childPolicyScreenErrorUserNotFound =>
+      'इस यूज़रनेम से कोई अकाउंट नहीं मिला';
+
+  @override
+  String get childPolicyScreenGraduateBlurb =>
+      'इस पासवर्ड के साथ वे एक सामान्य अकाउंट बन जाएंगे, और हर बड़े की उन पर नज़र पूरी तरह खत्म हो जाएगी। इसे वापस नहीं किया जा सकता — फिर तुम्हें भी बाकी सबकी तरह आमंत्रित किया जाना होगा।';
+
+  @override
+  String get childPolicyScreenGraduateCta => 'ग्रेजुएट करें';
+
+  @override
+  String get childPolicyScreenGraduateDangerDetail =>
+      'उनका सब कुछ वैसा ही रहेगा और उन्हें एक पासवर्ड मिल जाएगा। तुम्हारी उन पर नज़र पूरी तरह खत्म हो जाएगी। यह वापस नहीं हो सकता।';
+
+  @override
+  String get childPolicyScreenGraduateDangerLabel =>
+      'पूर्ण अकाउंट में ग्रेजुएट करें';
+
+  @override
+  String get childPolicyScreenGraduateFailed =>
+      'उन्हें ग्रेजुएट नहीं किया जा सका — फिर से कोशिश करें';
+
+  @override
+  String childPolicyScreenGraduateHeading(Object name) {
+    return '$name को ग्रेजुएट करें';
+  }
+
+  @override
+  String get childPolicyScreenGraduateHint => 'उनके लिए एक पासवर्ड';
+
+  @override
+  String get childPolicyScreenGrantsFooterNote =>
+      'कोई रूम वापस लेने पर वे उससे भी हट जाते हैं। कोई व्यक्ति वापस लेने पर उनकी चैट भी डिलीट हो जाती है — दोनों के लिए।';
+
+  @override
+  String get childPolicyScreenGrownUpsDesc =>
+      'यहाँ मौजूद हर कोई अप्रूव कर सकता है, सेटिंग्स बदल सकता है, और सब कुछ देख सकता है। इनमें से कोई भी अकेले फैसला ले सकता है — किसी को दूसरों का इंतज़ार नहीं करना पड़ता।';
+
+  @override
+  String get childPolicyScreenGuardianAdded =>
+      'जोड़ दिया गया — अब वे उनकी देखभाल कर सकते हैं';
+
+  @override
+  String childPolicyScreenGuardianRemoved(Object name) {
+    return '$name को हटा दिया गया';
+  }
+
+  @override
+  String childPolicyScreenGuardianYouSuffix(Object name) {
+    return '$name (तुम)';
+  }
+
+  @override
+  String get childPolicyScreenLoading => 'लोड हो रहा है…';
+
+  @override
+  String get childPolicyScreenLockedLabel => 'लॉक';
+
+  @override
+  String get childPolicyScreenMediaLabel => 'फ़ोटो + आवाज़';
+
+  @override
+  String get childPolicyScreenMediaOffDesc => 'सिर्फ़ टेक्स्ट';
+
+  @override
+  String get childPolicyScreenMediaOnDesc =>
+      'वे तस्वीरें, वीडियो और वॉइस नोट भेज सकते हैं';
+
+  @override
+  String get childPolicyScreenNoRoomsYet => 'अभी कोई रूम नहीं';
+
+  @override
+  String get childPolicyScreenPeopleAllowedDesc =>
+      'इनमें से किसी को भी दोबारा तुमसे पूछे बिना जोड़ा जा सकता है — चाहे शुरुआत उनमें से कोई भी करे।';
+
+  @override
+  String get childPolicyScreenPublicRoomsBody =>
+      'बच्चों के लिए यह हमेशा बंद रहता है। डिस्कवर — यानी अनजान लोगों के रूम्स की लिस्ट — पूरी तरह छिपा दी जाती है और इसे कभी चालू नहीं किया जा सकता। किसी ने उन्हें जिस रूम में आमंत्रित किया हो, वह पहले जैसा ही काम करता है।';
+
+  @override
+  String get childPolicyScreenPublicRoomsLabel => 'पब्लिक रूम्स';
+
+  @override
+  String childPolicyScreenRemoveGuardianBody(Object child, Object guardian) {
+    return '$guardian अब $child के लिए कुछ भी न देख पाएंगे, न अप्रूव कर पाएंगे।';
+  }
+
+  @override
+  String childPolicyScreenRemoveGuardianHeadline(Object name) {
+    return '$name को हटाएं?';
+  }
+
+  @override
+  String get childPolicyScreenRemoveLabel => 'हटाएं';
+
+  @override
+  String childPolicyScreenRoomMemberCount(Object count) {
+    return '$count सदस्य';
+  }
+
+  @override
+  String get childPolicyScreenSectionGrownUps => 'बड़े';
+
+  @override
+  String get childPolicyScreenSectionPeopleAllowed => 'मंज़ूर किए गए लोग';
+
+  @override
+  String get childPolicyScreenSectionRoomsAllowed => 'मंज़ूर किए गए रूम्स';
+
+  @override
+  String get childPolicyScreenSectionWhatTheyCanDo => 'वे क्या कर सकते हैं';
+
+  @override
+  String get childPolicyScreenSectionWhenDone => 'जब बात खत्म हो';
+
+  @override
+  String get childPolicyScreenSendNowOffDesc =>
+      'जब तक कोई एक-दूसरे को न जोड़े, तब तक कुछ नहीं होता';
+
+  @override
+  String get childPolicyScreenSendNowOnDesc => 'उनसे तुरंत पूछा जाएगा';
+
+  @override
+  String get childPolicyScreenSendRequestNowLabel => 'अभी रिक्वेस्ट भेजें';
+
+  @override
+  String childPolicyScreenSoleGuardianNote(Object name) {
+    return 'तुम $name के इकलौते बड़े हो, इसलिए यूं ही पीछे नहीं हट सकते — पहले किसी और को जोड़ो, या इनमें से कोई एक इस्तेमाल करो।';
+  }
+
+  @override
+  String get childPolicyScreenStepAwayLabel => 'पीछे हटें';
+
+  @override
+  String childPolicyScreenStopSupervisingBody(Object name) {
+    return 'तुम्हें $name के अकाउंट की कोई भनक नहीं मिलेगी — न उनकी रिक्वेस्ट्स, न उनके लोग, न उनके रूम्स। बाकी बड़े उनका ख्याल रखते रहेंगे।';
+  }
+
+  @override
+  String get childPolicyScreenStopSupervisingCta => 'निगरानी बंद करें';
+
+  @override
+  String get childPolicyScreenStopSupervisingHeadline => 'निगरानी बंद करें?';
+
+  @override
+  String get childPolicyScreenTakeBackFailed =>
+      'वापस नहीं ले पाए — फिर कोशिश करो';
+
+  @override
+  String get childPolicyScreenTakeBackLabel => 'वापस लें';
+
+  @override
+  String get childPolicyScreenUsernameHint => 'यूज़रनेम';
+
+  @override
+  String get childPolicyScreenYou => 'तुम';
+
+  @override
+  String get roomContentScreenDefaultDocumentName => 'दस्तावेज़';
+
+  @override
+  String get roomContentScreenCouldntOpenFile => 'वह फ़ाइल नहीं खुल पाई';
+
+  @override
+  String get roomContentScreenCouldntShare => 'उन्हें शेयर नहीं कर पाए';
+
+  @override
+  String roomContentScreenLinksCopied(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count लिंक कॉपी हो गए',
+      one: 'कॉपी हो गया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentScreenDeleteHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मैसेज डिलीट करें',
+      one: 'मैसेज डिलीट करें',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenDeleteBody =>
+      'यह उन्हें इस चैट के सभी लोगों के लिए हटा देगा। इसे वापस नहीं लिया जा सकता।';
+
+  @override
+  String get roomContentScreenDeleteForEveryone => 'सभी के लिए डिलीट करें';
+
+  @override
+  String get roomContentScreenCancelTooltip => 'रद्द करें';
+
+  @override
+  String get roomContentScreenBackTooltip => 'वापस';
+
+  @override
+  String get roomContentScreenSelectingLabel => 'सिलेक्ट मोड';
+
+  @override
+  String get roomContentScreenSharedContentLabel => 'शेयर्ड कॉन्टेंट';
+
+  @override
+  String roomContentScreenSelectionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चुने गए',
+      one: '$count चुना गया',
+      zero: 'कुछ नहीं चुना',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenSelectAllLabel => 'चुनें';
+
+  @override
+  String get roomContentScreenSelectAllActiveLabel => 'सभी';
+
+  @override
+  String get roomContentScreenEmptyMedia => 'अभी तक कोई फ़ोटो या वीडियो नहीं';
+
+  @override
+  String get roomContentScreenEmptyFiles => 'अभी तक कोई फ़ाइल नहीं';
+
+  @override
+  String get roomContentScreenEmptyVoice => 'अभी तक कोई वॉइस नोट नहीं';
+
+  @override
+  String get roomContentScreenEmptyLinks => 'अभी तक कोई लिंक नहीं';
+
+  @override
+  String get roomContentScreenLoadFailed => 'वह लोड नहीं हो पाया';
+
+  @override
+  String roomContentScreenVoiceMessageFrom(Object name) {
+    return '$name का वॉइस नोट';
+  }
+
+  @override
+  String get roomContentScreenForwardAction => 'फ़ॉरवर्ड';
+
+  @override
+  String get roomContentScreenCopyAction => 'कॉपी';
+
+  @override
+  String get roomContentScreenSaveAction => 'सेव';
+
+  @override
+  String get roomContentScreenShareAction => 'शेयर';
+
+  @override
+  String get roomContentScreenInChatAction => 'चैट में देखें';
+
+  @override
+  String get roomContentScreenDeleteAction => 'डिलीट करें';
+
+  @override
+  String get messageActionMenuReplyLabel => 'जवाब दें';
+
+  @override
+  String get messageActionMenuForwardLabel => 'फ़ॉरवर्ड करें';
+
+  @override
+  String get messageActionMenuViewThreadLabel => 'थ्रेड देखें';
+
+  @override
+  String get messageActionMenuCopyLabel => 'कॉपी करें';
+
+  @override
+  String get messageActionMenuCopyNameLabel => 'नाम कॉपी करें';
+
+  @override
+  String get messageActionMenuPinLabel => 'पिन करें';
+
+  @override
+  String get messageActionMenuUnpinLabel => 'अनपिन करें';
+
+  @override
+  String get messageActionMenuSelectLabel => 'चुनें';
+
+  @override
+  String get messageActionMenuProfileLabel => 'प्रोफ़ाइल';
+
+  @override
+  String get messageActionMenuDeleteLabel => 'डिलीट करें';
+
+  @override
+  String get messageActionMenuReportLabel => 'रिपोर्ट करें';
+
+  @override
+  String get themeScreenTitle => 'थीम.';
+
+  @override
+  String get themeScreenTapToApplyHint =>
+      'लागू करने के लिए टैप करें · पूरे प्रीव्यू के लिए ⛶';
+
+  @override
+  String get themeScreenFamilyBasicName => 'बेसिक';
+
+  @override
+  String get themeScreenFamilyBasicTagline => 'iOS से प्रेरित · 5 पैलेट';
+
+  @override
+  String get themeScreenFamilyVaultName => 'वॉल्ट';
+
+  @override
+  String get themeScreenFamilyVaultTagline => 'गुप्त फ़ाइल · नॉयर + आइवरी';
+
+  @override
+  String get themeScreenFamilyOthersName => 'अन्य';
+
+  @override
+  String get themeScreenFamilyOthersTagline => 'अनोखे मूड';
+
+  @override
+  String get themeScreenActiveBadge => 'एक्टिव';
+
+  @override
+  String get themeScreenTapToApplyLabel => 'लागू करने के लिए टैप करें';
+
+  @override
+  String themeScreenCarouselActiveLabel(Object name) {
+    return 'एक्टिव — $name';
+  }
+
+  @override
+  String themeScreenCarouselApplyLabel(Object name) {
+    return '$name लागू करें';
+  }
+
+  @override
+  String get themeScreenPreviewGreeting => 'अरे, तुम.';
+
+  @override
+  String get themeScreenPreviewSectionLabel => 'बातचीत';
+
+  @override
+  String get themeScreenPreviewRoomOneName => 'डिज़ाइन क्लब';
+
+  @override
+  String get themeScreenPreviewRoomOneSub => 'mia: नई टाइल शिप कर दी.';
+
+  @override
+  String get themeScreenPreviewRoomTwoName => 'चैंबर · ☾';
+
+  @override
+  String get themeScreenPreviewRoomTwoSub => '4 घंटे में सील होगा.';
+
+  @override
+  String get themeScreenPreviewBubbleQuestion => 'ये कैसा लग रहा है?';
+
+  @override
+  String get themeScreenPreviewBubbleAnswer => 'एकदम सही लग रहा है.';
+
+  @override
+  String get callScreenVideoCallLabel => 'इनकमिंग वीडियो कॉल';
+
+  @override
+  String get callScreenVoiceCallLabel => 'इनकमिंग वॉइस कॉल';
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · रिंग जा रही है…';
+  }
+
+  @override
+  String callScreenStatusIncoming(Object kind) {
+    return '$kind · रिंग आ रही है…';
+  }
+
+  @override
+  String callScreenStatusConnecting(Object kind) {
+    return '$kind · कनेक्ट हो रही है…';
+  }
+
+  @override
+  String get callScreenStatusConnected => 'कनेक्ट हो गई';
+
+  @override
+  String get callScreenStatusEnded => 'कॉल खत्म हो गई';
+
+  @override
+  String get callScreenStatusFailed => 'कॉल फेल हो गई';
+
+  @override
+  String get callScreenStatusSwitching => 'डिवाइस बदला जा रहा है…';
+
+  @override
+  String get callScreenStatusMoved => 'शिफ्ट हो गई';
+
+  @override
+  String get callScreenStatusReconnecting => 'फिर से कनेक्ट हो रही है…';
+
+  @override
+  String get callScreenPoorConnectionLabel => 'खराब कनेक्शन';
+
+  @override
+  String get callScreenWeakConnectionLabel => 'कमज़ोर कनेक्शन';
+
+  @override
+  String get callScreenControlUnmute => 'अनम्यूट';
+
+  @override
+  String get callScreenControlMute => 'म्यूट';
+
+  @override
+  String get callScreenControlCamOn => 'कैम ऑन';
+
+  @override
+  String get callScreenControlCamOff => 'कैम ऑफ';
+
+  @override
+  String get callScreenControlFlip => 'फ्लिप';
+
+  @override
+  String get callScreenControlSpeaker => 'स्पीकर';
+
+  @override
+  String get callScreenControlEnd => 'कट';
+
+  @override
+  String get linkPreviewCardLinkLabel => 'लिंक';
+
+  @override
+  String friendRequestDraftScreenAcceptedSnackbar(Object name) {
+    return '$name ने तुम्हारी रिक्वेस्ट स्वीकार कर ली';
+  }
+
+  @override
+  String get friendRequestDraftScreenWithdrawnSnackbar =>
+      'वो रिक्वेस्ट वापस ले ली गई।';
+
+  @override
+  String get friendRequestDraftScreenDeclinedSnackbar =>
+      'रिक्वेस्ट अस्वीकार कर दी गई';
+
+  @override
+  String get friendRequestDraftScreenErrorBlocked =>
+      'तुमने इस यूज़र को ब्लॉक किया है — पहले अनब्लॉक करो.';
+
+  @override
+  String get friendRequestDraftScreenErrorNotAccepting =>
+      'वो अभी फ्रेंड रिक्वेस्ट स्वीकार नहीं कर रहे हैं.';
+
+  @override
+  String get friendRequestDraftScreenErrorSendFailed =>
+      'भेजा नहीं जा सका। फिर से कोशिश करो.';
+
+  @override
+  String get friendRequestDraftScreenIncomingRequestLabel =>
+      'आने वाली रिक्वेस्ट';
+
+  @override
+  String get friendRequestDraftScreenNewRequestLabel => 'जाने वाली रिक्वेस्ट';
+
+  @override
+  String friendRequestDraftScreenIntroIncoming(Object name) {
+    return '$name बातचीत शुरू करना चाहते हैं.';
+  }
+
+  @override
+  String get friendRequestDraftScreenIntroOutgoing =>
+      'कुछ लाइनें भेजो। वो स्वीकार या अस्वीकार कर सकते हैं.';
+
+  @override
+  String get friendRequestDraftScreenIntroFooter =>
+      'जब तक दोनों की सहमति न हो, यहां कुछ भी हमेशा के लिए नहीं रहता।';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeLabel => 'रूम टाइप';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeEphemeral => 'अस्थायी';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeStandard => 'स्टैंडर्ड';
+
+  @override
+  String get friendRequestDraftScreenLifetimeLabel => 'अवधि';
+
+  @override
+  String friendRequestDraftScreenDurationSeconds(Object seconds) {
+    return '$seconds सेकंड';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationMinutes(Object minutes) {
+    return '$minutesमि';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationHours(Object hours) {
+    return '$hoursघं';
+  }
+
+  @override
+  String get friendRequestDraftScreenHintWhisperOptional =>
+      'पहली लाइन फुसफुसाओ · वैकल्पिक';
+
+  @override
+  String get friendRequestDraftScreenHintFirstMessageOptional =>
+      'पहला मैसेज जोड़ो · वैकल्पिक';
+
+  @override
+  String get friendRequestDraftScreenHintWhisperFades =>
+      'फुसफुसाहट · अपने आप मिट जाती है';
+
+  @override
+  String get friendRequestDraftScreenHintStartWith => 'शुरुआत के लिए कुछ लिखो…';
+
+  @override
+  String get friendRequestDraftScreenApproveButton =>
+      'अनुरोध स्वीकारो और रूम खोलो';
+
+  @override
+  String get friendRequestDraftScreenDeclineButton => 'अनुरोध ठुकराओ';
+
+  @override
+  String get friendRequestDraftScreenCancelRequestButton =>
+      'भेजा हुआ अनुरोध रद्द करो';
+
+  @override
+  String get friendRequestDraftScreenAskGrownUpButton => 'किसी बड़े से पूछो';
+
+  @override
+  String get friendRequestDraftScreenSendRequestButton => 'अनुरोध भेजो';
+
+  @override
+  String get discoverScreenTitle => 'खोजो.';
+
+  @override
+  String get discoverScreenCaptionPeople => 'लोग';
+
+  @override
+  String get discoverScreenCaptionRooms => 'रूम';
+
+  @override
+  String get discoverScreenCaptionRequests => 'अनुरोध';
+
+  @override
+  String get discoverScreenPeopleBandLabel => 'लोग';
+
+  @override
+  String get discoverScreenRoomsBandLabel => 'रूम';
+
+  @override
+  String get discoverScreenFindPeopleTitle => 'लोग खोजो';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleChild => 'पूरा यूज़रनेम लिखो';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleAdult =>
+      '@यूज़रनेम या नाम से खोजो';
+
+  @override
+  String get discoverScreenRequestsSectionLabel => 'अनुरोध';
+
+  @override
+  String get discoverScreenInboxQuiet => 'कोई अनुरोध नहीं आया';
+
+  @override
+  String get discoverScreenNothingPending => 'कुछ नहीं भेजा';
+
+  @override
+  String get discoverScreenYourPeopleLabel => 'तुम्हारे लोग';
+
+  @override
+  String get discoverScreenNoFriendsYetWithHint =>
+      'अभी कोई नहीं — ऊपर लोग खोजो';
+
+  @override
+  String get discoverScreenNoFriendsYet => 'अभी कोई नहीं';
+
+  @override
+  String get discoverScreenSearchRoomsTitle => 'रूम खोजो';
+
+  @override
+  String get discoverScreenSearchRoomsSubtitle => 'नाम से पब्लिक रूम खोजो';
+
+  @override
+  String get discoverScreenPublicRoomsLabel => 'पब्लिक रूम';
+
+  @override
+  String get discoverScreenLoadingRooms => 'ढूंढ रहे हैं…';
+
+  @override
+  String get discoverScreenNoRoomsOpen => 'अभी कुछ भी खुला नहीं';
+
+  @override
+  String get discoverScreenIncomingLabel => 'इनकमिंग';
+
+  @override
+  String get discoverScreenOutgoingLabel => 'आउटगोइंग';
+
+  @override
+  String get discoverScreenIncomingLabelCaps => 'इनकमिंग';
+
+  @override
+  String get discoverScreenOutgoingLabelCaps => 'आउटगोइंग';
+
+  @override
+  String get discoverScreenJumpPeopleLabel => 'लोग';
+
+  @override
+  String get discoverScreenJumpRoomsLabel => 'रूम्स';
+
+  @override
+  String discoverScreenJumpToSemanticLabel(Object label) {
+    return '$label पर जाएं';
+  }
+
+  @override
+  String get imageCropScreenDefaultTitle => 'एडजस्ट';
+
+  @override
+  String get imageCropScreenDefaultConfirmLabel => 'फ़ोटो इस्तेमाल करें';
+
+  @override
+  String get imageCropScreenSavingButton => 'सेव हो रहा है…';
+
+  @override
+  String get imageCropScreenCancelButton => 'रद्द करें';
+
+  @override
+  String get imageCropScreenHeicUnsupported =>
+      'यह ब्राउज़र HEIC फ़ोटो नहीं खोल सकता';
+
+  @override
+  String get imageCropScreenLoadFailed => 'वह फ़ोटो नहीं खुल पाई';
+
+  @override
+  String get imageCropScreenHintCircle =>
+      'खिसकाने के लिए खींचें, ज़ूम करने के लिए पिंच करें';
+
+  @override
+  String get imageCropScreenHintRect =>
+      'फ़्रेम करने के लिए खींचें और पिंच करें';
+
+  @override
+  String get loginScreenSignInHeroMuted => 'फिर से\n';
+
+  @override
+  String get loginScreenSignInHeroInk => 'स्वागत है।';
+
+  @override
+  String get loginScreenSignInCta => 'साइन इन करें';
+
+  @override
+  String get loginScreenSignUpHeroMuted => 'नया\n';
+
+  @override
+  String get loginScreenSignUpHeroInk => 'चेहरा।';
+
+  @override
+  String get loginScreenSignUpCta => 'अकाउंट खोलें';
+
+  @override
+  String get loginScreenResetHeroMuted => 'पासवर्ड\n';
+
+  @override
+  String get loginScreenResetHeroInk => 'रीसेट।';
+
+  @override
+  String get loginScreenResetCta => 'पासवर्ड रीसेट करें';
+
+  @override
+  String get loginScreenErrorPasswordsDontMatch => 'पासवर्ड मेल नहीं खाते।';
+
+  @override
+  String get loginScreenErrorChoosePasswordFirst => 'पहले एक पासवर्ड चुनें।';
+
+  @override
+  String get loginScreenUsernameHint => 'यूज़रनेम';
+
+  @override
+  String get loginScreenPasswordHint => 'पासवर्ड';
+
+  @override
+  String get loginScreenConfirmPasswordHint => 'पासवर्ड कन्फर्म करें';
+
+  @override
+  String get loginScreenNameOptionalHint => 'नाम (वैकल्पिक)';
+
+  @override
+  String get loginScreenRecoveryPhraseHint =>
+      'तुम्हारा 12-शब्दों वाला रिकवरी फ़्रेज़';
+
+  @override
+  String get loginScreenNewPasswordHint => 'नया पासवर्ड';
+
+  @override
+  String get loginScreenBackToSignIn => '← साइन इन पर वापस जाएं';
+
+  @override
+  String get loginScreenForgotPassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get loginScreenSettingUpKidsPhone => 'बच्चे का अकाउंट खोलें';
+
+  @override
+  String get loginScreenLegalPrefix => 'अकाउंट खोलकर, तुम सहमत हो: ';
+
+  @override
+  String get loginScreenLegalTermsLink => 'नियम';
+
+  @override
+  String get loginScreenLegalMiddle => ' और ';
+
+  @override
+  String get loginScreenLegalPrivacyLink => 'प्राइवेसी पॉलिसी';
+
+  @override
+  String get loginScreenLegalSuffix => ' को स्वीकार करते हो.';
+
+  @override
+  String get loginScreenAlreadyHerePrompt => 'पहले से यहाँ हो? ';
+
+  @override
+  String get loginScreenSignInLink => 'साइन इन करो';
+
+  @override
+  String get loginScreenNoAccountPrompt => 'अकाउंट नहीं है? ';
+
+  @override
+  String get loginScreenOpenOneLink => 'एक खोलो';
+
+  @override
+  String loginScreenWordCounter(Object count) {
+    return '$count/12 शब्द';
+  }
+
+  @override
+  String get homeShellEmptyRoomHint => 'बातचीत शुरू करने के लिए एक रूम चुनो';
+
+  @override
+  String get homeShellEmptySettingHint => 'एक सेटिंग चुनो';
+
+  @override
+  String get searchScreenHintPeople => 'लोग खोजो…';
+
+  @override
+  String get searchScreenHintRooms => 'रूम खोजो…';
+
+  @override
+  String get searchScreenPeoplePromptChild =>
+      'किसी नए को खोजने के लिए पूरा यूज़रनेम टाइप करो';
+
+  @override
+  String get searchScreenPeoplePromptDefault => 'यूज़रनेम या नाम से खोजो';
+
+  @override
+  String get searchScreenNoMatchChild =>
+      'कोई मेल नहीं खाता — नए लोगों के लिए उनका\nपूरा यूज़रनेम बिल्कुल सही लिखना होगा';
+
+  @override
+  String get searchScreenNoMatchDefault => 'कोई मेल नहीं खाता';
+
+  @override
+  String get searchScreenNoRoomsYet => 'अभी तक कोई पब्लिक रूम नहीं है';
+
+  @override
+  String get searchScreenNoRoomsMatch => 'कोई पब्लिक रूम मेल नहीं खाता';
+
+  @override
+  String get searchScreenActionAskToAdd => 'जोड़ने को कहो';
+
+  @override
+  String get searchScreenActionSendRequest => 'रिक्वेस्ट भेजो';
+
+  @override
+  String get searchScreenActionCancel => 'रिक्वेस्ट वापस लो';
+
+  @override
+  String get searchScreenActionApprove => 'उनकी रिक्वेस्ट स्वीकार करो';
+
+  @override
+  String get searchScreenActionOpenDm => 'डीएम खोलो';
+
+  @override
+  String get searchScreenAskedLabel => 'पूछा';
+
+  @override
+  String get profileVisibilityScreenTitle => 'दृश्यता प्राथमिकताएं.';
+
+  @override
+  String get profileVisibilityScreenSubtitle =>
+      'तय करो दूसरे क्या देखें — और तुम तक कैसे पहुंचें.';
+
+  @override
+  String get profileVisibilityScreenSectionProfile => 'प्रोफ़ाइल';
+
+  @override
+  String get profileVisibilityScreenAvatarLabel => 'अवतार';
+
+  @override
+  String get profileVisibilityScreenAvatarDesc => 'तुम्हारी प्रोफ़ाइल फ़ोटो';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayLabel => 'ऑनलाइन / दूर';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayDesc =>
+      'क्या तुम अभी एक्टिव दिखते हो';
+
+  @override
+  String get profileVisibilityScreenLastSeenLabel => 'लास्ट सीन';
+
+  @override
+  String get profileVisibilityScreenLastSeenDesc => 'तुम आखिरी बार कब थे';
+
+  @override
+  String get profileVisibilityScreenSectionMessages => 'मैसेज';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsLabel => 'रीड रिसीट्स भेजो';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsDesc =>
+      'ऑन होने पर, दूसरे देख सकते हैं कि तुमने उनके मैसेज पढ़ लिए हैं';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsLabel =>
+      'रीड रिसीट्स दिखाओ';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsDesc =>
+      'तुम्हारे मैसेज पढ़े जाने पर उन पर \'सीन\' का निशान देखो';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsHint =>
+      'सिर्फ़ वे लोग गिने जाएंगे जिन्होंने \'रीड रिसीट भेजें\' चालू किया हो। बाकी लोग नज़र नहीं आएंगे।';
+
+  @override
+  String get profileVisibilityScreenSectionPeople => 'लोग';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsLabel => 'फ्रेंड रिक्वेस्ट';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsDesc =>
+      'तुम्हें कौन फ्रेंड रिक्वेस्ट भेज सकता है';
+
+  @override
+  String get profileVisibilityScreenSupervisedTitle =>
+      'ये तुम्हारे बड़ों ने सेट किए हैं';
+
+  @override
+  String get profileVisibilityScreenSupervisedBody =>
+      'यहाँ तुम वही देख सकते हो जो बाकी सब देखते हैं, पर इसे सिर्फ़ कोई बड़ा ही बदल सकता है। वे हमेशा तुम्हारी फ़ोटो, तुम्हारा ऑनलाइन स्टेटस और आख़िरी बार तुम कब थे — देख सकते हैं।';
+
+  @override
+  String get profileVisibilityScreenOptionPublic => 'पब्लिक';
+
+  @override
+  String get profileVisibilityScreenOptionFriends => 'फ्रेंड्स';
+
+  @override
+  String get profileVisibilityScreenOptionNobody => 'कोई नहीं';
+
+  @override
+  String get profileVisibilityScreenOptionOn => 'ऑन';
+
+  @override
+  String get profileVisibilityScreenOptionOff => 'ऑफ़';
+
+  @override
+  String get profileVisibilityScreenOptionAnyone => 'कोई भी';
+
+  @override
+  String get logoScreenTitle => 'ऐप लोगो.';
+
+  @override
+  String get logoScreenSubtitle => 'तुम्हारे हेडर का निशान — फ़ैसला तुम्हारा.';
+
+  @override
+  String get logoScreenAutoLabel => 'ऑटो';
+
+  @override
+  String get logoScreenAutoDescription =>
+      'तुम्हारी थीम के हिसाब से चलता है. पैलेट बदलने पर निशान भी बदलता है.';
+
+  @override
+  String get logoScreenManualLabel => 'मैनुअल';
+
+  @override
+  String get logoScreenManualDescription =>
+      'कोई भी निशान चुनो, अपनी थीम बनाए रखो.';
+
+  @override
+  String get logoScreenAlwaysDefaultLabel => 'हमेशा डिफ़ॉल्ट';
+
+  @override
+  String get logoScreenAlwaysDefaultDescription =>
+      'थीम कुछ भी हो, हमेशा MonkeyHub का निशान.';
+
+  @override
+  String get logoScreenActiveBadge => 'एक्टिव';
+
+  @override
+  String get logoScreenMonkeyCollectionHeader => 'मंकी कलेक्शन';
+
+  @override
+  String get logoScreenThemesHeader => 'थीम्स';
+
+  @override
+  String get recoveryPhraseScreenCopiedSnackbar =>
+      'कॉपी हो गया — इसे कहीं सुरक्षित जगह पेस्ट करो';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroMuted => 'पुष्टि करो\n';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroInk => 'कि यह तुम हो.';
+
+  @override
+  String get recoveryPhraseScreenPasswordBody =>
+      'तुम्हारा पासवर्ड, ताकि कोई और तुम्हारे अकाउंट पर रिकवरी फ्रेज़ न डाल सके.';
+
+  @override
+  String get recoveryPhraseScreenPasswordHint => 'पासवर्ड';
+
+  @override
+  String get recoveryPhraseScreenContinueButton => 'जारी रखें';
+
+  @override
+  String get recoveryPhraseScreenNotNowLink => 'अभी नहीं';
+
+  @override
+  String get recoveryPhraseScreenEnterPasswordError => 'अपना पासवर्ड डालो.';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroMuted => 'सेव करो\n';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroInk => 'ये शब्द.';
+
+  @override
+  String get recoveryPhraseScreenWordsBody =>
+      'अगर तुम अपना पासवर्ड भूल जाओ, तो ये बारह शब्द ही तुम्हारे अकाउंट में वापस जाने का इकलौता रास्ता हैं. हम इन्हें दोबारा नहीं दिखा सकते, और न ही इन्हें तुम्हारे लिए वापस ला सकते हैं.';
+
+  @override
+  String get recoveryPhraseScreenCopyButton => 'कॉपी करो';
+
+  @override
+  String get recoveryPhraseScreenPaperHint =>
+      'अगर हो सके, तो इन्हें कागज़ पर लिख लो। फ़ोन में जो कुछ भी है, वह फ़ोन के साथ खो सकता है।';
+
+  @override
+  String get recoveryPhraseScreenSavedButton => 'मैंने सेव कर लिए';
+
+  @override
+  String get recoveryPhraseScreenBackLink => '← वापस';
+
+  @override
+  String get recoveryPhraseScreenKeepPhraseLink =>
+      'अभी नहीं — मौजूदा फ़्रेज़ ही रखो';
+
+  @override
+  String get homeScreenProfileSemanticLabel => 'तुम्हारी प्रोफ़ाइल';
+
+  @override
+  String homeScreenGreeting(Object name) {
+    return 'हाय, $name.';
+  }
+
+  @override
+  String get homeScreenNewRoomSemanticLabel => 'नया रूम';
+
+  @override
+  String get homeScreenEmptyRoomsMessage => 'अभी कोई रूम नहीं — एक बनाओ';
+
+  @override
+  String get groupCallScreenTitleVideo => 'ग्रुप वीडियो कॉल';
+
+  @override
+  String get groupCallScreenTitleVoice => 'ग्रुप वॉइस कॉल';
+
+  @override
+  String groupCallScreenParticipantCount(Object count) {
+    return 'कॉल में $count';
+  }
+
+  @override
+  String get groupCallScreenReconnecting => 'फिर से जुड़ रहा है…';
+
+  @override
+  String get groupCallScreenUnmuteLabel => 'अनम्यूट';
+
+  @override
+  String get groupCallScreenMuteLabel => 'म्यूट';
+
+  @override
+  String get groupCallScreenCamOnLabel => 'कैम ऑन';
+
+  @override
+  String get groupCallScreenCamOffLabel => 'कैम ऑफ़';
+
+  @override
+  String get groupCallScreenFlipLabel => 'फ्लिप';
+
+  @override
+  String get groupCallScreenSpeakerLabel => 'स्पीकर';
+
+  @override
+  String get groupCallScreenLeaveLabel => 'छोड़ो';
+
+  @override
+  String get groupCallScreenYouLabel => 'तुम';
+
+  @override
+  String roomFilterDrawerButtonActiveSemanticLabel(Object summary) {
+    return '$summary के अनुसार फ़िल्टर किया जा रहा है। फ़िल्टर बदलो';
+  }
+
+  @override
+  String get roomFilterDrawerButtonSemanticLabel => 'चैट फ़िल्टर करो';
+
+  @override
+  String roomFilterDrawerActiveSummary(Object count, Object summary) {
+    return '$summary · $count';
+  }
+
+  @override
+  String get roomFilterDrawerClearSemanticLabel => 'फ़िल्टर साफ़ करो';
+
+  @override
+  String get roomFilterDrawerClearLabel => 'साफ़ करो';
+
+  @override
+  String get roomFilterDrawerDimensionType => 'टाइप';
+
+  @override
+  String get roomFilterDrawerDimensionNature => 'प्रकृति';
+
+  @override
+  String get roomFilterDrawerDimensionStatus => 'स्टेटस';
+
+  @override
+  String get roomFilterDrawerPanelClear => 'साफ़ करो';
+
+  @override
+  String get roomFilterDrawerPanelDone => 'हो गया';
+
+  @override
+  String roomFilterDrawerFacetSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट',
+      one: '$count चैट',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String roomFilterDrawerEmptyStateTitle(Object summary) {
+    return '$summary से कुछ मेल नहीं खाता';
+  }
+
+  @override
+  String roomFilterDrawerShowAllSemanticLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'सभी $count चैट दिखाओ',
+      one: 'सभी $count चैट दिखाओ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomFilterDrawerShowAllLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'सभी $count चैट दिखाओ',
+      one: 'सभी $count चैट दिखाओ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomSheetTitle => 'नया रूम';
+
+  @override
+  String get createRoomSheetTaglineSecret => 'कुछ भी सेव नहीं होगा';
+
+  @override
+  String get createRoomSheetTaglineRegular => 'एक जगह जो बनी रहेगी';
+
+  @override
+  String get createRoomSheetNameLabel => 'नाम';
+
+  @override
+  String get createRoomSheetNameHint => 'कोई सच्चा-सा नाम रखो…';
+
+  @override
+  String get createRoomSheetDescriptionLabel => 'विवरण · वैकल्पिक';
+
+  @override
+  String get createRoomSheetDescriptionHint => 'रूम के बारे में एक लाइन…';
+
+  @override
+  String get createRoomSheetVisibilityLabel => 'दृश्यता';
+
+  @override
+  String get createRoomSheetVisibilityPublicTitle => 'पब्लिक';
+
+  @override
+  String get createRoomSheetVisibilityPublicSub => 'कोई भी इसे ढूंढ सकता है';
+
+  @override
+  String get createRoomSheetVisibilityPrivateTitle => 'प्राइवेट';
+
+  @override
+  String get createRoomSheetVisibilityPrivateSub => 'सिर्फ इनवाइट पर';
+
+  @override
+  String get createRoomSheetTypeLabel => 'टाइप';
+
+  @override
+  String get createRoomSheetTypeStandardTitle => 'सामान्य';
+
+  @override
+  String get createRoomSheetTypeStandardSub => 'मैसेज बने रहते हैं';
+
+  @override
+  String get createRoomSheetTypeEphemeralTitle => 'अस्थायी';
+
+  @override
+  String get createRoomSheetTypeEphemeralSub => 'अपने आप डिलीट हो जाते हैं';
+
+  @override
+  String get createRoomSheetMessageLifeLabel => 'मैसेज की उम्र';
+
+  @override
+  String createRoomSheetTtlSeconds(Object seconds) {
+    return '$secondsसे';
+  }
+
+  @override
+  String createRoomSheetTtlMinutes(Object minutes) {
+    return '$minutesमि';
+  }
+
+  @override
+  String createRoomSheetTtlHours(Object hours) {
+    return '$hoursघं';
+  }
+
+  @override
+  String get createRoomSheetPasswordLabel => 'पासवर्ड · वैकल्पिक';
+
+  @override
+  String get createRoomSheetPasswordHint => 'एक पासफ़्रेज़ से लॉक करो…';
+
+  @override
+  String get createRoomSheetNameRequiredError => 'नाम ज़रूरी है';
+
+  @override
+  String get createRoomSheetOpenRoomSemanticLabel => 'रूम खोलो';
+
+  @override
+  String get createRoomSheetOpenRoomButton => 'रूम खोलो';
+
+  @override
+  String get familyScreenTitle => 'परिवार';
+
+  @override
+  String familyScreenPendingBanner(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चीज़ों के लिए तुम्हारा ओके चाहिए',
+      one: '1 चीज़ के लिए तुम्हारा ओके चाहिए',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get familyScreenPresenceOnline => 'अभी ऑनलाइन';
+
+  @override
+  String get familyScreenPresenceNotPaired => 'अभी तक पेयर नहीं हुआ';
+
+  @override
+  String get familyScreenPresenceJustNow => 'अभी-अभी';
+
+  @override
+  String familyScreenPresenceMinutesAgo(Object minutes) {
+    return '$minutesमि पहले';
+  }
+
+  @override
+  String familyScreenPresenceHoursAgo(Object hours) {
+    return '$hoursघं पहले';
+  }
+
+  @override
+  String familyScreenPresenceDaysAgo(Object days) {
+    return '$daysदि पहले';
+  }
+
+  @override
+  String get familyScreenPairButton => 'पेयर करो';
+
+  @override
+  String get familyScreenReleaseButton => 'अनलिंक करें';
+
+  @override
+  String get familyScreenSettingsButton => 'सेटिंग्स';
+
+  @override
+  String get familyScreenAddChildButton => 'बच्चा जोड़ें';
+
+  @override
+  String get familyScreenEmptyStateTitle => 'अभी तक कोई बच्चा नहीं';
+
+  @override
+  String get familyScreenEmptyStateBody =>
+      'अपने बच्चे के लिए एक अकाउंट बनाएं, फिर उसे उसके फ़ोन से पेयर करें।';
+
+  @override
+  String get reactionDetailsSheetTitle => 'रिएक्शन';
+
+  @override
+  String get reactionDetailsSheetEmptyState => 'अब यहाँ कुछ नहीं बचा';
+
+  @override
+  String reactionDetailsSheetPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count लोग',
+      one: '$count व्यक्ति',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reactionDetailsSheetFilterAll => 'सभी';
+
+  @override
+  String get reactionDetailsSheetYouBadge => 'तुम';
+
+  @override
+  String get roomLayoutScreenTitle => 'चैट लिस्ट।';
+
+  @override
+  String get roomLayoutScreenSubtitle =>
+      'चैट्स कैसे स्टैक होते हैं और तुम उन्हें कैसे फ़िल्टर करते हो';
+
+  @override
+  String get roomLayoutScreenLayoutSectionLabel => 'लेआउट';
+
+  @override
+  String get roomLayoutScreenRowLayoutLabel => 'रो लेआउट';
+
+  @override
+  String get roomLayoutScreenRowLayoutDescription =>
+      'एक कॉलम, पूरी चौड़ाई में। एक नज़र में पढ़ना आसान।';
+
+  @override
+  String get roomLayoutScreenGridLayoutLabel => 'ग्रिड लेआउट';
+
+  @override
+  String get roomLayoutScreenGridLayoutDescription =>
+      'दो कॉलम, कॉम्पैक्ट। एक नज़र में ज़्यादा चैट्स।';
+
+  @override
+  String get roomLayoutScreenFilterControlSectionLabel => 'फ़िल्टर कंट्रोल';
+
+  @override
+  String get roomLayoutScreenChipRowLabel => 'चिप रो';
+
+  @override
+  String get roomLayoutScreenChipRowDescription =>
+      'हमेशा दिखते हैं। किसी भी फ़िल्टर तक बस एक टैप, सिर्फ़ एक रो जितनी जगह।';
+
+  @override
+  String get roomLayoutScreenDrawerButtonLabel => 'ड्रॉअर बटन';
+
+  @override
+  String get roomLayoutScreenDrawerButtonDescription =>
+      'एक बटन जो खुलता है। जब तक तुम न खोलो, रास्ते में कुछ नहीं।';
+
+  @override
+  String get roomLayoutScreenActiveBadge => 'चयनित';
+
+  @override
+  String get pinnedBannerJumpToPinnedSemanticLabel =>
+      'पिन किए गए मैसेज पर जाएं';
+
+  @override
+  String get pinnedBannerAllPinnedSemanticLabel => 'सभी पिन किए गए मैसेज';
+
+  @override
+  String get pinnedBannerTitleSingle => 'पिन किया गया मैसेज';
+
+  @override
+  String pinnedBannerTitleWithIndex(Object count, Object index) {
+    return 'पिन किया गया मैसेज  $index/$count';
+  }
+
+  @override
+  String get pinnedBannerChatStyleTitle => 'चैट स्टाइल।';
+
+  @override
+  String get pinnedBannerChatStyleSubtitle => 'चैट कैसी दिखती है';
+
+  @override
+  String get pinnedBannerClassicLabel => 'क्लासिक';
+
+  @override
+  String get pinnedBannerClassicSubtitle =>
+      'डिवाइडर-बॉर्डर वाला हेडर, फ्लैट कंपोज़र।';
+
+  @override
+  String get pinnedBannerCompactLabel => 'कॉम्पैक्ट';
+
+  @override
+  String get pinnedBannerCompactSubtitle =>
+      'बातचीत के ऊपर तैरते धुंधले कैप्सूल।';
+
+  @override
+  String get pinnedBannerActiveBadge => 'चयनित';
+
+  @override
+  String get audioMessageMissingLabel => '[ऑडियो गायब]';
+
+  @override
+  String get audioMessageUnavailableLabel => 'ऑडियो उपलब्ध नहीं';
+
+  @override
+  String get audioMessageRetryHint => 'फिर से कोशिश करने के लिए टैप करो';
+
+  @override
+  String get audioMessageLoadingLabel => 'लोड हो रहा है…';
+
+  @override
+  String get audioMessageUsernameRequiredError => 'अपना यूज़रनेम डालो।';
+
+  @override
+  String get audioMessagePasswordRequiredError => 'अपना पासवर्ड डालो।';
+
+  @override
+  String get audioMessageCancelSemanticLabel => 'रद्द करो';
+
+  @override
+  String get audioMessageHeroCreateLine1 => 'लगभग\n';
+
+  @override
+  String get audioMessageHeroCreateLine2 => 'हो गया।';
+
+  @override
+  String get audioMessageHeroLinkLine1 => 'वापसी पर\n';
+
+  @override
+  String get audioMessageHeroLinkLine2 => 'स्वागत है।';
+
+  @override
+  String get audioMessageCreateSubtitle =>
+      'ऐसा यूज़रनेम चुनो ताकि तुम्हारे परिवार और दोस्त तुम्हें ढूंढ सकें।';
+
+  @override
+  String audioMessageLinkSubtitle(Object provider) {
+    return 'एक बार साइन इन करो और $provider तुम्हारे अकाउंट से जुड़ जाएगा।';
+  }
+
+  @override
+  String get audioMessageUsernameHint => 'यूज़रनेम';
+
+  @override
+  String get audioMessageDisplayNameHint => 'डिस्प्ले नेम (वैकल्पिक)';
+
+  @override
+  String get audioMessagePasswordHint => 'पासवर्ड';
+
+  @override
+  String get audioMessageSwitchToLinkPrompt => 'वो मेरा है — साइन इन करो';
+
+  @override
+  String get audioMessageCreateAccountButton => 'अकाउंट बनाओ';
+
+  @override
+  String audioMessageSignInLinkButton(Object provider) {
+    return 'साइन इन करो और $provider लिंक करो';
+  }
+
+  @override
+  String get audioMessageSwitchToLinkModeLink =>
+      'तुम्हारे पास पहले से अकाउंट है?';
+
+  @override
+  String get audioMessageSwitchToCreateModeLink => 'यहाँ नए हो? अकाउंट बनाओ';
+
+  @override
+  String get approvalsScreenTitle => 'मंज़ूरियां';
+
+  @override
+  String get approvalsScreenEmptyTitle => 'कुछ भी पेंडिंग नहीं';
+
+  @override
+  String get approvalsScreenEmptySubtitle => 'तुमने सब देख लिया';
+
+  @override
+  String get approvalsScreenErrorNotGuardian => 'ये फैसला तुम्हारा नहीं है';
+
+  @override
+  String get approvalsScreenErrorAlreadyHandled =>
+      'यह पहले ही कहीं और तय हो चुका है';
+
+  @override
+  String get approvalsScreenErrorGeneric => 'सेव नहीं हो पाया — फिर कोशिश करो';
+
+  @override
+  String approvalsScreenHeadlineContactOutgoing(Object child, Object other) {
+    return '$child $other को जोड़ना चाहता है';
+  }
+
+  @override
+  String approvalsScreenHeadlineContactIncoming(Object child, Object other) {
+    return '$other $child को जोड़ना चाहता है';
+  }
+
+  @override
+  String approvalsScreenHeadlineJoinRoom(Object child, Object room) {
+    return '$child $room में शामिल होना चाहता है';
+  }
+
+  @override
+  String get approvalsScreenSomeoneLower => 'किसी';
+
+  @override
+  String get approvalsScreenSomeoneCapital => 'कोई';
+
+  @override
+  String get approvalsScreenRoomFallback => 'एक रूम';
+
+  @override
+  String get approvalsScreenConsequenceContactOutgoing =>
+      'उन्हें रिक्वेस्ट भेजी जाएगी। हां कहना है या नहीं, ये फैसला उन्हीं का है।';
+
+  @override
+  String approvalsScreenConsequenceContactIncoming(Object child) {
+    return '$child अब यह रिक्वेस्ट देख पाएगा, और वो इसे स्वीकार या नज़रअंदाज़ कर सकता है।';
+  }
+
+  @override
+  String get approvalsScreenConsequenceJoinRoom =>
+      'जब तक तुम इसे वापस नहीं लेते, वो वहां पढ़ और पोस्ट कर सकता है।';
+
+  @override
+  String get approvalsScreenNotYetButton => 'अभी नहीं';
+
+  @override
+  String get approvalsScreenAllowButton => 'अनुमति दो';
+
+  @override
+  String get approvalsScreenForwardDirectMessageFallback => 'डायरेक्ट मैसेज';
+
+  @override
+  String approvalsScreenForwardTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मैसेज फ़ॉरवर्ड करो',
+      one: 'मैसेज फ़ॉरवर्ड करो',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsScreenForwardNoChatsYet => 'अभी कोई और चैट नहीं है';
+
+  @override
+  String get approvalsScreenForwardNoMatches => 'कुछ नहीं मिला';
+
+  @override
+  String approvalsScreenForwardMaxTargetsHint(Object max) {
+    return 'एक बार में अधिकतम $max चैट';
+  }
+
+  @override
+  String get approvalsScreenForwardSearchHint => 'चैट खोजो';
+
+  @override
+  String approvalsScreenForwardDeselectSemantic(Object title) {
+    return '$title का चयन हटाओ';
+  }
+
+  @override
+  String approvalsScreenForwardSelectSemantic(Object title) {
+    return '$title चुनो';
+  }
+
+  @override
+  String get approvalsScreenForwardFadesBadge => 'अस्थायी';
+
+  @override
+  String get approvalsScreenForwardSendSemantic => 'भेजो';
+
+  @override
+  String approvalsScreenForwardSendButton(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count को भेजो',
+      zero: 'भेजो',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get linkedAccountsScreenTitle => 'लिंक किए गए खाते';
+
+  @override
+  String get linkedAccountsScreenSubtitle =>
+      'वे खाते जो तुमने इस खाते से लिंक किए हैं, ताकि तुम बिना पासवर्ड के साइन इन कर सको।';
+
+  @override
+  String get linkedAccountsScreenEmptyState =>
+      'इस डिवाइस पर लिंक करने के लिए कुछ नहीं है।';
+
+  @override
+  String get linkedAccountsScreenStatusChecking => 'जांच हो रही है…';
+
+  @override
+  String linkedAccountsScreenStatusLinked(Object provider) {
+    return 'तुम अपने किसी भी डिवाइस पर $provider से साइन इन कर सकते हो।';
+  }
+
+  @override
+  String linkedAccountsScreenStatusNotLinked(Object provider) {
+    return '$provider जोड़ो ताकि तुम्हें पासवर्ड टाइप न करना पड़े।';
+  }
+
+  @override
+  String linkedAccountsScreenUnlinkTitle(Object provider) {
+    return '$provider अनलिंक करो';
+  }
+
+  @override
+  String get linkedAccountsScreenUnlinkAction => 'अनलिंक करो';
+
+  @override
+  String linkedAccountsScreenUnlinkSubtitle(Object provider) {
+    return '$provider से साइन इन करना बंद करने के लिए अपना पासवर्ड डालो।';
+  }
+
+  @override
+  String linkedAccountsScreenLinkTitle(Object provider) {
+    return '$provider लिंक करो';
+  }
+
+  @override
+  String get linkedAccountsScreenLinkAction => 'लिंक करो';
+
+  @override
+  String linkedAccountsScreenLinkSubtitle(Object provider) {
+    return '$provider से साइन इन करना शुरू करने के लिए अपना पासवर्ड डालो।';
+  }
+
+  @override
+  String get linkedAccountsScreenPillChecking => 'जांच जारी';
+
+  @override
+  String get linkedAccountsScreenPillLinked => 'लिंक्ड';
+
+  @override
+  String get linkedAccountsScreenPillNotLinked => 'लिंक नहीं';
+
+  @override
+  String get linkedAccountsScreenCallSheetVoiceLabel => 'वॉइस';
+
+  @override
+  String get linkedAccountsScreenCallSheetVideoLabel => 'वीडियो';
+
+  @override
+  String get linkedAccountsScreenCallSheetTitle => 'कॉल शुरू करो';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneTitle => 'सबको कॉल करो';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle =>
+      'इस रूम के सभी सदस्यों को रिंग करो';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleTitle => 'लोग चुनो';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle =>
+      'किसे बुलाना है, चुनो';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallFullError =>
+      'यह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartFailedError =>
+      'कॉल शुरू नहीं हो सकी';
+
+  @override
+  String get linkedAccountsScreenCallSheetInviteTitle => 'कॉल में इनवाइट करो';
+
+  @override
+  String get linkedAccountsScreenCallSheetNoOtherMembers =>
+      'यहाँ कोई और सदस्य नहीं है';
+
+  @override
+  String get linkedAccountsScreenCallSheetSelectPeople => 'लोगों को चुनो';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartCallLabel => 'कॉल शुरू करो';
+
+  @override
+  String linkedAccountsScreenCallSheetStartCallCount(Object count) {
+    return 'कॉल शुरू करो ($count)';
+  }
+
+  @override
+  String get childPairScreenGreetingLine1 => 'हैलो';
+
+  @override
+  String get childPairScreenGreetingLine2 => 'तुम।';
+
+  @override
+  String get childPairScreenIntro =>
+      'किसी बड़े से MonkeyHub खोलने और “डिवाइस पेयर करें” पर टैप करने के लिए कहो। फिर उनका कोड स्कैन करो, या वे जो छह अंक बताएं, उन्हें टाइप करो।';
+
+  @override
+  String get childPairScreenOrDivider => 'या';
+
+  @override
+  String get childPairScreenGenericError =>
+      'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
+
+  @override
+  String get childPairScreenAccountGoneError => 'वह अकाउंट अब मौजूद नहीं है।';
+
+  @override
+  String get childPairScreenScanButtonLabel => 'उनका कोड स्कैन करो';
+
+  @override
+  String get childPairScreenNoCameraMessage =>
+      'यहाँ कैमरा नहीं है — इसके बजाय छह अंक टाइप करो।';
+
+  @override
+  String get childPairScreenStopScanning => 'स्कैनिंग रोको';
+
+  @override
+  String get childPairScreenSubmitButtonLabel => 'मुझे अंदर आने दो';
+
+  @override
+  String get childPairScreenBackToSignIn => '← साइन इन पर वापस';
+
+  @override
+  String get fileMessageUnavailable => 'फ़ाइल अब उपलब्ध नहीं है';
+
+  @override
+  String get fileMessageOpenFailed => 'वह फ़ाइल नहीं खुल सकी';
+
+  @override
+  String get fileMessageDefaultName => 'दस्तावेज़';
+
+  @override
+  String fileMessageSaveSemanticLabel(Object name) {
+    return '$name सेव करो';
+  }
+
+  @override
+  String get fileMessageUploadFailedLabel => 'असफल';
+
+  @override
+  String get fileMessageSendingLabel => 'भेजा जा रहा है…';
+
+  @override
+  String fileMessageSizeSendingLabel(Object size) {
+    return '$size · भेजा जा रहा है…';
+  }
+
+  @override
+  String fileMessageAgoMinutes(Object count) {
+    return '$countमि पहले';
+  }
+
+  @override
+  String fileMessageAgoHours(Object count) {
+    return '$countघं पहले';
+  }
+
+  @override
+  String fileMessageAgoDays(Object count) {
+    return '$countदि पहले';
+  }
+
+  @override
+  String get fileMessageStandardBadge => 'सामान्य';
+
+  @override
+  String fileMessageDraftMessagesTapToView(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ड्राफ़्ट मैसेज मिले हैं · देखने के लिए टैप करो',
+      one: '$count ड्राफ़्ट मैसेज मिला है · देखने के लिए टैप करो',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageApproveButton => 'स्वीकार करो';
+
+  @override
+  String get fileMessageDeclineButton => 'अस्वीकार करो';
+
+  @override
+  String fileMessageSentAgoLabel(Object ago) {
+    return '$ago भेजा गया';
+  }
+
+  @override
+  String fileMessageMessagesPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count भेजे मैसेज पेंडिंग हैं',
+      one: '$count भेजा मैसेज पेंडिंग है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageCancelRequestButton => 'अनुरोध रद्द करो';
+
+  @override
+  String get destructiveSheetCannotBeUndone => 'इसे पूर्ववत नहीं किया जा सकता';
+
+  @override
+  String get destructiveSheetCancelSemanticLabel => 'रद्द करें';
+
+  @override
+  String get destructiveSheetCancelButtonLabel => 'रद्द करें';
+
+  @override
+  String get destructiveSheetHideLabel => 'छिपाएं';
+
+  @override
+  String get destructiveSheetViewLabel => 'देखें';
+
+  @override
+  String get destructiveSheetPairingMintError =>
+      'कोड नहीं बन पाया — फिर से कोशिश करो।';
+
+  @override
+  String get destructiveSheetPairingReleaseTitle => 'रिलीज़';
+
+  @override
+  String get destructiveSheetPairingPairTitle => 'पेयर';
+
+  @override
+  String destructiveSheetPairingReleaseInstructions(Object name) {
+    return '$name के फ़ोन पर उनकी प्रोफ़ाइल खोलो, “यह फ़ोन वापस दो” पर टैप करो, और ये नंबर टाइप करो।';
+  }
+
+  @override
+  String destructiveSheetPairingPairInstructions(Object name) {
+    return '$name के फ़ोन पर MonkeyHub खोलो और इसे स्कैन करो — या नंबर टाइप करो।';
+  }
+
+  @override
+  String get destructiveSheetPairingCodeExpired => 'यह कोड एक्सपायर हो चुका है';
+
+  @override
+  String destructiveSheetPairingExpiresIn(Object time) {
+    return '$time में एक्सपायर होगा';
+  }
+
+  @override
+  String get destructiveSheetPairingNewCodeButton => 'नया कोड';
+
+  @override
+  String get destructiveSheetPairingOneUseNote =>
+      'सिर्फ़ एक बार इस्तेमाल के लिए। नया कोड बनाने पर पुराना कोड रद्द हो जाएगा।';
+
+  @override
+  String get deepOceanThemeAttachButtonLabel => 'अटैच करें';
+
+  @override
+  String get deepOceanThemeCameraButtonLabel => 'कैमरा';
+
+  @override
+  String get deepOceanThemeSendButtonLabel => 'भेजें';
+
+  @override
+  String get deepOceanThemeEphemeralHint =>
+      'कुछ फुसफुसाओ जिसे सर्वर भूल जाएगा…';
+
+  @override
+  String get deepOceanThemeDefaultHint => 'कुछ कहो…';
+
+  @override
+  String get deepOceanThemeMessageHint => 'मैसेज';
+
+  @override
+  String photoChromeMediaPositionLabel(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get photoChromeMediaGoneLabel => 'यह फ़ाइल गायब है';
+
+  @override
+  String get photoChromeMediaYouLabel => 'तुम';
+
+  @override
+  String get photoChromeCloseSemanticLabel => 'बंद करें';
+
+  @override
+  String get photoChromeShowInChatSemanticLabel => 'चैट में दिखाएं';
+
+  @override
+  String typingIndicatorOnePersonTyping(Object name) {
+    return '$name टाइप कर रहे हैं';
+  }
+
+  @override
+  String typingIndicatorTwoPeopleTyping(Object name1, Object name2) {
+    return '$name1 और $name2 टाइप कर रहे हैं';
+  }
+
+  @override
+  String typingIndicatorManyPeopleTyping(
+    Object extra,
+    Object name1,
+    Object name2,
+  ) {
+    return '$name1, $name2 +$extra टाइप कर रहे हैं';
+  }
+
+  @override
+  String get typingIndicatorUnknownCallerFallbackName => 'इनकमिंग कॉल';
+
+  @override
+  String get typingIndicatorIncomingVideoCallLabel => 'इनकमिंग वीडियो कॉल';
+
+  @override
+  String get typingIndicatorIncomingVoiceCallLabel => 'इनकमिंग वॉइस कॉल';
+
+  @override
+  String get typingIndicatorDeclineButtonLabel => 'अस्वीकार करें';
+
+  @override
+  String get typingIndicatorDeclineButtonDeclining => 'अस्वीकार हो रहा है…';
+
+  @override
+  String get typingIndicatorAcceptButtonLabel => 'स्वीकार करें';
+
+  @override
+  String get typingIndicatorAcceptButtonConnecting => 'कनेक्ट हो रहा है…';
+
+  @override
+  String get messageStampNavigationTitle => 'नेविगेशन.';
+
+  @override
+  String get messageStampNavigationSubtitle =>
+      'तुम चैट, डिस्कवर, फ़ीड और सेटिंग्स के बीच कैसे स्विच करते हो';
+
+  @override
+  String get messageStampRadialOrbLabel => 'रेडियल गोला';
+
+  @override
+  String get messageStampRadialOrbDescription =>
+      'कोने पर दबाकर रखो + खींचो। इस्तेमाल में न होने पर शांत, एक इशारा जो धीरे-धीरे अपना लगने लगे।';
+
+  @override
+  String get messageStampBottomPillLabel => 'निचला कैप्सूल';
+
+  @override
+  String get messageStampBottomPillDescription =>
+      'क्लासिक टैप। हमेशा दिखता है, सीखने की कोई ज़रूरत नहीं।';
+
+  @override
+  String get messageStampActiveLabel => 'सक्रिय';
+
+  @override
+  String get messageStampUploadingLabel => 'अपलोड हो रहा है';
+
+  @override
+  String get messageStampSendingLabel => 'भेजा जा रहा है';
+
+  @override
+  String get messageStampFailedToSendLabel => 'भेजने में विफल';
+
+  @override
+  String get messageStampSeenLabel => 'देखा गया';
+
+  @override
+  String messageStampCountdownSeconds(Object count) {
+    return '$countसे';
+  }
+
+  @override
+  String messageStampCountdownMinutes(Object count) {
+    return '$countमि';
+  }
+
+  @override
+  String get voiceRecorderScreenMicPermissionDeniedSnackbar =>
+      'माइक्रोफ़ोन की अनुमति नहीं मिली';
+
+  @override
+  String get voiceRecorderScreenStatusRecording => 'रिकॉर्डिंग';
+
+  @override
+  String get voiceRecorderScreenStatusReady => 'तैयार';
+
+  @override
+  String get voiceRecorderScreenStatusTapToStart => 'शुरू करने के लिए टैप करो';
+
+  @override
+  String get voiceRecorderScreenReRecordButton => 'दोबारा रिकॉर्ड करो';
+
+  @override
+  String get voiceRecorderScreenStopButton => 'रोको';
+
+  @override
+  String get voiceRecorderScreenSendButton => 'भेजो';
+
+  @override
+  String get voiceRecorderScreenRecordButton => 'रिकॉर्ड करो';
+
+  @override
+  String get cyberpunkThemeMentionPickerEveryoneTitle => 'सभी';
+
+  @override
+  String get cyberpunkThemeMentionPickerNotifiesAllBadge =>
+      'सभी को सूचित करेगा';
+
+  @override
+  String get cyberpunkThemeMentionPickerOwnerBadge => 'मालिक';
+
+  @override
+  String get releaseDeviceScreenFallbackChildName => 'बच्चे';
+
+  @override
+  String releaseDeviceScreenIntro(Object name) {
+    return 'यह $name को इस फ़ोन से साइन आउट कर देता है और फ़ोन वापस कर देता है — फ़ोन सामान्य साइन-इन स्क्रीन पर लौट आता है, और कोई भी इसे इस्तेमाल कर सकता है।';
+  }
+
+  @override
+  String get releaseDeviceScreenAccountKeptNote =>
+      'उनका अकाउंट, मैसेज और दोस्त सब कुछ सुरक्षित रहता है। उन्हें कभी भी दोबारा साइन इन किया जा सकता है।';
+
+  @override
+  String releaseDeviceScreenAskGrownUp(Object name) {
+    return 'किसी बड़े से कहो — MonkeyHub खोलें, परिवार में $name को ढूंढें, और “रिलीज़” पर टैप करें।';
+  }
+
+  @override
+  String get releaseDeviceScreenOrDivider => 'या';
+
+  @override
+  String get releaseDeviceScreenOnePhoneNote =>
+      'अगर सिर्फ़ यही एक फ़ोन है, तो कोई बड़ा यहीं साइन इन कर सकता है।';
+
+  @override
+  String get releaseDeviceScreenUsernameHint => 'किसी बड़े का यूज़रनेम';
+
+  @override
+  String get releaseDeviceScreenPasswordHint => 'उनका पासवर्ड';
+
+  @override
+  String get releaseDeviceScreenSignOutSemanticLabel => 'साइन आउट करो';
+
+  @override
+  String get releaseDeviceScreenChecking => 'जांच हो रही है…';
+
+  @override
+  String releaseDeviceScreenSignOutButton(Object name) {
+    return '$name को साइन आउट करो';
+  }
+
+  @override
+  String get releaseDeviceScreenHeaderTitle => 'यह फ़ोन वापस दे दो';
+
+  @override
+  String get releaseDeviceScreenErrorCodeExpired =>
+      'वह कोड ख़त्म हो चुका है। नया कोड माँगो।';
+
+  @override
+  String get releaseDeviceScreenErrorCodeInvalid =>
+      'वह कोड काम नहीं आया। हो सकता है वह पहले ही इस्तेमाल हो चुका हो।';
+
+  @override
+  String get releaseDeviceScreenErrorNotAGuardian =>
+      'वह काम नहीं हुआ। यूज़रनेम और पासवर्ड जांच लो।';
+
+  @override
+  String get releaseDeviceScreenErrorGeneric =>
+      'कुछ गड़बड़ हो गई। फिर से कोशिश करो।';
+
+  @override
+  String get activeCallPillMoveHereSemanticLabel =>
+      'कॉल को इस डिवाइस पर ले जाना';
+
+  @override
+  String activeCallPillCallWith(Object name) {
+    return '$name के साथ कॉल';
+  }
+
+  @override
+  String activeCallPillOnDevice(Object device) {
+    return '$device पर';
+  }
+
+  @override
+  String get activeCallPillMoveHereLabel => 'यहाँ ले जाओ';
+
+  @override
+  String get activeCallPillUnknownCaller => 'अज्ञात';
+
+  @override
+  String get activeCallPillPlatformIphone => 'iPhone';
+
+  @override
+  String get activeCallPillPlatformIosSimulator => 'iOS सिम्युलेटर';
+
+  @override
+  String get activeCallPillPlatformAndroid => 'Android डिवाइस';
+
+  @override
+  String get activeCallPillPlatformMac => 'Mac';
+
+  @override
+  String get activeCallPillPlatformWindows => 'Windows पीसी';
+
+  @override
+  String get activeCallPillPlatformLinux => 'Linux डिवाइस';
+
+  @override
+  String get activeCallPillPlatformBrowser => 'ब्राउज़र';
+
+  @override
+  String get activeCallPillPlatformOther => 'कोई और डिवाइस';
+
+  @override
+  String get activeCallPillPinnedHeader => 'पिन किए गए';
+
+  @override
+  String activeCallPillPinnedHeaderCount(Object count) {
+    return 'पिन किए गए · $count';
+  }
+
+  @override
+  String get activeCallPillNothingPinned => 'अब कुछ भी पिन नहीं है';
+
+  @override
+  String activeCallPillJumpToMessageSemanticLabel(Object name) {
+    return '$name के मैसेज पर जाना';
+  }
+
+  @override
+  String activeCallPillUnpinMessageSemanticLabel(Object name) {
+    return '$name के मैसेज से पिन हटाना';
+  }
+
+  @override
+  String get callButtonErrorBusy => 'किसी और कॉल में व्यस्त';
+
+  @override
+  String get callButtonErrorCallFailed => 'कॉल शुरू नहीं हो सकी';
+
+  @override
+  String get callButtonErrorNotMember => 'इस रूम के सदस्य नहीं हो';
+
+  @override
+  String get callButtonErrorGeneric => 'कॉल शुरू नहीं हो सकी';
+
+  @override
+  String get callButtonAlreadyOnCall => 'तुम पहले से ही कॉल पर हो';
+
+  @override
+  String get callButtonBusyElsewhere => 'दूसरे डिवाइस पर कॉल चल रही है';
+
+  @override
+  String get callButtonVoiceCallTooltip => 'वॉइस कॉल';
+
+  @override
+  String get callButtonVideoCallTooltip => 'वीडियो कॉल';
+
+  @override
+  String get callButtonTooltip => 'कॉल';
+
+  @override
+  String get callButtonReplyStyleTitle => 'रिप्लाई स्टाइल.';
+
+  @override
+  String get callButtonReplyStyleSubtitle =>
+      'रिप्लाई अपने मूल मैसेज को कैसे दिखाता है';
+
+  @override
+  String get callButtonReplyStylePhantomEchoLabel => 'फीकी गूंज';
+
+  @override
+  String get callButtonReplyStylePhantomEchoDescription =>
+      'पैरेंट का फीका बबल ऊपर तैरता है, घुमावदार कनेक्टर और जोड़ बिंदु पर ब्रांच आइकन के साथ।';
+
+  @override
+  String get callButtonReplyStyleStickyNoteLabel => 'स्टिकी नोट';
+
+  @override
+  String get callButtonReplyStyleStickyNoteDescription =>
+      'एक थोड़ा घुमाया हुआ पोलेरॉइड-स्टाइल कार्ड, बबल के कोने पर क्लिप किया हुआ।';
+
+  @override
+  String get callButtonReplyStyleComicTailLabel => 'कॉमिक नोक';
+
+  @override
+  String get callButtonReplyStyleComicTailDescription =>
+      'पैरेंट का एक छोटा बबल, जिसमें नीचे की ओर इशारा करती कॉमिक-बुक त्रिकोणी नोक है।';
+
+  @override
+  String get callButtonReplyStyleClassicLabel => 'क्लासिक';
+
+  @override
+  String get callButtonReplyStyleClassicDescription =>
+      'एक्सेंट-रंगी कोट कैप्सूल, डोरी बार और अवतार के साथ — वही जाना-पहचाना व्हाट्सएप-स्टाइल लुक।';
+
+  @override
+  String get callButtonReplyStyleActiveBadge => 'सक्रिय';
+
+  @override
+  String get callButtonReplyPreviewSampleMessage => 'अरे, नया डेमो देखा क्या?';
+
+  @override
+  String get callButtonReplyPreviewSampleReply => 'हां, वो ब्लर एकदम कमाल है।';
+
+  @override
+  String get childSetupScreenErrorPickUsername => 'उनके लिए यूज़रनेम चुनो।';
+
+  @override
+  String get childSetupScreenErrorUsernameTaken =>
+      'यह यूज़रनेम पहले से लिया जा चुका है।';
+
+  @override
+  String get childSetupScreenErrorChildNotAllowed =>
+      'सिर्फ बड़ों का अकाउंट ही बच्चा जोड़ सकता है।';
+
+  @override
+  String get childSetupScreenErrorGeneric =>
+      'अकाउंट नहीं बन सका — फिर से कोशिश करो।';
+
+  @override
+  String get childSetupScreenTitle => 'बच्चा जोड़ो';
+
+  @override
+  String get childSetupScreenHeading => 'कौन\nहैं ये?';
+
+  @override
+  String get childSetupScreenNameLabel => 'नाम';
+
+  @override
+  String get childSetupScreenNameHint => 'तुम उन्हें क्या बुलाते हो';
+
+  @override
+  String get childSetupScreenUsernameLabel => 'यूज़रनेम';
+
+  @override
+  String get childSetupScreenUsernameHint => 'दोस्त उन्हें कैसे ढूंढेंगे';
+
+  @override
+  String get childSetupScreenWhatTheyGetTitle => 'उन्हें क्या मिलता है';
+
+  @override
+  String get childSetupScreenBulletTalkImmediately =>
+      'वो अभी से तुमसे और अपने भाई-बहनों से बात कर सकते हैं।';
+
+  @override
+  String get childSetupScreenBulletNeedsApproval =>
+      'बाकी सबके लिए पहले तुम्हारी मंज़ूरी ज़रूरी है — चाहे वो किसी को जोड़ने की रिक्वेस्ट भेजें, या कोई उन्हें जोड़ने की रिक्वेस्ट भेजे।';
+
+  @override
+  String get childSetupScreenBulletPublicRoomsOff =>
+      'पब्लिक रूम्स तब तक बंद रहते हैं जब तक तुम उन्हें ऑन नहीं करते।';
+
+  @override
+  String get childSetupScreenBulletCantSignOut =>
+      'वो साइन आउट नहीं कर सकते, और तुम हमेशा देख सकते हो कि वो कैसे कर रहे हैं।';
+
+  @override
+  String get childSetupScreenCreateButton => 'बनाओ + पेयर करो';
+
+  @override
+  String childSetupScreenFriendRowMessageSemanticLabel(Object name) {
+    return '$name को मैसेज करो';
+  }
+
+  @override
+  String get childSetupScreenWaitingPillAskedLabel => 'रिक्वेस्ट भेजी';
+
+  @override
+  String get childSetupScreenMemberCountUnitLabel => 'सदस्य';
+
+  @override
+  String childSetupScreenSeeAllLabel(Object count) {
+    return 'सभी $count देखो';
+  }
+
+  @override
+  String childSetupScreenSeeAllSemanticLabel(Object count) {
+    return 'सभी $count देखो';
+  }
+
+  @override
+  String get bubbleStyleScreenTitle => 'बबल स्टाइल.';
+
+  @override
+  String get bubbleStyleScreenSubtitle =>
+      'वो शक्ल जिसमें तुम्हारे शब्द पहुंचते हैं';
+
+  @override
+  String get bubbleStyleScreenTailedLabel => 'नोकदार';
+
+  @override
+  String get bubbleStyleScreenTailedDescription =>
+      'नोक हर मैसेज-समूह को बंद करती है; उसके ऊपर की पंक्तियां एक ब्लॉक में सिमट जाती हैं।';
+
+  @override
+  String get bubbleStyleScreenSoftLabel => 'मुलायम';
+
+  @override
+  String get bubbleStyleScreenSoftDescription =>
+      'कोई नोक नहीं — सिलसिला बस अपने कसे हुए भीतरी कोनों से जुड़ा रहता है।';
+
+  @override
+  String get bubbleStyleScreenPillLabel => 'कैप्सूल';
+
+  @override
+  String get bubbleStyleScreenPillDescription =>
+      'पूरी तरह गोल कैप्सूल — हर पंक्ति में एक जैसे।';
+
+  @override
+  String get bubbleStyleScreenSlabLabel => 'स्लैब';
+
+  @override
+  String get bubbleStyleScreenSlabDescription =>
+      'चौकोर कोने — तीखे, छपे जैसे, सोच-समझकर बनाए गए।';
+
+  @override
+  String get bubbleStyleScreenActiveBadge => 'सक्रिय';
+
+  @override
+  String get bubbleStyleScreenPreviewQuestion => 'तो? कैसा लग रहा है?';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyOne => 'बेहतर';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyTwo => 'और बेहतर';
+
+  @override
+  String get bubbleStyleScreenMediaTileVideoSemanticLabel => 'वीडियो';
+
+  @override
+  String get bubbleStyleScreenMediaTilePhotoSemanticLabel => 'फ़ोटो';
+
+  @override
+  String get incomingGroupCallScreenCallFullError =>
+      'यह कॉल पहले से फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+
+  @override
+  String get incomingGroupCallScreenJoinFailedError =>
+      'इस कॉल में शामिल नहीं हो पाए';
+
+  @override
+  String get incomingGroupCallScreenDefaultRoomName => 'ग्रुप कॉल';
+
+  @override
+  String get incomingGroupCallScreenDefaultStarterName => 'कोई';
+
+  @override
+  String incomingGroupCallScreenStartedVideoCall(Object starter) {
+    return '$starter ने वीडियो कॉल शुरू की';
+  }
+
+  @override
+  String incomingGroupCallScreenStartedVoiceCall(Object starter) {
+    return '$starter ने वॉइस कॉल शुरू की';
+  }
+
+  @override
+  String incomingGroupCallScreenAlreadyJoinedCount(Object count) {
+    return '$count पहले से मौजूद';
+  }
+
+  @override
+  String get incomingGroupCallScreenDismissButton => 'अस्वीकार करें';
+
+  @override
+  String get incomingGroupCallScreenJoinButton => 'जॉइन करें';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChatsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट',
+      one: '$count चैट',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetMessagesCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count मैसेज',
+      one: '$count मैसेज',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
+      'आख़िरी मैसेज अभी-अभी';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
+    Object hours,
+  ) {
+    return 'आख़िरी मैसेज $hours घंटे पहले';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
+      'आख़िरी मैसेज कल';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
+    Object days,
+  ) {
+    return 'आख़िरी मैसेज $days दिन पहले';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
+      'आख़िरी मैसेज काफ़ी पहले';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetTitleBadge => 'वापस लें';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetHeadline(
+    Object childName,
+    Object contactName,
+  ) {
+    return '$contactName को $childName से हटाना है?';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
+      'वे एक-दूसरे से संपर्क नहीं कर पाएँगे, और उनकी बातचीत भी साथ में मिट जाएगी।';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
+    Object contactName,
+  ) {
+    return 'वे एक-दूसरे से संपर्क नहीं कर पाएँगे। $contactName को इसका पता नहीं चलेगा।';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
+    Object chats,
+    Object messages,
+  ) {
+    return '$chats · $messages डिलीट हो जाएँगे';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
+      'दोनों की तरफ़ से हमेशा के लिए मिट जाएगा — फ़ोटो और वॉइस नोट्स समेत। इसे वापस नहीं लाया जा सकता।';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
+    num count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'वे $count रूम भी शेयर करते हैं',
+      one: 'वे $count रूम भी शेयर करते हैं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
+      'ये बने रहेंगे। अगर इन्हें निकालना है तो नीचे रूम्स लिस्ट से रूम वापस ले लो।';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
+      'वापस लो और डिलीट करो';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
+    Object contactName,
+    Object messages,
+  ) {
+    return '$contactName को हटा देता है और $messages मिटा देता है।';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
+    Object contactName,
+  ) {
+    return '$contactName को अनुमति सूची से हटा देता है।';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
+      'रद्द करो';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelButton =>
+      'रद्द करो';
+
+  @override
+  String get groupCallBannerCallFullError =>
+      'वह कॉल फुल है (ज़्यादा से ज़्यादा 6 लोग)';
+
+  @override
+  String get groupCallBannerJoinFailedError => 'कॉल जॉइन नहीं हो सकी';
+
+  @override
+  String get groupCallBannerUnknownParticipant => 'कोई';
+
+  @override
+  String get groupCallBannerOngoingVideoCall => 'चल रही वीडियो कॉल';
+
+  @override
+  String get groupCallBannerOngoingVoiceCall => 'चल रही वॉइस कॉल';
+
+  @override
+  String groupCallBannerParticipantsInCall(Object extra, Object names) {
+    return '$names$extra कॉल में';
+  }
+
+  @override
+  String get groupCallBannerJoinCallSemanticLabel => 'कॉल जॉइन करो';
+
+  @override
+  String get groupCallBannerJoinButtonLabel => 'जॉइन';
+
+  @override
+  String get groupCallBannerJoinRoomSheetTitle => 'रूम जॉइन करो';
+
+  @override
+  String groupCallBannerMemberCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count सदस्य',
+      one: '$count सदस्य',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupCallBannerPasswordFieldLabel => 'पासवर्ड';
+
+  @override
+  String get groupCallBannerPasswordHint => 'पासफ़्रेज़…';
+
+  @override
+  String get groupCallBannerJoinRoomButtonSemanticLabel => 'जॉइन करो';
+
+  @override
+  String get groupCallBannerJoinRoomButtonLabel => 'जॉइन';
+
+  @override
+  String get groupCallBannerCancelButtonSemanticLabel => 'रद्द करो';
+
+  @override
+  String get groupCallBannerCancelButtonLabel => 'रद्द करो';
+
+  @override
+  String get viewOnceViewerBadgeLabel => 'एक बार देखो';
+
+  @override
+  String get viewOnceViewerSocialDividerOr => 'या';
+
+  @override
+  String get viewOnceViewerAppleContinueButton => 'Apple के साथ जारी रखें';
+
+  @override
+  String get viewOnceViewerGoogleContinueButton => 'Google से जारी रखें';
+
+  @override
+  String get discoverListsPeopleTitle => 'तुम्हारे लोग.';
+
+  @override
+  String discoverListsPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count लोग',
+      one: '$count व्यक्ति',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterHint => 'अपने लोगों को फ़िल्टर करो…';
+
+  @override
+  String get discoverListsClearFilterSemanticLabel => 'फ़िल्टर हटाओ';
+
+  @override
+  String get discoverListsNoOneYet => 'अभी तक कोई नहीं';
+
+  @override
+  String discoverListsNoMatches(Object query) {
+    return '\"$query\" से कोई मेल नहीं खाता';
+  }
+
+  @override
+  String get discoverListsVoiceCallLabel => 'वॉइस कॉल';
+
+  @override
+  String get discoverListsVideoCallLabel => 'वीडियो कॉल';
+
+  @override
+  String get approvalGateAlreadyAskedLabel => 'पहले से पूछा गया';
+
+  @override
+  String get approvalGateAskGrownUpLabel => 'किसी बड़े से पूछो';
+
+  @override
+  String approvalGateAlreadyAskedBody(Object what) {
+    return 'तुम $what के बारे में पहले ही पूछ चुके हो।';
+  }
+
+  @override
+  String approvalGateNeedApprovalBody(Object what) {
+    return '$what से पहले तुम्हें किसी बड़े की हाँ चाहिए।';
+  }
+
+  @override
+  String get approvalGateDisabledBody =>
+      'किसी बड़े ने फ़िलहाल इसे बंद कर रखा है।';
+
+  @override
+  String get approvalGateAlreadyAskedFooter =>
+      'उन्हें इसके बारे में मैसेज मिल जाएगा। थोड़ी देर बाद फिर देखो।';
+
+  @override
+  String get approvalGateWillNotifyFooter =>
+      'हम उन्हें बता देंगे। जवाब मिलते ही तुम्हें यहाँ दिख जाएगा।';
+
+  @override
+  String get approvalGateTalkToThemFooter =>
+      'अगर तुम्हें लगता है कि इसे बदलना चाहिए, तो तुम उनसे इस बारे में बात कर सकते हो।';
+
+  @override
+  String get approvalGateAskButton => 'पूछो';
+
+  @override
+  String get approvalGateNotNowButton => 'अभी नहीं';
+
+  @override
+  String get approvalGateOkButton => 'ठीक है';
+
+  @override
+  String get approvalGateWaitingPillLabel => 'किसी बड़े का इंतज़ार';
+
+  @override
+  String get reportSheetTitle => 'रिपोर्ट';
+
+  @override
+  String get reportSheetSubtitle => 'हमें बताओ, क्या गड़बड़ है।';
+
+  @override
+  String get reportSheetPrivacyNote =>
+      'रिपोर्ट निजी होती है — दूसरे व्यक्ति को पता नहीं चलता।';
+
+  @override
+  String get reportSheetReasonSpamLabel => 'स्पैम';
+
+  @override
+  String get reportSheetReasonSpamDescription =>
+      'अनचाहे विज्ञापन या बार-बार भेजे गए मैसेज';
+
+  @override
+  String get reportSheetReasonHarassmentLabel => 'उत्पीड़न';
+
+  @override
+  String get reportSheetReasonHarassmentDescription =>
+      'निशाना बनाना या तंग करना';
+
+  @override
+  String get reportSheetReasonImpersonationLabel => 'नकली पहचान';
+
+  @override
+  String get reportSheetReasonImpersonationDescription =>
+      'किसी और होने का दिखावा करना';
+
+  @override
+  String get reportSheetReasonInappropriateLabel => 'अनुचित';
+
+  @override
+  String get reportSheetReasonInappropriateDescription =>
+      'यौन, हिंसक, या अवैध कंटेंट';
+
+  @override
+  String get reportSheetReasonOtherLabel => 'अन्य';
+
+  @override
+  String get reportSheetReasonOtherDescription => 'कुछ और';
+
+  @override
+  String get reportSheetOtherNoteHint => 'क्या हुआ?';
+
+  @override
+  String get reportSheetSubmitSemanticLabel => 'रिपोर्ट सबमिट करें';
+
+  @override
+  String get reportSheetSubmitButton => 'सबमिट करो';
+
+  @override
+  String get reportSheetUpdateRequiredTitle => 'अपडेट ज़रूरी';
+
+  @override
+  String get reportSheetUpdateAvailableTitle => 'अपडेट उपलब्ध';
+
+  @override
+  String get reportSheetUpdateMandatoryBody =>
+      'यह वर्ज़न अब ठीक से काम करने के लिए बहुत पुराना हो चुका है। आगे बढ़ने के लिए अपडेट करो।';
+
+  @override
+  String get reportSheetUpdateAvailableBody =>
+      'MonkeyHub का एक नया वर्ज़न उपलब्ध है।';
+
+  @override
+  String reportSheetUpdateVersionArrow(
+    Object currentVersion,
+    Object newVersion,
+  ) {
+    return 'v$currentVersion → v$newVersion';
+  }
+
+  @override
+  String get reportSheetUpdateButtonTitle => 'अपडेट करो';
+
+  @override
+  String get reportSheetUpdateActionOpensTestflight => 'TestFlight खुलेगा';
+
+  @override
+  String get reportSheetUpdateActionOpensAppStore => 'App Store खुलेगा';
+
+  @override
+  String get reportSheetUpdateActionOpensGooglePlay => 'Google Play खुलेगा';
+
+  @override
+  String get reportSheetUpdateActionOpensDownloadPage => 'डाउनलोड पेज खुलेगा';
+
+  @override
+  String get reportSheetUpdateActionReloads => 'नए वर्शन के साथ रीलोड होगा';
+
+  @override
+  String get reportSheetUpdateLaterSemanticLabel => 'बाद में';
+
+  @override
+  String get reportSheetUpdateLaterButton => 'बाद में';
+
+  @override
+  String get roomFilterBarAllChipLabel => 'सभी';
+
+  @override
+  String roomFilterBarChipCountSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count चैट',
+      one: '$count चैट',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String composerReplyCardReplyingToLabel(Object name) {
+    return '$name को जवाब';
+  }
+
+  @override
+  String get roomCardLockedBadge => 'लॉक्ड';
+
+  @override
+  String get roomCardTimeAgoJustNow => 'अभी अभी';
+
+  @override
+  String roomCardTimeAgoSeconds(Object seconds) {
+    return '$secondsसे';
+  }
+
+  @override
+  String roomCardTimeAgoMinutes(Object minutes) {
+    return '$minutesमि';
+  }
+
+  @override
+  String roomCardTimeAgoHours(Object hours) {
+    return '$hoursघं';
+  }
+
+  @override
+  String roomCardTimeAgoDays(Object days) {
+    return '$daysदि';
+  }
+
+  @override
+  String roomCardTimeAgoWeeks(Object weeks) {
+    return '$weeksह';
+  }
+
+  @override
+  String roomCardMemberCount(Object count) {
+    return '$count अंदर';
+  }
+
+  @override
+  String get roomCardMessagesFadeLabel => 'मैसेज फीके होते हैं';
+
+  @override
+  String get roomCardEnterLabel => '↗ अंदर जाएं';
+
+  @override
+  String get roomCardBlockedScreenTitle => 'ब्लॉक्ड';
+
+  @override
+  String get roomCardBlockedEmptyState =>
+      'तुमने अभी तक किसी को ब्लॉक नहीं किया है।';
+
+  @override
+  String get roomCardUnblockButton => 'अनब्लॉक करें';
+
+  @override
+  String get attachmentMenuPhotoLabel => 'फोटो';
+
+  @override
+  String get attachmentMenuVideoLabel => 'वीडियो';
+
+  @override
+  String get attachmentMenuCameraLabel => 'कैमरा';
+
+  @override
+  String get attachmentMenuVoiceLabel => 'आवाज़';
+
+  @override
+  String get attachmentMenuFileLabel => 'फ़ाइल';
+
+  @override
+  String get attachmentMenuConnectionRetrying => 'फिर कोशिश हो रही है…';
+
+  @override
+  String get attachmentMenuConnectionCantReachServer =>
+      'सर्वर से कनेक्ट नहीं हो पा रहा · फिर कोशिश के लिए टैप करें';
+
+  @override
+  String get attachmentMenuConnectionReconnecting => 'फिर से कनेक्ट हो रहा है…';
+
+  @override
+  String get attachmentMenuConnectionRetrySemanticLabel => 'फिर से कनेक्ट करें';
+
+  @override
+  String get roomGridTileLockedBadge => 'लॉक्ड';
+
+  @override
+  String get roomGridTileEmptyLastMessage => 'अभी तक शांत है';
+
+  @override
+  String get roomGridTileMemberCountLabel => 'अंदर';
+
+  @override
+  String get roomGridTileThemeChipLabel => 'थीम';
+
+  @override
+  String get bulkActionBarCancelLabel => 'रद्द करें';
+
+  @override
+  String get bulkActionBarSelectMessagesLabel => 'मैसेज चुनें';
+
+  @override
+  String bulkActionBarSelectedCountLabel(num count) {
+    return '$count चुने गए';
+  }
+
+  @override
+  String get bulkActionBarForwardLabel => 'फ़ॉरवर्ड करें';
+
+  @override
+  String get bulkActionBarDeleteLabel => 'डिलीट करें';
+
+  @override
+  String get bulkActionBarJumpBackLabel => 'वापस';
+
+  @override
+  String bulkActionBarJumpBackLabelWithDepth(Object depth) {
+    return 'वापस · $depth';
+  }
+
+  @override
+  String get bulkActionBarJumpBackSemanticLabel =>
+      'जहाँ से आए थे, वहीं वापस जाएं';
+
+  @override
+  String bulkActionBarJumpBackSemanticLabelWithDepth(Object depth) {
+    return 'जहाँ से आए थे, वहीं वापस जाएं, $depth बाकी';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetNotNotifiedNote => 'उन्हें पता नहीं चलेगा।';
+
+  @override
+  String get bulkActionBarBlockSheetFriendWarning =>
+      'अभी तुम दोनों दोस्त हो — ब्लॉक करने पर दोस्ती खत्म हो जाएगी, तो बाद में दोबारा जुड़ने के लिए नई फ्रेंड रिक्वेस्ट भेजनी होगी।';
+
+  @override
+  String get bulkActionBarBlockSheetStrangerWarning =>
+      'वो तुम्हारी सर्च में नहीं दिखेंगे और तुम्हें मैसेज नहीं कर पाएंगे।';
+
+  @override
+  String get bulkActionBarBlockSheetHeaderLabel => 'ब्लॉक';
+
+  @override
+  String bulkActionBarBlockSheetTitle(Object name) {
+    return '$name को ब्लॉक करना है?';
+  }
+
+  @override
+  String bulkActionBarBlockSheetSharedRoomsHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'उनके साथ तुम्हारे $count रूम कॉमन हैं',
+      one: 'उनके साथ तुम्हारा $count रूम कॉमन है',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetSharedRoomsNote =>
+      'ये रूम वैसे ही बने रहेंगे। चाहो तो इनमें से किसी भी रूम को उसकी सेटिंग्स से खुद छोड़ सकते हो।';
+
+  @override
+  String get bulkActionBarBlockChoiceTileTitle => 'ब्लॉक करें';
+
+  @override
+  String get bulkActionBarBlockChoiceTileFriendSub =>
+      'दोस्ती हटेगी और ब्लॉक होगा। मौजूदा चैट हिस्ट्री तुम्हारे आर्काइव में रहेगी।';
+
+  @override
+  String get bulkActionBarBlockChoiceTileStrangerSub =>
+      'वो सर्च में नहीं दिखेंगे और तुम तक नहीं पहुंच पाएंगे।';
+
+  @override
+  String get bulkActionBarBlockDeleteDmTitle => 'ब्लॉक करें और डीएम डिलीट करें';
+
+  @override
+  String get bulkActionBarBlockDeleteDmSub =>
+      'तुम्हारी उनके साथ की डीएम भी मिट जाएगी — हर मैसेज, रिएक्शन और मीडिया फाइल हमेशा के लिए गायब हो जाएगी।';
+
+  @override
+  String get bulkActionBarBlockSheetCancelSemanticLabel => 'रद्द करें';
+
+  @override
+  String get bulkActionBarBlockSheetCancelLabel => 'रद्द करें';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogTitle =>
+      'आने वाली कॉल्स लॉक स्क्रीन पर दिखें';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogBody =>
+      'स्क्रीन बंद होने पर असली फोन कॉल की तरह बजने के लिए, MonkeyHub को \"फुल-स्क्रीन नोटिफिकेशन\" ऑन करना होगा। अगली स्क्रीन तुम्हें सीधे उस स्विच पर ले जाएगी।';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogTitle =>
+      'कभी कोई कॉल मिस मत करो';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogBody =>
+      'बैटरी बचाने के लिए कुछ फोन बैकग्राउंड में ऐप्स को रोक देते हैं, जिससे आने वाली कॉल्स की आवाज़ बंद हो सकती है। MonkeyHub को बिना रोक-टोक चलने दो ताकि कॉल्स हमेशा आएं।';
+
+  @override
+  String get bulkActionBarDialogNotNowButton => 'अभी नहीं';
+
+  @override
+  String get bulkActionBarDialogContinueButton => 'जारी रखें';
+
+  @override
+  String get reactionBubbleJumpToLatestLabel => 'लेटेस्ट पर जाएं';
+
+  @override
+  String get reactionBubbleJumpToLatestSemanticLabel => 'लेटेस्ट पर जाएं';
+
+  @override
+  String get reactionBubblePickerTitle => 'रिएक्ट करें';
+
+  @override
+  String get reactionBubbleNoRecentsPlaceholder =>
+      'अभी तक कोई रीसेंट इमोजी नहीं';
+
+  @override
+  String get reactionBubblePasswordHint => 'पासवर्ड';
+
+  @override
+  String enterPublicRoomJoinWhat(Object roomName) {
+    return '$roomName जॉइन करना';
+  }
+
+  @override
+  String get enterPublicRoomAskFailedMessage =>
+      'अभी रिक्वेस्ट नहीं भेज पाए — फिर से कोशिश करो';
+
+  @override
+  String get enterPublicRoomWrongPasswordMessage => 'गलत पासवर्ड';
+
+  @override
+  String get enterPublicRoomJoinFailedMessage =>
+      'जॉइन नहीं हो सका — दोबारा कोशिश करें';
+
+  @override
+  String get enterPublicRoomFeedTabLabel => 'फ़ीड';
+
+  @override
+  String get enterPublicRoomFeedHeadlineSoon => 'जल्द ही।\n';
+
+  @override
+  String get enterPublicRoomFeedHeadlineDetail =>
+      'रोज़ के पल,\nरूम्स के साथ शेयर किए हुए।';
+
+  @override
+  String get enterPublicRoomFeedPipelineLabel => 'पाइपलाइन में';
+
+  @override
+  String get enterPublicRoomFeedBulletPrompt =>
+      'रोज़ का एक सवाल, जिसका जवाब पूरा रूम देता है';
+
+  @override
+  String get enterPublicRoomFeedBulletVoiceNotes =>
+      'वॉइस नोट्स जो दिन के साथ अपने आप मिट जाते हैं';
+
+  @override
+  String get enterPublicRoomFeedBulletWallUpdates =>
+      'दोस्तों के छोटे-छोटे, धीमे अपडेट्स की एक वॉल';
+
+  @override
+  String get enterPublicRoomVisibilityPublicLabel => 'पब्लिक';
+
+  @override
+  String get enterPublicRoomVisibilityPrivateLabel => 'प्राइवेट';
+
+  @override
+  String get enterPublicRoomJoinedBadgeLabel => 'जॉइन किया हुआ';
+
+  @override
+  String enterPublicRoomEphemeralBadgeLabel(Object duration) {
+    return 'अस्थायी · $duration';
+  }
+
+  @override
+  String enterPublicRoomEphemeralSecondsShort(Object seconds) {
+    return '$secondsसे';
+  }
+
+  @override
+  String enterPublicRoomEphemeralMinutesShort(Object minutes) {
+    return '$minutesमि';
+  }
+
+  @override
+  String enterPublicRoomEphemeralHoursShort(Object hours) {
+    return '$hoursघं';
+  }
+
+  @override
+  String get countBadgeCaptureProtectionLabel => 'स्क्रीन कैप्चर सुरक्षा';
+
+  @override
+  String get countBadgeCaptureProtectionOnAndroidBody =>
+      'सिस्टम को स्क्रीनशॉट + स्क्रीन रिकॉर्डिंग में सब कुछ काला दिखता है।';
+
+  @override
+  String get countBadgeCaptureProtectionOnIosBody =>
+      'स्क्रीन रिकॉर्डिंग + मिररिंग करने पर ऐप पर एक प्राइवेसी शील्ड आ जाती है।';
+
+  @override
+  String get countBadgeCaptureProtectionOffBody =>
+      'अस्थायी रूम्स के बाहर स्क्रीनशॉट और रिकॉर्डिंग सामान्य रूप से काम करती हैं।';
+
+  @override
+  String get countBadgeCaptureProtectionForcedNote =>
+      'अस्थायी (चैंबर ऑफ़ सीक्रेट्स) रूम्स में यह हमेशा जबरन ऑन रहता है।';
+
+  @override
+  String get countBadgeShowPasswordTooltip => 'पासवर्ड दिखाएं';
+
+  @override
+  String get countBadgeHidePasswordTooltip => 'पासवर्ड छुपाएं';
+
+  @override
+  String get countBadgeProtectedLabel => 'सुरक्षित';
+
+  @override
+  String get countBadgeCaptureShieldActiveBody =>
+      'स्क्रीन रिकॉर्डिंग या मिररिंग चालू है।';
+
+  @override
+  String get countBadgeCaptureShieldReassurance =>
+      'रिकॉर्डिंग में तुम्हारी बातचीत नहीं दिखती।';
+
+  @override
+  String get linkOpenerCouldNotOpenLink => 'लिंक नहीं खुल सका';
+
+  @override
+  String get linkOpenerRecoveryBannerSemanticLabel => 'रिकवरी फ़्रेज़ सेट करें';
+
+  @override
+  String get linkOpenerRecoveryBannerMessage =>
+      'कोई रिकवरी फ़्रेज़ नहीं — तुम वापस अंदर नहीं आ पाओगे।';
+
+  @override
+  String get destinationsChatLabel => 'चैट';
+
+  @override
+  String get destinationsChatShort => 'चैट';
+
+  @override
+  String get destinationsDiscoverLabel => 'खोजें';
+
+  @override
+  String get destinationsDiscoverShort => 'ढूंढें';
+
+  @override
+  String get destinationsFeedLabel => 'फ़ीड';
+
+  @override
+  String get destinationsFeedShort => 'फ़ीड';
+
+  @override
+  String get destinationsSettingsLabel => 'सेटिंग्स';
+
+  @override
+  String get destinationsSettingsShort => 'सेट';
+
+  @override
+  String get familyRequestStageSenderGuardianLabel => 'बड़े का इंतज़ार';
+
+  @override
+  String get familyRequestStageRecipientLabel => 'उनका इंतज़ार';
+
+  @override
+  String get roomContentTabLabelMedia => 'मीडिया';
+
+  @override
+  String get roomContentTabLabelFiles => 'फ़ाइलें';
+
+  @override
+  String get roomContentTabLabelVoice => 'वॉइस';
+
+  @override
+  String get roomContentTabLabelLinks => 'लिंक्स';
+
+  @override
+  String get roomContentTabHeaderMedia => 'मीडिया';
+
+  @override
+  String get roomContentTabHeaderFiles => 'फ़ाइलें';
+
+  @override
+  String get roomContentTabHeaderVoice => 'वॉइस';
+
+  @override
+  String get roomContentTabHeaderLinks => 'लिंक्स';
+
+  @override
+  String get roomFacetLabelDms => 'डीएम';
+
+  @override
+  String get roomFacetLabelGroups => 'ग्रुप';
+
+  @override
+  String get roomFacetLabelPublic => 'सार्वजनिक';
+
+  @override
+  String get roomFacetLabelPrivate => 'निजी';
+
+  @override
+  String get roomFacetLabelSecret => 'गुप्त';
+
+  @override
+  String get roomFacetLabelLocked => 'लॉक';
+
+  @override
+  String get roomFacetLabelUnread => 'अपठित';
+
+  @override
+  String get roomFacetLabelMentions => 'मेंशन';
+
+  @override
+  String get settingsScreenTitle => 'सेटिंग्स';
+
+  @override
+  String get settingsScreenTagline => 'रूप. एहसास. तुम.';
+
+  @override
+  String get settingsScreenAccountHintChild =>
+      'प्रोफ़ाइल · प्राइवेसी · मेरे बड़े';
+
+  @override
+  String get settingsScreenAccountHintAdult =>
+      'प्रोफ़ाइल · परिवार · लिंक्ड अकाउंट्स · प्राइवेसी';
+
+  @override
+  String get settingsScreenSectionAppearance => 'दिखावट';
+
+  @override
+  String get settingsScreenSectionLayout => 'लेआउट';
+
+  @override
+  String get settingsScreenSectionGeneral => 'सामान्य';
+
+  @override
+  String get settingsScreenSectionLinks => 'लिंक्स';
+
+  @override
+  String get settingsScreenSectionNotifications => 'नोटिफिकेशन';
+
+  @override
+  String get settingsScreenRowTheme => 'थीम';
+
+  @override
+  String get settingsScreenRowAppLogo => 'ऐप लोगो';
+
+  @override
+  String get settingsScreenRowGlass => 'काँच';
+
+  @override
+  String get settingsScreenRowChatList => 'चैट लिस्ट';
+
+  @override
+  String get settingsScreenRowNavigation => 'नेविगेशन';
+
+  @override
+  String get settingsScreenRowChatStyle => 'चैट स्टाइल';
+
+  @override
+  String get settingsScreenRowBubbleStyle => 'बबल स्टाइल';
+
+  @override
+  String get settingsScreenRowReplyStyle => 'रिप्लाई स्टाइल';
+
+  @override
+  String get settingsScreenValueScrollList => 'स्क्रॉल लिस्ट';
+
+  @override
+  String get settingsScreenValueGridSheet => 'ग्रिड शीट';
+
+  @override
+  String get settingsScreenValueRadialOrb => 'रेडियल गोला';
+
+  @override
+  String get settingsScreenValueBottomPill => 'निचला कैप्सूल';
+
+  @override
+  String get settingsScreenValueCustom => 'कस्टम';
+
+  @override
+  String settingsScreenValueEdited(Object name) {
+    return '$name · संपादित';
+  }
+
+  @override
+  String get settingsScreenValueClassic => 'क्लासिक';
+
+  @override
+  String get settingsScreenValueCompact => 'कॉम्पैक्ट';
+
+  @override
+  String get settingsScreenValueBubbleTailed => 'नोकदार';
+
+  @override
+  String get settingsScreenValueBubbleSoft => 'मुलायम';
+
+  @override
+  String get settingsScreenValueBubblePill => 'कैप्सूल';
+
+  @override
+  String get settingsScreenValueBubbleSlab => 'स्लैब';
+
+  @override
+  String get settingsScreenValueReplyPhantomEcho => 'फीकी गूंज';
+
+  @override
+  String get settingsScreenValueReplyStickyNote => 'स्टिकी नोट';
+
+  @override
+  String get settingsScreenValueReplyComicTail => 'कॉमिक नोक';
+
+  @override
+  String get settingsScreenValueLogoAuto => 'ऑटो';
+
+  @override
+  String get settingsScreenValueLogoManual => 'मैनुअल';
+
+  @override
+  String get settingsScreenShowLinkUrlsLabel => 'लिंक यूआरएल दिखाएं';
+
+  @override
+  String get settingsScreenLinksUrlsOnBody =>
+      'प्रीव्यू कार्ड के साथ मूल यूआरएल भी दिखते हैं';
+
+  @override
+  String get settingsScreenLinksUrlsOffBody =>
+      'फिलहाल सिर्फ़ प्रीव्यू — साफ़-सुथरे बबल, खोलने के लिए टैप करें';
+
+  @override
+  String get settingsScreenPushNotificationsLabel => 'पुश नोटिफिकेशन';
+
+  @override
+  String get settingsScreenPushOnBody => 'नए मैसेज और रिक्वेस्ट के लिए पिंग';
+
+  @override
+  String get settingsScreenPushOffBody =>
+      'साइलेंट — ऐप खोलने पर ही चीज़ें दिखेंगी';
+
+  @override
+  String get authErrorUsernameTaken => 'यह यूज़रनेम पहले से मौजूद है।';
+
+  @override
+  String get authErrorUserNotFound => 'इस यूज़रनेम से कोई अकाउंट नहीं मिला।';
+
+  @override
+  String get authErrorWrongPassword => 'गलत पासवर्ड।';
+
+  @override
+  String get authErrorInvalidRecoveryKey =>
+      'यह यूज़रनेम और रिकवरी फ्रेज़ मेल नहीं खाते।';
+
+  @override
+  String get authErrorTooManyAttempts =>
+      'बहुत ज़्यादा कोशिशें हो गईं। 15 मिनट रुककर फिर कोशिश करें।';
+
+  @override
+  String get authErrorChildMustPair =>
+      'यह किसी बच्चे का अकाउंट है — पेयरिंग कोड के लिए किसी बड़े से मांगें।';
+
+  @override
+  String get authErrorPairingCodeExpired =>
+      'यह कोड ख़त्म हो चुका है। नया कोड मांगें।';
+
+  @override
+  String get authErrorPairingCodeInvalid =>
+      'यह कोड काम नहीं आया। हो सकता है यह पहले ही इस्तेमाल हो चुका हो।';
+
+  @override
+  String get authErrorUseSocialSignIn =>
+      'यह अकाउंट Apple या Google से साइन इन करता है — नीचे दिए बटन इस्तेमाल करें।';
+
+  @override
+  String get authErrorSocialTokenInvalid =>
+      'यह साइन-इन पूरा नहीं हो पाया। कृपया फिर कोशिश करें।';
+
+  @override
+  String get authErrorSocialNonceMismatch =>
+      'यह साइन-इन नहीं हो पाया। कृपया फिर से कोशिश करो।';
+
+  @override
+  String get authErrorSocialMisconfig =>
+      'साइन-इन अभी हमारी तरफ़ से सेट नहीं है। थोड़ी देर बाद कोशिश करो।';
+
+  @override
+  String get authErrorSocialLinkedToOtherAccount =>
+      'वह Apple या Google अकाउंट पहले से किसी दूसरे MonkeyHub अकाउंट से लिंक है।';
+
+  @override
+  String get authErrorSocialAlreadyLinked => 'वह पहले से इस अकाउंट से लिंक है।';
+
+  @override
+  String get authErrorSocialNotLinked => 'वह इस अकाउंट से लिंक नहीं है।';
+
+  @override
+  String get authErrorSocialLastCredential =>
+      'इस अकाउंट में जाने का यही इकलौता रास्ता है। पहले एक पासवर्ड सेट करो।';
+
+  @override
+  String get authErrorUsernameInvalid =>
+      '1 से 32 अक्षरों के बीच यूज़रनेम चुनो।';
+
+  @override
+  String get glassKnobLabelFrost => 'धुंधला';
+
+  @override
+  String get glassKnobHintFrost =>
+      'काँच पर कितनी सफ़ेदी है, कम करने पर आर-पार दिखता है';
+
+  @override
+  String get glassKnobLabelBlur => 'ब्लर';
+
+  @override
+  String get glassKnobHintBlur =>
+      'ऊपर की तरफ़ धुंधला काँच, नीचे की तरफ़ साफ़ काँच';
+
+  @override
+  String get glassKnobLabelSaturation => 'रंग फैलाव';
+
+  @override
+  String get glassKnobHintSaturation =>
+      'ब्लर के बाद कितना रंग बचता है। 2 से ज़्यादा पर पोस्टराइज़ हो जाता है';
+
+  @override
+  String get glassKnobLabelRimOpacity => 'किनारा';
+
+  @override
+  String get glassKnobHintRimOpacity =>
+      'किनारे की हाइलाइट रेखा। शून्य पर बॉर्डर-रहित सतह';
+
+  @override
+  String get glassKnobLabelRimWidth => 'किनारे की चौड़ाई';
+
+  @override
+  String get glassKnobHintRimWidth => 'उस रेखा की मोटाई';
+
+  @override
+  String get glassKnobLabelShadowOpacity => 'छाया';
+
+  @override
+  String get glassKnobHintShadowOpacity =>
+      'सतह पीछे की चीज़ से कितनी ऊपर उठी हुई दिखती है';
+
+  @override
+  String get glassKnobLabelShadowBlur => 'छाया फैलाव';
+
+  @override
+  String get glassKnobHintShadowBlur => 'नरम और चौड़ी, या सिमटी और तीखी';
+
+  @override
+  String get glassKnobLabelShadowY => 'छाया गिरावट';
+
+  @override
+  String get glassKnobHintShadowY => 'यह सतह से कितनी नीचे गिरती है';
+
+  @override
+  String get glassKnobLabelBarMargin => 'साइड मार्जिन';
+
+  @override
+  String get glassKnobHintBarMargin =>
+      'बार और स्क्रीन के किनारे के बीच की दूरी';
+
+  @override
+  String get glassKnobLabelBarBottom => 'निचली दूरी';
+
+  @override
+  String get glassKnobHintBarBottom => 'बार नीचे से कितना ऊपर तैरता है';
+
+  @override
+  String get glassKnobLabelShellPadH => 'एंड पैडिंग';
+
+  @override
+  String get glassKnobHintShellPadH =>
+      'बार के किनारे से पहले कैप्सूल तक की दूरी। कम रखने पर सिरे अलग-थलग से लगते हैं';
+
+  @override
+  String get glassKnobLabelShellPadV => 'टॉप पैडिंग';
+
+  @override
+  String get glassKnobHintShellPadV =>
+      'बार के किनारे से कैप्सूल के ऊपरी हिस्से तक की दूरी';
+
+  @override
+  String get glassKnobLabelIndicatorInset => 'कैप्सूल इनसेट';
+
+  @override
+  String get glassKnobHintIndicatorInset =>
+      'चुना हुआ कैप्सूल अपने स्लॉट के अंदर कितनी दूर बैठता है';
+
+  @override
+  String get glassKnobLabelSegmentPadV => 'पंक्ति पैडिंग';
+
+  @override
+  String get glassKnobHintSegmentPadV =>
+      'आइकॉन और उसके लेबल के ऊपर-नीचे कितनी खाली जगह है';
+
+  @override
+  String get glassKnobLabelIconLabelGap => 'आइकन दूरी';
+
+  @override
+  String get glassKnobHintIconLabelGap =>
+      'आइकन और उसके नीचे लिखे शब्द के बीच की दूरी';
+
+  @override
+  String get glassKnobLabelIconSize => 'आइकन साइज़';
+
+  @override
+  String get glassKnobLabelLabelSize => 'लेबल साइज़';
+
+  @override
+  String get languageOptionSpanish => 'ESPAÑOL';
+
+  @override
+  String get languageValueSpanish => 'Español';
+
+  @override
+  String get languageOptionFrench => 'FRANÇAIS';
+
+  @override
+  String get languageValueFrench => 'Français';
+
+  @override
+  String get languageOptionPortuguese => 'PORTUGUÊS (PORTUGAL)';
+
+  @override
+  String get languageValuePortuguese => 'Português (Portugal)';
+
+  @override
+  String get languageOptionSwedish => 'SVENSKA';
+
+  @override
+  String get languageValueSwedish => 'Svenska';
+
+  @override
+  String get languageOptionPortugueseBrazil => 'PORTUGUÊS (BRASIL)';
+
+  @override
+  String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
+}

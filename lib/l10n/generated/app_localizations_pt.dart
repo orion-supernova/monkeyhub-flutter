@@ -1833,8 +1833,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginScreenForgotPassword => 'esqueceste-te da palavra-passe?';
 
   @override
-  String get loginScreenSettingUpKidsPhone =>
-      'a configurar o telemóvel de um miúdo?';
+  String get loginScreenSettingUpKidsPhone => 'configurar uma conta infantil';
 
   @override
   String get loginScreenLegalPrefix => 'Ao abrires uma conta, aceitas os ';
@@ -3949,7 +3948,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get bulkActionBarSelectMessagesLabel => 'SELECIONAR MENSAGENS';
 
   @override
-  String bulkActionBarSelectedCountLabel(Object count) {
+  String bulkActionBarSelectedCountLabel(num count) {
     return '$count SELECIONADAS';
   }
 
@@ -4597,6 +4596,36 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -6424,8 +6453,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get loginScreenForgotPassword => 'esqueceu a senha?';
 
   @override
-  String get loginScreenSettingUpKidsPhone =>
-      'configurando o celular de uma criança?';
+  String get loginScreenSettingUpKidsPhone => 'configurar uma conta infantil';
 
   @override
   String get loginScreenLegalPrefix =>
@@ -8541,7 +8569,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get bulkActionBarSelectMessagesLabel => 'SELECIONAR MENSAGENS';
 
   @override
-  String bulkActionBarSelectedCountLabel(Object count) {
+  String bulkActionBarSelectedCountLabel(num count) {
     return '$count SELECIONADAS';
   }
 
@@ -9192,4 +9220,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
 }

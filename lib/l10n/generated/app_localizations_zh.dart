@@ -1,0 +1,4352 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Chinese (`zh`).
+class AppLocalizationsZh extends AppLocalizations {
+  AppLocalizationsZh([String locale = 'zh']) : super(locale);
+
+  @override
+  String get splashBrand => 'MONKEYHUB';
+
+  @override
+  String get bootErrorTitle => '无法连接服务器';
+
+  @override
+  String get bootErrorBody => 'Convex 初始化失败。';
+
+  @override
+  String get bootErrorRetry => '重试';
+
+  @override
+  String get incomingCallNotificationTitle => '来电';
+
+  @override
+  String get incomingCallFallbackCaller => '有人正在呼叫你';
+
+  @override
+  String get settingsLanguageRowLabel => '语言';
+
+  @override
+  String get languageScreenTitle => '语言。';
+
+  @override
+  String get languageScreenSubtitle => '选择应用内菜单和消息使用的语言';
+
+  @override
+  String get languageOptionSystem => '系统';
+
+  @override
+  String get languageOptionSystemSub => '与设备的语言设置保持一致';
+
+  @override
+  String get languageOptionEnglish => 'ENGLISH';
+
+  @override
+  String get languageOptionTurkish => 'TÜRKÇE';
+
+  @override
+  String get languageScreenActiveBadge => '当前';
+
+  @override
+  String get languageValueSystem => '系统';
+
+  @override
+  String get languageValueEnglish => 'English';
+
+  @override
+  String get languageValueTurkish => 'Türkçe';
+
+  @override
+  String get roomScreenAskGrownUpFailedSnack => '现在问不了，再试一次';
+
+  @override
+  String get roomScreenGateSendMessages => '在这里发消息';
+
+  @override
+  String get roomScreenGateSendMedia => '发送图片或语音';
+
+  @override
+  String roomScreenMaxSelectionSnack(Object max) {
+    return '一次最多选择 $max 条';
+  }
+
+  @override
+  String roomScreenDeleteMessageHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '删除 $count 条消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenDeleteConfirmBody => '这会把消息从聊天里所有人那删除，且无法撤销。';
+
+  @override
+  String get roomScreenDeleteConfirmButton => '为所有人删除';
+
+  @override
+  String get roomScreenJumpFailedSnack => '无法跳转到该消息';
+
+  @override
+  String get roomScreenViewOnceAlreadyViewed => '你已经打开过这张照片了。';
+
+  @override
+  String get roomScreenViewOnceGone => '这张照片已不可用。';
+
+  @override
+  String get roomScreenViewOnceNetworkError => '无法加载这张照片。';
+
+  @override
+  String get roomScreenFileReadFailedSnack => '无法读取该文件';
+
+  @override
+  String roomScreenFileSizeCapSnack(Object size) {
+    return '文件大小上限为 $size';
+  }
+
+  @override
+  String get roomScreenRoomGone => '聊天室已不存在';
+
+  @override
+  String get roomScreenCopiedSnack => '已复制';
+
+  @override
+  String get roomScreenNameCopiedSnack => '文件名已复制';
+
+  @override
+  String get roomScreenPinLimitSnack => '置顶太多了，先取消一条';
+
+  @override
+  String get roomScreenPinFailedSnack => '无法置顶这条消息';
+
+  @override
+  String get roomScreenReportSentSnack => '举报已私密发送，对方不会收到通知。';
+
+  @override
+  String get roomScreenDeselectMessageSemantic => '取消选择消息';
+
+  @override
+  String get roomScreenSelectMessageSemantic => '选择消息';
+
+  @override
+  String roomScreenMemberCountBadge(Object count) {
+    return '$count 人在内';
+  }
+
+  @override
+  String roomScreenTtlSeconds(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 秒',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlMinutes(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 分钟',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 小时',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenEphemeralNotice(Object ttl) {
+    return '这是一个限时房间，消息无论已读还是未读，都会在 $ttl 后自动消失。';
+  }
+
+  @override
+  String roomScreenThreadFoldCount(Object count) {
+    return '$count 条消息';
+  }
+
+  @override
+  String get roomScreenSecretSpaceTitle => '秘密空间';
+
+  @override
+  String get roomScreenSecretSpaceBody => '这个房间里的消息是限时的，会根据房间的安全策略自动删除。';
+
+  @override
+  String get roomScreenAutoDeleteTitle => '自动删除';
+
+  @override
+  String get roomScreenAutoDeleteVaries => '不固定';
+
+  @override
+  String get roomScreenAutoDeleteTimed => '定时';
+
+  @override
+  String get roomScreenNoCaptureTitle => '禁止截屏';
+
+  @override
+  String get roomScreenNoCaptureSubtitle => '截屏受限';
+
+  @override
+  String get roomScreenMorePrivacyTitle => '更多隐私保护';
+
+  @override
+  String get roomScreenMorePrivacySubtitle => '在原有隐私保护基础上，享受更多安全功能。';
+
+  @override
+  String get roomScreenNoMessagesTitle => '暂无消息';
+
+  @override
+  String get roomScreenNoMessagesSubtitle => '发送一条消息，开启对话吧';
+
+  @override
+  String get roomScreenViewProfilePictureSemantic => '查看头像';
+
+  @override
+  String get roomScreenViewRoomPictureSemantic => '查看房间头像';
+
+  @override
+  String get messageBubbleFileFallbackName => '已发送文档';
+
+  @override
+  String get messageBubbleAttachmentStatusFailed => '发送失败';
+
+  @override
+  String get messageBubbleAttachmentStatusSending => '发送中…';
+
+  @override
+  String get messageBubbleViewOnceOpened => '已查看';
+
+  @override
+  String get messageBubbleViewOnceExpired => '已过期';
+
+  @override
+  String get messageBubbleViewOnceLabel => '阅后即焚';
+
+  @override
+  String get messageBubbleViewOnceTapToView => '点击查看';
+
+  @override
+  String get messageBubbleViewOncePhotoLabel => '照片';
+
+  @override
+  String get messageBubbleViewOnceSemanticLabel => '阅后即焚照片，点击查看';
+
+  @override
+  String get messageBubbleRetrySendingSemanticLabel => '重新发送';
+
+  @override
+  String get messageBubbleDiscardSemanticLabel => '放弃发送';
+
+  @override
+  String get profileScreenAccountSection => '账户';
+
+  @override
+  String get profileScreenAddEmailPlaceholder => '添加邮箱';
+
+  @override
+  String get profileScreenAddEmailTitle => '添加邮箱？';
+
+  @override
+  String get profileScreenAddNameTitle => '添加名字？';
+
+  @override
+  String profileScreenApprovalsCountWaiting(Object count) {
+    return '$count 项待批准';
+  }
+
+  @override
+  String get profileScreenApprovalsLabel => '审批';
+
+  @override
+  String get profileScreenApprovalsNothingWaiting => '暂无待批准';
+
+  @override
+  String get profileScreenApproveAction => '接受';
+
+  @override
+  String get profileScreenBlockAction => '拉黑';
+
+  @override
+  String get profileScreenBlockedDmWiped => '已拉黑，私信记录也清空了，对方不会收到通知。';
+
+  @override
+  String get profileScreenBlockedOnly => '已拉黑，对方不会收到通知。';
+
+  @override
+  String get profileScreenBlockedUsers => '黑名单';
+
+  @override
+  String get profileScreenCancelAction => '取消';
+
+  @override
+  String get profileScreenCancelRequestAction => '取消请求';
+
+  @override
+  String get profileScreenChangeAction => '修改';
+
+  @override
+  String get profileScreenChangeEmailTitle => '修改邮箱？';
+
+  @override
+  String get profileScreenChangeNameTitle => '修改名字？';
+
+  @override
+  String get profileScreenChangeProfilePictureSemantic => '更换头像';
+
+  @override
+  String get profileScreenChangeRecoveryPhrase => '修改恢复短语';
+
+  @override
+  String get profileScreenChooseFromLibrary => '从相册选择';
+
+  @override
+  String get profileScreenCouldNotSaveImage => '图片保存失败。';
+
+  @override
+  String get profileScreenDeleteAccount => '删除账号';
+
+  @override
+  String get profileScreenEmailHint => '选填，不会展示给任何人';
+
+  @override
+  String get profileScreenEmailSectionLabel => '邮箱';
+
+  @override
+  String get profileScreenErrorAlreadyFriends => '你们已经是好友了。';
+
+  @override
+  String get profileScreenErrorGeneric => '没能完成这个操作。';
+
+  @override
+  String get profileScreenErrorNotAccepting => '对方现在不接受好友请求。';
+
+  @override
+  String get profileScreenErrorRequestAlreadyReceived =>
+      '对方已经给你发过请求了——去看看请求列表吧。';
+
+  @override
+  String get profileScreenErrorRequestAlreadySent => '请求已经发送过了。';
+
+  @override
+  String get profileScreenErrorUnblockFirst => '你已经拉黑了这个人——先取消拉黑吧。';
+
+  @override
+  String get profileScreenErrorUserNotFound => '此操作目前无法进行。';
+
+  @override
+  String get profileScreenFamilyAddChild => '添加孩子';
+
+  @override
+  String profileScreenFamilyChildCount(num count) {
+    return '$count 个孩子';
+  }
+
+  @override
+  String get profileScreenFamilyLabel => '家庭';
+
+  @override
+  String get profileScreenFriendsChip => '好友';
+
+  @override
+  String get profileScreenGrownUpOnlyNote => '只有大人才能这么做——需要他们的验证码或密码。';
+
+  @override
+  String get profileScreenGuardiansCanSee => '他们能看到你什么时候在线，还有你在跟谁聊天。';
+
+  @override
+  String get profileScreenHandPhoneBack => '归还手机';
+
+  @override
+  String get profileScreenIncomingRequestChip => '收到的请求';
+
+  @override
+  String get profileScreenJustTappedAction => '手滑了';
+
+  @override
+  String get profileScreenLegalSection => '法律';
+
+  @override
+  String get profileScreenLicence => '许可证';
+
+  @override
+  String get profileScreenLinkedAccountsLabel => '关联账号';
+
+  @override
+  String get profileScreenLinkedAccountsNone => '未关联任何账号';
+
+  @override
+  String get profileScreenMyGrownUps => '我的大人';
+
+  @override
+  String get profileScreenNameHint => '这是聊天室里显示的名字';
+
+  @override
+  String get profileScreenNobodyLookingAfter => '还没有大人在照看这个账号';
+
+  @override
+  String get profileScreenNotAcceptingRequestsAction => '不接受好友请求';
+
+  @override
+  String get profileScreenNotConnectedChip => '未添加好友';
+
+  @override
+  String get profileScreenOpenDmAction => '打开私信';
+
+  @override
+  String get profileScreenPhotoPermissionDenied => '相册权限被拒绝。';
+
+  @override
+  String get profileScreenPrivacyPolicy => '隐私政策';
+
+  @override
+  String get profileScreenPrivacySection => '隐私';
+
+  @override
+  String get profileScreenProfilePictureTitle => '头像';
+
+  @override
+  String get profileScreenRedactedFriend => '部分资料因对方的隐私设置被隐藏。';
+
+  @override
+  String get profileScreenRedactedStranger => '内容有限——加为好友可以看到更多。';
+
+  @override
+  String get profileScreenReportAction => '举报';
+
+  @override
+  String get profileScreenReportSent => '举报已提交，对方不会收到通知。';
+
+  @override
+  String get profileScreenRequestPendingChip => '请求已发送';
+
+  @override
+  String get profileScreenSaveAction => '保存';
+
+  @override
+  String get profileScreenSavedToPhotos => '已保存到相册。';
+
+  @override
+  String get profileScreenSaveToPhotos => '保存到相册';
+
+  @override
+  String get profileScreenSendRequestAction => '发送请求';
+
+  @override
+  String get profileScreenSetUpRecoveryPhrase => '设置恢复短语';
+
+  @override
+  String get profileScreenSignOut => '退出登录';
+
+  @override
+  String get profileScreenTakeSelfie => '拍摄自拍';
+
+  @override
+  String get profileScreenTapAgainToConfirmDelete => '再次点击确认删除';
+
+  @override
+  String get profileScreenTermsOfService => '服务条款';
+
+  @override
+  String get profileScreenThisPhoneSection => '这部手机';
+
+  @override
+  String get profileScreenUnfriendAction => '删除好友';
+
+  @override
+  String get profileScreenViewProfilePictureSemantic => '查看头像';
+
+  @override
+  String get profileScreenVisibilityPreferences => '可见性设置';
+
+  @override
+  String get cameraEditorScreenCropPresetFree => '自由';
+
+  @override
+  String get cameraEditorScreenCropPresetOriginal => '原始';
+
+  @override
+  String get cameraEditorScreenCancelCropSemanticLabel => '取消裁剪';
+
+  @override
+  String get cameraEditorScreenDiscardPhotoSemanticLabel => '放弃照片';
+
+  @override
+  String get cameraEditorScreenUndoSemanticLabel => '撤销';
+
+  @override
+  String get cameraEditorScreenRedoSemanticLabel => '重做';
+
+  @override
+  String get cameraEditorScreenResetCropSemanticLabel => '重置裁剪';
+
+  @override
+  String get cameraEditorScreenRotateSemanticLabel => '旋转';
+
+  @override
+  String get cameraEditorScreenCropSemanticLabel => '裁剪';
+
+  @override
+  String get cameraEditorScreenHeicUnsupportedMessage => '此浏览器无法打开 HEIC 格式照片';
+
+  @override
+  String get cameraEditorScreenImageLoadFailedMessage => '无法打开这张图片';
+
+  @override
+  String get cameraEditorScreenCropDoneButton => '完成';
+
+  @override
+  String get cameraEditorScreenRetakeSemanticLabel => '重拍';
+
+  @override
+  String get cameraEditorScreenPenPutAwaySemanticLabel => '收起画笔';
+
+  @override
+  String get cameraEditorScreenPenDrawSemanticLabel => '在照片上绘画';
+
+  @override
+  String get cameraEditorScreenSendingButton => '发送中…';
+
+  @override
+  String get cameraEditorScreenSendButton => '发送';
+
+  @override
+  String get cameraEditorScreenViewOnceNote => '打开一次后就会消失';
+
+  @override
+  String get cameraEditorScreenClearDrawingSemanticLabel => '清除涂鸦';
+
+  @override
+  String get cameraEditorScreenViewOnceOnSemanticLabel => '阅后即焚：已开启';
+
+  @override
+  String get cameraEditorScreenViewOnceOffSemanticLabel => '阅后即焚：已关闭';
+
+  @override
+  String get cameraEditorScreenInkColorSemanticLabel => '画笔颜色';
+
+  @override
+  String get glassScreenPanelLooks => '外观';
+
+  @override
+  String get glassScreenPanelBottomBar => '底部栏';
+
+  @override
+  String get glassScreenPanelOtherSurfaces => '其他表面';
+
+  @override
+  String get glassScreenPanelBarLayout => '栏布局';
+
+  @override
+  String get glassScreenTitle => '玻璃.';
+
+  @override
+  String get glassScreenSubtitle => '背后的内容能透出来多少';
+
+  @override
+  String glassScreenSaveSlotsFull(Object max) {
+    return '全部 $max 个位置已满';
+  }
+
+  @override
+  String get glassScreenSaveCurrentAs => '将当前外观另存为…';
+
+  @override
+  String get glassScreenResetEveryDial => '重置所有旋钮';
+
+  @override
+  String glassScreenResetToPreset(Object name) {
+    return '重置为 $name';
+  }
+
+  @override
+  String get glassScreenSurfacesNote => '输入框、顶部栏、通话按钮——所有浮在文字上方、而非滚动内容上方的元素';
+
+  @override
+  String get glassScreenMatchBottomBar => '匹配底部栏';
+
+  @override
+  String get glassScreenPresetEditedSubtitle => '已修改——另存为新外观，或重置';
+
+  @override
+  String get glassScreenCustomPresetName => '自定义';
+
+  @override
+  String get glassScreenUnsavedSubtitle => '未保存 — 给它起个名字才能保留';
+
+  @override
+  String get glassScreenSaveDialogTitle => '保存此效果为';
+
+  @override
+  String get glassScreenNoRoomToast => '空间不足 — 请先删除一个效果';
+
+  @override
+  String get glassScreenRenameDialogTitle => '重命名';
+
+  @override
+  String glassScreenDeleteConfirmTitle(Object name) {
+    return '删除$name？';
+  }
+
+  @override
+  String get glassScreenDeleteConfirmBody => '效果仍会留在屏幕上 — 只是不再有名字。';
+
+  @override
+  String get glassScreenKeepButton => '保留';
+
+  @override
+  String get glassScreenDeleteButton => '删除';
+
+  @override
+  String get glassScreenNameHint => '深夜';
+
+  @override
+  String get glassScreenCancelButton => '取消';
+
+  @override
+  String get glassScreenSaveButton => '保存';
+
+  @override
+  String get glassScreenPreviewRoomName => '# 阳台';
+
+  @override
+  String get glassScreenPreviewOnlineCount => '4人在线';
+
+  @override
+  String get glassScreenPreviewMessageHint => '消息';
+
+  @override
+  String get glassScreenPreviewCollapseLabel => '收起预览';
+
+  @override
+  String get glassScreenPreviewExpandLabel => '展开预览';
+
+  @override
+  String get glassScreenPreviewBadge => '预览';
+
+  @override
+  String get glassScreenBuiltInLabel => '内置';
+
+  @override
+  String glassScreenOverwriteTooltip(Object name) {
+    return '覆盖$name';
+  }
+
+  @override
+  String glassScreenRenameTooltip(Object name) {
+    return '重命名$name';
+  }
+
+  @override
+  String glassScreenDeleteTooltip(Object name) {
+    return '删除$name';
+  }
+
+  @override
+  String glassScreenResetTooltip(Object label) {
+    return '重置$label';
+  }
+
+  @override
+  String get glassScreenBackdropMsgDilan => '发了屋顶的照片——瓦片全裂了';
+
+  @override
+  String get glassScreenBackdropMsgMert => '行，但到底谁带音箱';
+
+  @override
+  String get glassScreenBackdropGroupFamily => '家人';
+
+  @override
+  String get glassScreenBackdropMsgFamily => '妈：晚饭8点，别再迟到了';
+
+  @override
+  String get glassScreenBackdropMsgZeynep => '我在外面了';
+
+  @override
+  String get glassScreenBackdropMsgKerem => '拐角那家咖啡不错';
+
+  @override
+  String get glassScreenBackdropGroupWork => '工作';
+
+  @override
+  String get glassScreenBackdropMsgWork => '站会这周剩下的时间都改到10:30了';
+
+  @override
+  String get glassScreenBackdropMsgElif => '不是吧，再发一次，我弄丢了';
+
+  @override
+  String get glassScreenBackdropMsgBaran => '落地啦👍';
+
+  @override
+  String get glassScreenBackdropMsgAyse => '猫学会开阳台门了';
+
+  @override
+  String get glassScreenBackdropMsgCan => '那周六见';
+
+  @override
+  String replyIndicatorInReplyToSemanticLabel(Object name) {
+    return '回复 $name';
+  }
+
+  @override
+  String get replyIndicatorViewOnceLabel => '照片 · 阅后即焚';
+
+  @override
+  String get replyIndicatorVoiceMessageLabel => '语音消息';
+
+  @override
+  String get replyIndicatorDocumentLabel => '文件';
+
+  @override
+  String get replyIndicatorMessageRemoved => '消息已删除';
+
+  @override
+  String get threadOverlayMessageNotFound => '在这个话题串中找不到该消息';
+
+  @override
+  String get threadOverlayReplyTargetNotFound => '找不到要回复的话题串';
+
+  @override
+  String get threadOverlayStillSending => '还在发送中，稍后再试';
+
+  @override
+  String get threadOverlayCopiedToast => '已复制';
+
+  @override
+  String get threadOverlayNameCopiedToast => '已复制文件名';
+
+  @override
+  String get threadOverlayPinLimitToast => '置顶已达上限，先取消一个';
+
+  @override
+  String get threadOverlayPinFailedToast => '置顶失败';
+
+  @override
+  String get threadOverlayReportedToast => '已举报';
+
+  @override
+  String get threadOverlayUnavailable => '话题串不可用';
+
+  @override
+  String get roomInfoScreenNameRequiredError => '名称不能为空';
+
+  @override
+  String get roomInfoScreenSavedSnackbar => '已保存';
+
+  @override
+  String get roomInfoScreenPasswordClearedSnackbar => '密码已清除';
+
+  @override
+  String get roomInfoScreenLeaveConfirmTitle => '离开房间？';
+
+  @override
+  String get roomInfoScreenLeaveConfirmBody => '如果房间还开着，你可以重新加入。';
+
+  @override
+  String get roomInfoScreenLeaveConfirmButton => '离开';
+
+  @override
+  String get roomInfoScreenDeleteConfirmTitle => '删除房间？';
+
+  @override
+  String get roomInfoScreenDeleteConfirmBody => '这里的所有消息都会一并删除，无法恢复。';
+
+  @override
+  String get roomInfoScreenDeleteConfirmButton => '删除';
+
+  @override
+  String get roomInfoScreenConfirmCancelButton => '取消';
+
+  @override
+  String get roomInfoScreenErrorRoomExists => '已经有同名房间了';
+
+  @override
+  String get roomInfoScreenErrorNotOwner => '只有房主才能这么做';
+
+  @override
+  String get roomInfoScreenErrorNotAuthorized => '你没有权限';
+
+  @override
+  String get roomInfoScreenErrorRoomNotFound => '这个房间已经不存在了';
+
+  @override
+  String get roomInfoScreenRoomGone => '房间已不存在';
+
+  @override
+  String get roomInfoScreenNameLabel => '名称';
+
+  @override
+  String get roomInfoScreenNameHint => '房间名称';
+
+  @override
+  String get roomInfoScreenDescriptionLabel => '描述';
+
+  @override
+  String get roomInfoScreenDescriptionHint => '用一句话介绍这个房间…';
+
+  @override
+  String get roomInfoScreenVisibilityLabel => '可见性';
+
+  @override
+  String get roomInfoScreenPublicTitle => '公开';
+
+  @override
+  String get roomInfoScreenPublicSub => '任何人都能找到';
+
+  @override
+  String get roomInfoScreenPrivateTitle => '私密';
+
+  @override
+  String get roomInfoScreenPrivateSub => '仅限邀请';
+
+  @override
+  String get roomInfoScreenMessageLifeLabel => '消息时效';
+
+  @override
+  String roomInfoScreenTtlSeconds(Object value) {
+    return '$value秒';
+  }
+
+  @override
+  String roomInfoScreenTtlMinutes(Object value) {
+    return '$value分钟';
+  }
+
+  @override
+  String roomInfoScreenTtlHours(Object value) {
+    return '$value小时';
+  }
+
+  @override
+  String get roomInfoScreenPasswordLabel => '密码';
+
+  @override
+  String get roomInfoScreenLockedBadge => '已锁定';
+
+  @override
+  String get roomInfoScreenNoneBadge => '无';
+
+  @override
+  String get roomInfoScreenPasswordProtectedNote =>
+      '此聊天室已设密码保护。出于安全原因,系统不会显示当前密码——输入新密码即可替换。';
+
+  @override
+  String get roomInfoScreenReplacePasswordHint => '替换密码…';
+
+  @override
+  String get roomInfoScreenSetPasswordHint => '设置密码以锁定…';
+
+  @override
+  String get roomInfoScreenRemovePasswordButton => '移除密码';
+
+  @override
+  String get roomInfoScreenSharedContentLabel => '共享内容';
+
+  @override
+  String roomInfoScreenMembersLabel(Object count) {
+    return '成员 · $count';
+  }
+
+  @override
+  String get roomInfoScreenLeavingButton => '退出中…';
+
+  @override
+  String get roomInfoScreenLeaveRoomButton => '退出聊天室';
+
+  @override
+  String get roomInfoScreenDeletingButton => '删除中…';
+
+  @override
+  String get roomInfoScreenDeleteButtonLabel => '删除';
+
+  @override
+  String get roomInfoScreenHeaderConversation => '对话';
+
+  @override
+  String get roomInfoScreenHeaderRoomSettings => '聊天室设置';
+
+  @override
+  String get roomInfoScreenViewProfilePictureSemantic => '查看头像';
+
+  @override
+  String get roomInfoScreenViewRoomPictureSemantic => '查看聊天室头像';
+
+  @override
+  String get roomInfoScreenChangeRoomPictureSemantic => '更改聊天室头像';
+
+  @override
+  String get roomInfoScreenAddRoomPictureSemantic => '添加聊天室头像';
+
+  @override
+  String get roomInfoScreenLoadingMembers => '正在加载成员…';
+
+  @override
+  String get roomInfoScreenOwnerBadge => '房主';
+
+  @override
+  String get roomInfoScreenSaveButton => '保存';
+
+  @override
+  String get roomInfoScreenNoneCount => '无';
+
+  @override
+  String get cameraScreenAccessDeniedMessage => '相机权限未开启。\n请前往「设置」开启后再拍照。';
+
+  @override
+  String get cameraScreenOpeningSystemCamera => '正在打开系统相机…';
+
+  @override
+  String get cameraScreenCloseButtonLabel => '关闭相机';
+
+  @override
+  String get cameraScreenLowLightBoostOnLabel => '弱光增强:已开启';
+
+  @override
+  String get cameraScreenLowLightBoostOffLabel => '弱光增强:已关闭';
+
+  @override
+  String cameraScreenFlashStatusLabel(Object mode) {
+    return '闪光灯：$mode';
+  }
+
+  @override
+  String get cameraScreenChooseFromLibraryLabel => '从相册选择';
+
+  @override
+  String get cameraScreenSwitchCameraLabel => '切换摄像头';
+
+  @override
+  String get cameraScreenTakePhotoLabel => '拍照';
+
+  @override
+  String get childPolicyScreenAddByUsernameLabel => '按用户名添加';
+
+  @override
+  String get childPolicyScreenAddCta => '添加';
+
+  @override
+  String childPolicyScreenAddGuardianBlurb(Object name) {
+    return '他们将拥有和你完全相同的权限：审批每一个请求、更改每一项设置，甚至可以把你移除。$name会立刻把他们当作家人。';
+  }
+
+  @override
+  String get childPolicyScreenAddGuardianHeading => '添加大人';
+
+  @override
+  String get childPolicyScreenAddGuardianHint => '对方的用户名';
+
+  @override
+  String get childPolicyScreenAllowCta => '允许';
+
+  @override
+  String childPolicyScreenAllowSomeoneBlurb(Object childName) {
+    return '以后不会再为这件事询问你了——无论是$childName添加他们，还是他们添加$childName。';
+  }
+
+  @override
+  String get childPolicyScreenAllowSomeoneHeading => '允许某人';
+
+  @override
+  String get childPolicyScreenAskToAddLabel => '申请添加';
+
+  @override
+  String get childPolicyScreenAskToAddOffDesc => '仅限家人——不接受新请求';
+
+  @override
+  String get childPolicyScreenAskToAddOnDesc => '他们可以向你申请添加新联系人';
+
+  @override
+  String get childPolicyScreenBothFinalNote => '这两项操作都无法撤销。如果只是想退出，请到“大人”里操作。';
+
+  @override
+  String get childPolicyScreenCallsLabel => '通话';
+
+  @override
+  String get childPolicyScreenCallsOffDesc => '仅限消息';
+
+  @override
+  String get childPolicyScreenCallsOnDesc => '可以和被允许的联系人语音、视频通话';
+
+  @override
+  String get childPolicyScreenCancelLabel => '取消';
+
+  @override
+  String get childPolicyScreenCancelSemanticLabel => '取消';
+
+  @override
+  String get childPolicyScreenContactAddedRequestSent => '已添加——请求正在发送';
+
+  @override
+  String get childPolicyScreenContactAddedToList => '已添加到允许列表';
+
+  @override
+  String get childPolicyScreenCreateRoomsLabel => '创建房间';
+
+  @override
+  String get childPolicyScreenCreateRoomsOffDesc => '他们不能创建房间';
+
+  @override
+  String get childPolicyScreenCreateRoomsOnDesc => '他们可以创建自己的私密房间';
+
+  @override
+  String get childPolicyScreenDeleteAccountBody =>
+      '一切都会消失：他们的消息、照片、房间和好友。此操作无法撤销，用户名也会被释放给其他人使用。';
+
+  @override
+  String get childPolicyScreenDeleteAccountFailed => '无法删除账号——请重试';
+
+  @override
+  String childPolicyScreenDeleteAccountHeadline(Object name) {
+    return '删除$name的账号？';
+  }
+
+  @override
+  String get childPolicyScreenDeleteDangerDetail => '消息、照片、房间和好友都会被删除，且无法撤销。';
+
+  @override
+  String childPolicyScreenDeleteDangerLabel(Object name) {
+    return '删除$name的账号';
+  }
+
+  @override
+  String get childPolicyScreenDeleteForeverCta => '永久删除';
+
+  @override
+  String get childPolicyScreenErrorAddContactGeneric => '无法添加——请重试';
+
+  @override
+  String get childPolicyScreenErrorCannotAddSelf => '这是他们自己的用户名';
+
+  @override
+  String get childPolicyScreenErrorChildNotAllowed => '孩子不能成为大人';
+
+  @override
+  String get childPolicyScreenErrorGenericGuardian => '没能完成——再试一次';
+
+  @override
+  String get childPolicyScreenErrorLastGuardian => '得有人照顾孩子——请先添加另一位大人';
+
+  @override
+  String get childPolicyScreenErrorNotYours => '这不是你能更改的';
+
+  @override
+  String get childPolicyScreenErrorUserNotFound => '找不到这个用户名对应的账号';
+
+  @override
+  String get childPolicyScreenGraduateBlurb =>
+      '孩子会用这个密码变成普通账号,所有大人都将失去查看权限。此操作不可撤销——之后你就得像其他人一样,被邀请后才能重新加入。';
+
+  @override
+  String get childPolicyScreenGraduateCta => '毕业';
+
+  @override
+  String get childPolicyScreenGraduateDangerDetail =>
+      '孩子保留一切,并获得一个密码。你将失去所有查看权限。不可撤销。';
+
+  @override
+  String get childPolicyScreenGraduateDangerLabel => '毕业成为完整账号';
+
+  @override
+  String get childPolicyScreenGraduateFailed => '毕业失败——再试一次';
+
+  @override
+  String childPolicyScreenGraduateHeading(Object name) {
+    return '让 $name 毕业';
+  }
+
+  @override
+  String get childPolicyScreenGraduateHint => '给孩子的密码';
+
+  @override
+  String get childPolicyScreenGrantsFooterNote =>
+      '撤回房间的同时,也会把孩子移出该房间。撤回联系人的同时,还会删除双方的聊天记录。';
+
+  @override
+  String get childPolicyScreenGrownUpsDesc =>
+      '这里的每一位都能批准请求、修改设置、查看所有内容。任何一位都可以单独操作——不用等其他人。';
+
+  @override
+  String get childPolicyScreenGuardianAdded => '添加成功——现在可以照顾孩子了';
+
+  @override
+  String childPolicyScreenGuardianRemoved(Object name) {
+    return '已移除 $name';
+  }
+
+  @override
+  String childPolicyScreenGuardianYouSuffix(Object name) {
+    return '$name (你)';
+  }
+
+  @override
+  String get childPolicyScreenLoading => '加载中…';
+
+  @override
+  String get childPolicyScreenLockedLabel => '已锁定';
+
+  @override
+  String get childPolicyScreenMediaLabel => '照片和语音';
+
+  @override
+  String get childPolicyScreenMediaOffDesc => '仅文字';
+
+  @override
+  String get childPolicyScreenMediaOnDesc => '可以发送图片、视频和语音消息';
+
+  @override
+  String get childPolicyScreenNoRoomsYet => '暂无房间';
+
+  @override
+  String get childPolicyScreenPeopleAllowedDesc =>
+      '这里的任何人都能直接添加,不需要再次征求你的同意——不管是谁先发起。';
+
+  @override
+  String get childPolicyScreenPublicRoomsBody =>
+      '对孩子始终关闭。发现——那些属于陌生人的房间列表——完全隐藏,且无法开启。别人邀请孩子加入的房间仍可正常使用。';
+
+  @override
+  String get childPolicyScreenPublicRoomsLabel => '公开房间';
+
+  @override
+  String childPolicyScreenRemoveGuardianBody(Object child, Object guardian) {
+    return '$guardian 将无法再为 $child 查看或批准任何内容。';
+  }
+
+  @override
+  String childPolicyScreenRemoveGuardianHeadline(Object name) {
+    return '移除 $name？';
+  }
+
+  @override
+  String get childPolicyScreenRemoveLabel => '移除';
+
+  @override
+  String childPolicyScreenRoomMemberCount(Object count) {
+    return '$count 人';
+  }
+
+  @override
+  String get childPolicyScreenSectionGrownUps => '大人';
+
+  @override
+  String get childPolicyScreenSectionPeopleAllowed => '你已允许的联系人';
+
+  @override
+  String get childPolicyScreenSectionRoomsAllowed => '你已允许的房间';
+
+  @override
+  String get childPolicyScreenSectionWhatTheyCanDo => '孩子能做什么';
+
+  @override
+  String get childPolicyScreenSectionWhenDone => '不再需要该账号时';
+
+  @override
+  String get childPolicyScreenSendNowOffDesc => '要等有人添加对方才会生效';
+
+  @override
+  String get childPolicyScreenSendNowOnDesc => '对方会立刻收到请求';
+
+  @override
+  String get childPolicyScreenSendRequestNowLabel => '立即发送请求';
+
+  @override
+  String childPolicyScreenSoleGuardianNote(Object name) {
+    return '你是$name唯一的大人,不能直接退出——请先添加另一位大人,或者试试下面这些方式。';
+  }
+
+  @override
+  String get childPolicyScreenStepAwayLabel => '退出';
+
+  @override
+  String childPolicyScreenStopSupervisingBody(Object name) {
+    return '你会失去查看$name账号的所有权限——他们的请求、联系人、聊天室,你都看不到了。其他大人会继续照看他们。';
+  }
+
+  @override
+  String get childPolicyScreenStopSupervisingCta => '停止监护';
+
+  @override
+  String get childPolicyScreenStopSupervisingHeadline => '停止监护?';
+
+  @override
+  String get childPolicyScreenTakeBackFailed => '没能收回——再试一次';
+
+  @override
+  String get childPolicyScreenTakeBackLabel => '收回';
+
+  @override
+  String get childPolicyScreenUsernameHint => '用户名';
+
+  @override
+  String get childPolicyScreenYou => '你';
+
+  @override
+  String get roomContentScreenDefaultDocumentName => '文档';
+
+  @override
+  String get roomContentScreenCouldntOpenFile => '没能打开这个文件';
+
+  @override
+  String get roomContentScreenCouldntShare => '没能分享这些内容';
+
+  @override
+  String roomContentScreenLinksCopied(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已复制 $count 个链接',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentScreenDeleteHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '删除 $count 条消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenDeleteBody => '此操作会为聊天中的所有人删除,且无法撤销。';
+
+  @override
+  String get roomContentScreenDeleteForEveryone => '为所有人删除';
+
+  @override
+  String get roomContentScreenCancelTooltip => '取消';
+
+  @override
+  String get roomContentScreenBackTooltip => '返回';
+
+  @override
+  String get roomContentScreenSelectingLabel => '选择中';
+
+  @override
+  String get roomContentScreenSharedContentLabel => '共享内容';
+
+  @override
+  String roomContentScreenSelectionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已选择 $count 项',
+      zero: '未选择任何内容',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenSelectAllLabel => '选择';
+
+  @override
+  String get roomContentScreenSelectAllActiveLabel => '全选';
+
+  @override
+  String get roomContentScreenEmptyMedia => '还没有照片或视频';
+
+  @override
+  String get roomContentScreenEmptyFiles => '还没有文件';
+
+  @override
+  String get roomContentScreenEmptyVoice => '还没有语音消息';
+
+  @override
+  String get roomContentScreenEmptyLinks => '还没有链接';
+
+  @override
+  String get roomContentScreenLoadFailed => '没能加载';
+
+  @override
+  String roomContentScreenVoiceMessageFrom(Object name) {
+    return '来自$name的语音消息';
+  }
+
+  @override
+  String get roomContentScreenForwardAction => '转发';
+
+  @override
+  String get roomContentScreenCopyAction => '复制';
+
+  @override
+  String get roomContentScreenSaveAction => '保存';
+
+  @override
+  String get roomContentScreenShareAction => '分享';
+
+  @override
+  String get roomContentScreenInChatAction => '跳转到聊天';
+
+  @override
+  String get roomContentScreenDeleteAction => '删除';
+
+  @override
+  String get messageActionMenuReplyLabel => '回复';
+
+  @override
+  String get messageActionMenuForwardLabel => '转发';
+
+  @override
+  String get messageActionMenuViewThreadLabel => '查看话题串';
+
+  @override
+  String get messageActionMenuCopyLabel => '复制';
+
+  @override
+  String get messageActionMenuCopyNameLabel => '复制文件名';
+
+  @override
+  String get messageActionMenuPinLabel => '置顶';
+
+  @override
+  String get messageActionMenuUnpinLabel => '取消置顶';
+
+  @override
+  String get messageActionMenuSelectLabel => '多选';
+
+  @override
+  String get messageActionMenuProfileLabel => '资料';
+
+  @override
+  String get messageActionMenuDeleteLabel => '删除';
+
+  @override
+  String get messageActionMenuReportLabel => '举报';
+
+  @override
+  String get themeScreenTitle => '主题。';
+
+  @override
+  String get themeScreenTapToApplyHint => '点击应用 · ⛶ 查看完整预览';
+
+  @override
+  String get themeScreenFamilyBasicName => '基础';
+
+  @override
+  String get themeScreenFamilyBasicTagline => 'iOS 风格 · 5 种配色';
+
+  @override
+  String get themeScreenFamilyVaultName => '保险库';
+
+  @override
+  String get themeScreenFamilyVaultTagline => '私密档案 · 暗黑 + 象牙白';
+
+  @override
+  String get themeScreenFamilyOthersName => '其他';
+
+  @override
+  String get themeScreenFamilyOthersTagline => '独特氛围';
+
+  @override
+  String get themeScreenActiveBadge => '使用中';
+
+  @override
+  String get themeScreenTapToApplyLabel => '点击应用';
+
+  @override
+  String themeScreenCarouselActiveLabel(Object name) {
+    return '使用中 — $name';
+  }
+
+  @override
+  String themeScreenCarouselApplyLabel(Object name) {
+    return '应用 $name';
+  }
+
+  @override
+  String get themeScreenPreviewGreeting => '嘿，你。';
+
+  @override
+  String get themeScreenPreviewSectionLabel => '对话';
+
+  @override
+  String get themeScreenPreviewRoomOneName => '设计俱乐部';
+
+  @override
+  String get themeScreenPreviewRoomOneSub => 'mia:上线了新卡片。';
+
+  @override
+  String get themeScreenPreviewRoomTwoName => '密室 · ☾';
+
+  @override
+  String get themeScreenPreviewRoomTwoSub => '4小时后封存。';
+
+  @override
+  String get themeScreenPreviewBubbleQuestion => '感觉怎么样？';
+
+  @override
+  String get themeScreenPreviewBubbleAnswer => '感觉就是它了。';
+
+  @override
+  String get callScreenVideoCallLabel => '视频来电';
+
+  @override
+  String get callScreenVoiceCallLabel => '语音来电';
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · 呼叫中…';
+  }
+
+  @override
+  String callScreenStatusIncoming(Object kind) {
+    return '$kind · 来电';
+  }
+
+  @override
+  String callScreenStatusConnecting(Object kind) {
+    return '$kind · 连接中…';
+  }
+
+  @override
+  String get callScreenStatusConnected => '已连接';
+
+  @override
+  String get callScreenStatusEnded => '通话已结束';
+
+  @override
+  String get callScreenStatusFailed => '通话失败';
+
+  @override
+  String get callScreenStatusSwitching => '正在切换设备…';
+
+  @override
+  String get callScreenStatusMoved => '已转移';
+
+  @override
+  String get callScreenStatusReconnecting => '重新连接中…';
+
+  @override
+  String get callScreenPoorConnectionLabel => '网络连接差';
+
+  @override
+  String get callScreenWeakConnectionLabel => '网络信号弱';
+
+  @override
+  String get callScreenControlUnmute => '取消静音';
+
+  @override
+  String get callScreenControlMute => '静音';
+
+  @override
+  String get callScreenControlCamOn => '开镜头';
+
+  @override
+  String get callScreenControlCamOff => '关镜头';
+
+  @override
+  String get callScreenControlFlip => '翻转';
+
+  @override
+  String get callScreenControlSpeaker => '扬声器';
+
+  @override
+  String get callScreenControlEnd => '挂断';
+
+  @override
+  String get linkPreviewCardLinkLabel => '链接';
+
+  @override
+  String friendRequestDraftScreenAcceptedSnackbar(Object name) {
+    return '$name 接受了你的请求';
+  }
+
+  @override
+  String get friendRequestDraftScreenWithdrawnSnackbar => '对方撤回了该请求';
+
+  @override
+  String get friendRequestDraftScreenDeclinedSnackbar => '请求已被拒绝';
+
+  @override
+  String get friendRequestDraftScreenErrorBlocked => '你已拉黑该用户,请先解除拉黑。';
+
+  @override
+  String get friendRequestDraftScreenErrorNotAccepting => '对方现在不接受好友请求。';
+
+  @override
+  String get friendRequestDraftScreenErrorSendFailed => '发送失败,请重试。';
+
+  @override
+  String get friendRequestDraftScreenIncomingRequestLabel => '对方发来的请求';
+
+  @override
+  String get friendRequestDraftScreenNewRequestLabel => '我发出的请求';
+
+  @override
+  String friendRequestDraftScreenIntroIncoming(Object name) {
+    return '$name 想找你聊天。';
+  }
+
+  @override
+  String get friendRequestDraftScreenIntroOutgoing => '写几句话吧,对方可以同意或拒绝。';
+
+  @override
+  String get friendRequestDraftScreenIntroFooter => '双方都同意之前,这里的内容不会永久保留。';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeLabel => '房间类型';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeEphemeral => '阅后即焚';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeStandard => '标准';
+
+  @override
+  String get friendRequestDraftScreenLifetimeLabel => '有效期';
+
+  @override
+  String friendRequestDraftScreenDurationSeconds(Object seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationMinutes(Object minutes) {
+    return '$minutes分钟';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationHours(Object hours) {
+    return '$hours小时';
+  }
+
+  @override
+  String get friendRequestDraftScreenHintWhisperOptional => '写句悄悄话 · 可选';
+
+  @override
+  String get friendRequestDraftScreenHintFirstMessageOptional => '加一句开场白 · 可选';
+
+  @override
+  String get friendRequestDraftScreenHintWhisperFades => '悄悄话 · 自动消失';
+
+  @override
+  String get friendRequestDraftScreenHintStartWith => '先说点什么…';
+
+  @override
+  String get friendRequestDraftScreenApproveButton => '接受请求并打开房间';
+
+  @override
+  String get friendRequestDraftScreenDeclineButton => '拒绝请求';
+
+  @override
+  String get friendRequestDraftScreenCancelRequestButton => '撤回请求';
+
+  @override
+  String get friendRequestDraftScreenAskGrownUpButton => '问问大人';
+
+  @override
+  String get friendRequestDraftScreenSendRequestButton => '发送请求';
+
+  @override
+  String get discoverScreenTitle => '发现。';
+
+  @override
+  String get discoverScreenCaptionPeople => '用户';
+
+  @override
+  String get discoverScreenCaptionRooms => '房间';
+
+  @override
+  String get discoverScreenCaptionRequests => '请求';
+
+  @override
+  String get discoverScreenPeopleBandLabel => '用户';
+
+  @override
+  String get discoverScreenRoomsBandLabel => '房间';
+
+  @override
+  String get discoverScreenFindPeopleTitle => '找人';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleChild => '需要输入完整用户名';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleAdult => '通过 @用户名 或昵称搜索';
+
+  @override
+  String get discoverScreenRequestsSectionLabel => '请求';
+
+  @override
+  String get discoverScreenInboxQuiet => '收件箱静悄悄';
+
+  @override
+  String get discoverScreenNothingPending => '尚未发送';
+
+  @override
+  String get discoverScreenYourPeopleLabel => '我的好友';
+
+  @override
+  String get discoverScreenNoFriendsYetWithHint => '还没有人 · 去上面找人吧';
+
+  @override
+  String get discoverScreenNoFriendsYet => '还没有人';
+
+  @override
+  String get discoverScreenSearchRoomsTitle => '搜索房间';
+
+  @override
+  String get discoverScreenSearchRoomsSubtitle => '按名称搜索公开房间';
+
+  @override
+  String get discoverScreenPublicRoomsLabel => '公开房间';
+
+  @override
+  String get discoverScreenLoadingRooms => '查找中…';
+
+  @override
+  String get discoverScreenNoRoomsOpen => '暂时没有开放的房间';
+
+  @override
+  String get discoverScreenIncomingLabel => '收到';
+
+  @override
+  String get discoverScreenOutgoingLabel => '发出';
+
+  @override
+  String get discoverScreenIncomingLabelCaps => '收到';
+
+  @override
+  String get discoverScreenOutgoingLabelCaps => '发出';
+
+  @override
+  String get discoverScreenJumpPeopleLabel => '用户';
+
+  @override
+  String get discoverScreenJumpRoomsLabel => '房间';
+
+  @override
+  String discoverScreenJumpToSemanticLabel(Object label) {
+    return '跳转到$label';
+  }
+
+  @override
+  String get imageCropScreenDefaultTitle => '调整';
+
+  @override
+  String get imageCropScreenDefaultConfirmLabel => '使用照片';
+
+  @override
+  String get imageCropScreenSavingButton => '保存中…';
+
+  @override
+  String get imageCropScreenCancelButton => '取消';
+
+  @override
+  String get imageCropScreenHeicUnsupported => '此浏览器无法打开 HEIC 格式的照片';
+
+  @override
+  String get imageCropScreenLoadFailed => '无法打开该图片';
+
+  @override
+  String get imageCropScreenHintCircle => '拖动移动,双指缩放';
+
+  @override
+  String get imageCropScreenHintRect => '拖动和捏合调整取景框';
+
+  @override
+  String get loginScreenSignInHeroMuted => '欢迎\n';
+
+  @override
+  String get loginScreenSignInHeroInk => '回来。';
+
+  @override
+  String get loginScreenSignInCta => '登录';
+
+  @override
+  String get loginScreenSignUpHeroMuted => '新\n';
+
+  @override
+  String get loginScreenSignUpHeroInk => '面孔。';
+
+  @override
+  String get loginScreenSignUpCta => '开通账号';
+
+  @override
+  String get loginScreenResetHeroMuted => '重置\n';
+
+  @override
+  String get loginScreenResetHeroInk => '密码。';
+
+  @override
+  String get loginScreenResetCta => '重置密码';
+
+  @override
+  String get loginScreenErrorPasswordsDontMatch => '两次输入的密码不一致。';
+
+  @override
+  String get loginScreenErrorChoosePasswordFirst => '请先设置密码。';
+
+  @override
+  String get loginScreenUsernameHint => '用户名';
+
+  @override
+  String get loginScreenPasswordHint => '密码';
+
+  @override
+  String get loginScreenConfirmPasswordHint => '确认密码';
+
+  @override
+  String get loginScreenNameOptionalHint => '昵称(选填)';
+
+  @override
+  String get loginScreenRecoveryPhraseHint => '你的12词恢复短语';
+
+  @override
+  String get loginScreenNewPasswordHint => '新密码';
+
+  @override
+  String get loginScreenBackToSignIn => '← 返回登录';
+
+  @override
+  String get loginScreenForgotPassword => '忘记密码?';
+
+  @override
+  String get loginScreenSettingUpKidsPhone => '设置儿童账号';
+
+  @override
+  String get loginScreenLegalPrefix => '开通账号即表示你同意';
+
+  @override
+  String get loginScreenLegalTermsLink => '服务条款';
+
+  @override
+  String get loginScreenLegalMiddle => '和';
+
+  @override
+  String get loginScreenLegalPrivacyLink => '隐私政策';
+
+  @override
+  String get loginScreenLegalSuffix => '。';
+
+  @override
+  String get loginScreenAlreadyHerePrompt => '已经有账号了？';
+
+  @override
+  String get loginScreenSignInLink => '登录';
+
+  @override
+  String get loginScreenNoAccountPrompt => '还没有账号？';
+
+  @override
+  String get loginScreenOpenOneLink => '去注册';
+
+  @override
+  String loginScreenWordCounter(Object count) {
+    return '$count/12 个词';
+  }
+
+  @override
+  String get homeShellEmptyRoomHint => '选一个聊天室开始聊天';
+
+  @override
+  String get homeShellEmptySettingHint => '选一项设置';
+
+  @override
+  String get searchScreenHintPeople => '搜索用户…';
+
+  @override
+  String get searchScreenHintRooms => '搜索聊天室…';
+
+  @override
+  String get searchScreenPeoplePromptChild => '输入完整用户名才能找到新朋友';
+
+  @override
+  String get searchScreenPeoplePromptDefault => '按用户名或昵称搜索';
+
+  @override
+  String get searchScreenNoMatchChild => '没有匹配结果 —— 添加新朋友\n需要完整且准确的用户名';
+
+  @override
+  String get searchScreenNoMatchDefault => '没有匹配结果';
+
+  @override
+  String get searchScreenNoRoomsYet => '暂无公开聊天室';
+
+  @override
+  String get searchScreenNoRoomsMatch => '没有匹配的公开聊天室';
+
+  @override
+  String get searchScreenActionAskToAdd => '申请添加';
+
+  @override
+  String get searchScreenActionSendRequest => '发送请求';
+
+  @override
+  String get searchScreenActionCancel => '撤回请求';
+
+  @override
+  String get searchScreenActionApprove => '接受请求';
+
+  @override
+  String get searchScreenActionOpenDm => '打开私聊';
+
+  @override
+  String get searchScreenAskedLabel => '已申请';
+
+  @override
+  String get profileVisibilityScreenTitle => '可见性偏好。';
+
+  @override
+  String get profileVisibilityScreenSubtitle => '控制别人能看到什么，以及他们能怎样联系到你。';
+
+  @override
+  String get profileVisibilityScreenSectionProfile => '个人资料';
+
+  @override
+  String get profileVisibilityScreenAvatarLabel => '头像';
+
+  @override
+  String get profileVisibilityScreenAvatarDesc => '你的头像图片';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayLabel => '在线 / 离开';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayDesc => '你现在是否显示为活跃状态';
+
+  @override
+  String get profileVisibilityScreenLastSeenLabel => '最后在线时间';
+
+  @override
+  String get profileVisibilityScreenLastSeenDesc => '你上次在线的时间';
+
+  @override
+  String get profileVisibilityScreenSectionMessages => '消息';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsLabel => '发送已读回执';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsDesc =>
+      '开启后，别人可以看到你已读了他们的消息';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsLabel => '显示已读回执';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsDesc =>
+      '对方读过后，在你自己的消息上看到“已读”标记';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsHint =>
+      '只有开启了“发送已读回执”的人才会计入已读状态，其他人则不会显示。';
+
+  @override
+  String get profileVisibilityScreenSectionPeople => '人员';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsLabel => '好友请求';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsDesc => '谁可以向你发送好友请求';
+
+  @override
+  String get profileVisibilityScreenSupervisedTitle => '这些由你的大人设置';
+
+  @override
+  String get profileVisibilityScreenSupervisedBody =>
+      '你可以看到这里其他人能看到的内容，但只有大人才能修改。他们始终能看到你的头像、你是否在线，以及你上次在线的时间。';
+
+  @override
+  String get profileVisibilityScreenOptionPublic => '公开';
+
+  @override
+  String get profileVisibilityScreenOptionFriends => '好友';
+
+  @override
+  String get profileVisibilityScreenOptionNobody => '无人';
+
+  @override
+  String get profileVisibilityScreenOptionOn => '开';
+
+  @override
+  String get profileVisibilityScreenOptionOff => '关';
+
+  @override
+  String get profileVisibilityScreenOptionAnyone => '任何人';
+
+  @override
+  String get logoScreenTitle => '应用标志。';
+
+  @override
+  String get logoScreenSubtitle => '顶栏上的标志，你说了算。';
+
+  @override
+  String get logoScreenAutoLabel => '自动';
+
+  @override
+  String get logoScreenAutoDescription => '跟随你的主题，标志随配色变化。';
+
+  @override
+  String get logoScreenManualLabel => '手动';
+
+  @override
+  String get logoScreenManualDescription => '任选标志，主题不变。';
+
+  @override
+  String get logoScreenAlwaysDefaultLabel => '始终默认';
+
+  @override
+  String get logoScreenAlwaysDefaultDescription => '始终使用 MonkeyHub 标志，与主题无关。';
+
+  @override
+  String get logoScreenActiveBadge => '使用中';
+
+  @override
+  String get logoScreenMonkeyCollectionHeader => '猴子合集';
+
+  @override
+  String get logoScreenThemesHeader => '主题';
+
+  @override
+  String get recoveryPhraseScreenCopiedSnackbar => '已复制 — 粘贴到安全的地方';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroMuted => '确认\n';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroInk => '是你本人。';
+
+  @override
+  String get recoveryPhraseScreenPasswordBody => '验证密码，防止他人为你的账户设置恢复短语。';
+
+  @override
+  String get recoveryPhraseScreenPasswordHint => '密码';
+
+  @override
+  String get recoveryPhraseScreenContinueButton => '继续';
+
+  @override
+  String get recoveryPhraseScreenNotNowLink => '暂不';
+
+  @override
+  String get recoveryPhraseScreenEnterPasswordError => '请输入密码。';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroMuted => '保存\n';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroInk => '这些词。';
+
+  @override
+  String get recoveryPhraseScreenWordsBody =>
+      '这十二个词是你忘记密码后找回账户的唯一方式。我们无法再次显示给你，也无法帮你找回。';
+
+  @override
+  String get recoveryPhraseScreenCopyButton => '复制';
+
+  @override
+  String get recoveryPhraseScreenPaperHint => '如果可以，把它们写在纸上。手机里的东西可能会随手机一起丢失。';
+
+  @override
+  String get recoveryPhraseScreenSavedButton => '我已保存';
+
+  @override
+  String get recoveryPhraseScreenBackLink => '← 返回';
+
+  @override
+  String get recoveryPhraseScreenKeepPhraseLink => '暂不——保留我目前的恢复短语';
+
+  @override
+  String get homeScreenProfileSemanticLabel => '你的个人资料';
+
+  @override
+  String homeScreenGreeting(Object name) {
+    return '嗨，$name。';
+  }
+
+  @override
+  String get homeScreenNewRoomSemanticLabel => '新建房间';
+
+  @override
+  String get homeScreenEmptyRoomsMessage => '还没有房间——创建一个吧';
+
+  @override
+  String get groupCallScreenTitleVideo => '群组视频通话';
+
+  @override
+  String get groupCallScreenTitleVoice => '群组语音通话';
+
+  @override
+  String groupCallScreenParticipantCount(Object count) {
+    return '$count 人通话中';
+  }
+
+  @override
+  String get groupCallScreenReconnecting => '重新连接中…';
+
+  @override
+  String get groupCallScreenUnmuteLabel => '取消静音';
+
+  @override
+  String get groupCallScreenMuteLabel => '静音';
+
+  @override
+  String get groupCallScreenCamOnLabel => '开镜头';
+
+  @override
+  String get groupCallScreenCamOffLabel => '关镜头';
+
+  @override
+  String get groupCallScreenFlipLabel => '翻转';
+
+  @override
+  String get groupCallScreenSpeakerLabel => '扬声器';
+
+  @override
+  String get groupCallScreenLeaveLabel => '离开';
+
+  @override
+  String get groupCallScreenYouLabel => '你';
+
+  @override
+  String roomFilterDrawerButtonActiveSemanticLabel(Object summary) {
+    return '正在按$summary筛选。更改筛选';
+  }
+
+  @override
+  String get roomFilterDrawerButtonSemanticLabel => '筛选聊天';
+
+  @override
+  String roomFilterDrawerActiveSummary(Object count, Object summary) {
+    return '$summary · $count';
+  }
+
+  @override
+  String get roomFilterDrawerClearSemanticLabel => '清除筛选';
+
+  @override
+  String get roomFilterDrawerClearLabel => '清除';
+
+  @override
+  String get roomFilterDrawerDimensionType => '类型';
+
+  @override
+  String get roomFilterDrawerDimensionNature => '性质';
+
+  @override
+  String get roomFilterDrawerDimensionStatus => '状态';
+
+  @override
+  String get roomFilterDrawerPanelClear => '清除';
+
+  @override
+  String get roomFilterDrawerPanelDone => '完成';
+
+  @override
+  String roomFilterDrawerFacetSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天',
+    );
+    return '$label，$_temp0';
+  }
+
+  @override
+  String roomFilterDrawerEmptyStateTitle(Object summary) {
+    return '没有符合$summary的聊天';
+  }
+
+  @override
+  String roomFilterDrawerShowAllSemanticLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '显示全部 $count 个聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomFilterDrawerShowAllLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '显示全部 $count 个聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomSheetTitle => '新聊天室';
+
+  @override
+  String get createRoomSheetTaglineSecret => '什么都不会留下';
+
+  @override
+  String get createRoomSheetTaglineRegular => '留得住的空间';
+
+  @override
+  String get createRoomSheetNameLabel => '名称';
+
+  @override
+  String get createRoomSheetNameHint => '起个诚实的名字…';
+
+  @override
+  String get createRoomSheetDescriptionLabel => '描述 · 选填';
+
+  @override
+  String get createRoomSheetDescriptionHint => '用一句话介绍一下…';
+
+  @override
+  String get createRoomSheetVisibilityLabel => '可见性';
+
+  @override
+  String get createRoomSheetVisibilityPublicTitle => '公开';
+
+  @override
+  String get createRoomSheetVisibilityPublicSub => '任何人都能找到';
+
+  @override
+  String get createRoomSheetVisibilityPrivateTitle => '私密';
+
+  @override
+  String get createRoomSheetVisibilityPrivateSub => '仅限邀请';
+
+  @override
+  String get createRoomSheetTypeLabel => '类型';
+
+  @override
+  String get createRoomSheetTypeStandardTitle => '标准';
+
+  @override
+  String get createRoomSheetTypeStandardSub => '消息会保留';
+
+  @override
+  String get createRoomSheetTypeEphemeralTitle => '阅后即焚';
+
+  @override
+  String get createRoomSheetTypeEphemeralSub => '自动删除';
+
+  @override
+  String get createRoomSheetMessageLifeLabel => '消息有效期';
+
+  @override
+  String createRoomSheetTtlSeconds(Object seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String createRoomSheetTtlMinutes(Object minutes) {
+    return '$minutes分钟';
+  }
+
+  @override
+  String createRoomSheetTtlHours(Object hours) {
+    return '$hours小时';
+  }
+
+  @override
+  String get createRoomSheetPasswordLabel => '密码 · 选填';
+
+  @override
+  String get createRoomSheetPasswordHint => '用密码把它锁上…';
+
+  @override
+  String get createRoomSheetNameRequiredError => '名称不能为空';
+
+  @override
+  String get createRoomSheetOpenRoomSemanticLabel => '打开聊天室';
+
+  @override
+  String get createRoomSheetOpenRoomButton => '打开聊天室';
+
+  @override
+  String get familyScreenTitle => '家庭';
+
+  @override
+  String familyScreenPendingBanner(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件事等你确认',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get familyScreenPresenceOnline => '在线';
+
+  @override
+  String get familyScreenPresenceNotPaired => '还没配对';
+
+  @override
+  String get familyScreenPresenceJustNow => '刚刚';
+
+  @override
+  String familyScreenPresenceMinutesAgo(Object minutes) {
+    return '$minutes分钟前';
+  }
+
+  @override
+  String familyScreenPresenceHoursAgo(Object hours) {
+    return '$hours小时前';
+  }
+
+  @override
+  String familyScreenPresenceDaysAgo(Object days) {
+    return '$days天前';
+  }
+
+  @override
+  String get familyScreenPairButton => '配对';
+
+  @override
+  String get familyScreenReleaseButton => '解绑';
+
+  @override
+  String get familyScreenSettingsButton => '设置';
+
+  @override
+  String get familyScreenAddChildButton => '添加孩子';
+
+  @override
+  String get familyScreenEmptyStateTitle => '还没有孩子';
+
+  @override
+  String get familyScreenEmptyStateBody => '给孩子创建一个账号,然后绑定到他们的手机。';
+
+  @override
+  String get reactionDetailsSheetTitle => '回应';
+
+  @override
+  String get reactionDetailsSheetEmptyState => '这里已经没有回应了';
+
+  @override
+  String reactionDetailsSheetPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reactionDetailsSheetFilterAll => '全部';
+
+  @override
+  String get reactionDetailsSheetYouBadge => '你';
+
+  @override
+  String get roomLayoutScreenTitle => '聊天列表。';
+
+  @override
+  String get roomLayoutScreenSubtitle => '聊天室如何排列,以及你如何筛选它们';
+
+  @override
+  String get roomLayoutScreenLayoutSectionLabel => '布局';
+
+  @override
+  String get roomLayoutScreenRowLayoutLabel => '列表布局';
+
+  @override
+  String get roomLayoutScreenRowLayoutDescription => '单列显示,通栏铺满,一目了然。';
+
+  @override
+  String get roomLayoutScreenGridLayoutLabel => '网格布局';
+
+  @override
+  String get roomLayoutScreenGridLayoutDescription => '两列紧凑排列,一眼看到更多房间。';
+
+  @override
+  String get roomLayoutScreenFilterControlSectionLabel => '筛选方式';
+
+  @override
+  String get roomLayoutScreenChipRowLabel => '标签行';
+
+  @override
+  String get roomLayoutScreenChipRowDescription => '常驻显示,一键切换筛选,只占一行空间。';
+
+  @override
+  String get roomLayoutScreenDrawerButtonLabel => '抽屉按钮';
+
+  @override
+  String get roomLayoutScreenDrawerButtonDescription => '一按即开的按钮,不用时不占地方。';
+
+  @override
+  String get roomLayoutScreenActiveBadge => '使用中';
+
+  @override
+  String get pinnedBannerJumpToPinnedSemanticLabel => '跳转到置顶消息';
+
+  @override
+  String get pinnedBannerAllPinnedSemanticLabel => '所有置顶消息';
+
+  @override
+  String get pinnedBannerTitleSingle => '置顶消息';
+
+  @override
+  String pinnedBannerTitleWithIndex(Object count, Object index) {
+    return '置顶消息 $index/$count';
+  }
+
+  @override
+  String get pinnedBannerChatStyleTitle => '聊天样式。';
+
+  @override
+  String get pinnedBannerChatStyleSubtitle => '聊天室的外观';
+
+  @override
+  String get pinnedBannerClassicLabel => '经典';
+
+  @override
+  String get pinnedBannerClassicSubtitle => '带分隔线的顶栏,扁平输入栏。';
+
+  @override
+  String get pinnedBannerCompactLabel => '紧凑';
+
+  @override
+  String get pinnedBannerCompactSubtitle => '悬浮在对话上方的磨砂胶囊。';
+
+  @override
+  String get pinnedBannerActiveBadge => '使用中';
+
+  @override
+  String get audioMessageMissingLabel => '[音频缺失]';
+
+  @override
+  String get audioMessageUnavailableLabel => '语音不可用';
+
+  @override
+  String get audioMessageRetryHint => '点击重试';
+
+  @override
+  String get audioMessageLoadingLabel => '加载中…';
+
+  @override
+  String get audioMessageUsernameRequiredError => '请输入用户名。';
+
+  @override
+  String get audioMessagePasswordRequiredError => '请输入密码。';
+
+  @override
+  String get audioMessageCancelSemanticLabel => '取消';
+
+  @override
+  String get audioMessageHeroCreateLine1 => '马上\n';
+
+  @override
+  String get audioMessageHeroCreateLine2 => '就好了。';
+
+  @override
+  String get audioMessageHeroLinkLine1 => '欢迎\n';
+
+  @override
+  String get audioMessageHeroLinkLine2 => '回来。';
+
+  @override
+  String get audioMessageCreateSubtitle => '选一个用户名,方便家人朋友找到你。';
+
+  @override
+  String audioMessageLinkSubtitle(Object provider) {
+    return '登录一次,$provider 就会关联到你的账号。';
+  }
+
+  @override
+  String get audioMessageUsernameHint => '用户名';
+
+  @override
+  String get audioMessageDisplayNameHint => '显示名称(选填)';
+
+  @override
+  String get audioMessagePasswordHint => '密码';
+
+  @override
+  String get audioMessageSwitchToLinkPrompt => '那是我的账号,去登录';
+
+  @override
+  String get audioMessageCreateAccountButton => '创建账号';
+
+  @override
+  String audioMessageSignInLinkButton(Object provider) {
+    return '登录并关联 $provider';
+  }
+
+  @override
+  String get audioMessageSwitchToLinkModeLink => '已经有账号了?';
+
+  @override
+  String get audioMessageSwitchToCreateModeLink => '新用户?创建账号';
+
+  @override
+  String get approvalsScreenTitle => '审批';
+
+  @override
+  String get approvalsScreenEmptyTitle => '暂无待办';
+
+  @override
+  String get approvalsScreenEmptySubtitle => '你都处理完啦';
+
+  @override
+  String get approvalsScreenErrorNotGuardian => '这不是你能决定的';
+
+  @override
+  String get approvalsScreenErrorAlreadyHandled => '已经在别的地方处理过了';
+
+  @override
+  String get approvalsScreenErrorGeneric => '保存失败,再试一次';
+
+  @override
+  String approvalsScreenHeadlineContactOutgoing(Object child, Object other) {
+    return '$child 想添加 $other';
+  }
+
+  @override
+  String approvalsScreenHeadlineContactIncoming(Object child, Object other) {
+    return '$other 想添加 $child';
+  }
+
+  @override
+  String approvalsScreenHeadlineJoinRoom(Object child, Object room) {
+    return '$child 想加入 $room';
+  }
+
+  @override
+  String get approvalsScreenSomeoneLower => '某人';
+
+  @override
+  String get approvalsScreenSomeoneCapital => '有人';
+
+  @override
+  String get approvalsScreenRoomFallback => '一个房间';
+
+  @override
+  String get approvalsScreenConsequenceContactOutgoing =>
+      '对方会收到这条请求。是否同意,由对方决定。';
+
+  @override
+  String approvalsScreenConsequenceContactIncoming(Object child) {
+    return '$child 会看到这条请求,可以选择接受或忽略。';
+  }
+
+  @override
+  String get approvalsScreenConsequenceJoinRoom => '在你收回权限前,他们可以在里面查看和发送消息。';
+
+  @override
+  String get approvalsScreenNotYetButton => '暂不';
+
+  @override
+  String get approvalsScreenAllowButton => '允许';
+
+  @override
+  String get approvalsScreenForwardDirectMessageFallback => '私信';
+
+  @override
+  String approvalsScreenForwardTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '转发 $count 条消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsScreenForwardNoChatsYet => '还没有其他聊天';
+
+  @override
+  String get approvalsScreenForwardNoMatches => '没有匹配结果';
+
+  @override
+  String approvalsScreenForwardMaxTargetsHint(Object max) {
+    return '最多同时选择 $max 个聊天';
+  }
+
+  @override
+  String get approvalsScreenForwardSearchHint => '搜索聊天';
+
+  @override
+  String approvalsScreenForwardDeselectSemantic(Object title) {
+    return '取消选择 $title';
+  }
+
+  @override
+  String approvalsScreenForwardSelectSemantic(Object title) {
+    return '选择 $title';
+  }
+
+  @override
+  String get approvalsScreenForwardFadesBadge => '自毁';
+
+  @override
+  String get approvalsScreenForwardSendSemantic => '发送';
+
+  @override
+  String approvalsScreenForwardSendButton(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '发送至 $count 个聊天',
+      zero: '发送',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get linkedAccountsScreenTitle => '已关联账号';
+
+  @override
+  String get linkedAccountsScreenSubtitle => '你已关联到这个账号的其他账号,让你无需密码即可登录。';
+
+  @override
+  String get linkedAccountsScreenEmptyState => '这台设备上没有可关联的账号。';
+
+  @override
+  String get linkedAccountsScreenStatusChecking => '检查中…';
+
+  @override
+  String linkedAccountsScreenStatusLinked(Object provider) {
+    return '你可以在任意设备上使用 $provider 登录。';
+  }
+
+  @override
+  String linkedAccountsScreenStatusNotLinked(Object provider) {
+    return '添加 $provider,这样你就不用输入密码了。';
+  }
+
+  @override
+  String linkedAccountsScreenUnlinkTitle(Object provider) {
+    return '取消关联 $provider';
+  }
+
+  @override
+  String get linkedAccountsScreenUnlinkAction => '取消关联';
+
+  @override
+  String linkedAccountsScreenUnlinkSubtitle(Object provider) {
+    return '输入密码以停止使用 $provider 登录。';
+  }
+
+  @override
+  String linkedAccountsScreenLinkTitle(Object provider) {
+    return '关联 $provider';
+  }
+
+  @override
+  String get linkedAccountsScreenLinkAction => '关联';
+
+  @override
+  String linkedAccountsScreenLinkSubtitle(Object provider) {
+    return '输入密码,将 $provider 添加为登录方式。';
+  }
+
+  @override
+  String get linkedAccountsScreenPillChecking => '检查中';
+
+  @override
+  String get linkedAccountsScreenPillLinked => '已关联';
+
+  @override
+  String get linkedAccountsScreenPillNotLinked => '未关联';
+
+  @override
+  String get linkedAccountsScreenCallSheetVoiceLabel => '语音';
+
+  @override
+  String get linkedAccountsScreenCallSheetVideoLabel => '视频';
+
+  @override
+  String get linkedAccountsScreenCallSheetTitle => '发起通话';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneTitle => '呼叫所有人';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle => '呼叫该聊天室的所有成员';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleTitle => '选择成员';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle => '选择要邀请的人';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallFullError => '通话人数已满（最多6人）';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartFailedError => '无法发起通话';
+
+  @override
+  String get linkedAccountsScreenCallSheetInviteTitle => '邀请加入通话';
+
+  @override
+  String get linkedAccountsScreenCallSheetNoOtherMembers => '这里没有其他成员';
+
+  @override
+  String get linkedAccountsScreenCallSheetSelectPeople => '选择成员';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartCallLabel => '发起通话';
+
+  @override
+  String linkedAccountsScreenCallSheetStartCallCount(Object count) {
+    return '发起通话（$count）';
+  }
+
+  @override
+  String get childPairScreenGreetingLine1 => '你好';
+
+  @override
+  String get childPairScreenGreetingLine2 => '你。';
+
+  @override
+  String get childPairScreenIntro =>
+      '请大人打开 MonkeyHub，然后点击“配对设备”。接着扫描对方的验证码，或者输入对方读给你听的6位数字。';
+
+  @override
+  String get childPairScreenOrDivider => '或';
+
+  @override
+  String get childPairScreenGenericError => '出错了，请重试。';
+
+  @override
+  String get childPairScreenAccountGoneError => '这个账号已经不存在了。';
+
+  @override
+  String get childPairScreenScanButtonLabel => '扫描对方的验证码';
+
+  @override
+  String get childPairScreenNoCameraMessage => '没有摄像头，请改为输入6位数字。';
+
+  @override
+  String get childPairScreenStopScanning => '停止扫描';
+
+  @override
+  String get childPairScreenSubmitButtonLabel => '放我进去';
+
+  @override
+  String get childPairScreenBackToSignIn => '← 返回登录';
+
+  @override
+  String get fileMessageUnavailable => '文件已不存在';
+
+  @override
+  String get fileMessageOpenFailed => '无法打开该文件';
+
+  @override
+  String get fileMessageDefaultName => '文档';
+
+  @override
+  String fileMessageSaveSemanticLabel(Object name) {
+    return '保存 $name';
+  }
+
+  @override
+  String get fileMessageUploadFailedLabel => '失败';
+
+  @override
+  String get fileMessageSendingLabel => '发送中…';
+
+  @override
+  String fileMessageSizeSendingLabel(Object size) {
+    return '$size · 发送中…';
+  }
+
+  @override
+  String fileMessageAgoMinutes(Object count) {
+    return '$count分钟前';
+  }
+
+  @override
+  String fileMessageAgoHours(Object count) {
+    return '$count小时前';
+  }
+
+  @override
+  String fileMessageAgoDays(Object count) {
+    return '$count天前';
+  }
+
+  @override
+  String get fileMessageStandardBadge => '标准';
+
+  @override
+  String fileMessageDraftMessagesTapToView(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '对方发来 $count 条消息 · 点击查看',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageApproveButton => '同意';
+
+  @override
+  String get fileMessageDeclineButton => '拒绝';
+
+  @override
+  String fileMessageSentAgoLabel(Object ago) {
+    return '$ago发送';
+  }
+
+  @override
+  String fileMessageMessagesPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条消息待发送',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageCancelRequestButton => '取消请求';
+
+  @override
+  String get destructiveSheetCannotBeUndone => '此操作无法撤销';
+
+  @override
+  String get destructiveSheetCancelSemanticLabel => '取消';
+
+  @override
+  String get destructiveSheetCancelButtonLabel => '取消';
+
+  @override
+  String get destructiveSheetHideLabel => '收起';
+
+  @override
+  String get destructiveSheetViewLabel => '展开';
+
+  @override
+  String get destructiveSheetPairingMintError => '生成失败，请重试。';
+
+  @override
+  String get destructiveSheetPairingReleaseTitle => '归还';
+
+  @override
+  String get destructiveSheetPairingPairTitle => '配对';
+
+  @override
+  String destructiveSheetPairingReleaseInstructions(Object name) {
+    return '在$name的手机上打开TA的个人资料，点击“归还手机”，然后输入这些数字。';
+  }
+
+  @override
+  String destructiveSheetPairingPairInstructions(Object name) {
+    return '在$name的手机上打开MonkeyHub扫一下这个——或者直接输入数字。';
+  }
+
+  @override
+  String get destructiveSheetPairingCodeExpired => '此码已过期';
+
+  @override
+  String destructiveSheetPairingExpiresIn(Object time) {
+    return '$time后过期';
+  }
+
+  @override
+  String get destructiveSheetPairingNewCodeButton => '生成新码';
+
+  @override
+  String get destructiveSheetPairingOneUseNote => '仅限一次使用，生成新码会让旧码失效。';
+
+  @override
+  String get deepOceanThemeAttachButtonLabel => '添加附件';
+
+  @override
+  String get deepOceanThemeCameraButtonLabel => '相机';
+
+  @override
+  String get deepOceanThemeSendButtonLabel => '发送';
+
+  @override
+  String get deepOceanThemeEphemeralHint => '说点服务器会忘记的悄悄话…';
+
+  @override
+  String get deepOceanThemeDefaultHint => '说点什么…';
+
+  @override
+  String get deepOceanThemeMessageHint => '消息';
+
+  @override
+  String photoChromeMediaPositionLabel(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get photoChromeMediaGoneLabel => '这个文件不见了';
+
+  @override
+  String get photoChromeMediaYouLabel => '你';
+
+  @override
+  String get photoChromeCloseSemanticLabel => '关闭';
+
+  @override
+  String get photoChromeShowInChatSemanticLabel => '在聊天中显示';
+
+  @override
+  String typingIndicatorOnePersonTyping(Object name) {
+    return '$name正在输入';
+  }
+
+  @override
+  String typingIndicatorTwoPeopleTyping(Object name1, Object name2) {
+    return '$name1和$name2正在输入';
+  }
+
+  @override
+  String typingIndicatorManyPeopleTyping(
+    Object extra,
+    Object name1,
+    Object name2,
+  ) {
+    return '$name1、$name2 等$extra人正在输入';
+  }
+
+  @override
+  String get typingIndicatorUnknownCallerFallbackName => '来电';
+
+  @override
+  String get typingIndicatorIncomingVideoCallLabel => '视频通话来电';
+
+  @override
+  String get typingIndicatorIncomingVoiceCallLabel => '语音通话来电';
+
+  @override
+  String get typingIndicatorDeclineButtonLabel => '拒接';
+
+  @override
+  String get typingIndicatorDeclineButtonDeclining => '拒接中…';
+
+  @override
+  String get typingIndicatorAcceptButtonLabel => '接听';
+
+  @override
+  String get typingIndicatorAcceptButtonConnecting => '连接中…';
+
+  @override
+  String get messageStampNavigationTitle => '导航。';
+
+  @override
+  String get messageStampNavigationSubtitle => '你在聊天、发现、动态和设置之间切换的方式';
+
+  @override
+  String get messageStampRadialOrbLabel => '径向光球';
+
+  @override
+  String get messageStampRadialOrbDescription =>
+      '长按 + 从角落拖动。平时安静待机,一个越用越顺手的手势。';
+
+  @override
+  String get messageStampBottomPillLabel => '底部胶囊';
+
+  @override
+  String get messageStampBottomPillDescription => '经典点击。始终可见,零学习成本。';
+
+  @override
+  String get messageStampActiveLabel => '使用中';
+
+  @override
+  String get messageStampUploadingLabel => '正在上传';
+
+  @override
+  String get messageStampSendingLabel => '正在发送';
+
+  @override
+  String get messageStampFailedToSendLabel => '发送失败';
+
+  @override
+  String get messageStampSeenLabel => '已读';
+
+  @override
+  String messageStampCountdownSeconds(Object count) {
+    return '$count秒';
+  }
+
+  @override
+  String messageStampCountdownMinutes(Object count) {
+    return '$count分';
+  }
+
+  @override
+  String get voiceRecorderScreenMicPermissionDeniedSnackbar => '麦克风权限被拒绝';
+
+  @override
+  String get voiceRecorderScreenStatusRecording => '录音中';
+
+  @override
+  String get voiceRecorderScreenStatusReady => '已就绪';
+
+  @override
+  String get voiceRecorderScreenStatusTapToStart => '点击开始';
+
+  @override
+  String get voiceRecorderScreenReRecordButton => '重新录制';
+
+  @override
+  String get voiceRecorderScreenStopButton => '停止';
+
+  @override
+  String get voiceRecorderScreenSendButton => '发送';
+
+  @override
+  String get voiceRecorderScreenRecordButton => '录制';
+
+  @override
+  String get cyberpunkThemeMentionPickerEveryoneTitle => '所有人';
+
+  @override
+  String get cyberpunkThemeMentionPickerNotifiesAllBadge => '通知全员';
+
+  @override
+  String get cyberpunkThemeMentionPickerOwnerBadge => '群主';
+
+  @override
+  String get releaseDeviceScreenFallbackChildName => 'TA';
+
+  @override
+  String releaseDeviceScreenIntro(Object name) {
+    return '这样$name就会从这部手机退出登录并交还手机——手机会回到平时的登录界面,谁都能使用。';
+  }
+
+  @override
+  String get releaseDeviceScreenAccountKeptNote => '账号、消息和好友都会保留,随时都能重新登录。';
+
+  @override
+  String releaseDeviceScreenAskGrownUp(Object name) {
+    return '请一位大人打开 MonkeyHub,在“家庭”里找到$name,然后点击“释放”。';
+  }
+
+  @override
+  String get releaseDeviceScreenOrDivider => '或';
+
+  @override
+  String get releaseDeviceScreenOnePhoneNote => '如果只有这一部手机,大人也可以直接在这里登录。';
+
+  @override
+  String get releaseDeviceScreenUsernameHint => '大人的用户名';
+
+  @override
+  String get releaseDeviceScreenPasswordHint => '大人的密码';
+
+  @override
+  String get releaseDeviceScreenSignOutSemanticLabel => '退出登录';
+
+  @override
+  String get releaseDeviceScreenChecking => '检查中…';
+
+  @override
+  String releaseDeviceScreenSignOutButton(Object name) {
+    return '退出$name登录';
+  }
+
+  @override
+  String get releaseDeviceScreenHeaderTitle => '把手机还回去';
+
+  @override
+  String get releaseDeviceScreenErrorCodeExpired => '这个验证码已过期,去申请一个新的吧。';
+
+  @override
+  String get releaseDeviceScreenErrorCodeInvalid => '验证码不对,可能已经被用过了。';
+
+  @override
+  String get releaseDeviceScreenErrorNotAGuardian => '没成功,检查一下用户名和密码。';
+
+  @override
+  String get releaseDeviceScreenErrorGeneric => '出错了,再试一次吧。';
+
+  @override
+  String get activeCallPillMoveHereSemanticLabel => '把通话转到这台设备';
+
+  @override
+  String activeCallPillCallWith(Object name) {
+    return '与$name通话';
+  }
+
+  @override
+  String activeCallPillOnDevice(Object device) {
+    return '在 $device 上';
+  }
+
+  @override
+  String get activeCallPillMoveHereLabel => '转到这里';
+
+  @override
+  String get activeCallPillUnknownCaller => '未知';
+
+  @override
+  String get activeCallPillPlatformIphone => 'iPhone';
+
+  @override
+  String get activeCallPillPlatformIosSimulator => 'iOS 模拟器';
+
+  @override
+  String get activeCallPillPlatformAndroid => 'Android 设备';
+
+  @override
+  String get activeCallPillPlatformMac => 'Mac';
+
+  @override
+  String get activeCallPillPlatformWindows => 'Windows 电脑';
+
+  @override
+  String get activeCallPillPlatformLinux => 'Linux 设备';
+
+  @override
+  String get activeCallPillPlatformBrowser => '浏览器';
+
+  @override
+  String get activeCallPillPlatformOther => '另一台设备';
+
+  @override
+  String get activeCallPillPinnedHeader => '置顶消息';
+
+  @override
+  String activeCallPillPinnedHeaderCount(Object count) {
+    return '置顶消息 · $count';
+  }
+
+  @override
+  String get activeCallPillNothingPinned => '没有置顶消息了';
+
+  @override
+  String activeCallPillJumpToMessageSemanticLabel(Object name) {
+    return '跳转到$name的消息';
+  }
+
+  @override
+  String activeCallPillUnpinMessageSemanticLabel(Object name) {
+    return '取消置顶$name的消息';
+  }
+
+  @override
+  String get callButtonErrorBusy => '对方正在通话中';
+
+  @override
+  String get callButtonErrorCallFailed => '无法发起通话';
+
+  @override
+  String get callButtonErrorNotMember => '不是该聊天室的成员';
+
+  @override
+  String get callButtonErrorGeneric => '无法发起通话';
+
+  @override
+  String get callButtonAlreadyOnCall => '你已经在通话中了';
+
+  @override
+  String get callButtonBusyElsewhere => '另一台设备上正在通话';
+
+  @override
+  String get callButtonVoiceCallTooltip => '语音通话';
+
+  @override
+  String get callButtonVideoCallTooltip => '视频通话';
+
+  @override
+  String get callButtonTooltip => '通话';
+
+  @override
+  String get callButtonReplyStyleTitle => '回复样式。';
+
+  @override
+  String get callButtonReplyStyleSubtitle => '回复如何展示原消息';
+
+  @override
+  String get callButtonReplyStylePhantomEchoLabel => '幽灵残影';
+
+  @override
+  String get callButtonReplyStylePhantomEchoDescription =>
+      '父消息的幽灵气泡漂浮在上方，通过一条弯曲的连线相连，交汇处带有分支图标。';
+
+  @override
+  String get callButtonReplyStyleStickyNoteLabel => '便利贴';
+
+  @override
+  String get callButtonReplyStyleStickyNoteDescription =>
+      '一张略微倾斜的拍立得风格卡片，夹在气泡角落。';
+
+  @override
+  String get callButtonReplyStyleComicTailLabel => '漫画尾巴';
+
+  @override
+  String get callButtonReplyStyleComicTailDescription =>
+      '一个小型父消息迷你气泡，带有指向下方的漫画风格三角尾巴。';
+
+  @override
+  String get callButtonReplyStyleClassicLabel => '经典';
+
+  @override
+  String get callButtonReplyStyleClassicDescription =>
+      '带主题色的引用胶囊，配有连线条和头像——熟悉的 WhatsApp 风格。';
+
+  @override
+  String get callButtonReplyStyleActiveBadge => '使用中';
+
+  @override
+  String get callButtonReplyPreviewSampleMessage => '嘿，你看到新出的演示了吗？';
+
+  @override
+  String get callButtonReplyPreviewSampleReply => '看到了，那个模糊效果绝了。';
+
+  @override
+  String get childSetupScreenErrorPickUsername => '给ta起一个用户名吧。';
+
+  @override
+  String get childSetupScreenErrorUsernameTaken => '这个用户名已经被占用了。';
+
+  @override
+  String get childSetupScreenErrorChildNotAllowed => '只有大人账户才能添加孩子。';
+
+  @override
+  String get childSetupScreenErrorGeneric => '账户创建失败，请重试。';
+
+  @override
+  String get childSetupScreenTitle => '添加孩子';
+
+  @override
+  String get childSetupScreenHeading => 'ta是\n谁？';
+
+  @override
+  String get childSetupScreenNameLabel => '名字';
+
+  @override
+  String get childSetupScreenNameHint => '你平时怎么称呼ta';
+
+  @override
+  String get childSetupScreenUsernameLabel => '用户名';
+
+  @override
+  String get childSetupScreenUsernameHint => '朋友们怎么找到ta';
+
+  @override
+  String get childSetupScreenWhatTheyGetTitle => 'ta能做什么';
+
+  @override
+  String get childSetupScreenBulletTalkImmediately => 'ta可以立刻和你还有ta的兄弟姐妹聊天。';
+
+  @override
+  String get childSetupScreenBulletNeedsApproval =>
+      '其他人都需要先经过你同意——无论是ta主动添加的人，还是主动添加ta的人。';
+
+  @override
+  String get childSetupScreenBulletPublicRoomsOff => '公开房间默认关闭，除非你手动开启。';
+
+  @override
+  String get childSetupScreenBulletCantSignOut => 'ta无法自行退出登录，你也可以随时查看ta的动态。';
+
+  @override
+  String get childSetupScreenCreateButton => '创建并配对';
+
+  @override
+  String childSetupScreenFriendRowMessageSemanticLabel(Object name) {
+    return '给$name发消息';
+  }
+
+  @override
+  String get childSetupScreenWaitingPillAskedLabel => '已申请';
+
+  @override
+  String get childSetupScreenMemberCountUnitLabel => '人';
+
+  @override
+  String childSetupScreenSeeAllLabel(Object count) {
+    return '查看全部 $count';
+  }
+
+  @override
+  String childSetupScreenSeeAllSemanticLabel(Object count) {
+    return '查看全部 $count';
+  }
+
+  @override
+  String get bubbleStyleScreenTitle => '气泡样式。';
+
+  @override
+  String get bubbleStyleScreenSubtitle => '你的文字以怎样的形状出现';
+
+  @override
+  String get bubbleStyleScreenTailedLabel => '尾状';
+
+  @override
+  String get bubbleStyleScreenTailedDescription =>
+      '每组连续消息以尾巴收尾；上方的消息行会合并成一个整体。';
+
+  @override
+  String get bubbleStyleScreenSoftLabel => '柔和';
+
+  @override
+  String get bubbleStyleScreenSoftDescription => '没有尾巴——连续消息仅靠收紧的内角衔接在一起。';
+
+  @override
+  String get bubbleStyleScreenPillLabel => '胶囊';
+
+  @override
+  String get bubbleStyleScreenPillDescription => '完全圆润的胶囊形状,每一行都一样。';
+
+  @override
+  String get bubbleStyleScreenSlabLabel => '块状';
+
+  @override
+  String get bubbleStyleScreenSlabDescription => '方正边角——锐利、工整、干脆。';
+
+  @override
+  String get bubbleStyleScreenActiveBadge => '使用中';
+
+  @override
+  String get bubbleStyleScreenPreviewQuestion => '所以呢?看起来怎么样';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyOne => '好一点了';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyTwo => '好多了';
+
+  @override
+  String get bubbleStyleScreenMediaTileVideoSemanticLabel => '视频';
+
+  @override
+  String get bubbleStyleScreenMediaTilePhotoSemanticLabel => '照片';
+
+  @override
+  String get incomingGroupCallScreenCallFullError => '通话人数已满(最多 6 人)';
+
+  @override
+  String get incomingGroupCallScreenJoinFailedError => '无法加入该通话';
+
+  @override
+  String get incomingGroupCallScreenDefaultRoomName => '群组通话';
+
+  @override
+  String get incomingGroupCallScreenDefaultStarterName => '某人';
+
+  @override
+  String incomingGroupCallScreenStartedVideoCall(Object starter) {
+    return '$starter 发起了视频通话';
+  }
+
+  @override
+  String incomingGroupCallScreenStartedVoiceCall(Object starter) {
+    return '$starter 发起了语音通话';
+  }
+
+  @override
+  String incomingGroupCallScreenAlreadyJoinedCount(Object count) {
+    return '已有 $count 人在通话中';
+  }
+
+  @override
+  String get incomingGroupCallScreenDismissButton => '拒绝';
+
+  @override
+  String get incomingGroupCallScreenJoinButton => '加入';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChatsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetMessagesCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
+      '最后一条消息:刚刚';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
+    Object hours,
+  ) {
+    return '最后一条消息:$hours 小时前';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
+      '最后一条消息:昨天';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
+    Object days,
+  ) {
+    return '最后一条消息:$days 天前';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
+      '最后一条消息:很久以前';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetTitleBadge => '收回';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetHeadline(
+    Object childName,
+    Object contactName,
+  ) {
+    return '要把 $contactName 从 $childName 身边带走吗?';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
+      '他们以后没法再联系彼此了,聊天记录也会一起消失。';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
+    Object contactName,
+  ) {
+    return '他们以后没法再联系彼此了。$contactName 不会收到通知。';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
+    Object chats,
+    Object messages,
+  ) {
+    return '$chats · $messages 将被删除';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
+      '双方都会被清空,包括照片和语音消息,且无法恢复。';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
+    num count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '他们还共同加入了 $count 个群聊',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
+      '这些会保留下来。不想要的话,去下面的「房间」列表里移除就行。';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
+      '移除并删除';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
+    Object contactName,
+    Object messages,
+  ) {
+    return '移除 $contactName,并清空 $messages。';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
+    Object contactName,
+  ) {
+    return '将 $contactName 从允许列表中移除。';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
+      '取消';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelButton => '取消';
+
+  @override
+  String get groupCallBannerCallFullError => '通话人数已满(最多 6 人)';
+
+  @override
+  String get groupCallBannerJoinFailedError => '无法加入通话';
+
+  @override
+  String get groupCallBannerUnknownParticipant => '某人';
+
+  @override
+  String get groupCallBannerOngoingVideoCall => '视频通话进行中';
+
+  @override
+  String get groupCallBannerOngoingVoiceCall => '语音通话进行中';
+
+  @override
+  String groupCallBannerParticipantsInCall(Object extra, Object names) {
+    return '$names$extra 正在通话中';
+  }
+
+  @override
+  String get groupCallBannerJoinCallSemanticLabel => '加入通话';
+
+  @override
+  String get groupCallBannerJoinButtonLabel => '加入';
+
+  @override
+  String get groupCallBannerJoinRoomSheetTitle => '加入房间';
+
+  @override
+  String groupCallBannerMemberCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 位成员',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupCallBannerPasswordFieldLabel => '密码';
+
+  @override
+  String get groupCallBannerPasswordHint => '暗号…';
+
+  @override
+  String get groupCallBannerJoinRoomButtonSemanticLabel => '加入';
+
+  @override
+  String get groupCallBannerJoinRoomButtonLabel => '加入';
+
+  @override
+  String get groupCallBannerCancelButtonSemanticLabel => '取消';
+
+  @override
+  String get groupCallBannerCancelButtonLabel => '取消';
+
+  @override
+  String get viewOnceViewerBadgeLabel => '阅后即焚';
+
+  @override
+  String get viewOnceViewerSocialDividerOr => '或';
+
+  @override
+  String get viewOnceViewerAppleContinueButton => '通过 Apple 继续';
+
+  @override
+  String get viewOnceViewerGoogleContinueButton => '通过 Google 继续';
+
+  @override
+  String get discoverListsPeopleTitle => '你的好友。';
+
+  @override
+  String discoverListsPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 人',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterHint => '筛选你的好友…';
+
+  @override
+  String get discoverListsClearFilterSemanticLabel => '清除筛选';
+
+  @override
+  String get discoverListsNoOneYet => '还没有人';
+
+  @override
+  String discoverListsNoMatches(Object query) {
+    return '没有找到匹配「$query」的人';
+  }
+
+  @override
+  String get discoverListsVoiceCallLabel => '语音通话';
+
+  @override
+  String get discoverListsVideoCallLabel => '视频通话';
+
+  @override
+  String get approvalGateAlreadyAskedLabel => '已请求';
+
+  @override
+  String get approvalGateAskGrownUpLabel => '问问大人';
+
+  @override
+  String approvalGateAlreadyAskedBody(Object what) {
+    return '你已经问过$what了。';
+  }
+
+  @override
+  String approvalGateNeedApprovalBody(Object what) {
+    return '你需要先获得大人的同意才能$what。';
+  }
+
+  @override
+  String get approvalGateDisabledBody => '大人暂时关闭了这个功能。';
+
+  @override
+  String get approvalGateAlreadyAskedFooter => '他们会收到通知,过一会儿再来看看吧。';
+
+  @override
+  String get approvalGateWillNotifyFooter => '我们会通知他们,他们回复后你会在这里看到。';
+
+  @override
+  String get approvalGateTalkToThemFooter => '如果你觉得应该改一下,可以直接找他们聊聊。';
+
+  @override
+  String get approvalGateAskButton => '询问';
+
+  @override
+  String get approvalGateNotNowButton => '暂不';
+
+  @override
+  String get approvalGateOkButton => '好的';
+
+  @override
+  String get approvalGateWaitingPillLabel => '等待大人回应';
+
+  @override
+  String get reportSheetTitle => '举报';
+
+  @override
+  String get reportSheetSubtitle => '告诉我们出了什么问题。';
+
+  @override
+  String get reportSheetPrivacyNote => '举报是保密的——对方不会收到通知。';
+
+  @override
+  String get reportSheetReasonSpamLabel => '垃圾信息';
+
+  @override
+  String get reportSheetReasonSpamDescription => '不请自来的广告或重复消息';
+
+  @override
+  String get reportSheetReasonHarassmentLabel => '骚扰';
+
+  @override
+  String get reportSheetReasonHarassmentDescription => '针对性攻击或欺凌';
+
+  @override
+  String get reportSheetReasonImpersonationLabel => '冒充';
+
+  @override
+  String get reportSheetReasonImpersonationDescription => '冒充他人身份';
+
+  @override
+  String get reportSheetReasonInappropriateLabel => '不当内容';
+
+  @override
+  String get reportSheetReasonInappropriateDescription => '色情、暴力或违法内容';
+
+  @override
+  String get reportSheetReasonOtherLabel => '其他';
+
+  @override
+  String get reportSheetReasonOtherDescription => '其他情况';
+
+  @override
+  String get reportSheetOtherNoteHint => '发生了什么?';
+
+  @override
+  String get reportSheetSubmitSemanticLabel => '提交举报';
+
+  @override
+  String get reportSheetSubmitButton => '提交';
+
+  @override
+  String get reportSheetUpdateRequiredTitle => '需要更新';
+
+  @override
+  String get reportSheetUpdateAvailableTitle => '有可用更新';
+
+  @override
+  String get reportSheetUpdateMandatoryBody => '此版本过旧,已无法正常使用。请更新后继续。';
+
+  @override
+  String get reportSheetUpdateAvailableBody => 'MonkeyHub 有新版本可用。';
+
+  @override
+  String reportSheetUpdateVersionArrow(
+    Object currentVersion,
+    Object newVersion,
+  ) {
+    return 'v$currentVersion → v$newVersion';
+  }
+
+  @override
+  String get reportSheetUpdateButtonTitle => '更新';
+
+  @override
+  String get reportSheetUpdateActionOpensTestflight => '打开 TestFlight';
+
+  @override
+  String get reportSheetUpdateActionOpensAppStore => '打开 App Store';
+
+  @override
+  String get reportSheetUpdateActionOpensGooglePlay => '打开 Google Play';
+
+  @override
+  String get reportSheetUpdateActionOpensDownloadPage => '打开下载页面';
+
+  @override
+  String get reportSheetUpdateActionReloads => '重新加载新版本';
+
+  @override
+  String get reportSheetUpdateLaterSemanticLabel => '稍后';
+
+  @override
+  String get reportSheetUpdateLaterButton => '稍后';
+
+  @override
+  String get roomFilterBarAllChipLabel => '全部';
+
+  @override
+  String roomFilterBarChipCountSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 个聊天',
+    );
+    return '$label，$_temp0';
+  }
+
+  @override
+  String composerReplyCardReplyingToLabel(Object name) {
+    return '回复 $name';
+  }
+
+  @override
+  String get roomCardLockedBadge => '已锁定';
+
+  @override
+  String get roomCardTimeAgoJustNow => '刚刚';
+
+  @override
+  String roomCardTimeAgoSeconds(Object seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String roomCardTimeAgoMinutes(Object minutes) {
+    return '$minutes分钟';
+  }
+
+  @override
+  String roomCardTimeAgoHours(Object hours) {
+    return '$hours小时';
+  }
+
+  @override
+  String roomCardTimeAgoDays(Object days) {
+    return '$days天';
+  }
+
+  @override
+  String roomCardTimeAgoWeeks(Object weeks) {
+    return '$weeks周';
+  }
+
+  @override
+  String roomCardMemberCount(Object count) {
+    return '$count 人在线';
+  }
+
+  @override
+  String get roomCardMessagesFadeLabel => '消息渐隐';
+
+  @override
+  String get roomCardEnterLabel => '↗ 进入';
+
+  @override
+  String get roomCardBlockedScreenTitle => '已屏蔽';
+
+  @override
+  String get roomCardBlockedEmptyState => '你还没有屏蔽任何人。';
+
+  @override
+  String get roomCardUnblockButton => '取消屏蔽';
+
+  @override
+  String get attachmentMenuPhotoLabel => '照片';
+
+  @override
+  String get attachmentMenuVideoLabel => '视频';
+
+  @override
+  String get attachmentMenuCameraLabel => '拍照';
+
+  @override
+  String get attachmentMenuVoiceLabel => '语音';
+
+  @override
+  String get attachmentMenuFileLabel => '文件';
+
+  @override
+  String get attachmentMenuConnectionRetrying => '重试中…';
+
+  @override
+  String get attachmentMenuConnectionCantReachServer => '无法连接服务器 · 点击重试';
+
+  @override
+  String get attachmentMenuConnectionReconnecting => '重新连接中…';
+
+  @override
+  String get attachmentMenuConnectionRetrySemanticLabel => '重试连接';
+
+  @override
+  String get roomGridTileLockedBadge => '已锁定';
+
+  @override
+  String get roomGridTileEmptyLastMessage => '暂时很安静';
+
+  @override
+  String get roomGridTileMemberCountLabel => '在线';
+
+  @override
+  String get roomGridTileThemeChipLabel => '主题';
+
+  @override
+  String get bulkActionBarCancelLabel => '取消';
+
+  @override
+  String get bulkActionBarSelectMessagesLabel => '选择消息';
+
+  @override
+  String bulkActionBarSelectedCountLabel(num count) {
+    return '已选 $count 项';
+  }
+
+  @override
+  String get bulkActionBarForwardLabel => '转发';
+
+  @override
+  String get bulkActionBarDeleteLabel => '删除';
+
+  @override
+  String get bulkActionBarJumpBackLabel => '返回';
+
+  @override
+  String bulkActionBarJumpBackLabelWithDepth(Object depth) {
+    return '返回 · $depth';
+  }
+
+  @override
+  String get bulkActionBarJumpBackSemanticLabel => '返回到你跳转前的位置';
+
+  @override
+  String bulkActionBarJumpBackSemanticLabelWithDepth(Object depth) {
+    return '返回到你跳转前的位置，还剩 $depth 步';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetNotNotifiedNote => '对方不会收到通知。';
+
+  @override
+  String get bulkActionBarBlockSheetFriendWarning =>
+      '你们目前是好友——屏蔽会解除好友关系，以后想重新联系就得重新发送好友请求。';
+
+  @override
+  String get bulkActionBarBlockSheetStrangerWarning =>
+      '对方会从你的搜索结果中消失，也无法再给你发消息。';
+
+  @override
+  String get bulkActionBarBlockSheetHeaderLabel => '屏蔽';
+
+  @override
+  String bulkActionBarBlockSheetTitle(Object name) {
+    return '屏蔽 $name？';
+  }
+
+  @override
+  String bulkActionBarBlockSheetSharedRoomsHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '你们有 $count 个共同房间',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetSharedRoomsNote =>
+      '这些房间不受影响，你可以在各房间的设置中自行退出。';
+
+  @override
+  String get bulkActionBarBlockChoiceTileTitle => '屏蔽';
+
+  @override
+  String get bulkActionBarBlockChoiceTileFriendSub =>
+      '解除好友关系并屏蔽对方，已有的聊天记录仍会保留在你的存档中。';
+
+  @override
+  String get bulkActionBarBlockChoiceTileStrangerSub => '对方会从搜索中隐藏，也无法联系到你。';
+
+  @override
+  String get bulkActionBarBlockDeleteDmTitle => '屏蔽并删除私信';
+
+  @override
+  String get bulkActionBarBlockDeleteDmSub =>
+      '同时清空你与对方的私信——所有消息、表情回应和媒体文件都会被删除。';
+
+  @override
+  String get bulkActionBarBlockSheetCancelSemanticLabel => '取消';
+
+  @override
+  String get bulkActionBarBlockSheetCancelLabel => '取消';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogTitle => '在锁屏上显示来电';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogBody =>
+      '为了在锁屏时也能像真实来电一样响铃，MonkeyHub 需要开启“全屏通知”权限。下一步会直接带你去打开这个开关。';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogTitle => '不错过任何来电';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogBody =>
+      '有些手机会为了省电而在后台暂停应用，这可能导致来电被静音。请允许 MonkeyHub 不受限制地运行，确保来电畅通无阻。';
+
+  @override
+  String get bulkActionBarDialogNotNowButton => '暂不';
+
+  @override
+  String get bulkActionBarDialogContinueButton => '继续';
+
+  @override
+  String get reactionBubbleJumpToLatestLabel => '跳到最新';
+
+  @override
+  String get reactionBubbleJumpToLatestSemanticLabel => '跳到最新';
+
+  @override
+  String get reactionBubblePickerTitle => '回应';
+
+  @override
+  String get reactionBubbleNoRecentsPlaceholder => '暂无最近使用';
+
+  @override
+  String get reactionBubblePasswordHint => '密码';
+
+  @override
+  String enterPublicRoomJoinWhat(Object roomName) {
+    return '加入 $roomName';
+  }
+
+  @override
+  String get enterPublicRoomAskFailedMessage => '现在无法发送申请，请重试';
+
+  @override
+  String get enterPublicRoomWrongPasswordMessage => '密码错误';
+
+  @override
+  String get enterPublicRoomJoinFailedMessage => '加入失败，请重试';
+
+  @override
+  String get enterPublicRoomFeedTabLabel => '动态';
+
+  @override
+  String get enterPublicRoomFeedHeadlineSoon => '即将推出。\n';
+
+  @override
+  String get enterPublicRoomFeedHeadlineDetail => '每日时刻，\n与房间共享。';
+
+  @override
+  String get enterPublicRoomFeedPipelineLabel => '筹备中';
+
+  @override
+  String get enterPublicRoomFeedBulletPrompt => '全房间共同回应的每日话题';
+
+  @override
+  String get enterPublicRoomFeedBulletVoiceNotes => '随当天自动消失的语音留言';
+
+  @override
+  String get enterPublicRoomFeedBulletWallUpdates => '记录好友琐碎日常的动态墙';
+
+  @override
+  String get enterPublicRoomVisibilityPublicLabel => '公开';
+
+  @override
+  String get enterPublicRoomVisibilityPrivateLabel => '私密';
+
+  @override
+  String get enterPublicRoomJoinedBadgeLabel => '已加入';
+
+  @override
+  String enterPublicRoomEphemeralBadgeLabel(Object duration) {
+    return '限时 · $duration';
+  }
+
+  @override
+  String enterPublicRoomEphemeralSecondsShort(Object seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String enterPublicRoomEphemeralMinutesShort(Object minutes) {
+    return '$minutes分';
+  }
+
+  @override
+  String enterPublicRoomEphemeralHoursShort(Object hours) {
+    return '$hours时';
+  }
+
+  @override
+  String get countBadgeCaptureProtectionLabel => '截屏录屏保护';
+
+  @override
+  String get countBadgeCaptureProtectionOnAndroidBody => '截图和录屏在系统中会显示为黑屏。';
+
+  @override
+  String get countBadgeCaptureProtectionOnIosBody => '录屏或投屏时，应用会被覆盖一层隐私保护层。';
+
+  @override
+  String get countBadgeCaptureProtectionOffBody => '在限时房间之外，截图和录屏可以正常使用。';
+
+  @override
+  String get countBadgeCaptureProtectionForcedNote => '限时房间（密室）始终会强制开启此功能。';
+
+  @override
+  String get countBadgeShowPasswordTooltip => '显示密码';
+
+  @override
+  String get countBadgeHidePasswordTooltip => '隐藏密码';
+
+  @override
+  String get countBadgeProtectedLabel => '已保护';
+
+  @override
+  String get countBadgeCaptureShieldActiveBody => '正在录屏或投屏。';
+
+  @override
+  String get countBadgeCaptureShieldReassurance => '录屏看不到你的聊天内容。';
+
+  @override
+  String get linkOpenerCouldNotOpenLink => '无法打开链接';
+
+  @override
+  String get linkOpenerRecoveryBannerSemanticLabel => '设置恢复短语';
+
+  @override
+  String get linkOpenerRecoveryBannerMessage => '未设置恢复短语，你将无法找回账号。';
+
+  @override
+  String get destinationsChatLabel => '聊天';
+
+  @override
+  String get destinationsChatShort => '聊天';
+
+  @override
+  String get destinationsDiscoverLabel => '发现';
+
+  @override
+  String get destinationsDiscoverShort => '查找';
+
+  @override
+  String get destinationsFeedLabel => '动态';
+
+  @override
+  String get destinationsFeedShort => '动态';
+
+  @override
+  String get destinationsSettingsLabel => '设置';
+
+  @override
+  String get destinationsSettingsShort => '设置';
+
+  @override
+  String get familyRequestStageSenderGuardianLabel => '等待大人确认';
+
+  @override
+  String get familyRequestStageRecipientLabel => '等待对方';
+
+  @override
+  String get roomContentTabLabelMedia => '媒体';
+
+  @override
+  String get roomContentTabLabelFiles => '文件';
+
+  @override
+  String get roomContentTabLabelVoice => '语音';
+
+  @override
+  String get roomContentTabLabelLinks => '链接';
+
+  @override
+  String get roomContentTabHeaderMedia => '媒体';
+
+  @override
+  String get roomContentTabHeaderFiles => '文件';
+
+  @override
+  String get roomContentTabHeaderVoice => '语音';
+
+  @override
+  String get roomContentTabHeaderLinks => '链接';
+
+  @override
+  String get roomFacetLabelDms => '私聊';
+
+  @override
+  String get roomFacetLabelGroups => '群聊';
+
+  @override
+  String get roomFacetLabelPublic => '公开';
+
+  @override
+  String get roomFacetLabelPrivate => '私密';
+
+  @override
+  String get roomFacetLabelSecret => '秘密';
+
+  @override
+  String get roomFacetLabelLocked => '锁定';
+
+  @override
+  String get roomFacetLabelUnread => '未读';
+
+  @override
+  String get roomFacetLabelMentions => '提及';
+
+  @override
+  String get settingsScreenTitle => '设置';
+
+  @override
+  String get settingsScreenTagline => '外观、质感、你。';
+
+  @override
+  String get settingsScreenAccountHintChild => '资料 · 隐私 · 我的大人';
+
+  @override
+  String get settingsScreenAccountHintAdult => '资料 · 家庭 · 关联账号 · 隐私';
+
+  @override
+  String get settingsScreenSectionAppearance => '外观';
+
+  @override
+  String get settingsScreenSectionLayout => '布局';
+
+  @override
+  String get settingsScreenSectionGeneral => '通用';
+
+  @override
+  String get settingsScreenSectionLinks => '链接';
+
+  @override
+  String get settingsScreenSectionNotifications => '通知';
+
+  @override
+  String get settingsScreenRowTheme => '主题';
+
+  @override
+  String get settingsScreenRowAppLogo => '应用图标';
+
+  @override
+  String get settingsScreenRowGlass => '玻璃';
+
+  @override
+  String get settingsScreenRowChatList => '聊天列表';
+
+  @override
+  String get settingsScreenRowNavigation => '导航';
+
+  @override
+  String get settingsScreenRowChatStyle => '聊天样式';
+
+  @override
+  String get settingsScreenRowBubbleStyle => '气泡样式';
+
+  @override
+  String get settingsScreenRowReplyStyle => '回复样式';
+
+  @override
+  String get settingsScreenValueScrollList => '滚动列表';
+
+  @override
+  String get settingsScreenValueGridSheet => '网格视图';
+
+  @override
+  String get settingsScreenValueRadialOrb => '环形光球';
+
+  @override
+  String get settingsScreenValueBottomPill => '底部胶囊';
+
+  @override
+  String get settingsScreenValueCustom => '自定义';
+
+  @override
+  String settingsScreenValueEdited(Object name) {
+    return '$name · 已编辑';
+  }
+
+  @override
+  String get settingsScreenValueClassic => '经典';
+
+  @override
+  String get settingsScreenValueCompact => '紧凑';
+
+  @override
+  String get settingsScreenValueBubbleTailed => '尾状';
+
+  @override
+  String get settingsScreenValueBubbleSoft => '柔和';
+
+  @override
+  String get settingsScreenValueBubblePill => '胶囊';
+
+  @override
+  String get settingsScreenValueBubbleSlab => '块状';
+
+  @override
+  String get settingsScreenValueReplyPhantomEcho => '幽灵残影';
+
+  @override
+  String get settingsScreenValueReplyStickyNote => '便利贴';
+
+  @override
+  String get settingsScreenValueReplyComicTail => '漫画尾巴';
+
+  @override
+  String get settingsScreenValueLogoAuto => '自动';
+
+  @override
+  String get settingsScreenValueLogoManual => '手动';
+
+  @override
+  String get settingsScreenShowLinkUrlsLabel => '显示链接网址';
+
+  @override
+  String get settingsScreenLinksUrlsOnBody => '预览卡片旁会显示原始网址';
+
+  @override
+  String get settingsScreenLinksUrlsOffBody => '当前仅显示预览——气泡更简洁，点击即可打开';
+
+  @override
+  String get settingsScreenPushNotificationsLabel => '推送通知';
+
+  @override
+  String get settingsScreenPushOnBody => '新消息和请求都会提醒你';
+
+  @override
+  String get settingsScreenPushOffBody => '静音——只有打开App才能看到';
+
+  @override
+  String get authErrorUsernameTaken => '该用户名已被占用。';
+
+  @override
+  String get authErrorUserNotFound => '没有使用该用户名的账号。';
+
+  @override
+  String get authErrorWrongPassword => '密码错误。';
+
+  @override
+  String get authErrorInvalidRecoveryKey => '该用户名与恢复短语不匹配。';
+
+  @override
+  String get authErrorTooManyAttempts => '尝试次数过多，请等待15分钟后再试。';
+
+  @override
+  String get authErrorChildMustPair => '这是一个儿童账号——请向大人索要配对码。';
+
+  @override
+  String get authErrorPairingCodeExpired => '该配对码已过期，请重新申请一个。';
+
+  @override
+  String get authErrorPairingCodeInvalid => '该配对码无效，可能已被使用过。';
+
+  @override
+  String get authErrorUseSocialSignIn => '该账号使用Apple或Google登录——请点击下方按钮。';
+
+  @override
+  String get authErrorSocialTokenInvalid => '登录未成功，请重试。';
+
+  @override
+  String get authErrorSocialNonceMismatch => '本次登录未能完成，请重试。';
+
+  @override
+  String get authErrorSocialMisconfig => '登录功能尚未配置完成，请稍后再试。';
+
+  @override
+  String get authErrorSocialLinkedToOtherAccount =>
+      '该 Apple 或 Google 账号已绑定到另一个 MonkeyHub 账号。';
+
+  @override
+  String get authErrorSocialAlreadyLinked => '该账号已绑定到此账号。';
+
+  @override
+  String get authErrorSocialNotLinked => '该账号未绑定到此账号。';
+
+  @override
+  String get authErrorSocialLastCredential => '这是登录此账号的唯一方式，请先设置密码。';
+
+  @override
+  String get authErrorUsernameInvalid => '用户名长度需在 1 到 32 个字符之间。';
+
+  @override
+  String get glassKnobLabelFrost => '磨砂';
+
+  @override
+  String get glassKnobHintFrost => '玻璃上覆盖的白色程度，调低可透视';
+
+  @override
+  String get glassKnobLabelBlur => '模糊';
+
+  @override
+  String get glassKnobHintBlur => '调到顶端时磨砂感最强，调到底端则是清澈玻璃';
+
+  @override
+  String get glassKnobLabelSaturation => '色彩溢出';
+
+  @override
+  String get glassKnobHintSaturation => '模糊后残留的色彩程度，超过 2 会出现色调分离';
+
+  @override
+  String get glassKnobLabelRimOpacity => '边框';
+
+  @override
+  String get glassKnobHintRimOpacity => '强调色边框，设为零则无边框';
+
+  @override
+  String get glassKnobLabelRimWidth => '边框宽度';
+
+  @override
+  String get glassKnobHintRimWidth => '该边框的粗细';
+
+  @override
+  String get glassKnobLabelShadowOpacity => '阴影';
+
+  @override
+  String get glassKnobHintShadowOpacity => '该表面悬浮在背景上方的程度';
+
+  @override
+  String get glassKnobLabelShadowBlur => '阴影扩散';
+
+  @override
+  String get glassKnobHintShadowBlur => '柔和宽泛，或紧凑锐利';
+
+  @override
+  String get glassKnobLabelShadowY => '阴影下移';
+
+  @override
+  String get glassKnobHintShadowY => '阴影落在表面下方的距离';
+
+  @override
+  String get glassKnobLabelBarMargin => '侧边间距';
+
+  @override
+  String get glassKnobHintBarMargin => '导航栏与屏幕边缘之间的间距';
+
+  @override
+  String get glassKnobLabelBarBottom => '底部间距';
+
+  @override
+  String get glassKnobHintBarBottom => '导航栏悬浮在底部上方的高度';
+
+  @override
+  String get glassKnobLabelShellPadH => '两端内边距';
+
+  @override
+  String get glassKnobHintShellPadH => '导航栏边缘到第一个胶囊的间距，太小两端会显得孤零零的';
+
+  @override
+  String get glassKnobLabelShellPadV => '顶部内边距';
+
+  @override
+  String get glassKnobHintShellPadV => '导航栏边缘到胶囊顶部的间距';
+
+  @override
+  String get glassKnobLabelIndicatorInset => '胶囊内缩';
+
+  @override
+  String get glassKnobHintIndicatorInset => '选中胶囊在其卡槽内向内收缩的距离';
+
+  @override
+  String get glassKnobLabelSegmentPadV => '行内边距';
+
+  @override
+  String get glassKnobHintSegmentPadV => '图标与文字标签上下的留白';
+
+  @override
+  String get glassKnobLabelIconLabelGap => '图标间距';
+
+  @override
+  String get glassKnobHintIconLabelGap => '图标与下方文字之间的间距';
+
+  @override
+  String get glassKnobLabelIconSize => '图标大小';
+
+  @override
+  String get glassKnobLabelLabelSize => '文字大小';
+
+  @override
+  String get languageOptionSpanish => 'ESPAÑOL';
+
+  @override
+  String get languageValueSpanish => 'Español';
+
+  @override
+  String get languageOptionFrench => 'FRANÇAIS';
+
+  @override
+  String get languageValueFrench => 'Français';
+
+  @override
+  String get languageOptionPortuguese => 'PORTUGUÊS (PORTUGAL)';
+
+  @override
+  String get languageValuePortuguese => 'Português (Portugal)';
+
+  @override
+  String get languageOptionSwedish => 'SVENSKA';
+
+  @override
+  String get languageValueSwedish => 'Svenska';
+
+  @override
+  String get languageOptionPortugueseBrazil => 'PORTUGUÊS (BRASIL)';
+
+  @override
+  String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
+}

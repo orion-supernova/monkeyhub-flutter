@@ -45,9 +45,10 @@ class _LanguageScreenState extends State<LanguageScreen> {
   /// AppLocalizations.supportedLocales exactly, including the region suffix
   /// on 'pt_BR' — see app.dart's locale-parsing comment for why that one
   /// needs a region.
-  // Arabic, Chinese and Hindi are deliberately not offered yet — parked for
-  // a later pass (RTL layout + non-Latin font glyph coverage need their own
-  // verification before shipping them, unlike the others here).
+  // RTL layout (Arabic) and CJK/Arabic/Devanagari font glyph coverage
+  // (bundled fonts are Latin-subset, so ar/zh/hi/ko/ja fall back to system
+  // fonts) haven't had their own visual verification pass yet — content is
+  // complete and correct, but worth a look before leaning on them hard.
   List<(String, String)> _languages(AppLocalizations l10n) => [
     ('en', l10n.languageOptionEnglish),
     ('tr', l10n.languageOptionTurkish),
@@ -56,6 +57,11 @@ class _LanguageScreenState extends State<LanguageScreen> {
     ('pt', l10n.languageOptionPortuguese),
     ('pt_BR', l10n.languageOptionPortugueseBrazil),
     ('sv', l10n.languageOptionSwedish),
+    ('ar', l10n.languageOptionArabic),
+    ('zh', l10n.languageOptionChinese),
+    ('hi', l10n.languageOptionHindi),
+    ('ko', l10n.languageOptionKorean),
+    ('ja', l10n.languageOptionJapanese),
   ];
 
   @override

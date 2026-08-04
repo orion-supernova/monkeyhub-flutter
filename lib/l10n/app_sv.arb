@@ -530,7 +530,7 @@
   "loginScreenNewPasswordHint": "nytt lösenord",
   "loginScreenBackToSignIn": "← tillbaka till inloggning",
   "loginScreenForgotPassword": "glömt lösenordet?",
-  "loginScreenSettingUpKidsPhone": "ställer du in ett barns telefon?",
+  "loginScreenSettingUpKidsPhone": "skapa ett barnkonto",
   "loginScreenLegalPrefix": "Genom att öppna ett konto godkänner du ",
   "loginScreenLegalTermsLink": "Användarvillkoren",
   "loginScreenLegalMiddle": " och ",
@@ -1273,5 +1273,15 @@
   "glassKnobLabelIconLabelGap": "IKONAVSTÅND",
   "glassKnobHintIconLabelGap": "avståndet mellan en ikon och ordet under den",
   "glassKnobLabelIconSize": "IKONSTORLEK",
-  "glassKnobLabelLabelSize": "ETIKETTSTORLEK"
+  "glassKnobLabelLabelSize": "ETIKETTSTORLEK",
+  "languageOptionArabic": "العربية",
+  "languageValueArabic": "العربية",
+  "languageOptionChinese": "简体中文",
+  "languageValueChinese": "简体中文",
+  "languageOptionHindi": "हिन्दी",
+  "languageValueHindi": "हिन्दी",
+  "languageOptionKorean": "한국어",
+  "languageValueKorean": "한국어",
+  "languageOptionJapanese": "日本語",
+  "languageValueJapanese": "日本語"
 }

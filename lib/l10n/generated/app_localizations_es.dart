@@ -1832,8 +1832,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginScreenForgotPassword => '¿olvidaste tu contraseña?';
 
   @override
-  String get loginScreenSettingUpKidsPhone =>
-      '¿configurando el teléfono de un peque?';
+  String get loginScreenSettingUpKidsPhone => 'configura una cuenta infantil';
 
   @override
   String get loginScreenLegalPrefix => 'Al abrir una cuenta, aceptas los ';
@@ -3941,7 +3940,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bulkActionBarSelectMessagesLabel => 'SELECCIONAR MENSAJES';
 
   @override
-  String bulkActionBarSelectedCountLabel(Object count) {
+  String bulkActionBarSelectedCountLabel(num count) {
     return '$count SELECCIONADOS';
   }
 
@@ -4588,4 +4587,34 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
 }

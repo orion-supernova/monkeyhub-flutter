@@ -1820,8 +1820,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get loginScreenForgotPassword => 'glömt lösenordet?';
 
   @override
-  String get loginScreenSettingUpKidsPhone =>
-      'ställer du in ett barns telefon?';
+  String get loginScreenSettingUpKidsPhone => 'skapa ett barnkonto';
 
   @override
   String get loginScreenLegalPrefix =>
@@ -3923,7 +3922,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get bulkActionBarSelectMessagesLabel => 'VÄLJ MEDDELANDEN';
 
   @override
-  String bulkActionBarSelectedCountLabel(Object count) {
+  String bulkActionBarSelectedCountLabel(num count) {
     return '$count VALDA';
   }
 
@@ -4570,4 +4569,34 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
 }

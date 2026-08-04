@@ -520,7 +520,7 @@
   "loginScreenNewPasswordHint": "yeni şifre",
   "loginScreenBackToSignIn": "← girişe dön",
   "loginScreenForgotPassword": "şifreni mi unuttun?",
-  "loginScreenSettingUpKidsPhone": "bir çocuğun telefonunu mu kuruyorsun?",
+  "loginScreenSettingUpKidsPhone": "çocuk hesabı kur",
   "loginScreenLegalPrefix": "Hesap açarak ",
   "loginScreenLegalTermsLink": "Kullanım Şartları'nı",
   "loginScreenLegalMiddle": " ve ",
@@ -1273,5 +1273,15 @@
   "languageOptionSwedish": "SVENSKA",
   "languageValueSwedish": "Svenska",
   "languageOptionPortugueseBrazil": "PORTUGUÊS (BRASIL)",
-  "languageValuePortugueseBrazil": "Português (Brasil)"
+  "languageValuePortugueseBrazil": "Português (Brasil)",
+  "languageOptionArabic": "العربية",
+  "languageValueArabic": "العربية",
+  "languageOptionChinese": "简体中文",
+  "languageValueChinese": "简体中文",
+  "languageOptionHindi": "हिन्दी",
+  "languageValueHindi": "हिन्दी",
+  "languageOptionKorean": "한국어",
+  "languageValueKorean": "한국어",
+  "languageOptionJapanese": "日本語",
+  "languageValueJapanese": "日本語"
 }

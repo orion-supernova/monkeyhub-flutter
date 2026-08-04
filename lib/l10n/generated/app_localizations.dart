@@ -5,12 +5,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_ar.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
+import 'app_localizations_hi.dart';
+import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
 import 'app_localizations_pt.dart';
 import 'app_localizations_sv.dart';
 import 'app_localizations_tr.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -98,13 +103,18 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('ar'),
     Locale('en'),
     Locale('es'),
     Locale('fr'),
+    Locale('hi'),
+    Locale('ja'),
+    Locale('ko'),
     Locale('pt'),
     Locale('pt', 'BR'),
     Locale('sv'),
     Locale('tr'),
+    Locale('zh'),
   ];
 
   /// Brand wordmark on the splash screen while the app boots. Proper noun — keep identical across locales, do not translate.
@@ -3230,7 +3240,7 @@ abstract class AppLocalizations {
   /// Footer link on the sign-in screen that switches to the child-device pairing flow.
   ///
   /// In en, this message translates to:
-  /// **'setting up a kid’s phone?'**
+  /// **'set up a child account'**
   String get loginScreenSettingUpKidsPhone;
 
   /// First (non-tappable) fragment of the sign-up legal disclosure sentence, immediately followed by the Terms link (loginScreenLegalTermsLink).
@@ -6653,7 +6663,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{count} SELECTED'**
-  String bulkActionBarSelectedCountLabel(Object count);
+  String bulkActionBarSelectedCountLabel(num count);
 
   /// All-caps button label to forward the selected messages elsewhere.
   ///
@@ -7776,6 +7786,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Português (Brasil)'**
   String get languageValuePortugueseBrazil;
+
+  /// Option label for Arabic in the language picker. Modern Standard Arabic (the language's own autonym, script has no letter-case distinction so this equals languageValueArabic). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get languageOptionArabic;
+
+  /// Value shown next to the LANGUAGE row in Settings when Arabic is the active/pinned language. Same autonym as languageOptionArabic, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'العربية'**
+  String get languageValueArabic;
+
+  /// Option label for Chinese in the language picker. Simplified Chinese (the language's own autonym, script has no letter-case distinction so this equals languageValueChinese). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'简体中文'**
+  String get languageOptionChinese;
+
+  /// Value shown next to the LANGUAGE row in Settings when Chinese is the active/pinned language. Same autonym as languageOptionChinese, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'简体中文'**
+  String get languageValueChinese;
+
+  /// Option label for Hindi in the language picker. Hindi (the language's own autonym, Devanagari script has no letter-case distinction so this equals languageValueHindi). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'हिन्दी'**
+  String get languageOptionHindi;
+
+  /// Value shown next to the LANGUAGE row in Settings when Hindi is the active/pinned language. Same autonym as languageOptionHindi, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'हिन्दी'**
+  String get languageValueHindi;
+
+  /// Option label for Korean in the language picker. Korean (the language's own autonym, script has no letter-case distinction so this equals languageValueKorean). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get languageOptionKorean;
+
+  /// Value shown next to the LANGUAGE row in Settings when Korean is the active/pinned language. Same autonym as languageOptionKorean, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'한국어'**
+  String get languageValueKorean;
+
+  /// Option label for Japanese in the language picker. Japanese (the language's own autonym, script has no letter-case distinction so this equals languageValueJapanese). Autonym — same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'日本語'**
+  String get languageOptionJapanese;
+
+  /// Value shown next to the LANGUAGE row in Settings when Japanese is the active/pinned language. Same autonym as languageOptionJapanese, same string in every ARB file, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'日本語'**
+  String get languageValueJapanese;
 }
 
 class _AppLocalizationsDelegate
@@ -7789,12 +7859,17 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
+    'ar',
     'en',
     'es',
     'fr',
+    'hi',
+    'ja',
+    'ko',
     'pt',
     'sv',
     'tr',
+    'zh',
   ].contains(locale.languageCode);
 
   @override
@@ -7816,18 +7891,28 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'ar':
+      return AppLocalizationsAr();
     case 'en':
       return AppLocalizationsEn();
     case 'es':
       return AppLocalizationsEs();
     case 'fr':
       return AppLocalizationsFr();
+    case 'hi':
+      return AppLocalizationsHi();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
     case 'pt':
       return AppLocalizationsPt();
     case 'sv':
       return AppLocalizationsSv();
     case 'tr':
       return AppLocalizationsTr();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

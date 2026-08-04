@@ -1,0 +1,4424 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Korean (`ko`).
+class AppLocalizationsKo extends AppLocalizations {
+  AppLocalizationsKo([String locale = 'ko']) : super(locale);
+
+  @override
+  String get splashBrand => 'MONKEYHUB';
+
+  @override
+  String get bootErrorTitle => '서버에 연결할 수 없음';
+
+  @override
+  String get bootErrorBody => 'Convex가 초기화되지 않았어요.';
+
+  @override
+  String get bootErrorRetry => '다시 시도';
+
+  @override
+  String get incomingCallNotificationTitle => '수신 전화';
+
+  @override
+  String get incomingCallFallbackCaller => '누군가 전화하고 있어요';
+
+  @override
+  String get settingsLanguageRowLabel => '언어';
+
+  @override
+  String get languageScreenTitle => '언어.';
+
+  @override
+  String get languageScreenSubtitle => '앱의 메뉴와 메시지에 사용할 언어를 선택하세요';
+
+  @override
+  String get languageOptionSystem => '시스템';
+
+  @override
+  String get languageOptionSystemSub => '기기의 언어 설정을 따라요';
+
+  @override
+  String get languageOptionEnglish => 'ENGLISH';
+
+  @override
+  String get languageOptionTurkish => 'TÜRKÇE';
+
+  @override
+  String get languageScreenActiveBadge => '사용 중';
+
+  @override
+  String get languageValueSystem => '시스템';
+
+  @override
+  String get languageValueEnglish => 'English';
+
+  @override
+  String get languageValueTurkish => 'Türkçe';
+
+  @override
+  String get roomScreenAskGrownUpFailedSnack => '지금은 요청할 수 없어요 — 다시 시도해 주세요';
+
+  @override
+  String get roomScreenGateSendMessages => '여기서 메시지 보내기';
+
+  @override
+  String get roomScreenGateSendMedia => '사진이나 음성 메시지 보내기';
+
+  @override
+  String roomScreenMaxSelectionSnack(Object max) {
+    return '한 번에 최대 $max개까지';
+  }
+
+  @override
+  String roomScreenDeleteMessageHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '메시지 $count개 삭제',
+      one: '메시지 $count개 삭제',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomScreenDeleteConfirmBody =>
+      '이 채팅에 있는 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.';
+
+  @override
+  String get roomScreenDeleteConfirmButton => '모두에게서 삭제';
+
+  @override
+  String get roomScreenJumpFailedSnack => '그 메시지로 이동할 수 없어요';
+
+  @override
+  String get roomScreenViewOnceAlreadyViewed => '이 사진은 이미 열어봤어요.';
+
+  @override
+  String get roomScreenViewOnceGone => '이 사진은 더 이상 볼 수 없어요.';
+
+  @override
+  String get roomScreenViewOnceNetworkError => '그 사진을 불러올 수 없어요.';
+
+  @override
+  String get roomScreenFileReadFailedSnack => '그 파일을 읽을 수 없어요';
+
+  @override
+  String roomScreenFileSizeCapSnack(Object size) {
+    return '파일은 최대 $size까지예요';
+  }
+
+  @override
+  String get roomScreenRoomGone => '채팅방이 사라졌어요';
+
+  @override
+  String get roomScreenCopiedSnack => '복사됨';
+
+  @override
+  String get roomScreenNameCopiedSnack => '이름 복사됨';
+
+  @override
+  String get roomScreenPinLimitSnack => '고정 개수가 다 찼어요 — 하나를 먼저 해제하세요';
+
+  @override
+  String get roomScreenPinFailedSnack => '고정할 수 없어요';
+
+  @override
+  String get roomScreenReportSentSnack => '신고가 비공개로 접수됐어요. 상대방에게는 알리지 않아요.';
+
+  @override
+  String get roomScreenDeselectMessageSemantic => '메시지 선택 해제';
+
+  @override
+  String get roomScreenSelectMessageSemantic => '메시지 선택';
+
+  @override
+  String roomScreenMemberCountBadge(Object count) {
+    return '$count명 참여 중';
+  }
+
+  @override
+  String roomScreenTtlSeconds(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count초',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlMinutes(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count분',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenTtlHours(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count시간',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomScreenEphemeralNotice(Object ttl) {
+    return '이 방은 휘발성 공간이에요. 읽었든 안 읽었든 메시지는 $ttl 후에 사라져요.';
+  }
+
+  @override
+  String roomScreenThreadFoldCount(Object count) {
+    return '메시지 $count개';
+  }
+
+  @override
+  String get roomScreenSecretSpaceTitle => '비밀 공간';
+
+  @override
+  String get roomScreenSecretSpaceBody =>
+      '이 방의 메시지는 휘발성이에요. 방의 보안 정책에 따라 자동으로 삭제돼요.';
+
+  @override
+  String get roomScreenAutoDeleteTitle => '자동 삭제';
+
+  @override
+  String get roomScreenAutoDeleteVaries => '다양함';
+
+  @override
+  String get roomScreenAutoDeleteTimed => '타이머';
+
+  @override
+  String get roomScreenNoCaptureTitle => '캡처 방지';
+
+  @override
+  String get roomScreenNoCaptureSubtitle => '스크린샷 제한';
+
+  @override
+  String get roomScreenMorePrivacyTitle => '훨씬 더 강력한 프라이버시';
+
+  @override
+  String get roomScreenMorePrivacySubtitle =>
+      '이미 탄탄한 프라이버시 보호에 더해, 추가 보안 기능까지 누려보세요.';
+
+  @override
+  String get roomScreenNoMessagesTitle => '메시지 없음';
+
+  @override
+  String get roomScreenNoMessagesSubtitle => '메시지를 보내서 대화를 시작해보세요';
+
+  @override
+  String get roomScreenViewProfilePictureSemantic => '프로필 사진 보기';
+
+  @override
+  String get roomScreenViewRoomPictureSemantic => '방 사진 보기';
+
+  @override
+  String get messageBubbleFileFallbackName => '보낸 문서';
+
+  @override
+  String get messageBubbleAttachmentStatusFailed => '전송 실패';
+
+  @override
+  String get messageBubbleAttachmentStatusSending => '전송 중…';
+
+  @override
+  String get messageBubbleViewOnceOpened => '열람함';
+
+  @override
+  String get messageBubbleViewOnceExpired => '만료됨';
+
+  @override
+  String get messageBubbleViewOnceLabel => '한 번 보기';
+
+  @override
+  String get messageBubbleViewOnceTapToView => '탭하여 보기';
+
+  @override
+  String get messageBubbleViewOncePhotoLabel => '사진';
+
+  @override
+  String get messageBubbleViewOnceSemanticLabel => '한 번 보기 사진, 탭하여 보기';
+
+  @override
+  String get messageBubbleRetrySendingSemanticLabel => '다시 전송하기';
+
+  @override
+  String get messageBubbleDiscardSemanticLabel => '전송 취소';
+
+  @override
+  String get profileScreenAccountSection => '계정';
+
+  @override
+  String get profileScreenAddEmailPlaceholder => '이메일 추가';
+
+  @override
+  String get profileScreenAddEmailTitle => '이메일을 추가할까요?';
+
+  @override
+  String get profileScreenAddNameTitle => '이름을 추가할까요?';
+
+  @override
+  String profileScreenApprovalsCountWaiting(Object count) {
+    return '$count건 대기 중';
+  }
+
+  @override
+  String get profileScreenApprovalsLabel => '승인 요청';
+
+  @override
+  String get profileScreenApprovalsNothingWaiting => '대기 중인 요청 없음';
+
+  @override
+  String get profileScreenApproveAction => '수락';
+
+  @override
+  String get profileScreenBlockAction => '차단';
+
+  @override
+  String get profileScreenBlockedDmWiped =>
+      '차단했고 DM도 삭제했어요. 상대방에게는 알림이 가지 않아요.';
+
+  @override
+  String get profileScreenBlockedOnly => '차단했어요. 상대방에게는 알림이 가지 않아요.';
+
+  @override
+  String get profileScreenBlockedUsers => '차단한 사용자';
+
+  @override
+  String get profileScreenCancelAction => '취소';
+
+  @override
+  String get profileScreenCancelRequestAction => '보낸 요청 취소';
+
+  @override
+  String get profileScreenChangeAction => '변경';
+
+  @override
+  String get profileScreenChangeEmailTitle => '이메일을 변경할까요?';
+
+  @override
+  String get profileScreenChangeNameTitle => '이름을 변경할까요?';
+
+  @override
+  String get profileScreenChangeProfilePictureSemantic => '프로필 사진 변경';
+
+  @override
+  String get profileScreenChangeRecoveryPhrase => '복구 문구 변경';
+
+  @override
+  String get profileScreenChooseFromLibrary => '갤러리에서 선택';
+
+  @override
+  String get profileScreenCouldNotSaveImage => '이미지를 저장하지 못했어요.';
+
+  @override
+  String get profileScreenDeleteAccount => '계정 삭제';
+
+  @override
+  String get profileScreenEmailHint => '선택 사항 — 아무에게도 공개되지 않아요';
+
+  @override
+  String get profileScreenEmailSectionLabel => '이메일';
+
+  @override
+  String get profileScreenErrorAlreadyFriends => '이미 친구예요.';
+
+  @override
+  String get profileScreenErrorGeneric => '처리하지 못했어요.';
+
+  @override
+  String get profileScreenErrorNotAccepting => '상대방이 지금은 친구 요청을 받지 않고 있어요.';
+
+  @override
+  String get profileScreenErrorRequestAlreadyReceived =>
+      '상대방이 이미 나에게 요청을 보냈어요 — 요청 목록을 확인해 보세요.';
+
+  @override
+  String get profileScreenErrorRequestAlreadySent => '이미 요청을 보냈어요.';
+
+  @override
+  String get profileScreenErrorUnblockFirst => '이 사용자를 차단했어요 — 먼저 차단을 해제해 주세요.';
+
+  @override
+  String get profileScreenErrorUserNotFound => '지금은 할 수 없어요.';
+
+  @override
+  String get profileScreenFamilyAddChild => '자녀 추가하기';
+
+  @override
+  String profileScreenFamilyChildCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '자녀 $count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get profileScreenFamilyLabel => '가족';
+
+  @override
+  String get profileScreenFriendsChip => '친구';
+
+  @override
+  String get profileScreenGrownUpOnlyNote =>
+      '보호자만 할 수 있어요 — 보호자의 코드나 비밀번호가 필요해요.';
+
+  @override
+  String get profileScreenGuardiansCanSee => '보호자는 온라인 상태와 대화 상대를 볼 수 있어요.';
+
+  @override
+  String get profileScreenHandPhoneBack => '이 휴대폰 돌려주기';
+
+  @override
+  String get profileScreenIncomingRequestChip => '받은 요청';
+
+  @override
+  String get profileScreenJustTappedAction => '실수로 눌렀어요';
+
+  @override
+  String get profileScreenLegalSection => '법적 정보';
+
+  @override
+  String get profileScreenLicence => '오픈소스 라이선스';
+
+  @override
+  String get profileScreenLinkedAccountsLabel => '연결된 계정';
+
+  @override
+  String get profileScreenLinkedAccountsNone => '연결된 계정 없음';
+
+  @override
+  String get profileScreenMyGrownUps => '내 보호자';
+
+  @override
+  String get profileScreenNameHint => '채팅방에서 보이는 이름이에요';
+
+  @override
+  String get profileScreenNobodyLookingAfter => '아직 이 계정을 돌봐주는 보호자가 없어요';
+
+  @override
+  String get profileScreenNotAcceptingRequestsAction => '친구 요청 받지 않음';
+
+  @override
+  String get profileScreenNotConnectedChip => '연결되지 않음';
+
+  @override
+  String get profileScreenOpenDmAction => 'DM 열기';
+
+  @override
+  String get profileScreenPhotoPermissionDenied => '사진 접근 권한이 거부되었어요.';
+
+  @override
+  String get profileScreenPrivacyPolicy => '개인정보처리방침';
+
+  @override
+  String get profileScreenPrivacySection => '개인정보';
+
+  @override
+  String get profileScreenProfilePictureTitle => '프로필 사진';
+
+  @override
+  String get profileScreenRedactedFriend => '친구의 설정에 따라 일부 정보가 숨겨져 있어요.';
+
+  @override
+  String get profileScreenRedactedStranger =>
+      '제한된 화면이에요 — 친구에게는 더 많은 정보를 공개해요.';
+
+  @override
+  String get profileScreenReportAction => '신고하기';
+
+  @override
+  String get profileScreenReportSent => '신고가 비공개로 접수됐어요. 상대방에게는 알림이 가지 않아요.';
+
+  @override
+  String get profileScreenRequestPendingChip => '보낸 요청';
+
+  @override
+  String get profileScreenSaveAction => '저장';
+
+  @override
+  String get profileScreenSavedToPhotos => '사진 앱에 저장됐어요.';
+
+  @override
+  String get profileScreenSaveToPhotos => '사진 앱에 저장하기';
+
+  @override
+  String get profileScreenSendRequestAction => '친구 요청 보내기';
+
+  @override
+  String get profileScreenSetUpRecoveryPhrase => '복구 문구 설정하기';
+
+  @override
+  String get profileScreenSignOut => '로그아웃';
+
+  @override
+  String get profileScreenTakeSelfie => '셀카 찍기';
+
+  @override
+  String get profileScreenTapAgainToConfirmDelete => '한 번 더 눌러서 삭제 확인';
+
+  @override
+  String get profileScreenTermsOfService => '이용약관';
+
+  @override
+  String get profileScreenThisPhoneSection => '이 휴대폰';
+
+  @override
+  String get profileScreenUnfriendAction => '친구 끊기';
+
+  @override
+  String get profileScreenViewProfilePictureSemantic => '프로필 사진 보기';
+
+  @override
+  String get profileScreenVisibilityPreferences => '공개 범위 설정';
+
+  @override
+  String get cameraEditorScreenCropPresetFree => '자유';
+
+  @override
+  String get cameraEditorScreenCropPresetOriginal => '원본';
+
+  @override
+  String get cameraEditorScreenCancelCropSemanticLabel => '자르기 취소';
+
+  @override
+  String get cameraEditorScreenDiscardPhotoSemanticLabel => '사진 버리기';
+
+  @override
+  String get cameraEditorScreenUndoSemanticLabel => '실행 취소';
+
+  @override
+  String get cameraEditorScreenRedoSemanticLabel => '다시 실행';
+
+  @override
+  String get cameraEditorScreenResetCropSemanticLabel => '자르기 초기화';
+
+  @override
+  String get cameraEditorScreenRotateSemanticLabel => '회전';
+
+  @override
+  String get cameraEditorScreenCropSemanticLabel => '자르기';
+
+  @override
+  String get cameraEditorScreenHeicUnsupportedMessage =>
+      '이 브라우저에서는 HEIC 사진을 열 수 없어요';
+
+  @override
+  String get cameraEditorScreenImageLoadFailedMessage => '그 이미지를 열 수 없어요';
+
+  @override
+  String get cameraEditorScreenCropDoneButton => '완료';
+
+  @override
+  String get cameraEditorScreenRetakeSemanticLabel => '다시 찍기';
+
+  @override
+  String get cameraEditorScreenPenPutAwaySemanticLabel => '펜 집어넣기';
+
+  @override
+  String get cameraEditorScreenPenDrawSemanticLabel => '사진에 그리기';
+
+  @override
+  String get cameraEditorScreenSendingButton => '전송 중…';
+
+  @override
+  String get cameraEditorScreenSendButton => '보내기';
+
+  @override
+  String get cameraEditorScreenViewOnceNote => '한 번 보면 사라져요';
+
+  @override
+  String get cameraEditorScreenClearDrawingSemanticLabel => '그림 지우기';
+
+  @override
+  String get cameraEditorScreenViewOnceOnSemanticLabel => '한 번 보기: 켜짐';
+
+  @override
+  String get cameraEditorScreenViewOnceOffSemanticLabel => '한 번 보기: 꺼짐';
+
+  @override
+  String get cameraEditorScreenInkColorSemanticLabel => '펜 색상';
+
+  @override
+  String get glassScreenPanelLooks => '룩';
+
+  @override
+  String get glassScreenPanelBottomBar => '하단 바';
+
+  @override
+  String get glassScreenPanelOtherSurfaces => '기타 영역';
+
+  @override
+  String get glassScreenPanelBarLayout => '바 레이아웃';
+
+  @override
+  String get glassScreenTitle => '글래스.';
+
+  @override
+  String get glassScreenSubtitle => '배경이 얼마나 비쳐 보이는지';
+
+  @override
+  String glassScreenSaveSlotsFull(Object max) {
+    return '슬롯 $max개 모두 가득 참';
+  }
+
+  @override
+  String get glassScreenSaveCurrentAs => '새 룩으로 저장…';
+
+  @override
+  String get glassScreenResetEveryDial => '모든 다이얼 초기화';
+
+  @override
+  String glassScreenResetToPreset(Object name) {
+    return '$name(으)로 초기화';
+  }
+
+  @override
+  String get glassScreenSurfacesNote =>
+      '입력창, 헤더, 통화 버튼처럼 스크롤되는 콘텐츠가 아니라 텍스트 위에 놓이는 요소예요';
+
+  @override
+  String get glassScreenMatchBottomBar => '하단 바에 맞추기';
+
+  @override
+  String get glassScreenPresetEditedSubtitle => '수정됨 — 새 룩으로 저장하거나 초기화하세요';
+
+  @override
+  String get glassScreenCustomPresetName => '커스텀';
+
+  @override
+  String get glassScreenUnsavedSubtitle => '저장 안 됨 — 이름을 지으면 저장돼요';
+
+  @override
+  String get glassScreenSaveDialogTitle => '이 룩 저장하기';
+
+  @override
+  String get glassScreenNoRoomToast => '공간이 없어요 — 룩을 먼저 삭제하세요';
+
+  @override
+  String get glassScreenRenameDialogTitle => '이름 바꾸기';
+
+  @override
+  String glassScreenDeleteConfirmTitle(Object name) {
+    return '$name 삭제할까요?';
+  }
+
+  @override
+  String get glassScreenDeleteConfirmBody => '룩은 화면에 그대로 남아요 — 이름만 없어질 뿐이에요.';
+
+  @override
+  String get glassScreenKeepButton => '유지';
+
+  @override
+  String get glassScreenDeleteButton => '삭제';
+
+  @override
+  String get glassScreenNameHint => '심야';
+
+  @override
+  String get glassScreenCancelButton => '취소';
+
+  @override
+  String get glassScreenSaveButton => '저장';
+
+  @override
+  String get glassScreenPreviewRoomName => '# 발코니';
+
+  @override
+  String get glassScreenPreviewOnlineCount => '4명 접속 중';
+
+  @override
+  String get glassScreenPreviewMessageHint => '메시지';
+
+  @override
+  String get glassScreenPreviewCollapseLabel => '미리보기 접기';
+
+  @override
+  String get glassScreenPreviewExpandLabel => '미리보기 펼치기';
+
+  @override
+  String get glassScreenPreviewBadge => '미리보기';
+
+  @override
+  String get glassScreenBuiltInLabel => '기본 제공';
+
+  @override
+  String glassScreenOverwriteTooltip(Object name) {
+    return '$name 덮어쓰기';
+  }
+
+  @override
+  String glassScreenRenameTooltip(Object name) {
+    return '$name 이름 바꾸기';
+  }
+
+  @override
+  String glassScreenDeleteTooltip(Object name) {
+    return '$name 삭제';
+  }
+
+  @override
+  String glassScreenResetTooltip(Object label) {
+    return '$label 초기화';
+  }
+
+  @override
+  String get glassScreenBackdropMsgDilan => '지붕 사진 보냈어 — 타일이 다 깨졌더라';
+
+  @override
+  String get glassScreenBackdropMsgMert => '근데 스피커는 진짜 누가 가져와?';
+
+  @override
+  String get glassScreenBackdropGroupFamily => '가족';
+
+  @override
+  String get glassScreenBackdropMsgFamily => '엄마: 저녁 8시야, 또 늦지 마';
+
+  @override
+  String get glassScreenBackdropMsgZeynep => '나 밖이야';
+
+  @override
+  String get glassScreenBackdropMsgKerem => '모퉁이 그 가게 커피 진짜 잘해';
+
+  @override
+  String get glassScreenBackdropGroupWork => '회사';
+
+  @override
+  String get glassScreenBackdropMsgWork => '이번 주 남은 요일 스탠드업 10시 30분으로 변경됐어';
+
+  @override
+  String get glassScreenBackdropMsgElif => '말도 안 돼. 다시 보내줘, 잃어버렸어';
+
+  @override
+  String get glassScreenBackdropMsgBaran => '착륙했어 👍';
+
+  @override
+  String get glassScreenBackdropMsgAyse => '고양이가 발코니 문 여는 법을 배웠어';
+
+  @override
+  String get glassScreenBackdropMsgCan => '그럼 토요일에 봐';
+
+  @override
+  String replyIndicatorInReplyToSemanticLabel(Object name) {
+    return '$name님에게 답장';
+  }
+
+  @override
+  String get replyIndicatorViewOnceLabel => '사진 · 한 번 보기';
+
+  @override
+  String get replyIndicatorVoiceMessageLabel => '음성 메시지';
+
+  @override
+  String get replyIndicatorDocumentLabel => '문서';
+
+  @override
+  String get replyIndicatorMessageRemoved => '삭제된 메시지';
+
+  @override
+  String get threadOverlayMessageNotFound => '이 스레드에서 해당 메시지를 찾을 수 없어요';
+
+  @override
+  String get threadOverlayReplyTargetNotFound => '답장할 스레드를 찾을 수 없어요';
+
+  @override
+  String get threadOverlayStillSending => '아직 전송 중이에요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get threadOverlayCopiedToast => '복사됨';
+
+  @override
+  String get threadOverlayNameCopiedToast => '이름 복사됨';
+
+  @override
+  String get threadOverlayPinLimitToast => '고정한 메시지가 너무 많아요. 하나를 먼저 고정 해제해 주세요';
+
+  @override
+  String get threadOverlayPinFailedToast => '고정하지 못했어요';
+
+  @override
+  String get threadOverlayReportedToast => '신고됨';
+
+  @override
+  String get threadOverlayUnavailable => '스레드를 사용할 수 없어요';
+
+  @override
+  String get roomInfoScreenNameRequiredError => '이름을 입력해 주세요';
+
+  @override
+  String get roomInfoScreenSavedSnackbar => '저장됨';
+
+  @override
+  String get roomInfoScreenPasswordClearedSnackbar => '비밀번호 삭제됨';
+
+  @override
+  String get roomInfoScreenLeaveConfirmTitle => '방을 나가시겠어요?';
+
+  @override
+  String get roomInfoScreenLeaveConfirmBody => '방이 계속 열려 있으면 다시 참여할 수 있어요.';
+
+  @override
+  String get roomInfoScreenLeaveConfirmButton => '나가기';
+
+  @override
+  String get roomInfoScreenDeleteConfirmTitle => '방을 삭제하시겠어요?';
+
+  @override
+  String get roomInfoScreenDeleteConfirmBody =>
+      '이 방의 모든 메시지도 함께 사라져요. 이 작업은 되돌릴 수 없어요.';
+
+  @override
+  String get roomInfoScreenDeleteConfirmButton => '삭제';
+
+  @override
+  String get roomInfoScreenConfirmCancelButton => '취소';
+
+  @override
+  String get roomInfoScreenErrorRoomExists => '이미 같은 이름의 방이 있어요';
+
+  @override
+  String get roomInfoScreenErrorNotOwner => '방장만 할 수 있어요';
+
+  @override
+  String get roomInfoScreenErrorNotAuthorized => '권한이 없어요';
+
+  @override
+  String get roomInfoScreenErrorRoomNotFound => '이 방은 사라졌어요';
+
+  @override
+  String get roomInfoScreenRoomGone => '사라진 방';
+
+  @override
+  String get roomInfoScreenNameLabel => '이름';
+
+  @override
+  String get roomInfoScreenNameHint => '방 이름';
+
+  @override
+  String get roomInfoScreenDescriptionLabel => '설명';
+
+  @override
+  String get roomInfoScreenDescriptionHint => '방에 대한 한 줄 소개…';
+
+  @override
+  String get roomInfoScreenVisibilityLabel => '공개 범위';
+
+  @override
+  String get roomInfoScreenPublicTitle => '공개';
+
+  @override
+  String get roomInfoScreenPublicSub => '누구나 찾을 수 있어요';
+
+  @override
+  String get roomInfoScreenPrivateTitle => '비공개';
+
+  @override
+  String get roomInfoScreenPrivateSub => '초대로만 참여할 수 있어요';
+
+  @override
+  String get roomInfoScreenMessageLifeLabel => '메시지 유지 시간';
+
+  @override
+  String roomInfoScreenTtlSeconds(Object value) {
+    return '$value초';
+  }
+
+  @override
+  String roomInfoScreenTtlMinutes(Object value) {
+    return '$value분';
+  }
+
+  @override
+  String roomInfoScreenTtlHours(Object value) {
+    return '$value시간';
+  }
+
+  @override
+  String get roomInfoScreenPasswordLabel => '비밀번호';
+
+  @override
+  String get roomInfoScreenLockedBadge => '잠김';
+
+  @override
+  String get roomInfoScreenNoneBadge => '없음';
+
+  @override
+  String get roomInfoScreenPasswordProtectedNote =>
+      '이 방은 비밀번호로 보호되어 있어요. 보안을 위해 기존 비밀번호는 표시되지 않으니, 새 비밀번호를 입력하면 교체돼요.';
+
+  @override
+  String get roomInfoScreenReplacePasswordHint => '새 비밀번호로 교체…';
+
+  @override
+  String get roomInfoScreenSetPasswordHint => '비밀번호로 잠그기…';
+
+  @override
+  String get roomInfoScreenRemovePasswordButton => '비밀번호 삭제';
+
+  @override
+  String get roomInfoScreenSharedContentLabel => '공유 콘텐츠';
+
+  @override
+  String roomInfoScreenMembersLabel(Object count) {
+    return '멤버 · $count';
+  }
+
+  @override
+  String get roomInfoScreenLeavingButton => '나가는 중…';
+
+  @override
+  String get roomInfoScreenLeaveRoomButton => '방 나가기';
+
+  @override
+  String get roomInfoScreenDeletingButton => '삭제하는 중…';
+
+  @override
+  String get roomInfoScreenDeleteButtonLabel => '삭제';
+
+  @override
+  String get roomInfoScreenHeaderConversation => '대화';
+
+  @override
+  String get roomInfoScreenHeaderRoomSettings => '방 설정';
+
+  @override
+  String get roomInfoScreenViewProfilePictureSemantic => '프로필 사진 보기';
+
+  @override
+  String get roomInfoScreenViewRoomPictureSemantic => '방 사진 보기';
+
+  @override
+  String get roomInfoScreenChangeRoomPictureSemantic => '방 사진 변경';
+
+  @override
+  String get roomInfoScreenAddRoomPictureSemantic => '방 사진 추가';
+
+  @override
+  String get roomInfoScreenLoadingMembers => '멤버 불러오는 중…';
+
+  @override
+  String get roomInfoScreenOwnerBadge => '방장';
+
+  @override
+  String get roomInfoScreenSaveButton => '저장';
+
+  @override
+  String get roomInfoScreenNoneCount => '없음';
+
+  @override
+  String get cameraScreenAccessDeniedMessage =>
+      '카메라 접근 권한이 꺼져 있어요.\n사진을 찍으려면 설정에서 켜주세요.';
+
+  @override
+  String get cameraScreenOpeningSystemCamera => '시스템 카메라를 여는 중…';
+
+  @override
+  String get cameraScreenCloseButtonLabel => '카메라 닫기';
+
+  @override
+  String get cameraScreenLowLightBoostOnLabel => '저조도 부스트: 켜짐';
+
+  @override
+  String get cameraScreenLowLightBoostOffLabel => '저조도 부스트: 꺼짐';
+
+  @override
+  String cameraScreenFlashStatusLabel(Object mode) {
+    return '플래시: $mode';
+  }
+
+  @override
+  String get cameraScreenChooseFromLibraryLabel => '라이브러리에서 선택';
+
+  @override
+  String get cameraScreenSwitchCameraLabel => '카메라 전환';
+
+  @override
+  String get cameraScreenTakePhotoLabel => '사진 촬영';
+
+  @override
+  String get childPolicyScreenAddByUsernameLabel => '사용자 이름으로 추가';
+
+  @override
+  String get childPolicyScreenAddCta => '추가';
+
+  @override
+  String childPolicyScreenAddGuardianBlurb(Object name) {
+    return '이 사람은 회원님과 똑같은 권한을 갖게 돼요. 승인할 요청, 바꿀 설정은 물론 회원님을 삭제할 권한까지 모두요. $name님은 이 사람을 바로 가족으로 인식해요.';
+  }
+
+  @override
+  String get childPolicyScreenAddGuardianHeading => '보호자 추가';
+
+  @override
+  String get childPolicyScreenAddGuardianHint => '상대방의 사용자 이름';
+
+  @override
+  String get childPolicyScreenAllowCta => '허용';
+
+  @override
+  String childPolicyScreenAllowSomeoneBlurb(Object childName) {
+    return '$childName님이 이 사람을 추가하든, 이 사람이 $childName님을 추가하든 다시 묻지 않아요.';
+  }
+
+  @override
+  String get childPolicyScreenAllowSomeoneHeading => '연락처 허용';
+
+  @override
+  String get childPolicyScreenAskToAddLabel => '추가 요청';
+
+  @override
+  String get childPolicyScreenAskToAddOffDesc => '가족만 — 새 요청 없음';
+
+  @override
+  String get childPolicyScreenAskToAddOnDesc => '새로운 사람에 대해 물어볼 수 있어요';
+
+  @override
+  String get childPolicyScreenBothFinalNote =>
+      '두 가지 모두 되돌릴 수 없어요. 대신 손을 떼고 싶다면 보호자 섹션에서 할 수 있어요.';
+
+  @override
+  String get childPolicyScreenCallsLabel => '통화';
+
+  @override
+  String get childPolicyScreenCallsOffDesc => '메시지만';
+
+  @override
+  String get childPolicyScreenCallsOnDesc => '허용된 상대와 음성·영상 통화 가능해요';
+
+  @override
+  String get childPolicyScreenCancelLabel => '취소';
+
+  @override
+  String get childPolicyScreenCancelSemanticLabel => '취소';
+
+  @override
+  String get childPolicyScreenContactAddedRequestSent => '추가됨 — 요청을 보내는 중이에요';
+
+  @override
+  String get childPolicyScreenContactAddedToList => '허용 목록에 추가됐어요';
+
+  @override
+  String get childPolicyScreenCreateRoomsLabel => '방 만들기';
+
+  @override
+  String get childPolicyScreenCreateRoomsOffDesc => '방을 만들 수 없어요';
+
+  @override
+  String get childPolicyScreenCreateRoomsOnDesc => '자신만의 비공개 방을 만들 수 있어요';
+
+  @override
+  String get childPolicyScreenDeleteAccountBody =>
+      '메시지, 사진, 방, 친구까지 모두 사라져요. 되돌릴 수 없으며, 사용자 이름은 다른 사람이 사용할 수 있게 돼요.';
+
+  @override
+  String get childPolicyScreenDeleteAccountFailed =>
+      '계정을 삭제하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String childPolicyScreenDeleteAccountHeadline(Object name) {
+    return '$name님의 계정을 삭제할까요?';
+  }
+
+  @override
+  String get childPolicyScreenDeleteDangerDetail =>
+      '메시지, 사진, 방, 친구가 모두 사라져요. 되돌릴 수 없어요.';
+
+  @override
+  String childPolicyScreenDeleteDangerLabel(Object name) {
+    return '$name님의 계정 삭제';
+  }
+
+  @override
+  String get childPolicyScreenDeleteForeverCta => '완전히 삭제';
+
+  @override
+  String get childPolicyScreenErrorAddContactGeneric =>
+      '추가하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String get childPolicyScreenErrorCannotAddSelf => '그건 아이 본인의 사용자 이름이에요';
+
+  @override
+  String get childPolicyScreenErrorChildNotAllowed => '아이는 보호자가 될 수 없어요';
+
+  @override
+  String get childPolicyScreenErrorGenericGuardian => '처리하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String get childPolicyScreenErrorLastGuardian =>
+      '돌봐줄 보호자가 있어야 해요 — 먼저 다른 보호자를 추가해 주세요';
+
+  @override
+  String get childPolicyScreenErrorNotYours => '이건 변경할 권한이 없어요';
+
+  @override
+  String get childPolicyScreenErrorUserNotFound => '해당 아이디의 계정을 찾을 수 없어요';
+
+  @override
+  String get childPolicyScreenGraduateBlurb =>
+      '이 비밀번호로 일반 계정이 되고, 모든 보호자는 더 이상 아무것도 볼 수 없게 돼요. 되돌릴 수 없으며, 이후에는 다른 사람과 마찬가지로 초대를 받아야 해요.';
+
+  @override
+  String get childPolicyScreenGraduateCta => '졸업하기';
+
+  @override
+  String get childPolicyScreenGraduateDangerDetail =>
+      '모든 데이터는 그대로 유지되고 비밀번호가 생겨요. 보호자는 아무것도 볼 수 없게 돼요. 되돌릴 수 없어요.';
+
+  @override
+  String get childPolicyScreenGraduateDangerLabel => '정식 계정으로 전환하기';
+
+  @override
+  String get childPolicyScreenGraduateFailed => '전환하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String childPolicyScreenGraduateHeading(Object name) {
+    return '$name 졸업시키기';
+  }
+
+  @override
+  String get childPolicyScreenGraduateHint => '아이의 비밀번호';
+
+  @override
+  String get childPolicyScreenGrantsFooterNote =>
+      '방 허용을 취소하면 그 방에서도 나가게 돼요. 사람 허용을 취소하면 채팅방도 함께 삭제돼요 — 양쪽 모두에서요.';
+
+  @override
+  String get childPolicyScreenGrownUpsDesc =>
+      '여기 있는 보호자는 모두 승인하고, 설정을 바꾸고, 모든 걸 볼 수 있어요. 누구든 혼자서 처리할 수 있고, 다른 사람의 동의를 기다릴 필요는 없어요.';
+
+  @override
+  String get childPolicyScreenGuardianAdded => '추가됐어요 — 이제 함께 돌볼 수 있어요';
+
+  @override
+  String childPolicyScreenGuardianRemoved(Object name) {
+    return '$name 삭제됨';
+  }
+
+  @override
+  String childPolicyScreenGuardianYouSuffix(Object name) {
+    return '$name (나)';
+  }
+
+  @override
+  String get childPolicyScreenLoading => '불러오는 중…';
+
+  @override
+  String get childPolicyScreenLockedLabel => '잠금';
+
+  @override
+  String get childPolicyScreenMediaLabel => '사진 + 음성';
+
+  @override
+  String get childPolicyScreenMediaOffDesc => '텍스트만';
+
+  @override
+  String get childPolicyScreenMediaOnDesc => '사진, 동영상, 음성 메시지를 보낼 수 있어요';
+
+  @override
+  String get childPolicyScreenNoRoomsYet => '아직 방이 없어요';
+
+  @override
+  String get childPolicyScreenPeopleAllowedDesc =>
+      '여기 있는 사람은 누구든 다시 묻지 않고 추가할 수 있어요 — 누가 먼저 시작하든요.';
+
+  @override
+  String get childPolicyScreenPublicRoomsBody =>
+      '아이 계정에서는 항상 꺼져 있어요. 모르는 사람의 방 목록을 보여주는 \'발견하기\' 기능은 완전히 숨겨져 있고 켤 수 없어요. 누군가 초대한 방은 평소처럼 그대로 이용할 수 있어요.';
+
+  @override
+  String get childPolicyScreenPublicRoomsLabel => '공개 방';
+
+  @override
+  String childPolicyScreenRemoveGuardianBody(Object child, Object guardian) {
+    return '$guardian님은 앞으로 $child에 대해 아무것도 보거나 승인할 수 없어요.';
+  }
+
+  @override
+  String childPolicyScreenRemoveGuardianHeadline(Object name) {
+    return '$name님을 삭제할까요?';
+  }
+
+  @override
+  String get childPolicyScreenRemoveLabel => '삭제하기';
+
+  @override
+  String childPolicyScreenRoomMemberCount(Object count) {
+    return '$count명';
+  }
+
+  @override
+  String get childPolicyScreenSectionGrownUps => '보호자';
+
+  @override
+  String get childPolicyScreenSectionPeopleAllowed => '허용한 사람';
+
+  @override
+  String get childPolicyScreenSectionRoomsAllowed => '허용한 방';
+
+  @override
+  String get childPolicyScreenSectionWhatTheyCanDo => '할 수 있는 것';
+
+  @override
+  String get childPolicyScreenSectionWhenDone => '계정을 정리할 때';
+
+  @override
+  String get childPolicyScreenSendNowOffDesc =>
+      '누군가 먼저 상대를 추가하기 전까지는 아무 일도 일어나지 않아요';
+
+  @override
+  String get childPolicyScreenSendNowOnDesc => '상대방이 바로 요청을 받게 돼요';
+
+  @override
+  String get childPolicyScreenSendRequestNowLabel => '지금 요청 보내기';
+
+  @override
+  String childPolicyScreenSoleGuardianNote(Object name) {
+    return '회원님은 $name의 유일한 보호자라 그냥 빠질 수 없어요. 먼저 다른 보호자를 추가하거나, 아래 방법 중 하나를 이용해 보세요.';
+  }
+
+  @override
+  String get childPolicyScreenStepAwayLabel => '보호자에서 빠지기';
+
+  @override
+  String childPolicyScreenStopSupervisingBody(Object name) {
+    return '$name의 계정에 대한 모든 정보를 볼 수 없게 돼요 — 요청도, 친구도, 채팅방도요. 다른 보호자들이 계속 돌봐줄 거예요.';
+  }
+
+  @override
+  String get childPolicyScreenStopSupervisingCta => '보호자 그만두기';
+
+  @override
+  String get childPolicyScreenStopSupervisingHeadline => '보호자를 그만두시겠어요?';
+
+  @override
+  String get childPolicyScreenTakeBackFailed => '회수하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String get childPolicyScreenTakeBackLabel => '회수하기';
+
+  @override
+  String get childPolicyScreenUsernameHint => '사용자 이름';
+
+  @override
+  String get childPolicyScreenYou => '회원님';
+
+  @override
+  String get roomContentScreenDefaultDocumentName => '문서';
+
+  @override
+  String get roomContentScreenCouldntOpenFile => '파일을 열 수 없었어요';
+
+  @override
+  String get roomContentScreenCouldntShare => '공유하지 못했어요';
+
+  @override
+  String roomContentScreenLinksCopied(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '링크 $count개를 복사했어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomContentScreenDeleteHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '메시지 $count개 삭제',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenDeleteBody => '이 채팅방의 모든 사람에게서 삭제돼요. 되돌릴 수 없어요.';
+
+  @override
+  String get roomContentScreenDeleteForEveryone => '모두에게서 삭제';
+
+  @override
+  String get roomContentScreenCancelTooltip => '취소';
+
+  @override
+  String get roomContentScreenBackTooltip => '뒤로';
+
+  @override
+  String get roomContentScreenSelectingLabel => '선택 중';
+
+  @override
+  String get roomContentScreenSharedContentLabel => '공유 콘텐츠';
+
+  @override
+  String roomContentScreenSelectionCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개 선택됨',
+      zero: '선택된 항목 없음',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get roomContentScreenSelectAllLabel => '선택';
+
+  @override
+  String get roomContentScreenSelectAllActiveLabel => '전체';
+
+  @override
+  String get roomContentScreenEmptyMedia => '아직 사진이나 동영상이 없어요';
+
+  @override
+  String get roomContentScreenEmptyFiles => '아직 파일이 없어요';
+
+  @override
+  String get roomContentScreenEmptyVoice => '아직 음성 메시지가 없어요';
+
+  @override
+  String get roomContentScreenEmptyLinks => '아직 링크가 없어요';
+
+  @override
+  String get roomContentScreenLoadFailed => '불러오지 못했어요';
+
+  @override
+  String roomContentScreenVoiceMessageFrom(Object name) {
+    return '$name님이 보낸 음성 메시지';
+  }
+
+  @override
+  String get roomContentScreenForwardAction => '전달';
+
+  @override
+  String get roomContentScreenCopyAction => '복사';
+
+  @override
+  String get roomContentScreenSaveAction => '저장';
+
+  @override
+  String get roomContentScreenShareAction => '공유';
+
+  @override
+  String get roomContentScreenInChatAction => '채팅에서 보기';
+
+  @override
+  String get roomContentScreenDeleteAction => '삭제';
+
+  @override
+  String get messageActionMenuReplyLabel => '답장';
+
+  @override
+  String get messageActionMenuForwardLabel => '전달';
+
+  @override
+  String get messageActionMenuViewThreadLabel => '스레드 보기';
+
+  @override
+  String get messageActionMenuCopyLabel => '복사';
+
+  @override
+  String get messageActionMenuCopyNameLabel => '이름 복사';
+
+  @override
+  String get messageActionMenuPinLabel => '고정';
+
+  @override
+  String get messageActionMenuUnpinLabel => '고정 해제';
+
+  @override
+  String get messageActionMenuSelectLabel => '선택';
+
+  @override
+  String get messageActionMenuProfileLabel => '프로필';
+
+  @override
+  String get messageActionMenuDeleteLabel => '삭제';
+
+  @override
+  String get messageActionMenuReportLabel => '신고';
+
+  @override
+  String get themeScreenTitle => '테마.';
+
+  @override
+  String get themeScreenTapToApplyHint => '탭하여 적용 · ⛶로 전체 미리보기';
+
+  @override
+  String get themeScreenFamilyBasicName => '베이직';
+
+  @override
+  String get themeScreenFamilyBasicTagline => 'iOS에서 영감을 받은 · 팔레트 5종';
+
+  @override
+  String get themeScreenFamilyVaultName => '볼트';
+
+  @override
+  String get themeScreenFamilyVaultTagline => '기밀 문서 · 느와르 + 아이보리';
+
+  @override
+  String get themeScreenFamilyOthersName => '기타';
+
+  @override
+  String get themeScreenFamilyOthersTagline => '저마다의 무드';
+
+  @override
+  String get themeScreenActiveBadge => '적용됨';
+
+  @override
+  String get themeScreenTapToApplyLabel => '탭하여 적용';
+
+  @override
+  String themeScreenCarouselActiveLabel(Object name) {
+    return '적용됨 — $name';
+  }
+
+  @override
+  String themeScreenCarouselApplyLabel(Object name) {
+    return '$name 적용하기';
+  }
+
+  @override
+  String get themeScreenPreviewGreeting => '안녕, 너.';
+
+  @override
+  String get themeScreenPreviewSectionLabel => '대화';
+
+  @override
+  String get themeScreenPreviewRoomOneName => '디자인 클럽';
+
+  @override
+  String get themeScreenPreviewRoomOneSub => '미아: 새 타일 배포했어.';
+
+  @override
+  String get themeScreenPreviewRoomTwoName => '체임버 · ☾';
+
+  @override
+  String get themeScreenPreviewRoomTwoSub => '4시간 후 봉인.';
+
+  @override
+  String get themeScreenPreviewBubbleQuestion => '느낌이 어때?';
+
+  @override
+  String get themeScreenPreviewBubbleAnswer => '이게 맞는 것 같아.';
+
+  @override
+  String get callScreenVideoCallLabel => '수신 영상 통화';
+
+  @override
+  String get callScreenVoiceCallLabel => '수신 음성 통화';
+
+  @override
+  String callScreenStatusRinging(Object kind) {
+    return '$kind · 발신 중…';
+  }
+
+  @override
+  String callScreenStatusIncoming(Object kind) {
+    return '$kind · 수신 중';
+  }
+
+  @override
+  String callScreenStatusConnecting(Object kind) {
+    return '$kind · 연결 중…';
+  }
+
+  @override
+  String get callScreenStatusConnected => '연결됨';
+
+  @override
+  String get callScreenStatusEnded => '통화 종료';
+
+  @override
+  String get callScreenStatusFailed => '통화 실패';
+
+  @override
+  String get callScreenStatusSwitching => '기기 전환 중…';
+
+  @override
+  String get callScreenStatusMoved => '이동됨';
+
+  @override
+  String get callScreenStatusReconnecting => '재연결 중…';
+
+  @override
+  String get callScreenPoorConnectionLabel => '연결 불량';
+
+  @override
+  String get callScreenWeakConnectionLabel => '연결 약함';
+
+  @override
+  String get callScreenControlUnmute => '음소거 해제';
+
+  @override
+  String get callScreenControlMute => '음소거';
+
+  @override
+  String get callScreenControlCamOn => '카메라 켜기';
+
+  @override
+  String get callScreenControlCamOff => '카메라 끄기';
+
+  @override
+  String get callScreenControlFlip => '전환';
+
+  @override
+  String get callScreenControlSpeaker => '스피커';
+
+  @override
+  String get callScreenControlEnd => '종료';
+
+  @override
+  String get linkPreviewCardLinkLabel => '링크';
+
+  @override
+  String friendRequestDraftScreenAcceptedSnackbar(Object name) {
+    return '$name님이 친구 요청을 수락했어요';
+  }
+
+  @override
+  String get friendRequestDraftScreenWithdrawnSnackbar => '그 요청이 취소됐어요';
+
+  @override
+  String get friendRequestDraftScreenDeclinedSnackbar => '요청이 거절됐어요';
+
+  @override
+  String get friendRequestDraftScreenErrorBlocked =>
+      '이 사용자를 차단했어요 — 먼저 차단을 해제해 주세요.';
+
+  @override
+  String get friendRequestDraftScreenErrorNotAccepting =>
+      '상대방이 지금은 친구 요청을 받지 않고 있어요.';
+
+  @override
+  String get friendRequestDraftScreenErrorSendFailed => '보내지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get friendRequestDraftScreenIncomingRequestLabel => '받은 요청';
+
+  @override
+  String get friendRequestDraftScreenNewRequestLabel => '보낸 요청';
+
+  @override
+  String friendRequestDraftScreenIntroIncoming(Object name) {
+    return '$name님이 대화를 시작하고 싶어해요.';
+  }
+
+  @override
+  String get friendRequestDraftScreenIntroOutgoing =>
+      '몇 마디 보내보세요. 상대방이 수락하거나 거절할 수 있어요.';
+
+  @override
+  String get friendRequestDraftScreenIntroFooter =>
+      '서로 동의하기 전까지는 이 내용이 어디에도 영구히 저장되지 않아요.';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeLabel => '채팅방 유형';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeEphemeral => '휘발성';
+
+  @override
+  String get friendRequestDraftScreenRoomTypeStandard => '일반';
+
+  @override
+  String get friendRequestDraftScreenLifetimeLabel => '메시지 수명';
+
+  @override
+  String friendRequestDraftScreenDurationSeconds(Object seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationMinutes(Object minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String friendRequestDraftScreenDurationHours(Object hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String get friendRequestDraftScreenHintWhisperOptional => '첫 마디 속삭이기 · 선택';
+
+  @override
+  String get friendRequestDraftScreenHintFirstMessageOptional =>
+      '첫 메시지 남기기 · 선택';
+
+  @override
+  String get friendRequestDraftScreenHintWhisperFades => '속삭임 · 자동으로 사라짐';
+
+  @override
+  String get friendRequestDraftScreenHintStartWith => '무슨 말이든 좋아요…';
+
+  @override
+  String get friendRequestDraftScreenApproveButton => '받은 요청 수락하고 채팅방 열기';
+
+  @override
+  String get friendRequestDraftScreenDeclineButton => '받은 요청 거절하기';
+
+  @override
+  String get friendRequestDraftScreenCancelRequestButton => '보낸 요청 취소하기';
+
+  @override
+  String get friendRequestDraftScreenAskGrownUpButton => '보호자에게 물어보기';
+
+  @override
+  String get friendRequestDraftScreenSendRequestButton => '요청 보내기';
+
+  @override
+  String get discoverScreenTitle => '탐색.';
+
+  @override
+  String get discoverScreenCaptionPeople => '사람';
+
+  @override
+  String get discoverScreenCaptionRooms => '채팅방';
+
+  @override
+  String get discoverScreenCaptionRequests => '요청';
+
+  @override
+  String get discoverScreenPeopleBandLabel => '사람들';
+
+  @override
+  String get discoverScreenRoomsBandLabel => '채팅방';
+
+  @override
+  String get discoverScreenFindPeopleTitle => '사람 찾기';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleChild => '사용자 이름 전체를 입력하세요';
+
+  @override
+  String get discoverScreenFindPeopleSubtitleAdult => '@사용자 이름 또는 이름으로 검색';
+
+  @override
+  String get discoverScreenRequestsSectionLabel => '요청';
+
+  @override
+  String get discoverScreenInboxQuiet => '받은 요청 없음';
+
+  @override
+  String get discoverScreenNothingPending => '보낸 요청 없음';
+
+  @override
+  String get discoverScreenYourPeopleLabel => '내 사람들';
+
+  @override
+  String get discoverScreenNoFriendsYetWithHint => '아직 아무도 없어요 — 위에서 사람 찾기';
+
+  @override
+  String get discoverScreenNoFriendsYet => '아직 아무도 없어요';
+
+  @override
+  String get discoverScreenSearchRoomsTitle => '채팅방 검색';
+
+  @override
+  String get discoverScreenSearchRoomsSubtitle => '이름으로 공개 채팅방 찾기';
+
+  @override
+  String get discoverScreenPublicRoomsLabel => '공개 채팅방';
+
+  @override
+  String get discoverScreenLoadingRooms => '찾는 중…';
+
+  @override
+  String get discoverScreenNoRoomsOpen => '지금은 열려 있는 방이 없어요';
+
+  @override
+  String get discoverScreenIncomingLabel => '수신';
+
+  @override
+  String get discoverScreenOutgoingLabel => '발신';
+
+  @override
+  String get discoverScreenIncomingLabelCaps => '수신';
+
+  @override
+  String get discoverScreenOutgoingLabelCaps => '발신';
+
+  @override
+  String get discoverScreenJumpPeopleLabel => '사람들';
+
+  @override
+  String get discoverScreenJumpRoomsLabel => '채팅방';
+
+  @override
+  String discoverScreenJumpToSemanticLabel(Object label) {
+    return '$label 섹션으로 이동';
+  }
+
+  @override
+  String get imageCropScreenDefaultTitle => '조정';
+
+  @override
+  String get imageCropScreenDefaultConfirmLabel => '사진 사용';
+
+  @override
+  String get imageCropScreenSavingButton => '저장 중…';
+
+  @override
+  String get imageCropScreenCancelButton => '취소';
+
+  @override
+  String get imageCropScreenHeicUnsupported => '이 브라우저에서는 HEIC 사진을 열 수 없어요';
+
+  @override
+  String get imageCropScreenLoadFailed => '이미지를 열 수 없어요';
+
+  @override
+  String get imageCropScreenHintCircle => '드래그로 이동, 핀치로 확대/축소';
+
+  @override
+  String get imageCropScreenHintRect => '드래그와 핀치로 프레임 조정';
+
+  @override
+  String get loginScreenSignInHeroMuted => '다시\n';
+
+  @override
+  String get loginScreenSignInHeroInk => '환영해요.';
+
+  @override
+  String get loginScreenSignInCta => '로그인';
+
+  @override
+  String get loginScreenSignUpHeroMuted => '새로운\n';
+
+  @override
+  String get loginScreenSignUpHeroInk => '멤버.';
+
+  @override
+  String get loginScreenSignUpCta => '계정 만들기';
+
+  @override
+  String get loginScreenResetHeroMuted => '비밀번호\n';
+
+  @override
+  String get loginScreenResetHeroInk => '재설정.';
+
+  @override
+  String get loginScreenResetCta => '비밀번호 재설정';
+
+  @override
+  String get loginScreenErrorPasswordsDontMatch => '비밀번호가 일치하지 않아요.';
+
+  @override
+  String get loginScreenErrorChoosePasswordFirst => '먼저 비밀번호를 설정해주세요.';
+
+  @override
+  String get loginScreenUsernameHint => '아이디';
+
+  @override
+  String get loginScreenPasswordHint => '비밀번호';
+
+  @override
+  String get loginScreenConfirmPasswordHint => '비밀번호 확인';
+
+  @override
+  String get loginScreenNameOptionalHint => '이름 (선택)';
+
+  @override
+  String get loginScreenRecoveryPhraseHint => '12단어 복구 구문';
+
+  @override
+  String get loginScreenNewPasswordHint => '새 비밀번호';
+
+  @override
+  String get loginScreenBackToSignIn => '← 로그인으로 돌아가기';
+
+  @override
+  String get loginScreenForgotPassword => '비밀번호를 잊으셨나요?';
+
+  @override
+  String get loginScreenSettingUpKidsPhone => '자녀 계정 설정하기';
+
+  @override
+  String get loginScreenLegalPrefix => '계정을 개설하면 다음 약관에 동의하는 거예요: ';
+
+  @override
+  String get loginScreenLegalTermsLink => '이용약관';
+
+  @override
+  String get loginScreenLegalMiddle => '과 ';
+
+  @override
+  String get loginScreenLegalPrivacyLink => '개인정보처리방침';
+
+  @override
+  String get loginScreenLegalSuffix => '에 동의하게 돼요.';
+
+  @override
+  String get loginScreenAlreadyHerePrompt => '이미 계정이 있으신가요? ';
+
+  @override
+  String get loginScreenSignInLink => '로그인';
+
+  @override
+  String get loginScreenNoAccountPrompt => '계정이 없으신가요? ';
+
+  @override
+  String get loginScreenOpenOneLink => '가입하기';
+
+  @override
+  String loginScreenWordCounter(Object count) {
+    return '$count/12단어';
+  }
+
+  @override
+  String get homeShellEmptyRoomHint => '채팅을 시작하려면 방을 선택하세요';
+
+  @override
+  String get homeShellEmptySettingHint => '설정을 선택하세요';
+
+  @override
+  String get searchScreenHintPeople => '사람 검색…';
+
+  @override
+  String get searchScreenHintRooms => '방 검색…';
+
+  @override
+  String get searchScreenPeoplePromptChild => '새로운 사람을 찾으려면 아이디 전체를 정확히 입력하세요';
+
+  @override
+  String get searchScreenPeoplePromptDefault => '아이디나 이름으로 검색하세요';
+
+  @override
+  String get searchScreenNoMatchChild =>
+      '일치하는 사람이 없어요 — 새로운 사람은\n아이디 전체를 정확히 입력해야 찾을 수 있어요';
+
+  @override
+  String get searchScreenNoMatchDefault => '일치하는 사람이 없어요';
+
+  @override
+  String get searchScreenNoRoomsYet => '아직 공개방이 없어요';
+
+  @override
+  String get searchScreenNoRoomsMatch => '일치하는 공개방이 없어요';
+
+  @override
+  String get searchScreenActionAskToAdd => '추가 요청';
+
+  @override
+  String get searchScreenActionSendRequest => '친구 요청';
+
+  @override
+  String get searchScreenActionCancel => '보낸 요청 취소';
+
+  @override
+  String get searchScreenActionApprove => '받은 요청 수락';
+
+  @override
+  String get searchScreenActionOpenDm => 'DM 열기';
+
+  @override
+  String get searchScreenAskedLabel => '요청함';
+
+  @override
+  String get profileVisibilityScreenTitle => '공개 범위 설정.';
+
+  @override
+  String get profileVisibilityScreenSubtitle =>
+      '다른 사람에게 보이는 내 정보와 연락 방법을 관리해요.';
+
+  @override
+  String get profileVisibilityScreenSectionProfile => '프로필';
+
+  @override
+  String get profileVisibilityScreenAvatarLabel => '아바타';
+
+  @override
+  String get profileVisibilityScreenAvatarDesc => '내 프로필 사진';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayLabel => '온라인 / 자리비움';
+
+  @override
+  String get profileVisibilityScreenOnlineAwayDesc => '지금 활동 중인지 여부';
+
+  @override
+  String get profileVisibilityScreenLastSeenLabel => '마지막 접속';
+
+  @override
+  String get profileVisibilityScreenLastSeenDesc => '마지막으로 접속한 시간';
+
+  @override
+  String get profileVisibilityScreenSectionMessages => '메시지';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsLabel => '읽음 표시 보내기';
+
+  @override
+  String get profileVisibilityScreenSendReadReceiptsDesc =>
+      '켜면 상대방이 내가 메시지를 읽었는지 알 수 있어요';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsLabel => '읽음 표시 보기';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsDesc =>
+      '내가 보낸 메시지를 상대가 읽으면 \"읽음\" 표시가 떠요';
+
+  @override
+  String get profileVisibilityScreenShowReadReceiptsHint =>
+      '\"읽음 알림 보내기\"를 켠 사람만 반영돼요. 나머지는 보이지 않아요.';
+
+  @override
+  String get profileVisibilityScreenSectionPeople => '사람들';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsLabel => '친구 요청';
+
+  @override
+  String get profileVisibilityScreenFriendRequestsDesc =>
+      '나에게 친구 요청을 보낼 수 있는 사람';
+
+  @override
+  String get profileVisibilityScreenSupervisedTitle => '보호자가 설정하는 항목이에요';
+
+  @override
+  String get profileVisibilityScreenSupervisedBody =>
+      '여기서 다른 사람들에게 보이는 내용을 확인할 수 있지만, 변경은 보호자만 할 수 있어요. 보호자는 내 사진, 온라인 상태, 마지막 접속 시간을 항상 볼 수 있어요.';
+
+  @override
+  String get profileVisibilityScreenOptionPublic => '전체 공개';
+
+  @override
+  String get profileVisibilityScreenOptionFriends => '친구만';
+
+  @override
+  String get profileVisibilityScreenOptionNobody => '없음';
+
+  @override
+  String get profileVisibilityScreenOptionOn => '켜짐';
+
+  @override
+  String get profileVisibilityScreenOptionOff => '꺼짐';
+
+  @override
+  String get profileVisibilityScreenOptionAnyone => '누구나';
+
+  @override
+  String get logoScreenTitle => '앱 로고.';
+
+  @override
+  String get logoScreenSubtitle => '헤더에 넣을 마크, 자유롭게 정하세요.';
+
+  @override
+  String get logoScreenAutoLabel => '자동';
+
+  @override
+  String get logoScreenAutoDescription => '테마를 따라가요. 팔레트에 맞춰 마크가 바뀌어요.';
+
+  @override
+  String get logoScreenManualLabel => '수동';
+
+  @override
+  String get logoScreenManualDescription => '마크는 자유롭게 고르고, 테마는 유지돼요.';
+
+  @override
+  String get logoScreenAlwaysDefaultLabel => '항상 기본값';
+
+  @override
+  String get logoScreenAlwaysDefaultDescription =>
+      '테마와 상관없이 MonkeyHub 마크를 사용해요.';
+
+  @override
+  String get logoScreenActiveBadge => '사용 중';
+
+  @override
+  String get logoScreenMonkeyCollectionHeader => '몽키 컬렉션';
+
+  @override
+  String get logoScreenThemesHeader => '테마';
+
+  @override
+  String get recoveryPhraseScreenCopiedSnackbar => '복사했어요 — 안전한 곳에 붙여넣어 두세요.';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroMuted => '확인\n';
+
+  @override
+  String get recoveryPhraseScreenConfirmHeroInk => '본인이에요.';
+
+  @override
+  String get recoveryPhraseScreenPasswordBody =>
+      '다른 사람이 내 계정에 복구 구문을 설정하지 못하도록 비밀번호를 확인해요.';
+
+  @override
+  String get recoveryPhraseScreenPasswordHint => '비밀번호';
+
+  @override
+  String get recoveryPhraseScreenContinueButton => '계속하기';
+
+  @override
+  String get recoveryPhraseScreenNotNowLink => '나중에';
+
+  @override
+  String get recoveryPhraseScreenEnterPasswordError => '비밀번호를 입력하세요.';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroMuted => '저장\n';
+
+  @override
+  String get recoveryPhraseScreenSaveHeroInk => '이 단어들.';
+
+  @override
+  String get recoveryPhraseScreenWordsBody =>
+      '이 열두 단어는 비밀번호를 잊었을 때 계정으로 돌아올 수 있는 유일한 방법이에요. 다시 보여드릴 수 없고, 저희가 대신 복구해 드릴 수도 없어요.';
+
+  @override
+  String get recoveryPhraseScreenCopyButton => '복사';
+
+  @override
+  String get recoveryPhraseScreenPaperHint =>
+      '가능하면 종이에 적어 두세요. 휴대폰에 있는 건 휴대폰과 함께 사라질 수 있어요.';
+
+  @override
+  String get recoveryPhraseScreenSavedButton => '저장했어요';
+
+  @override
+  String get recoveryPhraseScreenBackLink => '← 뒤로';
+
+  @override
+  String get recoveryPhraseScreenKeepPhraseLink => '지금은 아니에요 — 기존 문구 유지';
+
+  @override
+  String get homeScreenProfileSemanticLabel => '내 프로필';
+
+  @override
+  String homeScreenGreeting(Object name) {
+    return '$name님, 안녕하세요.';
+  }
+
+  @override
+  String get homeScreenNewRoomSemanticLabel => '새 채팅방';
+
+  @override
+  String get homeScreenEmptyRoomsMessage => '아직 채팅방이 없어요 — 하나 만들어 보세요';
+
+  @override
+  String get groupCallScreenTitleVideo => '그룹 영상 통화';
+
+  @override
+  String get groupCallScreenTitleVoice => '그룹 음성 통화';
+
+  @override
+  String groupCallScreenParticipantCount(Object count) {
+    return '통화 중 $count명';
+  }
+
+  @override
+  String get groupCallScreenReconnecting => '재연결 중…';
+
+  @override
+  String get groupCallScreenUnmuteLabel => '음소거 해제';
+
+  @override
+  String get groupCallScreenMuteLabel => '음소거';
+
+  @override
+  String get groupCallScreenCamOnLabel => '카메라 켜기';
+
+  @override
+  String get groupCallScreenCamOffLabel => '카메라 끄기';
+
+  @override
+  String get groupCallScreenFlipLabel => '전환';
+
+  @override
+  String get groupCallScreenSpeakerLabel => '스피커';
+
+  @override
+  String get groupCallScreenLeaveLabel => '나가기';
+
+  @override
+  String get groupCallScreenYouLabel => '나';
+
+  @override
+  String roomFilterDrawerButtonActiveSemanticLabel(Object summary) {
+    return '$summary 기준으로 필터링 중이에요. 필터 변경';
+  }
+
+  @override
+  String get roomFilterDrawerButtonSemanticLabel => '채팅 필터';
+
+  @override
+  String roomFilterDrawerActiveSummary(Object count, Object summary) {
+    return '$summary · $count';
+  }
+
+  @override
+  String get roomFilterDrawerClearSemanticLabel => '필터 지우기';
+
+  @override
+  String get roomFilterDrawerClearLabel => '지우기';
+
+  @override
+  String get roomFilterDrawerDimensionType => '유형';
+
+  @override
+  String get roomFilterDrawerDimensionNature => '속성';
+
+  @override
+  String get roomFilterDrawerDimensionStatus => '상태';
+
+  @override
+  String get roomFilterDrawerPanelClear => '지우기';
+
+  @override
+  String get roomFilterDrawerPanelDone => '완료';
+
+  @override
+  String roomFilterDrawerFacetSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String roomFilterDrawerEmptyStateTitle(Object summary) {
+    return '$summary에 맞는 채팅이 없어요';
+  }
+
+  @override
+  String roomFilterDrawerShowAllSemanticLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '전체 채팅 $count개 보기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String roomFilterDrawerShowAllLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '전체 채팅 $count개 보기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get createRoomSheetTitle => '새 방';
+
+  @override
+  String get createRoomSheetTaglineSecret => '아무것도 남지 않는 공간';
+
+  @override
+  String get createRoomSheetTaglineRegular => '계속 남아있는 공간';
+
+  @override
+  String get createRoomSheetNameLabel => '이름';
+
+  @override
+  String get createRoomSheetNameHint => '솔직한 이름을 지어보세요…';
+
+  @override
+  String get createRoomSheetDescriptionLabel => '설명 · 선택사항';
+
+  @override
+  String get createRoomSheetDescriptionHint => '방을 한 줄로 소개해보세요…';
+
+  @override
+  String get createRoomSheetVisibilityLabel => '공개 범위';
+
+  @override
+  String get createRoomSheetVisibilityPublicTitle => '공개';
+
+  @override
+  String get createRoomSheetVisibilityPublicSub => '누구나 찾을 수 있어요';
+
+  @override
+  String get createRoomSheetVisibilityPrivateTitle => '비공개';
+
+  @override
+  String get createRoomSheetVisibilityPrivateSub => '초대받은 사람만 들어올 수 있어요';
+
+  @override
+  String get createRoomSheetTypeLabel => '유형';
+
+  @override
+  String get createRoomSheetTypeStandardTitle => '일반';
+
+  @override
+  String get createRoomSheetTypeStandardSub => '메시지가 남아요';
+
+  @override
+  String get createRoomSheetTypeEphemeralTitle => '휘발성';
+
+  @override
+  String get createRoomSheetTypeEphemeralSub => '자동으로 삭제돼요';
+
+  @override
+  String get createRoomSheetMessageLifeLabel => '메시지 수명';
+
+  @override
+  String createRoomSheetTtlSeconds(Object seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String createRoomSheetTtlMinutes(Object minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String createRoomSheetTtlHours(Object hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String get createRoomSheetPasswordLabel => '비밀번호 · 선택사항';
+
+  @override
+  String get createRoomSheetPasswordHint => '암호로 잠가보세요…';
+
+  @override
+  String get createRoomSheetNameRequiredError => '이름을 입력해주세요';
+
+  @override
+  String get createRoomSheetOpenRoomSemanticLabel => '방 열기';
+
+  @override
+  String get createRoomSheetOpenRoomButton => '방 열기';
+
+  @override
+  String get familyScreenTitle => '가족';
+
+  @override
+  String familyScreenPendingBanner(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count건의 승인이 필요해요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get familyScreenPresenceOnline => '지금 온라인';
+
+  @override
+  String get familyScreenPresenceNotPaired => '아직 연결되지 않음';
+
+  @override
+  String get familyScreenPresenceJustNow => '방금 전';
+
+  @override
+  String familyScreenPresenceMinutesAgo(Object minutes) {
+    return '$minutes분 전';
+  }
+
+  @override
+  String familyScreenPresenceHoursAgo(Object hours) {
+    return '$hours시간 전';
+  }
+
+  @override
+  String familyScreenPresenceDaysAgo(Object days) {
+    return '$days일 전';
+  }
+
+  @override
+  String get familyScreenPairButton => '연결하기';
+
+  @override
+  String get familyScreenReleaseButton => '연결 해제';
+
+  @override
+  String get familyScreenSettingsButton => '설정';
+
+  @override
+  String get familyScreenAddChildButton => '자녀 추가';
+
+  @override
+  String get familyScreenEmptyStateTitle => '아직 자녀가 없어요';
+
+  @override
+  String get familyScreenEmptyStateBody => '자녀 계정을 만든 뒤, 자녀의 휴대폰과 연결해 보세요.';
+
+  @override
+  String get reactionDetailsSheetTitle => '리액션';
+
+  @override
+  String get reactionDetailsSheetEmptyState => '이제 남은 리액션이 없어요';
+
+  @override
+  String reactionDetailsSheetPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reactionDetailsSheetFilterAll => '전체';
+
+  @override
+  String get reactionDetailsSheetYouBadge => '나';
+
+  @override
+  String get roomLayoutScreenTitle => '채팅 목록.';
+
+  @override
+  String get roomLayoutScreenSubtitle => '채팅방이 쌓이는 방식과 필터링 방법';
+
+  @override
+  String get roomLayoutScreenLayoutSectionLabel => '레이아웃';
+
+  @override
+  String get roomLayoutScreenRowLayoutLabel => '리스트형 레이아웃';
+
+  @override
+  String get roomLayoutScreenRowLayoutDescription =>
+      '1단 구성, 화면 꽉 차게. 한눈에 보기 편해요.';
+
+  @override
+  String get roomLayoutScreenGridLayoutLabel => '그리드형 레이아웃';
+
+  @override
+  String get roomLayoutScreenGridLayoutDescription =>
+      '2단 구성, 컴팩트하게. 한 화면에 더 많은 채팅방이 보여요.';
+
+  @override
+  String get roomLayoutScreenFilterControlSectionLabel => '필터 방식';
+
+  @override
+  String get roomLayoutScreenChipRowLabel => '칩 바';
+
+  @override
+  String get roomLayoutScreenChipRowDescription =>
+      '언제나 보여요. 탭 한 번으로 필터 선택, 한 줄이면 충분해요.';
+
+  @override
+  String get roomLayoutScreenDrawerButtonLabel => '드로어 버튼';
+
+  @override
+  String get roomLayoutScreenDrawerButtonDescription =>
+      '버튼 하나로 열어요. 필요할 때까지는 아무것도 가리지 않아요.';
+
+  @override
+  String get roomLayoutScreenActiveBadge => '사용 중';
+
+  @override
+  String get pinnedBannerJumpToPinnedSemanticLabel => '고정된 메시지로 이동';
+
+  @override
+  String get pinnedBannerAllPinnedSemanticLabel => '고정된 메시지 전체';
+
+  @override
+  String get pinnedBannerTitleSingle => '고정된 메시지';
+
+  @override
+  String pinnedBannerTitleWithIndex(Object count, Object index) {
+    return '고정된 메시지 $index/$count';
+  }
+
+  @override
+  String get pinnedBannerChatStyleTitle => '채팅 스타일.';
+
+  @override
+  String get pinnedBannerChatStyleSubtitle => '채팅방이 보이는 방식';
+
+  @override
+  String get pinnedBannerClassicLabel => '클래식';
+
+  @override
+  String get pinnedBannerClassicSubtitle => '구분선이 있는 헤더, 플랫한 입력창.';
+
+  @override
+  String get pinnedBannerCompactLabel => '컴팩트';
+
+  @override
+  String get pinnedBannerCompactSubtitle => '대화 위에 떠 있는 프로스트 캡슐.';
+
+  @override
+  String get pinnedBannerActiveBadge => '사용 중';
+
+  @override
+  String get audioMessageMissingLabel => '[오디오 없음]';
+
+  @override
+  String get audioMessageUnavailableLabel => '오디오를 사용할 수 없음';
+
+  @override
+  String get audioMessageRetryHint => '탭하여 다시 시도';
+
+  @override
+  String get audioMessageLoadingLabel => '불러오는 중…';
+
+  @override
+  String get audioMessageUsernameRequiredError => '사용자 이름을 입력해 주세요.';
+
+  @override
+  String get audioMessagePasswordRequiredError => '비밀번호를 입력해 주세요.';
+
+  @override
+  String get audioMessageCancelSemanticLabel => '취소';
+
+  @override
+  String get audioMessageHeroCreateLine1 => '거의\n';
+
+  @override
+  String get audioMessageHeroCreateLine2 => '다 왔어요.';
+
+  @override
+  String get audioMessageHeroLinkLine1 => '돌아오신 걸\n';
+
+  @override
+  String get audioMessageHeroLinkLine2 => '환영해요.';
+
+  @override
+  String get audioMessageCreateSubtitle => '가족과 친구들이 찾을 수 있도록 사용자 이름을 정해 주세요.';
+
+  @override
+  String audioMessageLinkSubtitle(Object provider) {
+    return '로그인 한 번으로 $provider 연동이 완료돼요.';
+  }
+
+  @override
+  String get audioMessageUsernameHint => '사용자 이름';
+
+  @override
+  String get audioMessageDisplayNameHint => '표시 이름 (선택)';
+
+  @override
+  String get audioMessagePasswordHint => '비밀번호';
+
+  @override
+  String get audioMessageSwitchToLinkPrompt => '제 계정이에요 — 로그인하기';
+
+  @override
+  String get audioMessageCreateAccountButton => '계정 만들기';
+
+  @override
+  String audioMessageSignInLinkButton(Object provider) {
+    return '로그인하고 $provider 연동하기';
+  }
+
+  @override
+  String get audioMessageSwitchToLinkModeLink => '이미 계정이 있으신가요?';
+
+  @override
+  String get audioMessageSwitchToCreateModeLink => '처음이신가요? 계정 만들기';
+
+  @override
+  String get approvalsScreenTitle => '승인 요청';
+
+  @override
+  String get approvalsScreenEmptyTitle => '대기 중인 요청이 없어요';
+
+  @override
+  String get approvalsScreenEmptySubtitle => '모두 처리했어요';
+
+  @override
+  String get approvalsScreenErrorNotGuardian => '이 요청은 회원님이 결정할 수 없어요';
+
+  @override
+  String get approvalsScreenErrorAlreadyHandled => '다른 곳에서 이미 처리됐어요';
+
+  @override
+  String get approvalsScreenErrorGeneric => '저장하지 못했어요 — 다시 시도해 주세요';
+
+  @override
+  String approvalsScreenHeadlineContactOutgoing(Object child, Object other) {
+    return '$child님이 $other님을 추가하려고 해요';
+  }
+
+  @override
+  String approvalsScreenHeadlineContactIncoming(Object child, Object other) {
+    return '$other님이 $child님을 추가하려고 해요';
+  }
+
+  @override
+  String approvalsScreenHeadlineJoinRoom(Object child, Object room) {
+    return '$child님이 $room에 참여하려고 해요';
+  }
+
+  @override
+  String get approvalsScreenSomeoneLower => '상대방';
+
+  @override
+  String get approvalsScreenSomeoneCapital => '상대방';
+
+  @override
+  String get approvalsScreenRoomFallback => '채팅방';
+
+  @override
+  String get approvalsScreenConsequenceContactOutgoing =>
+      '상대방에게 요청이 전달돼요. 수락 여부는 상대방이 정해요.';
+
+  @override
+  String approvalsScreenConsequenceContactIncoming(Object child) {
+    return '$child님이 요청을 받고, 수락하거나 무시할 수 있어요.';
+  }
+
+  @override
+  String get approvalsScreenConsequenceJoinRoom =>
+      '직접 취소하기 전까지는 그 방에서 읽고 쓸 수 있어요.';
+
+  @override
+  String get approvalsScreenNotYetButton => '나중에';
+
+  @override
+  String get approvalsScreenAllowButton => '허용';
+
+  @override
+  String get approvalsScreenForwardDirectMessageFallback => '다이렉트 메시지';
+
+  @override
+  String approvalsScreenForwardTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '메시지 $count개 전달',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get approvalsScreenForwardNoChatsYet => '아직 다른 채팅이 없어요';
+
+  @override
+  String get approvalsScreenForwardNoMatches => '일치하는 채팅이 없어요';
+
+  @override
+  String approvalsScreenForwardMaxTargetsHint(Object max) {
+    return '한 번에 최대 $max개 채팅까지';
+  }
+
+  @override
+  String get approvalsScreenForwardSearchHint => '채팅 검색';
+
+  @override
+  String approvalsScreenForwardDeselectSemantic(Object title) {
+    return '$title 선택 해제';
+  }
+
+  @override
+  String approvalsScreenForwardSelectSemantic(Object title) {
+    return '$title 선택';
+  }
+
+  @override
+  String get approvalsScreenForwardFadesBadge => '사라짐';
+
+  @override
+  String get approvalsScreenForwardSendSemantic => '보내기';
+
+  @override
+  String approvalsScreenForwardSendButton(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count개 채팅에 보내기',
+      zero: '보내기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get linkedAccountsScreenTitle => '연결된 계정';
+
+  @override
+  String get linkedAccountsScreenSubtitle =>
+      '비밀번호 없이 로그인할 수 있도록 이 계정에 연결해 둔 계정이에요.';
+
+  @override
+  String get linkedAccountsScreenEmptyState => '이 기기에서 연결할 수 있는 항목이 없어요.';
+
+  @override
+  String get linkedAccountsScreenStatusChecking => '확인 중…';
+
+  @override
+  String linkedAccountsScreenStatusLinked(Object provider) {
+    return '어떤 기기에서든 $provider(으)로 로그인할 수 있어요.';
+  }
+
+  @override
+  String linkedAccountsScreenStatusNotLinked(Object provider) {
+    return '비밀번호를 입력하지 않아도 되도록 $provider을(를) 추가하세요.';
+  }
+
+  @override
+  String linkedAccountsScreenUnlinkTitle(Object provider) {
+    return '$provider 연결 해제';
+  }
+
+  @override
+  String get linkedAccountsScreenUnlinkAction => '연결 해제';
+
+  @override
+  String linkedAccountsScreenUnlinkSubtitle(Object provider) {
+    return '$provider(으)로 로그인하지 않으려면 비밀번호를 입력하세요.';
+  }
+
+  @override
+  String linkedAccountsScreenLinkTitle(Object provider) {
+    return '$provider 연결';
+  }
+
+  @override
+  String get linkedAccountsScreenLinkAction => '연결';
+
+  @override
+  String linkedAccountsScreenLinkSubtitle(Object provider) {
+    return '$provider을(를) 로그인 방법으로 추가하려면 비밀번호를 입력하세요.';
+  }
+
+  @override
+  String get linkedAccountsScreenPillChecking => '확인 중';
+
+  @override
+  String get linkedAccountsScreenPillLinked => '연결됨';
+
+  @override
+  String get linkedAccountsScreenPillNotLinked => '연결 안 됨';
+
+  @override
+  String get linkedAccountsScreenCallSheetVoiceLabel => '음성';
+
+  @override
+  String get linkedAccountsScreenCallSheetVideoLabel => '영상';
+
+  @override
+  String get linkedAccountsScreenCallSheetTitle => '통화 시작';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneTitle => '전체 통화';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallEveryoneSubtitle =>
+      '이 채팅방 멤버 전체에게 전화를 걸어요.';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleTitle => '인원 선택';
+
+  @override
+  String get linkedAccountsScreenCallSheetChoosePeopleSubtitle =>
+      '누구를 초대할지 선택해요.';
+
+  @override
+  String get linkedAccountsScreenCallSheetCallFullError =>
+      '통화 인원이 가득 찼어요 (최대 6명)';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartFailedError => '통화를 시작할 수 없어요';
+
+  @override
+  String get linkedAccountsScreenCallSheetInviteTitle => '통화에 초대';
+
+  @override
+  String get linkedAccountsScreenCallSheetNoOtherMembers => '여기엔 다른 멤버가 없어요';
+
+  @override
+  String get linkedAccountsScreenCallSheetSelectPeople => '사람 선택';
+
+  @override
+  String get linkedAccountsScreenCallSheetStartCallLabel => '통화 시작';
+
+  @override
+  String linkedAccountsScreenCallSheetStartCallCount(Object count) {
+    return '통화 시작 ($count)';
+  }
+
+  @override
+  String get childPairScreenGreetingLine1 => '안녕';
+
+  @override
+  String get childPairScreenGreetingLine2 => '너.';
+
+  @override
+  String get childPairScreenIntro =>
+      '보호자에게 몽키허브를 열고 \'기기 페어링하기\'를 눌러 달라고 부탁하세요. 그런 다음 보호자의 코드를 스캔하거나, 보호자가 불러주는 여섯 자리 숫자를 입력하세요.';
+
+  @override
+  String get childPairScreenOrDivider => '또는';
+
+  @override
+  String get childPairScreenGenericError => '문제가 발생했어요. 다시 시도해 주세요.';
+
+  @override
+  String get childPairScreenAccountGoneError => '그 계정은 더 이상 존재하지 않아요.';
+
+  @override
+  String get childPairScreenScanButtonLabel => '코드 스캔하기';
+
+  @override
+  String get childPairScreenNoCameraMessage =>
+      '카메라를 사용할 수 없어요 — 대신 여섯 자리 숫자를 입력하세요.';
+
+  @override
+  String get childPairScreenStopScanning => '스캔 중지';
+
+  @override
+  String get childPairScreenSubmitButtonLabel => '입장하기';
+
+  @override
+  String get childPairScreenBackToSignIn => '← 로그인으로 돌아가기';
+
+  @override
+  String get fileMessageUnavailable => '파일을 더 이상 사용할 수 없어요';
+
+  @override
+  String get fileMessageOpenFailed => '파일을 열지 못했어요';
+
+  @override
+  String get fileMessageDefaultName => '문서';
+
+  @override
+  String fileMessageSaveSemanticLabel(Object name) {
+    return '$name 저장';
+  }
+
+  @override
+  String get fileMessageUploadFailedLabel => '실패';
+
+  @override
+  String get fileMessageSendingLabel => '보내는 중…';
+
+  @override
+  String fileMessageSizeSendingLabel(Object size) {
+    return '$size · 보내는 중…';
+  }
+
+  @override
+  String fileMessageAgoMinutes(Object count) {
+    return '$count분 전';
+  }
+
+  @override
+  String fileMessageAgoHours(Object count) {
+    return '$count시간 전';
+  }
+
+  @override
+  String fileMessageAgoDays(Object count) {
+    return '$count일 전';
+  }
+
+  @override
+  String get fileMessageStandardBadge => '일반';
+
+  @override
+  String fileMessageDraftMessagesTapToView(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '받은 메시지 초안 $count개 · 눌러서 보기',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageApproveButton => '요청 수락';
+
+  @override
+  String get fileMessageDeclineButton => '요청 거절';
+
+  @override
+  String fileMessageSentAgoLabel(Object ago) {
+    return '$ago 보냄';
+  }
+
+  @override
+  String fileMessageMessagesPending(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '보낸 메시지 초안 $count개 대기 중',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get fileMessageCancelRequestButton => '요청 취소';
+
+  @override
+  String get destructiveSheetCannotBeUndone => '되돌릴 수 없어요';
+
+  @override
+  String get destructiveSheetCancelSemanticLabel => '취소';
+
+  @override
+  String get destructiveSheetCancelButtonLabel => '취소';
+
+  @override
+  String get destructiveSheetHideLabel => '숨기기';
+
+  @override
+  String get destructiveSheetViewLabel => '보기';
+
+  @override
+  String get destructiveSheetPairingMintError => '코드를 만들지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get destructiveSheetPairingReleaseTitle => '반납';
+
+  @override
+  String get destructiveSheetPairingPairTitle => '페어링';
+
+  @override
+  String destructiveSheetPairingReleaseInstructions(Object name) {
+    return '$name의 휴대폰에서 프로필을 열고 “이 휴대폰 돌려주기”를 탭한 다음, 이 숫자를 입력하세요.';
+  }
+
+  @override
+  String destructiveSheetPairingPairInstructions(Object name) {
+    return '$name의 휴대폰에서 MonkeyHub를 열고 이걸 스캔하거나 숫자를 입력하세요.';
+  }
+
+  @override
+  String get destructiveSheetPairingCodeExpired => '코드가 만료됐어요';
+
+  @override
+  String destructiveSheetPairingExpiresIn(Object time) {
+    return '$time 후 만료돼요';
+  }
+
+  @override
+  String get destructiveSheetPairingNewCodeButton => '새 코드';
+
+  @override
+  String get destructiveSheetPairingOneUseNote =>
+      '한 번만 사용할 수 있어요. 새 코드를 만들면 기존 코드는 취소돼요.';
+
+  @override
+  String get deepOceanThemeAttachButtonLabel => '첨부';
+
+  @override
+  String get deepOceanThemeCameraButtonLabel => '카메라';
+
+  @override
+  String get deepOceanThemeSendButtonLabel => '보내기';
+
+  @override
+  String get deepOceanThemeEphemeralHint => '서버도 곧 잊어버릴 말을 속삭여보세요…';
+
+  @override
+  String get deepOceanThemeDefaultHint => '아무 말이나 해보세요…';
+
+  @override
+  String get deepOceanThemeMessageHint => '메시지';
+
+  @override
+  String photoChromeMediaPositionLabel(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get photoChromeMediaGoneLabel => '파일을 찾을 수 없어요';
+
+  @override
+  String get photoChromeMediaYouLabel => '나';
+
+  @override
+  String get photoChromeCloseSemanticLabel => '닫기';
+
+  @override
+  String get photoChromeShowInChatSemanticLabel => '채팅에서 보기';
+
+  @override
+  String typingIndicatorOnePersonTyping(Object name) {
+    return '$name님이 입력 중이에요';
+  }
+
+  @override
+  String typingIndicatorTwoPeopleTyping(Object name1, Object name2) {
+    return '$name1님과 $name2님이 입력 중이에요';
+  }
+
+  @override
+  String typingIndicatorManyPeopleTyping(
+    Object extra,
+    Object name1,
+    Object name2,
+  ) {
+    return '$name1, $name2 외 $extra명이 입력 중이에요';
+  }
+
+  @override
+  String get typingIndicatorUnknownCallerFallbackName => '수신 전화';
+
+  @override
+  String get typingIndicatorIncomingVideoCallLabel => '수신 영상통화';
+
+  @override
+  String get typingIndicatorIncomingVoiceCallLabel => '수신 음성통화';
+
+  @override
+  String get typingIndicatorDeclineButtonLabel => '거절';
+
+  @override
+  String get typingIndicatorDeclineButtonDeclining => '거절 중…';
+
+  @override
+  String get typingIndicatorAcceptButtonLabel => '수락';
+
+  @override
+  String get typingIndicatorAcceptButtonConnecting => '연결 중…';
+
+  @override
+  String get messageStampNavigationTitle => '내비게이션.';
+
+  @override
+  String get messageStampNavigationSubtitle =>
+      '채팅, 디스커버, 피드, 설정 사이를 이동하는 방식이에요';
+
+  @override
+  String get messageStampRadialOrbLabel => '방사형 오브';
+
+  @override
+  String get messageStampRadialOrbDescription =>
+      '모서리를 길게 눌러 드래그하세요. 평소엔 조용히 있다가, 쓸수록 손에 익는 제스처예요.';
+
+  @override
+  String get messageStampBottomPillLabel => '하단 캡슐';
+
+  @override
+  String get messageStampBottomPillDescription =>
+      '고전적인 탭 방식. 항상 보이고, 따로 배울 필요가 없어요.';
+
+  @override
+  String get messageStampActiveLabel => '사용 중';
+
+  @override
+  String get messageStampUploadingLabel => '업로드 중';
+
+  @override
+  String get messageStampSendingLabel => '전송 중';
+
+  @override
+  String get messageStampFailedToSendLabel => '전송 실패';
+
+  @override
+  String get messageStampSeenLabel => '읽음';
+
+  @override
+  String messageStampCountdownSeconds(Object count) {
+    return '$count초';
+  }
+
+  @override
+  String messageStampCountdownMinutes(Object count) {
+    return '$count분';
+  }
+
+  @override
+  String get voiceRecorderScreenMicPermissionDeniedSnackbar => '마이크 권한이 거부되었어요';
+
+  @override
+  String get voiceRecorderScreenStatusRecording => '녹음 중';
+
+  @override
+  String get voiceRecorderScreenStatusReady => '준비 완료';
+
+  @override
+  String get voiceRecorderScreenStatusTapToStart => '탭하여 시작';
+
+  @override
+  String get voiceRecorderScreenReRecordButton => '다시 녹음';
+
+  @override
+  String get voiceRecorderScreenStopButton => '정지';
+
+  @override
+  String get voiceRecorderScreenSendButton => '보내기';
+
+  @override
+  String get voiceRecorderScreenRecordButton => '녹음';
+
+  @override
+  String get cyberpunkThemeMentionPickerEveryoneTitle => '모두';
+
+  @override
+  String get cyberpunkThemeMentionPickerNotifiesAllBadge => '전체 알림';
+
+  @override
+  String get cyberpunkThemeMentionPickerOwnerBadge => '방장';
+
+  @override
+  String get releaseDeviceScreenFallbackChildName => '아이';
+
+  @override
+  String releaseDeviceScreenIntro(Object name) {
+    return '$name님을 이 휴대폰에서 로그아웃시키고 원래대로 돌려놔요 — 휴대폰은 원래의 로그인 화면으로 돌아가고, 누구나 사용할 수 있어요.';
+  }
+
+  @override
+  String get releaseDeviceScreenAccountKeptNote =>
+      '계정, 메시지, 친구 목록은 모두 그대로 유지돼요. 언제든 다시 로그인할 수 있어요.';
+
+  @override
+  String releaseDeviceScreenAskGrownUp(Object name) {
+    return '보호자에게 MonkeyHub를 열고, 가족에서 $name님을 찾아 \"해제\"를 눌러 달라고 부탁하세요.';
+  }
+
+  @override
+  String get releaseDeviceScreenOrDivider => '또는';
+
+  @override
+  String get releaseDeviceScreenOnePhoneNote =>
+      '휴대폰이 이거 하나뿐이라면, 보호자가 여기서 대신 로그인할 수 있어요.';
+
+  @override
+  String get releaseDeviceScreenUsernameHint => '보호자의 아이디';
+
+  @override
+  String get releaseDeviceScreenPasswordHint => '비밀번호';
+
+  @override
+  String get releaseDeviceScreenSignOutSemanticLabel => '로그아웃';
+
+  @override
+  String get releaseDeviceScreenChecking => '확인 중…';
+
+  @override
+  String releaseDeviceScreenSignOutButton(Object name) {
+    return '$name님 로그아웃';
+  }
+
+  @override
+  String get releaseDeviceScreenHeaderTitle => '이 휴대폰 돌려주기';
+
+  @override
+  String get releaseDeviceScreenErrorCodeExpired => '코드가 만료됐어요. 새 코드를 요청해 주세요.';
+
+  @override
+  String get releaseDeviceScreenErrorCodeInvalid =>
+      '코드가 작동하지 않았어요. 이미 사용된 코드일 수 있어요.';
+
+  @override
+  String get releaseDeviceScreenErrorNotAGuardian =>
+      '작동하지 않았어요. 아이디와 비밀번호를 확인해 주세요.';
+
+  @override
+  String get releaseDeviceScreenErrorGeneric => '문제가 발생했어요. 다시 시도해 주세요.';
+
+  @override
+  String get activeCallPillMoveHereSemanticLabel => '통화를 이 기기로 옮기기';
+
+  @override
+  String activeCallPillCallWith(Object name) {
+    return '$name님과 통화 중';
+  }
+
+  @override
+  String activeCallPillOnDevice(Object device) {
+    return '$device에서';
+  }
+
+  @override
+  String get activeCallPillMoveHereLabel => '여기로 이동';
+
+  @override
+  String get activeCallPillUnknownCaller => '알 수 없음';
+
+  @override
+  String get activeCallPillPlatformIphone => 'iPhone';
+
+  @override
+  String get activeCallPillPlatformIosSimulator => 'iOS 시뮬레이터';
+
+  @override
+  String get activeCallPillPlatformAndroid => 'Android 기기';
+
+  @override
+  String get activeCallPillPlatformMac => 'Mac';
+
+  @override
+  String get activeCallPillPlatformWindows => 'Windows PC';
+
+  @override
+  String get activeCallPillPlatformLinux => 'Linux 기기';
+
+  @override
+  String get activeCallPillPlatformBrowser => '브라우저';
+
+  @override
+  String get activeCallPillPlatformOther => '다른 기기';
+
+  @override
+  String get activeCallPillPinnedHeader => '고정된 메시지';
+
+  @override
+  String activeCallPillPinnedHeaderCount(Object count) {
+    return '고정된 메시지 · $count';
+  }
+
+  @override
+  String get activeCallPillNothingPinned => '더 이상 고정된 메시지가 없어요';
+
+  @override
+  String activeCallPillJumpToMessageSemanticLabel(Object name) {
+    return '$name님의 메시지로 이동';
+  }
+
+  @override
+  String activeCallPillUnpinMessageSemanticLabel(Object name) {
+    return '$name님의 메시지 고정 해제';
+  }
+
+  @override
+  String get callButtonErrorBusy => '다른 통화 중이에요';
+
+  @override
+  String get callButtonErrorCallFailed => '통화를 시작할 수 없어요';
+
+  @override
+  String get callButtonErrorNotMember => '이 방의 멤버가 아니에요';
+
+  @override
+  String get callButtonErrorGeneric => '통화를 시작할 수 없어요';
+
+  @override
+  String get callButtonAlreadyOnCall => '이미 통화 중이에요';
+
+  @override
+  String get callButtonBusyElsewhere => '다른 기기에서 통화 중이에요';
+
+  @override
+  String get callButtonVoiceCallTooltip => '음성 통화';
+
+  @override
+  String get callButtonVideoCallTooltip => '영상 통화';
+
+  @override
+  String get callButtonTooltip => '통화';
+
+  @override
+  String get callButtonReplyStyleTitle => '답장 스타일.';
+
+  @override
+  String get callButtonReplyStyleSubtitle => '답장이 원본 메시지를 어떻게 보여주는지';
+
+  @override
+  String get callButtonReplyStylePhantomEchoLabel => '고스트 에코';
+
+  @override
+  String get callButtonReplyStylePhantomEchoDescription =>
+      '부모 메시지의 고스트 말풍선이 곡선형 연결선으로 위에 떠 있고, 연결 지점에 분기 아이콘이 표시돼요.';
+
+  @override
+  String get callButtonReplyStyleStickyNoteLabel => '포스트잇';
+
+  @override
+  String get callButtonReplyStyleStickyNoteDescription =>
+      '살짝 기울어진 폴라로이드 스타일 카드가 말풍선 모서리에 끼워져 있어요.';
+
+  @override
+  String get callButtonReplyStyleComicTailLabel => '코믹 꼬리';
+
+  @override
+  String get callButtonReplyStyleComicTailDescription =>
+      '작은 부모 미니 말풍선에 아래를 향한 만화책 스타일 삼각형 꼬리가 달려 있어요.';
+
+  @override
+  String get callButtonReplyStyleClassicLabel => '클래식';
+
+  @override
+  String get callButtonReplyStyleClassicDescription =>
+      '포인트 컬러의 인용구 캡슐에 연결선 바와 아바타가 더해진, 익숙한 왓츠앱 스타일이에요.';
+
+  @override
+  String get callButtonReplyStyleActiveBadge => '활성';
+
+  @override
+  String get callButtonReplyPreviewSampleMessage => '근데 새 데모 봤어?';
+
+  @override
+  String get callButtonReplyPreviewSampleReply => '응, 그 블러 완전 미쳤어.';
+
+  @override
+  String get childSetupScreenErrorPickUsername => '아이의 사용자 이름을 정해 주세요.';
+
+  @override
+  String get childSetupScreenErrorUsernameTaken => '이미 사용 중인 사용자 이름이에요.';
+
+  @override
+  String get childSetupScreenErrorChildNotAllowed => '보호자 계정만 아이를 추가할 수 있어요.';
+
+  @override
+  String get childSetupScreenErrorGeneric => '계정을 만들지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get childSetupScreenTitle => '아이 추가';
+
+  @override
+  String get childSetupScreenHeading => '이 아이는\n누구인가요?';
+
+  @override
+  String get childSetupScreenNameLabel => '이름';
+
+  @override
+  String get childSetupScreenNameHint => '부르는 이름';
+
+  @override
+  String get childSetupScreenUsernameLabel => '사용자 이름';
+
+  @override
+  String get childSetupScreenUsernameHint => '친구가 찾는 이름';
+
+  @override
+  String get childSetupScreenWhatTheyGetTitle => '아이가 할 수 있는 것';
+
+  @override
+  String get childSetupScreenBulletTalkImmediately =>
+      '아이는 보호자님과 형제자매와 바로 대화할 수 있어요.';
+
+  @override
+  String get childSetupScreenBulletNeedsApproval =>
+      '그 밖의 모든 사람은 먼저 보호자의 승인이 필요해요 — 아이가 요청한 사람이든, 아이에게 요청한 사람이든요.';
+
+  @override
+  String get childSetupScreenBulletPublicRoomsOff =>
+      '공개방은 보호자가 켜 주기 전까지 꺼져 있어요.';
+
+  @override
+  String get childSetupScreenBulletCantSignOut =>
+      '아이는 로그아웃할 수 없고, 보호자는 언제든 아이의 상태를 확인할 수 있어요.';
+
+  @override
+  String get childSetupScreenCreateButton => '만들기 + 페어링';
+
+  @override
+  String childSetupScreenFriendRowMessageSemanticLabel(Object name) {
+    return '$name에게 메시지 보내기';
+  }
+
+  @override
+  String get childSetupScreenWaitingPillAskedLabel => '요청함';
+
+  @override
+  String get childSetupScreenMemberCountUnitLabel => '명';
+
+  @override
+  String childSetupScreenSeeAllLabel(Object count) {
+    return '전체 $count개 보기';
+  }
+
+  @override
+  String childSetupScreenSeeAllSemanticLabel(Object count) {
+    return '전체 $count개 보기';
+  }
+
+  @override
+  String get bubbleStyleScreenTitle => '말풍선 스타일.';
+
+  @override
+  String get bubbleStyleScreenSubtitle => '말이 도착하는 모양';
+
+  @override
+  String get bubbleStyleScreenTailedLabel => '꼬리형';
+
+  @override
+  String get bubbleStyleScreenTailedDescription =>
+      '메시지 묶음마다 꼬리로 끝을 맺고, 위쪽 줄들은 하나의 블록으로 좁혀져요.';
+
+  @override
+  String get bubbleStyleScreenSoftLabel => '소프트';
+
+  @override
+  String get bubbleStyleScreenSoftDescription =>
+      '꼬리 없음 — 이어지는 말풍선이 안쪽 모서리만 좁아지며 하나로 붙어요.';
+
+  @override
+  String get bubbleStyleScreenPillLabel => '캡슐';
+
+  @override
+  String get bubbleStyleScreenPillDescription => '완전히 둥근 캡슐 모양, 모든 줄에서 동일해요.';
+
+  @override
+  String get bubbleStyleScreenSlabLabel => '슬래브';
+
+  @override
+  String get bubbleStyleScreenSlabDescription =>
+      '각진 모서리 — 날카롭고, 인쇄된 듯하고, 의도적이에요.';
+
+  @override
+  String get bubbleStyleScreenActiveBadge => '적용됨';
+
+  @override
+  String get bubbleStyleScreenPreviewQuestion => '그래서, 어때 보여요?';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyOne => '나아요';
+
+  @override
+  String get bubbleStyleScreenPreviewReplyTwo => '훨씬 나아요';
+
+  @override
+  String get bubbleStyleScreenMediaTileVideoSemanticLabel => '동영상';
+
+  @override
+  String get bubbleStyleScreenMediaTilePhotoSemanticLabel => '사진';
+
+  @override
+  String get incomingGroupCallScreenCallFullError =>
+      '참여하려는 통화방이 가득 찼어요 (최대 6명)';
+
+  @override
+  String get incomingGroupCallScreenJoinFailedError => '통화에 참여하지 못했어요';
+
+  @override
+  String get incomingGroupCallScreenDefaultRoomName => '그룹 통화';
+
+  @override
+  String get incomingGroupCallScreenDefaultStarterName => '누군가';
+
+  @override
+  String incomingGroupCallScreenStartedVideoCall(Object starter) {
+    return '$starter님이 영상 통화를 시작했어요';
+  }
+
+  @override
+  String incomingGroupCallScreenStartedVoiceCall(Object starter) {
+    return '$starter님이 음성 통화를 시작했어요';
+  }
+
+  @override
+  String incomingGroupCallScreenAlreadyJoinedCount(Object count) {
+    return '이미 $count명 참여 중';
+  }
+
+  @override
+  String get incomingGroupCallScreenDismissButton => '거절';
+
+  @override
+  String get incomingGroupCallScreenJoinButton => '참여';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChatsCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetMessagesCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '메시지 $count개',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageJustNow =>
+      '마지막 메시지 방금 전';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
+    Object hours,
+  ) {
+    return '마지막 메시지 $hours시간 전';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageYesterday =>
+      '마지막 메시지 어제';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
+    Object days,
+  ) {
+    return '마지막 메시지 $days일 전';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo =>
+      '마지막 메시지 오래전';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetTitleBadge => '연결 끊기';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetHeadline(
+    Object childName,
+    Object contactName,
+  ) {
+    return '$childName과(와) $contactName의 연결을 끊을까요?';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetBodyWithChats =>
+      '더 이상 서로에게 연락할 수 없고, 나눈 대화도 함께 사라져요.';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
+    Object contactName,
+  ) {
+    return '더 이상 서로에게 연락할 수 없어요. $contactName에게는 알리지 않아요.';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetDeletionSummary(
+    Object chats,
+    Object messages,
+  ) {
+    return '$chats · $messages가 삭제돼요';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetDeletionDetail =>
+      '사진과 음성 메모를 포함해 두 사람 모두에게서 사라져요. 되돌릴 수 없어요.';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
+    num count,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '그 외에도 함께 있는 방이 $count개 있어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetSharedRoomsNote =>
+      '이 룸들은 그대로 남아요. 빼고 싶으면 아래 룸 목록에서 직접 빼주세요.';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete =>
+      '제거 및 삭제';
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
+    Object contactName,
+    Object messages,
+  ) {
+    return '$contactName님을 제거하고 $messages을(를) 삭제해요.';
+  }
+
+  @override
+  String incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
+    Object contactName,
+  ) {
+    return '$contactName님을 허용 목록에서 제거해요.';
+  }
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel =>
+      '취소';
+
+  @override
+  String get incomingGroupCallScreenRemoveContactSheetCancelButton => '취소';
+
+  @override
+  String get groupCallBannerCallFullError => '통화 인원이 가득 찼어요 (최대 6명)';
+
+  @override
+  String get groupCallBannerJoinFailedError => '통화에 참가할 수 없어요';
+
+  @override
+  String get groupCallBannerUnknownParticipant => '누군가';
+
+  @override
+  String get groupCallBannerOngoingVideoCall => '진행 중인 영상 통화';
+
+  @override
+  String get groupCallBannerOngoingVoiceCall => '진행 중인 음성 통화';
+
+  @override
+  String groupCallBannerParticipantsInCall(Object extra, Object names) {
+    return '$names$extra 통화 중';
+  }
+
+  @override
+  String get groupCallBannerJoinCallSemanticLabel => '통화 참가';
+
+  @override
+  String get groupCallBannerJoinButtonLabel => '참가';
+
+  @override
+  String get groupCallBannerJoinRoomSheetTitle => '룸 참가';
+
+  @override
+  String groupCallBannerMemberCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get groupCallBannerPasswordFieldLabel => '비밀번호';
+
+  @override
+  String get groupCallBannerPasswordHint => '암호…';
+
+  @override
+  String get groupCallBannerJoinRoomButtonSemanticLabel => '참가';
+
+  @override
+  String get groupCallBannerJoinRoomButtonLabel => '참가';
+
+  @override
+  String get groupCallBannerCancelButtonSemanticLabel => '취소';
+
+  @override
+  String get groupCallBannerCancelButtonLabel => '취소';
+
+  @override
+  String get viewOnceViewerBadgeLabel => '한 번만 보기';
+
+  @override
+  String get viewOnceViewerSocialDividerOr => '또는';
+
+  @override
+  String get viewOnceViewerAppleContinueButton => 'Apple로 계속하기';
+
+  @override
+  String get viewOnceViewerGoogleContinueButton => 'Google로 계속하기';
+
+  @override
+  String get discoverListsPeopleTitle => '내 사람들.';
+
+  @override
+  String discoverListsPeopleCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count명',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get discoverListsFilterHint => '내 사람들 검색…';
+
+  @override
+  String get discoverListsClearFilterSemanticLabel => '필터 지우기';
+
+  @override
+  String get discoverListsNoOneYet => '아직 아무도 없어요';
+
+  @override
+  String discoverListsNoMatches(Object query) {
+    return '\"$query\"에 해당하는 사람이 없어요';
+  }
+
+  @override
+  String get discoverListsVoiceCallLabel => '음성 통화';
+
+  @override
+  String get discoverListsVideoCallLabel => '영상 통화';
+
+  @override
+  String get approvalGateAlreadyAskedLabel => '이미 요청함';
+
+  @override
+  String get approvalGateAskGrownUpLabel => '보호자에게 물어보기';
+
+  @override
+  String approvalGateAlreadyAskedBody(Object what) {
+    return '$what에 대해 이미 물어봤어요.';
+  }
+
+  @override
+  String approvalGateNeedApprovalBody(Object what) {
+    return '$what 전에 보호자의 허락이 필요해요.';
+  }
+
+  @override
+  String get approvalGateDisabledBody => '지금은 보호자가 이 기능을 꺼두었어요.';
+
+  @override
+  String get approvalGateAlreadyAskedFooter =>
+      '보호자에게 메시지가 전달될 거예요. 잠시 후 다시 확인해 보세요.';
+
+  @override
+  String get approvalGateWillNotifyFooter => '보호자에게 알려드릴게요. 답이 오면 여기에 표시돼요.';
+
+  @override
+  String get approvalGateTalkToThemFooter => '이 설정을 바꾸고 싶다면 보호자와 직접 이야기해 보세요.';
+
+  @override
+  String get approvalGateAskButton => '물어보기';
+
+  @override
+  String get approvalGateNotNowButton => '나중에';
+
+  @override
+  String get approvalGateOkButton => '확인';
+
+  @override
+  String get approvalGateWaitingPillLabel => '보호자 대기 중';
+
+  @override
+  String get reportSheetTitle => '신고';
+
+  @override
+  String get reportSheetSubtitle => '어떤 문제인지 알려주세요.';
+
+  @override
+  String get reportSheetPrivacyNote => '신고 내용은 비공개예요. 상대방에게 알림이 가지 않아요.';
+
+  @override
+  String get reportSheetReasonSpamLabel => '스팸';
+
+  @override
+  String get reportSheetReasonSpamDescription => '원치 않는 광고나 반복되는 메시지';
+
+  @override
+  String get reportSheetReasonHarassmentLabel => '괴롭힘';
+
+  @override
+  String get reportSheetReasonHarassmentDescription => '특정인을 노리거나 괴롭히기';
+
+  @override
+  String get reportSheetReasonImpersonationLabel => '사칭';
+
+  @override
+  String get reportSheetReasonImpersonationDescription => '다른 사람인 척하기';
+
+  @override
+  String get reportSheetReasonInappropriateLabel => '부적절한 콘텐츠';
+
+  @override
+  String get reportSheetReasonInappropriateDescription =>
+      '선정적이거나 폭력적이거나 불법적인 콘텐츠';
+
+  @override
+  String get reportSheetReasonOtherLabel => '기타';
+
+  @override
+  String get reportSheetReasonOtherDescription => '그 외 다른 문제';
+
+  @override
+  String get reportSheetOtherNoteHint => '무슨 일이 있었나요?';
+
+  @override
+  String get reportSheetSubmitSemanticLabel => '신고 제출';
+
+  @override
+  String get reportSheetSubmitButton => '제출';
+
+  @override
+  String get reportSheetUpdateRequiredTitle => '업데이트 필요';
+
+  @override
+  String get reportSheetUpdateAvailableTitle => '업데이트 가능';
+
+  @override
+  String get reportSheetUpdateMandatoryBody =>
+      '이 버전은 너무 오래되어 정상적으로 작동하지 않아요. 계속하려면 업데이트해 주세요.';
+
+  @override
+  String get reportSheetUpdateAvailableBody => 'MonkeyHub의 새 버전이 있어요.';
+
+  @override
+  String reportSheetUpdateVersionArrow(
+    Object currentVersion,
+    Object newVersion,
+  ) {
+    return 'v$currentVersion → v$newVersion';
+  }
+
+  @override
+  String get reportSheetUpdateButtonTitle => '업데이트';
+
+  @override
+  String get reportSheetUpdateActionOpensTestflight => 'TestFlight에서 열려요';
+
+  @override
+  String get reportSheetUpdateActionOpensAppStore => 'App Store에서 열려요';
+
+  @override
+  String get reportSheetUpdateActionOpensGooglePlay => 'Google Play가 열려요';
+
+  @override
+  String get reportSheetUpdateActionOpensDownloadPage => '다운로드 페이지가 열려요';
+
+  @override
+  String get reportSheetUpdateActionReloads => '새 버전으로 새로고침돼요';
+
+  @override
+  String get reportSheetUpdateLaterSemanticLabel => '나중에';
+
+  @override
+  String get reportSheetUpdateLaterButton => '나중에';
+
+  @override
+  String get roomFilterBarAllChipLabel => '전체';
+
+  @override
+  String roomFilterBarChipCountSemanticLabel(num count, Object label) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '채팅 $count개',
+    );
+    return '$label, $_temp0';
+  }
+
+  @override
+  String composerReplyCardReplyingToLabel(Object name) {
+    return '$name님에게 답장';
+  }
+
+  @override
+  String get roomCardLockedBadge => '잠김';
+
+  @override
+  String get roomCardTimeAgoJustNow => '방금 전';
+
+  @override
+  String roomCardTimeAgoSeconds(Object seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String roomCardTimeAgoMinutes(Object minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String roomCardTimeAgoHours(Object hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String roomCardTimeAgoDays(Object days) {
+    return '$days일';
+  }
+
+  @override
+  String roomCardTimeAgoWeeks(Object weeks) {
+    return '$weeks주';
+  }
+
+  @override
+  String roomCardMemberCount(Object count) {
+    return '$count명 참여 중';
+  }
+
+  @override
+  String get roomCardMessagesFadeLabel => '메시지 사라짐';
+
+  @override
+  String get roomCardEnterLabel => '↗ 입장';
+
+  @override
+  String get roomCardBlockedScreenTitle => '차단 목록';
+
+  @override
+  String get roomCardBlockedEmptyState => '아직 차단한 사람이 없어요.';
+
+  @override
+  String get roomCardUnblockButton => '차단 해제';
+
+  @override
+  String get attachmentMenuPhotoLabel => '사진';
+
+  @override
+  String get attachmentMenuVideoLabel => '동영상';
+
+  @override
+  String get attachmentMenuCameraLabel => '카메라';
+
+  @override
+  String get attachmentMenuVoiceLabel => '음성';
+
+  @override
+  String get attachmentMenuFileLabel => '파일';
+
+  @override
+  String get attachmentMenuConnectionRetrying => '재시도 중…';
+
+  @override
+  String get attachmentMenuConnectionCantReachServer =>
+      '서버에 연결할 수 없어요 · 탭하여 재시도';
+
+  @override
+  String get attachmentMenuConnectionReconnecting => '다시 연결하는 중…';
+
+  @override
+  String get attachmentMenuConnectionRetrySemanticLabel => '연결 재시도';
+
+  @override
+  String get roomGridTileLockedBadge => '잠김';
+
+  @override
+  String get roomGridTileEmptyLastMessage => '아직 조용해요';
+
+  @override
+  String get roomGridTileMemberCountLabel => '참여';
+
+  @override
+  String get roomGridTileThemeChipLabel => '테마';
+
+  @override
+  String get bulkActionBarCancelLabel => '취소';
+
+  @override
+  String get bulkActionBarSelectMessagesLabel => '메시지 선택';
+
+  @override
+  String bulkActionBarSelectedCountLabel(num count) {
+    return '$count개 선택됨';
+  }
+
+  @override
+  String get bulkActionBarForwardLabel => '전달';
+
+  @override
+  String get bulkActionBarDeleteLabel => '삭제';
+
+  @override
+  String get bulkActionBarJumpBackLabel => '뒤로';
+
+  @override
+  String bulkActionBarJumpBackLabelWithDepth(Object depth) {
+    return '뒤로 · $depth';
+  }
+
+  @override
+  String get bulkActionBarJumpBackSemanticLabel => '이동하기 전 위치로 돌아가기';
+
+  @override
+  String bulkActionBarJumpBackSemanticLabelWithDepth(Object depth) {
+    return '이동하기 전 위치로 돌아가기, $depth개 남음';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetNotNotifiedNote => '상대방에게는 알림이 가지 않아요.';
+
+  @override
+  String get bulkActionBarBlockSheetFriendWarning =>
+      '현재 친구 사이예요 — 차단하면 친구 관계가 해제되며, 나중에 다시 연결하려면 새로 친구 요청을 보내야 해요.';
+
+  @override
+  String get bulkActionBarBlockSheetStrangerWarning =>
+      '상대방은 검색 결과에서 사라지고 더 이상 메시지를 보낼 수 없게 돼요.';
+
+  @override
+  String get bulkActionBarBlockSheetHeaderLabel => '차단';
+
+  @override
+  String bulkActionBarBlockSheetTitle(Object name) {
+    return '$name님을 차단할까요?';
+  }
+
+  @override
+  String bulkActionBarBlockSheetSharedRoomsHeadline(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '이 사람과 함께 있는 방이 $count개예요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bulkActionBarBlockSheetSharedRoomsNote =>
+      '이 방들은 그대로 유지돼요. 필요하다면 각 방의 설정에서 직접 나갈 수 있어요.';
+
+  @override
+  String get bulkActionBarBlockChoiceTileTitle => '차단';
+
+  @override
+  String get bulkActionBarBlockChoiceTileFriendSub =>
+      '친구 관계를 해제하고 차단해요. 기존 대화 기록은 보관함에 남아요.';
+
+  @override
+  String get bulkActionBarBlockChoiceTileStrangerSub =>
+      '상대방은 검색에서 숨겨지고 더 이상 연락할 수 없게 돼요.';
+
+  @override
+  String get bulkActionBarBlockDeleteDmTitle => '차단 및 DM 삭제';
+
+  @override
+  String get bulkActionBarBlockDeleteDmSub =>
+      '상대방과의 DM도 함께 삭제돼요 — 모든 메시지, 반응, 미디어 파일이 사라져요.';
+
+  @override
+  String get bulkActionBarBlockSheetCancelSemanticLabel => '취소';
+
+  @override
+  String get bulkActionBarBlockSheetCancelLabel => '취소';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogTitle => '잠금 화면에 수신 전화 표시';
+
+  @override
+  String get bulkActionBarFullScreenIntentDialogBody =>
+      '화면이 꺼져 있을 때도 실제 전화처럼 벨이 울리게 하려면 MonkeyHub에 \'전체 화면 알림\' 권한이 필요해요. 다음 화면에서 바로 설정으로 이동할 수 있어요.';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogTitle => '전화를 놓치지 마세요';
+
+  @override
+  String get bulkActionBarBatteryExemptionDialogBody =>
+      '일부 휴대폰은 배터리를 절약하기 위해 백그라운드 앱을 일시 정지하는데, 이로 인해 수신 전화가 울리지 않을 수 있어요. MonkeyHub가 제한 없이 실행되도록 허용하면 전화가 항상 제대로 수신돼요.';
+
+  @override
+  String get bulkActionBarDialogNotNowButton => '나중에';
+
+  @override
+  String get bulkActionBarDialogContinueButton => '계속';
+
+  @override
+  String get reactionBubbleJumpToLatestLabel => '최신으로 이동';
+
+  @override
+  String get reactionBubbleJumpToLatestSemanticLabel => '최신으로 이동';
+
+  @override
+  String get reactionBubblePickerTitle => '반응';
+
+  @override
+  String get reactionBubbleNoRecentsPlaceholder => '아직 최근 사용한 이모지가 없어요';
+
+  @override
+  String get reactionBubblePasswordHint => '비밀번호';
+
+  @override
+  String enterPublicRoomJoinWhat(Object roomName) {
+    return '$roomName에 참여';
+  }
+
+  @override
+  String get enterPublicRoomAskFailedMessage => '지금은 요청할 수 없어요 — 다시 시도해 주세요';
+
+  @override
+  String get enterPublicRoomWrongPasswordMessage => '비밀번호가 틀렸어요';
+
+  @override
+  String get enterPublicRoomJoinFailedMessage => '참여하지 못했어요. 다시 시도해 주세요';
+
+  @override
+  String get enterPublicRoomFeedTabLabel => '피드';
+
+  @override
+  String get enterPublicRoomFeedHeadlineSoon => '곧.\n';
+
+  @override
+  String get enterPublicRoomFeedHeadlineDetail => '일상의 순간들,\n방과 나눠요.';
+
+  @override
+  String get enterPublicRoomFeedPipelineLabel => '준비 중';
+
+  @override
+  String get enterPublicRoomFeedBulletPrompt => '방 전체가 함께 답하는 하루 질문';
+
+  @override
+  String get enterPublicRoomFeedBulletVoiceNotes => '하루가 지나면 사라지는 음성 메모';
+
+  @override
+  String get enterPublicRoomFeedBulletWallUpdates => '친구들의 소소하고 잔잔한 소식이 쌓이는 벽';
+
+  @override
+  String get enterPublicRoomVisibilityPublicLabel => '공개';
+
+  @override
+  String get enterPublicRoomVisibilityPrivateLabel => '비공개';
+
+  @override
+  String get enterPublicRoomJoinedBadgeLabel => '참여 중';
+
+  @override
+  String enterPublicRoomEphemeralBadgeLabel(Object duration) {
+    return '휘발성 · $duration';
+  }
+
+  @override
+  String enterPublicRoomEphemeralSecondsShort(Object seconds) {
+    return '$seconds초';
+  }
+
+  @override
+  String enterPublicRoomEphemeralMinutesShort(Object minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String enterPublicRoomEphemeralHoursShort(Object hours) {
+    return '$hours시간';
+  }
+
+  @override
+  String get countBadgeCaptureProtectionLabel => '화면 캡처 보호';
+
+  @override
+  String get countBadgeCaptureProtectionOnAndroidBody =>
+      '스크린샷과 화면 녹화가 시스템에는 검은 화면으로 나와요.';
+
+  @override
+  String get countBadgeCaptureProtectionOnIosBody =>
+      '화면 녹화나 미러링을 하면 앱 위에 프라이버시 보호막이 표시돼요.';
+
+  @override
+  String get countBadgeCaptureProtectionOffBody =>
+      '휘발성 방이 아니면 스크린샷과 화면 녹화가 평소처럼 동작해요.';
+
+  @override
+  String get countBadgeCaptureProtectionForcedNote =>
+      '휘발성 방(일명 \'비밀의 방\')은 이 설정과 상관없이 항상 켜져 있어요.';
+
+  @override
+  String get countBadgeShowPasswordTooltip => '비밀번호 표시';
+
+  @override
+  String get countBadgeHidePasswordTooltip => '비밀번호 숨기기';
+
+  @override
+  String get countBadgeProtectedLabel => '보호됨';
+
+  @override
+  String get countBadgeCaptureShieldActiveBody => '화면 녹화 또는 미러링이 진행 중이에요.';
+
+  @override
+  String get countBadgeCaptureShieldReassurance => '녹화 화면에는 대화 내용이 보이지 않아요.';
+
+  @override
+  String get linkOpenerCouldNotOpenLink => '링크를 열지 못했어요';
+
+  @override
+  String get linkOpenerRecoveryBannerSemanticLabel => '복구 문구 설정하기';
+
+  @override
+  String get linkOpenerRecoveryBannerMessage =>
+      '복구 문구가 없어요 — 계정을 잃으면 다시 들어올 수 없어요.';
+
+  @override
+  String get destinationsChatLabel => '채팅';
+
+  @override
+  String get destinationsChatShort => '채팅';
+
+  @override
+  String get destinationsDiscoverLabel => '탐색';
+
+  @override
+  String get destinationsDiscoverShort => '찾기';
+
+  @override
+  String get destinationsFeedLabel => '피드';
+
+  @override
+  String get destinationsFeedShort => '피드';
+
+  @override
+  String get destinationsSettingsLabel => '설정';
+
+  @override
+  String get destinationsSettingsShort => '설정';
+
+  @override
+  String get familyRequestStageSenderGuardianLabel => '보호자 대기 중';
+
+  @override
+  String get familyRequestStageRecipientLabel => '상대방 대기 중';
+
+  @override
+  String get roomContentTabLabelMedia => '미디어';
+
+  @override
+  String get roomContentTabLabelFiles => '파일';
+
+  @override
+  String get roomContentTabLabelVoice => '음성';
+
+  @override
+  String get roomContentTabLabelLinks => '링크';
+
+  @override
+  String get roomContentTabHeaderMedia => '미디어';
+
+  @override
+  String get roomContentTabHeaderFiles => '파일';
+
+  @override
+  String get roomContentTabHeaderVoice => '음성';
+
+  @override
+  String get roomContentTabHeaderLinks => '링크';
+
+  @override
+  String get roomFacetLabelDms => '1:1 채팅';
+
+  @override
+  String get roomFacetLabelGroups => '그룹';
+
+  @override
+  String get roomFacetLabelPublic => '공개';
+
+  @override
+  String get roomFacetLabelPrivate => '비공개';
+
+  @override
+  String get roomFacetLabelSecret => '시크릿';
+
+  @override
+  String get roomFacetLabelLocked => '잠금';
+
+  @override
+  String get roomFacetLabelUnread => '읽지 않음';
+
+  @override
+  String get roomFacetLabelMentions => '멘션';
+
+  @override
+  String get settingsScreenTitle => '설정';
+
+  @override
+  String get settingsScreenTagline => '생김새. 분위기. 당신답게.';
+
+  @override
+  String get settingsScreenAccountHintChild => '프로필 · 개인정보 · 내 보호자';
+
+  @override
+  String get settingsScreenAccountHintAdult => '프로필 · 가족 · 연결된 계정 · 개인정보';
+
+  @override
+  String get settingsScreenSectionAppearance => '외관';
+
+  @override
+  String get settingsScreenSectionLayout => '레이아웃';
+
+  @override
+  String get settingsScreenSectionGeneral => '일반';
+
+  @override
+  String get settingsScreenSectionLinks => '링크';
+
+  @override
+  String get settingsScreenSectionNotifications => '알림';
+
+  @override
+  String get settingsScreenRowTheme => '테마';
+
+  @override
+  String get settingsScreenRowAppLogo => '앱 로고';
+
+  @override
+  String get settingsScreenRowGlass => '글래스';
+
+  @override
+  String get settingsScreenRowChatList => '채팅 목록';
+
+  @override
+  String get settingsScreenRowNavigation => '내비게이션';
+
+  @override
+  String get settingsScreenRowChatStyle => '채팅 스타일';
+
+  @override
+  String get settingsScreenRowBubbleStyle => '말풍선 스타일';
+
+  @override
+  String get settingsScreenRowReplyStyle => '답장 스타일';
+
+  @override
+  String get settingsScreenValueScrollList => '스크롤 목록';
+
+  @override
+  String get settingsScreenValueGridSheet => '그리드 시트';
+
+  @override
+  String get settingsScreenValueRadialOrb => '방사형 오브';
+
+  @override
+  String get settingsScreenValueBottomPill => '하단 캡슐';
+
+  @override
+  String get settingsScreenValueCustom => '커스텀';
+
+  @override
+  String settingsScreenValueEdited(Object name) {
+    return '$name · 수정됨';
+  }
+
+  @override
+  String get settingsScreenValueClassic => '클래식';
+
+  @override
+  String get settingsScreenValueCompact => '컴팩트';
+
+  @override
+  String get settingsScreenValueBubbleTailed => '꼬리형';
+
+  @override
+  String get settingsScreenValueBubbleSoft => '소프트';
+
+  @override
+  String get settingsScreenValueBubblePill => '캡슐';
+
+  @override
+  String get settingsScreenValueBubbleSlab => '슬래브';
+
+  @override
+  String get settingsScreenValueReplyPhantomEcho => '고스트 에코';
+
+  @override
+  String get settingsScreenValueReplyStickyNote => '포스트잇';
+
+  @override
+  String get settingsScreenValueReplyComicTail => '코믹 꼬리';
+
+  @override
+  String get settingsScreenValueLogoAuto => '자동';
+
+  @override
+  String get settingsScreenValueLogoManual => '수동';
+
+  @override
+  String get settingsScreenShowLinkUrlsLabel => '링크 URL 표시';
+
+  @override
+  String get settingsScreenLinksUrlsOnBody => '미리보기 카드와 함께 원본 URL이 표시돼요';
+
+  @override
+  String get settingsScreenLinksUrlsOffBody =>
+      '지금은 미리보기만 표시돼요 — 말풍선이 깔끔해지고, 탭하면 열려요';
+
+  @override
+  String get settingsScreenPushNotificationsLabel => '푸시 알림';
+
+  @override
+  String get settingsScreenPushOnBody => '새 메시지와 요청이 오면 알려드려요';
+
+  @override
+  String get settingsScreenPushOffBody => '알림 없이 조용해요 — 앱을 열어야 확인할 수 있어요';
+
+  @override
+  String get authErrorUsernameTaken => '이미 사용 중인 사용자 이름이에요.';
+
+  @override
+  String get authErrorUserNotFound => '해당 사용자 이름으로 된 계정이 없어요.';
+
+  @override
+  String get authErrorWrongPassword => '비밀번호가 틀렸어요.';
+
+  @override
+  String get authErrorInvalidRecoveryKey => '사용자 이름과 복구 문구가 일치하지 않아요.';
+
+  @override
+  String get authErrorTooManyAttempts => '시도 횟수가 너무 많아요. 15분 후 다시 시도해 주세요.';
+
+  @override
+  String get authErrorChildMustPair => '아이 계정이에요 — 보호자에게 페어링 코드를 요청해 주세요.';
+
+  @override
+  String get authErrorPairingCodeExpired => '코드가 만료됐어요. 새 코드를 요청해 주세요.';
+
+  @override
+  String get authErrorPairingCodeInvalid => '코드가 작동하지 않았어요. 이미 사용된 코드일 수 있어요.';
+
+  @override
+  String get authErrorUseSocialSignIn =>
+      '이 계정은 Apple 또는 Google로 로그인해요 — 아래 버튼을 이용해 주세요.';
+
+  @override
+  String get authErrorSocialTokenInvalid => '로그인이 완료되지 않았어요. 다시 시도해 주세요.';
+
+  @override
+  String get authErrorSocialNonceMismatch => '로그인이 완료되지 않았어요. 다시 시도해 주세요.';
+
+  @override
+  String get authErrorSocialMisconfig =>
+      '저희 쪽에서 아직 로그인 설정이 완료되지 않았어요. 나중에 다시 시도해 주세요.';
+
+  @override
+  String get authErrorSocialLinkedToOtherAccount =>
+      '해당 Apple 또는 Google 계정은 이미 다른 MonkeyHub 계정에 연결되어 있어요.';
+
+  @override
+  String get authErrorSocialAlreadyLinked => '이미 이 계정에 연결되어 있어요.';
+
+  @override
+  String get authErrorSocialNotLinked => '이 계정에 연결되어 있지 않아요.';
+
+  @override
+  String get authErrorSocialLastCredential =>
+      '이 계정에 로그인할 수 있는 유일한 방법이에요. 먼저 비밀번호를 설정해 주세요.';
+
+  @override
+  String get authErrorUsernameInvalid => '사용자 이름은 1자에서 32자 사이로 입력해 주세요.';
+
+  @override
+  String get glassKnobLabelFrost => '프로스트';
+
+  @override
+  String get glassKnobHintFrost => '글래스에 하얀빛이 얼마나 덮이는지 조절해요. 내리면 투명해져요.';
+
+  @override
+  String get glassKnobLabelBlur => '블러';
+
+  @override
+  String get glassKnobHintBlur => '범위 위쪽은 프로스트 글래스, 아래쪽은 맑은 글래스예요.';
+
+  @override
+  String get glassKnobLabelSaturation => '색 번짐';
+
+  @override
+  String get glassKnobHintSaturation =>
+      '블러를 거치고도 색이 얼마나 남는지 조절해요. 2를 넘으면 포스터화돼요.';
+
+  @override
+  String get glassKnobLabelRimOpacity => '테두리';
+
+  @override
+  String get glassKnobHintRimOpacity => '강조 테두리예요. 0이면 테두리 없는 표면이 돼요.';
+
+  @override
+  String get glassKnobLabelRimWidth => '테두리 두께';
+
+  @override
+  String get glassKnobHintRimWidth => '그 테두리의 두께예요.';
+
+  @override
+  String get glassKnobLabelShadowOpacity => '그림자';
+
+  @override
+  String get glassKnobHintShadowOpacity => '표면이 배경 위로 얼마나 떠 보이는지 조절해요.';
+
+  @override
+  String get glassKnobLabelShadowBlur => '그림자 스프레드';
+
+  @override
+  String get glassKnobHintShadowBlur => '부드럽고 넓게, 또는 좁고 진하게 조절해요.';
+
+  @override
+  String get glassKnobLabelShadowY => '그림자 거리';
+
+  @override
+  String get glassKnobHintShadowY => '표면 아래로 얼마나 떨어지는지 조절해요.';
+
+  @override
+  String get glassKnobLabelBarMargin => '좌우 간격';
+
+  @override
+  String get glassKnobHintBarMargin => '바와 화면 가장자리 사이의 간격이에요.';
+
+  @override
+  String get glassKnobLabelBarBottom => '하단 간격';
+
+  @override
+  String get glassKnobHintBarBottom => '바가 화면 하단에서 얼마나 떠 있는지 조절해요.';
+
+  @override
+  String get glassKnobLabelShellPadH => '끝 여백';
+
+  @override
+  String get glassKnobHintShellPadH =>
+      '바 끝에서 첫 번째 캡슐까지의 간격이에요. 좁으면 끝부분이 동떨어져 보여요.';
+
+  @override
+  String get glassKnobLabelShellPadV => '위쪽 여백';
+
+  @override
+  String get glassKnobHintShellPadV => '바 가장자리에서 캡슐 위쪽까지의 간격이에요.';
+
+  @override
+  String get glassKnobLabelIndicatorInset => '캡슐 인셋';
+
+  @override
+  String get glassKnobHintIndicatorInset => '선택 캡슐이 슬롯 안쪽으로 얼마나 들어가 있는지 조절해요.';
+
+  @override
+  String get glassKnobLabelSegmentPadV => '행 여백';
+
+  @override
+  String get glassKnobHintSegmentPadV => '아이콘과 라벨 위아래의 여백이에요.';
+
+  @override
+  String get glassKnobLabelIconLabelGap => '아이콘 간격';
+
+  @override
+  String get glassKnobHintIconLabelGap => '아이콘과 아래 라벨 사이의 간격';
+
+  @override
+  String get glassKnobLabelIconSize => '아이콘 크기';
+
+  @override
+  String get glassKnobLabelLabelSize => '라벨 크기';
+
+  @override
+  String get languageOptionSpanish => 'ESPAÑOL';
+
+  @override
+  String get languageValueSpanish => 'Español';
+
+  @override
+  String get languageOptionFrench => 'FRANÇAIS';
+
+  @override
+  String get languageValueFrench => 'Français';
+
+  @override
+  String get languageOptionPortuguese => 'PORTUGUÊS (PORTUGAL)';
+
+  @override
+  String get languageValuePortuguese => 'Português (Portugal)';
+
+  @override
+  String get languageOptionSwedish => 'SVENSKA';
+
+  @override
+  String get languageValueSwedish => 'Svenska';
+
+  @override
+  String get languageOptionPortugueseBrazil => 'PORTUGUÊS (BRASIL)';
+
+  @override
+  String get languageValuePortugueseBrazil => 'Português (Brasil)';
+
+  @override
+  String get languageOptionArabic => 'العربية';
+
+  @override
+  String get languageValueArabic => 'العربية';
+
+  @override
+  String get languageOptionChinese => '简体中文';
+
+  @override
+  String get languageValueChinese => '简体中文';
+
+  @override
+  String get languageOptionHindi => 'हिन्दी';
+
+  @override
+  String get languageValueHindi => 'हिन्दी';
+
+  @override
+  String get languageOptionKorean => '한국어';
+
+  @override
+  String get languageValueKorean => '한국어';
+
+  @override
+  String get languageOptionJapanese => '日本語';
+
+  @override
+  String get languageValueJapanese => '日本語';
+}

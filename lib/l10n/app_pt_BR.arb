@@ -530,7 +530,7 @@
   "loginScreenNewPasswordHint": "nova senha",
   "loginScreenBackToSignIn": "← voltar para o login",
   "loginScreenForgotPassword": "esqueceu a senha?",
-  "loginScreenSettingUpKidsPhone": "configurando o celular de uma criança?",
+  "loginScreenSettingUpKidsPhone": "configurar uma conta infantil",
   "loginScreenLegalPrefix": "Ao abrir uma conta, você concorda com os ",
   "loginScreenLegalTermsLink": "Termos de Uso",
   "loginScreenLegalMiddle": " e a ",
@@ -1273,5 +1273,15 @@
   "glassKnobLabelIconLabelGap": "ESPAÇO DO ÍCONE",
   "glassKnobHintIconLabelGap": "espaço entre um ícone e a palavra abaixo dele",
   "glassKnobLabelIconSize": "TAMANHO DO ÍCONE",
-  "glassKnobLabelLabelSize": "TAMANHO DO RÓTULO"
+  "glassKnobLabelLabelSize": "TAMANHO DO RÓTULO",
+  "languageOptionArabic": "العربية",
+  "languageValueArabic": "العربية",
+  "languageOptionChinese": "简体中文",
+  "languageValueChinese": "简体中文",
+  "languageOptionHindi": "हिन्दी",
+  "languageValueHindi": "हिन्दी",
+  "languageOptionKorean": "한국어",
+  "languageValueKorean": "한국어",
+  "languageOptionJapanese": "日本語",
+  "languageValueJapanese": "日本語"
 }
