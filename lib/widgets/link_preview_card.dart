@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -457,7 +458,7 @@ class _BareLayout extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  failed ? 'LINK' : 'LINK',
+                  AppLocalizations.of(context).linkPreviewCardLinkLabel,
                   style: theme.monoTiny.copyWith(
                     color: tone.inkMuted,
                     letterSpacing: 2.4,

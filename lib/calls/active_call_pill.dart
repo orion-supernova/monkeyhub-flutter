@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'call_service.dart';
 
@@ -61,14 +62,16 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final call = widget.service.activeCallElsewhere;
     final visible = call != null;
-    final peerName = (call?['peerName'] as String?) ?? 'Unknown';
+    final peerName =
+        (call?['peerName'] as String?) ?? l10n.activeCallPillUnknownCaller;
     final deviceName = (call?['acceptingDeviceName'] as String?);
     final platform = (call?['acceptingPlatform'] as String?);
     final label = (deviceName != null && deviceName.isNotEmpty)
         ? deviceName
-        : _platformFallback(platform);
+        : _platformFallback(context, platform);
     final type = (call?['type'] as String?) ?? 'audio';
     final isVideo = type == 'video';
 
@@ -92,7 +95,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
                   child: FocusableTap(
                     onTap: _moveHere,
                     radius: theme.radiusLg,
-                    semanticLabel: 'Move call to this device',
+                    semanticLabel: l10n.activeCallPillMoveHereSemanticLabel,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: _moveHere,
@@ -135,7 +138,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Call with $peerName',
+                                      l10n.activeCallPillCallWith(peerName),
                                       style: theme.body.copyWith(
                                         color: theme.accentInk,
                                         fontWeight: FontWeight.w600,
@@ -144,7 +147,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      'On $label',
+                                      l10n.activeCallPillOnDevice(label),
                                       style: theme.monoTiny.copyWith(
                                         color: theme.accentInk.withValues(
                                           alpha: 0.82,
@@ -172,7 +175,7 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Move here',
+                                      l10n.activeCallPillMoveHereLabel,
                                       style: theme.monoTiny.copyWith(
                                         color: theme.accentInk,
                                         fontWeight: FontWeight.w700,
@@ -199,24 +202,25 @@ class _ActiveCallPillState extends State<ActiveCallPill> {
     );
   }
 
-  String _platformFallback(String? platform) {
+  String _platformFallback(BuildContext context, String? platform) {
+    final l10n = AppLocalizations.of(context);
     switch (platform) {
       case 'ios':
-        return 'iPhone';
+        return l10n.activeCallPillPlatformIphone;
       case 'ios-simulator':
-        return 'iOS Simulator';
+        return l10n.activeCallPillPlatformIosSimulator;
       case 'android':
-        return 'Android device';
+        return l10n.activeCallPillPlatformAndroid;
       case 'macos':
-        return 'Mac';
+        return l10n.activeCallPillPlatformMac;
       case 'windows':
-        return 'Windows PC';
+        return l10n.activeCallPillPlatformWindows;
       case 'linux':
-        return 'Linux device';
+        return l10n.activeCallPillPlatformLinux;
       case 'web':
-        return 'Browser';
+        return l10n.activeCallPillPlatformBrowser;
       default:
-        return 'another device';
+        return l10n.activeCallPillPlatformOther;
     }
   }
 }

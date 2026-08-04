@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../family/family_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
@@ -56,25 +57,27 @@ class CallButton extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      final msg = _friendlyError(e);
+      final msg = _friendlyError(context, e);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), duration: const Duration(seconds: 3)),
       );
     }
   }
 
-  String _friendlyError(Object e) {
+  String _friendlyError(BuildContext context, Object e) {
+    final l10n = AppLocalizations.of(context);
     final s = e.toString();
-    if (s.contains('BUSY')) return 'busy on another call';
-    if (s.contains('CALL_FAILED')) return 'could not start call';
-    if (s.contains('NOT_A_MEMBER')) return 'not a member of this room';
-    return 'could not start call';
+    if (s.contains('BUSY')) return l10n.callButtonErrorBusy;
+    if (s.contains('CALL_FAILED')) return l10n.callButtonErrorCallFailed;
+    if (s.contains('NOT_A_MEMBER')) return l10n.callButtonErrorNotMember;
+    return l10n.callButtonErrorGeneric;
   }
 
   /// Why the button is disabled right now (null when it's tappable).
-  String? _busyReason(CallService service) {
-    if (service.inCall) return "You're already on a call";
-    if (service.busyElsewhere) return 'Call in progress on another device';
+  String? _busyReason(BuildContext context, CallService service) {
+    final l10n = AppLocalizations.of(context);
+    if (service.inCall) return l10n.callButtonAlreadyOnCall;
+    if (service.busyElsewhere) return l10n.callButtonBusyElsewhere;
     return null;
   }
 
@@ -97,7 +100,7 @@ class CallButton extends StatelessWidget {
     return ListenableBuilder(
       listenable: service,
       builder: (context, _) {
-        final busyReason = _busyReason(service);
+        final busyReason = _busyReason(context, service);
         final enabled = busyReason == null;
         void onDisabledTap() => _showBusy(context, busyReason!);
 
@@ -140,14 +143,20 @@ class CallButton extends StatelessWidget {
 }
 
 /// Icon + tooltip for a direct button; null [kind] is the picker button.
-({IconData icon, String tooltip}) _face(CallMediaKind? kind) => switch (kind) {
-      CallMediaKind.audio => (icon: Icons.call_outlined, tooltip: 'voice call'),
-      CallMediaKind.video => (
-          icon: Icons.videocam_outlined,
-          tooltip: 'video call'
-        ),
-      null => (icon: Icons.call_outlined, tooltip: 'call'),
-    };
+({IconData icon, String tooltip}) _face(BuildContext context, CallMediaKind? kind) {
+  final l10n = AppLocalizations.of(context);
+  return switch (kind) {
+    CallMediaKind.audio => (
+        icon: Icons.call_outlined,
+        tooltip: l10n.callButtonVoiceCallTooltip
+      ),
+    CallMediaKind.video => (
+        icon: Icons.videocam_outlined,
+        tooltip: l10n.callButtonVideoCallTooltip
+      ),
+    null => (icon: Icons.call_outlined, tooltip: l10n.callButtonTooltip),
+  };
+}
 
 class _ClassicCallButton extends StatefulWidget {
   const _ClassicCallButton({
@@ -194,7 +203,7 @@ class _ClassicCallButtonState extends State<_ClassicCallButton> {
     final color = widget.enabled
         ? theme.inkSoft
         : theme.inkSoft.withValues(alpha: 0.35);
-    final face = _face(widget.kind);
+    final face = _face(context, widget.kind);
     return IconButton(
       key: _anchorKey,
       tooltip: face.tooltip,
@@ -251,7 +260,7 @@ class _LiquidCallButtonState extends State<_LiquidCallButton> {
     final color = widget.enabled
         ? theme.accent
         : theme.accent.withValues(alpha: 0.35);
-    final face = _face(widget.kind);
+    final face = _face(context, widget.kind);
     return Tooltip(
       message: face.tooltip,
       child: LiquidGlass(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -137,7 +138,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text('visibility preferences.',
+                              Text(AppLocalizations.of(context).profileVisibilityScreenTitle,
                                   style: theme.displayMedium),
                               const SizedBox(height: 10),
                               Row(children: [
@@ -145,7 +146,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'control what others see — and how they can reach you.',
+                                    AppLocalizations.of(context).profileVisibilityScreenSubtitle,
                                     style: theme.caption,
                                   ),
                                 ),
@@ -158,12 +159,12 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 12),
 
                               // ───── PROFILE ─────
-                              _Section(theme: theme, label: 'PROFILE'),
+                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionProfile),
                               const SizedBox(height: 22),
                               _Row(
                                 theme: theme,
-                                label: 'AVATAR',
-                                desc: 'your profile picture',
+                                label: AppLocalizations.of(context).profileVisibilityScreenAvatarLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenAvatarDesc,
                                 value: _vis.avatar,
                                 onChanged: (v) => _patch(avatar: v),
                                 enabled: !widget.readOnly,
@@ -171,8 +172,8 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 26),
                               _Row(
                                 theme: theme,
-                                label: 'ONLINE / AWAY',
-                                desc: 'whether you appear active right now',
+                                label: AppLocalizations.of(context).profileVisibilityScreenOnlineAwayLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenOnlineAwayDesc,
                                 value: _vis.status,
                                 onChanged: (v) => _patch(status: v),
                                 enabled: !widget.readOnly,
@@ -180,8 +181,8 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 26),
                               _Row(
                                 theme: theme,
-                                label: 'LAST SEEN',
-                                desc: 'the time you were last around',
+                                label: AppLocalizations.of(context).profileVisibilityScreenLastSeenLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenLastSeenDesc,
                                 value: _vis.lastSeen,
                                 onChanged: (v) => _patch(lastSeen: v),
                                 enabled: !widget.readOnly,
@@ -189,12 +190,12 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 40),
 
                               // ───── MESSAGES ─────
-                              _Section(theme: theme, label: 'MESSAGES'),
+                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionMessages),
                               const SizedBox(height: 22),
                               _Row(
                                 theme: theme,
-                                label: 'SEND READ RECEIPTS',
-                                desc: 'when on, others can see that you\'ve read their messages',
+                                label: AppLocalizations.of(context).profileVisibilityScreenSendReadReceiptsLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenSendReadReceiptsDesc,
                                 value: _vis.seen,
                                 onChanged: (v) => _patch(seen: v),
                                 enabled: !widget.readOnly,
@@ -202,9 +203,9 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 26),
                               _RowBool(
                                 theme: theme,
-                                label: 'SHOW READ RECEIPTS',
-                                desc: 'see the "SEEN" mark on your own messages once they\'re read',
-                                hint: 'only readers who turned on SEND READ RECEIPTS will contribute. others stay invisible.',
+                                label: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsDesc,
+                                hint: AppLocalizations.of(context).profileVisibilityScreenShowReadReceiptsHint,
                                 value: SettingsStore.instance.viewReadReceipts,
                                 onChanged: (v) =>
                                     SettingsStore.instance.setViewReadReceipts(v),
@@ -212,12 +213,12 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                               const SizedBox(height: 40),
 
                               // ───── PEOPLE ─────
-                              _Section(theme: theme, label: 'PEOPLE'),
+                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionPeople),
                               const SizedBox(height: 22),
                               _RowBinary(
                                 theme: theme,
-                                label: 'FRIEND REQUESTS',
-                                desc: 'who can send you friend requests',
+                                label: AppLocalizations.of(context).profileVisibilityScreenFriendRequestsLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenFriendRequestsDesc,
                                 value: _vis.friendRequests,
                                 onChanged: (v) => _patch(friendRequests: v),
                                 enabled: !widget.readOnly,
@@ -367,13 +368,11 @@ class _SupervisedNotice extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('YOUR GROWN-UPS SET THESE',
+                Text(AppLocalizations.of(context).profileVisibilityScreenSupervisedTitle,
                     style: theme.label.copyWith(color: theme.accent)),
                 const SizedBox(height: 6),
                 Text(
-                  'You can see what everyone else sees here, but only a '
-                  'grown-up can change it. They can always see your picture, '
-                  'when you\'re online and when you were last around.',
+                  AppLocalizations.of(context).profileVisibilityScreenSupervisedBody,
                   style: theme.bodySoft,
                 ),
               ],
@@ -409,10 +408,10 @@ class _Row extends StatelessWidget {
       desc: desc,
       child: _Seg<FieldVisibility>(
         theme: theme,
-        options: const [
-          (FieldVisibility.public, 'PUBLIC'),
-          (FieldVisibility.friends, 'FRIENDS'),
-          (FieldVisibility.nobody, 'NOBODY'),
+        options: [
+          (FieldVisibility.public, AppLocalizations.of(context).profileVisibilityScreenOptionPublic),
+          (FieldVisibility.friends, AppLocalizations.of(context).profileVisibilityScreenOptionFriends),
+          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
         ],
         value: value,
         onChanged: onChanged,
@@ -447,9 +446,9 @@ class _RowBool extends StatelessWidget {
       hint: hint,
       child: _Seg<bool>(
         theme: theme,
-        options: const [
-          (true, 'ON'),
-          (false, 'OFF'),
+        options: [
+          (true, AppLocalizations.of(context).profileVisibilityScreenOptionOn),
+          (false, AppLocalizations.of(context).profileVisibilityScreenOptionOff),
         ],
         value: value,
         onChanged: onChanged,
@@ -482,9 +481,9 @@ class _RowBinary extends StatelessWidget {
       desc: desc,
       child: _Seg<FieldVisibility>(
         theme: theme,
-        options: const [
-          (FieldVisibility.public, 'ANYONE'),
-          (FieldVisibility.nobody, 'NOBODY'),
+        options: [
+          (FieldVisibility.public, AppLocalizations.of(context).profileVisibilityScreenOptionAnyone),
+          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
         ],
         value: value == FieldVisibility.friends ? FieldVisibility.public : value,
         onChanged: onChanged,

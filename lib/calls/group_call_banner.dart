@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'group_call_service.dart';
 
@@ -103,8 +104,8 @@ class _GroupCallBannerState extends State<GroupCallBanner>
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().contains('CALL_FULL')
-          ? 'That call is full (max 6 people)'
-          : 'Could not join the call';
+          ? AppLocalizations.of(context).groupCallBannerCallFullError
+          : AppLocalizations.of(context).groupCallBannerJoinFailedError;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -127,8 +128,11 @@ class _GroupCallBannerState extends State<GroupCallBanner>
         .where((p) => p['status'] == 'joined' && (p['live'] ?? true) == true)
         .toList(growable: false);
     if (parts.isEmpty) return const SizedBox.shrink();
+    final someone = AppLocalizations.of(
+      context,
+    ).groupCallBannerUnknownParticipant;
     final names = parts
-        .map((p) => p['name']?.toString() ?? 'Someone')
+        .map((p) => p['name']?.toString() ?? someone)
         .take(2)
         .join(', ');
     final extra = parts.length > 2 ? ' +${parts.length - 2}' : '';
@@ -161,7 +165,13 @@ class _GroupCallBannerState extends State<GroupCallBanner>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isVideo ? 'Ongoing video call' : 'Ongoing voice call',
+                    isVideo
+                        ? AppLocalizations.of(
+                            context,
+                          ).groupCallBannerOngoingVideoCall
+                        : AppLocalizations.of(
+                            context,
+                          ).groupCallBannerOngoingVoiceCall,
                     style: theme.body.copyWith(
                       color: theme.ink,
                       fontWeight: FontWeight.w700,
@@ -170,7 +180,9 @@ class _GroupCallBannerState extends State<GroupCallBanner>
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    '$names$extra in the call',
+                    AppLocalizations.of(
+                      context,
+                    ).groupCallBannerParticipantsInCall(extra, names),
                     style: theme.monoTiny.copyWith(color: theme.inkMuted),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -182,7 +194,9 @@ class _GroupCallBannerState extends State<GroupCallBanner>
             FocusableTap(
               onTap: svc.inCall ? null : _join,
               enabled: !svc.inCall,
-              semanticLabel: 'Join call',
+              semanticLabel: AppLocalizations.of(
+                context,
+              ).groupCallBannerJoinCallSemanticLabel,
               shape: FocusRingShape.capsule,
               child: GestureDetector(
                 onTap: svc.inCall ? null : _join,
@@ -195,9 +209,9 @@ class _GroupCallBannerState extends State<GroupCallBanner>
                     color: const Color(0xFF17C964),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Text(
-                    'JOIN',
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context).groupCallBannerJoinButtonLabel,
+                    style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.w800,
                       fontSize: 12,

@@ -3,12 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/discover_rows.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// Discover previews five of each list and sends the rest to a full-list
 /// screen, so the header's count and the see-all row are the only things
 /// telling you how much you haven't seen. Both have to be honest.
 void main() {
   Widget host(Widget child, {double width = 375}) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

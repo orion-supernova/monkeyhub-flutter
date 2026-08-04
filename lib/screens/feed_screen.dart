@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -12,6 +13,7 @@ class FeedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Stack(
       children: [
         theme.backgroundLayer(context),
@@ -32,7 +34,7 @@ class FeedScreen extends StatelessWidget {
                       const AppBrandMark(size: 30),
                       const SizedBox(width: 10),
                       Text(
-                        'FEED',
+                        loc.enterPublicRoomFeedTabLabel,
                         style: theme.label.copyWith(letterSpacing: 3),
                       ),
                     ],
@@ -42,9 +44,12 @@ class FeedScreen extends StatelessWidget {
                     text: TextSpan(
                       style: theme.displayLarge,
                       children: [
-                        TextSpan(text: 'soon.\n', style: theme.displayLarge),
                         TextSpan(
-                          text: 'daily moments,\nshared with rooms.',
+                          text: loc.enterPublicRoomFeedHeadlineSoon,
+                          style: theme.displayLarge,
+                        ),
+                        TextSpan(
+                          text: loc.enterPublicRoomFeedHeadlineDetail,
                           style: theme.displayLarge.copyWith(
                             color: theme.inkMuted,
                             fontSize: theme.displayLarge.fontSize! * 0.6,
@@ -63,16 +68,19 @@ class FeedScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('IN THE PIPE', style: theme.label),
+                        Text(
+                          loc.enterPublicRoomFeedPipelineLabel,
+                          style: theme.label,
+                        ),
                         const SizedBox(height: 10),
-                        _bullet(theme, 'a daily prompt the room responds to'),
+                        _bullet(theme, loc.enterPublicRoomFeedBulletPrompt),
                         _bullet(
                           theme,
-                          'voice notes that auto-fade with the day',
+                          loc.enterPublicRoomFeedBulletVoiceNotes,
                         ),
                         _bullet(
                           theme,
-                          'a wall of small, slow updates from friends',
+                          loc.enterPublicRoomFeedBulletWallUpdates,
                         ),
                       ],
                     ),

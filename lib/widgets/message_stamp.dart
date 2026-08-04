@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
 
@@ -71,6 +72,7 @@ class MessageStamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // Held back from full strength on every surface: the stamp is the least
     // important thing in the bubble and should read as a whisper.
     final quiet = switch (tone) {
@@ -110,7 +112,7 @@ class MessageStamp extends StatelessWidget {
         if (left != null) ...[
           theme.hourglassIcon(size: 9, color: loud),
           const SizedBox(width: 3),
-          Text(_fmtCountdown(left), style: style.copyWith(color: loud)),
+          Text(_fmtCountdown(left, l10n), style: style.copyWith(color: loud)),
           const SizedBox(width: 6),
         ],
         Text(formatClockTime(createdAt), style: style),
@@ -123,17 +125,23 @@ class MessageStamp extends StatelessWidget {
         if (status == MessageStatus.uploading) ...[
           const SizedBox(width: 5),
           Icon(Icons.arrow_upward,
-              size: 11, color: quiet, semanticLabel: 'uploading'),
+              size: 11,
+              color: quiet,
+              semanticLabel: l10n.messageStampUploadingLabel),
         ] else if (status == MessageStatus.pending) ...[
           const SizedBox(width: 5),
-          Icon(Icons.schedule, size: 11, color: quiet, semanticLabel: 'sending'),
+          Icon(Icons.schedule,
+              size: 11, color: quiet, semanticLabel: l10n.messageStampSendingLabel),
         ] else if (status == MessageStatus.error) ...[
           const SizedBox(width: 5),
           Icon(Icons.error_outline,
-              size: 12, color: bad, semanticLabel: 'failed to send'),
+              size: 12,
+              color: bad,
+              semanticLabel: l10n.messageStampFailedToSendLabel),
         ] else if (showSeen) ...[
           const SizedBox(width: 5),
-          Icon(Icons.done_all, size: 12, color: loud, semanticLabel: 'seen'),
+          Icon(Icons.done_all,
+              size: 12, color: loud, semanticLabel: l10n.messageStampSeenLabel),
         ],
       ],
     );
@@ -160,10 +168,10 @@ class MessageStamp extends StatelessWidget {
   /// Seconds while seconds matter, whole minutes once they don't — and rounded
   /// *up*, so a message never claims less life than it has. The row below the
   /// bubble could afford `4m 07s`; space shared with the message body cannot.
-  static String _fmtCountdown(Duration left) {
+  static String _fmtCountdown(Duration left, AppLocalizations l10n) {
     final s = left.inSeconds.clamp(0, 99999);
-    if (s < 60) return '${s}s';
-    return '${(s / 60).ceil()}m';
+    if (s < 60) return l10n.messageStampCountdownSeconds(s);
+    return l10n.messageStampCountdownMinutes((s / 60).ceil());
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -77,7 +78,8 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
     // A DM's stored name is the internal `dm:<a>:<b>` key, never something to
     // render. The peer's profile is the title; falling back to "direct
     // message" covers a roster the client hasn't cached yet.
-    return widget.repo.otherUserFor(room)?.name ?? 'direct message';
+    return widget.repo.otherUserFor(room)?.name ??
+        AppLocalizations.of(context).approvalsScreenForwardDirectMessageFallback;
   }
 
   List<ChatRoom> get _visible {
@@ -115,6 +117,7 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     final rooms = _visible;
     final n = widget.messageCount;
 
@@ -132,7 +135,7 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
             children: [
               const SheetGrabber(),
               Text(
-                n == 1 ? 'FORWARD MESSAGE' : 'FORWARD $n MESSAGES',
+                loc.approvalsScreenForwardTitle(n),
                 style: theme.label.copyWith(letterSpacing: 2.4),
               ),
               const SizedBox(height: 12),
@@ -151,8 +154,8 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 26),
                         child: Text(
                           _search.text.trim().isEmpty
-                              ? 'no other chats yet'
-                              : 'nothing matches',
+                              ? loc.approvalsScreenForwardNoChatsYet
+                              : loc.approvalsScreenForwardNoMatches,
                           textAlign: TextAlign.center,
                           style: theme.bodySoft,
                         ),
@@ -182,7 +185,7 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
               if (_picked.length >= kMaxForwardTargets) ...[
                 const SizedBox(height: 8),
                 Text(
-                  'up to $kMaxForwardTargets chats at a time',
+                  loc.approvalsScreenForwardMaxTargetsHint(kMaxForwardTargets),
                   textAlign: TextAlign.center,
                   style: theme.caption.copyWith(color: theme.inkMuted),
                 ),
@@ -208,6 +211,7 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Container(
       decoration: theme.inputDecoration(),
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -225,7 +229,7 @@ class _SearchField extends StatelessWidget {
                 isDense: true,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                hintText: 'search chats',
+                hintText: loc.approvalsScreenForwardSearchHint,
                 hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
               ),
             ),
@@ -254,6 +258,7 @@ class _RoomRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     final peer = room.isDm ? repo.otherUserFor(room) : null;
 
     // `FocusableTap` registers no gesture recognizer of its own, so the bare
@@ -262,7 +267,9 @@ class _RoomRow extends StatelessWidget {
     // Never an InkWell — this app draws no ink anywhere.
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: picked ? 'Deselect $title' : 'Select $title',
+      semanticLabel: picked
+          ? loc.approvalsScreenForwardDeselectSemantic(title)
+          : loc.approvalsScreenForwardSelectSemantic(title),
       radius: theme.radiusMd,
       child: GestureDetector(
         onTap: onTap,
@@ -314,7 +321,7 @@ class _RoomRow extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
                   child: Text(
-                    'FADES',
+                    loc.approvalsScreenForwardFadesBadge,
                     style: theme.monoTiny.copyWith(color: theme.inkMuted),
                   ),
                 ),
@@ -341,11 +348,12 @@ class _SendButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final enabled = onTap != null;
     return FocusableTap(
       onTap: onTap,
       enabled: enabled,
-      semanticLabel: 'Send',
+      semanticLabel: loc.approvalsScreenForwardSendSemantic,
       radius: theme.radiusMd,
       child: GestureDetector(
         onTap: onTap,
@@ -359,7 +367,7 @@ class _SendButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: Text(
-            count == 0 ? 'SEND' : 'SEND TO $count',
+            loc.approvalsScreenForwardSendButton(count),
             style: theme.label.copyWith(
               letterSpacing: 2.0,
               color: enabled ? theme.accentInk : theme.inkMuted,

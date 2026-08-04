@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -19,12 +20,16 @@ import 'user_avatar.dart';
 /// No trailing ellipsis: every surface that shows this label also shows
 /// [TypingDots] beside it, and the animated dots ARE the ellipsis. Printing
 /// "typing…" next to them rendered the same idea twice, six dots in a row.
-String typingLabel(List<ChatUser> typists) {
+String typingLabel(BuildContext context, List<ChatUser> typists) {
   if (typists.isEmpty) return '';
+  final l10n = AppLocalizations.of(context);
   final names = typists.map((u) => u.displayName).toList();
-  if (names.length == 1) return '${names[0]} is typing';
-  if (names.length == 2) return '${names[0]} and ${names[1]} are typing';
-  return '${names[0]}, ${names[1]} +${names.length - 2} are typing';
+  if (names.length == 1) return l10n.typingIndicatorOnePersonTyping(names[0]);
+  if (names.length == 2) {
+    return l10n.typingIndicatorTwoPeopleTyping(names[0], names[1]);
+  }
+  return l10n.typingIndicatorManyPeopleTyping(
+      '${names.length - 2}', names[0], names[1]);
 }
 
 /// Three dots that fade in sequence. Also lifts each dot slightly at the peak
@@ -281,7 +286,7 @@ class TypingLine extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            typingLabel(typists),
+            typingLabel(context, typists),
             style: theme.bodySoft
                 .copyWith(color: theme.accent, fontStyle: FontStyle.italic),
             maxLines: 1,

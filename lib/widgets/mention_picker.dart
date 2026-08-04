@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/mention_session.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'user_avatar.dart';
@@ -179,9 +180,9 @@ class _MentionPickerState extends State<MentionPicker>
               ),
               child: Icon(Icons.campaign_outlined, size: 15, color: theme.accent),
             ),
-            title: 'Everyone',
+            title: AppLocalizations.of(context).cyberpunkThemeMentionPickerEveryoneTitle,
             handle: '@everyone',
-            trailing: 'NOTIFIES ALL',
+            trailing: AppLocalizations.of(context).cyberpunkThemeMentionPickerNotifiesAllBadge,
           );
         }
         final u = s.matches[i - (s.showEveryone ? 1 : 0)];
@@ -191,7 +192,9 @@ class _MentionPickerState extends State<MentionPicker>
           leading: UserAvatar(user: u, size: 28, api: widget.api),
           title: u.displayName,
           handle: '@${u.username}',
-          trailing: u.role == 'owner' ? 'OWNER' : null,
+          trailing: u.role == 'owner'
+              ? AppLocalizations.of(context).cyberpunkThemeMentionPickerOwnerBadge
+              : null,
         );
       },
     );

@@ -7,6 +7,7 @@ import 'package:monkeyhub/calls/group_call_service.dart';
 import 'package:monkeyhub/calls/group_call_sheets.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// FocusableTap adds keyboard focus only — it registers NO gesture
 /// recognizer, so every call control must wrap its child in a
@@ -43,6 +44,8 @@ void main() {
     return ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(

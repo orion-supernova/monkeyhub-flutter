@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -62,6 +63,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -80,7 +82,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                         icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
                       ),
                       const SizedBox(width: 4),
-                      Text('BLOCKED', style: theme.label.copyWith(letterSpacing: 3)),
+                      Text(l10n.roomCardBlockedScreenTitle, style: theme.label.copyWith(letterSpacing: 3)),
                     ],
                   ),
                 ),
@@ -90,7 +92,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                       : _blocked.isEmpty
                           ? Center(
                               child: Text(
-                                'you haven\'t blocked anyone.',
+                                l10n.roomCardBlockedEmptyState,
                                 style: theme.bodySoft,
                               ),
                             )
@@ -139,7 +141,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                                                     color: theme.accent,
                                                   ),
                                                 )
-                                              : Text('UNBLOCK',
+                                              : Text(l10n.roomCardUnblockButton,
                                                   style: theme.monoTiny.copyWith(color: theme.accent)),
                                         ),
                                       ),

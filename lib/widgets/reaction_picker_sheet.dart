@@ -2,6 +2,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
@@ -49,7 +50,7 @@ class ReactionPickerSheet extends StatelessWidget {
                 ),
               ),
             Text(
-              'REACT',
+              AppLocalizations.of(context).reactionBubblePickerTitle,
               textAlign: TextAlign.center,
               style: theme.label.copyWith(letterSpacing: 2.4),
             ),
@@ -75,7 +76,8 @@ class ReactionPickerSheet extends StatelessWidget {
                     recentsLimit: 28,
                     noRecents: Center(
                       child: Text(
-                        'no recents yet',
+                        AppLocalizations.of(context)
+                            .reactionBubbleNoRecentsPlaceholder,
                         style: theme.monoTiny,
                       ),
                     ),

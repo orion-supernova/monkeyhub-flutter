@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'group_call_service.dart';
 
@@ -72,9 +73,10 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
     } catch (e) {
       if (!mounted) return;
       setState(() => _acting = false);
+      final l10n = AppLocalizations.of(context);
       final msg = e.toString().contains('CALL_FULL')
-          ? 'That call is full (max 6 people)'
-          : 'Could not join the call';
+          ? l10n.incomingGroupCallScreenCallFullError
+          : l10n.incomingGroupCallScreenJoinFailedError;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
@@ -88,9 +90,14 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final inv = widget.service.pendingInvite;
-    final roomName = inv?['roomName']?.toString() ?? 'Group call';
-    final starter = inv?['starterName']?.toString() ?? 'Someone';
+    final roomName =
+        inv?['roomName']?.toString() ??
+        l10n.incomingGroupCallScreenDefaultRoomName;
+    final starter =
+        inv?['starterName']?.toString() ??
+        l10n.incomingGroupCallScreenDefaultStarterName;
     final isVideo = inv?['type'] == 'video';
     final joined = (inv?['joinedCount'] as num?)?.toInt() ?? 1;
     final accent = theme.accent;
@@ -149,8 +156,8 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
               ),
               const SizedBox(height: 10),
               Text(
-                '$starter started a ${isVideo ? 'video' : 'voice'} call'
-                '${joined > 1 ? ' · $joined already in' : ''}',
+                '${isVideo ? l10n.incomingGroupCallScreenStartedVideoCall(starter) : l10n.incomingGroupCallScreenStartedVoiceCall(starter)}'
+                '${joined > 1 ? ' · ${l10n.incomingGroupCallScreenAlreadyJoinedCount(joined)}' : ''}',
                 style: theme.monoTiny.copyWith(
                   color: Colors.white.withValues(alpha: 0.85),
                 ),
@@ -164,13 +171,13 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
                   children: [
                     _bigAction(
                       icon: Icons.close,
-                      label: 'Dismiss',
+                      label: l10n.incomingGroupCallScreenDismissButton,
                       background: Colors.white.withValues(alpha: 0.16),
                       onTap: _dismiss,
                     ),
                     _bigAction(
                       icon: isVideo ? Icons.videocam : Icons.call,
-                      label: 'Join',
+                      label: l10n.incomingGroupCallScreenJoinButton,
                       background: const Color(0xFF17C964),
                       iconColor: Colors.black,
                       onTap: _join,

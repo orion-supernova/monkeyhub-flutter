@@ -1,0 +1,17 @@
+/* System permission dialogs, Turkish. NOT wired into the Xcode build yet —
+   Runner.xcodeproj's knownRegions now lists "tr", but the actual localized
+   resource (a PBXVariantGroup + Copy Bundle Resources build-phase entry)
+   still needs to be added from inside Xcode: select Info.plist in the
+   Project Navigator > File Inspector > Localization > check "Turkish", or
+   use the project's Info panel > Localizations > "+". Hand-editing that
+   part of project.pbxproj was judged too risky to do blind (a malformed
+   PBXVariantGroup/PBXBuildFile entry can silently break the Xcode project),
+   so this file exists with correct content but is inert until added via
+   Xcode. Keep the keys in sync with ios/Runner/Info.plist and
+   en.lproj/InfoPlist.strings if the English source copy ever changes. */
+
+"NSCameraUsageDescription" = "Fotoğraf ve video çekebilmen için kameranı kullanmamız gerekiyor.";
+"NSMicrophoneUsageDescription" = "Sesli mesaj ve arama yapabilmen için mikrofonunu kullanmamız gerekiyor.";
+"NSPhotoLibraryAddUsageDescription" = "Fotoğrafları galerine kaydedebilmemiz için izin gerekiyor.";
+"NSPhotoLibraryUsageDescription" = "Galerinden fotoğraf ve video paylaşabilmen için galerine erişmemiz gerekiyor.";
+"NSLocalNetworkUsageDescription" = "MonkeyHub, aynı Wi-Fi ağındaki cihazlar arasında aramaları doğrudan bağlamak için yerel ağı kullanır.";

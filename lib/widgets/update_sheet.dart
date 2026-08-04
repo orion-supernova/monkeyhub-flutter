@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/app_release.dart';
 import '../theme/theme_scope.dart';
 import '../update/release_channel.dart';
@@ -55,23 +56,24 @@ class _UpdateSheet extends StatelessWidget {
 
   /// What the update button actually does, in the user's terms — the button is
   /// only honest if it names where it's about to send them.
-  String get _actionSub {
+  String _actionSub(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     switch (channel) {
       case ReleaseChannel.iosTestflight:
       case ReleaseChannel.macosTestflight:
-        return 'opens TestFlight';
+        return l10n.reportSheetUpdateActionOpensTestflight;
       case ReleaseChannel.iosAppstore:
       case ReleaseChannel.macosAppstore:
-        return 'opens the App Store';
+        return l10n.reportSheetUpdateActionOpensAppStore;
       case ReleaseChannel.androidPlay:
-        return 'opens Google Play';
+        return l10n.reportSheetUpdateActionOpensGooglePlay;
       case ReleaseChannel.androidApk:
       case ReleaseChannel.macosDmg:
       case ReleaseChannel.windows:
       case ReleaseChannel.linux:
-        return 'opens the download page';
+        return l10n.reportSheetUpdateActionOpensDownloadPage;
       case ReleaseChannel.web:
-        return 'reloads with the new version';
+        return l10n.reportSheetUpdateActionReloads;
       case ReleaseChannel.unknown:
         return '';
     }
@@ -90,8 +92,9 @@ class _UpdateSheet extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: theme.surface,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(theme.radiusLg),
+          ),
         ),
         padding: EdgeInsets.fromLTRB(
           20,
@@ -107,20 +110,29 @@ class _UpdateSheet extends StatelessWidget {
             // suggest otherwise.
             if (!mandatory) const SheetGrabber(),
             Text(
-              mandatory ? 'UPDATE REQUIRED' : 'UPDATE AVAILABLE',
-              style: theme.label
-                  .copyWith(color: mandatory ? theme.danger : theme.accent),
+              mandatory
+                  ? AppLocalizations.of(context).reportSheetUpdateRequiredTitle
+                  : AppLocalizations.of(
+                      context,
+                    ).reportSheetUpdateAvailableTitle,
+              style: theme.label.copyWith(
+                color: mandatory ? theme.danger : theme.accent,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
               mandatory
-                  ? 'This version is too old to keep working properly. Update to carry on.'
-                  : 'A newer version of MonkeyHub is available.',
+                  ? AppLocalizations.of(context).reportSheetUpdateMandatoryBody
+                  : AppLocalizations.of(context).reportSheetUpdateAvailableBody,
               style: theme.bodySoft,
             ),
             const SizedBox(height: 8),
-            Text('v$currentVersion → v${release.version}',
-                style: theme.monoTiny),
+            Text(
+              AppLocalizations.of(
+                context,
+              ).reportSheetUpdateVersionArrow(currentVersion, release.version),
+              style: theme.monoTiny,
+            ),
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(notes, style: theme.bodySoft),
@@ -129,8 +141,8 @@ class _UpdateSheet extends StatelessWidget {
             ChoiceTile(
               color: theme.accent,
               icon: Icons.system_update_alt_rounded,
-              title: 'UPDATE',
-              sub: _actionSub,
+              title: AppLocalizations.of(context).reportSheetUpdateButtonTitle,
+              sub: _actionSub(context),
               filled: true,
               // Inverted from the destructive sheets: the loud option here is
               // the safe one, so Enter on a freshly-opened sheet updates.
@@ -152,7 +164,9 @@ class _UpdateSheet extends StatelessWidget {
               const SizedBox(height: 10),
               FocusableTap(
                 onTap: () => Navigator.of(context).pop(),
-                semanticLabel: 'Later',
+                semanticLabel: AppLocalizations.of(
+                  context,
+                ).reportSheetUpdateLaterSemanticLabel,
                 radius: theme.radiusMd,
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
@@ -160,8 +174,10 @@ class _UpdateSheet extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     alignment: Alignment.center,
-                    child: Text('LATER',
-                        style: theme.label.copyWith(color: theme.inkMuted)),
+                    child: Text(
+                      AppLocalizations.of(context).reportSheetUpdateLaterButton,
+                      style: theme.label.copyWith(color: theme.inkMuted),
+                    ),
                   ),
                 ),
               ),

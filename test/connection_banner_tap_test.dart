@@ -7,6 +7,7 @@ import 'package:monkeyhub/keyboard/focusable_tap.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/connection_banner.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// FocusableTap adds keyboard focus only — it registers NO gesture recognizer,
 /// so anything wrapped in it must ALSO carry its own GestureDetector.onTap to
@@ -14,7 +15,7 @@ import 'package:monkeyhub/widgets/connection_banner.dart';
 /// call_controls_tap_test.dart), and it went wrong here a second time: the
 /// banner's duplicate binding looks redundant and is not.
 ///
-/// This is the highest-stakes tap in the app to get wrong. "can't reach server
+/// This is the highest-stakes tap in the app to get wrong. "can’t reach server
 /// · tap to retry" is shown precisely when nothing else is working, and a dead
 /// tap there is invisible in review — the widget still builds, still reads
 /// right, still passes semantics.
@@ -66,6 +67,8 @@ void main() {
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: ConnectionBanner(health: health)),
         ),
       ),
@@ -88,7 +91,7 @@ void main() {
     await pumpStalled(tester);
     final before = probe.retries;
 
-    await tester.tap(find.text("can't reach server · tap to retry"));
+    await tester.tap(find.text('can’t reach server · tap to retry'));
     await tester.pump(const Duration(milliseconds: 50));
 
     expect(
@@ -132,6 +135,8 @@ void main() {
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Center(
               child: FocusableTap(

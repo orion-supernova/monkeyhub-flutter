@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 
@@ -103,7 +104,8 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = 'Couldn\'t make a code — try again.');
+      setState(() => _error =
+          AppLocalizations.of(context).destructiveSheetPairingMintError);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,7 +125,11 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
               children: [
                 _Header(
                   name: widget.child.displayName,
-                  title: _releasing ? 'RELEASE' : 'PAIR',
+                  title: _releasing
+                      ? AppLocalizations.of(context)
+                          .destructiveSheetPairingReleaseTitle
+                      : AppLocalizations.of(context)
+                          .destructiveSheetPairingPairTitle,
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -133,11 +139,12 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                       children: [
                         Text(
                           _releasing
-                              ? 'On ${widget.child.displayName}\'s phone, open '
-                                  'their profile, tap “hand this phone back”, '
-                                  'and type these numbers.'
-                              : 'On ${widget.child.displayName}\'s phone, open '
-                                  'MonkeyHub and scan this — or type the numbers.',
+                              ? AppLocalizations.of(context)
+                                  .destructiveSheetPairingReleaseInstructions(
+                                      widget.child.displayName)
+                              : AppLocalizations.of(context)
+                                  .destructiveSheetPairingPairInstructions(
+                                      widget.child.displayName),
                           style: theme.bodySoft,
                         ),
                         const SizedBox(height: 28),
@@ -164,8 +171,11 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                           Center(
                             child: Text(
                               _expired
-                                  ? 'this code has expired'
-                                  : 'expires in ${_fmt(_remaining)}',
+                                  ? AppLocalizations.of(context)
+                                      .destructiveSheetPairingCodeExpired
+                                  : AppLocalizations.of(context)
+                                      .destructiveSheetPairingExpiresIn(
+                                          _fmt(_remaining)),
                               style: theme.monoTiny.copyWith(
                                 color: _expired ? theme.danger : theme.inkMuted,
                               ),
@@ -195,7 +205,8 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                                   BorderRadius.circular(theme.radiusMd),
                             ),
                             child: Text(
-                              'NEW CODE',
+                              AppLocalizations.of(context)
+                                  .destructiveSheetPairingNewCodeButton,
                               style: theme.label.copyWith(
                                 letterSpacing: 2.4,
                                 color: _expired
@@ -207,7 +218,8 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          'One use only. Making a new code cancels the old one.',
+                          AppLocalizations.of(context)
+                              .destructiveSheetPairingOneUseNote,
                           style: theme.monoTiny.copyWith(color: theme.inkMuted),
                           textAlign: TextAlign.center,
                         ),

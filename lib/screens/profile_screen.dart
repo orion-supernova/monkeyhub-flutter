@@ -14,6 +14,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
@@ -254,14 +255,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String get _linkedAccountsLabel {
     final linked = _linkedProviders;
     if (linked == null) return '';
-    if (linked.isEmpty) return 'nothing linked';
+    if (linked.isEmpty) return AppLocalizations.of(context).profileScreenLinkedAccountsNone;
     return linked.map((p) => p.label.toLowerCase()).join(' · ');
   }
 
   String get _familyLabel {
     final n = widget.family?.context.children.length ?? 0;
-    if (n == 0) return 'add a child';
-    return n == 1 ? '1 child' : '$n children';
+    if (n == 0) return AppLocalizations.of(context).profileScreenFamilyAddChild;
+    return AppLocalizations.of(context).profileScreenFamilyChildCount(n);
   }
 
   void _openFamily() {
@@ -356,11 +357,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _Action(label: 'JUST TAPPED', filled: false, onTap: () => Navigator.of(ctx).pop(false)),
+                      child: _Action(
+                        label: AppLocalizations.of(ctx).profileScreenJustTappedAction,
+                        filled: false,
+                        onTap: () => Navigator.of(ctx).pop(false),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _Action(label: 'CHANGE', filled: true, onTap: () => Navigator.of(ctx).pop(true)),
+                      child: _Action(
+                        label: AppLocalizations.of(ctx).profileScreenChangeAction,
+                        filled: true,
+                        onTap: () => Navigator.of(ctx).pop(true),
+                      ),
                     ),
                   ],
                 ),
@@ -424,11 +433,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _Action(label: 'CANCEL', filled: false, onTap: () => Navigator.of(ctx).pop()),
+                      child: _Action(
+                        label: AppLocalizations.of(ctx).profileScreenCancelAction,
+                        filled: false,
+                        onTap: () => Navigator.of(ctx).pop(),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _Action(label: 'SAVE', filled: true, onTap: () => Navigator.of(ctx).pop(controller.text)),
+                      child: _Action(
+                        label: AppLocalizations.of(ctx).profileScreenSaveAction,
+                        filled: true,
+                        onTap: () => Navigator.of(ctx).pop(controller.text),
+                      ),
                     ),
                   ],
                 ),
@@ -539,20 +556,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// honest code — it's a global toggle, not a personal judgment, and the
   /// SEND REQUEST button is already pre-disabled when we know about it.
   String _humanizeAction(Object e) {
+    final l10n = AppLocalizations.of(context);
     final s = e.toString();
     if (s.contains('UNBLOCK_FIRST')) {
-      return 'you blocked this user — unblock them first.';
+      return l10n.profileScreenErrorUnblockFirst;
     }
     if (s.contains('NOT_ACCEPTING_REQUESTS')) {
-      return 'they\'re not accepting friend requests right now.';
+      return l10n.profileScreenErrorNotAccepting;
     }
-    if (s.contains('USER_NOT_FOUND')) return 'this isn\'t possible right now.';
-    if (s.contains('ALREADY_FRIENDS')) return 'you\'re already friends.';
-    if (s.contains('REQUEST_ALREADY_PENDING')) return 'request already sent.';
+    if (s.contains('USER_NOT_FOUND')) return l10n.profileScreenErrorUserNotFound;
+    if (s.contains('ALREADY_FRIENDS')) return l10n.profileScreenErrorAlreadyFriends;
+    if (s.contains('REQUEST_ALREADY_PENDING')) return l10n.profileScreenErrorRequestAlreadySent;
     if (s.contains('REQUEST_ALREADY_RECEIVED')) {
-      return 'they already sent you a request — check requests.';
+      return l10n.profileScreenErrorRequestAlreadyReceived;
     }
-    return 'couldn\'t complete that.';
+    return l10n.profileScreenErrorGeneric;
   }
 
   /// A gradient-initials placeholder is not worth a fullscreen route, so the
@@ -741,13 +759,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final storageId = _u.avatarStorageId;
     if (api == null || storageId == null || storageId.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final hasAccess = await Gal.hasAccess(toAlbum: false);
       if (!hasAccess) {
         final granted = await Gal.requestAccess(toAlbum: false);
         if (!granted) {
-          messenger.showSnackBar(const SnackBar(content: Text('photo permission denied.')));
+          messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenPhotoPermissionDenied)));
           return;
         }
       }
@@ -761,10 +780,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
       await Gal.putImageBytes(resp.bodyBytes, name: 'avatar-${DateTime.now().millisecondsSinceEpoch}');
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('saved to photos.')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenSavedToPhotos)));
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('couldn\'t save image.')));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.profileScreenCouldNotSaveImage)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -802,12 +821,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await api.blockUser(userId: myId, targetUserId: _u.id, deleteDm: choice == BlockChoice.blockAndDelete);
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
             choice == BlockChoice.blockAndDelete
-                ? 'blocked & DM wiped. they won\'t be notified.'
-                : 'blocked. they won\'t be notified.',
+                ? l10n.profileScreenBlockedDmWiped
+                : l10n.profileScreenBlockedOnly,
           ),
         ),
       );
@@ -829,7 +849,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await api.report(reporterId: repo!.userId!, targetType: 'user', targetId: _u.id, reason: reason);
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('report sent privately. they won\'t be notified.')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).profileScreenReportSent)),
+      );
     } catch (_) {
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -854,15 +876,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _actionLabel() {
+    final l10n = AppLocalizations.of(context);
     switch (_u.friendshipStatus) {
       case FriendshipStatus.none:
-        return 'SEND REQUEST';
+        return l10n.profileScreenSendRequestAction;
       case FriendshipStatus.outgoingPending:
-        return 'CANCEL REQUEST';
+        return l10n.profileScreenCancelRequestAction;
       case FriendshipStatus.incomingPending:
-        return 'APPROVE';
+        return l10n.profileScreenApproveAction;
       case FriendshipStatus.friend:
-        return 'OPEN DM';
+        return l10n.profileScreenOpenDmAction;
     }
   }
 
@@ -911,7 +934,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: FocusableTap(
                               onTap: _canViewAvatar ? _openAvatarFullscreen : null,
                               shape: FocusRingShape.circle,
-                              semanticLabel: 'view profile picture',
+                              semanticLabel: AppLocalizations.of(context).profileScreenViewProfilePictureSemantic,
                               child: GestureDetector(
                                 onTap: _canViewAvatar ? _openAvatarFullscreen : null,
                                 child: Builder(builder: (context) {
@@ -968,7 +991,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: FocusableTap(
                                 onTap: _busy ? null : _openAvatarSheet,
                                 shape: FocusRingShape.circle,
-                                semanticLabel: 'change profile picture',
+                                semanticLabel: AppLocalizations.of(context).profileScreenChangeProfilePictureSemantic,
                                 child: GestureDetector(
                                   onTap: _busy ? null : _openAvatarSheet,
                                   behavior: HitTestBehavior.opaque,
@@ -995,9 +1018,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           GestureDetector(
                             onTap: _isMe && widget.api != null && widget.repo != null
                                 ? () => _confirmAndEdit(
-                                    title: _u.name.trim().isNotEmpty ? 'change name?' : 'add name?',
+                                    title: _u.name.trim().isNotEmpty
+                                        ? AppLocalizations.of(context).profileScreenChangeNameTitle
+                                        : AppLocalizations.of(context).profileScreenAddNameTitle,
                                     currentValue: _u.name,
-                                    hint: 'how the room will read you',
+                                    hint: AppLocalizations.of(context).profileScreenNameHint,
                                     onSave: _updateName,
                                   )
                                 : null,
@@ -1010,13 +1035,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             const SizedBox(height: 6),
                             GestureDetector(
                               onTap: () => _confirmAndEdit(
-                                title: (_u.email?.isNotEmpty ?? false) ? 'change email?' : 'add email?',
+                                title: (_u.email?.isNotEmpty ?? false)
+                                    ? AppLocalizations.of(context).profileScreenChangeEmailTitle
+                                    : AppLocalizations.of(context).profileScreenAddEmailTitle,
                                 currentValue: _u.email ?? '',
                                 // Was 'only for recovery, never shown', which
                                 // was never true — this app sends no mail, and
                                 // recovery is the 12-word phrase. It is now
                                 // honestly just an optional contact note.
-                                hint: 'optional — never shown to anyone',
+                                hint: AppLocalizations.of(context).profileScreenEmailHint,
                                 keyboardType: TextInputType.emailAddress,
                                 onSave: _updateEmail,
                               ),
@@ -1028,7 +1055,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
-                                      (_u.email?.isNotEmpty ?? false) ? _u.email! : 'add email',
+                                      (_u.email?.isNotEmpty ?? false)
+                                          ? _u.email!
+                                          : AppLocalizations.of(context).profileScreenAddEmailPlaceholder,
                                       style: theme.mono.copyWith(
                                         color: (_u.email?.isNotEmpty ?? false) ? theme.inkSoft : theme.inkMuted,
                                       ),
@@ -1065,8 +1094,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: Text(
                             _u.friendshipStatus == FriendshipStatus.friend
-                                ? 'some fields are hidden by their settings.'
-                                : 'limited view — they share more with friends.',
+                                ? AppLocalizations.of(context).profileScreenRedactedFriend
+                                : AppLocalizations.of(context).profileScreenRedactedStranger,
                             style: theme.monoTiny.copyWith(color: theme.accent),
                           ),
                         ),
@@ -1087,7 +1116,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: _busy
                               ? '…'
                               : (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests
-                                    ? 'NOT ACCEPTING REQUESTS'
+                                    ? AppLocalizations.of(context).profileScreenNotAcceptingRequestsAction
                                     : _actionLabel()),
                           filled: _u.friendshipStatus != FriendshipStatus.outgoingPending,
                           onTap: (_busy || (_u.friendshipStatus == FriendshipStatus.none && !_u.acceptsFriendRequests))
@@ -1098,7 +1127,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (_u.friendshipStatus == FriendshipStatus.friend) ...[
                         const SizedBox(width: 10),
                         Expanded(
-                          child: _Action(label: 'UNFRIEND', filled: false, onTap: _busy ? null : _removeFriend),
+                          child: _Action(
+                            label: AppLocalizations.of(context).profileScreenUnfriendAction,
+                            filled: false,
+                            onTap: _busy ? null : _removeFriend,
+                          ),
                         ),
                       ],
                     ],
@@ -1108,7 +1141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Expanded(
                         child: _Action(
-                          label: 'BLOCK',
+                          label: AppLocalizations.of(context).profileScreenBlockAction,
                           filled: false,
                           onTap: _busy ? null : _confirmBlock,
                           danger: true,
@@ -1117,7 +1150,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _Action(
-                          label: 'REPORT',
+                          label: AppLocalizations.of(context).profileScreenReportAction,
                           filled: false,
                           onTap: _busy ? null : _confirmReport,
                           danger: true,
@@ -1148,7 +1181,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(width: 70, child: Text('EMAIL', style: theme.label)),
+              SizedBox(
+                width: 70,
+                child: Text(AppLocalizations.of(context).profileScreenEmailSectionLabel, style: theme.label),
+              ),
               Expanded(child: Text(_u.email!, style: theme.body)),
             ],
           ),
@@ -1178,10 +1214,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (canPrivacy) ...[
-          _sectionHeader(theme, 'PRIVACY'),
+          _sectionHeader(theme, AppLocalizations.of(context).profileScreenPrivacySection),
           const SizedBox(height: 12),
           _RowLink(
-            label: 'VISIBILITY PREFERENCES',
+            label: AppLocalizations.of(context).profileScreenVisibilityPreferences,
             icon: Icons.visibility_outlined,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -1195,7 +1231,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 8),
           _RowLink(
-            label: 'BLOCKED USERS',
+            label: AppLocalizations.of(context).profileScreenBlockedUsers,
             icon: Icons.block,
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -1208,7 +1244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
         if (canAccount) ...[
           const SizedBox(height: 28),
-          _sectionHeader(theme, 'ACCOUNT'),
+          _sectionHeader(theme, AppLocalizations.of(context).profileScreenAccountSection),
           const SizedBox(height: 10),
           // Explicitly `== false`: null means the backend didn't say (an older
           // deploy, or a non-self fetch), which must never be read as "no
@@ -1219,7 +1255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           if (family != null) ...[
             _RowLink(
-              label: 'FAMILY',
+              label: AppLocalizations.of(context).profileScreenFamilyLabel,
               value: _familyLabel,
               badge: family.pendingCount,
               icon: Icons.family_restroom,
@@ -1230,10 +1266,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // "nothing waiting" for everyone who never adds one.
             if (family.context.children.isNotEmpty) ...[
               _RowLink(
-                label: 'APPROVALS',
+                label: AppLocalizations.of(context).profileScreenApprovalsLabel,
                 value: family.pendingCount == 0
-                    ? 'nothing waiting'
-                    : '${family.pendingCount} waiting',
+                    ? AppLocalizations.of(context).profileScreenApprovalsNothingWaiting
+                    : AppLocalizations.of(context).profileScreenApprovalsCountWaiting(family.pendingCount),
                 icon: Icons.pending_actions,
                 iconColor: family.pendingCount > 0 ? theme.accent : null,
                 onTap: _openApprovals,
@@ -1245,7 +1281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // that would open empty is worse than no row.
           if (SocialSignInButtons.available.isNotEmpty) ...[
             _RowLink(
-              label: 'LINKED ACCOUNTS',
+              label: AppLocalizations.of(context).profileScreenLinkedAccountsLabel,
               value: _linkedAccountsLabel,
               icon: Icons.link_rounded,
               onTap: _openLinkedAccounts,
@@ -1254,16 +1290,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
           _RowLink(
             label: _u.hasRecoveryKey == true
-                ? 'CHANGE RECOVERY PHRASE'
-                : 'SET UP RECOVERY PHRASE',
+                ? AppLocalizations.of(context).profileScreenChangeRecoveryPhrase
+                : AppLocalizations.of(context).profileScreenSetUpRecoveryPhrase,
             icon: Icons.key_outlined,
             onTap: _openRecoveryPhrase,
           ),
           const SizedBox(height: 8),
-          _RowActionTile(label: 'SIGN OUT', danger: false, busy: _signingOut, onTap: _signOut),
+          _RowActionTile(
+            label: AppLocalizations.of(context).profileScreenSignOut,
+            danger: false,
+            busy: _signingOut,
+            onTap: _signOut,
+          ),
           const SizedBox(height: 8),
           _RowActionTile(
-            label: _confirmDelete ? 'TAP AGAIN TO CONFIRM DELETE' : 'DELETE ACCOUNT',
+            label: _confirmDelete
+                ? AppLocalizations.of(context).profileScreenTapAgainToConfirmDelete
+                : AppLocalizations.of(context).profileScreenDeleteAccount,
             danger: true,
             busy: _deletingAccount,
             onTap: () {
@@ -1283,16 +1326,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // so plainly.
         if (isChildAccount && family != null) ...[
           const SizedBox(height: 28),
-          _sectionHeader(theme, 'FAMILY'),
+          _sectionHeader(theme, AppLocalizations.of(context).profileScreenFamilyLabel),
           const SizedBox(height: 10),
           _GuardiansCard(family: family),
         ],
         if (isChildAccount) ...[
           const SizedBox(height: 28),
-          _sectionHeader(theme, 'THIS PHONE'),
+          _sectionHeader(theme, AppLocalizations.of(context).profileScreenThisPhoneSection),
           const SizedBox(height: 10),
           _RowActionTile(
-            label: 'HAND THIS PHONE BACK',
+            label: AppLocalizations.of(context).profileScreenHandPhoneBack,
             danger: false,
             busy: false,
             onTap: () => Navigator.of(context).push(
@@ -1303,7 +1346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Only a grown-up can do this — it needs their code or password.',
+            AppLocalizations.of(context).profileScreenGrownUpOnlyNote,
             style: theme.monoTiny.copyWith(color: theme.inkMuted),
           ),
         ],
@@ -1313,22 +1356,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // app, with no carve-out for supervised accounts — and a child is the
         // reader with the most at stake in the deletion section.
         const SizedBox(height: 28),
-        _sectionHeader(theme, 'LEGAL'),
+        _sectionHeader(theme, AppLocalizations.of(context).profileScreenLegalSection),
         const SizedBox(height: 10),
         _RowLink(
-          label: 'PRIVACY POLICY',
+          label: AppLocalizations.of(context).profileScreenPrivacyPolicy,
           icon: Icons.privacy_tip_outlined,
           onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
         ),
         const SizedBox(height: 8),
         _RowLink(
-          label: 'TERMS OF SERVICE',
+          label: AppLocalizations.of(context).profileScreenTermsOfService,
           icon: Icons.gavel_outlined,
           onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
         ),
         const SizedBox(height: 8),
         _RowLink(
-          label: 'LICENCE',
+          label: AppLocalizations.of(context).profileScreenLicence,
           icon: Icons.description_outlined,
           onTap: () => LinkOpener.open(context, kEulaUrl),
         ),
@@ -1443,17 +1486,17 @@ class _GuardiansCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('MY GROWN-UPS', style: theme.label),
+                Text(AppLocalizations.of(context).profileScreenMyGrownUps, style: theme.label),
                 const SizedBox(height: 4),
                 Text(
                   guardians.isEmpty
-                      ? 'nobody looking after this account yet'
+                      ? AppLocalizations.of(context).profileScreenNobodyLookingAfter
                       : guardians.map((g) => g.displayName).join(' · '),
                   style: theme.body.copyWith(color: theme.inkSoft),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'They can see when you\'re online and who you talk to.',
+                  AppLocalizations.of(context).profileScreenGuardiansCanSee,
                   style: theme.bodySoft,
                 ),
               ],
@@ -1541,11 +1584,16 @@ class _FriendshipChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final (label, icon, color) = switch (status) {
-      FriendshipStatus.friend => ('FRIENDS', Icons.check_circle_outline, theme.success),
-      FriendshipStatus.outgoingPending => ('REQUEST PENDING', Icons.schedule, theme.accent),
-      FriendshipStatus.incomingPending => ('INCOMING REQUEST', Icons.markunread_mailbox_outlined, theme.accent),
-      FriendshipStatus.none => ('NOT CONNECTED', Icons.person_outline, theme.inkMuted),
+      FriendshipStatus.friend => (l10n.profileScreenFriendsChip, Icons.check_circle_outline, theme.success),
+      FriendshipStatus.outgoingPending => (l10n.profileScreenRequestPendingChip, Icons.schedule, theme.accent),
+      FriendshipStatus.incomingPending => (
+          l10n.profileScreenIncomingRequestChip,
+          Icons.markunread_mailbox_outlined,
+          theme.accent,
+        ),
+      FriendshipStatus.none => (l10n.profileScreenNotConnectedChip, Icons.person_outline, theme.inkMuted),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1605,7 +1653,7 @@ Future<AvatarAction?> showAvatarActionSheet(
                 ],
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text('PROFILE PICTURE', style: theme.label),
+                  child: Text(AppLocalizations.of(ctx).profileScreenProfilePictureTitle, style: theme.label),
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -1624,20 +1672,20 @@ Future<AvatarAction?> showAvatarActionSheet(
                       if (hasAvatar && !kIsWeb) ...[
                         _AvatarSheetTile(
                           icon: Icons.download_outlined,
-                          label: 'SAVE TO PHOTOS',
+                          label: AppLocalizations.of(ctx).profileScreenSaveToPhotos,
                           onTap: () => Navigator.of(ctx).pop(AvatarAction.download),
                         ),
                         Divider(height: 1, color: theme.divider),
                       ],
                       _AvatarSheetTile(
                         icon: Icons.camera_alt_outlined,
-                        label: 'TAKE A SELFIE',
+                        label: AppLocalizations.of(ctx).profileScreenTakeSelfie,
                         onTap: () => Navigator.of(ctx).pop(AvatarAction.capture),
                       ),
                       Divider(height: 1, color: theme.divider),
                       _AvatarSheetTile(
                         icon: Icons.photo_library_outlined,
-                        label: 'CHOOSE FROM LIBRARY',
+                        label: AppLocalizations.of(ctx).profileScreenChooseFromLibrary,
                         onTap: () => Navigator.of(ctx).pop(AvatarAction.library),
                       ),
                     ],
@@ -1655,7 +1703,10 @@ Future<AvatarAction?> showAvatarActionSheet(
                       border: Border.all(color: theme.divider),
                       borderRadius: BorderRadius.circular(theme.radiusMd),
                     ),
-                    child: Text('CANCEL', style: theme.label.copyWith(color: theme.inkSoft)),
+                    child: Text(
+                      AppLocalizations.of(ctx).profileScreenCancelAction,
+                      style: theme.label.copyWith(color: theme.inkSoft),
+                    ),
                   ),
                 ),
               ],

@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 import 'package:monkeyhub/screens/image_crop_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The crop screen rests on one invariant: **the cover-sized child always
 /// covers the crop window**, so the rect the user confirms can never include
@@ -34,6 +35,8 @@ void main() {
 
   Widget host(Uint8List source, {CropShape shape = CropShape.circle}) =>
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: ImageCropScreen(source: source, shape: shape),

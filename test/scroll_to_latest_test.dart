@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/scroll_to_latest.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The scroll-to-latest pill sits over a live transcript that is scrolling,
 /// paginating and receiving messages at once, so both of its moving parts are
@@ -94,6 +95,8 @@ void main() {
     );
 
     Widget host({required bool visible, VoidCallback? onTap}) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: Scaffold(

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 
@@ -49,19 +50,22 @@ class _CaptureProtectionToggleState extends State<CaptureProtectionToggle> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('SCREEN CAPTURE PROTECTION', style: theme.label),
+                      Text(
+                        AppLocalizations.of(context).countBadgeCaptureProtectionLabel,
+                        style: theme.label,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         on
                             ? (!kIsWeb && Platform.isAndroid)
-                                ? 'screenshots + screen recording show as black to the system.'
-                                : 'screen recording + mirroring drops a privacy shield over the app.'
-                            : 'screenshots and recordings work normally outside ephemeral rooms.',
+                                ? AppLocalizations.of(context).countBadgeCaptureProtectionOnAndroidBody
+                                : AppLocalizations.of(context).countBadgeCaptureProtectionOnIosBody
+                            : AppLocalizations.of(context).countBadgeCaptureProtectionOffBody,
                         style: theme.bodySoft,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'ephemeral (chamber of secrets) rooms always force this on regardless.',
+                        AppLocalizations.of(context).countBadgeCaptureProtectionForcedNote,
                         style: theme.bodySoft.copyWith(color: theme.accent),
                       ),
                     ],

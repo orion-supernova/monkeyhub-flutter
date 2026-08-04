@@ -4,6 +4,7 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -88,11 +89,13 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
     if (_busy) return;
     final username = _username.text.trim();
     if (username.isEmpty) {
-      setState(() => _error = 'Enter your username.');
+      setState(() => _error =
+          AppLocalizations.of(context).audioMessageUsernameRequiredError);
       return;
     }
     if (_mode == _Mode.link && _password.text.isEmpty) {
-      setState(() => _error = 'Enter your password.');
+      setState(() => _error =
+          AppLocalizations.of(context).audioMessagePasswordRequiredError);
       return;
     }
 
@@ -169,7 +172,8 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                     child: FocusableTap(
                       onTap: _busy ? null : () => Navigator.of(context).pop(),
                       enabled: !_busy,
-                      semanticLabel: 'Cancel',
+                      semanticLabel:
+                          AppLocalizations.of(context).audioMessageCancelSemanticLabel,
                       radius: theme.radiusSm,
                       child: GestureDetector(
                         onTap: _busy ? null : () => Navigator.of(context).pop(),
@@ -196,12 +200,20 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                               TextSpan(
                                 children: [
                                   TextSpan(
-                                    text: creating ? 'almost\n' : 'welcome\n',
+                                    text: creating
+                                        ? AppLocalizations.of(context)
+                                            .audioMessageHeroCreateLine1
+                                        : AppLocalizations.of(context)
+                                            .audioMessageHeroLinkLine1,
                                     style: theme.displayHero
                                         .copyWith(color: theme.inkMuted),
                                   ),
                                   TextSpan(
-                                    text: creating ? 'there.' : 'back.',
+                                    text: creating
+                                        ? AppLocalizations.of(context)
+                                            .audioMessageHeroCreateLine2
+                                        : AppLocalizations.of(context)
+                                            .audioMessageHeroLinkLine2,
                                     style: theme.displayHero,
                                   ),
                                 ],
@@ -210,14 +222,17 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                             const SizedBox(height: 12),
                             Text(
                               creating
-                                  ? 'Pick a username so your family and friends can find you.'
-                                  : 'Sign in once and $_provider is attached to your account.',
+                                  ? AppLocalizations.of(context)
+                                      .audioMessageCreateSubtitle
+                                  : AppLocalizations.of(context)
+                                      .audioMessageLinkSubtitle(_provider),
                               style: theme.bodySoft,
                             ),
                             const SizedBox(height: 28),
                             ThemedInput(
                               controller: _username,
-                              hint: 'username',
+                              hint: AppLocalizations.of(context)
+                                  .audioMessageUsernameHint,
                               autocorrect: false,
                               enableSuggestions: false,
                               autofocus: isPhysicalKeyboardPlatform,
@@ -229,14 +244,16 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                             if (creating)
                               ThemedInput(
                                 controller: _name,
-                                hint: 'display name (optional)',
+                                hint: AppLocalizations.of(context)
+                                    .audioMessageDisplayNameHint,
                                 textInputAction: TextInputAction.done,
                                 onSubmitted: (_) => _submit(),
                               )
                             else
                               PasswordField(
                                 controller: _password,
-                                hint: 'password',
+                                hint: AppLocalizations.of(context)
+                                    .audioMessagePasswordHint,
                                 textInputAction: TextInputAction.done,
                                 onSubmitted: (_) => _submit(),
                               ),
@@ -261,7 +278,8 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                                     if (_offerLink) ...[
                                       const SizedBox(height: 8),
                                       _TextLink(
-                                        label: 'That one\'s mine — sign in',
+                                        label: AppLocalizations.of(context)
+                                            .audioMessageSwitchToLinkPrompt,
                                         onTap: () => _switchTo(_Mode.link),
                                       ),
                                     ],
@@ -273,16 +291,21 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                             _Cta(
                               busy: _busy,
                               label: creating
-                                  ? 'CREATE ACCOUNT'
-                                  : 'SIGN IN & LINK $_provider'.toUpperCase(),
+                                  ? AppLocalizations.of(context)
+                                      .audioMessageCreateAccountButton
+                                  : AppLocalizations.of(context)
+                                      .audioMessageSignInLinkButton(_provider)
+                                      .toUpperCase(),
                               onTap: _submit,
                             ),
                             const SizedBox(height: 18),
                             Center(
                               child: _TextLink(
                                 label: creating
-                                    ? 'Already have an account?'
-                                    : 'New here? Create an account',
+                                    ? AppLocalizations.of(context)
+                                        .audioMessageSwitchToLinkModeLink
+                                    : AppLocalizations.of(context)
+                                        .audioMessageSwitchToCreateModeLink,
                                 onTap: () => _switchTo(
                                   creating ? _Mode.link : _Mode.create,
                                 ),

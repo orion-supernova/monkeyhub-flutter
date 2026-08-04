@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/connection_health.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
@@ -68,6 +69,7 @@ class _Strip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final stalled = phase == ConnectionPhase.stalled;
     final body = Container(
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 0),
@@ -104,9 +106,9 @@ class _Strip extends StatelessWidget {
           Text(
             stalled
                 ? (health.isRetrying
-                      ? 'retrying…'
-                      : "can't reach server · tap to retry")
-                : 'reconnecting…',
+                      ? l10n.attachmentMenuConnectionRetrying
+                      : l10n.attachmentMenuConnectionCantReachServer)
+                : l10n.attachmentMenuConnectionReconnecting,
             style: theme.monoTiny.copyWith(
               color: stalled ? theme.ink : theme.inkSoft,
             ),
@@ -123,7 +125,7 @@ class _Strip extends StatelessWidget {
     return FocusableTap(
       onTap: health.retryNow,
       radius: theme.radiusMd,
-      semanticLabel: 'Retry connection',
+      semanticLabel: l10n.attachmentMenuConnectionRetrySemanticLabel,
       // BOTH handlers are required, and this is not belt-and-braces.
       // FocusableTap registers NO gesture recognizer — it binds onTap to
       // Enter/Space only — so without the detector's own onTap the banner is

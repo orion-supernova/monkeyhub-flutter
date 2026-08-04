@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/preview_luminance.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
@@ -891,9 +892,11 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   Widget _faultBody() {
     final message = switch (_fault!) {
       _Fault.denied =>
-        'camera access is off.\nturn it on in Settings to take a photo.',
-      _Fault.unavailable => 'opening the system camera…',
-      _Fault.failed => 'opening the system camera…',
+        AppLocalizations.of(context).cameraScreenAccessDeniedMessage,
+      _Fault.unavailable =>
+        AppLocalizations.of(context).cameraScreenOpeningSystemCamera,
+      _Fault.failed =>
+        AppLocalizations.of(context).cameraScreenOpeningSystemCamera,
     };
     // Anything that is not the user saying no hands off to the system camera
     // rather than stranding them on an error. Deferred a frame so this build
@@ -935,7 +938,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             children: [
               PhotoGlassButton(
                 icon: CupertinoIcons.xmark,
-                semanticLabel: 'close camera',
+                semanticLabel:
+                    AppLocalizations.of(context).cameraScreenCloseButtonLabel,
                 onTap: _capturing ? null : () => Navigator.of(context).pop(),
               ),
               const Spacer(),
@@ -945,8 +949,11 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               if (_ready && _boostAvailable) ...[
                 PhotoGlassButton(
                   icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
-                  semanticLabel:
-                      _boost ? 'low-light boost: on' : 'low-light boost: off',
+                  semanticLabel: _boost
+                      ? AppLocalizations.of(context)
+                          .cameraScreenLowLightBoostOnLabel
+                      : AppLocalizations.of(context)
+                          .cameraScreenLowLightBoostOffLabel,
                   onTap: _capturing ? null : _toggleBoost,
                   tint: _boost
                       ? const Color(0xFF7FA8FF).withValues(alpha: 0.85)
@@ -965,7 +972,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                     FlashMode.off => CupertinoIcons.bolt_slash_fill,
                     _ => CupertinoIcons.bolt_fill,
                   },
-                  semanticLabel: 'flash: ${_flash.name}',
+                  semanticLabel: AppLocalizations.of(context)
+                      .cameraScreenFlashStatusLabel(_flash.name),
                   onTap: _capturing ? null : _cycleFlash,
                   tint: _flash == FlashMode.off
                       ? null
@@ -994,7 +1002,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                     alignment: Alignment.centerLeft,
                     child: PhotoGlassButton(
                       icon: CupertinoIcons.photo_on_rectangle,
-                      semanticLabel: 'choose from library',
+                      semanticLabel: AppLocalizations.of(context)
+                          .cameraScreenChooseFromLibraryLabel,
                       size: 38,
                       iconSize: 17,
                       onTap: _capturing
@@ -1021,7 +1030,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                           alignment: Alignment.centerRight,
                           child: PhotoGlassButton(
                             icon: CupertinoIcons.camera_rotate,
-                            semanticLabel: 'switch camera',
+                            semanticLabel: AppLocalizations.of(context)
+                                .cameraScreenSwitchCameraLabel,
                             onTap: _capturing ? null : _flip,
                           ),
                         ),
@@ -1085,7 +1095,7 @@ class _ShutterButtonState extends State<_ShutterButton> {
     final enabled = widget.onTap != null;
     return FocusableTap(
       onTap: widget.onTap,
-      semanticLabel: 'take photo',
+      semanticLabel: AppLocalizations.of(context).cameraScreenTakePhotoLabel,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         onTap: widget.onTap,

@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
@@ -41,16 +42,17 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
     Duration(hours: 1),
   ];
 
-  String _fmtTtl(Duration d) {
-    if (d.inSeconds < 60) return '${d.inSeconds}s';
-    if (d.inMinutes < 60) return '${d.inMinutes}m';
-    return '${d.inHours}h';
+  String _fmtTtl(BuildContext context, Duration d) {
+    final l10n = AppLocalizations.of(context);
+    if (d.inSeconds < 60) return l10n.createRoomSheetTtlSeconds(d.inSeconds);
+    if (d.inMinutes < 60) return l10n.createRoomSheetTtlMinutes(d.inMinutes);
+    return l10n.createRoomSheetTtlHours(d.inHours);
   }
 
   Future<void> _create() async {
     final n = _name.text.trim();
     if (n.isEmpty) {
-      setState(() => _error = 'name is required');
+      setState(() => _error = AppLocalizations.of(context).createRoomSheetNameRequiredError);
       return;
     }
     setState(() {
@@ -139,7 +141,8 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('new room', style: theme.displayLarge),
+                                Text(AppLocalizations.of(context).createRoomSheetTitle,
+                                    style: theme.displayLarge),
                                 const SizedBox(height: 6),
                                 Row(children: [
                                   Container(
@@ -153,8 +156,8 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                                   const SizedBox(width: 10),
                                   Text(
                                     _type == RoomType.secret
-                                        ? 'NOTHING WILL BE KEPT'
-                                        : 'A SPACE THAT STAYS',
+                                        ? AppLocalizations.of(context).createRoomSheetTaglineSecret
+                                        : AppLocalizations.of(context).createRoomSheetTaglineRegular,
                                     style: theme.caption.copyWith(
                                       color: theme.accent,
                                       letterSpacing: 2.0,
@@ -183,25 +186,25 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                       ),
                       const SizedBox(height: 26),
                       LabeledField(
-                        label: 'NAME',
+                        label: AppLocalizations.of(context).createRoomSheetNameLabel,
                         controller: _name,
-                        hint: 'name it something honest…',
+                        hint: AppLocalizations.of(context).createRoomSheetNameHint,
                         textInputAction: TextInputAction.next,
                         onSubmitted: (_) =>
                             FocusScope.of(context).nextFocus(),
                       ),
                       const SizedBox(height: 18),
                       LabeledField(
-                        label: 'DESCRIPTION · OPTIONAL',
+                        label: AppLocalizations.of(context).createRoomSheetDescriptionLabel,
                         controller: _desc,
-                        hint: 'one line about the room…',
+                        hint: AppLocalizations.of(context).createRoomSheetDescriptionHint,
                         textInputAction: TextInputAction.done,
                         // Same guard as the CTA, so Enter can't create a room
                         // the button is currently refusing to.
                         onSubmitted: (_) => _busy ? null : _create(),
                       ),
                       const SizedBox(height: 22),
-                      const FieldLabel('VISIBILITY'),
+                      FieldLabel(AppLocalizations.of(context).createRoomSheetVisibilityLabel),
                       Row(children: [
                         Expanded(
                           child: _seg(
@@ -212,8 +215,8 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                               setState(() => _isPrivate = false);
                             },
                             icon: theme.visibilityIcon(isPublic: true, size: 14),
-                            title: 'public',
-                            sub: 'anyone can find it',
+                            title: AppLocalizations.of(context).createRoomSheetVisibilityPublicTitle,
+                            sub: AppLocalizations.of(context).createRoomSheetVisibilityPublicSub,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -226,13 +229,13 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                               setState(() => _isPrivate = true);
                             },
                             icon: theme.visibilityIcon(isPublic: false, size: 14),
-                            title: 'private',
-                            sub: 'invite only',
+                            title: AppLocalizations.of(context).createRoomSheetVisibilityPrivateTitle,
+                            sub: AppLocalizations.of(context).createRoomSheetVisibilityPrivateSub,
                           ),
                         ),
                       ]),
                       const SizedBox(height: 22),
-                      const FieldLabel('TYPE'),
+                      FieldLabel(AppLocalizations.of(context).createRoomSheetTypeLabel),
                       Row(children: [
                         Expanded(
                           child: _seg(
@@ -243,8 +246,8 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                               setState(() => _type = RoomType.regular);
                             },
                             icon: Icon(CupertinoIcons.number, size: 14, color: theme.inkSoft),
-                            title: 'standard',
-                            sub: 'messages persist',
+                            title: AppLocalizations.of(context).createRoomSheetTypeStandardTitle,
+                            sub: AppLocalizations.of(context).createRoomSheetTypeStandardSub,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -257,8 +260,8 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                               setState(() => _type = RoomType.secret);
                             },
                             icon: theme.hourglassIcon(size: 14, color: theme.accent),
-                            title: 'ephemeral',
-                            sub: 'auto-deletes',
+                            title: AppLocalizations.of(context).createRoomSheetTypeEphemeralTitle,
+                            sub: AppLocalizations.of(context).createRoomSheetTypeEphemeralSub,
                             highlight: true,
                           ),
                         ),
@@ -275,9 +278,9 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Row(children: [
-                                const FieldLabel('MESSAGE LIFE'),
+                                FieldLabel(AppLocalizations.of(context).createRoomSheetMessageLifeLabel),
                                 const Spacer(),
-                                Text(_fmtTtl(_ttl),
+                                Text(_fmtTtl(context, _ttl),
                                     style: theme.monoLarge.copyWith(color: theme.accent)),
                               ]),
                               const SizedBox(height: 10),
@@ -296,7 +299,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                                             horizontal: 14, vertical: 9),
                                         decoration: theme.chipDecoration(filled: _ttl == t),
                                         child: Text(
-                                          _fmtTtl(t),
+                                          _fmtTtl(context, t),
                                           style: theme.label.copyWith(
                                               color: _ttl == t
                                                   ? theme.accentInk
@@ -315,9 +318,9 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                       // hidden yet open. Show the field for both.
                       const SizedBox(height: 22),
                       PasswordField(
-                        label: 'PASSWORD · OPTIONAL',
+                        label: AppLocalizations.of(context).createRoomSheetPasswordLabel,
                         controller: _password,
-                        hint: 'lock with a passphrase…',
+                        hint: AppLocalizations.of(context).createRoomSheetPasswordHint,
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: 14),
@@ -337,7 +340,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                       FocusableTap(
                         onTap: _busy ? null : _create,
                         enabled: !_busy,
-                        semanticLabel: 'Open the room',
+                        semanticLabel: AppLocalizations.of(context).createRoomSheetOpenRoomSemanticLabel,
                         radius: theme.radiusLg,
                         child: GestureDetector(
                         onTap: _busy ? null : _create,
@@ -368,7 +371,7 @@ class _CreateRoomSheetState extends State<CreateRoomSheet> {
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text('OPEN THE ROOM',
+                                    Text(AppLocalizations.of(context).createRoomSheetOpenRoomButton,
                                         style: theme.label.copyWith(
                                             color: theme.accentInk,
                                             letterSpacing: 2.4)),

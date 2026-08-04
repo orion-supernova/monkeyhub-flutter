@@ -22,6 +22,7 @@ import '../data/room_content_selection.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/file_meta.dart';
 import '../media/video_poster.dart';
 import '../media/image_raster.dart';
@@ -729,7 +730,7 @@ class _RoomScreenState extends State<RoomScreen>
     final blockedOutright = isChildBlockedOutright(gate);
     final wantsToAsk = await showApprovalGate(
       context,
-      what: 'send messages here',
+      what: AppLocalizations.of(context).roomScreenGateSendMessages,
       canAsk: !blockedOutright && uid != null,
     );
     if (!wantsToAsk || uid == null) return;
@@ -742,7 +743,7 @@ class _RoomScreenState extends State<RoomScreen>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('couldn\'t ask right now — try again')),
+        SnackBar(content: Text(AppLocalizations.of(context).roomScreenAskGrownUpFailedSnack)),
       );
     }
   }
@@ -786,7 +787,11 @@ class _RoomScreenState extends State<RoomScreen>
   void _toggleSelection(ChatMessage m) {
     if (!_selection.contains(m.id) && _selection.count >= _kMaxSelected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('up to $_kMaxSelected at a time')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).roomScreenMaxSelectionSnack(_kMaxSelected),
+          ),
+        ),
       );
       return;
     }
@@ -858,13 +863,12 @@ class _RoomScreenState extends State<RoomScreen>
     if (picked.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
 
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showConfirmSheet(
       context,
-      headline: picked.length == 1
-          ? 'DELETE MESSAGE'
-          : 'DELETE ${picked.length} MESSAGES',
-      body: 'This removes them for everyone in this chat. It cannot be undone.',
-      confirmLabel: 'DELETE FOR EVERYONE',
+      headline: l10n.roomScreenDeleteMessageHeadline(picked.length),
+      body: l10n.roomScreenDeleteConfirmBody,
+      confirmLabel: l10n.roomScreenDeleteConfirmButton,
     );
     if (!confirmed || !mounted) return;
 
@@ -1083,7 +1087,7 @@ class _RoomScreenState extends State<RoomScreen>
     }
     setState(() => _jumpTargetId = null);
     messenger?.showSnackBar(
-      const SnackBar(content: Text("couldn't jump to that message")),
+      SnackBar(content: Text(AppLocalizations.of(context).roomScreenJumpFailedSnack)),
     );
     return false;
   }
@@ -1187,7 +1191,7 @@ class _RoomScreenState extends State<RoomScreen>
     if (FamilyService.maybeInstance?.canSendMedia == false) {
       await showApprovalGate(
         context,
-        what: 'send pictures or voice notes',
+        what: AppLocalizations.of(context).roomScreenGateSendMedia,
         canAsk: false,
       );
       return false;
@@ -1350,12 +1354,13 @@ class _RoomScreenState extends State<RoomScreen>
       await ViewOnceViewer.open(context, bytes: bytes);
       return;
     }
+    final l10n = AppLocalizations.of(context);
     messenger.showSnackBar(
       SnackBar(
         content: Text(switch (res.failure!) {
-          ViewOnceFailure.alreadyViewed => 'you\'ve already opened this photo.',
-          ViewOnceFailure.gone => 'this photo is no longer available.',
-          ViewOnceFailure.network => 'couldn\'t load that photo.',
+          ViewOnceFailure.alreadyViewed => l10n.roomScreenViewOnceAlreadyViewed,
+          ViewOnceFailure.gone => l10n.roomScreenViewOnceGone,
+          ViewOnceFailure.network => l10n.roomScreenViewOnceNetworkError,
         }),
       ),
     );
@@ -1475,8 +1480,9 @@ class _RoomScreenState extends State<RoomScreen>
       try {
         bytes = await picked.readAsBytes();
       } catch (_) {
+        if (!mounted) return;
         messenger.showSnackBar(
-          const SnackBar(content: Text("couldn't read that file")),
+          SnackBar(content: Text(AppLocalizations.of(context).roomScreenFileReadFailedSnack)),
         );
         return;
       }
@@ -1491,7 +1497,9 @@ class _RoomScreenState extends State<RoomScreen>
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'files are capped at ${formatFileSize(kMaxFileUploadBytes)}',
+              AppLocalizations.of(context).roomScreenFileSizeCapSnack(
+                formatFileSize(kMaxFileUploadBytes),
+              ),
             ),
           ),
         );
@@ -1589,7 +1597,12 @@ class _RoomScreenState extends State<RoomScreen>
     if (room == null) {
       return Scaffold(
         backgroundColor: theme.background,
-        body: Center(child: Text('room gone', style: theme.bodySoft)),
+        body: Center(
+          child: Text(
+            AppLocalizations.of(context).roomScreenRoomGone,
+            style: theme.bodySoft,
+          ),
+        ),
       );
     }
     // timelineFor, not messagesFor: after a jump into old history the
@@ -2169,23 +2182,30 @@ class _RoomScreenState extends State<RoomScreen>
                       break;
                     case MessageAction.copy:
                       await Clipboard.setData(ClipboardData(text: m.content));
-                      messenger.showSnackBar(const SnackBar(content: Text('copied')));
+                      if (!context.mounted) return;
+                      messenger.showSnackBar(SnackBar(
+                          content: Text(AppLocalizations.of(context)
+                              .roomScreenCopiedSnack)));
                       break;
                     case MessageAction.copyName:
                       await Clipboard.setData(
                           ClipboardData(text: m.fileName ?? ''));
+                      if (!context.mounted) return;
                       messenger.showSnackBar(
-                          const SnackBar(content: Text('name copied')));
+                          SnackBar(content: Text(AppLocalizations.of(context)
+                              .roomScreenNameCopiedSnack)));
                       break;
                     case MessageAction.pin:
                       final err = await widget.repo.pinMessage(room.id, m.id);
                       // Surfaced rather than swallowed: the cap is the only
                       // way this fails, and silence would read as a dead menu.
                       if (err != null) {
+                        if (!context.mounted) return;
+                        final l10n = AppLocalizations.of(context);
                         messenger.showSnackBar(SnackBar(
                           content: Text(err == 'PIN_LIMIT_REACHED'
-                              ? 'too many pins — unpin one first'
-                              : "couldn't pin that"),
+                              ? l10n.roomScreenPinLimitSnack
+                              : l10n.roomScreenPinFailedSnack),
                         ));
                       }
                       break;
@@ -2210,9 +2230,10 @@ class _RoomScreenState extends State<RoomScreen>
                           targetId: m.id,
                           reason: reason,
                         );
-                        if (!mounted) return;
+                        if (!context.mounted) return;
                         messenger.showSnackBar(
-                          const SnackBar(content: Text('report sent privately. they won\'t be notified.')),
+                          SnackBar(content: Text(AppLocalizations.of(context)
+                              .roomScreenReportSentSnack)),
                         );
                       } catch (_) {}
                       break;
@@ -2485,9 +2506,12 @@ class _SelectableRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: selected ? 'Deselect message' : 'Select message',
+      semanticLabel: selected
+          ? l10n.roomScreenDeselectMessageSemantic
+          : l10n.roomScreenSelectMessageSemantic,
       radius: theme.radiusMd,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -2607,7 +2631,11 @@ class _Header extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: theme.chipDecoration(),
-                          child: Text('${room.memberCount} INSIDE', style: theme.monoTiny),
+                          child: Text(
+                            AppLocalizations.of(context)
+                                .roomScreenMemberCountBadge(room.memberCount),
+                            style: theme.monoTiny,
+                          ),
                         ),
                       ],
                       if (room.isEphemeral && room.messageLifetime != null)
@@ -2622,7 +2650,7 @@ class _Header extends StatelessWidget {
                         const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            typingLabel(typing),
+                            typingLabel(context, typing),
                             style: theme.monoTiny.copyWith(color: theme.accent),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2655,10 +2683,11 @@ class _Header extends StatelessWidget {
   }
 }
 
-String _fmtTtl(Duration d) {
-  if (d.inSeconds < 60) return '${d.inSeconds} seconds';
-  if (d.inMinutes < 60) return '${d.inMinutes} minutes';
-  return '${d.inHours} hours';
+String _fmtTtl(BuildContext context, Duration d) {
+  final l10n = AppLocalizations.of(context);
+  if (d.inSeconds < 60) return l10n.roomScreenTtlSeconds(d.inSeconds);
+  if (d.inMinutes < 60) return l10n.roomScreenTtlMinutes(d.inMinutes);
+  return l10n.roomScreenTtlHours(d.inHours);
 }
 
 class _RoomIntro extends StatelessWidget {
@@ -2688,7 +2717,9 @@ class _RoomIntro extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'this room is ephemeral. messages dissolve after ${_fmtTtl(room.messageLifetime!)}, read or unread.',
+                    AppLocalizations.of(context).roomScreenEphemeralNotice(
+                      _fmtTtl(context, room.messageLifetime!),
+                    ),
                     style: theme.caption.copyWith(color: theme.accent),
                   ),
                 ),
@@ -2776,7 +2807,8 @@ class _ThreadFoldChip extends StatelessWidget {
                   // "MESSAGES", never "REPLIES": nothing denormalizes a thread
                   // size server-side, so the only number we can honestly show
                   // is how many *loaded* messages are folded right here.
-                  '${fold.count} MESSAGES',
+                  AppLocalizations.of(context)
+                      .roomScreenThreadFoldCount(fold.count),
                   style: theme.monoTiny.copyWith(
                     color: theme.inkSoft,
                     letterSpacing: 1.4,
@@ -2924,13 +2956,13 @@ class _SecretSpaceWelcome extends StatelessWidget {
                   ),
                   const SizedBox(height: 28),
                   Text(
-                    'Secret Space',
+                    AppLocalizations.of(context).roomScreenSecretSpaceTitle,
                     style: theme.displayMedium.copyWith(color: theme.ink, fontWeight: FontWeight.w700),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "Messages in this room are ephemeral. They are automatically removed based on the room's security policy.",
+                    AppLocalizations.of(context).roomScreenSecretSpaceBody,
                     style: theme.body.copyWith(color: theme.inkMuted),
                     textAlign: TextAlign.center,
                   ),
@@ -2942,26 +2974,28 @@ class _SecretSpaceWelcome extends StatelessWidget {
                         Expanded(
                           child: _PrivateFeatureCard(
                             icon: CupertinoIcons.timer,
-                            title: 'Auto-Delete',
-                            subtitle: ttl != null ? 'Varies' : 'Timed',
+                            title: AppLocalizations.of(context).roomScreenAutoDeleteTitle,
+                            subtitle: ttl != null
+                                ? AppLocalizations.of(context).roomScreenAutoDeleteVaries
+                                : AppLocalizations.of(context).roomScreenAutoDeleteTimed,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: _PrivateFeatureCard(
                             icon: CupertinoIcons.hand_raised_fill,
-                            title: 'No Capture',
-                            subtitle: 'Screenshots Restricted',
+                            title: AppLocalizations.of(context).roomScreenNoCaptureTitle,
+                            subtitle: AppLocalizations.of(context).roomScreenNoCaptureSubtitle,
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const _PrivateFeatureCard(
+                  _PrivateFeatureCard(
                     icon: CupertinoIcons.lock_fill,
-                    title: 'Much More Privacy',
-                    subtitle: 'Enjoy extra security features on top of already existing privacy focus.',
+                    title: AppLocalizations.of(context).roomScreenMorePrivacyTitle,
+                    subtitle: AppLocalizations.of(context).roomScreenMorePrivacySubtitle,
                     isFullWidth: true,
                   ),
                 ],
@@ -3071,10 +3105,13 @@ class _NoMessagesPlaceholder extends StatelessWidget {
         children: [
           Icon(CupertinoIcons.bubble_left, size: 44, color: theme.inkMuted),
           const SizedBox(height: 14),
-          Text('No Messages', style: theme.bodyEmph.copyWith(color: theme.inkSoft)),
+          Text(
+            AppLocalizations.of(context).roomScreenNoMessagesTitle,
+            style: theme.bodyEmph.copyWith(color: theme.inkSoft),
+          ),
           const SizedBox(height: 6),
           Text(
-            'Start the conversation by sending a message',
+            AppLocalizations.of(context).roomScreenNoMessagesSubtitle,
             style: theme.body.copyWith(color: theme.inkMuted),
             textAlign: TextAlign.center,
           ),
@@ -3181,7 +3218,9 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
     return FocusableTap(
       onTap: _openAvatarFullscreen,
       shape: FocusRingShape.circle,
-      semanticLabel: widget.dmUser != null ? 'view profile picture' : 'view room picture',
+      semanticLabel: widget.dmUser != null
+          ? AppLocalizations.of(context).roomScreenViewProfilePictureSemantic
+          : AppLocalizations.of(context).roomScreenViewRoomPictureSemantic,
       child: GestureDetector(
         onTap: _openAvatarFullscreen,
         child: SteadyHero(

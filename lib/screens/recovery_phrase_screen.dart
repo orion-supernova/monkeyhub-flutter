@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../auth/auth_errors.dart';
 import '../auth/recovery_phrase.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
@@ -127,7 +128,11 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     // screen hashes identically. See RecoveryPhrase.canonical.
     Clipboard.setData(ClipboardData(text: widget.phrase.canonical));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('copied — paste it somewhere safe')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).recoveryPhraseScreenCopiedSnackbar,
+        ),
+      ),
     );
   }
 
@@ -211,40 +216,52 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
 
   // ───────────────────────────── password ─────────────────────────────
 
-  List<Widget> _passwordStep(AppTheme theme) => [
-        _Hero(
-          muted: 'confirm\n',
-          ink: 'it\'s you.',
+  List<Widget> _passwordStep(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      _Hero(
+        muted: l10n.recoveryPhraseScreenConfirmHeroMuted,
+        ink: l10n.recoveryPhraseScreenConfirmHeroInk,
+      ),
+      const SizedBox(height: 20),
+      Text(
+        l10n.recoveryPhraseScreenPasswordBody,
+        style: theme.bodySoft,
+      ),
+      const SizedBox(height: 24),
+      PasswordField(
+        controller: _password,
+        hint: l10n.recoveryPhraseScreenPasswordHint,
+        autofocus: isPhysicalKeyboardPlatform,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submitPassword(),
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 14),
+        _ErrorBanner(_error!),
+      ],
+      const SizedBox(height: 20),
+      _Cta(
+        label: l10n.recoveryPhraseScreenContinueButton,
+        busy: _busy,
+        onTap: _submitPassword,
+      ),
+      if (widget.dismissible) ...[
+        const SizedBox(height: 16),
+        _TextLink(
+          label: l10n.recoveryPhraseScreenNotNowLink,
+          onTap: () => Navigator.of(context).pop(false),
         ),
-        const SizedBox(height: 20),
-        Text(
-          'Your password, so nobody else can put a recovery phrase on '
-          'your account.',
-          style: theme.bodySoft,
-        ),
-        const SizedBox(height: 24),
-        PasswordField(
-          controller: _password,
-          hint: 'password',
-          autofocus: isPhysicalKeyboardPlatform,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _submitPassword(),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 14),
-          _ErrorBanner(_error!),
-        ],
-        const SizedBox(height: 20),
-        _Cta(label: 'CONTINUE', busy: _busy, onTap: _submitPassword),
-        if (widget.dismissible) ...[
-          const SizedBox(height: 16),
-          _TextLink(label: 'not now', onTap: () => Navigator.of(context).pop(false)),
-        ],
-      ];
+      ],
+    ];
+  }
 
   void _submitPassword() {
     if (_password.text.isEmpty) {
-      setState(() => _error = 'Enter your password.');
+      setState(
+        () => _error =
+            AppLocalizations.of(context).recoveryPhraseScreenEnterPasswordError,
+      );
       return;
     }
     _goTo(_Step.show);
@@ -252,45 +269,49 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
 
   // ─────────────────────────────── show ───────────────────────────────
 
-  List<Widget> _showStep(AppTheme theme) => [
-        _Hero(
-          muted: 'save\n',
-          ink: 'these words.',
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'These twelve words are the only way back into your account if you '
-          'forget your password. We can\'t show them to you again, and we '
-          'can\'t recover them for you.',
-          style: theme.bodySoft,
-        ),
-        const SizedBox(height: 24),
-        _PhraseGrid(words: widget.phrase.words),
+  List<Widget> _showStep(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
+    return [
+      _Hero(
+        muted: l10n.recoveryPhraseScreenSaveHeroMuted,
+        ink: l10n.recoveryPhraseScreenSaveHeroInk,
+      ),
+      const SizedBox(height: 20),
+      Text(
+        l10n.recoveryPhraseScreenWordsBody,
+        style: theme.bodySoft,
+      ),
+      const SizedBox(height: 24),
+      _PhraseGrid(words: widget.phrase.words),
+      const SizedBox(height: 16),
+      _OutlineCta(label: l10n.recoveryPhraseScreenCopyButton, onTap: _copy),
+      const SizedBox(height: 10),
+      Text(
+        // Honest rather than reassuring: on mobile the clipboard is readable
+        // by other apps. We deliberately do NOT try to clear it afterwards —
+        // that can't be done reliably and it would break the paste.
+        l10n.recoveryPhraseScreenPaperHint,
+        style: theme.monoTiny.copyWith(color: theme.inkMuted),
+      ),
+      if (_error != null) ...[
+        const SizedBox(height: 14),
+        _ErrorBanner(_error!),
+      ],
+      const SizedBox(height: 24),
+      _Cta(
+        label: l10n.recoveryPhraseScreenSavedButton,
+        busy: _busy,
+        onTap: _save,
+      ),
+      if (_backLabel(l10n) != null) ...[
         const SizedBox(height: 16),
-        _OutlineCta(label: 'COPY', onTap: _copy),
-        const SizedBox(height: 10),
-        Text(
-          // Honest rather than reassuring: on mobile the clipboard is readable
-          // by other apps. We deliberately do NOT try to clear it afterwards —
-          // that can't be done reliably and it would break the paste.
-          'If you can, write them on paper. Anything on this phone can be '
-          'lost with the phone.',
-          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+        _TextLink(
+          label: _backLabel(l10n)!,
+          onTap: () => Navigator.of(context).pop(false),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 14),
-          _ErrorBanner(_error!),
-        ],
-        const SizedBox(height: 24),
-        _Cta(label: 'I SAVED THEM', busy: _busy, onTap: _save),
-        if (_backLabel != null) ...[
-          const SizedBox(height: 16),
-          _TextLink(
-            label: _backLabel!,
-            onTap: () => Navigator.of(context).pop(false),
-          ),
-        ],
-      ];
+      ],
+    ];
+  }
 
   /// The escape hatch, offered only where leaving costs the user nothing.
   ///
@@ -298,9 +319,11 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   ///  * rotate — the OLD phrase stays valid right up until onCommit succeeds.
   ///  * repair, dismissible — the one-time "not now" for existing accounts.
   ///  * repair, not dismissible — post-reset rotation. No way out but forward.
-  String? get _backLabel {
-    if (widget.mode == RecoveryGateMode.setup) return '← back';
-    if (widget.dismissible) return 'not now — keep my current phrase';
+  String? _backLabel(AppLocalizations l10n) {
+    if (widget.mode == RecoveryGateMode.setup) {
+      return l10n.recoveryPhraseScreenBackLink;
+    }
+    if (widget.dismissible) return l10n.recoveryPhraseScreenKeepPhraseLink;
     return null;
   }
 

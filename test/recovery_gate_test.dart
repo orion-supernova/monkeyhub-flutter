@@ -6,6 +6,7 @@ import 'package:monkeyhub/auth/recovery_phrase.dart';
 import 'package:monkeyhub/screens/recovery_phrase_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The save-your-recovery-phrase gate.
 ///
@@ -31,6 +32,8 @@ void main() {
   }
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: child,
@@ -48,6 +51,8 @@ void main() {
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           navigatorKey: nav,
           home: Builder(
             builder: (context) => TextButton(

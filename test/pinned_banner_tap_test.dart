@@ -8,6 +8,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
 import 'package:monkeyhub/widgets/pinned_banner.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// [FocusableTap] registers NO gesture recognizer of its own — it adds the
 /// focus node, the Enter/Space binding and the semantics, and nothing else. So
@@ -41,6 +42,8 @@ void main() {
   );
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

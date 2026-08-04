@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_service.dart';
 import 'backend/call_api.dart';
@@ -24,6 +25,7 @@ import 'data/settings_store.dart';
 import 'family/family_service.dart';
 import 'env.dart';
 import 'auth/recovery_gate.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'media/audio_file_cache.dart';
 import 'media/file_url_cache.dart';
@@ -87,9 +89,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // AnimatedBuilder.didUpdateWidget into a remove-then-add cycle, which has
   // been observed to drop the subscription after a sign-out → sign-in
   // toggle and leave the LoginScreen → HomeShell swap stranded).
+  // SettingsStore is included so a language change (see LanguageScreen)
+  // takes effect immediately — MaterialApp.locale reads it directly below —
+  // instead of waiting for the next screen that happens to rebuild.
   late final Listenable _appListenable = Listenable.merge([
     _themeController,
     _auth,
+    SettingsStore.instance,
   ]);
 
   bool _bootstrapped = false;
@@ -586,6 +592,21 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             debugShowCheckedModeBanner: false,
             navigatorKey: rootNavigatorKey,
             title: 'MonkeyHub',
+            // Null follows the system language, resolved against
+            // supportedLocales by Flutter's default algorithm (falls back to
+            // the first entry — English — when the device locale isn't
+            // supported). A saved SettingsStore.localeCode pins the app to
+            // that language regardless of the device. See LanguageScreen.
+            locale: SettingsStore.instance.localeCode != null
+                ? Locale(SettingsStore.instance.localeCode!)
+                : null,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
             builder: (context, child) {
               // _WindowClassProvider hosts the single app-wide LayoutBuilder
               // ABOVE the root navigator, so every route — the shell and any
@@ -849,9 +870,12 @@ class _CallOverlayState extends State<_CallOverlay> {
       // When the tab isn't focused the in-app ringer never mounts (no frames),
       // so surface a persistent OS banner. No-op off web / when focused.
       if (!WebNotifier.isFocused) {
+        final l10n = AppLocalizations.of(context);
         WebNotifier.showCall(
-          title: 'Incoming call',
-          body: s.peerName.isNotEmpty ? s.peerName : 'Someone is calling',
+          title: l10n.incomingCallNotificationTitle,
+          body: s.peerName.isNotEmpty
+              ? s.peerName
+              : l10n.incomingCallFallbackCaller,
         );
       }
     } else {
@@ -966,7 +990,7 @@ class _Splash extends StatelessWidget {
                 const AppBrandMark(size: 56),
                 const SizedBox(height: 18),
                 Text(
-                  'MONKEYHUB',
+                  AppLocalizations.of(context).splashBrand,
                   style: theme.label.copyWith(letterSpacing: 4),
                 ),
               ],
@@ -1001,7 +1025,7 @@ class _BootError extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'CAN’T REACH SERVER',
+                        AppLocalizations.of(context).bootErrorTitle,
                         style: theme.label.copyWith(
                           color: theme.danger,
                           letterSpacing: 2.4,
@@ -1009,7 +1033,7 @@ class _BootError extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'Convex didn’t initialize.',
+                        AppLocalizations.of(context).bootErrorBody,
                         style: theme.displayLarge,
                       ),
                       const SizedBox(height: 12),
@@ -1040,7 +1064,7 @@ class _BootError extends StatelessWidget {
                             borderRadius: BorderRadius.circular(theme.radiusMd),
                           ),
                           child: Text(
-                            'RETRY',
+                            AppLocalizations.of(context).bootErrorRetry,
                             style: theme.label.copyWith(
                               color: theme.accentInk,
                               letterSpacing: 2.4,

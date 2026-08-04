@@ -10,6 +10,7 @@ import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/submit_on_enter.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
@@ -185,16 +186,17 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     }
     final nav = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
     nav.pop();
     messenger.showSnackBar(SnackBar(
       content: Text(accepted
-          ? '${_otherUser.displayName} accepted your request'
+          ? loc.friendRequestDraftScreenAcceptedSnackbar(_otherUser.displayName)
           : _isIncoming
-              ? 'that request was withdrawn'
+              ? loc.friendRequestDraftScreenWithdrawnSnackbar
               // Deliberately not "they declined": for a supervised sender the
               // "no" may have come from a grown-up, and the row's absence
               // can't tell the two apart.
-              : 'request declined'),
+              : loc.friendRequestDraftScreenDeclinedSnackbar),
     ));
   }
 
@@ -239,6 +241,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     // a no-op. Creating a fresh request, however, can fire with no message.
     if (!isCreating && text.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
     setState(() => _busy = true);
     _composer.clear();
 
@@ -267,10 +270,10 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       // "couldn't send" — it must never reveal it's a block.
       final s = e.toString();
       final msg = s.contains('UNBLOCK_FIRST')
-          ? 'you blocked this user — unblock first.'
+          ? loc.friendRequestDraftScreenErrorBlocked
           : s.contains('NOT_ACCEPTING_REQUESTS')
-              ? 'they\'re not accepting friend requests right now.'
-              : 'couldn\'t send. try again.';
+              ? loc.friendRequestDraftScreenErrorNotAccepting
+              : loc.friendRequestDraftScreenErrorSendFailed;
       messenger.showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -440,7 +443,10 @@ class _Header extends StatelessWidget {
               children: [
                 Text(user.displayName, style: theme.displaySmall),
                 Row(children: [
-                  Text(isIncoming ? 'INCOMING REQUEST' : 'NEW REQUEST',
+                  Text(
+                      isIncoming
+                          ? AppLocalizations.of(context).friendRequestDraftScreenIncomingRequestLabel
+                          : AppLocalizations.of(context).friendRequestDraftScreenNewRequestLabel,
                       style: theme.monoTiny.copyWith(color: theme.accent)),
                   const SizedBox(width: 6),
                   if (roomType == RoomType.secret) EphemeralBadge(ttl: ttl, dense: true),
@@ -461,6 +467,7 @@ class _Intro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       padding: const EdgeInsets.all(16),
@@ -468,13 +475,13 @@ class _Intro extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(
           isIncoming
-              ? '${otherUser.displayName} wants to start a conversation.'
-              : 'send a few lines. they can approve or decline.',
+              ? loc.friendRequestDraftScreenIntroIncoming(otherUser.displayName)
+              : loc.friendRequestDraftScreenIntroOutgoing,
           style: theme.bodyEmph,
         ),
         const SizedBox(height: 8),
         Text(
-          'nothing here lives anywhere permanent until both sides agree.',
+          loc.friendRequestDraftScreenIntroFooter,
           style: theme.bodySoft,
         ),
       ]),
@@ -498,14 +505,16 @@ class _ComposeConfig extends StatelessWidget {
   final ValueChanged<Duration> onTtl;
   final List<Duration> ttls;
 
-  String _fmt(Duration d) {
-    if (d.inSeconds < 60) return '${d.inSeconds}s';
-    if (d.inMinutes < 60) return '${d.inMinutes}m';
-    return '${d.inHours}h';
+  String _fmt(BuildContext context, Duration d) {
+    final loc = AppLocalizations.of(context);
+    if (d.inSeconds < 60) return loc.friendRequestDraftScreenDurationSeconds(d.inSeconds);
+    if (d.inMinutes < 60) return loc.friendRequestDraftScreenDurationMinutes(d.inMinutes);
+    return loc.friendRequestDraftScreenDurationHours(d.inHours);
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
       decoration: BoxDecoration(
@@ -514,7 +523,7 @@ class _ComposeConfig extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ROOM TYPE', style: theme.label),
+          Text(loc.friendRequestDraftScreenRoomTypeLabel, style: theme.label),
           const SizedBox(height: 8),
           Row(children: [
             for (final t in RoomType.values)
@@ -531,7 +540,9 @@ class _ComposeConfig extends StatelessWidget {
                         const SizedBox(width: 6),
                       ],
                       Text(
-                        t == RoomType.secret ? 'EPHEMERAL' : 'STANDARD',
+                        t == RoomType.secret
+                            ? loc.friendRequestDraftScreenRoomTypeEphemeral
+                            : loc.friendRequestDraftScreenRoomTypeStandard,
                         style: theme.label.copyWith(
                             color: roomType == t ? theme.accentInk : theme.inkSoft),
                       ),
@@ -543,9 +554,9 @@ class _ComposeConfig extends StatelessWidget {
           if (roomType == RoomType.secret) ...[
             const SizedBox(height: 14),
             Row(children: [
-              Text('LIFETIME', style: theme.label),
+              Text(loc.friendRequestDraftScreenLifetimeLabel, style: theme.label),
               const SizedBox(width: 10),
-              Text(_fmt(ttl), style: theme.monoLarge.copyWith(color: theme.accent)),
+              Text(_fmt(context, ttl), style: theme.monoLarge.copyWith(color: theme.accent)),
             ]),
             const SizedBox(height: 8),
             Wrap(spacing: 8, children: [
@@ -555,7 +566,7 @@ class _ComposeConfig extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                     decoration: theme.chipDecoration(filled: ttl == t),
-                    child: Text(_fmt(t),
+                    child: Text(_fmt(context, t),
                         style: theme.label.copyWith(
                             color: ttl == t ? theme.accentInk : theme.inkSoft)),
                   ),
@@ -592,6 +603,7 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       decoration: BoxDecoration(
@@ -619,8 +631,12 @@ class _Composer extends StatelessWidget {
                     isCollapsed: true,
                     border: InputBorder.none,
                     hintText: requestMode
-                        ? (ephemeral ? 'whisper a first line · optional' : 'add a first message · optional')
-                        : (ephemeral ? 'whisper · auto-fades' : 'something to start with…'),
+                        ? (ephemeral
+                            ? loc.friendRequestDraftScreenHintWhisperOptional
+                            : loc.friendRequestDraftScreenHintFirstMessageOptional)
+                        : (ephemeral
+                            ? loc.friendRequestDraftScreenHintWhisperFades
+                            : loc.friendRequestDraftScreenHintStartWith),
                     hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -659,6 +675,7 @@ class _ApproveBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Row(
@@ -673,7 +690,7 @@ class _ApproveBar extends StatelessWidget {
                   color: theme.accent,
                   borderRadius: BorderRadius.circular(theme.radiusMd),
                 ),
-                child: Text('APPROVE & OPEN ROOM',
+                child: Text(loc.friendRequestDraftScreenApproveButton,
                     style: theme.label.copyWith(color: theme.accentInk)),
               ),
             ),
@@ -689,7 +706,7 @@ class _ApproveBar extends StatelessWidget {
                   border: Border.all(color: theme.divider),
                   borderRadius: BorderRadius.circular(theme.radiusMd),
                 ),
-                child: Text('DECLINE', style: theme.label),
+                child: Text(loc.friendRequestDraftScreenDeclineButton, style: theme.label),
               ),
             ),
           ),
@@ -710,7 +727,7 @@ class _CancelBar extends StatelessWidget {
       alignment: Alignment.center,
       child: GestureDetector(
         onTap: onCancel,
-        child: Text('CANCEL REQUEST',
+        child: Text(AppLocalizations.of(context).friendRequestDraftScreenCancelRequestButton,
             style: theme.label.copyWith(color: theme.danger)),
       ),
     );
@@ -763,8 +780,8 @@ class _SendRequestBar extends StatelessWidget {
                     const SizedBox(width: 10),
                     Text(
                       FamilyService.maybeInstance?.isChild == true
-                          ? 'ASK A GROWN-UP'
-                          : 'SEND REQUEST',
+                          ? AppLocalizations.of(context).friendRequestDraftScreenAskGrownUpButton
+                          : AppLocalizations.of(context).friendRequestDraftScreenSendRequestButton,
                       style: theme.label.copyWith(
                         color: theme.accentInk,
                         letterSpacing: 2.4,

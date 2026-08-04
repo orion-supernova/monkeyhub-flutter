@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -37,6 +38,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final current = SettingsStore.instance.navStyle;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -61,31 +63,31 @@ class _NavigationScreenState extends State<NavigationScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('navigation.', style: theme.displayMedium),
+                  Text(l10n.messageStampNavigationTitle,
+                      style: theme.displayMedium),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Container(width: 18, height: 1, color: theme.accent),
                       const SizedBox(width: 8),
                       Text(
-                        'how you move between chat, discover, feed, settings',
+                        l10n.messageStampNavigationSubtitle,
                         style: theme.caption,
                       ),
                     ],
                   ),
                   const SizedBox(height: 28),
                   _NavCard(
-                    label: 'RADIAL ORB',
-                    sub:
-                        'hold + drag from the corner. a quiet idle, a gesture you grow into.',
+                    label: l10n.messageStampRadialOrbLabel,
+                    sub: l10n.messageStampRadialOrbDescription,
                     active: current == NavStyle.radial,
                     preview: const _RadialPreview(),
                     onTap: () => _set(NavStyle.radial),
                   ),
                   const SizedBox(height: 14),
                   _NavCard(
-                    label: 'BOTTOM PILL',
-                    sub: 'classic tap. always visible, no learning curve.',
+                    label: l10n.messageStampBottomPillLabel,
+                    sub: l10n.messageStampBottomPillDescription,
                     active: current == NavStyle.pill,
                     preview: const _PillPreview(),
                     onTap: () => _set(NavStyle.pill),
@@ -117,6 +119,7 @@ class _NavCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -157,7 +160,7 @@ class _NavCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'ACTIVE',
+                        l10n.messageStampActiveLabel,
                         style: theme.monoTiny.copyWith(color: theme.accent),
                       ),
                     ],
@@ -199,7 +202,7 @@ class _RadialPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final n = navDestinations.length;
+    final n = navDestinations(AppLocalizations.of(context)).length;
     return Stack(
       children: [
         // Ghost slices fanned above the orb, evenly spaced across the quadrant.
@@ -267,7 +270,7 @@ class _PillPreview extends StatelessWidget {
         padding: const EdgeInsets.all(4),
         child: Row(
           children: [
-            for (var i = 0; i < navDestinations.length; i++) ...[
+            for (var i = 0; i < navDestinations(AppLocalizations.of(context)).length; i++) ...[
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -276,7 +279,7 @@ class _PillPreview extends StatelessWidget {
                   ),
                 ),
               ),
-              if (i < navDestinations.length - 1) const SizedBox(width: 4),
+              if (i < navDestinations(AppLocalizations.of(context)).length - 1) const SizedBox(width: 4),
             ],
           ],
         ),

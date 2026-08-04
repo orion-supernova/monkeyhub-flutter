@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../models/chat_room.dart';
@@ -151,7 +152,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   _Header(
                     q: _q,
                     heroTag: widget.heroTag,
-                    hintText: _people ? 'search people…' : 'search rooms…',
+                    hintText: _people
+                        ? AppLocalizations.of(context).searchScreenHintPeople
+                        : AppLocalizations.of(context).searchScreenHintRooms,
                     onChanged: _onChanged,
                     onClose: () => Navigator.of(context).maybePop(),
                   ),
@@ -214,8 +217,10 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Center(
           child: Text(
             isChild
-                ? 'type a whole username to find someone new'
-                : 'search by username or name',
+                ? AppLocalizations.of(context).searchScreenPeoplePromptChild
+                : AppLocalizations.of(
+                    context,
+                  ).searchScreenPeoplePromptDefault,
             style: theme.bodySoft,
             textAlign: TextAlign.center,
           ),
@@ -228,8 +233,8 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Center(
           child: Text(
             isChild
-                ? 'no one matches — new people need their\nwhole username, spelled exactly'
-                : 'no one matches',
+                ? AppLocalizations.of(context).searchScreenNoMatchChild
+                : AppLocalizations.of(context).searchScreenNoMatchDefault,
             style: theme.bodySoft,
             textAlign: TextAlign.center,
           ),
@@ -252,8 +257,8 @@ class _SearchScreenState extends State<SearchScreen> {
     final theme = ThemeScope.of(context);
     if (_rooms.isEmpty) {
       final msg = _query.isEmpty
-          ? 'no public rooms yet'
-          : 'no public rooms match';
+          ? AppLocalizations.of(context).searchScreenNoRoomsYet
+          : AppLocalizations.of(context).searchScreenNoRoomsMatch;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
         child: Center(child: Text(msg, style: theme.bodySoft)),
@@ -429,19 +434,20 @@ class _PersonRowState extends State<_PersonRow> {
   }
 
   String _actionLabel() {
+    final l10n = AppLocalizations.of(context);
     switch (widget.user.friendshipStatus) {
       case FriendshipStatus.none:
         // A child's request goes to their grown-up first, so promising to
         // "send" it would be a lie.
         return FamilyService.maybeInstance?.isChild == true
-            ? 'ASK TO ADD'
-            : 'SEND REQUEST';
+            ? l10n.searchScreenActionAskToAdd
+            : l10n.searchScreenActionSendRequest;
       case FriendshipStatus.outgoingPending:
-        return 'CANCEL';
+        return l10n.searchScreenActionCancel;
       case FriendshipStatus.incomingPending:
-        return 'APPROVE';
+        return l10n.searchScreenActionApprove;
       case FriendshipStatus.friend:
-        return 'OPEN DM';
+        return l10n.searchScreenActionOpenDm;
     }
   }
 
@@ -593,7 +599,9 @@ class _RoomRow extends StatelessWidget {
             if (joined)
               const JoinedBadge(dense: true)
             else if (awaiting)
-              const WaitingPill(label: 'asked')
+              WaitingPill(
+                label: AppLocalizations.of(context).searchScreenAskedLabel,
+              )
             else
               VisibilityBadge(isPublic: room.isPublic, dense: true),
             const SizedBox(width: 8),

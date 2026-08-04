@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/code_field.dart';
@@ -46,7 +47,9 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
 
   /// Whose phone this is. Naming them makes "sign out" unambiguous — a parent
   /// reading a bare "unlock" can't tell whether it wipes the account.
-  String get _childName => widget.auth.session?.name ?? 'them';
+  String _childName(BuildContext context) =>
+      widget.auth.session?.name ??
+      AppLocalizations.of(context).releaseDeviceScreenFallbackChildName;
 
   @override
   void dispose() {
@@ -99,24 +102,27 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
 
   String _humanize(Object e) {
     final s = e.toString();
+    final l10n = AppLocalizations.of(context);
     if (s.contains('PAIRING_CODE_EXPIRED')) {
-      return 'That code has run out. Ask for a new one.';
+      return l10n.releaseDeviceScreenErrorCodeExpired;
     }
     if (s.contains('PAIRING_CODE_INVALID')) {
-      return 'That code didn\'t work. It may have been used already.';
+      return l10n.releaseDeviceScreenErrorCodeInvalid;
     }
     // The backend answers every password failure identically on purpose — a
     // child holding this phone must not be able to learn which usernames are
     // their grown-ups, so don't invent a more specific message here.
     if (s.contains('NOT_A_GUARDIAN')) {
-      return 'That didn\'t work. Check the username and password.';
+      return l10n.releaseDeviceScreenErrorNotAGuardian;
     }
-    return 'Something went wrong. Try again.';
+    return l10n.releaseDeviceScreenErrorGeneric;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final childName = _childName(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -134,23 +140,19 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
-                          'This signs $_childName out of this phone and hands '
-                          'it back — the phone returns to the normal sign-in '
-                          'screen, and anyone can use it.',
+                          l10n.releaseDeviceScreenIntro(childName),
                           style: theme.bodySoft,
                         ),
                         const SizedBox(height: 10),
                         // A grown-up standing here needs to know this is not
                         // the delete button. Nothing about the account changes.
                         Text(
-                          'Their account, messages and friends are all kept. '
-                          'They can be signed back in any time.',
+                          l10n.releaseDeviceScreenAccountKeptNote,
                           style: theme.monoTiny.copyWith(color: theme.inkMuted),
                         ),
                         const SizedBox(height: 22),
                         Text(
-                          'Ask a grown-up to open MonkeyHub, find $_childName '
-                          'under family, and tap “release”.',
+                          l10n.releaseDeviceScreenAskGrownUp(childName),
                           style: theme.bodySoft,
                         ),
                         const SizedBox(height: 24),
@@ -168,7 +170,10 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text('or', style: theme.monoTiny),
+                              child: Text(
+                                l10n.releaseDeviceScreenOrDivider,
+                                style: theme.monoTiny,
+                              ),
                             ),
                             Expanded(
                               child: Container(height: 1, color: theme.divider),
@@ -177,28 +182,27 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                         ),
                         const SizedBox(height: 26),
                         Text(
-                          'If there\'s only this one phone, a grown-up can sign '
-                          'in here instead.',
+                          l10n.releaseDeviceScreenOnePhoneNote,
                           style: theme.bodySoft,
                         ),
                         const SizedBox(height: 14),
                         ThemedInput(
                           controller: _username,
-                          hint: 'a grown-up\'s username',
+                          hint: l10n.releaseDeviceScreenUsernameHint,
                           autocorrect: false,
                           enableSuggestions: false,
                         ),
                         const SizedBox(height: 10),
                         PasswordField(
                           controller: _password,
-                          hint: 'their password',
+                          hint: l10n.releaseDeviceScreenPasswordHint,
                           onSubmitted: (_) => _submitPassword(),
                         ),
                         const SizedBox(height: 16),
                         FocusableTap(
                           onTap: _busy ? null : _submitPassword,
                           enabled: !_busy,
-                          semanticLabel: 'Sign out',
+                          semanticLabel: l10n.releaseDeviceScreenSignOutSemanticLabel,
                           radius: theme.radiusMd,
                           child: GestureDetector(
                           onTap: _busy ? null : _submitPassword,
@@ -213,8 +217,9 @@ class _ReleaseDeviceScreenState extends State<ReleaseDeviceScreen> {
                             ),
                             child: Text(
                               _busy
-                                  ? 'CHECKING…'
-                                  : 'SIGN ${_childName.toUpperCase()} OUT',
+                                  ? l10n.releaseDeviceScreenChecking
+                                  : l10n.releaseDeviceScreenSignOutButton(
+                                      childName.toUpperCase()),
                               style: theme.label.copyWith(
                                 color:
                                     _busy ? theme.inkMuted : theme.accentInk,
@@ -265,7 +270,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              'HAND THIS PHONE BACK',
+              AppLocalizations.of(context).releaseDeviceScreenHeaderTitle,
               style: theme.label.copyWith(letterSpacing: 2.8),
             ),
           ),

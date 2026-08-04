@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/code_field.dart';
@@ -123,9 +124,10 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
   /// child's account was deleted out from under the handset.
   String _humanize(Object e) => humanizeAuthError(
         e,
-        fallback: 'Something went wrong. Try again.',
-        overrides: const {
-          'USER_NOT_FOUND': 'That account isn\'t there any more.',
+        fallback: AppLocalizations.of(context).childPairScreenGenericError,
+        overrides: {
+          'USER_NOT_FOUND':
+              AppLocalizations.of(context).childPairScreenAccountGoneError,
         },
       );
 
@@ -151,19 +153,21 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                           style: theme.displayHero,
                           children: [
                             TextSpan(
-                              text: 'hello\n',
+                              text:
+                                  '${AppLocalizations.of(context).childPairScreenGreetingLine1}\n',
                               style: theme.displayHero
                                   .copyWith(color: theme.inkMuted),
                             ),
-                            const TextSpan(text: 'you.'),
+                            TextSpan(
+                              text: AppLocalizations.of(context)
+                                  .childPairScreenGreetingLine2,
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 18),
                       Text(
-                        'Ask a grown-up to open MonkeyHub and tap '
-                        '“pair a device”. Then scan their code, or type the '
-                        'six numbers they read out.',
+                        AppLocalizations.of(context).childPairScreenIntro,
                         style: theme.bodySoft,
                       ),
                       const SizedBox(height: 28),
@@ -181,7 +185,11 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                           Expanded(child: Container(height: 1, color: theme.divider)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text('or', style: theme.monoTiny),
+                            child: Text(
+                              AppLocalizations.of(context)
+                                  .childPairScreenOrDivider,
+                              style: theme.monoTiny,
+                            ),
                           ),
                           Expanded(child: Container(height: 1, color: theme.divider)),
                         ],
@@ -232,7 +240,8 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                                   ),
                                 )
                               : Text(
-                                  'LET ME IN',
+                                  AppLocalizations.of(context)
+                                      .childPairScreenSubmitButtonLabel,
                                   style: theme.label.copyWith(
                                     color: theme.accentInk,
                                     letterSpacing: 2.4,
@@ -246,7 +255,8 @@ class _ChildPairScreenState extends State<ChildPairScreen> {
                           child: GestureDetector(
                             onTap: widget.onCancel,
                             child: Text(
-                              '← back to sign in',
+                              AppLocalizations.of(context)
+                                  .childPairScreenBackToSignIn,
                               style: theme.monoTiny
                                   .copyWith(color: theme.inkMuted),
                             ),
@@ -286,7 +296,8 @@ class _ScanButton extends StatelessWidget {
           children: [
             Icon(Icons.qr_code_scanner, size: 30, color: theme.accent),
             const SizedBox(height: 12),
-            Text('SCAN THEIR CODE',
+            Text(
+                AppLocalizations.of(context).childPairScreenScanButtonLabel,
                 style: theme.label.copyWith(letterSpacing: 2.4)),
           ],
         ),
@@ -325,7 +336,8 @@ class _ScannerPanel extends StatelessWidget {
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'No camera here — type the six numbers instead.',
+                  AppLocalizations.of(context)
+                      .childPairScreenNoCameraMessage,
                   style: theme.bodySoft,
                   textAlign: TextAlign.center,
                 ),
@@ -336,7 +348,8 @@ class _ScannerPanel extends StatelessWidget {
         const SizedBox(height: 12),
         GestureDetector(
           onTap: onCancel,
-          child: Text('stop scanning',
+          child: Text(
+              AppLocalizations.of(context).childPairScreenStopScanning,
               style: theme.monoTiny.copyWith(color: theme.inkMuted)),
         ),
       ],

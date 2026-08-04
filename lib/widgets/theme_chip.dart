@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 
@@ -108,7 +109,7 @@ class _ThemeChipState extends State<ThemeChip> {
           children: [
             _SwatchDot(colors: theme.swatch, size: 14, active: true),
             const SizedBox(width: 8),
-            Text('THEME', style: theme.monoTiny),
+            Text(AppLocalizations.of(context).roomGridTileThemeChipLabel, style: theme.monoTiny),
             const SizedBox(width: 4),
             AnimatedRotation(
               turns: _expanded ? 0.5 : 0.0,

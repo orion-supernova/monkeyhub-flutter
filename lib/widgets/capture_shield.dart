@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 
@@ -48,16 +49,19 @@ class CaptureShield extends StatelessWidget {
                           Icon(Icons.visibility_off_outlined,
                               size: 32, color: theme.accent),
                           const SizedBox(height: 12),
-                          Text('PROTECTED', style: theme.label.copyWith(letterSpacing: 2.4)),
+                          Text(
+                            AppLocalizations.of(context).countBadgeProtectedLabel,
+                            style: theme.label.copyWith(letterSpacing: 2.4),
+                          ),
                           const SizedBox(height: 6),
                           Text(
-                            'screen recording or mirroring is active.',
+                            AppLocalizations.of(context).countBadgeCaptureShieldActiveBody,
                             style: theme.bodySoft,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'the recording can\'t see your conversations.',
+                            AppLocalizations.of(context).countBadgeCaptureShieldReassurance,
                             style: theme.monoTiny,
                             textAlign: TextAlign.center,
                           ),

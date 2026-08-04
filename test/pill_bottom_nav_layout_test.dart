@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/keyboard/focusable_tap.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/screens/navigation/destinations.dart';
 import 'package:monkeyhub/screens/navigation/pill_bottom_nav.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/liquid_glass.dart';
+
+final _l10n = AppLocalizationsEn();
+final _navDestinations = navDestinations(_l10n);
 
 /// Geometry the bottom nav asserts about itself, which `nav_geometry_test.dart`
 /// structurally cannot: that file checks `segmentAlignmentX` as arithmetic and
@@ -28,6 +33,8 @@ void main() {
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Directionality(
               textDirection: direction,
@@ -73,14 +80,14 @@ void main() {
     await pumpNav(tester);
 
     final widths = [
-      for (var i = 0; i < navDestinations.length; i++) slotOf(tester, i).width,
+      for (var i = 0; i < _navDestinations.length; i++) slotOf(tester, i).width,
     ];
     for (final w in widths) {
       expect(w, closeTo(widths.first, 0.01));
     }
 
     // And they tile: no gaps, no overlap.
-    for (var i = 1; i < navDestinations.length; i++) {
+    for (var i = 1; i < _navDestinations.length; i++) {
       expect(
         slotOf(tester, i).left,
         closeTo(slotOf(tester, i - 1).right, 0.01),
@@ -91,14 +98,14 @@ void main() {
   testWidgets('each icon is centred in its own segment', (tester) async {
     await pumpNav(tester);
 
-    for (var i = 0; i < navDestinations.length; i++) {
+    for (var i = 0; i < _navDestinations.length; i++) {
       final slot = slotOf(tester, i);
-      final icon = tester.getRect(find.byIcon(navDestinations[i].icon));
+      final icon = tester.getRect(find.byIcon(_navDestinations[i].icon));
       expect(
         icon.center.dx,
         closeTo(slot.center.dx, 0.5),
         reason:
-            'destination ${navDestinations[i].label} is off-centre in its slot; '
+            'destination ${_navDestinations[i].label} is off-centre in its slot; '
             'FocusableTap must not loosen the tight width it is handed',
       );
     }
@@ -107,9 +114,9 @@ void main() {
   testWidgets('each label is centred in its own segment', (tester) async {
     await pumpNav(tester);
 
-    for (var i = 0; i < navDestinations.length; i++) {
+    for (var i = 0; i < _navDestinations.length; i++) {
       final slot = slotOf(tester, i);
-      final label = tester.getRect(find.text(navDestinations[i].label));
+      final label = tester.getRect(find.text(_navDestinations[i].label));
       expect(label.center.dx, closeTo(slot.center.dx, 0.5));
     }
   });
@@ -122,7 +129,7 @@ void main() {
 
     // The outer edges of each slot were the dead zone: ~14pt on each side of
     // every segment fell through to whatever was behind the bar.
-    for (var i = 0; i < navDestinations.length; i++) {
+    for (var i = 0; i < _navDestinations.length; i++) {
       final slot = slotOf(tester, i);
       await tester.tapAt(Offset(slot.left + 2, slot.center.dy));
       await tester.tapAt(Offset(slot.right - 2, slot.center.dy));
@@ -132,16 +139,16 @@ void main() {
     expect(
       taps,
       [
-        for (final d in navDestinations) ...[d.section, d.section],
+        for (final d in _navDestinations) ...[d.section, d.section],
       ],
       reason: 'both outer edges of every segment must select that destination',
     );
   });
 
   testWidgets('the indicator sits over the active segment', (tester) async {
-    for (final d in navDestinations) {
+    for (final d in _navDestinations) {
       await pumpNav(tester, active: d.section);
-      final i = navDestinations.indexOf(d);
+      final i = _navDestinations.indexOf(d);
       final indicator = tester.getRect(find.byType(FractionallySizedBox));
       expect(
         indicator.center.dx,
@@ -157,9 +164,9 @@ void main() {
     // The Row mirrors under RTL — destination 0 renders on the right — but an
     // absolute `Alignment(x, 0)` does not, so the indicator used to land on the
     // mirrored segment. Assert against the slot, which mirrors with the Row.
-    for (final d in navDestinations) {
+    for (final d in _navDestinations) {
       await pumpNav(tester, active: d.section, direction: TextDirection.rtl);
-      final i = navDestinations.indexOf(d);
+      final i = _navDestinations.indexOf(d);
       final indicator = tester.getRect(find.byType(FractionallySizedBox));
       expect(
         indicator.center.dx,
@@ -175,9 +182,9 @@ void main() {
     // The reported symptom was "first item too close to the left, last has a
     // lot of space on the right". Equal gaps at both ends of every slot is the
     // invariant that has to hold for that to stop being true.
-    for (final d in navDestinations) {
+    for (final d in _navDestinations) {
       await pumpNav(tester, active: d.section);
-      final slot = slotOf(tester, navDestinations.indexOf(d));
+      final slot = slotOf(tester, _navDestinations.indexOf(d));
       final pill = tester.getRect(find.byKey(navIndicatorKey));
 
       expect(pill.width, lessThan(slot.width));
@@ -196,11 +203,11 @@ void main() {
     // so holding the two equal made the outer gap as wide as the gap between
     // two pills and left the first and last destinations looking marooned.
     // Only one pill is painted at a time, so measure them a pump apart.
-    await pumpNav(tester, active: navDestinations.first.section);
+    await pumpNav(tester, active: _navDestinations.first.section);
     final bar = tester.getRect(find.byType(LiquidGlass));
     final first = tester.getRect(find.byKey(navIndicatorKey));
 
-    await pumpNav(tester, active: navDestinations[1].section);
+    await pumpNav(tester, active: _navDestinations[1].section);
     final second = tester.getRect(find.byKey(navIndicatorKey));
 
     final outer = first.left - bar.left;
@@ -216,7 +223,7 @@ void main() {
     expect(outer, lessThan(8));
 
     // Symmetric at the far end, measured against the last destination.
-    await pumpNav(tester, active: navDestinations.last.section);
+    await pumpNav(tester, active: _navDestinations.last.section);
     final last = tester.getRect(find.byKey(navIndicatorKey));
     expect(bar.right - last.right, closeTo(outer, 0.01));
   });
@@ -237,7 +244,7 @@ void main() {
   ) async {
     await pumpNav(tester, badges: {HomeSection.chat: 3});
 
-    final icon = tester.getRect(find.byIcon(navDestinations.first.icon));
+    final icon = tester.getRect(find.byIcon(_navDestinations.first.icon));
     final badge = tester.getRect(find.text('3'));
 
     // The badge overflows its 22pt box on purpose (Clip.none), so check it

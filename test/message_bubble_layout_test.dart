@@ -14,6 +14,7 @@ import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/reply_indicator.dart';
 import 'package:monkeyhub/widgets/user_avatar.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// A run of messages is bracketed: the sender's name opens it, their face
 /// closes it. Both ends are geometry the widget owns and the call site cannot
@@ -43,6 +44,8 @@ void main() {
   );
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

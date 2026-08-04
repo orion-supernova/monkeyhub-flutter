@@ -7,6 +7,7 @@ import '../backend/chat_api.dart';
 import '../backend/convex_client.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_message.dart';
@@ -209,7 +210,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (r == null || me == null) return;
     final n = _name.text.trim();
     if (n.isEmpty) {
-      setState(() => _error = 'name is required');
+      setState(() => _error = AppLocalizations.of(context).roomInfoScreenNameRequiredError);
       return;
     }
     setState(() {
@@ -236,13 +237,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('saved')),
+        SnackBar(content: Text(AppLocalizations.of(context).roomInfoScreenSavedSnackbar)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = _humanize(e);
+        _error = _humanize(context, e);
       });
     }
   }
@@ -260,13 +261,13 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('password cleared')),
+        SnackBar(content: Text(AppLocalizations.of(context).roomInfoScreenPasswordClearedSnackbar)),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = _humanize(e);
+        _error = _humanize(context, e);
       });
     }
   }
@@ -317,7 +318,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = _humanize(e));
+      setState(() => _error = _humanize(context, e));
     } finally {
       // One place that lowers both flags, for every path out — cancelled picker,
       // cancelled crop, failed upload, success. The old version spelled the
@@ -336,9 +337,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final me = widget.repo.userId;
     if (r == null || me == null) return;
     final ok = await _confirm(
-      title: 'leave room?',
-      body: 'you can rejoin if it stays open.',
-      confirm: 'LEAVE',
+      title: AppLocalizations.of(context).roomInfoScreenLeaveConfirmTitle,
+      body: AppLocalizations.of(context).roomInfoScreenLeaveConfirmBody,
+      confirm: AppLocalizations.of(context).roomInfoScreenLeaveConfirmButton,
     );
     if (!ok) return;
     setState(() {
@@ -354,7 +355,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (!mounted) return;
       setState(() {
         _leaving = false;
-        _error = _humanize(e);
+        _error = _humanize(context, e);
       });
     }
   }
@@ -364,9 +365,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final me = widget.repo.userId;
     if (r == null || me == null) return;
     final ok = await _confirm(
-      title: 'delete room?',
-      body: 'every message in here goes with it. this is permanent.',
-      confirm: 'DELETE',
+      title: AppLocalizations.of(context).roomInfoScreenDeleteConfirmTitle,
+      body: AppLocalizations.of(context).roomInfoScreenDeleteConfirmBody,
+      confirm: AppLocalizations.of(context).roomInfoScreenDeleteConfirmButton,
       destructive: true,
     );
     if (!ok) return;
@@ -383,7 +384,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       if (!mounted) return;
       setState(() {
         _deleting = false;
-        _error = _humanize(e);
+        _error = _humanize(context, e);
       });
     }
   }
@@ -415,7 +416,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text('CANCEL', style: theme.label.copyWith(color: theme.inkSoft)),
+                    child: Text(AppLocalizations.of(ctx).roomInfoScreenConfirmCancelButton, style: theme.label.copyWith(color: theme.inkSoft)),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
@@ -445,20 +446,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     return res ?? false;
   }
 
-  String _humanize(Object e) {
+  String _humanize(BuildContext context, Object e) {
+    final l10n = AppLocalizations.of(context);
     final s = e.toString();
-    if (s.contains('ROOM_EXISTS')) return 'a room with that name already exists';
-    if (s.contains('NOT_OWNER')) return 'only the owner can do that';
-    if (s.contains('NOT_AUTHORIZED')) return 'you don\'t have permission';
-    if (s.contains('ROOM_NAME_REQUIRED')) return 'name is required';
-    if (s.contains('ROOM_NOT_FOUND')) return 'this room is gone';
+    if (s.contains('ROOM_EXISTS')) return l10n.roomInfoScreenErrorRoomExists;
+    if (s.contains('NOT_OWNER')) return l10n.roomInfoScreenErrorNotOwner;
+    if (s.contains('NOT_AUTHORIZED')) return l10n.roomInfoScreenErrorNotAuthorized;
+    if (s.contains('ROOM_NAME_REQUIRED')) return l10n.roomInfoScreenNameRequiredError;
+    if (s.contains('ROOM_NOT_FOUND')) return l10n.roomInfoScreenErrorRoomNotFound;
     return s.replaceFirst('Exception: ', '');
   }
 
-  String _fmtTtl(Duration d) {
-    if (d.inSeconds < 60) return '${d.inSeconds}s';
-    if (d.inMinutes < 60) return '${d.inMinutes}m';
-    return '${d.inHours}h';
+  String _fmtTtl(BuildContext context, Duration d) {
+    final l10n = AppLocalizations.of(context);
+    if (d.inSeconds < 60) return l10n.roomInfoScreenTtlSeconds(d.inSeconds);
+    if (d.inMinutes < 60) return l10n.roomInfoScreenTtlMinutes(d.inMinutes);
+    return l10n.roomInfoScreenTtlHours(d.inHours);
   }
 
   @override
@@ -468,7 +471,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     if (r == null) {
       return Scaffold(
         backgroundColor: theme.background,
-        body: Center(child: Text('room gone', style: theme.bodySoft)),
+        body: Center(child: Text(AppLocalizations.of(context).roomInfoScreenRoomGone, style: theme.bodySoft)),
       );
     }
     if (!_loaded) _hydrate();
@@ -502,20 +505,20 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         // just the two people.
                         if (!r.isDm) ...[
                           LabeledField(
-                            label: 'NAME',
+                            label: AppLocalizations.of(context).roomInfoScreenNameLabel,
                             controller: _name,
-                            hint: 'room name',
+                            hint: AppLocalizations.of(context).roomInfoScreenNameHint,
                           ),
                           const SizedBox(height: 18),
                         ],
                         LabeledField(
-                          label: 'DESCRIPTION',
+                          label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
                           controller: _desc,
-                          hint: 'one line about the room…',
+                          hint: AppLocalizations.of(context).roomInfoScreenDescriptionHint,
                         ),
                         if (!r.isDm) ...[
                           const SizedBox(height: 22),
-                          const FieldLabel('VISIBILITY'),
+                          FieldLabel(AppLocalizations.of(context).roomInfoScreenVisibilityLabel),
                           Row(children: [
                             Expanded(
                               child: _seg(
@@ -523,8 +526,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 active: !_isPrivate,
                                 onTap: () => setState(() => _isPrivate = false),
                                 icon: theme.visibilityIcon(isPublic: true, size: 14),
-                                title: 'public',
-                                sub: 'anyone can find it',
+                                title: AppLocalizations.of(context).roomInfoScreenPublicTitle,
+                                sub: AppLocalizations.of(context).roomInfoScreenPublicSub,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -534,8 +537,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                 active: _isPrivate,
                                 onTap: () => setState(() => _isPrivate = true),
                                 icon: theme.visibilityIcon(isPublic: false, size: 14),
-                                title: 'private',
-                                sub: 'invite only',
+                                title: AppLocalizations.of(context).roomInfoScreenPrivateTitle,
+                                sub: AppLocalizations.of(context).roomInfoScreenPrivateSub,
                               ),
                             ),
                           ]),
@@ -543,10 +546,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         if (r.isEphemeral) ...[
                           const SizedBox(height: 22),
                           Row(children: [
-                            const FieldLabel('MESSAGE LIFE'),
+                            FieldLabel(AppLocalizations.of(context).roomInfoScreenMessageLifeLabel),
                             const Spacer(),
                             if (_ttl != null)
-                              Text(_fmtTtl(_ttl!), style: theme.monoLarge.copyWith(color: theme.accent)),
+                              Text(_fmtTtl(context, _ttl!), style: theme.monoLarge.copyWith(color: theme.accent)),
                           ]),
                           const SizedBox(height: 10),
                           Wrap(
@@ -559,7 +562,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                                     decoration: theme.chipDecoration(filled: _ttl == t),
                                     child: Text(
-                                      _fmtTtl(t),
+                                      _fmtTtl(context, t),
                                       style: theme.label.copyWith(
                                         color: _ttl == t ? theme.accentInk : theme.inkSoft,
                                       ),
@@ -572,7 +575,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         if (_isOwner && !r.isDm) ...[
                           const SizedBox(height: 22),
                           Row(children: [
-                            const FieldLabel('PASSWORD'),
+                            FieldLabel(AppLocalizations.of(context).roomInfoScreenPasswordLabel),
                             const Spacer(),
                             if (r.hasPassword)
                               Container(
@@ -587,17 +590,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                   children: [
                                     Icon(Icons.lock_outline, size: 10, color: theme.accent),
                                     const SizedBox(width: 5),
-                                    Text('LOCKED', style: theme.monoTiny.copyWith(color: theme.accent)),
+                                    Text(AppLocalizations.of(context).roomInfoScreenLockedBadge, style: theme.monoTiny.copyWith(color: theme.accent)),
                                   ],
                                 ),
                               )
                             else
-                              Text('NONE', style: theme.monoTiny.copyWith(color: theme.inkMuted)),
+                              Text(AppLocalizations.of(context).roomInfoScreenNoneBadge, style: theme.monoTiny.copyWith(color: theme.inkMuted)),
                           ]),
                           if (r.hasPassword) ...[
                             const SizedBox(height: 6),
                             Text(
-                              'this room is protected. the existing passphrase isn\'t shown for security — enter a new one to replace it.',
+                              AppLocalizations.of(context).roomInfoScreenPasswordProtectedNote,
                               style: theme.bodySoft.copyWith(fontSize: 12),
                             ),
                             const SizedBox(height: 10),
@@ -605,8 +608,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           PasswordField(
                             controller: _newPassword,
                             hint: r.hasPassword
-                                ? 'replace passphrase…'
-                                : 'lock with a passphrase…',
+                                ? AppLocalizations.of(context).roomInfoScreenReplacePasswordHint
+                                : AppLocalizations.of(context).roomInfoScreenSetPasswordHint,
                           ),
                           if (r.hasPassword) ...[
                             const SizedBox(height: 10),
@@ -621,7 +624,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                                     borderRadius: BorderRadius.circular(theme.radiusMd),
                                   ),
                                   child: Text(
-                                    'REMOVE PASSWORD',
+                                    AppLocalizations.of(context).roomInfoScreenRemovePasswordButton,
                                     style: theme.monoTiny.copyWith(color: theme.danger, letterSpacing: 1.4),
                                   ),
                                 ),
@@ -630,11 +633,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ],
                         ],
                         const SizedBox(height: 28),
-                        FieldLabel('SHARED CONTENT'),
+                        FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
                         _sharedContent(theme),
                         const SizedBox(height: 28),
-                        FieldLabel('MEMBERS · ${_members.length}'),
+                        FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
                         const SizedBox(height: 6),
                         _membersList(theme, r),
                         const SizedBox(height: 28),
@@ -648,7 +651,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           Expanded(
                             child: _dangerButton(
                               theme,
-                              label: _leaving ? 'LEAVING…' : 'LEAVE ROOM',
+                              label: _leaving
+                                  ? AppLocalizations.of(context).roomInfoScreenLeavingButton
+                                  : AppLocalizations.of(context).roomInfoScreenLeaveRoomButton,
                               onTap: busy ? null : _leave,
                             ),
                           ),
@@ -657,7 +662,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             Expanded(
                               child: _dangerButton(
                                 theme,
-                                label: _deleting ? 'DELETING…' : 'DELETE',
+                                label: _deleting
+                                    ? AppLocalizations.of(context).roomInfoScreenDeletingButton
+                                    : AppLocalizations.of(context).roomInfoScreenDeleteButtonLabel,
                                 onTap: busy ? null : _delete,
                                 filled: true,
                               ),
@@ -707,7 +714,12 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(r.isDm ? 'CONVERSATION' : 'ROOM SETTINGS', style: theme.monoTiny),
+                Text(
+                  r.isDm
+                      ? AppLocalizations.of(context).roomInfoScreenHeaderConversation
+                      : AppLocalizations.of(context).roomInfoScreenHeaderRoomSettings,
+                  style: theme.monoTiny,
+                ),
                 const SizedBox(height: 2),
                 Text(title, style: theme.displayMedium, overflow: TextOverflow.ellipsis),
               ],
@@ -760,7 +772,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                     heroTag: heroTag,
                   ),
                   shape: FocusRingShape.circle,
-                  semanticLabel: 'view profile picture',
+                  semanticLabel: AppLocalizations.of(context).roomInfoScreenViewProfilePictureSemantic,
                   child: GestureDetector(
                     onTap: () => _openAvatarFullscreen(
                       storageId: peerStorageId,
@@ -837,7 +849,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         heroTag: heroTag,
                       ),
                       shape: FocusRingShape.circle,
-                      semanticLabel: 'view room picture',
+                      semanticLabel: AppLocalizations.of(context).roomInfoScreenViewRoomPictureSemantic,
                       child: GestureDetector(
                         onTap: () => _openAvatarFullscreen(
                           storageId: r.avatarStorageId!,
@@ -876,7 +888,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
               child: FocusableTap(
                 onTap: _saving ? null : _changeAvatar,
                 shape: FocusRingShape.circle,
-                semanticLabel: hasAvatar ? 'change room picture' : 'add room picture',
+                semanticLabel: hasAvatar
+                    ? AppLocalizations.of(context).roomInfoScreenChangeRoomPictureSemantic
+                    : AppLocalizations.of(context).roomInfoScreenAddRoomPictureSemantic,
                 child: GestureDetector(
                   onTap: _saving ? null : _changeAvatar,
                   behavior: HitTestBehavior.opaque,
@@ -900,7 +914,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   Widget _membersList(AppTheme theme, ChatRoom r) {
     if (_members.isEmpty) {
-      return Text('loading members…', style: theme.bodySoft);
+      return Text(AppLocalizations.of(context).roomInfoScreenLoadingMembers, style: theme.bodySoft);
     }
     final ordered = [..._members]..sort((a, b) {
       final aOwner = a.id == r.createdBy ? 0 : 1;
@@ -944,7 +958,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: theme.chipDecoration(filled: true),
-                      child: Text('OWNER', style: theme.monoTiny.copyWith(color: theme.accentInk)),
+                      child: Text(AppLocalizations.of(context).roomInfoScreenOwnerBadge, style: theme.monoTiny.copyWith(color: theme.accentInk)),
                     ),
                   if (m.id != me) ...[
                     const SizedBox(width: 6),
@@ -975,7 +989,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2, color: theme.accentInk),
               )
             : Text(
-                'SAVE',
+                AppLocalizations.of(context).roomInfoScreenSaveButton,
                 style: theme.label.copyWith(color: theme.accentInk, letterSpacing: 2.2),
               ),
       ),
@@ -1180,8 +1194,8 @@ class _SharedContentRowState extends State<_SharedContentRow> {
     return FocusableTap(
       onTap: widget.onTap,
       semanticLabel: count?.badge == null
-          ? widget.tab.label
-          : '${widget.tab.label}, ${count!.badge}',
+          ? widget.tab.label(context)
+          : '${widget.tab.label(context)}, ${count!.badge}',
       radius: theme.radiusSm,
       inset: 1,
       child: GestureDetector(
@@ -1204,7 +1218,7 @@ class _SharedContentRowState extends State<_SharedContentRow> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  widget.tab.label,
+                  widget.tab.label(context),
                   style: theme.body.copyWith(color: theme.ink),
                 ),
               ),
@@ -1213,7 +1227,7 @@ class _SharedContentRowState extends State<_SharedContentRow> {
               // "none" reads as an answer. Nothing at all while the count is
               // still in flight.
               if (empty)
-                Text('none', style: theme.caption.copyWith(color: theme.inkMuted))
+                Text(AppLocalizations.of(context).roomInfoScreenNoneCount, style: theme.caption.copyWith(color: theme.inkMuted))
               else if (count?.badge != null)
                 Text(
                   count!.badge!,

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../data/settings_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -64,25 +65,25 @@ class _LogoScreenState extends State<LogoScreen> {
                   ),
                 ]),
                 const SizedBox(height: 10),
-                Text('app logo.', style: theme.displayMedium),
+                Text(AppLocalizations.of(context).logoScreenTitle, style: theme.displayMedium),
                 const SizedBox(height: 10),
                 Row(children: [
                   Container(width: 18, height: 1, color: theme.accent),
                   const SizedBox(width: 8),
-                  Text('the mark in your header, your call.', style: theme.caption),
+                  Text(AppLocalizations.of(context).logoScreenSubtitle, style: theme.caption),
                 ]),
                 const SizedBox(height: 28),
                 _ModeCard(
-                  label: 'AUTO',
-                  sub: 'follows your theme. mark changes with the palette.',
+                  label: AppLocalizations.of(context).logoScreenAutoLabel,
+                  sub: AppLocalizations.of(context).logoScreenAutoDescription,
                   active: mode == LogoMode.auto,
                   onTap: () => _setMode(LogoMode.auto),
                   preview: const _AutoPreview(),
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
-                  label: 'MANUAL',
-                  sub: 'pick any mark, keep your theme.',
+                  label: AppLocalizations.of(context).logoScreenManualLabel,
+                  sub: AppLocalizations.of(context).logoScreenManualDescription,
                   active: mode == LogoMode.manual,
                   onTap: () => _setMode(LogoMode.manual),
                   preview: mode == LogoMode.manual
@@ -91,8 +92,8 @@ class _LogoScreenState extends State<LogoScreen> {
                 ),
                 const SizedBox(height: 14),
                 _ModeCard(
-                  label: 'ALWAYS DEFAULT',
-                  sub: 'the MonkeyHub mark, regardless of theme.',
+                  label: AppLocalizations.of(context).logoScreenAlwaysDefaultLabel,
+                  sub: AppLocalizations.of(context).logoScreenAlwaysDefaultDescription,
                   active: mode == LogoMode.alwaysDefault,
                   onTap: () => _setMode(LogoMode.alwaysDefault),
                   preview: const _DefaultPreview(),
@@ -154,7 +155,7 @@ class _ModeCard extends StatelessWidget {
                       decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 6),
-                    Text('ACTIVE', style: theme.monoTiny.copyWith(color: theme.accent)),
+                    Text(AppLocalizations.of(context).logoScreenActiveBadge, style: theme.monoTiny.copyWith(color: theme.accent)),
                   ]),
               ],
             ),
@@ -250,7 +251,7 @@ class _ManualGrid extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _GridSectionHeader(label: 'MONKEY COLLECTION'),
+          _GridSectionHeader(label: AppLocalizations.of(context).logoScreenMonkeyCollectionHeader),
           const SizedBox(height: 12),
           _SymmetricTileGrid(
             tiles: [
@@ -281,7 +282,7 @@ class _ManualGrid extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 22),
-          _GridSectionHeader(label: 'THEMES'),
+          _GridSectionHeader(label: AppLocalizations.of(context).logoScreenThemesHeader),
           const SizedBox(height: 12),
           _SymmetricTileGrid(
             tiles: [

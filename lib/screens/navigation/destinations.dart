@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/widgets.dart' show IconData;
 
 import '../../data/settings_store.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// One destination in the shell's navigation, in nav order.
 ///
@@ -56,29 +57,37 @@ double segmentAlignmentX(int index, int count) {
   return -1 + index * (2 / (count - 1));
 }
 
-const List<NavDest> navDestinations = [
-  (
-    section: HomeSection.chat,
-    icon: CupertinoIcons.bubble_left,
-    label: 'Chat',
-    short: 'CHAT',
-  ),
-  (
-    section: HomeSection.discover,
-    icon: CupertinoIcons.compass,
-    label: 'Discover',
-    short: 'FIND',
-  ),
-  (
-    section: HomeSection.feed,
-    icon: CupertinoIcons.sparkles,
-    label: 'Feed',
-    short: 'FEED',
-  ),
-  (
-    section: HomeSection.settings,
-    icon: CupertinoIcons.gear,
-    label: 'Settings',
-    short: 'SET',
-  ),
-];
+/// Localized per call — [label]/[short] can't be a compile-time [const] once
+/// they come from [AppLocalizations], so every caller now asks for a fresh
+/// list instead of reading a top-level constant. Cheap: four small records.
+///
+/// Takes the resolved [AppLocalizations] rather than a BuildContext so it
+/// stays plain-Dart testable without pumping a widget tree.
+List<NavDest> navDestinations(AppLocalizations l10n) {
+  return [
+    (
+      section: HomeSection.chat,
+      icon: CupertinoIcons.bubble_left,
+      label: l10n.destinationsChatLabel,
+      short: l10n.destinationsChatShort,
+    ),
+    (
+      section: HomeSection.discover,
+      icon: CupertinoIcons.compass,
+      label: l10n.destinationsDiscoverLabel,
+      short: l10n.destinationsDiscoverShort,
+    ),
+    (
+      section: HomeSection.feed,
+      icon: CupertinoIcons.sparkles,
+      label: l10n.destinationsFeedLabel,
+      short: l10n.destinationsFeedShort,
+    ),
+    (
+      section: HomeSection.settings,
+      icon: CupertinoIcons.gear,
+      label: l10n.destinationsSettingsLabel,
+      short: l10n.destinationsSettingsShort,
+    ),
+  ];
+}

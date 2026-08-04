@@ -11,6 +11,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/reply_indicator.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The compact reply marker: what you get when the quoted parent is the bubble
 /// directly above.
@@ -168,6 +169,8 @@ void main() {
     );
 
     Widget host(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: Scaffold(

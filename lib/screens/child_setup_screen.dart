@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -45,7 +46,8 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
     final username = _username.text.trim();
     final name = _name.text.trim();
     if (username.isEmpty) {
-      setState(() => _error = 'Pick a username for them.');
+      setState(() =>
+          _error = AppLocalizations.of(context).childSetupScreenErrorPickUsername);
       return;
     }
     setState(() {
@@ -84,17 +86,19 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
 
   String _humanize(Object e) {
     final s = e.toString();
-    if (s.contains('USERNAME_TAKEN')) return 'That username is already taken.';
-    if (s.contains('USERNAME_REQUIRED')) return 'Pick a username for them.';
+    final l10n = AppLocalizations.of(context);
+    if (s.contains('USERNAME_TAKEN')) return l10n.childSetupScreenErrorUsernameTaken;
+    if (s.contains('USERNAME_REQUIRED')) return l10n.childSetupScreenErrorPickUsername;
     if (s.contains('CHILD_NOT_ALLOWED')) {
-      return 'Only a grown-up account can add a child.';
+      return l10n.childSetupScreenErrorChildNotAllowed;
     }
-    return 'Couldn\'t create the account — try again.';
+    return l10n.childSetupScreenErrorGeneric;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -115,7 +119,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                             size: 20, color: theme.inkSoft),
                       ),
                       const SizedBox(width: 14),
-                      Text('ADD A CHILD',
+                      Text(l10n.childSetupScreenTitle,
                           style: theme.label.copyWith(letterSpacing: 2.8)),
                     ],
                   ),
@@ -126,18 +130,18 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('who\nare they?', style: theme.displayHero),
+                        Text(l10n.childSetupScreenHeading, style: theme.displayHero),
                         const SizedBox(height: 24),
                         LabeledField(
-                          label: 'NAME',
+                          label: l10n.childSetupScreenNameLabel,
                           controller: _name,
-                          hint: 'what you call them',
+                          hint: l10n.childSetupScreenNameHint,
                         ),
                         const SizedBox(height: 16),
                         LabeledField(
-                          label: 'USERNAME',
+                          label: l10n.childSetupScreenUsernameLabel,
                           controller: _username,
-                          hint: 'how friends find them',
+                          hint: l10n.childSetupScreenUsernameHint,
                           autocorrect: false,
                           enableSuggestions: false,
                         ),
@@ -153,20 +157,15 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('WHAT THEY GET',
+                              Text(l10n.childSetupScreenWhatTheyGetTitle,
                                   style: theme.label.copyWith(
                                       letterSpacing: 2.4,
                                       color: theme.accent)),
                               const SizedBox(height: 12),
-                              _Bullet('They can talk to you and their '
-                                  'brothers and sisters right away.'),
-                              _Bullet('Everyone else needs your OK first — '
-                                  'both people they ask for, and people who '
-                                  'ask for them.'),
-                              _Bullet('Public rooms are switched off until '
-                                  'you turn them on.'),
-                              _Bullet('They can\'t sign out, and you can '
-                                  'always see how they\'re doing.'),
+                              _Bullet(l10n.childSetupScreenBulletTalkImmediately),
+                              _Bullet(l10n.childSetupScreenBulletNeedsApproval),
+                              _Bullet(l10n.childSetupScreenBulletPublicRoomsOff),
+                              _Bullet(l10n.childSetupScreenBulletCantSignOut),
                             ],
                           ),
                         ),
@@ -210,7 +209,7 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                                     ),
                                   )
                                 : Text(
-                                    'CREATE + PAIR',
+                                    l10n.childSetupScreenCreateButton,
                                     style: theme.label.copyWith(
                                       color: theme.accentInk,
                                       letterSpacing: 2.4,

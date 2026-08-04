@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
@@ -161,7 +162,11 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            isVideo ? 'Group video call' : 'Group voice call',
+                            isVideo
+                                ? AppLocalizations.of(context)
+                                      .groupCallScreenTitleVideo
+                                : AppLocalizations.of(context)
+                                      .groupCallScreenTitleVoice,
                             style: theme.displaySmall.copyWith(
                               color: Colors.white,
                             ),
@@ -179,7 +184,9 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            '$tileCount in call',
+                            AppLocalizations.of(
+                              context,
+                            ).groupCallScreenParticipantCount(tileCount),
                             style: theme.monoTiny.copyWith(
                               color: Colors.white70,
                             ),
@@ -191,7 +198,10 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                   if (anyReconnecting)
                     Padding(
                       padding: const EdgeInsets.only(top: 4, bottom: 4),
-                      child: _chip(theme, 'reconnecting…'),
+                      child: _chip(
+                        theme,
+                        AppLocalizations.of(context).groupCallScreenReconnecting,
+                      ),
                     ),
                   Expanded(
                     child: Padding(
@@ -245,7 +255,13 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                             _control(
                               icon: svc.localMuted ? Icons.mic_off : Icons.mic,
                               active: svc.localMuted,
-                              label: svc.localMuted ? 'unmute' : 'mute',
+                              label: svc.localMuted
+                                  ? AppLocalizations.of(
+                                      context,
+                                    ).groupCallScreenUnmuteLabel
+                                  : AppLocalizations.of(
+                                      context,
+                                    ).groupCallScreenMuteLabel,
                               onTap: svc.toggleMute,
                             ),
                             if (isVideo)
@@ -254,13 +270,21 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                                     ? Icons.videocam_off
                                     : Icons.videocam,
                                 active: svc.localVideoOff,
-                                label: svc.localVideoOff ? 'cam on' : 'cam off',
+                                label: svc.localVideoOff
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).groupCallScreenCamOnLabel
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).groupCallScreenCamOffLabel,
                                 onTap: svc.toggleVideo,
                               ),
                             if (isVideo)
                               _control(
                                 icon: Icons.cameraswitch_outlined,
-                                label: 'flip',
+                                label: AppLocalizations.of(
+                                  context,
+                                ).groupCallScreenFlipLabel,
                                 onTap: svc.switchCamera,
                               ),
                             _control(
@@ -268,12 +292,16 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                                   ? Icons.volume_up
                                   : Icons.phone_in_talk,
                               active: svc.speakerOn,
-                              label: 'speaker',
+                              label: AppLocalizations.of(
+                                context,
+                              ).groupCallScreenSpeakerLabel,
                               onTap: svc.toggleSpeaker,
                             ),
                             _control(
                               icon: Icons.call_end,
-                              label: 'leave',
+                              label: AppLocalizations.of(
+                                context,
+                              ).groupCallScreenLeaveLabel,
                               background: theme.danger,
                               iconColor: Colors.white,
                               large: true,
@@ -333,7 +361,7 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
         _localRenderer != null &&
         svc.localStream != null;
     return _TileFrame(
-      label: 'You',
+      label: AppLocalizations.of(context).groupCallScreenYouLabel,
       muted: svc.localMuted,
       child: showVideo
           ? RTCVideoView(

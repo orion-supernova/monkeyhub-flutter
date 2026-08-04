@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
 import '../theme/theme_scope.dart';
@@ -234,7 +235,7 @@ class _Strip extends StatelessWidget {
           Expanded(
             child: _TapTarget(
               onTap: onTap,
-              semanticLabel: 'Jump to pinned message',
+              semanticLabel: AppLocalizations.of(context).pinnedBannerJumpToPinnedSemanticLabel,
               radius: theme.radiusSm,
               child: _Label(pin: pin, count: pins.length, index: active),
             ),
@@ -242,7 +243,7 @@ class _Strip extends StatelessWidget {
           const SizedBox(width: 8),
           _TapTarget(
             onTap: onOpenList,
-            semanticLabel: 'All pinned messages',
+            semanticLabel: AppLocalizations.of(context).pinnedBannerAllPinnedSemanticLabel,
             radius: theme.radiusSm,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -297,9 +298,10 @@ class _Label extends StatelessWidget {
     final m = pin.message;
     // No thumbnail in this strip, so an uncaptioned photo needs the word.
     final preview = messagePreviewLine(m, hasThumbnail: false);
+    final l10n = AppLocalizations.of(context);
     final title = count > 1
-        ? 'Pinned message  ${index + 1}/$count'
-        : 'Pinned message';
+        ? l10n.pinnedBannerTitleWithIndex(count, index + 1)
+        : l10n.pinnedBannerTitleSingle;
 
     return AnimatedSwitcher(
       duration: theme.motionFast,

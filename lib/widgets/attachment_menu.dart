@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
@@ -29,21 +30,43 @@ class _AttachmentSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final tiles = <(AttachmentMenuChoice, IconData, String)>[
-      (AttachmentMenuChoice.gallery, CupertinoIcons.photo, 'photo'),
-      (AttachmentMenuChoice.video, CupertinoIcons.film, 'video'),
-      (AttachmentMenuChoice.camera, CupertinoIcons.camera, 'camera'),
+      (
+        AttachmentMenuChoice.gallery,
+        CupertinoIcons.photo,
+        l10n.attachmentMenuPhotoLabel,
+      ),
+      (
+        AttachmentMenuChoice.video,
+        CupertinoIcons.film,
+        l10n.attachmentMenuVideoLabel,
+      ),
+      (
+        AttachmentMenuChoice.camera,
+        CupertinoIcons.camera,
+        l10n.attachmentMenuCameraLabel,
+      ),
       // Absent in a browser. `record_web` writes an opus/webm blob rather than
       // the AAC the send path and the players downstream both assume, and it
       // ignores the temp-file path the recorder screen asks path_provider for —
       // which has no web implementation to ask. Offering a tile that records
       // something nobody can play back would be worse than not offering it.
-      if (!kIsWeb) (AttachmentMenuChoice.voice, CupertinoIcons.mic, 'voice'),
+      if (!kIsWeb)
+        (
+          AttachmentMenuChoice.voice,
+          CupertinoIcons.mic,
+          l10n.attachmentMenuVoiceLabel,
+        ),
       // Deliberately NOT web-gated, unlike voice above. `file_selector` has a
       // real web implementation backed by `<input type=file>`, and the bytes
       // it hands back are exactly what the upload path already wants.
-      (AttachmentMenuChoice.file, CupertinoIcons.doc, 'file'),
+      (
+        AttachmentMenuChoice.file,
+        CupertinoIcons.doc,
+        l10n.attachmentMenuFileLabel,
+      ),
     ];
     return Material(
       type: MaterialType.transparency,
@@ -134,10 +157,7 @@ class _AttachTileState extends State<_AttachTile> {
                 decoration: BoxDecoration(
                   color: theme.surfaceRaised,
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: theme.divider,
-                    width: 0.8,
-                  ),
+                  border: Border.all(color: theme.divider, width: 0.8),
                 ),
                 child: Icon(widget.icon, size: 20, color: theme.accent),
               ),

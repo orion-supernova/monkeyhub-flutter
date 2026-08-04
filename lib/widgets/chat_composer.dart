@@ -4,6 +4,7 @@ import '../data/mention_session.dart';
 import '../keyboard/focusable_tap.dart';
 import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'liquid_glass.dart';
 
@@ -81,7 +82,7 @@ class ChatComposerClassic extends StatelessWidget {
           if (onAttach != null) ...[
             FocusableTap(
               onTap: onAttach,
-              semanticLabel: 'Attach',
+              semanticLabel: AppLocalizations.of(context).deepOceanThemeAttachButtonLabel,
               shape: FocusRingShape.circle,
               child: GestureDetector(
                 onTap: onAttach,
@@ -123,8 +124,8 @@ class ChatComposerClassic extends StatelessWidget {
                       isCollapsed: true,
                       border: InputBorder.none,
                       hintText: ephemeral
-                          ? 'whisper something the server will forget…'
-                          : 'say something…',
+                          ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
+                          : AppLocalizations.of(context).deepOceanThemeDefaultHint,
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                     ),
@@ -141,7 +142,7 @@ class ChatComposerClassic extends StatelessWidget {
             const SizedBox(width: 10),
             FocusableTap(
               onTap: onCamera,
-              semanticLabel: 'Camera',
+              semanticLabel: AppLocalizations.of(context).deepOceanThemeCameraButtonLabel,
               shape: FocusRingShape.circle,
               child: GestureDetector(
                 onTap: onCamera,
@@ -166,7 +167,7 @@ class ChatComposerClassic extends StatelessWidget {
           const SizedBox(width: 10),
           FocusableTap(
             onTap: onSend,
-            semanticLabel: 'Send',
+            semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
             shape: FocusRingShape.circle,
             child: GestureDetector(
               onTap: onSend,
@@ -279,8 +280,8 @@ class ChatComposerLiquid extends StatelessWidget {
                       isCollapsed: true,
                       border: InputBorder.none,
                       hintText: ephemeral
-                          ? 'whisper something the server will forget…'
-                          : 'Message',
+                          ? AppLocalizations.of(context).deepOceanThemeEphemeralHint
+                          : AppLocalizations.of(context).deepOceanThemeMessageHint,
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     ),
                     onChanged: onChanged,

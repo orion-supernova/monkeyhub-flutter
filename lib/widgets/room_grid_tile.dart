@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -95,7 +96,7 @@ class RoomGridTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: theme.chipDecoration(),
-                          child: Text('LOCKED', style: theme.monoTiny),
+                          child: Text(AppLocalizations.of(context).roomGridTileLockedBadge, style: theme.monoTiny),
                         ),
                       if (room.isEphemeral && room.messageLifetime != null)
                         EphemeralBadge(ttl: room.messageLifetime!, dense: true),
@@ -125,7 +126,7 @@ class RoomGridTile extends StatelessWidget {
                         : Text(
                             (room.lastMessage != null && room.lastMessage!.isNotEmpty)
                                 ? room.lastMessage!
-                                : 'quiet so far',
+                                : AppLocalizations.of(context).roomGridTileEmptyLastMessage,
                             style: (room.lastMessage != null && room.lastMessage!.isNotEmpty)
                                 ? theme.body.copyWith(fontSize: 12)
                                 : theme.bodySoft.copyWith(fontSize: 12),
@@ -142,7 +143,7 @@ class RoomGridTile extends StatelessWidget {
               Row(children: [
                 Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
                 const SizedBox(width: 4),
-                Text('IN', style: theme.monoTiny),
+                Text(AppLocalizations.of(context).roomGridTileMemberCountLabel, style: theme.monoTiny),
               ]),
           ],
         ),

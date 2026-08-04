@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
@@ -99,6 +100,7 @@ class TranscriptSelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomSafe = MediaQuery.paddingOf(context).bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe),
@@ -110,13 +112,15 @@ class TranscriptSelectionBar extends StatelessWidget {
             BulkActionButton(
               theme: theme,
               icon: CupertinoIcons.xmark,
-              label: 'CANCEL',
+              label: l10n.bulkActionBarCancelLabel,
               onTap: onCancel,
             ),
             Expanded(
               child: Center(
                 child: Text(
-                  count == 0 ? 'SELECT MESSAGES' : '$count SELECTED',
+                  count == 0
+                      ? l10n.bulkActionBarSelectMessagesLabel
+                      : l10n.bulkActionBarSelectedCountLabel(count),
                   style: theme.monoTiny.copyWith(
                     color: count == 0 ? theme.inkMuted : theme.ink,
                     letterSpacing: 1.6,
@@ -127,14 +131,14 @@ class TranscriptSelectionBar extends StatelessWidget {
             BulkActionButton(
               theme: theme,
               icon: CupertinoIcons.arrowshape_turn_up_right,
-              label: 'FORWARD',
+              label: l10n.bulkActionBarForwardLabel,
               enabled: canForward && count > 0,
               onTap: onForward,
             ),
             BulkActionButton(
               theme: theme,
               icon: CupertinoIcons.trash,
-              label: 'DELETE',
+              label: l10n.bulkActionBarDeleteLabel,
               destructive: true,
               enabled: canDelete && count > 0,
               onTap: onDelete,

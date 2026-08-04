@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
 import '../models/room_pin.dart';
@@ -77,6 +78,7 @@ class PinnedListSheet extends StatelessWidget {
   }
 
   Widget _body(BuildContext context, AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     final pins = repo.pinsFor(roomId);
     // 50 pins do not fit on a phone, and a sheet that grows to the full screen
     // stops reading as a sheet.
@@ -92,7 +94,9 @@ class PinnedListSheet extends StatelessWidget {
         children: [
           const SheetGrabber(),
           Text(
-            pins.isEmpty ? 'PINNED' : 'PINNED · ${pins.length}',
+            pins.isEmpty
+                ? l10n.activeCallPillPinnedHeader
+                : l10n.activeCallPillPinnedHeaderCount(pins.length),
             textAlign: TextAlign.center,
             style: theme.label.copyWith(letterSpacing: 2.4),
           ),
@@ -101,7 +105,7 @@ class PinnedListSheet extends StatelessWidget {
             // The last pin went while this was open. Say so and let the reader
             // dismiss — popping a sheet out from under a finger is worse.
             Text(
-              'nothing pinned anymore',
+              l10n.activeCallPillNothingPinned,
               textAlign: TextAlign.center,
               style: theme.bodySoft,
             )
@@ -143,6 +147,7 @@ class _PinRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final m = pin.message;
     // View-once media has no storage id — the server withholds it — so there is
     // deliberately nothing to show for those beyond the words.
@@ -155,7 +160,9 @@ class _PinRow extends StatelessWidget {
         Expanded(
           child: _Tappable(
             onTap: onTap,
-            semanticLabel: 'Jump to message from ${m.senderName}',
+            semanticLabel: l10n.activeCallPillJumpToMessageSemanticLabel(
+              m.senderName,
+            ),
             radius: theme.radiusMd,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -218,7 +225,9 @@ class _PinRow extends StatelessWidget {
         const SizedBox(width: 6),
         _Tappable(
           onTap: onUnpin,
-          semanticLabel: 'Unpin message from ${m.senderName}',
+          semanticLabel: l10n.activeCallPillUnpinMessageSemanticLabel(
+            m.senderName,
+          ),
           radius: theme.radiusSm,
           child: Padding(
             padding: const EdgeInsets.all(8),

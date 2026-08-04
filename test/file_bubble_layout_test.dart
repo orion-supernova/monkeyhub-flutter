@@ -12,6 +12,7 @@ import 'package:monkeyhub/widgets/file_message.dart';
 import 'package:monkeyhub/widgets/message_action_menu.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/message_stamp.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// A document bubble is the only bubble whose body is *chrome* rather than
 /// text: a badge, a name, a size and a save control, with the timestamp
@@ -50,6 +51,8 @@ void main() {
   /// A phone-shaped chat pane: 390pt, which is what `ChatPane` publishes on the
   /// device most of these bubbles are read on.
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: Scaffold(
@@ -173,6 +176,8 @@ void main() {
     await tester.pumpWidget(ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: Builder(
@@ -222,6 +227,8 @@ void main() {
     await tester.pumpWidget(ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: Builder(
@@ -269,6 +276,8 @@ void main() {
     await tester.pumpWidget(ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Align(
             alignment: Alignment.topLeft,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
 /// "This account has no recovery phrase" — shown until it has one.
@@ -24,9 +25,10 @@ class RecoveryPhraseBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: 'Set up a recovery phrase',
+      semanticLabel: l10n.linkOpenerRecoveryBannerSemanticLabel,
       radius: theme.radiusMd,
       // Never an InkWell — this app draws no ink anywhere.
       child: GestureDetector(
@@ -45,7 +47,7 @@ class RecoveryPhraseBanner extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'no recovery phrase — you could not get back in.',
+                  l10n.linkOpenerRecoveryBannerMessage,
                   style: theme.monoTiny.copyWith(color: theme.danger),
                 ),
               ),

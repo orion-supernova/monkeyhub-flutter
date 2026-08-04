@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_composer.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The composer's optional buttons.
 ///
@@ -18,6 +19,8 @@ import 'package:monkeyhub/widgets/chat_composer.dart';
 /// ship broken for half the users.
 void main() {
   Widget host(Widget composer) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

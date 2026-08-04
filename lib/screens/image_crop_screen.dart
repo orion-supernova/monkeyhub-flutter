@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -36,8 +37,8 @@ class ImageCropScreen extends StatefulWidget {
     this.shape = CropShape.circle,
     this.aspectRatio,
     this.maxOutputEdge = 1024,
-    this.confirmLabel = 'USE PHOTO',
-    this.title = 'adjust',
+    this.confirmLabel,
+    this.title,
     this.mirrored = false,
   });
 
@@ -63,8 +64,12 @@ class ImageCropScreen extends StatefulWidget {
   /// Longest edge of the encoded result. The crop is never upscaled past its
   /// own source pixels, so a tight crop of a small photo stays small.
   final int maxOutputEdge;
-  final String confirmLabel;
-  final String title;
+
+  /// Falls back to a localized "USE PHOTO" when null.
+  final String? confirmLabel;
+
+  /// Falls back to a localized "adjust" when null.
+  final String? title;
 
   /// [overCamera] pushes with no transition, for the camera's in-place review:
   /// the crop takes the preview's place in the frame after the shutter rather
@@ -76,8 +81,8 @@ class ImageCropScreen extends StatefulWidget {
     CropShape shape = CropShape.circle,
     double? aspectRatio,
     int maxOutputEdge = 1024,
-    String confirmLabel = 'USE PHOTO',
-    String title = 'adjust',
+    String? confirmLabel,
+    String? title,
     bool mirrored = false,
     bool overCamera = false,
   }) {
@@ -130,13 +135,14 @@ class _ImageCropScreenState extends State<ImageCropScreen>
   @override
   void initState() {
     super.initState();
-    _animCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 220),
-    )..addListener(() {
-        final t = _animTween;
-        if (t != null) _xform.value = t.value;
-      });
+    _animCtrl =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 220),
+        )..addListener(() {
+          final t = _animTween;
+          if (t != null) _xform.value = t.value;
+        });
     _load();
   }
 
@@ -154,7 +160,10 @@ class _ImageCropScreenState extends State<ImageCropScreen>
       // bug: ImageDescriptor.width throws UnsupportedError in a browser, so the
       // avatar cropper failed on every photo too. One decoder now, so the next
       // platform difference is only found once.
-      var image = await decodeImageBytes(widget.source, maxEdge: _maxDecodeEdge);
+      var image = await decodeImageBytes(
+        widget.source,
+        maxEdge: _maxDecodeEdge,
+      );
       // A front-lens capture arrives the way the sensor saw it, reversed from
       // the preview it was framed in. Flipped here, on the already-downscaled
       // decode, rather than on the encoded bytes at capture time — `_confirm()`
@@ -197,13 +206,12 @@ class _ImageCropScreenState extends State<ImageCropScreen>
     // OverflowBox aligned TOP-LEFT, so the identity matrix would open on the
     // image's corner. Seed the midpoint of the legal translation interval.
     _setMatrix(
-      Matrix4.identity()
-        ..translateByDouble(
-          (window.width - _childW) / 2,
-          (window.height - _childH) / 2,
-          0.0,
-          1.0,
-        ),
+      Matrix4.identity()..translateByDouble(
+        (window.width - _childW) / 2,
+        (window.height - _childH) / 2,
+        0.0,
+        1.0,
+      ),
     );
   }
 
@@ -261,9 +269,10 @@ class _ImageCropScreenState extends State<ImageCropScreen>
         )
         ..scaleByDouble(scale, scale, scale, 1.0);
     }
-    _animTween = Matrix4Tween(begin: _xform.value, end: _clamp(target)).animate(
-      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic),
-    );
+    _animTween = Matrix4Tween(
+      begin: _xform.value,
+      end: _clamp(target),
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _animCtrl
       ..value = 0
       ..forward();
@@ -387,7 +396,11 @@ class _ImageCropScreenState extends State<ImageCropScreen>
           ),
           Expanded(
             child: Center(
-              child: Text(widget.title, style: theme.label),
+              child: Text(
+                widget.title ??
+                    AppLocalizations.of(context).imageCropScreenDefaultTitle,
+                style: theme.label,
+              ),
             ),
           ),
           LiquidGlass(
@@ -414,8 +427,8 @@ class _ImageCropScreenState extends State<ImageCropScreen>
       return Center(
         child: Text(
           heic
-              ? 'this browser can\'t open HEIC photos'
-              : 'couldn\'t open that image',
+              ? AppLocalizations.of(context).imageCropScreenHeicUnsupported
+              : AppLocalizations.of(context).imageCropScreenLoadFailed,
           style: theme.body.copyWith(color: theme.inkSoft),
         ),
       );
@@ -517,8 +530,8 @@ class _ImageCropScreenState extends State<ImageCropScreen>
         children: [
           Text(
             widget.shape == CropShape.circle
-                ? 'drag to move, pinch to zoom'
-                : 'drag and pinch to frame',
+                ? AppLocalizations.of(context).imageCropScreenHintCircle
+                : AppLocalizations.of(context).imageCropScreenHintRect,
             style: theme.caption.copyWith(color: theme.inkMuted),
           ),
           const SizedBox(height: 12),
@@ -526,14 +539,21 @@ class _ImageCropScreenState extends State<ImageCropScreen>
             children: [
               Expanded(
                 child: _CropButton(
-                  label: 'CANCEL',
+                  label: AppLocalizations.of(
+                    context,
+                  ).imageCropScreenCancelButton,
                   onTap: _saving ? null : () => Navigator.of(context).pop(),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _CropButton(
-                  label: _saving ? 'SAVING…' : widget.confirmLabel,
+                  label: _saving
+                      ? AppLocalizations.of(context).imageCropScreenSavingButton
+                      : (widget.confirmLabel ??
+                            AppLocalizations.of(
+                              context,
+                            ).imageCropScreenDefaultConfirmLabel),
                   filled: true,
                   onTap: ready ? _confirm : null,
                 ),
@@ -576,10 +596,7 @@ class _CropMaskPainter extends CustomPainter {
     if (shape == CropShape.circle) {
       final hole = Path()
         ..addOval(
-          Rect.fromCircle(
-            center: full.center,
-            radius: size.shortestSide / 2,
-          ),
+          Rect.fromCircle(center: full.center, radius: size.shortestSide / 2),
         );
       canvas.drawPath(
         Path.combine(PathOperation.difference, Path()..addRect(full), hole),
@@ -622,7 +639,11 @@ class _CropMaskPainter extends CustomPainter {
 /// CANCEL / USE PHOTO. Bare GestureDetector + FocusableTap — this app renders
 /// no ink anywhere.
 class _CropButton extends StatefulWidget {
-  const _CropButton({required this.label, required this.onTap, this.filled = false});
+  const _CropButton({
+    required this.label,
+    required this.onTap,
+    this.filled = false,
+  });
 
   final String label;
   final VoidCallback? onTap;

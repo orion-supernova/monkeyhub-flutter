@@ -4,6 +4,7 @@ import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -74,10 +75,15 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     try {
       if (linked) {
         final password = await _askPassword(
-          title: 'UNLINK ${provider.label.toUpperCase()}',
-          actionLabel: 'UNLINK',
-          subtitle:
-              'Enter your password to stop signing in with ${provider.label}.',
+          title: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenUnlinkTitle(provider.label.toUpperCase()),
+          actionLabel: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenUnlinkAction,
+          subtitle: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenUnlinkSubtitle(provider.label),
         );
         if (password == null) return;
         setState(() => _busy = provider);
@@ -86,10 +92,15 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
         final credential = await SocialSignIn.forProvider(provider);
         if (!mounted) return;
         final password = await _askPassword(
-          title: 'LINK ${provider.label.toUpperCase()}',
-          actionLabel: 'LINK',
-          subtitle:
-              'Enter your password to add ${provider.label} as a way to sign in.',
+          title: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenLinkTitle(provider.label.toUpperCase()),
+          actionLabel: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenLinkAction,
+          subtitle: AppLocalizations.of(
+            context,
+          ).linkedAccountsScreenLinkSubtitle(provider.label),
         );
         if (password == null) return;
         setState(() => _busy = provider);
@@ -144,21 +155,22 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
                         ),
                       ),
                       Text(
-                        'LINKED ACCOUNTS',
+                        AppLocalizations.of(context).linkedAccountsScreenTitle,
                         style: theme.label.copyWith(letterSpacing: 2.4),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Accounts you\'ve attached to this one, so you can sign in '
-                    'without a password.',
+                    AppLocalizations.of(context).linkedAccountsScreenSubtitle,
                     style: theme.bodySoft,
                   ),
                   const SizedBox(height: 24),
                   if (providers.isEmpty)
                     Text(
-                      'There\'s nothing to link on this device.',
+                      AppLocalizations.of(
+                        context,
+                      ).linkedAccountsScreenEmptyState,
                       style: theme.body.copyWith(color: theme.inkMuted),
                     )
                   else
@@ -248,18 +260,24 @@ class _ProviderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(switch (linked) {
-            null => 'Checking…',
-            true =>
-              'You can sign in with ${provider.label} on any of your devices.',
-            false =>
-              'Add ${provider.label} so you don\'t have to type your password.',
+            null => AppLocalizations.of(
+              context,
+            ).linkedAccountsScreenStatusChecking,
+            true => AppLocalizations.of(
+              context,
+            ).linkedAccountsScreenStatusLinked(provider.label),
+            false => AppLocalizations.of(
+              context,
+            ).linkedAccountsScreenStatusNotLinked(provider.label),
           }, style: theme.bodySoft),
           const SizedBox(height: 14),
           if (linked == null)
             const SizedBox.shrink()
           else if (isLinked)
             _UnlinkButton(
-              label: 'UNLINK ${provider.label.toUpperCase()}',
+              label: AppLocalizations.of(
+                context,
+              ).linkedAccountsScreenUnlinkTitle(provider.label.toUpperCase()),
               busy: busy,
               enabled: !anyBusy,
               onTap: onToggle,
@@ -290,9 +308,18 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final (label, color) = switch (linked) {
-      null => ('CHECKING', theme.inkMuted),
-      true => ('LINKED', theme.accent),
-      false => ('NOT LINKED', theme.inkMuted),
+      null => (
+        AppLocalizations.of(context).linkedAccountsScreenPillChecking,
+        theme.inkMuted,
+      ),
+      true => (
+        AppLocalizations.of(context).linkedAccountsScreenPillLinked,
+        theme.accent,
+      ),
+      false => (
+        AppLocalizations.of(context).linkedAccountsScreenPillNotLinked,
+        theme.inkMuted,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

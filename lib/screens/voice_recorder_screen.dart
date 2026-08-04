@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'room_items.dart' show formatClockDuration;
 
@@ -61,7 +62,11 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
     if (!await _rec.hasPermission()) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('microphone permission denied')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).voiceRecorderScreenMicPermissionDeniedSnackbar,
+          ),
+        ),
       );
       return;
     }
@@ -157,7 +162,12 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                       icon: Icon(Icons.close, color: theme.inkSoft),
                     ),
                     const Spacer(),
-                    Text(_recording ? 'RECORDING' : (_recorded ? 'READY' : 'TAP TO START'),
+                    Text(
+                        _recording
+                            ? AppLocalizations.of(context).voiceRecorderScreenStatusRecording
+                            : (_recorded
+                                ? AppLocalizations.of(context).voiceRecorderScreenStatusReady
+                                : AppLocalizations.of(context).voiceRecorderScreenStatusTapToStart),
                         style: theme.label.copyWith(
                             color: _recording ? theme.danger : theme.accent, letterSpacing: 2.4)),
                   ]),
@@ -187,7 +197,10 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                                 border: Border.all(color: theme.divider),
                                 borderRadius: BorderRadius.circular(theme.radiusMd),
                               ),
-                              child: Text('RE-RECORD', style: theme.label),
+                              child: Text(
+                                AppLocalizations.of(context).voiceRecorderScreenReRecordButton,
+                                style: theme.label,
+                              ),
                             ),
                           ),
                         ),
@@ -213,8 +226,10 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
                             ),
                             child: Text(
                               _recording
-                                  ? 'STOP'
-                                  : (_recorded ? 'SEND' : 'RECORD'),
+                                  ? AppLocalizations.of(context).voiceRecorderScreenStopButton
+                                  : (_recorded
+                                      ? AppLocalizations.of(context).voiceRecorderScreenSendButton
+                                      : AppLocalizations.of(context).voiceRecorderScreenRecordButton),
                               style: theme.label.copyWith(
                                   color: theme.accentInk, letterSpacing: 2.4),
                             ),

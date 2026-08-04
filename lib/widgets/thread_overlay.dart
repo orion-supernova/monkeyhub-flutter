@@ -13,6 +13,7 @@ import '../data/settings_store.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
@@ -341,7 +342,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
       _jumpBack.push(from);
       return;
     }
-    if (mounted) _showToast("couldn't find that message in this thread");
+    if (mounted) {
+      _showToast(AppLocalizations.of(context).threadOverlayMessageNotFound);
+    }
   }
 
   /// Walk one hop back down the trail, to the reply we last jumped away from.
@@ -355,7 +358,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (origin == null) return;
     HapticFeedback.selectionClick();
     if (await _revealInThread(origin.id)) return;
-    if (mounted) _showToast("couldn't find that message in this thread");
+    if (mounted) {
+      _showToast(AppLocalizations.of(context).threadOverlayMessageNotFound);
+    }
   }
 
   /// Page the thread back until [messageId] is loaded, scroll to it however
@@ -490,11 +495,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (text.isEmpty) return;
     final target = _resolveTarget(_messages);
     if (target == null) {
-      _showToast("couldn't find the thread to reply to");
+      _showToast(AppLocalizations.of(context).threadOverlayReplyTargetNotFound);
       return;
     }
     if (target.id.startsWith('tmp_')) {
-      _showToast('still sending — try again in a second');
+      _showToast(AppLocalizations.of(context).threadOverlayStillSending);
       return;
     }
     final mentions = _composer.mentions;
@@ -662,11 +667,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
         break;
       case MessageAction.copy:
         await Clipboard.setData(ClipboardData(text: m.content));
-        _showToast('copied');
+        if (!context.mounted) return;
+        _showToast(AppLocalizations.of(context).threadOverlayCopiedToast);
         break;
       case MessageAction.copyName:
         await Clipboard.setData(ClipboardData(text: m.fileName ?? ''));
-        _showToast('name copied');
+        if (!context.mounted) return;
+        _showToast(AppLocalizations.of(context).threadOverlayNameCopiedToast);
         break;
       case MessageAction.viewProfile:
         if (author != null && context.mounted) {
@@ -683,11 +690,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
         break;
       case MessageAction.pin:
         final err = await widget.repo.pinMessage(widget.roomId, m.id);
-        if (err != null) {
-          _showToast(err == 'PIN_LIMIT_REACHED'
-              ? 'too many pins — unpin one first'
-              : "couldn't pin that");
-        }
+        if (err == null) break;
+        if (!context.mounted) return;
+        _showToast(err == 'PIN_LIMIT_REACHED'
+            ? AppLocalizations.of(context).threadOverlayPinLimitToast
+            : AppLocalizations.of(context).threadOverlayPinFailedToast);
         break;
       case MessageAction.unpin:
         await widget.repo.unpinMessage(widget.roomId, m.id);
@@ -708,7 +715,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
             targetId: m.id,
             reason: reason,
           );
-          _showToast('reported');
+          if (!context.mounted) return;
+          _showToast(AppLocalizations.of(context).threadOverlayReportedToast);
         } catch (_) {}
         break;
       case MessageAction.viewThread:
@@ -901,7 +909,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
                             ? Center(
                                 child: hasLoaded
                                     ? Text(
-                                        'thread unavailable',
+                                        AppLocalizations.of(context)
+                                            .threadOverlayUnavailable,
                                         style: theme.bodySoft
                                             .copyWith(color: theme.inkMuted),
                                       )

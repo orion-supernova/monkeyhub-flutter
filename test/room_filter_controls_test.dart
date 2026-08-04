@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/room_filter.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/room_filter_bar.dart';
 import 'package:monkeyhub/widgets/room_filter_drawer.dart';
+
+final _l10n = AppLocalizationsEn();
 
 /// The chat list ships two interchangeable filter controls, chosen in settings.
 /// They must produce the same [RoomFilter] from the same intent — otherwise the
@@ -57,6 +61,8 @@ void main() {
   }
 
   Widget host(Widget child, {double width = 375}) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(
@@ -157,8 +163,8 @@ void main() {
       expect(find.text('all'), findsOneWidget);
       for (final f in chipOrder) {
         // The row scrolls, so drag rather than assume everything is on screen.
-        await revealChip(tester, f.label);
-        expect(find.text(f.label), findsOneWidget, reason: f.name);
+        await revealChip(tester, f.label(_l10n));
+        expect(find.text(f.label(_l10n)), findsOneWidget, reason: f.name);
       }
     });
 

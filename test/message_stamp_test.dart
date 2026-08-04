@@ -15,6 +15,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/message_stamp.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The timestamp used to be a row below the bubble, costing every message a
 /// line of vertical space to show four characters. It now rides inside the
@@ -55,6 +56,8 @@ void main() {
   );
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

@@ -6,6 +6,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/glass_pill.dart';
 import 'package:monkeyhub/widgets/jump_back.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The back trail is the only thing standing between a reader and being lost
 /// three tethers deep, so its rules are worth pinning down: it must be strictly
@@ -229,6 +230,8 @@ void main() {
 
   group('JumpBackPill', () {
     Widget host(int depth, {VoidCallback? onTap}) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: Scaffold(
@@ -282,6 +285,8 @@ void main() {
       // BackdropFilter parked at zero opacity still costs a rasterization pass
       // every frame of every chat.
       Widget host({required bool visible}) => MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: Scaffold(

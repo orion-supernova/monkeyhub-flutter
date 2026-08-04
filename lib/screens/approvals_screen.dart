@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../family/family_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -59,6 +60,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
     if (_deciding.contains(item.id)) return;
     setState(() => _deciding.add(item.id));
     final messenger = ScaffoldMessenger.of(context);
+    final loc = AppLocalizations.of(context);
     try {
       if (item.isContact) {
         // Both contact directions go through the same relay mutation — the
@@ -81,28 +83,29 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
       widget.family.refresh();
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(_humanize(e))),
+        SnackBar(content: Text(_humanize(e, loc))),
       );
     } finally {
       if (mounted) setState(() => _deciding.remove(item.id));
     }
   }
 
-  String _humanize(Object e) {
+  String _humanize(Object e, AppLocalizations loc) {
     final s = e.toString();
     if (s.contains('NOT_A_GUARDIAN')) {
-      return 'that\'s not yours to decide';
+      return loc.approvalsScreenErrorNotGuardian;
     }
     if (s.contains('REQUEST_NOT_FOUND') ||
         s.contains('REQUEST_NOT_PENDING_APPROVAL')) {
-      return 'already handled somewhere else';
+      return loc.approvalsScreenErrorAlreadyHandled;
     }
-    return 'couldn\'t save that — try again';
+    return loc.approvalsScreenErrorGeneric;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -123,7 +126,7 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
                             size: 20, color: theme.inkSoft),
                       ),
                       const SizedBox(width: 14),
-                      Text('APPROVALS',
+                      Text(loc.approvalsScreenTitle,
                           style: theme.label.copyWith(letterSpacing: 2.8)),
                       const SizedBox(width: 10),
                       if (_items.isNotEmpty)
@@ -169,15 +172,16 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check_circle_outline, size: 34, color: theme.inkMuted),
           const SizedBox(height: 14),
-          Text('nothing waiting', style: theme.displaySmall),
+          Text(loc.approvalsScreenEmptyTitle, style: theme.displaySmall),
           const SizedBox(height: 6),
-          Text('you\'re all caught up', style: theme.bodySoft),
+          Text(loc.approvalsScreenEmptySubtitle, style: theme.bodySoft),
         ],
       ),
     );
@@ -198,29 +202,38 @@ class _QueueCard extends StatelessWidget {
   final ValueChanged<bool> onDecide;
 
   /// The one-line question the parent is actually answering.
-  String get _headline {
+  String _headline(AppLocalizations loc) {
     final child = item.child.displayName;
     switch (item.type) {
       case QueueItemType.contactOutgoing:
-        return '$child wants to add ${item.other?.displayName ?? 'someone'}';
+        return loc.approvalsScreenHeadlineContactOutgoing(
+          child,
+          item.other?.displayName ?? loc.approvalsScreenSomeoneLower,
+        );
       case QueueItemType.contactIncoming:
-        return '${item.other?.displayName ?? 'Someone'} wants to add $child';
+        return loc.approvalsScreenHeadlineContactIncoming(
+          child,
+          item.other?.displayName ?? loc.approvalsScreenSomeoneCapital,
+        );
       case QueueItemType.joinRoom:
-        return '$child wants to join ${item.room?.name ?? 'a room'}';
+        return loc.approvalsScreenHeadlineJoinRoom(
+          child,
+          item.room?.name ?? loc.approvalsScreenRoomFallback,
+        );
     }
   }
 
   /// The consequence, spelled out. A parent approving an inbound request is
   /// not making the two friends — the child still decides — and saying so
   /// avoids a nasty surprise.
-  String get _consequence {
+  String _consequence(AppLocalizations loc) {
     switch (item.type) {
       case QueueItemType.contactOutgoing:
-        return 'They\'ll get the request. They still choose whether to say yes.';
+        return loc.approvalsScreenConsequenceContactOutgoing;
       case QueueItemType.contactIncoming:
-        return '$_childName will see the request and can accept or ignore it.';
+        return loc.approvalsScreenConsequenceContactIncoming(_childName);
       case QueueItemType.joinRoom:
-        return 'They\'ll be able to read and post there until you take it back.';
+        return loc.approvalsScreenConsequenceJoinRoom;
     }
   }
 
@@ -240,6 +253,7 @@ class _QueueCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     final subject = item.other;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -272,7 +286,7 @@ class _QueueCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_headline, style: theme.displaySmall),
+                    Text(_headline(loc), style: theme.displaySmall),
                     if (subject != null) ...[
                       const SizedBox(height: 2),
                       Text('@${subject.username}',
@@ -299,13 +313,13 @@ class _QueueCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 10),
-          Text(_consequence, style: theme.bodySoft),
+          Text(_consequence(loc), style: theme.bodySoft),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: _Btn(
-                  label: 'NOT YET',
+                  label: loc.approvalsScreenNotYetButton,
                   filled: false,
                   onTap: busy ? null : () => onDecide(false),
                 ),
@@ -313,7 +327,7 @@ class _QueueCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _Btn(
-                  label: 'ALLOW',
+                  label: loc.approvalsScreenAllowButton,
                   filled: true,
                   busy: busy,
                   onTap: busy ? null : () => onDecide(true),

@@ -7,6 +7,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/media_grid_tile.dart';
 import 'package:monkeyhub/widgets/video_message.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// What this pins: **a grid tile must never mount a video player.**
 ///
@@ -53,6 +54,8 @@ void main() {
   );
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

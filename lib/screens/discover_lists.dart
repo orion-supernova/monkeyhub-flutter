@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -133,11 +134,12 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final total = widget.repo.friends.length;
     final visible = _visible;
     return _ListScaffold(
-      title: 'your people.',
-      caption: total == 1 ? '1 person' : '$total people',
+      title: l10n.discoverListsPeopleTitle,
+      caption: l10n.discoverListsPeopleCount(total),
       children: [
         if (total > 0) ...[
           Container(
@@ -157,7 +159,7 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
                       isDense: true,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      hintText: 'filter your people…',
+                      hintText: l10n.discoverListsFilterHint,
                       hintStyle: theme.body.copyWith(color: theme.inkMuted),
                     ),
                   ),
@@ -168,7 +170,7 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
                       _q.clear();
                       setState(() => _query = '');
                     },
-                    semanticLabel: 'Clear filter',
+                    semanticLabel: l10n.discoverListsClearFilterSemanticLabel,
                     shape: FocusRingShape.circle,
                     radius: 999,
                     child: GestureDetector(
@@ -186,9 +188,9 @@ class _PeopleListScreenState extends State<PeopleListScreen> {
           const SizedBox(height: 18),
         ],
         if (total == 0)
-          const DiscoverEmptyLine('no one yet')
+          DiscoverEmptyLine(l10n.discoverListsNoOneYet)
         else if (visible.isEmpty)
-          DiscoverEmptyLine('no one matches "$_query"')
+          DiscoverEmptyLine(l10n.discoverListsNoMatches(_query))
         else
           for (final f in visible)
             FriendRow(

@@ -1,3 +1,4 @@
+import '../l10n/generated/app_localizations.dart';
 import 'chat_user.dart';
 
 // ── Guard error codes ───────────────────────────────────────────────────────
@@ -106,13 +107,13 @@ enum RequestStage {
   /// What the *sender* should be told while the request sits here. Kept vague
   /// about the far end on purpose: a sender must never learn that the person
   /// they asked for is a child.
-  String get senderLabel {
+  String senderLabel(AppLocalizations l10n) {
     switch (this) {
       case RequestStage.senderGuardian:
-        return 'waiting for a grown-up';
+        return l10n.familyRequestStageSenderGuardianLabel;
       case RequestStage.recipientGuardian:
       case RequestStage.recipient:
-        return 'waiting for them';
+        return l10n.familyRequestStageRecipientLabel;
     }
   }
 }

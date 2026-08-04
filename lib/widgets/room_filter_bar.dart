@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../data/room_filter.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
 /// The always-visible control for [FilterStyle.chips].
@@ -27,6 +28,7 @@ class RoomFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
 
     // A horizontal ListView hands its children a TIGHT cross-axis constraint,
     // so this height is imposed on every chip rather than being a floor. Left
@@ -45,7 +47,7 @@ class RoomFilterBar extends StatelessWidget {
           // nothing else is, so the row always has exactly one obvious
           // way back to the unfiltered list.
           _Chip(
-            label: 'all',
+            label: l10n.roomFilterBarAllChipLabel,
             active: filter.isEmpty,
             onTap: filter.isEmpty
                 ? null
@@ -60,7 +62,7 @@ class RoomFilterBar extends StatelessWidget {
               (f) => f.dimension == dimension,
             ))
               _Chip(
-                label: facet.label,
+                label: facet.label(l10n),
                 count: counts[facet],
                 active: filter.has(facet),
                 onTap: () {
@@ -112,7 +114,11 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.only(right: 6),
       child: FocusableTap(
         onTap: onTap,
-        semanticLabel: count == null ? label : '$label, $count chats',
+        semanticLabel: count == null
+            ? label
+            : AppLocalizations.of(
+                context,
+              ).roomFilterBarChipCountSemanticLabel(count!, label),
         selected: active,
         shape: FocusRingShape.capsule,
         radius: 999,

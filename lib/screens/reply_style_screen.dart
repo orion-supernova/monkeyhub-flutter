@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -43,6 +44,7 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final current = SettingsStore.instance.replyStyle;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -62,18 +64,17 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
                   ),
                 ]),
                 const SizedBox(height: 10),
-                Text('reply style.', style: theme.displayMedium),
+                Text(l10n.callButtonReplyStyleTitle, style: theme.displayMedium),
                 const SizedBox(height: 10),
                 Row(children: [
                   Container(width: 18, height: 1, color: theme.accent),
                   const SizedBox(width: 8),
-                  Text('how a reply shows its parent', style: theme.caption),
+                  Text(l10n.callButtonReplyStyleSubtitle, style: theme.caption),
                 ]),
                 const SizedBox(height: 28),
                 _StyleCard(
-                  label: 'PHANTOM ECHO',
-                  sub:
-                      'a ghost-bubble of the parent floats above with a curved connector and the branch icon at the join point.',
+                  label: l10n.callButtonReplyStylePhantomEchoLabel,
+                  sub: l10n.callButtonReplyStylePhantomEchoDescription,
                   active: current == ReplyStyle.phantomEcho,
                   preview: _Preview(
                     api: widget.api,
@@ -83,9 +84,8 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
                 ),
                 const SizedBox(height: 14),
                 _StyleCard(
-                  label: 'STICKY NOTE',
-                  sub:
-                      'a slightly rotated polaroid-style card clipped to the bubble corner.',
+                  label: l10n.callButtonReplyStyleStickyNoteLabel,
+                  sub: l10n.callButtonReplyStyleStickyNoteDescription,
                   active: current == ReplyStyle.stickyNote,
                   preview: _Preview(
                     api: widget.api,
@@ -95,9 +95,8 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
                 ),
                 const SizedBox(height: 14),
                 _StyleCard(
-                  label: 'COMIC TAIL',
-                  sub:
-                      'a small parent mini-bubble with a comic-book triangle tail pointing down.',
+                  label: l10n.callButtonReplyStyleComicTailLabel,
+                  sub: l10n.callButtonReplyStyleComicTailDescription,
                   active: current == ReplyStyle.comicTail,
                   preview: _Preview(
                     api: widget.api,
@@ -107,9 +106,8 @@ class _ReplyStyleScreenState extends State<ReplyStyleScreen> {
                 ),
                 const SizedBox(height: 14),
                 _StyleCard(
-                  label: 'CLASSIC',
-                  sub:
-                      'accent-tinted quote pill with a tether bar and avatar — the familiar WhatsApp-style look.',
+                  label: l10n.callButtonReplyStyleClassicLabel,
+                  sub: l10n.callButtonReplyStyleClassicDescription,
                   active: current == ReplyStyle.classic,
                   preview: _Preview(
                     api: widget.api,
@@ -144,6 +142,7 @@ class _StyleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -180,7 +179,7 @@ class _StyleCard extends StatelessWidget {
                           color: theme.accent, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 6),
-                    Text('ACTIVE',
+                    Text(l10n.callButtonReplyStyleActiveBadge,
                         style: theme.monoTiny.copyWith(color: theme.accent)),
                   ]),
               ],
@@ -209,16 +208,16 @@ class _Preview extends StatelessWidget {
   final ChatApi api;
   final ReplyStyle style;
 
-  static const _parentPreview = ReplyPreview(
-    senderId: 'alice',
-    senderName: 'alice',
-    contentPreview: 'hey did you see the new demo though?',
-    type: MessageType.text,
-  );
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final parentPreview = ReplyPreview(
+      senderId: 'alice',
+      senderName: 'alice',
+      contentPreview: l10n.callButtonReplyPreviewSampleMessage,
+      type: MessageType.text,
+    );
     return Align(
       alignment: Alignment.centerLeft,
       child: Column(
@@ -226,7 +225,7 @@ class _Preview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ReplyIndicator(
-            preview: _parentPreview,
+            preview: parentPreview,
             isMine: false,
             api: api,
             onTap: () {},
@@ -253,7 +252,7 @@ class _Preview extends StatelessWidget {
               ),
             ),
             child: Text(
-              'yeah, that blur is sick.',
+              l10n.callButtonReplyPreviewSampleReply,
               style: theme.body.copyWith(color: theme.ink),
             ),
           ),

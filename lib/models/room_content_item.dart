@@ -1,3 +1,6 @@
+import 'package:flutter/widgets.dart' show BuildContext;
+
+import '../l10n/generated/app_localizations.dart';
 import 'chat_message.dart';
 import 'enums.dart';
 
@@ -32,12 +35,31 @@ extension RoomContentTabWire on RoomContentTab {
         RoomContentTab.links => 'link',
       };
 
-  String get label => switch (this) {
-        RoomContentTab.media => 'MEDIA',
-        RoomContentTab.file => 'FILES',
-        RoomContentTab.voice => 'VOICE',
-        RoomContentTab.links => 'LINKS',
-      };
+  String label(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      RoomContentTab.media => l10n.roomContentTabLabelMedia,
+      RoomContentTab.file => l10n.roomContentTabLabelFiles,
+      RoomContentTab.voice => l10n.roomContentTabLabelVoice,
+      RoomContentTab.links => l10n.roomContentTabLabelLinks,
+    };
+  }
+
+  /// Lowercase form for the shared-content screen's header, which sets the
+  /// tab name in the app's lowercase heading voice (e.g. 'settings.'). A
+  /// pre-authored lowercase ARB value rather than `label(context).toLowerCase()`
+  /// — Dart's `toLowerCase()` is not locale-aware and would turn the Turkish
+  /// capital dotless I in 'BAĞLANTILAR' into a dotted 'i' instead of the
+  /// correct dotless 'ı', misspelling 'bağlantılar'.
+  String headerLabel(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return switch (this) {
+      RoomContentTab.media => l10n.roomContentTabHeaderMedia,
+      RoomContentTab.file => l10n.roomContentTabHeaderFiles,
+      RoomContentTab.voice => l10n.roomContentTabHeaderVoice,
+      RoomContentTab.links => l10n.roomContentTabHeaderLinks,
+    };
+  }
 }
 
 /// How many of something a tab holds, and whether that number is the truth.

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart';
@@ -49,14 +50,13 @@ class _BlockChoiceSheet extends StatefulWidget {
 }
 
 class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
-  String _subtitle() {
-    final parts = <String>['they won\'t be notified.'];
+  String _subtitle(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final parts = <String>[l10n.bulkActionBarBlockSheetNotNotifiedNote];
     if (widget.isFriend) {
-      parts.add(
-        'you\'re currently friends — blocking removes the friendship, so to reconnect later you\'d have to send a new friend request.',
-      );
+      parts.add(l10n.bulkActionBarBlockSheetFriendWarning);
     } else {
-      parts.add('they\'ll disappear from your search and can\'t message you.');
+      parts.add(l10n.bulkActionBarBlockSheetStrangerWarning);
     }
     return parts.join(' ');
   }
@@ -64,6 +64,7 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final shared = widget.sharedGroupRooms;
 
     return Container(
@@ -75,12 +76,13 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SheetGrabber(),
-            Text('BLOCK',
+            Text(l10n.bulkActionBarBlockSheetHeaderLabel,
                 style: theme.label.copyWith(color: theme.danger, letterSpacing: 2)),
             const SizedBox(height: 6),
-            Text('block ${widget.displayName}?', style: theme.displayMedium),
+            Text(l10n.bulkActionBarBlockSheetTitle(widget.displayName),
+                style: theme.displayMedium),
             const SizedBox(height: 6),
-            Text(_subtitle(), style: theme.bodySoft),
+            Text(_subtitle(context), style: theme.bodySoft),
 
             // ─────────────────── Shared rooms warning ───────────────────
             if (shared.isNotEmpty) ...[
@@ -88,10 +90,8 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
               SharedRoomsPanel(
                 rooms: shared,
                 api: widget.api,
-                headline:
-                    'you share ${shared.length} ${shared.length == 1 ? "room" : "rooms"} with them',
-                note:
-                    'these rooms stay untouched. you can leave any of them yourself from each room\'s settings.',
+                headline: l10n.bulkActionBarBlockSheetSharedRoomsHeadline(shared.length),
+                note: l10n.bulkActionBarBlockSheetSharedRoomsNote,
               ),
             ],
 
@@ -100,10 +100,10 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
             ChoiceTile(
               color: theme.danger,
               icon: Icons.block,
-              title: 'BLOCK',
+              title: l10n.bulkActionBarBlockChoiceTileTitle,
               sub: widget.isFriend
-                  ? 'remove friendship and block. existing chat history stays in your archive.'
-                  : 'they\'re hidden from search and can\'t reach you.',
+                  ? l10n.bulkActionBarBlockChoiceTileFriendSub
+                  : l10n.bulkActionBarBlockChoiceTileStrangerSub,
               onTap: () => Navigator.of(context).pop(BlockChoice.blockOnly),
             ),
             if (widget.hasDm) ...[
@@ -112,9 +112,8 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
                 color: theme.danger,
                 filled: true,
                 icon: Icons.delete_sweep,
-                title: 'BLOCK & DELETE DM',
-                sub:
-                    'also wipes your DM with them — every message, reaction, and media file is gone.',
+                title: l10n.bulkActionBarBlockDeleteDmTitle,
+                sub: l10n.bulkActionBarBlockDeleteDmSub,
                 onTap: () => Navigator.of(context).pop(BlockChoice.blockAndDelete),
               ),
             ],
@@ -125,14 +124,14 @@ class _BlockChoiceSheetState extends State<_BlockChoiceSheet> {
               child: FocusableTap(
                 onTap: () => Navigator.of(context).pop(BlockChoice.cancel),
                 autofocus: true,
-                semanticLabel: 'Cancel',
+                semanticLabel: l10n.bulkActionBarBlockSheetCancelSemanticLabel,
                 radius: theme.radiusMd,
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).pop(BlockChoice.cancel),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
                     child: Text(
-                      'CANCEL',
+                      l10n.bulkActionBarBlockSheetCancelLabel,
                       style: theme.label.copyWith(color: theme.inkMuted, letterSpacing: 2),
                     ),
                   ),

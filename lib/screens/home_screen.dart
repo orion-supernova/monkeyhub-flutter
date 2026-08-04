@@ -9,6 +9,7 @@ import '../data/room_filter.dart';
 import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/layout.dart';
@@ -281,7 +282,7 @@ class _Header extends StatelessWidget {
         children: [
           FocusableTap(
             onTap: onProfileTap,
-            semanticLabel: 'Your profile',
+            semanticLabel: AppLocalizations.of(context).homeScreenProfileSemanticLabel,
             shape: FocusRingShape.circle,
             radius: 999,
             child: GestureDetector(
@@ -297,7 +298,7 @@ class _Header extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'hey, $greeting.',
+              AppLocalizations.of(context).homeScreenGreeting(greeting),
               style: theme.displayMedium,
               overflow: TextOverflow.ellipsis,
             ),
@@ -321,7 +322,7 @@ class _Header extends StatelessWidget {
                     padding: const EdgeInsets.only(left: 10),
                     child: FocusableTap(
                       onTap: onCreateTap,
-                      semanticLabel: 'New room',
+                      semanticLabel: AppLocalizations.of(context).homeScreenNewRoomSemanticLabel,
                       shape: FocusRingShape.circle,
                       radius: 999,
                       child: GestureDetector(
@@ -393,7 +394,10 @@ class _RoomsPanel extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Center(
-          child: Text('no rooms yet — create one', style: theme.bodySoft),
+          child: Text(
+            AppLocalizations.of(context).homeScreenEmptyRoomsMessage,
+            style: theme.bodySoft,
+          ),
         ),
       );
     }

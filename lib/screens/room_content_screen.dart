@@ -8,6 +8,7 @@ import '../data/chat_repository.dart';
 import '../data/room_content_controller.dart';
 import '../data/room_content_selection.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../models/chat_message.dart';
@@ -211,7 +212,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   Future<void> _saveOne(ChatMessage m) async {
     final id = m.mediaStorageId;
     if (id == null) return;
-    final name = m.fileName ?? 'document';
+    final l10n = AppLocalizations.of(context);
+    final name = m.fileName ?? l10n.roomContentScreenDefaultDocumentName;
     final messenger = ScaffoldMessenger.of(context);
     try {
       await DocumentSaver.save(
@@ -222,7 +224,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       );
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text("couldn't open that file")),
+        SnackBar(content: Text(l10n.roomContentScreenCouldntOpenFile)),
       );
     }
   }
@@ -267,13 +269,14 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   Future<void> _shareSelected() async {
     final picked = _selected;
     if (picked.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     _selection.clear();
 
     final ok = await shareMessages(api: widget.api, messages: picked);
     if (!mounted || ok) return;
     messenger.showSnackBar(
-      const SnackBar(content: Text("couldn't share those")),
+      SnackBar(content: Text(l10n.roomContentScreenCouldntShare)),
     );
   }
 
@@ -284,28 +287,30 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
         if (ids.contains(l.message.id)) l.url,
     ];
     if (urls.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     await Clipboard.setData(ClipboardData(text: urls.join('\n')));
     if (!mounted) return;
     _selection.clear();
     messenger.showSnackBar(
-      SnackBar(content: Text(urls.length == 1 ? 'copied' : 'copied ${urls.length} links')),
+      SnackBar(content: Text(l10n.roomContentScreenLinksCopied(urls.length))),
     );
   }
 
   Future<void> _deleteSelected() async {
     final picked = _selected;
     if (picked.isEmpty) return;
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
     final confirmed = await showConfirmSheet(
       context,
-      headline: picked.length == 1 ? 'DELETE MESSAGE' : 'DELETE ${picked.length} MESSAGES',
+      headline: l10n.roomContentScreenDeleteHeadline(picked.length),
       // Named plainly, because it is not "remove from my gallery": the rows go
       // for everyone in the room. They are all the caller's own — see
       // [_canDeleteAll] — so this asks about reach, not about ownership.
-      body: 'This removes them for everyone in this chat. It cannot be undone.',
-      confirmLabel: 'DELETE FOR EVERYONE',
+      body: l10n.roomContentScreenDeleteBody,
+      confirmLabel: l10n.roomContentScreenDeleteForEveryone,
     );
     if (!confirmed || !mounted) return;
 
@@ -398,6 +403,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     return AnimatedBuilder(
       animation: _selection,
       builder: (_, _) {
+        final l10n = AppLocalizations.of(context);
         final picked = _selected.length;
         final selecting = _selection.active;
         return Container(
@@ -413,7 +419,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                   color: theme.ink,
                   size: 20,
                 ),
-                tooltip: selecting ? 'Cancel' : 'Back',
+                tooltip: selecting
+                    ? l10n.roomContentScreenCancelTooltip
+                    : l10n.roomContentScreenBackTooltip,
                 onPressed: () {
                   if (selecting) {
                     _selection.clear();
@@ -427,13 +435,15 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      selecting ? 'SELECTING' : 'SHARED CONTENT',
+                      selecting
+                          ? l10n.roomContentScreenSelectingLabel
+                          : l10n.roomContentScreenSharedContentLabel,
                       style: theme.monoTiny.copyWith(letterSpacing: 2.2),
                     ),
                     Text(
                       selecting
-                          ? (picked == 0 ? 'nothing picked' : '$picked selected')
-                          : _tab.label.toLowerCase(),
+                          ? l10n.roomContentScreenSelectionCount(picked)
+                          : _tab.headerLabel(context),
                       style: theme.displayMedium.copyWith(fontSize: 21),
                     ),
                   ],
@@ -444,7 +454,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
               // long-press idiom and this app defines no right-click menu.
               _HeaderAction(
                 theme: theme,
-                label: selecting ? 'ALL' : 'SELECT',
+                label: selecting
+                    ? l10n.roomContentScreenSelectAllActiveLabel
+                    : l10n.roomContentScreenSelectAllLabel,
                 onTap: () {
                   if (!selecting) {
                     _selection.begin();
@@ -476,7 +488,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
             for (final t in RoomContentTab.values)
               PillNavItem(
                 id: t.name,
-                label: t.label,
+                label: t.label(context),
                 badge: (_counts[t.countKey] ?? RoomContentCount.zero).badge,
               ),
           ],
@@ -682,17 +694,18 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final what = switch (tab) {
-      RoomContentTab.media => 'no photos or videos yet',
-      RoomContentTab.file => 'no files yet',
-      RoomContentTab.voice => 'no voice notes yet',
-      RoomContentTab.links => 'no links yet',
+      RoomContentTab.media => l10n.roomContentScreenEmptyMedia,
+      RoomContentTab.file => l10n.roomContentScreenEmptyFiles,
+      RoomContentTab.voice => l10n.roomContentScreenEmptyVoice,
+      RoomContentTab.links => l10n.roomContentScreenEmptyLinks,
     };
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Text(
-          failed ? "couldn't load that" : what,
+          failed ? l10n.roomContentScreenLoadFailed : what,
           textAlign: TextAlign.center,
           style: theme.bodySoft,
         ),
@@ -727,7 +740,8 @@ class _ContentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tab == RoomContentTab.voice) return _voiceRow(context);
 
-    final name = message.fileName ?? 'document';
+    final name = message.fileName ??
+        AppLocalizations.of(context).roomContentScreenDefaultDocumentName;
     final sub = [
       if (message.fileSize != null && message.fileSize! > 0)
         formatFileSize(message.fileSize!),
@@ -774,7 +788,8 @@ class _ContentRow extends StatelessWidget {
       selecting: selecting,
       onTap: onTap,
       onLongPress: onLongPress,
-      semanticLabel: 'Voice message from ${message.senderName}',
+      semanticLabel: AppLocalizations.of(context)
+          .roomContentScreenVoiceMessageFrom(message.senderName),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1035,6 +1050,7 @@ class RoomContentActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (selected.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
     final isLinks = tab == RoomContentTab.links;
     // Photos and videos are the only things the OS photo library will take.
     final savable = selected.any(
@@ -1054,14 +1070,14 @@ class RoomContentActionBar extends StatelessWidget {
               BulkActionButton(
                 theme: theme,
                 icon: CupertinoIcons.arrowshape_turn_up_right,
-                label: 'FORWARD',
+                label: l10n.roomContentScreenForwardAction,
                 onTap: onForward,
               ),
               if (isLinks)
                 BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.doc_on_clipboard,
-                  label: 'COPY',
+                  label: l10n.roomContentScreenCopyAction,
                   onTap: onCopy,
                 )
               else ...[
@@ -1072,13 +1088,13 @@ class RoomContentActionBar extends StatelessWidget {
                   BulkActionButton(
                     theme: theme,
                     icon: CupertinoIcons.arrow_down_to_line,
-                    label: 'SAVE',
+                    label: l10n.roomContentScreenSaveAction,
                     onTap: onSave,
                   ),
                 BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.share,
-                  label: 'SHARE',
+                  label: l10n.roomContentScreenShareAction,
                   onTap: onShare,
                 ),
               ],
@@ -1086,14 +1102,14 @@ class RoomContentActionBar extends StatelessWidget {
                 BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.chat_bubble,
-                  label: 'IN CHAT',
+                  label: l10n.roomContentScreenInChatAction,
                   onTap: onShowInChat!,
                 ),
               if (canDelete)
                 BulkActionButton(
                   theme: theme,
                   icon: CupertinoIcons.trash,
-                  label: 'DELETE',
+                  label: l10n.roomContentScreenDeleteAction,
                   destructive: true,
                   onTap: onDelete,
                 ),

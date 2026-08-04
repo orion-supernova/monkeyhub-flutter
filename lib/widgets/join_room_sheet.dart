@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
@@ -53,9 +54,9 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
 
   void _join() {
     if (!_canJoin) return;
-    Navigator.of(context).pop(
-      (password: widget.room.hasPassword ? _password.text : null),
-    );
+    Navigator.of(
+      context,
+    ).pop((password: widget.room.hasPassword ? _password.text : null));
   }
 
   @override
@@ -65,7 +66,9 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
     final hasAvatar =
         room.avatarStorageId != null && room.avatarStorageId!.isNotEmpty;
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: theme.sheetDecoration(),
         padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
@@ -84,8 +87,13 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
                 ),
               ),
             ),
-            Text('JOIN ROOM',
-                style: theme.label.copyWith(color: theme.accent, letterSpacing: 2)),
+            Text(
+              AppLocalizations.of(context).groupCallBannerJoinRoomSheetTitle,
+              style: theme.label.copyWith(
+                color: theme.accent,
+                letterSpacing: 2,
+              ),
+            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -127,15 +135,19 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
                           ),
                           if (room.hasPassword) ...[
                             const SizedBox(width: 6),
-                            Icon(Icons.lock_outline,
-                                size: 15, color: theme.accent),
+                            Icon(
+                              Icons.lock_outline,
+                              size: 15,
+                              color: theme.accent,
+                            ),
                           ],
                         ],
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${room.memberCount} '
-                        '${room.memberCount == 1 ? 'member' : 'members'}',
+                        AppLocalizations.of(
+                          context,
+                        ).groupCallBannerMemberCount(room.memberCount),
                         style: theme.monoTiny,
                       ),
                     ],
@@ -149,10 +161,12 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
             ],
             if (room.hasPassword) ...[
               const SizedBox(height: 20),
-              const FieldLabel('PASSWORD'),
+              FieldLabel(
+                AppLocalizations.of(context).groupCallBannerPasswordFieldLabel,
+              ),
               PasswordField(
                 controller: _password,
-                hint: 'passphrase…',
+                hint: AppLocalizations.of(context).groupCallBannerPasswordHint,
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
                 // Enter must not do what the dimmed JOIN button says it can't.
@@ -164,7 +178,9 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
               onTap: _canJoin ? _join : null,
               enabled: _canJoin,
               autofocus: !room.hasPassword,
-              semanticLabel: 'Join',
+              semanticLabel: AppLocalizations.of(
+                context,
+              ).groupCallBannerJoinRoomButtonSemanticLabel,
               radius: theme.radiusMd,
               child: Opacity(
                 opacity: _canJoin ? 1 : 0.4,
@@ -178,9 +194,13 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
                       borderRadius: BorderRadius.circular(theme.radiusMd),
                     ),
                     child: Text(
-                      'JOIN',
-                      style: theme.label
-                          .copyWith(color: theme.accentInk, letterSpacing: 2.4),
+                      AppLocalizations.of(
+                        context,
+                      ).groupCallBannerJoinRoomButtonLabel,
+                      style: theme.label.copyWith(
+                        color: theme.accentInk,
+                        letterSpacing: 2.4,
+                      ),
                     ),
                   ),
                 ),
@@ -189,7 +209,9 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
             const SizedBox(height: 4),
             FocusableTap(
               onTap: () => Navigator.of(context).pop(),
-              semanticLabel: 'Cancel',
+              semanticLabel: AppLocalizations.of(
+                context,
+              ).groupCallBannerCancelButtonSemanticLabel,
               radius: theme.radiusMd,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
@@ -197,8 +219,12 @@ class _JoinRoomSheetState extends State<_JoinRoomSheet> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   alignment: Alignment.center,
-                  child: Text('cancel',
-                      style: theme.bodySoft.copyWith(color: theme.inkMuted)),
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    ).groupCallBannerCancelButtonLabel,
+                    style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  ),
                 ),
               ),
             ),

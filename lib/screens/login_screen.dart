@@ -9,6 +9,7 @@ import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
 import '../platform.dart';
 import '../services/link_opener.dart';
@@ -33,19 +34,45 @@ class LoginScreen extends StatefulWidget {
 /// The three states of this screen. All per-mode copy lives here so adding or
 /// rewording a mode is a single-place edit.
 enum _AuthMode {
-  signIn(heroMuted: 'welcome\n', heroInk: 'back.', cta: 'SIGN IN'),
-  signUp(heroMuted: 'new\n', heroInk: 'face.', cta: 'OPEN ACCOUNT'),
-  reset(heroMuted: 'reset\n', heroInk: 'password.', cta: 'RESET PASSWORD');
+  signIn,
+  signUp,
+  reset;
 
-  const _AuthMode({
-    required this.heroMuted,
-    required this.heroInk,
-    required this.cta,
-  });
+  String heroMuted(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case _AuthMode.signIn:
+        return l10n.loginScreenSignInHeroMuted;
+      case _AuthMode.signUp:
+        return l10n.loginScreenSignUpHeroMuted;
+      case _AuthMode.reset:
+        return l10n.loginScreenResetHeroMuted;
+    }
+  }
 
-  final String heroMuted;
-  final String heroInk;
-  final String cta;
+  String heroInk(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case _AuthMode.signIn:
+        return l10n.loginScreenSignInHeroInk;
+      case _AuthMode.signUp:
+        return l10n.loginScreenSignUpHeroInk;
+      case _AuthMode.reset:
+        return l10n.loginScreenResetHeroInk;
+    }
+  }
+
+  String cta(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    switch (this) {
+      case _AuthMode.signIn:
+        return l10n.loginScreenSignInCta;
+      case _AuthMode.signUp:
+        return l10n.loginScreenSignUpCta;
+      case _AuthMode.reset:
+        return l10n.loginScreenResetCta;
+    }
+  }
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -146,7 +173,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (_busy) return;
     if (_mode == _AuthMode.signUp && _password.text != _confirmPassword.text) {
-      setState(() => _error = 'Passwords don\'t match.');
+      setState(() {
+        _error = AppLocalizations.of(context).loginScreenErrorPasswordsDontMatch;
+      });
       return;
     }
     // Sign-up runs the save-your-phrase gate BEFORE creating the account.
@@ -222,7 +251,9 @@ class _LoginScreenState extends State<LoginScreen> {
   /// enumeration oracle, and the form already has one in USERNAME_TAKEN.
   Future<bool> _ensurePhraseSaved() async {
     if (_password.text.isEmpty) {
-      setState(() => _error = 'Choose a password first.');
+      setState(() {
+        _error = AppLocalizations.of(context).loginScreenErrorChoosePasswordFirst;
+      });
       return false;
     }
     if (_phraseConfirmed) return true;
@@ -293,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 20),
                                 _SubmitButton(
                                   busy: _busy,
-                                  label: _mode.cta,
+                                  label: _mode.cta(context),
                                   onTap: _submit,
                                 ),
                                 // Not on `reset`: a recovery phrase resets a
@@ -333,11 +364,12 @@ class _LoginScreenState extends State<LoginScreen> {
   List<Widget> _fields() {
     // The last field of each mode submits on Enter; every other field advances.
     final passwordIsLast = _mode == _AuthMode.signIn;
+    final l10n = AppLocalizations.of(context);
 
     return [
       ThemedInput(
         controller: _username,
-        hint: 'username',
+        hint: l10n.loginScreenUsernameHint,
         autocorrect: false,
         enableSuggestions: false,
         autofocus: isPhysicalKeyboardPlatform,
@@ -348,7 +380,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _password,
-          hint: 'password',
+          hint: l10n.loginScreenPasswordHint,
           textInputAction:
               passwordIsLast ? TextInputAction.done : TextInputAction.next,
           onSubmitted: (_) => passwordIsLast ? _submit() : _next(),
@@ -358,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _confirmPassword,
-          hint: 'confirm password',
+          hint: l10n.loginScreenConfirmPasswordHint,
           textInputAction: TextInputAction.next,
           onSubmitted: (_) => _next(),
         ),
@@ -369,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         ThemedInput(
           controller: _name,
-          hint: 'name (optional)',
+          hint: l10n.loginScreenNameOptionalHint,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
         ),
@@ -382,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // it right and it says wrong".
         ThemedInput(
           controller: _phrase,
-          hint: 'your 12-word recovery phrase',
+          hint: l10n.loginScreenRecoveryPhraseHint,
           minLines: 2,
           maxLines: 4,
           autocorrect: false,
@@ -398,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 12),
         PasswordField(
           controller: _newPassword,
-          hint: 'new password',
+          hint: l10n.loginScreenNewPasswordHint,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
         ),
@@ -408,6 +440,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Mode-switching links, pinned to the bottom of the screen in every mode.
   Widget _footer() {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 12, 28, 20),
       child: Column(
@@ -415,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           if (_mode == _AuthMode.reset)
             _TextLink(
-              label: '← back to sign in',
+              label: l10n.loginScreenBackToSignIn,
               onTap: () => _switchTo(_AuthMode.signIn),
             )
           else ...[
@@ -428,12 +461,12 @@ class _LoginScreenState extends State<LoginScreen> {
             if (_mode == _AuthMode.signIn) ...[
               const SizedBox(height: 10),
               _TextLink(
-                label: 'forgot password?',
+                label: l10n.loginScreenForgotPassword,
                 onTap: () => _switchTo(_AuthMode.reset),
               ),
               const SizedBox(height: 10),
               _TextLink(
-                label: 'setting up a kid\'s phone?',
+                label: l10n.loginScreenSettingUpKidsPhone,
                 onTap: () => setState(() => _pairing = true),
               ),
             ],
@@ -465,6 +498,7 @@ class _LegalNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final base = theme.monoTiny.copyWith(color: theme.inkMuted);
     final link = base.copyWith(
       color: theme.inkSoft,
@@ -475,21 +509,21 @@ class _LegalNote extends StatelessWidget {
       TextSpan(
         style: base,
         children: [
-          const TextSpan(text: 'By opening an account you agree to the '),
+          TextSpan(text: l10n.loginScreenLegalPrefix),
           TextSpan(
-            text: 'Terms',
+            text: l10n.loginScreenLegalTermsLink,
             style: link,
             recognizer: TapGestureRecognizer()
               ..onTap = () => LinkOpener.open(context, kTermsOfServiceUrl),
           ),
-          const TextSpan(text: ' and the '),
+          TextSpan(text: l10n.loginScreenLegalMiddle),
           TextSpan(
-            text: 'Privacy Policy',
+            text: l10n.loginScreenLegalPrivacyLink,
             style: link,
             recognizer: TapGestureRecognizer()
               ..onTap = () => LinkOpener.open(context, kPrivacyPolicyUrl),
           ),
-          const TextSpan(text: '.'),
+          TextSpan(text: l10n.loginScreenLegalSuffix),
         ],
       ),
       textAlign: TextAlign.center,
@@ -509,10 +543,10 @@ class _Hero extends StatelessWidget {
         style: theme.displayHero,
         children: [
           TextSpan(
-            text: mode.heroMuted,
+            text: mode.heroMuted(context),
             style: theme.displayHero.copyWith(color: theme.inkMuted),
           ),
-          TextSpan(text: mode.heroInk),
+          TextSpan(text: mode.heroInk(context)),
         ],
       ),
     );
@@ -604,15 +638,22 @@ class _ModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final isSignUp = mode == _AuthMode.signUp;
     return Center(
       child: GestureDetector(
         onTap: onTap,
         child: RichText(
           text: TextSpan(style: theme.bodySoft, children: [
-            TextSpan(text: isSignUp ? 'already here? ' : 'no account? '),
             TextSpan(
-              text: isSignUp ? 'sign in' : 'open one',
+              text: isSignUp
+                  ? l10n.loginScreenAlreadyHerePrompt
+                  : l10n.loginScreenNoAccountPrompt,
+            ),
+            TextSpan(
+              text: isSignUp
+                  ? l10n.loginScreenSignInLink
+                  : l10n.loginScreenOpenOneLink,
               style: theme.body.copyWith(color: theme.accent),
             ),
           ]),
@@ -638,7 +679,7 @@ class _WordCounter extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        '$count/12 words',
+        AppLocalizations.of(context).loginScreenWordCounter(count),
         style: theme.monoTiny
             .copyWith(color: complete ? theme.accent : theme.inkMuted),
       ),

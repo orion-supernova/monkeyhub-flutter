@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
@@ -28,20 +29,22 @@ class RoomCard extends StatelessWidget {
   final ChatUser? dmUser;
   final List<ChatUser> typists;
 
-  String _ago(DateTime? then) {
+  String _ago(BuildContext context, DateTime? then) {
     if (then == null) return '';
+    final l10n = AppLocalizations.of(context);
     final d = DateTime.now().difference(then);
-    if (d.inSeconds < 30) return 'just now';
-    if (d.inSeconds < 60) return '${d.inSeconds}s';
-    if (d.inMinutes < 60) return '${d.inMinutes}m';
-    if (d.inHours < 24) return '${d.inHours}h';
-    if (d.inDays < 7) return '${d.inDays}d';
-    return '${(d.inDays / 7).floor()}w';
+    if (d.inSeconds < 30) return l10n.roomCardTimeAgoJustNow;
+    if (d.inSeconds < 60) return l10n.roomCardTimeAgoSeconds(d.inSeconds);
+    if (d.inMinutes < 60) return l10n.roomCardTimeAgoMinutes(d.inMinutes);
+    if (d.inHours < 24) return l10n.roomCardTimeAgoHours(d.inHours);
+    if (d.inDays < 7) return l10n.roomCardTimeAgoDays(d.inDays);
+    return l10n.roomCardTimeAgoWeeks((d.inDays / 7).floor());
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -66,12 +69,12 @@ class RoomCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                           decoration: theme.chipDecoration(),
-                          child: Text('LOCKED', style: theme.monoTiny),
+                          child: Text(l10n.roomCardLockedBadge, style: theme.monoTiny),
                         ),
                     ],
                   ),
                 ),
-                Text(_ago(room.lastMessageTime), style: theme.monoTiny),
+                Text(_ago(context, room.lastMessageTime), style: theme.monoTiny),
               ],
             ),
             const SizedBox(height: 8),
@@ -138,7 +141,7 @@ class RoomCard extends StatelessWidget {
               children: [
                 // A DM always has exactly two people in it, so "2 inside" is
                 // noise — the friend's name and avatar already say who's here.
-                if (!room.isDm) Text('${room.memberCount} inside', style: theme.caption),
+                if (!room.isDm) Text(l10n.roomCardMemberCount(room.memberCount), style: theme.caption),
                 const Spacer(),
                 if (room.isEphemeral)
                   Row(
@@ -146,11 +149,11 @@ class RoomCard extends StatelessWidget {
                     children: [
                       theme.hourglassIcon(size: 12, color: theme.accent),
                       const SizedBox(width: 6),
-                      Text('messages fade', style: theme.monoTiny.copyWith(color: theme.accent)),
+                      Text(l10n.roomCardMessagesFadeLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
                     ],
                   )
                 else
-                  Text('↗ enter', style: theme.monoTiny),
+                  Text(l10n.roomCardEnterLabel, style: theme.monoTiny),
               ],
             ),
           ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../media/file_url_cache.dart';
@@ -22,7 +23,6 @@ import 'photo_chrome.dart';
 /// no in-app viewer: a chat app that renders PDFs is a chat app that renders
 /// PDFs badly, and every platform this ships on already has a better one.
 class FileMessage extends StatefulWidget {
-
   const FileMessage({
     super.key,
     required this.api,
@@ -67,7 +67,8 @@ class _FileMessageState extends State<FileMessage> {
   Future<void> _open() async {
     final id = widget.storageId;
     if (id == null || _busy) return;
-    final name = widget.fileName ?? 'document';
+    final l10n = AppLocalizations.of(context);
+    final name = widget.fileName ?? l10n.fileMessageDefaultName;
     final messenger = ScaffoldMessenger.of(context);
     final origin = _globalRect();
 
@@ -83,9 +84,13 @@ class _FileMessageState extends State<FileMessage> {
     } on FileUnavailable {
       // Categorically not retryable — the blob is gone, not unreachable — so
       // this says so instead of inviting another tap.
-      messenger.showSnackBar(const SnackBar(content: Text('file is no longer available')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.fileMessageUnavailable)),
+      );
     } catch (_) {
-      messenger.showSnackBar(const SnackBar(content: Text("couldn't open that file")));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.fileMessageOpenFailed)),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -94,9 +99,10 @@ class _FileMessageState extends State<FileMessage> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final ink = widget.isMine ? theme.accentInk : theme.ink;
     final soft = ink.withValues(alpha: 0.62);
-    final name = widget.fileName ?? 'document';
+    final name = widget.fileName ?? l10n.fileMessageDefaultName;
     final size = widget.fileSize;
     final enabled = widget.storageId != null && !_busy;
 
@@ -123,7 +129,9 @@ class _FileMessageState extends State<FileMessage> {
               ),
               const SizedBox(height: 2),
               Text(
-                size == null || size <= 0 ? 'document' : formatFileSize(size),
+                size == null || size <= 0
+                    ? l10n.fileMessageDefaultName
+                    : formatFileSize(size),
                 style: theme.caption.copyWith(color: soft),
               ),
             ],
@@ -141,7 +149,7 @@ class _FileMessageState extends State<FileMessage> {
     return FocusableTap(
       onTap: enabled ? _open : null,
       enabled: enabled,
-      semanticLabel: 'Save $name',
+      semanticLabel: l10n.fileMessageSaveSemanticLabel(name),
       radius: 12,
       child: GestureDetector(
         onTap: enabled ? _open : null,
@@ -290,6 +298,7 @@ class OutboundFileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final ink = isMine ? theme.accentInk : theme.ink;
     final soft = ink.withValues(alpha: 0.62);
     final size = fileSize;
@@ -322,10 +331,10 @@ class OutboundFileRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   failed
-                      ? 'failed'
+                      ? l10n.fileMessageUploadFailedLabel
                       : size == null || size <= 0
-                          ? 'sending…'
-                          : '${formatFileSize(size)} · sending…',
+                      ? l10n.fileMessageSendingLabel
+                      : l10n.fileMessageSizeSendingLabel(formatFileSize(size)),
                   style: theme.caption.copyWith(color: soft),
                 ),
               ],

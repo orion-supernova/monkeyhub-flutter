@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import 'glass_pill.dart';
 
 /// Tracks whether a `reverse: true` transcript is scrolled away from its bottom.
@@ -113,8 +114,9 @@ class ScrollToLatestPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassPill(
         icon: CupertinoIcons.arrow_down,
-        label: 'JUMP TO LATEST',
-        semanticLabel: 'Jump to latest',
+        label: AppLocalizations.of(context).reactionBubbleJumpToLatestLabel,
+        semanticLabel:
+            AppLocalizations.of(context).reactionBubbleJumpToLatestSemanticLabel,
         onTap: onTap,
       );
 }

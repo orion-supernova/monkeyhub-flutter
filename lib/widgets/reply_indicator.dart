@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Colors;
 
 import '../backend/chat_api.dart';
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -164,8 +165,9 @@ TetherPath replyTetherPath({
   required double parentGutter,
 }) {
   final parentInset = (isMine && !parentIsMine) ? parentGutter : 0.0;
-  final startX =
-      parentIsMine ? width - _kTetherEdgeInset : parentInset + _kTetherEdgeInset;
+  final startX = parentIsMine
+      ? width - _kTetherEdgeInset
+      : parentInset + _kTetherEdgeInset;
   final endX = isMine ? width - _kTetherEdgeInset : _kTetherEdgeInset;
   final mid = height / 2;
   final span = (endX - startX).abs();
@@ -239,7 +241,9 @@ class ReplyTether extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final deleted = preview.isDeleted;
-    final tone = deleted ? theme.inkMuted.withValues(alpha: 0.55) : theme.accent;
+    final tone = deleted
+        ? theme.inkMuted.withValues(alpha: 0.55)
+        : theme.accent;
     final branch = onViewThread;
     final showBranch = branch != null && !deleted;
 
@@ -283,7 +287,9 @@ class ReplyTether extends StatelessWidget {
                 child: Semantics(
                   // The name leaves the screen; it must not leave the
                   // accessibility tree with it.
-                  label: 'in reply to ${preview.senderName}',
+                  label: AppLocalizations.of(
+                    context,
+                  ).replyIndicatorInReplyToSemanticLabel(preview.senderName),
                   button: !deleted,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -295,8 +301,10 @@ class ReplyTether extends StatelessWidget {
                 Positioned(
                   // Clamped: on a same-side reply the elbow sits 14px from the
                   // margin, and the button's 44px hit box would hang off it.
-                  left: (path.elbow.dx - _kMarkerBlock / 2)
-                      .clamp(0.0, math.max(0.0, width - _kMarkerBlock)),
+                  left: (path.elbow.dx - _kMarkerBlock / 2).clamp(
+                    0.0,
+                    math.max(0.0, width - _kMarkerBlock),
+                  ),
                   top: 0,
                   child: _BranchButton(onTap: branch, theme: theme, size: 24),
                 ),
@@ -346,10 +354,7 @@ class _ReplyTetherPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: 0.25),
-          color.withValues(alpha: 0.95),
-        ],
+        colors: [color.withValues(alpha: 0.25), color.withValues(alpha: 0.95)],
       ).createShader(Offset.zero & size);
 
     final wire = Path()..moveTo(start.dx, start.dy);
@@ -389,12 +394,14 @@ class _ReplyTetherPainter extends CustomPainter {
 
 // ─────────────────── shared bits ───────────────────
 
-String _previewLabel(ReplyPreview preview) {
+String _previewLabel(BuildContext context, ReplyPreview preview) {
   // Ahead of the passthrough below, or the sentinel itself would be rendered
   // as the quoted text. There is no thumbnail to sit beside it either —
   // `_mediaThumb` drops the slot when the preview carries no storage id, which
   // for a view-once parent it never does.
-  if (preview.isViewOnce) return 'photo · view once';
+  if (preview.isViewOnce) {
+    return AppLocalizations.of(context).replyIndicatorViewOnceLabel;
+  }
   if (preview.contentPreview.isNotEmpty) return preview.contentPreview;
   switch (preview.type) {
     case MessageType.image:
@@ -404,7 +411,7 @@ String _previewLabel(ReplyPreview preview) {
       return '';
     case MessageType.audio:
       // Voice notes have no thumbnail, so the label IS the only signal.
-      return 'voice message';
+      return AppLocalizations.of(context).replyIndicatorVoiceMessageLabel;
     case MessageType.file:
       // Nor do documents — and unlike a voice note, one document is not
       // interchangeable with another, so the word "document" would make a
@@ -412,7 +419,7 @@ String _previewLabel(ReplyPreview preview) {
       // `replyToPreview` carries no filename (it snapshots the parent's text,
       // which for a document send is its caption), so this is the best that
       // is available without widening that snapshot.
-      return 'document';
+      return AppLocalizations.of(context).replyIndicatorDocumentLabel;
     default:
       return '…';
   }
@@ -441,10 +448,7 @@ Widget _smallAvatar({
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       color: accentTone.withValues(alpha: 0.18),
-      border: Border.all(
-        color: accentTone.withValues(alpha: 0.45),
-        width: 1,
-      ),
+      border: Border.all(color: accentTone.withValues(alpha: 0.45), width: 1),
     ),
     child: Text(
       preview.senderName.isEmpty
@@ -585,8 +589,9 @@ class _PhantomEcho extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxW),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             // ── phantom card ──
             GestureDetector(
@@ -599,8 +604,7 @@ class _PhantomEcho extends StatelessWidget {
                   // making it illegible.
                   filter: ImageFilter.blur(sigmaX: 0.4, sigmaY: 0.4),
                   child: Container(
-                    padding:
-                        const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                    padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
                     decoration: BoxDecoration(
                       color: phantomBg.withValues(alpha: 0.88),
                       borderRadius: BorderRadius.circular(12),
@@ -664,10 +668,7 @@ class _PhantomEcho extends StatelessWidget {
                       left: isMine ? null : 0,
                       right: isMine ? 0 : null,
                       top: 0,
-                      child: _BranchButton(
-                        onTap: onViewThread!,
-                        theme: theme,
-                      ),
+                      child: _BranchButton(onTap: onViewThread!, theme: theme),
                     ),
                 ],
               ),
@@ -695,10 +696,7 @@ class _PhantomConnectorPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [
-          color.withValues(alpha: 0.35),
-          color.withValues(alpha: 0.95),
-        ],
+        colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.95)],
       ).createShader(Offset.zero & size);
 
     final path = Path();
@@ -708,15 +706,14 @@ class _PhantomConnectorPainter extends CustomPainter {
       // mine bubbles are right-aligned). Soft S-curve.
       path.moveTo(size.width - 8, 2);
       path.quadraticBezierTo(
-        size.width - 36, size.height / 2,
-        size.width - 12, size.height - 2,
+        size.width - 36,
+        size.height / 2,
+        size.width - 12,
+        size.height - 2,
       );
     } else {
       path.moveTo(8, 2);
-      path.quadraticBezierTo(
-        36, size.height / 2,
-        12, size.height - 2,
-      );
+      path.quadraticBezierTo(36, size.height / 2, 12, size.height - 2);
     }
     canvas.drawPath(path, paint);
   }
@@ -778,7 +775,7 @@ class _PhantomBody extends StatelessWidget {
               const SizedBox(height: 1),
               if (deleted)
                 Text(
-                  'message removed',
+                  AppLocalizations.of(context).replyIndicatorMessageRemoved,
                   style: theme.bodySoft.copyWith(
                     color: phantomMuted,
                     fontStyle: FontStyle.italic,
@@ -790,15 +787,11 @@ class _PhantomBody extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _mediaThumb(
-                      preview: preview,
-                      api: api,
-                      theme: theme,
-                    ),
+                    _mediaThumb(preview: preview, api: api, theme: theme),
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        _previewLabel(preview),
+                        _previewLabel(context, preview),
                         style: theme.bodySoft.copyWith(color: phantomInk),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -808,7 +801,7 @@ class _PhantomBody extends StatelessWidget {
                 )
               else
                 Text(
-                  _previewLabel(preview),
+                  _previewLabel(context, preview),
                   style: theme.bodySoft.copyWith(color: phantomInk),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -857,16 +850,12 @@ class _StickyNote extends StatelessWidget {
         // Padding indents the polaroid slightly from the bubble's leading
         // edge so the rotation is visible without clipping; the pin stub
         // below supplies the gap to the bubble underneath.
-        padding: EdgeInsets.fromLTRB(
-          isMine ? 0 : 8,
-          0,
-          isMine ? 8 : 0,
-          2,
-        ),
+        padding: EdgeInsets.fromLTRB(isMine ? 0 : 8, 0, isMine ? 8 : 0, 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment:
-              isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             Transform.rotate(
               angle: rotation,
@@ -874,126 +863,127 @@ class _StickyNote extends StatelessWidget {
                   ? AlignmentDirectional.bottomEnd
                   : AlignmentDirectional.bottomStart,
               child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: deleted ? null : onTap,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: theme.divider,
-                  width: 0.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Leading reserve, used when the branch button is
-                      // mirrored to this side.
-                      if (onViewThread != null && !deleted && isMine)
-                        const SizedBox(width: 28),
-                      _smallAvatar(
-                        preview: preview,
-                        api: api,
-                        parentAuthor: parentAuthor,
-                        theme: theme,
-                        accentTone: theme.accent,
-                        size: 16,
+                behavior: HitTestBehavior.opaque,
+                onTap: deleted ? null : onTap,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: theme.divider, width: 0.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.22),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              preview.senderName.toUpperCase(),
-                              style: theme.monoTiny.copyWith(
-                                color: deleted
-                                    ? theme.inkMuted
-                                    : theme.accent,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 1),
-                            if (deleted)
-                              Text(
-                                'message removed',
-                                style: theme.bodySoft.copyWith(
-                                  color: theme.inkMuted,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              )
-                            else if (isMedia)
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _mediaThumb(
-                                    preview: preview,
-                                    api: api,
-                                    theme: theme,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      _previewLabel(preview),
-                                      style: theme.bodySoft
-                                          .copyWith(color: theme.ink),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              Text(
-                                _previewLabel(preview),
-                                style: theme.bodySoft
-                                    .copyWith(color: theme.ink),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                          ],
-                        ),
-                      ),
-                      // Trailing reserve — mirrors with the button above.
-                      if (onViewThread != null && !deleted && !isMine)
-                        const SizedBox(width: 28),
                     ],
                   ),
-                  if (onViewThread != null && !deleted)
-                    Positioned(
-                      // Hangs off the polaroid's bottom corner on the side
-                      // facing the bubble; the 44×44 hit area extends well
-                      // past it. Mirrored like the rest of the note — left
-                      // unmirrored it overhung the column edge on my own
-                      // messages, since the note is flush right there.
-                      left: isMine ? -22 : null,
-                      right: isMine ? null : -22,
-                      bottom: -22,
-                      child: _BranchButton(
-                        onTap: onViewThread!,
-                        theme: theme,
-                        size: 24,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Leading reserve, used when the branch button is
+                          // mirrored to this side.
+                          if (onViewThread != null && !deleted && isMine)
+                            const SizedBox(width: 28),
+                          _smallAvatar(
+                            preview: preview,
+                            api: api,
+                            parentAuthor: parentAuthor,
+                            theme: theme,
+                            accentTone: theme.accent,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  preview.senderName.toUpperCase(),
+                                  style: theme.monoTiny.copyWith(
+                                    color: deleted
+                                        ? theme.inkMuted
+                                        : theme.accent,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 1),
+                                if (deleted)
+                                  Text(
+                                    AppLocalizations.of(
+                                      context,
+                                    ).replyIndicatorMessageRemoved,
+                                    style: theme.bodySoft.copyWith(
+                                      color: theme.inkMuted,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  )
+                                else if (isMedia)
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _mediaThumb(
+                                        preview: preview,
+                                        api: api,
+                                        theme: theme,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          _previewLabel(context, preview),
+                                          style: theme.bodySoft.copyWith(
+                                            color: theme.ink,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Text(
+                                    _previewLabel(context, preview),
+                                    style: theme.bodySoft.copyWith(
+                                      color: theme.ink,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Trailing reserve — mirrors with the button above.
+                          if (onViewThread != null && !deleted && !isMine)
+                            const SizedBox(width: 28),
+                        ],
                       ),
-                    ),
-                ],
-              ),
-            ),
+                      if (onViewThread != null && !deleted)
+                        Positioned(
+                          // Hangs off the polaroid's bottom corner on the side
+                          // facing the bubble; the 44×44 hit area extends well
+                          // past it. Mirrored like the rest of the note — left
+                          // unmirrored it overhung the column edge on my own
+                          // messages, since the note is flush right there.
+                          left: isMine ? -22 : null,
+                          right: isMine ? null : -22,
+                          bottom: -22,
+                          child: _BranchButton(
+                            onTap: onViewThread!,
+                            theme: theme,
+                            size: 24,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
             // Pin stub. The other three designs all bind the quote to its
@@ -1009,8 +999,7 @@ class _StickyNote extends StatelessWidget {
                 width: 2,
                 height: 10,
                 decoration: BoxDecoration(
-                  color: theme.accent
-                      .withValues(alpha: deleted ? 0.35 : 0.75),
+                  color: theme.accent.withValues(alpha: deleted ? 0.35 : 0.75),
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
@@ -1062,8 +1051,9 @@ class _ComicTail extends StatelessWidget {
       constraints: BoxConstraints(maxWidth: maxW),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment:
-            isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -1073,10 +1063,7 @@ class _ComicTail extends StatelessWidget {
               decoration: BoxDecoration(
                 color: bubbleColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.ink,
-                  width: 1.2,
-                ),
+                border: Border.all(color: theme.ink, width: 1.2),
                 boxShadow: [
                   BoxShadow(
                     color: theme.ink.withValues(alpha: 0.18),
@@ -1112,9 +1099,7 @@ class _ComicTail extends StatelessWidget {
                             Text(
                               preview.senderName.toUpperCase(),
                               style: theme.monoTiny.copyWith(
-                                color: deleted
-                                    ? theme.inkMuted
-                                    : theme.accent,
+                                color: deleted ? theme.inkMuted : theme.accent,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1122,7 +1107,9 @@ class _ComicTail extends StatelessWidget {
                             const SizedBox(height: 1),
                             if (deleted)
                               Text(
-                                'message removed',
+                                AppLocalizations.of(
+                                  context,
+                                ).replyIndicatorMessageRemoved,
                                 style: theme.bodySoft.copyWith(
                                   color: theme.inkMuted,
                                   fontStyle: FontStyle.italic,
@@ -1142,9 +1129,10 @@ class _ComicTail extends StatelessWidget {
                                   const SizedBox(width: 6),
                                   Flexible(
                                     child: Text(
-                                      _previewLabel(preview),
-                                      style: theme.bodySoft
-                                          .copyWith(color: theme.ink),
+                                      _previewLabel(context, preview),
+                                      style: theme.bodySoft.copyWith(
+                                        color: theme.ink,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -1153,9 +1141,10 @@ class _ComicTail extends StatelessWidget {
                               )
                             else
                               Text(
-                                _previewLabel(preview),
-                                style: theme.bodySoft
-                                    .copyWith(color: theme.ink),
+                                _previewLabel(context, preview),
+                                style: theme.bodySoft.copyWith(
+                                  color: theme.ink,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1200,10 +1189,7 @@ class _ComicTail extends StatelessWidget {
             ),
             child: CustomPaint(
               size: const Size(16, 12),
-              painter: _ComicTailPainter(
-                fill: bubbleColor,
-                stroke: theme.ink,
-              ),
+              painter: _ComicTailPainter(fill: bubbleColor, stroke: theme.ink),
             ),
           ),
         ],
@@ -1306,9 +1292,7 @@ class _ClassicQuote extends StatelessWidget {
                       color: theme.accent.withValues(alpha: 0.95),
                       borderRadius: BorderRadiusDirectional.horizontal(
                         start: const Radius.circular(8),
-                      ).resolve(
-                        isMine ? TextDirection.rtl : TextDirection.ltr,
-                      ),
+                      ).resolve(isMine ? TextDirection.rtl : TextDirection.ltr),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1329,8 +1313,7 @@ class _ClassicQuote extends StatelessWidget {
                   // maxW.
                   Flexible(
                     child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(0, 8, 0, 8),
+                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1347,7 +1330,9 @@ class _ClassicQuote extends StatelessWidget {
                           const SizedBox(height: 2),
                           if (deleted)
                             Text(
-                              'message removed',
+                              AppLocalizations.of(
+                                context,
+                              ).replyIndicatorMessageRemoved,
                               style: theme.bodySoft.copyWith(
                                 color: mutedInk,
                                 fontStyle: FontStyle.italic,
@@ -1367,9 +1352,10 @@ class _ClassicQuote extends StatelessWidget {
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
-                                    _previewLabel(preview),
-                                    style: theme.bodySoft
-                                        .copyWith(color: theme.ink),
+                                    _previewLabel(context, preview),
+                                    style: theme.bodySoft.copyWith(
+                                      color: theme.ink,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -1378,7 +1364,7 @@ class _ClassicQuote extends StatelessWidget {
                             )
                           else
                             Text(
-                              _previewLabel(preview),
+                              _previewLabel(context, preview),
                               // Roman, not italic, and full-strength ink —
                               // classic was the only design that italicised
                               // live message text, which made it read as
@@ -1392,11 +1378,7 @@ class _ClassicQuote extends StatelessWidget {
                     ),
                   ),
                   if (onViewThread != null && !deleted) ...[
-                    _BranchButton(
-                      onTap: onViewThread!,
-                      theme: theme,
-                      size: 24,
-                    ),
+                    _BranchButton(onTap: onViewThread!, theme: theme, size: 24),
                     const SizedBox(width: 2),
                   ],
                 ],
@@ -1408,4 +1390,3 @@ class _ClassicQuote extends StatelessWidget {
     );
   }
 }
-

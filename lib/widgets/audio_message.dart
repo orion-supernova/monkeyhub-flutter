@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/audio_file_cache.dart';
 import '../media/file_url_cache.dart';
 import '../screens/room_items.dart' show formatClockDuration;
@@ -262,13 +263,15 @@ class _AudioMessageState extends State<AudioMessage> {
     final onDisc = widget.isMine ? ink : theme.accentInk;
 
     if (widget.storageId == null) {
-      return Text('[audio missing]', style: theme.body.copyWith(color: ink));
+      return Text(AppLocalizations.of(context).audioMessageMissingLabel,
+          style: theme.body.copyWith(color: ink));
     }
 
     if (_phase == _Phase.unavailable) {
       // The backend has no URL for this id — burned view-once, or a swept blob.
       // Retrying can only produce the same nothing, so there is no button.
-      return Text('audio unavailable', style: theme.body.copyWith(color: ink));
+      return Text(AppLocalizations.of(context).audioMessageUnavailableLabel,
+          style: theme.body.copyWith(color: ink));
     }
 
     if (_phase == _Phase.failed) {
@@ -280,7 +283,7 @@ class _AudioMessageState extends State<AudioMessage> {
           const SizedBox(width: 10),
           SizedBox(
             width: 120,
-            child: Text('tap to retry',
+            child: Text(AppLocalizations.of(context).audioMessageRetryHint,
                 style: theme.monoTiny.copyWith(color: ink.withValues(alpha: 0.8))),
           ),
         ],
@@ -371,7 +374,8 @@ class _AudioMessageState extends State<AudioMessage> {
                         total > Duration.zero
                             ? '${formatClockDuration(display.elapsed)}'
                                 ' / ${formatClockDuration(total)}'
-                            : 'loading…',
+                            : AppLocalizations.of(context)
+                                .audioMessageLoadingLabel,
                         style: theme.monoTiny
                             .copyWith(color: ink.withValues(alpha: 0.8)),
                       ),

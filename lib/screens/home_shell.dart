@@ -10,6 +10,7 @@ import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -145,7 +146,7 @@ class _HomeShellState extends State<HomeShell> {
                 active: settings.section,
                 onSelect: _select,
                 items: [
-                  for (final d in navDestinations)
+                  for (final d in navDestinations(AppLocalizations.of(context)))
                     RadialMenuItem(
                       section: d.section,
                       icon: d.icon,
@@ -338,7 +339,10 @@ class _EmptyRoomHint extends StatelessWidget {
             children: [
               Icon(CupertinoIcons.bubble_left, size: 40, color: theme.inkMuted),
               const SizedBox(height: 14),
-              Text('pick a room to start chatting', style: theme.bodySoft),
+              Text(
+                AppLocalizations.of(context).homeShellEmptyRoomHint,
+                style: theme.bodySoft,
+              ),
             ],
           ),
         ),
@@ -458,7 +462,10 @@ class _SettingsEmptyHint extends StatelessWidget {
               children: [
                 Icon(CupertinoIcons.gear, size: 40, color: theme.inkMuted),
                 const SizedBox(height: 14),
-                Text('pick a setting', style: theme.bodySoft),
+                Text(
+                  AppLocalizations.of(context).homeShellEmptySettingHint,
+                  style: theme.bodySoft,
+                ),
               ],
             ),
           ),
@@ -506,7 +513,7 @@ class _SideRail extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 20, top: 4),
                   child: theme.brandMark(size: 34),
                 ),
-                for (final d in navDestinations) ...[
+                for (final d in navDestinations(AppLocalizations.of(context))) ...[
                   _railBtn(
                     theme,
                     d.icon,

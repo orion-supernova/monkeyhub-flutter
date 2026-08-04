@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
@@ -103,11 +104,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final s = widget.service.session;
-    final name = s?.peerName ?? 'incoming call';
+    final name = s?.peerName ?? l10n.typingIndicatorUnknownCallerFallbackName;
+    // Already upper-cased in both languages — Dart's String.toUpperCase()
+    // isn't locale-aware and mangles the Turkish dotted İ, so the ARB value
+    // carries the final casing instead of a runtime .toUpperCase() call.
     final kindLabel = s?.mediaKind == CallMediaKind.video
-        ? 'incoming video call'
-        : 'incoming voice call';
+        ? l10n.typingIndicatorIncomingVideoCallLabel
+        : l10n.typingIndicatorIncomingVoiceCallLabel;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -151,7 +156,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        kindLabel.toUpperCase(),
+                        kindLabel,
                         style: theme.label.copyWith(
                           color: Colors.white,
                           letterSpacing: 1.2,
@@ -216,8 +221,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                         icon: Icons.call_end,
                         background: theme.danger,
                         label: _pending == _RingAction.reject
-                            ? 'declining…'
-                            : 'decline',
+                            ? l10n.typingIndicatorDeclineButtonDeclining
+                            : l10n.typingIndicatorDeclineButtonLabel,
                         enabled: _pending == _RingAction.none,
                         onTap: _reject,
                       ),
@@ -229,8 +234,8 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                             : Icons.call,
                         background: theme.success,
                         label: _pending == _RingAction.accept
-                            ? 'connecting…'
-                            : 'accept',
+                            ? l10n.typingIndicatorAcceptButtonConnecting
+                            : l10n.typingIndicatorAcceptButtonLabel,
                         enabled: _pending == _RingAction.none,
                         onTap: _accept,
                       ),

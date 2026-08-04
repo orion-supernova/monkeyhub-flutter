@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../theme/theme_scope.dart';
@@ -123,7 +124,10 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
             ),
             _Chrome(
               message: current,
-              position: '${_index + 1} / ${widget.items.length}',
+              position: AppLocalizations.of(context).photoChromeMediaPositionLabel(
+                _index + 1,
+                widget.items.length,
+              ),
               onClose: () => Navigator.of(context).pop(_index),
               onShowInChat: widget.onShowInChat == null
                   ? null
@@ -153,7 +157,10 @@ class _Page extends StatelessWidget {
     final id = message.mediaStorageId;
     if (id == null) {
       return Center(
-        child: Text('this file is gone', style: theme.bodySoft),
+        child: Text(
+          AppLocalizations.of(context).photoChromeMediaGoneLabel,
+          style: theme.bodySoft,
+        ),
       );
     }
 
@@ -227,14 +234,16 @@ class _Chrome extends StatelessWidget {
           children: [
             _GlassButton(
               icon: CupertinoIcons.xmark,
-              semanticLabel: 'Close',
+              semanticLabel: AppLocalizations.of(context).photoChromeCloseSemanticLabel,
               onTap: onClose,
             ),
             const Spacer(),
             Column(
               children: [
                 Text(
-                  message.senderName.isEmpty ? 'you' : message.senderName,
+                  message.senderName.isEmpty
+                      ? AppLocalizations.of(context).photoChromeMediaYouLabel
+                      : message.senderName,
                   style: theme.bodyEmph.copyWith(color: Colors.white),
                 ),
                 Text(
@@ -247,7 +256,8 @@ class _Chrome extends StatelessWidget {
             if (onShowInChat != null)
               _GlassButton(
                 icon: CupertinoIcons.chat_bubble,
-                semanticLabel: 'Show in chat',
+                semanticLabel:
+                    AppLocalizations.of(context).photoChromeShowInChatSemanticLabel,
                 onTap: onShowInChat!,
               )
             else

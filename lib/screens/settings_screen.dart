@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../push/push_manager.dart';
 import '../theme/bubble_shape.dart';
@@ -20,6 +21,7 @@ import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
 import 'glass_screen.dart';
+import 'language_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
 import 'navigation_screen.dart';
@@ -127,6 +129,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       SettingsStore.instance.chatStyle == ChatStyle.classic
       ? 'Classic'
       : 'Compact';
+
+  String get _languageLabel {
+    final l10n = AppLocalizations.of(context);
+    switch (SettingsStore.instance.localeCode) {
+      case 'en':
+        return l10n.languageValueEnglish;
+      case 'tr':
+        return l10n.languageValueTurkish;
+      default:
+        return l10n.languageValueSystem;
+    }
+  }
 
   String get _bubbleStyleLabel {
     switch (SettingsStore.instance.bubbleStyle) {
@@ -427,6 +441,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   key: 'replyStyle',
                   builder: (_) => ReplyStyleScreen(api: widget.api),
+                ),
+              ),
+
+              const SizedBox(height: 28),
+              _SectionHeader(label: 'GENERAL'),
+              const SizedBox(height: 12),
+              _DisclosureRow(
+                label: AppLocalizations.of(context).settingsLanguageRowLabel,
+                value: _languageLabel,
+                selected: _isOpen('language'),
+                leading: Icon(
+                  Icons.language_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'language',
+                  builder: (_) => const LanguageScreen(),
                 ),
               ),
 

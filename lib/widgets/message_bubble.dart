@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -200,7 +201,7 @@ class MessageBubble extends StatelessWidget {
           firstInRun: !grouped,
           lastInRun: lastInRun,
         ),
-        child: _bubbleContent(theme, isMine,
+        child: _bubbleContent(context, theme, isMine,
             ephemeral: false, metrics: metrics, bubbleStyle: bubbleStyle),
       ),
     );
@@ -304,11 +305,12 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _bubbleContent(AppTheme theme, bool isMine,
+  Widget _bubbleContent(BuildContext context, AppTheme theme, bool isMine,
       {required bool ephemeral,
       required BubbleStyle bubbleStyle,
       ChatMetrics? metrics}) {
     return buildMessageContent(
+      context: context,
       theme: theme,
       message: message,
       isMine: isMine,
@@ -441,6 +443,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     final metrics = ChatMetricsScope.maybeOf(context);
 
     final inner = buildMessageContent(
+      context: context,
       theme: theme,
       message: message,
       isMine: isMine,
@@ -828,6 +831,7 @@ bool _isStandaloneLinkCard(ChatMessage message, bool showLinkUrls) {
 /// bubble in the caller's Column, so the bubble's natural radius is
 /// preserved.
 Widget buildMessageContent({
+  required BuildContext context,
   required AppTheme theme,
   required ChatMessage message,
   required bool isMine,
@@ -1103,7 +1107,8 @@ Widget buildMessageContent({
       final Widget fileRow = fileUpload != null
           ? OutboundFileRow(
               theme: theme,
-              fileName: message.fileName ?? 'document',
+              fileName: message.fileName ??
+                  AppLocalizations.of(context).messageBubbleFileFallbackName,
               fileSize: message.fileSize,
               isMine: isMine,
               failed: message.status == MessageStatus.error,
@@ -1366,18 +1371,21 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
   /// The one line under the title. Distinguishes "you had your look" from
   /// "nobody gets one any more", because those are different facts and the user
   /// can act on the difference (ask for it again vs. it's simply over).
-  String get _caption {
+  String _caption(BuildContext context) {
     final m = widget.message;
+    final l10n = AppLocalizations.of(context);
     // Outbound states first: a photo still going up has not been opened, has not
     // expired, and is not yet "view once" — it is not anywhere yet.
-    if (_failed) return 'failed';
-    if (_sending) return 'sending…';
+    if (_failed) return l10n.messageBubbleAttachmentStatusFailed;
+    if (_sending) return l10n.messageBubbleAttachmentStatusSending;
     if (m.viewOnceBurned) {
-      return m.viewOnceOpened || widget.isMine ? 'opened' : 'expired';
+      return m.viewOnceOpened || widget.isMine
+          ? l10n.messageBubbleViewOnceOpened
+          : l10n.messageBubbleViewOnceExpired;
     }
-    if (m.viewOnceOpened) return 'opened';
-    if (widget.isMine) return 'view once';
-    return 'tap to view';
+    if (m.viewOnceOpened) return l10n.messageBubbleViewOnceOpened;
+    if (widget.isMine) return l10n.messageBubbleViewOnceLabel;
+    return l10n.messageBubbleViewOnceTapToView;
   }
 
   /// Spent means "there is nothing left to open here", which drives the sunken,
@@ -1510,12 +1518,13 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
                     _badge(t, seal),
                     const SizedBox(height: 12),
                     Text(
-                      'Photo',
+                      AppLocalizations.of(context)
+                          .messageBubbleViewOncePhotoLabel,
                       style: t.label.copyWith(color: ink, letterSpacing: 0.6),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      _caption,
+                      _caption(context),
                       style: t.monoTiny.copyWith(
                         color: _spent ? t.inkMuted : t.inkSoft,
                       ),
@@ -1546,7 +1555,8 @@ class _ViewOnceTileState extends State<_ViewOnceTile> {
     if (!_openable) return tile;
     return FocusableTap(
       onTap: _open,
-      semanticLabel: 'view once photo, tap to view',
+      semanticLabel:
+          AppLocalizations.of(context).messageBubbleViewOnceSemanticLabel,
       radius: widget.radius.topLeft.x,
       child: GestureDetector(
         onTap: _open,
@@ -1863,7 +1873,10 @@ class _OutboundAudioRow extends StatelessWidget {
           SizedBox(width: 34, height: 34, child: Center(child: indicator)),
         const SizedBox(width: 10),
         Text(
-          failed ? 'failed' : 'sending…',
+          failed
+              ? AppLocalizations.of(context).messageBubbleAttachmentStatusFailed
+              : AppLocalizations.of(context)
+                  .messageBubbleAttachmentStatusSending,
           style: theme.body.copyWith(color: ink),
         ),
       ],
@@ -1979,13 +1992,15 @@ class _UploadRetryControls extends StatelessWidget {
           children: [
             _UploadControl(
               icon: Icons.refresh,
-              semanticLabel: 'retry sending',
+              semanticLabel: AppLocalizations.of(context)
+                  .messageBubbleRetrySendingSemanticLabel,
               onTap: onRetry == null ? null : () => onRetry!(),
             ),
             const SizedBox(width: 4),
             _UploadControl(
               icon: Icons.close,
-              semanticLabel: 'discard',
+              semanticLabel:
+                  AppLocalizations.of(context).messageBubbleDiscardSemanticLabel,
               onTap: onDiscard,
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 
@@ -72,7 +73,11 @@ class _ApprovalGateSheet extends StatelessWidget {
                     Icon(Icons.shield_outlined, size: 18, color: theme.accent),
                     const SizedBox(width: 10),
                     Text(
-                      alreadyAsked ? 'ALREADY ASKED' : 'ASK A GROWN-UP',
+                      alreadyAsked
+                          ? AppLocalizations.of(context)
+                              .approvalGateAlreadyAskedLabel
+                          : AppLocalizations.of(context)
+                              .approvalGateAskGrownUpLabel,
                       style: theme.label
                           .copyWith(letterSpacing: 2.4, color: theme.accent),
                     ),
@@ -81,10 +86,13 @@ class _ApprovalGateSheet extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   alreadyAsked
-                      ? 'You already asked about $what.'
+                      ? AppLocalizations.of(context)
+                          .approvalGateAlreadyAskedBody(what)
                       : canAsk
-                          ? 'You need a grown-up to say yes before you can $what.'
-                          : 'A grown-up has switched this off for now.',
+                          ? AppLocalizations.of(context)
+                              .approvalGateNeedApprovalBody(what)
+                          : AppLocalizations.of(context)
+                              .approvalGateDisabledBody,
                   style: theme.displaySmall,
                 ),
                 if (detail != null && detail!.isNotEmpty) ...[
@@ -94,22 +102,27 @@ class _ApprovalGateSheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   alreadyAsked
-                      ? 'They\'ll get a message about it. Check back soon.'
+                      ? AppLocalizations.of(context)
+                          .approvalGateAlreadyAskedFooter
                       : canAsk
-                          ? 'We\'ll let them know. You\'ll see it here when they answer.'
-                          : 'You can talk to them about it if you think it should change.',
+                          ? AppLocalizations.of(context)
+                              .approvalGateWillNotifyFooter
+                          : AppLocalizations.of(context)
+                              .approvalGateTalkToThemFooter,
                   style: theme.bodySoft,
                 ),
                 const SizedBox(height: 22),
                 if (canAsk && !alreadyAsked)
                   _GateButton(
-                    label: 'ASK',
+                    label: AppLocalizations.of(context).approvalGateAskButton,
                     filled: true,
                     onTap: () => Navigator.of(context).pop(true),
                   ),
                 if (canAsk && !alreadyAsked) const SizedBox(height: 10),
                 _GateButton(
-                  label: canAsk && !alreadyAsked ? 'NOT NOW' : 'OK',
+                  label: canAsk && !alreadyAsked
+                      ? AppLocalizations.of(context).approvalGateNotNowButton
+                      : AppLocalizations.of(context).approvalGateOkButton,
                   filled: false,
                   onTap: () => Navigator.of(context).pop(false),
                 ),
@@ -161,12 +174,17 @@ class _GateButton extends StatelessWidget {
 /// The inline "waiting for a grown-up" pill, for rows the child has already
 /// asked about (a room in Discover, a person in search).
 class WaitingPill extends StatelessWidget {
-  const WaitingPill({super.key, this.label = 'waiting for a grown-up'});
-  final String label;
+  const WaitingPill({super.key, this.label});
+
+  /// Defaults to a stock "waiting for a grown-up" copy when omitted; callers
+  /// pass their own label when the row already has a more specific one.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final resolvedLabel =
+        label ?? AppLocalizations.of(context).approvalGateWaitingPillLabel;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
@@ -179,7 +197,7 @@ class WaitingPill extends StatelessWidget {
         children: [
           Icon(Icons.hourglass_empty, size: 11, color: theme.accent),
           const SizedBox(width: 5),
-          Text(label, style: theme.monoTiny.copyWith(color: theme.accent)),
+          Text(resolvedLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
         ],
       ),
     );

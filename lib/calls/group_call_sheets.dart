@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
@@ -132,20 +133,41 @@ Future<void> showStartGroupCallSheet(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Start a call', style: theme.displaySmall),
+                  Text(
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetTitle,
+                    style: theme.displaySmall,
+                  ),
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      kindChip(CallMediaKind.audio, Icons.call, 'VOICE'),
+                      kindChip(
+                        CallMediaKind.audio,
+                        Icons.call,
+                        AppLocalizations.of(
+                          sheetCtx,
+                        ).linkedAccountsScreenCallSheetVoiceLabel,
+                      ),
                       const SizedBox(width: 8),
-                      kindChip(CallMediaKind.video, Icons.videocam, 'VIDEO'),
+                      kindChip(
+                        CallMediaKind.video,
+                        Icons.videocam,
+                        AppLocalizations.of(
+                          sheetCtx,
+                        ).linkedAccountsScreenCallSheetVideoLabel,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   action(
                     Icons.groups,
-                    'Call everyone',
-                    'Ring all members of this room',
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetCallEveryoneTitle,
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetCallEveryoneSubtitle,
                     () {
                       Navigator.of(sheetCtx).pop();
                       _startCall(context, service, roomId, kind, null);
@@ -153,8 +175,12 @@ Future<void> showStartGroupCallSheet(
                   ),
                   action(
                     Icons.checklist,
-                    'Choose people',
-                    'Pick who to invite',
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetChoosePeopleTitle,
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetChoosePeopleSubtitle,
                     () async {
                       Navigator.of(sheetCtx).pop();
                       final picked = await _pickMembers(
@@ -190,8 +216,12 @@ void _startCall(
       .catchError((e) {
         if (!context.mounted) return;
         final msg = e.toString().contains('CALL_FULL')
-            ? 'That call is full (max 6 people)'
-            : 'Could not start the call';
+            ? AppLocalizations.of(
+                context,
+              ).linkedAccountsScreenCallSheetCallFullError
+            : AppLocalizations.of(
+                context,
+              ).linkedAccountsScreenCallSheetStartFailedError;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(msg)));
@@ -241,7 +271,12 @@ Future<List<String>?> _pickMembers(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Invite to call', style: theme.displaySmall),
+                  Text(
+                    AppLocalizations.of(
+                      sheetCtx,
+                    ).linkedAccountsScreenCallSheetInviteTitle,
+                    style: theme.displaySmall,
+                  ),
                   const SizedBox(height: 10),
                   if (list == null)
                     const Padding(
@@ -252,7 +287,9 @@ Future<List<String>?> _pickMembers(
                     Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'No other members here',
+                        AppLocalizations.of(
+                          sheetCtx,
+                        ).linkedAccountsScreenCallSheetNoOtherMembers,
                         style: theme.body.copyWith(color: theme.inkMuted),
                       ),
                     )
@@ -325,7 +362,9 @@ Future<List<String>?> _pickMembers(
                             ).pop(selected.toList(growable: false));
                       return FocusableTap(
                         onTap: start,
-                        semanticLabel: 'Start call',
+                        semanticLabel: AppLocalizations.of(
+                          sheetCtx,
+                        ).linkedAccountsScreenCallSheetStartCallLabel,
                         radius: 14,
                         enabled: selected.isNotEmpty,
                         child: GestureDetector(
@@ -342,8 +381,14 @@ Future<List<String>?> _pickMembers(
                             child: Center(
                               child: Text(
                                 selected.isEmpty
-                                    ? 'Select people'
-                                    : 'Start call (${selected.length})',
+                                    ? AppLocalizations.of(
+                                        sheetCtx,
+                                      ).linkedAccountsScreenCallSheetSelectPeople
+                                    : AppLocalizations.of(
+                                        sheetCtx,
+                                      ).linkedAccountsScreenCallSheetStartCallCount(
+                                        '${selected.length}',
+                                      ),
                                 style: theme.body.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: selected.isEmpty

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
@@ -52,47 +53,69 @@ class _RemoveContactSheet extends StatelessWidget {
   final ContactRemovalPreview preview;
   final ChatApi api;
 
-  String get _chatsPhrase {
-    final n = preview.dmCount;
-    return n == 1 ? '1 chat' : '$n chats';
+  String _chatsPhrase(BuildContext context) {
+    return AppLocalizations.of(
+      context,
+    ).incomingGroupCallScreenRemoveContactSheetChatsCount(preview.dmCount);
   }
 
-  String get _messagesPhrase {
-    final n = preview.messageCount;
-    return n == 1 ? '1 message' : '$n messages';
+  String _messagesPhrase(BuildContext context) {
+    return AppLocalizations.of(
+      context,
+    ).incomingGroupCallScreenRemoveContactSheetMessagesCount(
+      preview.messageCount,
+    );
   }
 
   /// "last message 3 days ago" — makes "active" concrete, which is the whole
   /// reason a parent wants warning before this happens.
-  String? get _lastSeenPhrase {
+  String? _lastSeenPhrase(BuildContext context) {
     final at = preview.lastMessageAt;
     if (at == null) return null;
+    final l10n = AppLocalizations.of(context);
     final ago = DateTime.now().difference(at);
-    if (ago.inMinutes < 60) return 'last message just now';
-    if (ago.inHours < 24) return 'last message ${ago.inHours}h ago';
-    if (ago.inDays == 1) return 'last message yesterday';
-    if (ago.inDays < 30) return 'last message ${ago.inDays} days ago';
-    return 'last message a while ago';
+    if (ago.inMinutes < 60) {
+      return l10n.incomingGroupCallScreenRemoveContactSheetLastMessageJustNow;
+    }
+    if (ago.inHours < 24) {
+      return l10n.incomingGroupCallScreenRemoveContactSheetLastMessageHoursAgo(
+        ago.inHours,
+      );
+    }
+    if (ago.inDays == 1) {
+      return l10n.incomingGroupCallScreenRemoveContactSheetLastMessageYesterday;
+    }
+    if (ago.inDays < 30) {
+      return l10n.incomingGroupCallScreenRemoveContactSheetLastMessageDaysAgo(
+        ago.inDays,
+      );
+    }
+    return l10n.incomingGroupCallScreenRemoveContactSheetLastMessageAWhileAgo;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // RoomBrief carries only what the queue needs; SharedRoomsPanel renders
     // ChatRoom, so adapt rather than duplicating the row widget.
     final shared = preview.sharedGroupRooms
-        .map((r) => ChatRoom(
-              id: r.id,
-              name: r.name,
-              createdBy: '',
-              createdAt: DateTime.fromMillisecondsSinceEpoch(0),
-              isPrivate: false,
-              memberCount: r.memberCount,
-              avatarStorageId: r.avatarStorageId,
-              type: RoomType.regular,
-            ))
+        .map(
+          (r) => ChatRoom(
+            id: r.id,
+            name: r.name,
+            createdBy: '',
+            createdAt: DateTime.fromMillisecondsSinceEpoch(0),
+            isPrivate: false,
+            memberCount: r.memberCount,
+            avatarStorageId: r.avatarStorageId,
+            type: RoomType.regular,
+          ),
+        )
         .toList();
     final hasChats = preview.dmCount > 0;
+    final messagesPhrase = _messagesPhrase(context);
+    final lastSeenPhrase = _lastSeenPhrase(context);
 
     return Container(
       decoration: theme.sheetDecoration(),
@@ -103,19 +126,31 @@ class _RemoveContactSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SheetGrabber(),
-            Text('TAKE BACK',
-                style: theme.label
-                    .copyWith(color: theme.danger, letterSpacing: 2)),
+            Text(
+              l10n.incomingGroupCallScreenRemoveContactSheetTitleBadge,
+              style: theme.label.copyWith(
+                color: theme.danger,
+                letterSpacing: 2,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('take $contactName away from $childName?',
-                style: theme.displayMedium),
+            Text(
+              // Positional args must follow alphabetical placeholder order
+              // ("childName" < "contactName") — gen-l10n sorts undeclared
+              // placeholders alphabetically for the generated signature.
+              l10n.incomingGroupCallScreenRemoveContactSheetHeadline(
+                childName,
+                contactName,
+              ),
+              style: theme.displayMedium,
+            ),
             const SizedBox(height: 6),
             Text(
               hasChats
-                  ? 'they won\'t be able to reach each other, and their '
-                      'conversation goes with it.'
-                  : 'they won\'t be able to reach each other. '
-                      '$contactName won\'t be told.',
+                  ? l10n.incomingGroupCallScreenRemoveContactSheetBodyWithChats
+                  : l10n.incomingGroupCallScreenRemoveContactSheetBodyWithoutChats(
+                      contactName,
+                    ),
               style: theme.bodySoft,
             ),
 
@@ -126,34 +161,40 @@ class _RemoveContactSheet extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                 decoration: BoxDecoration(
                   color: theme.danger.withValues(alpha: 0.10),
-                  border:
-                      Border(left: BorderSide(color: theme.danger, width: 2)),
+                  border: Border(
+                    left: BorderSide(color: theme.danger, width: 2),
+                  ),
                   borderRadius: BorderRadius.circular(theme.radiusMd),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      Icon(Icons.delete_sweep,
-                          size: 14, color: theme.danger),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          '$_chatsPhrase · $_messagesPhrase will be deleted',
-                          style: theme.label.copyWith(
-                              color: theme.danger, letterSpacing: 1.2),
+                    Row(
+                      children: [
+                        Icon(Icons.delete_sweep, size: 14, color: theme.danger),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            l10n.incomingGroupCallScreenRemoveContactSheetDeletionSummary(
+                              _chatsPhrase(context),
+                              messagesPhrase,
+                            ),
+                            style: theme.label.copyWith(
+                              color: theme.danger,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                     const SizedBox(height: 6),
                     Text(
-                      'gone for both of them, including photos and voice '
-                      'notes. this can\'t be undone.',
+                      l10n.incomingGroupCallScreenRemoveContactSheetDeletionDetail,
                       style: theme.monoTiny,
                     ),
-                    if (_lastSeenPhrase != null) ...[
+                    if (lastSeenPhrase != null) ...[
                       const SizedBox(height: 4),
-                      Text(_lastSeenPhrase!, style: theme.monoTiny),
+                      Text(lastSeenPhrase, style: theme.monoTiny),
                     ],
                   ],
                 ),
@@ -166,10 +207,12 @@ class _RemoveContactSheet extends StatelessWidget {
               SharedRoomsPanel(
                 rooms: shared,
                 api: api,
-                headline:
-                    'they also share ${shared.length} ${shared.length == 1 ? "room" : "rooms"}',
-                note:
-                    'these stay. take the room back from the ROOMS list below if you want them out of it.',
+                headline: l10n
+                    .incomingGroupCallScreenRemoveContactSheetSharedRoomsHeadline(
+                      shared.length,
+                    ),
+                note: l10n
+                    .incomingGroupCallScreenRemoveContactSheetSharedRoomsNote,
               ),
             ],
 
@@ -178,10 +221,17 @@ class _RemoveContactSheet extends StatelessWidget {
               color: theme.danger,
               filled: true,
               icon: Icons.person_remove,
-              title: hasChats ? 'TAKE BACK & DELETE' : 'TAKE BACK',
+              title: hasChats
+                  ? l10n.incomingGroupCallScreenRemoveContactSheetChoiceTitleWithDelete
+                  : l10n.incomingGroupCallScreenRemoveContactSheetTitleBadge,
               sub: hasChats
-                  ? 'removes $contactName and wipes $_messagesPhrase.'
-                  : 'removes $contactName from the allowed list.',
+                  ? l10n.incomingGroupCallScreenRemoveContactSheetChoiceSubWithChats(
+                      contactName,
+                      messagesPhrase,
+                    )
+                  : l10n.incomingGroupCallScreenRemoveContactSheetChoiceSubWithoutChats(
+                      contactName,
+                    ),
               onTap: () => Navigator.of(context).pop(true),
             ),
             const SizedBox(height: 14),
@@ -191,17 +241,22 @@ class _RemoveContactSheet extends StatelessWidget {
               child: FocusableTap(
                 onTap: () => Navigator.of(context).pop(false),
                 autofocus: true,
-                semanticLabel: 'Cancel',
+                semanticLabel: l10n
+                    .incomingGroupCallScreenRemoveContactSheetCancelSemanticLabel,
                 radius: theme.radiusMd,
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).pop(false),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 18,
+                    ),
                     child: Text(
-                      'CANCEL',
-                      style: theme.label
-                          .copyWith(color: theme.inkMuted, letterSpacing: 2),
+                      l10n.incomingGroupCallScreenRemoveContactSheetCancelButton,
+                      style: theme.label.copyWith(
+                        color: theme.inkMuted,
+                        letterSpacing: 2,
+                      ),
                     ),
                   ),
                 ),

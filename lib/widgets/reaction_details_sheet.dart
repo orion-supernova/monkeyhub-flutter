@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
@@ -153,21 +154,22 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
         children: [
           const SheetGrabber(),
           Text(
-            'REACTIONS',
+            AppLocalizations.of(context).reactionDetailsSheetTitle,
             textAlign: TextAlign.center,
             style: theme.label.copyWith(letterSpacing: 2.4),
           ),
           if (reactions.isEmpty) ...[
             const SizedBox(height: 14),
             Text(
-              'nothing here anymore',
+              AppLocalizations.of(context).reactionDetailsSheetEmptyState,
               textAlign: TextAlign.center,
               style: theme.bodySoft,
             ),
           ] else ...[
             const SizedBox(height: 4),
             Text(
-              people == 1 ? '1 person' : '$people people',
+              AppLocalizations.of(context)
+                  .reactionDetailsSheetPeopleCount(people),
               textAlign: TextAlign.center,
               style: theme.monoTiny,
             ),
@@ -181,7 +183,8 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
                 child: Row(
                   children: [
                     _FilterPill(
-                      label: 'ALL',
+                      label: AppLocalizations.of(context)
+                          .reactionDetailsSheetFilterAll,
                       count: reactions.length,
                       selected: selected == null,
                       onTap: () => _select(null),
@@ -392,7 +395,8 @@ class _ReactorRow extends StatelessWidget {
                                 horizontal: 6, vertical: 3),
                             decoration: theme.chipDecoration(filled: true),
                             child: Text(
-                              'YOU',
+                              AppLocalizations.of(context)
+                                  .reactionDetailsSheetYouBadge,
                               style: theme.monoTiny
                                   .copyWith(color: theme.accentInk),
                             ),

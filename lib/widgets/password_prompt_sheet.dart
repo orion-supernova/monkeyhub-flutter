@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'password_field.dart';
@@ -82,7 +83,7 @@ class _PasswordPromptSheetState extends State<_PasswordPromptSheet> {
             const SizedBox(height: 16),
             PasswordField(
               controller: _password,
-              hint: 'password',
+              hint: AppLocalizations.of(context).reactionBubblePasswordHint,
               autofocus: true,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),

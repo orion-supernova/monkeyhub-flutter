@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_custom_tabs/flutter_custom_tabs.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
 /// Opens tapped links in the platform's own browser surface —
@@ -27,6 +28,8 @@ class LinkOpener {
     // async gaps, after which touching `context` is unsafe.
     final theme = ThemeScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final couldNotOpenLinkMessage =
+        AppLocalizations.of(context).linkOpenerCouldNotOpenLink;
 
     try {
       await launchUrl(
@@ -53,7 +56,7 @@ class LinkOpener {
       final opened = await _launchExternally(uri);
       if (!opened) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
+          SnackBar(content: Text(couldNotOpenLinkMessage)),
         );
       }
     }

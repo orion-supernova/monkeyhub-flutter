@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -34,6 +35,7 @@ class _ChatStyleScreenState extends State<ChatStyleScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final current = SettingsStore.instance.chatStyle;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -52,25 +54,25 @@ class _ChatStyleScreenState extends State<ChatStyleScreen> {
                   ),
                 ]),
                 const SizedBox(height: 10),
-                Text('chat style.', style: theme.displayMedium),
+                Text(l10n.pinnedBannerChatStyleTitle, style: theme.displayMedium),
                 const SizedBox(height: 10),
                 Row(children: [
                   Container(width: 18, height: 1, color: theme.accent),
                   const SizedBox(width: 8),
-                  Text('how the room looks', style: theme.caption),
+                  Text(l10n.pinnedBannerChatStyleSubtitle, style: theme.caption),
                 ]),
                 const SizedBox(height: 28),
                 _StyleCard(
-                  label: 'CLASSIC',
-                  sub: 'divider-bordered header, flat composer.',
+                  label: l10n.pinnedBannerClassicLabel,
+                  sub: l10n.pinnedBannerClassicSubtitle,
                   active: current == ChatStyle.classic,
                   preview: const _ClassicPreview(),
                   onTap: () => _set(ChatStyle.classic),
                 ),
                 const SizedBox(height: 14),
                 _StyleCard(
-                  label: 'COMPACT',
-                  sub: 'frosted pills floating over the conversation.',
+                  label: l10n.pinnedBannerCompactLabel,
+                  sub: l10n.pinnedBannerCompactSubtitle,
                   active: current == ChatStyle.compact,
                   preview: const _CompactPreview(),
                   onTap: () => _set(ChatStyle.compact),
@@ -132,7 +134,10 @@ class _StyleCard extends StatelessWidget {
                       decoration: BoxDecoration(color: theme.accent, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 6),
-                    Text('ACTIVE', style: theme.monoTiny.copyWith(color: theme.accent)),
+                    Text(
+                      AppLocalizations.of(context).pinnedBannerActiveBadge,
+                      style: theme.monoTiny.copyWith(color: theme.accent),
+                    ),
                   ]),
               ],
             ),

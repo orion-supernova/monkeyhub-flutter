@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/family.dart';
 import 'package:monkeyhub/screens/child_pair_screen.dart';
 import 'package:monkeyhub/screens/pairing_code_screen.dart';
 
 void main() {
+  final l10n = AppLocalizationsEn();
   group('pairing code parsing', () {
     test('accepts the URI the parent app renders', () {
       expect(extractPairingCode('monkeyhub://pair?c=482917'), '482917');
@@ -61,9 +63,15 @@ void main() {
     test('only the sender-guardian hop mentions a grown-up', () {
       // The other two must stay vague: telling a sender that the recipient's
       // guardian is deciding would disclose that the recipient is a child.
-      expect(RequestStage.senderGuardian.senderLabel, 'waiting for a grown-up');
-      expect(RequestStage.recipientGuardian.senderLabel, 'waiting for them');
-      expect(RequestStage.recipient.senderLabel, 'waiting for them');
+      expect(
+        RequestStage.senderGuardian.senderLabel(l10n),
+        'waiting for a grown-up',
+      );
+      expect(
+        RequestStage.recipientGuardian.senderLabel(l10n),
+        'waiting for them',
+      );
+      expect(RequestStage.recipient.senderLabel(l10n), 'waiting for them');
     });
   });
 

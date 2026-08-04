@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -60,52 +61,79 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  Text('chat list.', style: theme.displayMedium),
+                  Text(
+                    AppLocalizations.of(context).roomLayoutScreenTitle,
+                    style: theme.displayMedium,
+                  ),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Container(width: 18, height: 1, color: theme.accent),
                       const SizedBox(width: 8),
                       Text(
-                        'how rooms stack, and how you filter them',
+                        AppLocalizations.of(context).roomLayoutScreenSubtitle,
                         style: theme.caption,
                       ),
                     ],
                   ),
                   const SizedBox(height: 28),
-                  Text('LAYOUT', style: theme.label),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenLayoutSectionLabel,
+                    style: theme.label,
+                  ),
                   const SizedBox(height: 12),
                   _LayoutCard(
-                    label: 'ROW LAYOUT',
-                    sub: 'one column, full bleed. easy to read at a glance.',
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenRowLayoutLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenRowLayoutDescription,
                     active: current == RoomLayout.list,
                     preview: const _ListPreview(),
                     onTap: () => _set(RoomLayout.list),
                   ),
                   const SizedBox(height: 14),
                   _LayoutCard(
-                    label: 'GRID LAYOUT',
-                    sub: 'two columns, compact. more rooms in one look.',
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenGridLayoutLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenGridLayoutDescription,
                     active: current == RoomLayout.grid,
                     preview: const _GridPreview(),
                     onTap: () => _set(RoomLayout.grid),
                   ),
                   const SizedBox(height: 32),
-                  Text('FILTER CONTROL', style: theme.label),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenFilterControlSectionLabel,
+                    style: theme.label,
+                  ),
                   const SizedBox(height: 12),
                   _LayoutCard(
-                    label: 'CHIP ROW',
-                    sub:
-                        'always on show. one tap to any filter, one row of space.',
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenChipRowLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenChipRowDescription,
                     active: filter == FilterStyle.chips,
                     preview: const _ChipsPreview(),
                     onTap: () => _setFilter(FilterStyle.chips),
                   ),
                   const SizedBox(height: 14),
                   _LayoutCard(
-                    label: 'DRAWER BUTTON',
-                    sub:
-                        'one button that opens. nothing in the way until you ask.',
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenDrawerButtonLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenDrawerButtonDescription,
                     active: filter == FilterStyle.drawer,
                     preview: const _DrawerPreview(),
                     onTap: () => _setFilter(FilterStyle.drawer),
@@ -177,7 +205,9 @@ class _LayoutCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'ACTIVE',
+                        AppLocalizations.of(
+                          context,
+                        ).roomLayoutScreenActiveBadge,
                         style: theme.monoTiny.copyWith(color: theme.accent),
                       ),
                     ],

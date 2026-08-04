@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -18,20 +19,22 @@ class ThemeScreen extends StatefulWidget {
 /// Themes that share an identity (typography, decorations) but ship with
 /// multiple palettes are grouped into "families" in the picker. Anything not
 /// listed here renders as a standalone tile.
+///
+/// The display name/tagline are localized, so each family only stores a
+/// stable identifier here — [_familyName]/[_familyTagline] map it to copy.
+enum _ThemeFamilyId { basic, vault, others }
+
 const List<_ThemeFamily> _families = [
   _ThemeFamily(
-    name: 'BASIC',
-    tagline: 'ios-inspired · 5 palettes',
+    id: _ThemeFamilyId.basic,
     ids: ['basic', 'basic_daylight', 'basic_graphite', 'basic_rose', 'basic_forest'],
   ),
   _ThemeFamily(
-    name: 'VAULT',
-    tagline: 'private dossier · noir + ivory',
+    id: _ThemeFamilyId.vault,
     ids: ['vault_noir', 'vault_ivory'],
   ),
   _ThemeFamily(
-    name: 'OTHERS',
-    tagline: 'singular moods',
+    id: _ThemeFamilyId.others,
     ids: [
       'risograph_pop',
       'bio_organic',
@@ -44,10 +47,31 @@ const List<_ThemeFamily> _families = [
 ];
 
 class _ThemeFamily {
-  const _ThemeFamily({required this.name, required this.tagline, required this.ids});
-  final String name;
-  final String tagline;
+  const _ThemeFamily({required this.id, required this.ids});
+  final _ThemeFamilyId id;
   final List<String> ids;
+}
+
+String _familyName(AppLocalizations l10n, _ThemeFamilyId id) {
+  switch (id) {
+    case _ThemeFamilyId.basic:
+      return l10n.themeScreenFamilyBasicName;
+    case _ThemeFamilyId.vault:
+      return l10n.themeScreenFamilyVaultName;
+    case _ThemeFamilyId.others:
+      return l10n.themeScreenFamilyOthersName;
+  }
+}
+
+String _familyTagline(AppLocalizations l10n, _ThemeFamilyId id) {
+  switch (id) {
+    case _ThemeFamilyId.basic:
+      return l10n.themeScreenFamilyBasicTagline;
+    case _ThemeFamilyId.vault:
+      return l10n.themeScreenFamilyVaultTagline;
+    case _ThemeFamilyId.others:
+      return l10n.themeScreenFamilyOthersTagline;
+  }
 }
 
 class _ThemeScreenState extends State<ThemeScreen> {
@@ -62,6 +86,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
     final theme = ThemeScope.of(context);
     final controller = ThemeScope.controllerOf(context);
     final themes = ThemeController.all;
+    final l10n = AppLocalizations.of(context);
 
     void apply(AppTheme t) {
       controller.theme = t;
@@ -94,12 +119,12 @@ class _ThemeScreenState extends State<ThemeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('theme.', style: theme.displayMedium),
+                      Text(l10n.themeScreenTitle, style: theme.displayMedium),
                       const SizedBox(height: 10),
                       Row(children: [
                         Container(width: 18, height: 1, color: theme.accent),
                         const SizedBox(width: 8),
-                        Text('tap to apply · ⛶ for full preview', style: theme.caption),
+                        Text(l10n.themeScreenTapToApplyHint, style: theme.caption),
                       ]),
                     ],
                   ),
@@ -292,6 +317,7 @@ class _FamilyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outer = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final activeFromFamily = family.ids.contains(activeId);
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -314,10 +340,10 @@ class _FamilyCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(family.name,
+                Text(_familyName(l10n, family.id),
                     style: outer.label.copyWith(letterSpacing: 2.4)),
                 const SizedBox(height: 4),
-                Text(family.tagline, style: outer.monoTiny),
+                Text(_familyTagline(l10n, family.id), style: outer.monoTiny),
               ],
             ),
           ),
@@ -365,6 +391,7 @@ class _ThemeGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final outer = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final borderWidth = active ? 1.6 : 1.0;
     return GestureDetector(
       onTap: onApply,
@@ -446,12 +473,12 @@ class _ThemeGridTile extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'ACTIVE',
+                            l10n.themeScreenActiveBadge,
                             style: outer.monoTiny.copyWith(color: outer.accent),
                           ),
                         ])
                       else
-                        Text('tap to apply', style: outer.monoTiny.copyWith(color: outer.inkMuted)),
+                        Text(l10n.themeScreenTapToApplyLabel, style: outer.monoTiny.copyWith(color: outer.inkMuted)),
                     ],
                   ),
                 ),
@@ -532,6 +559,7 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final themes = ThemeController.all;
     final activeId = ThemeScope.of(context).id;
     final shown = themes[_index];
@@ -617,8 +645,8 @@ class _ThemePreviewCarouselState extends State<_ThemePreviewCarousel> {
                       ],
                       Text(
                         isActive
-                            ? 'ACTIVE — ${shown.name.toUpperCase()}'
-                            : 'APPLY ${shown.name.toUpperCase()}',
+                            ? l10n.themeScreenCarouselActiveLabel(shown.name.toUpperCase())
+                            : l10n.themeScreenCarouselApplyLabel(shown.name.toUpperCase()),
                         style: TextStyle(
                           color: isActive ? shown.accent : shown.accentInk,
                           letterSpacing: 2,
@@ -672,6 +700,7 @@ class _PreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Stack(
       children: [
         theme.backgroundLayer(context),
@@ -688,7 +717,7 @@ class _PreviewPage extends StatelessWidget {
                   Text(theme.name, style: theme.label.copyWith(letterSpacing: 2)),
                 ]),
                 const SizedBox(height: 18),
-                Text('hey, you.', style: theme.displayHero),
+                Text(l10n.themeScreenPreviewGreeting, style: theme.displayHero),
                 const SizedBox(height: 6),
                 Row(children: [
                   Container(width: 18, height: 1, color: theme.accent),
@@ -702,15 +731,27 @@ class _PreviewPage extends StatelessWidget {
                   ),
                 ]),
                 const SizedBox(height: 22),
-                _mockRoomRow(theme, name: 'design club', sub: 'mia: shipped the new tile.', ephemeral: false, active: true),
+                _mockRoomRow(
+                  theme,
+                  name: l10n.themeScreenPreviewRoomOneName,
+                  sub: l10n.themeScreenPreviewRoomOneSub,
+                  ephemeral: false,
+                  active: true,
+                ),
                 const SizedBox(height: 10),
-                _mockRoomRow(theme, name: 'chamber · ☾', sub: 'sealed in 4h.', ephemeral: true, active: false),
+                _mockRoomRow(
+                  theme,
+                  name: l10n.themeScreenPreviewRoomTwoName,
+                  sub: l10n.themeScreenPreviewRoomTwoSub,
+                  ephemeral: true,
+                  active: false,
+                ),
                 const SizedBox(height: 22),
-                Text('CONVERSATION', style: theme.label),
+                Text(l10n.themeScreenPreviewSectionLabel, style: theme.label),
                 const SizedBox(height: 10),
-                _bubble(theme, text: 'how does this feel?', mine: false),
+                _bubble(theme, text: l10n.themeScreenPreviewBubbleQuestion, mine: false),
                 const SizedBox(height: 8),
-                _bubble(theme, text: 'like the right one.', mine: true),
+                _bubble(theme, text: l10n.themeScreenPreviewBubbleAnswer, mine: true),
               ],
             ),
           ),

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/editor_geometry.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
@@ -190,12 +191,15 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   static const _widthGamma = 1.8;
 
   static double _widthForSlider(double t) =>
-      _minWidth + (_maxWidth - _minWidth) * math.pow(t.clamp(0.0, 1.0), _widthGamma);
+      _minWidth +
+      (_maxWidth - _minWidth) * math.pow(t.clamp(0.0, 1.0), _widthGamma);
 
-  static double _sliderForWidth(double w) => math.pow(
+  static double _sliderForWidth(double w) => math
+      .pow(
         ((w - _minWidth) / (_maxWidth - _minWidth)).clamp(0.0, 1.0),
         1 / _widthGamma,
-      ).toDouble();
+      )
+      .toDouble();
 
   ui.Image? _display;
   Object? _loadError;
@@ -263,7 +267,10 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
   Future<void> _load() async {
     try {
-      var image = await decodeImageBytes(widget.source, maxEdge: _maxDisplayEdge);
+      var image = await decodeImageBytes(
+        widget.source,
+        maxEdge: _maxDisplayEdge,
+      );
       // Eagerly, like rotation, so what is on screen is always the truth and
       // every stroke the user draws lands in the same frame the export uses.
       if (widget.mirrored) {
@@ -316,6 +323,19 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     if (_preset.aspect == null) return null;
     if (_preset.isOriginal) return _imageSize.width / _imageSize.height;
     return _preset.aspect;
+  }
+
+  /// Localizes the FREE/ORIG chip labels. The numeric ratios ('1:1', '4:5',
+  /// '16:9') are locale-invariant notation, so they pass through unchanged.
+  String _presetLabel(_AspectPreset preset) {
+    final l10n = AppLocalizations.of(context);
+    if (preset == _AspectPreset.free) {
+      return l10n.cameraEditorScreenCropPresetFree;
+    }
+    if (preset == _AspectPreset.original) {
+      return l10n.cameraEditorScreenCropPresetOriginal;
+    }
+    return preset.label;
   }
 
   // ------------------------------------------------------------------- tools
@@ -442,8 +462,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   void _drawUpdate(Offset local, Rect stage) {
     final stroke = _current;
     if (stroke == null) return;
-    stroke.points
-        .add(_clampUnit(stageToNorm(local, viewport: _viewport, stage: stage)));
+    stroke.points.add(
+      _clampUnit(stageToNorm(local, viewport: _viewport, stage: stage)),
+    );
     _liveRev.value++;
   }
 
@@ -610,9 +631,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
       final result = await rasterToJpegBytes(raster);
       if (!mounted) return;
-      Navigator.of(context).pop(
-        EditorSend(image: result, viewOnce: _viewOnce),
-      );
+      Navigator.of(context).pop(EditorSend(image: result, viewOnce: _viewOnce));
     } catch (e) {
       debugPrint('[camera_editor] export failed: $e');
       if (!mounted) return;
@@ -748,11 +767,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
 
   Widget _topRail(AppTheme theme, bool cropping) {
     final ready = _display != null && !_saving;
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         PhotoGlassButton(
           icon: CupertinoIcons.xmark,
-          semanticLabel: cropping ? 'cancel crop' : 'discard photo',
+          semanticLabel: cropping
+              ? l10n.cameraEditorScreenCancelCropSemanticLabel
+              : l10n.cameraEditorScreenDiscardPhotoSemanticLabel,
           onTap: _saving
               ? null
               : () => cropping ? _cancelCrop() : Navigator.of(context).pop(),
@@ -763,7 +785,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         if (!cropping && _strokes.isNotEmpty) ...[
           PhotoGlassButton(
             icon: CupertinoIcons.arrow_uturn_left,
-            semanticLabel: 'undo',
+            semanticLabel: l10n.cameraEditorScreenUndoSemanticLabel,
             onTap: _saving ? null : _undo,
           ),
           const SizedBox(width: 8),
@@ -771,7 +793,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         if (!cropping && _redo.isNotEmpty) ...[
           PhotoGlassButton(
             icon: CupertinoIcons.arrow_uturn_right,
-            semanticLabel: 'redo',
+            semanticLabel: l10n.cameraEditorScreenRedoSemanticLabel,
             onTap: _saving ? null : _redoStroke,
           ),
           const SizedBox(width: 8),
@@ -779,14 +801,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
         if (cropping && _crop != const Rect.fromLTWH(0, 0, 1, 1)) ...[
           PhotoGlassButton(
             icon: CupertinoIcons.arrow_2_circlepath,
-            semanticLabel: 'reset crop',
+            semanticLabel: l10n.cameraEditorScreenResetCropSemanticLabel,
             onTap: _saving ? null : _resetCrop,
           ),
           const SizedBox(width: 8),
         ],
         PhotoGlassButton(
           icon: CupertinoIcons.rotate_left,
-          semanticLabel: 'rotate',
+          semanticLabel: l10n.cameraEditorScreenRotateSemanticLabel,
           onTap: ready ? _rotate90 : null,
         ),
         // Crop lives up here, icon only, as the second of the two things you
@@ -795,7 +817,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           const SizedBox(width: 8),
           PhotoGlassButton(
             icon: CupertinoIcons.crop,
-            semanticLabel: 'crop',
+            semanticLabel: l10n.cameraEditorScreenCropSemanticLabel,
             onTap: ready ? () => _selectTool(_Tool.crop) : null,
           ),
         ],
@@ -810,12 +832,14 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
       // HEIC picked on the web lands here every time. Naming the reason beats
       // "couldn't open that image", which reads as our bug and leaves the user
       // with nothing to try.
-      final heic = kIsWeb && sniffImageContentType(widget.source) == 'image/heic';
+      final heic =
+          kIsWeb && sniffImageContentType(widget.source) == 'image/heic';
+      final l10n = AppLocalizations.of(context);
       return Center(
         child: Text(
           heic
-              ? 'this browser can\'t open HEIC photos'
-              : 'couldn\'t open that image',
+              ? l10n.cameraEditorScreenHeicUnsupportedMessage
+              : l10n.cameraEditorScreenImageLoadFailedMessage,
           style: const TextStyle(
             color: PhotoChrome.inkDim,
             fontSize: 14,
@@ -830,94 +854,94 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
     }
 
     return LayoutBuilder(
-        builder: (context, constraints) {
-          final box = Size(constraints.maxWidth, constraints.maxHeight);
-          final viewport = _viewport;
-          final stage = fitContain(
-            box: box,
-            aspect: pixelAspect(viewport, _imageSize),
-          );
-          if (stage.isEmpty) return const SizedBox.shrink();
+      builder: (context, constraints) {
+        final box = Size(constraints.maxWidth, constraints.maxHeight);
+        final viewport = _viewport;
+        final stage = fitContain(
+          box: box,
+          aspect: pixelAspect(viewport, _imageSize),
+        );
+        if (stage.isEmpty) return const SizedBox.shrink();
 
-          // Where the WHOLE image lands, which equals `stage` while cropping and
-          // overflows it once a crop is applied. One expression covers both, so
-          // the clip does the work instead of a branch.
-          final imageRect = Rect.fromPoints(
-            normToStage(Offset.zero, viewport: viewport, stage: stage),
-            normToStage(const Offset(1, 1), viewport: viewport, stage: stage),
-          );
-          final strokeScale = stage.width / viewport.width;
+        // Where the WHOLE image lands, which equals `stage` while cropping and
+        // overflows it once a crop is applied. One expression covers both, so
+        // the clip does the work instead of a branch.
+        final imageRect = Rect.fromPoints(
+          normToStage(Offset.zero, viewport: viewport, stage: stage),
+          normToStage(const Offset(1, 1), viewport: viewport, stage: stage),
+        );
+        final strokeScale = stage.width / viewport.width;
 
-          return Stack(
-            children: [
-              // Positioned.fill, so the clip and the layers inside it are
-              // handed tight box-sized constraints. Left as a loose child, the
-              // inner Stack would have only positioned children and would have
-              // to infer its size from the constraints it happened to get.
-              Positioned.fill(
-                child: ClipRect(
-                  clipper: _StageClip(stage),
-                  child: Stack(
-                    children: [
-                      Positioned.fromRect(
-                        rect: imageRect,
-                        child: RawImage(
-                          image: img,
-                          fit: BoxFit.fill,
-                          filterQuality: FilterQuality.medium,
-                        ),
+        return Stack(
+          children: [
+            // Positioned.fill, so the clip and the layers inside it are
+            // handed tight box-sized constraints. Left as a loose child, the
+            // inner Stack would have only positioned children and would have
+            // to infer its size from the constraints it happened to get.
+            Positioned.fill(
+              child: ClipRect(
+                clipper: _StageClip(stage),
+                child: Stack(
+                  children: [
+                    Positioned.fromRect(
+                      rect: imageRect,
+                      child: RawImage(
+                        image: img,
+                        fit: BoxFit.fill,
+                        filterQuality: FilterQuality.medium,
                       ),
-                      // Committed strokes and the in-progress one paint on
-                      // separate boundaries: dragging then re-rasterizes only
-                      // the live layer, leaving the decoded photo and the
-                      // finished strokes alone.
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                          child: CustomPaint(
-                            painter: _StrokesPainter(
-                              strokes: _strokes,
-                              viewport: viewport,
-                              stage: stage,
-                              strokeScale: strokeScale,
-                              revision: _committedRev,
-                            ),
+                    ),
+                    // Committed strokes and the in-progress one paint on
+                    // separate boundaries: dragging then re-rasterizes only
+                    // the live layer, leaving the decoded photo and the
+                    // finished strokes alone.
+                    Positioned.fill(
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: _StrokesPainter(
+                            strokes: _strokes,
+                            viewport: viewport,
+                            stage: stage,
+                            strokeScale: strokeScale,
+                            revision: _committedRev,
                           ),
                         ),
                       ),
-                      Positioned.fill(
-                        child: RepaintBoundary(
-                          child: CustomPaint(
-                            painter: _LiveStrokePainter(
-                              current: () => _current,
-                              viewport: viewport,
-                              stage: stage,
-                              strokeScale: strokeScale,
-                              revision: _liveRev,
-                            ),
+                    ),
+                    Positioned.fill(
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: _LiveStrokePainter(
+                            current: () => _current,
+                            viewport: viewport,
+                            stage: stage,
+                            strokeScale: strokeScale,
+                            revision: _liveRev,
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              if (_tool == _Tool.crop) ..._cropLayers(stage, viewport),
-              // Only while the pen is out. Mounted unconditionally, as it used
-              // to be, every stray swipe across the photo left a mark on it.
-              if (_tool == _Tool.draw && _penArmed)
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapUp: (d) => _drawDot(d.localPosition, stage),
-                    onPanStart: (d) => _drawStart(d.localPosition, stage),
-                    onPanUpdate: (d) => _drawUpdate(d.localPosition, stage),
-                    onPanEnd: (_) => _drawEnd(),
-                    onPanCancel: _drawEnd,
-                  ),
+            ),
+            if (_tool == _Tool.crop) ..._cropLayers(stage, viewport),
+            // Only while the pen is out. Mounted unconditionally, as it used
+            // to be, every stray swipe across the photo left a mark on it.
+            if (_tool == _Tool.draw && _penArmed)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _drawDot(d.localPosition, stage),
+                  onPanStart: (d) => _drawStart(d.localPosition, stage),
+                  onPanUpdate: (d) => _drawUpdate(d.localPosition, stage),
+                  onPanEnd: (_) => _drawEnd(),
+                  onPanCancel: _drawEnd,
                 ),
-            ],
-          );
-        },
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -1027,7 +1051,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
                     child: _Chip(
-                      label: preset.label,
+                      label: _presetLabel(preset),
                       selected: preset == _preset,
                       accent: theme.accent,
                       accentInk: theme.accentInk,
@@ -1043,7 +1067,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
           children: [
             const Spacer(),
             PhotoGlassPill(
-              label: 'DONE',
+              label: AppLocalizations.of(
+                context,
+              ).cameraEditorScreenCropDoneButton,
               icon: CupertinoIcons.checkmark,
               tint: theme.accent,
               onTap: _saving || _display == null
@@ -1057,6 +1083,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   }
 
   Widget _drawRail(AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1072,7 +1099,7 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             if (widget.canRetake) ...[
               PhotoGlassButton(
                 icon: CupertinoIcons.arrow_counterclockwise,
-                semanticLabel: 'retake',
+                semanticLabel: l10n.cameraEditorScreenRetakeSemanticLabel,
                 size: 38,
                 iconSize: 17,
                 onTap: _saving
@@ -1083,7 +1110,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             ],
             PhotoGlassButton(
               icon: CupertinoIcons.scribble,
-              semanticLabel: _penArmed ? 'put the pen away' : 'draw on the photo',
+              semanticLabel: _penArmed
+                  ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
+                  : l10n.cameraEditorScreenPenDrawSemanticLabel,
               size: 38,
               iconSize: 18,
               tint: _penArmed ? theme.accent : null,
@@ -1101,7 +1130,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             ),
             const Spacer(),
             PhotoGlassPill(
-              label: _saving ? 'SENDING…' : 'SEND',
+              label: _saving
+                  ? l10n.cameraEditorScreenSendingButton
+                  : l10n.cameraEditorScreenSendButton,
               icon: _saving ? null : CupertinoIcons.arrow_up,
               tint: theme.accent,
               onTap: _saving || _display == null ? null : _save,
@@ -1123,9 +1154,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
             children: [
               Icon(CupertinoIcons.flame_fill, size: 12, color: theme.accent),
               const SizedBox(width: 6),
-              const Text(
-                'disappears after it\'s opened once',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context).cameraEditorScreenViewOnceNote,
+                style: const TextStyle(
                   color: PhotoChrome.inkDim,
                   fontSize: 11.5,
                   letterSpacing: 0.2,
@@ -1178,7 +1209,9 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
                     // screen. Two controls that throw away very different
                     // amounts of work must not look identical.
                     icon: CupertinoIcons.trash,
-                    semanticLabel: 'clear drawing',
+                    semanticLabel: AppLocalizations.of(
+                      context,
+                    ).cameraEditorScreenClearDrawingSemanticLabel,
                     size: 32,
                     iconSize: 15,
                     onTap: _strokes.isEmpty || _saving ? null : _clearStrokes,
@@ -1229,7 +1262,6 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
   }
 }
 
-
 /// The circled "1" — arms burn-after-reading for this photo.
 ///
 /// Sized to the 38pt glass buttons beside it so the rail sits on one baseline.
@@ -1254,9 +1286,12 @@ class _ViewOnceToggle extends StatelessWidget {
     final fg = active
         ? accentInk
         : (enabled ? PhotoChrome.ink : PhotoChrome.inkDisabled);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: active ? 'view once: on' : 'view once: off',
+      semanticLabel: active
+          ? l10n.cameraEditorScreenViewOnceOnSemanticLabel
+          : l10n.cameraEditorScreenViewOnceOffSemanticLabel,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         onTap: onTap,
@@ -1317,8 +1352,8 @@ class _StrokesPainter extends CustomPainter {
     required this.stage,
     required this.strokeScale,
     required this.revision,
-  })  : _revision = revision.value,
-        super(repaint: revision);
+  }) : _revision = revision.value,
+       super(repaint: revision);
 
   final List<_EditorStroke> strokes;
   final Rect viewport;
@@ -1356,8 +1391,8 @@ class _LiveStrokePainter extends CustomPainter {
     required this.stage,
     required this.strokeScale,
     required this.revision,
-  })  : _revision = revision.value,
-        super(repaint: revision);
+  }) : _revision = revision.value,
+       super(repaint: revision);
 
   /// Read through a closure rather than captured by value: the stroke is
   /// mutated in place as points arrive, and the painter is not rebuilt for each
@@ -1544,7 +1579,9 @@ class _Swatch extends StatelessWidget {
   Widget build(BuildContext context) {
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: 'ink colour',
+      semanticLabel: AppLocalizations.of(
+        context,
+      ).cameraEditorScreenInkColorSemanticLabel,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         onTap: onTap,

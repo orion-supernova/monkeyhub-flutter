@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../backend/chat_api.dart';
 import '../../data/chat_repository.dart';
 import '../../family/family_service.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/chat_room.dart';
 import '../../models/family.dart';
 import '../../widgets/approval_gate.dart';
@@ -59,7 +60,7 @@ Future<void> enterPublicRoom(
 
     final wantsToAsk = await showApprovalGate(
       context,
-      what: 'join ${room.name}',
+      what: AppLocalizations.of(context).enterPublicRoomJoinWhat(room.name),
       detail: room.description,
       alreadyAsked: alreadyAsked,
     );
@@ -78,8 +79,13 @@ Future<void> enterPublicRoom(
     } catch (_) {
       // Its own message: "couldn't join" would be the wrong verb for an action
       // they cannot perform in the first place.
+      if (!context.mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('couldn\'t ask right now — try again')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).enterPublicRoomAskFailedMessage,
+          ),
+        ),
       );
     }
     // A child never proceeds to the join itself — the grown-up's answer is what
@@ -103,12 +109,14 @@ Future<void> enterPublicRoom(
       onChildGateRefused?.call();
       return;
     }
+    if (!context.mounted) return;
+    final loc = AppLocalizations.of(context);
     messenger.showSnackBar(
       SnackBar(
         content: Text(
           e.toString().contains('WRONG_PASSWORD')
-              ? 'wrong password'
-              : 'couldn\'t join — try again',
+              ? loc.enterPublicRoomWrongPasswordMessage
+              : loc.enterPublicRoomJoinFailedMessage,
         ),
       ),
     );

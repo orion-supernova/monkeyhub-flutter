@@ -183,6 +183,8 @@ dependencies:
   # dead VPN. Android's ACCESS_NETWORK_STATE ships in the plugin's own manifest
   # and merges automatically; no iOS permission.
   connectivity_plus: ^7.3.1
+  flutter_localizations:
+    sdk: flutter
 
 dependency_overrides:
   # record 5.x ships with a stale record_linux that doesn't implement the
@@ -255,6 +257,10 @@ flutter_native_splash:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  # Generates lib/l10n/generated/app_localizations.dart from lib/l10n/*.arb
+  # on every `flutter pub get` / `flutter run` (config in l10n.yaml).
+  generate: true
 
   # Swift Package Manager stays off for this project. Flutter 3.44 turns it on
   # by default and tries to migrate ios/Runner.xcodeproj on every build, which

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../models/message_preview.dart';
@@ -107,7 +108,10 @@ class _ComposerReplyCardState extends State<ComposerReplyCard>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'REPLYING TO ${m.senderName.toUpperCase()}',
+                            AppLocalizations.of(context)
+                                .composerReplyCardReplyingToLabel(
+                              m.senderName.toUpperCase(),
+                            ),
                             style: theme.monoTiny.copyWith(color: theme.accent),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

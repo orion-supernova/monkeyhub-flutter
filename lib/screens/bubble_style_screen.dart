@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -38,6 +39,7 @@ class _BubbleStyleScreenState extends State<BubbleStyleScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final current = SettingsStore.instance.bubbleStyle;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -57,44 +59,41 @@ class _BubbleStyleScreenState extends State<BubbleStyleScreen> {
                     ),
                   ]),
                   const SizedBox(height: 10),
-                  Text('bubble style.', style: theme.displayMedium),
+                  Text(l10n.bubbleStyleScreenTitle, style: theme.displayMedium),
                   const SizedBox(height: 10),
                   Row(children: [
                     Container(width: 18, height: 1, color: theme.accent),
                     const SizedBox(width: 8),
-                    Text('the shape your words arrive in', style: theme.caption),
+                    Text(l10n.bubbleStyleScreenSubtitle, style: theme.caption),
                   ]),
                   const SizedBox(height: 28),
                   _StyleCard(
-                    label: 'TAILED',
-                    sub:
-                        'a tail closes each run of messages; the rows above it '
-                        'tighten into one block.',
+                    label: l10n.bubbleStyleScreenTailedLabel,
+                    sub: l10n.bubbleStyleScreenTailedDescription,
                     active: current == BubbleStyle.tailed,
                     preview: const _Preview(style: BubbleStyle.tailed),
                     onTap: () => _set(BubbleStyle.tailed),
                   ),
                   const SizedBox(height: 14),
                   _StyleCard(
-                    label: 'SOFT',
-                    sub:
-                        'no tail — a run holds together through its tightened inner corners alone.',
+                    label: l10n.bubbleStyleScreenSoftLabel,
+                    sub: l10n.bubbleStyleScreenSoftDescription,
                     active: current == BubbleStyle.soft,
                     preview: const _Preview(style: BubbleStyle.soft),
                     onTap: () => _set(BubbleStyle.soft),
                   ),
                   const SizedBox(height: 14),
                   _StyleCard(
-                    label: 'PILL',
-                    sub: 'fully rounded capsules, identical on every row.',
+                    label: l10n.bubbleStyleScreenPillLabel,
+                    sub: l10n.bubbleStyleScreenPillDescription,
                     active: current == BubbleStyle.pill,
                     preview: const _Preview(style: BubbleStyle.pill),
                     onTap: () => _set(BubbleStyle.pill),
                   ),
                   const SizedBox(height: 14),
                   _StyleCard(
-                    label: 'SLAB',
-                    sub: 'square shoulders — sharp, printed, deliberate.',
+                    label: l10n.bubbleStyleScreenSlabLabel,
+                    sub: l10n.bubbleStyleScreenSlabDescription,
                     active: current == BubbleStyle.slab,
                     preview: const _Preview(style: BubbleStyle.slab),
                     onTap: () => _set(BubbleStyle.slab),
@@ -119,15 +118,18 @@ class _Preview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _bubble(theme, 'so? how does it look', mine: false),
+        _bubble(theme, l10n.bubbleStyleScreenPreviewQuestion, mine: false),
         const SizedBox(height: 6),
-        _bubble(theme, 'better', mine: true, lastInRun: false),
+        _bubble(theme, l10n.bubbleStyleScreenPreviewReplyOne,
+            mine: true, lastInRun: false),
         const SizedBox(height: 1),
-        _bubble(theme, 'much better', mine: true, firstInRun: false),
+        _bubble(theme, l10n.bubbleStyleScreenPreviewReplyTwo,
+            mine: true, firstInRun: false),
       ],
     );
   }
@@ -180,6 +182,7 @@ class _StyleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -216,7 +219,7 @@ class _StyleCard extends StatelessWidget {
                           color: theme.accent, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 6),
-                    Text('ACTIVE',
+                    Text(l10n.bubbleStyleScreenActiveBadge,
                         style: theme.monoTiny.copyWith(color: theme.accent)),
                   ]),
               ],

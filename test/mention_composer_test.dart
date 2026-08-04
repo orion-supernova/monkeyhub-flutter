@@ -9,6 +9,7 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/chat_composer.dart';
 import 'package:monkeyhub/widgets/mention_picker.dart';
 import 'package:monkeyhub/widgets/mention_text_controller.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The @-picker, driven through a real composer.
 ///
@@ -59,6 +60,8 @@ void main() {
     required VoidCallback onSend,
   }) {
     return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: Scaffold(
@@ -290,6 +293,8 @@ void main() {
         final plain = TextEditingController();
         await tester.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ThemeScope(
               controller: ThemeController(BasicTheme.midnight()),
               child: Scaffold(

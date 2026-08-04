@@ -7,6 +7,7 @@ import 'package:image/image.dart' as img;
 import 'package:monkeyhub/screens/camera_editor_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The editor's chrome contract.
 ///
@@ -36,6 +37,8 @@ void main() {
   }
 
   Widget host(Uint8List source, {bool canRetake = false}) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: CameraEditorScreen(source: source, canRetake: canRetake),

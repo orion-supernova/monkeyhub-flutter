@@ -9,6 +9,7 @@ import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/screens/social_username_screen.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// Regresses a trap this screen actually shipped with.
 ///
@@ -51,6 +52,8 @@ void main() {
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Builder(
             builder: (context) {
               ctx = context;

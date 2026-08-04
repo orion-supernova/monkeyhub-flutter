@@ -1,3 +1,4 @@
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 
 /// The three independent axes a room can be filtered on.
@@ -32,22 +33,39 @@ const List<FacetDimension> facetDimensionOrder = [
 /// data — `roomMembers` carries only `roomId, userId, joinedAt, role,
 /// lastReadAt` — so they'd need a schema column and a mutation first.
 enum RoomFacet {
-  dms(FacetDimension.type, 'dms'),
-  groups(FacetDimension.type, 'groups'),
-  public(FacetDimension.nature, 'public'),
-  private(FacetDimension.nature, 'private'),
-  secret(FacetDimension.nature, 'secret'),
-  locked(FacetDimension.nature, 'locked'),
-  unread(FacetDimension.status, 'unread'),
-  mentions(FacetDimension.status, 'mentions');
+  dms(FacetDimension.type),
+  groups(FacetDimension.type),
+  public(FacetDimension.nature),
+  private(FacetDimension.nature),
+  secret(FacetDimension.nature),
+  locked(FacetDimension.nature),
+  unread(FacetDimension.status),
+  mentions(FacetDimension.status);
 
-  const RoomFacet(this.dimension, this.label);
+  const RoomFacet(this.dimension);
 
   final FacetDimension dimension;
 
   /// Lowercase display label. The UI uppercases it where the theme calls for
   /// mono-caps; keeping it lowercase here matches the app's copy voice.
-  final String label;
+  ///
+  /// A method rather than a stored field — needs [AppLocalizations], which a
+  /// const enum constructor can't take. Takes the resolved instance rather
+  /// than a BuildContext so it stays plain-Dart testable (see
+  /// test/room_filter_test.dart).
+  String label(AppLocalizations l10n) {
+    return switch (this) {
+      RoomFacet.dms => l10n.roomFacetLabelDms,
+      RoomFacet.groups => l10n.roomFacetLabelGroups,
+      RoomFacet.public => l10n.roomFacetLabelPublic,
+      RoomFacet.private => l10n.roomFacetLabelPrivate,
+      RoomFacet.secret => l10n.roomFacetLabelSecret,
+      RoomFacet.locked => l10n.roomFacetLabelLocked,
+      RoomFacet.unread => l10n.roomFacetLabelUnread,
+      RoomFacet.mentions => l10n.roomFacetLabelMentions,
+    };
+  }
+
 
   /// A DM is `name.startsWith('dm:')` and nothing else — not a [RoomType], not
   /// a member count, since a group can have two members. The backend uses the
@@ -157,7 +175,8 @@ class RoomFilter {
 
   /// Human-readable active-filter cue, e.g. `dms + unread`. Empty string when
   /// no filter is active.
-  String get summary => facets.map((f) => f.label).join(' + ');
+  String summary(AppLocalizations l10n) =>
+      facets.map((f) => f.label(l10n)).join(' + ');
 
   String encode() => facets.map((f) => f.name).join(',');
 

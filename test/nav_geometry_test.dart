@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/screens/navigation/destinations.dart';
 import 'package:monkeyhub/widgets/radial_floating_menu.dart';
+
+final _navDestinations = navDestinations(AppLocalizationsEn());
 
 /// Both nav chromes had the item count baked into their geometry. Neither
 /// failure was catchable by the compiler or visible in a widget tree, so these
@@ -10,7 +13,7 @@ import 'package:monkeyhub/widgets/radial_floating_menu.dart';
 void main() {
   group('bottom pill indicator', () {
     test('segment centres span exactly -1..1 at the live count', () {
-      final n = navDestinations.length;
+      final n = _navDestinations.length;
       expect(segmentAlignmentX(0, n), -1);
       expect(segmentAlignmentX(n - 1, n), 1);
     });
@@ -28,7 +31,7 @@ void main() {
     });
 
     test('centres are evenly spaced and strictly increasing', () {
-      final n = navDestinations.length;
+      final n = _navDestinations.length;
       final xs = [for (var i = 0; i < n; i++) segmentAlignmentX(i, n)];
       for (var i = 1; i < n; i++) {
         expect(xs[i], greaterThan(xs[i - 1]));
@@ -78,7 +81,7 @@ void main() {
     });
 
     test('the fan occupies the intended quadrant', () {
-      final n = navDestinations.length;
+      final n = _navDestinations.length;
       expect(RadialGeometry.slotAngle(0, n), RadialGeometry.spanStart);
       expect(
         RadialGeometry.slotAngle(n - 1, n),
@@ -97,7 +100,7 @@ void main() {
       // Guards the radius against a future fifth destination: at 112pt a fifth
       // item would space neighbours ~39pt apart against a 44pt orb, so this
       // fails loudly rather than shipping overlapping glyphs.
-      final n = navDestinations.length;
+      final n = _navDestinations.length;
       for (var i = 1; i < n; i++) {
         final dx =
             RadialGeometry.left(i, n, 1) - RadialGeometry.left(i - 1, n, 1);
@@ -118,7 +121,7 @@ void main() {
     });
 
     group('hit testing', () {
-      final n = navDestinations.length;
+      final n = _navDestinations.length;
 
       test('pointing straight at a slot selects it', () {
         for (var i = 0; i < n; i++) {

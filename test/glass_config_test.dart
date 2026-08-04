@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/glass_config.dart';
 import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/keyboard/focusable_tap.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/screens/glass_screen.dart';
 import 'package:monkeyhub/screens/navigation/destinations.dart';
 import 'package:monkeyhub/screens/navigation/pill_bottom_nav.dart';
@@ -292,6 +294,8 @@ void main() {
     Widget wrap(Widget child) => ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(body: Stack(children: [child])),
       ),
     );
@@ -351,7 +355,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(tester.getRect(find.byIcon(navDestinations.first.icon)).width, 30);
+      expect(
+        tester.getRect(find.byIcon(navDestinations(AppLocalizationsEn()).first.icon)).width,
+        30,
+      );
 
       // The pill's inset is measured against its slot, so it holds whatever
       // the bar's width works out to.
@@ -416,7 +423,11 @@ void main() {
       await tester.pumpWidget(
         ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
-          child: const MaterialApp(home: GlassScreen()),
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: GlassScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();

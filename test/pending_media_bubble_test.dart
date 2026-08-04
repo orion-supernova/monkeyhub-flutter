@@ -12,6 +12,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
 import 'package:monkeyhub/widgets/remote_image.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The bubble for a photo that is still on its way up.
 ///
@@ -64,6 +65,8 @@ void main() {
   );
 
   Widget host(Widget child) => MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
       child: Scaffold(

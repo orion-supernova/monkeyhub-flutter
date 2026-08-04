@@ -40,6 +40,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassProfile = 'mh.glass.profile';
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
+  static const _kLocale = 'mh.locale';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -67,6 +68,12 @@ class SettingsStore extends ChangeNotifier {
   GlassProfile _glass = _presetById(kDefaultGlassPresetId).profile;
   List<GlassPreset> _glassSlots = const [];
   String? _glassPresetId = kDefaultGlassPresetId;
+  // Null means "follow the system language" (constrained to a supported
+  // locale by app.dart's localeListResolutionCallback). A saved 'en'/'tr'
+  // overrides the system, letting a user run the app in a language other
+  // than their device's — e.g. practicing Turkish, or a shared family
+  // handset where members prefer different languages.
+  String? _localeCode;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -143,6 +150,9 @@ class SettingsStore extends ChangeNotifier {
   String? get glassPresetId => _glassPresetId;
 
   bool get glassSlotsFull => _glassSlots.length >= kMaxGlassSlots;
+
+  /// 'en', 'tr', or null to follow the system language.
+  String? get localeCode => _localeCode;
 
   static GlassPreset _presetById(String? id) => kBuiltInGlassPresets.firstWhere(
     (p) => p.id == id,
@@ -247,6 +257,7 @@ class SettingsStore extends ChangeNotifier {
         _glassPresetId = kDefaultGlassPresetId;
         _glass = _resolvePreset(_glassPresetId).profile;
       }
+      _localeCode = await _storage.read(key: _kLocale);
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -329,6 +340,18 @@ class SettingsStore extends ChangeNotifier {
     _captureProtection = v;
     notifyListeners();
     await _storage.write(key: _kCaptureProtection, value: v ? 'true' : 'false');
+  }
+
+  /// Pass null to go back to following the system language.
+  Future<void> setLocaleCode(String? code) async {
+    if (_localeCode == code) return;
+    _localeCode = code;
+    notifyListeners();
+    if (code == null) {
+      await _storage.delete(key: _kLocale);
+    } else {
+      await _storage.write(key: _kLocale, value: code);
+    }
   }
 
   Future<void> setChatStyle(ChatStyle s) async {

@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../keyboard/overlay_modal_scope.dart';
@@ -697,6 +698,7 @@ class _ActionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final rows = <Widget>[];
     void add(_ActionRowSpec spec) {
       if (rows.isNotEmpty) {
@@ -712,36 +714,36 @@ class _ActionList extends StatelessWidget {
     if (name != null) rows.add(_FileNameHeader(name: name, theme: theme));
 
     if (canReply) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.reply,
         icon: CupertinoIcons.arrowshape_turn_up_left,
-        label: 'REPLY',
+        label: l10n.messageActionMenuReplyLabel,
         destructive: false,
       ));
     }
     // Right after REPLY: both are "send this somewhere", and forwarding one
     // message is the single-item case of what the selection bar does for many.
     if (canForward) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.forward,
         icon: CupertinoIcons.arrowshape_turn_up_right,
-        label: 'FORWARD',
+        label: l10n.messageActionMenuForwardLabel,
         destructive: false,
       ));
     }
     if (hasParent) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.viewThread,
         icon: CupertinoIcons.arrow_branch,
-        label: 'VIEW THREAD',
+        label: l10n.messageActionMenuViewThreadLabel,
         destructive: false,
       ));
     }
     if (canCopy) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.copy,
         icon: CupertinoIcons.doc_on_doc,
-        label: 'COPY',
+        label: l10n.messageActionMenuCopyLabel,
         destructive: false,
       ));
     }
@@ -749,10 +751,10 @@ class _ActionList extends StatelessWidget {
     // message with a body, and a document has neither. Reading the name off the
     // header above is one thing; getting it into a search field is another.
     if (name != null) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.copyName,
         icon: CupertinoIcons.doc_on_doc,
-        label: 'COPY NAME',
+        label: l10n.messageActionMenuCopyNameLabel,
         destructive: false,
       ));
     }
@@ -764,7 +766,7 @@ class _ActionList extends StatelessWidget {
       add(_ActionRowSpec(
         action: isPinned ? MessageAction.unpin : MessageAction.pin,
         icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
-        label: isPinned ? 'UNPIN' : 'PIN',
+        label: isPinned ? l10n.messageActionMenuUnpinLabel : l10n.messageActionMenuPinLabel,
         destructive: false,
       ));
     }
@@ -772,34 +774,34 @@ class _ActionList extends StatelessWidget {
     // this message: it hands the transcript over to multi-select with this one
     // already picked, and everything after that happens in the selection bar.
     if (canSelect) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.select,
         icon: CupertinoIcons.checkmark_circle,
-        label: 'SELECT',
+        label: l10n.messageActionMenuSelectLabel,
         destructive: false,
       ));
     }
     if (!isMine) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.viewProfile,
         icon: CupertinoIcons.person_circle,
-        label: 'PROFILE',
+        label: l10n.messageActionMenuProfileLabel,
         destructive: false,
       ));
     }
     if (isMine) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.delete,
         icon: CupertinoIcons.trash,
-        label: 'DELETE',
+        label: l10n.messageActionMenuDeleteLabel,
         destructive: true,
       ));
     }
     if (!isMine) {
-      add(const _ActionRowSpec(
+      add(_ActionRowSpec(
         action: MessageAction.report,
         icon: CupertinoIcons.flag,
-        label: 'REPORT',
+        label: l10n.messageActionMenuReportLabel,
         destructive: true,
       ));
     }

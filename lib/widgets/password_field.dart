@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'labeled_field.dart';
 
@@ -64,7 +65,9 @@ class _PasswordFieldState extends State<PasswordField> {
       onSubmitted: widget.onSubmitted,
       trailing: IconButton(
         onPressed: () => setState(() => _obscure = !_obscure),
-        tooltip: _obscure ? 'show password' : 'hide password',
+        tooltip: _obscure
+            ? AppLocalizations.of(context).countBadgeShowPasswordTooltip
+            : AppLocalizations.of(context).countBadgeHidePasswordTooltip,
         icon: Icon(
           _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
           color: theme.inkMuted,

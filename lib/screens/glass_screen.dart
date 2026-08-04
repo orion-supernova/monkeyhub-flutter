@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/glass_config.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -27,13 +28,12 @@ class GlassScreen extends StatefulWidget {
 /// The panels, in scroll order. Each owns a sticky header, and each says what
 /// the preview above it should be showing.
 enum _Panel {
-  looks('LOOKS', _Shows.bar),
-  bar('BOTTOM BAR', _Shows.bar),
-  surfaces('OTHER SURFACES', _Shows.surfaces),
-  layout('BAR LAYOUT', _Shows.bar);
+  looks(_Shows.bar),
+  bar(_Shows.bar),
+  surfaces(_Shows.surfaces),
+  layout(_Shows.bar);
 
-  const _Panel(this.label, this.shows);
-  final String label;
+  const _Panel(this.shows);
   final _Shows shows;
 }
 
@@ -186,6 +186,21 @@ class _GlassScreenState extends State<GlassScreen> {
   GlassConfig _resetKnob(GlassConfig config, GlassConfig base, GlassKnob k) =>
       base.isStandard(k) ? config.reset(k) : config.set(k, base.of(k));
 
+  /// The panel's sticky-header title, in display order.
+  String _panelLabel(_Panel panel) {
+    final l10n = AppLocalizations.of(context);
+    switch (panel) {
+      case _Panel.looks:
+        return l10n.glassScreenPanelLooks;
+      case _Panel.bar:
+        return l10n.glassScreenPanelBottomBar;
+      case _Panel.surfaces:
+        return l10n.glassScreenPanelOtherSurfaces;
+      case _Panel.layout:
+        return l10n.glassScreenPanelBarLayout;
+    }
+  }
+
   /// Where the preview is heading: depends on the panel being read, on whether
   /// it is collapsed, and on the layout dials, all of which can change at once.
   double _targetPreviewHeight() => _expanded
@@ -219,7 +234,7 @@ class _GlassScreenState extends State<GlassScreen> {
           signature: Object.hash(panel, onReset != null, theme.accent),
           child: _Header(
             key: _panelKeys[panel],
-            label: panel.label,
+            label: _panelLabel(panel),
             theme: theme,
             onReset: onReset,
           ),
@@ -312,7 +327,10 @@ class _GlassScreenState extends State<GlassScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 10),
-                                Text('glass.', style: theme.displayMedium),
+                                Text(
+                                  AppLocalizations.of(context).glassScreenTitle,
+                                  style: theme.displayMedium,
+                                ),
                                 const SizedBox(height: 10),
                                 Row(
                                   children: [
@@ -324,7 +342,9 @@ class _GlassScreenState extends State<GlassScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'how much of what is behind comes through',
+                                        AppLocalizations.of(
+                                          context,
+                                        ).glassScreenSubtitle,
                                         style: theme.caption,
                                       ),
                                     ),
@@ -372,8 +392,12 @@ class _GlassScreenState extends State<GlassScreen> {
                             _ActionRow(
                               icon: Icons.add,
                               label: _store.glassSlotsFull
-                                  ? 'ALL $kMaxGlassSlots SLOTS FULL'
-                                  : 'SAVE CURRENT AS…',
+                                  ? AppLocalizations.of(
+                                      context,
+                                    ).glassScreenSaveSlotsFull(kMaxGlassSlots)
+                                  : AppLocalizations.of(
+                                      context,
+                                    ).glassScreenSaveCurrentAs,
                               enabled: !_store.glassSlotsFull,
                               onTap: _promptSave,
                             ),
@@ -381,8 +405,14 @@ class _GlassScreenState extends State<GlassScreen> {
                             _ActionRow(
                               icon: Icons.restart_alt,
                               label: base == const GlassProfile()
-                                  ? 'RESET EVERY DIAL'
-                                  : 'RESET TO ${_baselineName.toUpperCase()}',
+                                  ? AppLocalizations.of(
+                                      context,
+                                    ).glassScreenResetEveryDial
+                                  : AppLocalizations.of(
+                                      context,
+                                    ).glassScreenResetToPreset(
+                                      _baselineName.toUpperCase(),
+                                    ),
                               // Undoes your edits, back to whatever the selected
                               // look says — or to the untuned recipe when nothing
                               // is selected.
@@ -413,9 +443,9 @@ class _GlassScreenState extends State<GlassScreen> {
                         _panel(
                           theme,
                           _Panel.surfaces,
-                          note:
-                              'the composer, headers, call buttons — anything that '
-                              'sits over text rather than over scrolling content',
+                          note: AppLocalizations.of(
+                            context,
+                          ).glassScreenSurfacesNote,
                           onReset: profile.app == base.app
                               ? null
                               : () => _edit(profile.copyWith(app: base.app)),
@@ -428,7 +458,9 @@ class _GlassScreenState extends State<GlassScreen> {
                             // there is miserable.
                             _ActionRow(
                               icon: Icons.sync_alt,
-                              label: 'MATCH THE BOTTOM BAR',
+                              label: AppLocalizations.of(
+                                context,
+                              ).glassScreenMatchBottomBar,
                               enabled: profile.app != profile.nav,
                               onTap: () =>
                                   _edit(profile.copyWith(app: profile.nav)),
@@ -502,7 +534,7 @@ class _GlassScreenState extends State<GlassScreen> {
         // drifted — this is what tells you the save and reset controls below
         // have something to act on.
         subtitle: p.id == activeId && dirty
-            ? 'edited — save it as a new look, or reset it'
+            ? AppLocalizations.of(context).glassScreenPresetEditedSubtitle
             : null,
         onTap: () => _store.selectGlassPreset(p.id),
         onRename: p.builtIn ? null : () => _promptRename(p),
@@ -515,51 +547,63 @@ class _GlassScreenState extends State<GlassScreen> {
     // look on screen and just stops calling it by name.
     if (activeId == null)
       _PresetRow(
-        preset: const GlassPreset(
+        preset: GlassPreset(
           id: '',
-          name: 'Custom',
-          profile: GlassProfile(),
+          name: AppLocalizations.of(context).glassScreenCustomPresetName,
+          profile: const GlassProfile(),
         ),
         active: true,
-        subtitle: 'unsaved — give it a name to keep it',
+        subtitle: AppLocalizations.of(context).glassScreenUnsavedSubtitle,
         onTap: null,
       ),
   ];
 
   Future<void> _promptSave() async {
-    final name = await _askName(title: 'save this look as');
+    final name = await _askName(
+      title: AppLocalizations.of(context).glassScreenSaveDialogTitle,
+    );
     if (name == null || !mounted) return;
     final ok = _store.saveGlassSlot(name);
     if (!ok && mounted) {
-      _toast('no room — delete a look first');
+      _toast(AppLocalizations.of(context).glassScreenNoRoomToast);
     }
   }
 
   Future<void> _promptRename(GlassPreset p) async {
-    final name = await _askName(title: 'rename', initial: p.name);
+    final name = await _askName(
+      title: AppLocalizations.of(context).glassScreenRenameDialogTitle,
+      initial: p.name,
+    );
     if (name == null) return;
     _store.renameGlassSlot(p.id, name);
   }
 
   Future<void> _confirmDelete(GlassPreset p) async {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final yes = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.surface,
-        title: Text('delete ${p.name}?', style: theme.body),
-        content: Text(
-          'the look stays on screen — it just stops having a name.',
-          style: theme.bodySoft,
+        title: Text(
+          l10n.glassScreenDeleteConfirmTitle(p.name),
+          style: theme.body,
         ),
+        content: Text(l10n.glassScreenDeleteConfirmBody, style: theme.bodySoft),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('keep', style: TextStyle(color: theme.inkSoft)),
+            child: Text(
+              l10n.glassScreenKeepButton,
+              style: TextStyle(color: theme.inkSoft),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('delete', style: TextStyle(color: theme.accent)),
+            child: Text(
+              l10n.glassScreenDeleteButton,
+              style: TextStyle(color: theme.accent),
+            ),
           ),
         ],
       ),
@@ -569,6 +613,7 @@ class _GlassScreenState extends State<GlassScreen> {
 
   Future<String?> _askName({required String title, String initial = ''}) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: initial);
     return showDialog<String>(
       context: context,
@@ -582,7 +627,7 @@ class _GlassScreenState extends State<GlassScreen> {
           style: theme.body,
           cursorColor: theme.accent,
           decoration: InputDecoration(
-            hintText: 'late night',
+            hintText: l10n.glassScreenNameHint,
             hintStyle: theme.bodySoft,
             counterText: '',
           ),
@@ -591,11 +636,17 @@ class _GlassScreenState extends State<GlassScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('cancel', style: TextStyle(color: theme.inkSoft)),
+            child: Text(
+              l10n.glassScreenCancelButton,
+              style: TextStyle(color: theme.inkSoft),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text('save', style: TextStyle(color: theme.accent)),
+            child: Text(
+              l10n.glassScreenSaveButton,
+              style: TextStyle(color: theme.accent),
+            ),
           ),
         ],
       ),
@@ -765,6 +816,7 @@ class _SurfacesPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
@@ -791,7 +843,7 @@ class _SurfacesPreview extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            '# balkon',
+                            l10n.glassScreenPreviewRoomName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.body,
@@ -799,7 +851,7 @@ class _SurfacesPreview extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          '4 online',
+                          l10n.glassScreenPreviewOnlineCount,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.bodySoft,
@@ -847,7 +899,10 @@ class _SurfacesPreview extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Text('message', style: theme.bodySoft),
+                      Text(
+                        l10n.glassScreenPreviewMessageHint,
+                        style: theme.bodySoft,
+                      ),
                       const Spacer(),
                     ],
                   ),
@@ -883,10 +938,13 @@ class _PreviewToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       key: glassPreviewToggleKey,
       onTap: onTap,
-      semanticLabel: expanded ? 'collapse preview' : 'expand preview',
+      semanticLabel: expanded
+          ? l10n.glassScreenPreviewCollapseLabel
+          : l10n.glassScreenPreviewExpandLabel,
       shape: FocusRingShape.capsule,
       child: GestureDetector(
         onTap: onTap,
@@ -912,7 +970,7 @@ class _PreviewToggle extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'PREVIEW',
+                l10n.glassScreenPreviewBadge,
                 style: theme.monoTiny.copyWith(
                   color: theme.inkSoft,
                   letterSpacing: 1.4,
@@ -1026,31 +1084,36 @@ class _BackdropState extends State<_Backdrop> {
   /// Filler with the shape of real traffic: names of different lengths, lines
   /// that wrap and lines that don't, and the odd one loud enough to be hard to
   /// sit glass on top of.
-  static const _rows = <(String, String, bool)>[
-    ('Dilan', 'sent the roof photos — the tiles are all cracked', false),
-    ('Mert', 'ok but who is actually bringing the speaker', false),
-    ('family', 'Anne: dinner at 8, do not be late again', true),
-    ('Zeynep', 'i am outside', false),
-    ('Kerem', 'that place on the corner does the good coffee', false),
-    ('work', 'standup moved to 10:30 for the rest of the week', true),
-    ('Elif', 'no way. send it again i lost it', false),
-    ('Baran', 'landed 👍', false),
-    ('Ayşe', 'the cat has learned to open the balcony door', false),
-    ('Can', 'see you saturday then', false),
+  List<(String, String, bool)> _rows(AppLocalizations l10n) => [
+    ('Dilan', l10n.glassScreenBackdropMsgDilan, false),
+    ('Mert', l10n.glassScreenBackdropMsgMert, false),
+    (
+      l10n.glassScreenBackdropGroupFamily,
+      l10n.glassScreenBackdropMsgFamily,
+      true,
+    ),
+    ('Zeynep', l10n.glassScreenBackdropMsgZeynep, false),
+    ('Kerem', l10n.glassScreenBackdropMsgKerem, false),
+    (l10n.glassScreenBackdropGroupWork, l10n.glassScreenBackdropMsgWork, true),
+    ('Elif', l10n.glassScreenBackdropMsgElif, false),
+    ('Baran', l10n.glassScreenBackdropMsgBaran, false),
+    ('Ayşe', l10n.glassScreenBackdropMsgAyse, false),
+    ('Can', l10n.glassScreenBackdropMsgCan, false),
   ];
 
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
+    final rows = _rows(AppLocalizations.of(context));
     return ListView.builder(
       padding: const EdgeInsets.only(top: 8, bottom: 120),
       physics: const BouncingScrollPhysics(),
-      itemCount: _rows.length + 1,
+      itemCount: rows.length + 1,
       itemBuilder: (context, i) {
         // One saturated tile in the run, so the colour-bleed dial has
         // something to actually bleed.
         if (i == 2) return _MediaTile(theme: theme);
-        final (name, message, group) = _rows[i > 2 ? i - 1 : i];
+        final (name, message, group) = rows[i > 2 ? i - 1 : i];
         return _Row(theme: theme, name: name, message: message, group: group);
       },
     );
@@ -1199,7 +1262,9 @@ class _KnobRow extends StatelessWidget {
                     ? null
                     : _MiniAction(
                         icon: Icons.undo,
-                        tip: 'reset ${knob.label}',
+                        tip: AppLocalizations.of(
+                          context,
+                        ).glassScreenResetTooltip(knob.label),
                         onTap: onReset,
                       ),
               ),
@@ -1243,6 +1308,7 @@ class _PresetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
       semanticLabel: preset.name,
@@ -1280,7 +1346,7 @@ class _PresetRow extends StatelessWidget {
                       Text(subtitle!, style: theme.bodySoft),
                     ] else if (preset.builtIn) ...[
                       const SizedBox(height: 2),
-                      Text('built in', style: theme.bodySoft),
+                      Text(l10n.glassScreenBuiltInLabel, style: theme.bodySoft),
                     ],
                   ],
                 ),
@@ -1288,19 +1354,19 @@ class _PresetRow extends StatelessWidget {
               if (onOverwrite != null)
                 _MiniAction(
                   icon: Icons.save_outlined,
-                  tip: 'overwrite ${preset.name}',
+                  tip: l10n.glassScreenOverwriteTooltip(preset.name),
                   onTap: onOverwrite!,
                 ),
               if (onRename != null)
                 _MiniAction(
                   icon: Icons.edit_outlined,
-                  tip: 'rename ${preset.name}',
+                  tip: l10n.glassScreenRenameTooltip(preset.name),
                   onTap: onRename!,
                 ),
               if (onDelete != null)
                 _MiniAction(
                   icon: Icons.delete_outline,
-                  tip: 'delete ${preset.name}',
+                  tip: l10n.glassScreenDeleteTooltip(preset.name),
                   onTap: onDelete!,
                 ),
             ],
@@ -1432,7 +1498,7 @@ class _Header extends StatelessWidget {
           _MiniAction(
             key: glassPanelResetKey(label),
             icon: Icons.restart_alt,
-            tip: 'reset $label',
+            tip: AppLocalizations.of(context).glassScreenResetTooltip(label),
             onTap: onReset!,
           ),
       ],

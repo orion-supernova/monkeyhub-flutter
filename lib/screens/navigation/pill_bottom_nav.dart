@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/glass_config.dart';
 import '../../data/settings_store.dart';
 import '../../keyboard/focusable_tap.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/count_badge.dart';
@@ -51,17 +52,19 @@ class PillBottomNav extends StatelessWidget {
   /// RTL — destination 0 renders on the right — but an absolute alignment does
   /// not, so the indicator used to land on the mirrored segment. Directional on
   /// both sides keeps them in step, and reads the same in LTR.
-  AlignmentGeometry _alignmentFor(HomeSection s) => AlignmentDirectional(
-    segmentAlignmentX(
-      navDestinations.indexWhere((d) => d.section == s),
-      navDestinations.length,
-    ),
-    0,
-  );
+  AlignmentGeometry _alignmentFor(List<NavDest> destinations, HomeSection s) =>
+      AlignmentDirectional(
+        segmentAlignmentX(
+          destinations.indexWhere((d) => d.section == s),
+          destinations.length,
+        ),
+        0,
+      );
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final destinations = navDestinations(AppLocalizations.of(context));
     final profile = this.profile ?? SettingsStore.instance.glass;
     final geo = profile.geometry;
     final margin = geo.of(kBarMargin);
@@ -107,9 +110,9 @@ class PillBottomNav extends StatelessWidget {
                 child: AnimatedAlign(
                   duration: theme.motionFast,
                   curve: Curves.easeOutCubic,
-                  alignment: _alignmentFor(active),
+                  alignment: _alignmentFor(destinations, active),
                   child: FractionallySizedBox(
-                    widthFactor: 1 / navDestinations.length,
+                    widthFactor: 1 / destinations.length,
                     heightFactor: 1,
                     // The slot stays a full segment wide — that is what
                     // segmentAlignmentX positions, and what the tests measure
@@ -125,7 +128,7 @@ class PillBottomNav extends StatelessWidget {
               ),
               Row(
                 children: [
-                  for (final d in navDestinations)
+                  for (final d in destinations)
                     _btn(
                       theme,
                       geo,

@@ -4,6 +4,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/bulk_action_bar.dart';
 import 'package:monkeyhub/widgets/message_action_menu.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// The transcript's multi-select, from both ends.
 ///
@@ -24,6 +25,8 @@ void main() {
   Widget host(Widget child) => ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: Align(
               alignment: Alignment.topLeft,

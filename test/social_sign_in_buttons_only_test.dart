@@ -7,6 +7,7 @@ import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/social_sign_in_buttons.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 
 /// Linked Accounts renders one card per provider and asks this widget for a
 /// single button at a time — the Apple one still has to be Apple's own widget
@@ -26,6 +27,8 @@ void main() {
         ThemeScope(
           controller: ThemeController(BasicTheme.midnight()),
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: SocialSignInButtons(
                 only: only,

@@ -6,6 +6,7 @@ import '../data/chat_repository.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
@@ -270,13 +271,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     // capability it does not have. It stays for a child whose permission was
     // revoked with a request still in flight.
     final showOutgoing = _peopleUnlocked || outgoing.isNotEmpty;
+    final t = AppLocalizations.of(context);
     // One derivation, read everywhere below. The caption used to be the literal
     // string 'people · rooms · requests' regardless of account, which told a
     // child with public rooms locked that public rooms exist.
     final caption = <String>[
-      if (showPeople) 'people',
-      if (showRooms) 'rooms',
-      'requests',
+      if (showPeople) t.discoverScreenCaptionPeople,
+      if (showRooms) t.discoverScreenCaptionRooms,
+      t.discoverScreenCaptionRequests,
     ].join(' · ');
     final showBands = showPeople && showRooms;
 
@@ -298,7 +300,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   kFloatingNavClearance,
                 ),
                 children: [
-                  Text('discover.', style: theme.displayMedium),
+                  Text(t.discoverScreenTitle, style: theme.displayMedium),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -320,15 +322,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   const SizedBox(height: 24),
 
                   // ================= PEOPLE =================
-                  if (showBands) _BandLabel('PEOPLE', key: _peopleKey),
+                  if (showBands)
+                    _BandLabel(
+                      t.discoverScreenPeopleBandLabel,
+                      key: _peopleKey,
+                    ),
                   if (showPeople) ...[
                     _DoorRow(
                       circular: true,
                       icon: CupertinoIcons.person_2,
-                      title: 'find people',
+                      title: t.discoverScreenFindPeopleTitle,
                       subtitle: widget.family.isChild
-                          ? 'type a whole username'
-                          : 'search by @username or name',
+                          ? t.discoverScreenFindPeopleSubtitleChild
+                          : t.discoverScreenFindPeopleSubtitleAdult,
                       onTap: () => _openSearch(SearchMode.people),
                     ),
                     const SizedBox(height: _betweenSections),
@@ -345,7 +351,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   // only one list is ever rendered.
                   DiscoverSectionHeader(
                     key: _incomingKey,
-                    label: 'REQUESTS',
+                    label: t.discoverScreenRequestsSectionLabel,
                     // The counts live on the segments, where they say which
                     // direction they belong to.
                     count: '',
@@ -356,7 +362,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       active: _requestsTab,
                       incoming: incoming.length,
                       outgoing: outgoing.length,
-                      onChange: (t) => setState(() => _requestsTab = t),
+                      onChange: (tab) => setState(() => _requestsTab = tab),
                     ),
                   ],
                   const SizedBox(height: _withinSection),
@@ -372,7 +378,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         if (!showOutgoing ||
                             _requestsTab == _RequestsTab.incoming)
                           if (incoming.isEmpty)
-                            const DiscoverEmptyLine('inbox quiet')
+                            DiscoverEmptyLine(t.discoverScreenInboxQuiet)
                           else
                             for (final r in incoming)
                               IncomingRequestCard(
@@ -382,7 +388,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                 api: widget.api,
                               )
                         else if (outgoing.isEmpty)
-                          const DiscoverEmptyLine('nothing pending')
+                          DiscoverEmptyLine(t.discoverScreenNothingPending)
                         else
                           for (final r in outgoing)
                             OutgoingRequestCard(
@@ -397,7 +403,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
                   const SizedBox(height: _betweenSections),
                   DiscoverSectionHeader(
-                    label: 'YOUR PEOPLE',
+                    label: t.discoverScreenYourPeopleLabel,
                     count: '${friends.length}',
                   ),
                   // The one empty state worth a sentence: it points at the way
@@ -405,8 +411,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   if (friends.isEmpty)
                     DiscoverEmptyLine(
                       showPeople
-                          ? 'no one yet — find people above'
-                          : 'no one yet',
+                          ? t.discoverScreenNoFriendsYetWithHint
+                          : t.discoverScreenNoFriendsYet,
                     )
                   else ...[
                     const SizedBox(height: _withinSection),
@@ -432,7 +438,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   // child there's a room behind it.
                   if (showRooms) ...[
                     const SizedBox(height: _betweenWorlds),
-                    if (showBands) _BandLabel('ROOMS', key: _roomsKey),
+                    if (showBands)
+                      _BandLabel(
+                        t.discoverScreenRoomsBandLabel,
+                        key: _roomsKey,
+                      ),
                     // Says "search", not "browse". Rooms are listable, so a
                     // row promising to *browse* them sitting directly above a
                     // list of them read as two different sets — the question
@@ -443,13 +453,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     _DoorRow(
                       circular: false,
                       icon: Icons.tag,
-                      title: 'search rooms',
-                      subtitle: 'find a public room by name',
+                      title: t.discoverScreenSearchRoomsTitle,
+                      subtitle: t.discoverScreenSearchRoomsSubtitle,
                       onTap: () => _openSearch(SearchMode.rooms),
                     ),
                     const SizedBox(height: _betweenSections),
                     DiscoverSectionHeader(
-                      label: 'PUBLIC ROOMS',
+                      label: t.discoverScreenPublicRoomsLabel,
                       // Blank while the first fetch is in flight so a `0` only
                       // ever means "looked, found nothing".
                       count: _loading && _rooms.isEmpty
@@ -458,9 +468,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                     const SizedBox(height: _withinSection),
                     if (_loading && _rooms.isEmpty)
-                      const DiscoverEmptyLine('looking…')
+                      DiscoverEmptyLine(t.discoverScreenLoadingRooms)
                     else if (_rooms.isEmpty)
-                      const DiscoverEmptyLine('nothing open right now')
+                      DiscoverEmptyLine(t.discoverScreenNoRoomsOpen)
                     else
                       // Rebuilds on every repo change so a tile flips to JOINED
                       // the moment the rooms subscription delivers the new
@@ -542,17 +552,20 @@ class _RequestSegments extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         _Segment(
-          label: 'incoming',
+          label: t.discoverScreenIncomingLabel,
+          displayLabel: t.discoverScreenIncomingLabelCaps,
           count: incoming,
           active: active == _RequestsTab.incoming,
           onTap: () => onChange(_RequestsTab.incoming),
         ),
         const SizedBox(width: 20),
         _Segment(
-          label: 'outgoing',
+          label: t.discoverScreenOutgoingLabel,
+          displayLabel: t.discoverScreenOutgoingLabelCaps,
           count: outgoing,
           active: active == _RequestsTab.outgoing,
           onTap: () => onChange(_RequestsTab.outgoing),
@@ -565,11 +578,17 @@ class _RequestSegments extends StatelessWidget {
 class _Segment extends StatelessWidget {
   const _Segment({
     required this.label,
+    required this.displayLabel,
     required this.count,
     required this.active,
     required this.onTap,
   });
   final String label;
+  // Pre-cased for display rather than derived from [label] via
+  // `.toUpperCase()` at build time: Dart's default case mapping is not
+  // locale-aware, so it would turn a Turkish "giden" into "GIDEN" (dotless
+  // I) instead of the correct "GİDEN" (dotted İ).
+  final String displayLabel;
   final int count;
   final bool active;
   final VoidCallback onTap;
@@ -600,7 +619,7 @@ class _Segment extends StatelessWidget {
                 style: theme.monoTiny.copyWith(
                   color: active ? theme.ink : theme.inkMuted,
                 ),
-                child: Text('${label.toUpperCase()} · $count'),
+                child: Text('$displayLabel · $count'),
               ),
               const SizedBox(height: 6),
               AnimatedContainer(
@@ -629,15 +648,20 @@ class _WorldJump extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context);
     return Row(
       children: [
         _JumpChip(
-          label: 'people',
+          label: t.discoverScreenJumpPeopleLabel,
           icon: CupertinoIcons.person_2,
           onTap: onPeople,
         ),
         const SizedBox(width: 8),
-        _JumpChip(label: 'rooms', icon: Icons.tag, onTap: onRooms),
+        _JumpChip(
+          label: t.discoverScreenJumpRoomsLabel,
+          icon: Icons.tag,
+          onTap: onRooms,
+        ),
       ],
     );
   }
@@ -658,7 +682,9 @@ class _JumpChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: 'Jump to $label',
+      semanticLabel: AppLocalizations.of(
+        context,
+      ).discoverScreenJumpToSemanticLabel(label),
       shape: FocusRingShape.capsule,
       radius: 999,
       child: GestureDetector(

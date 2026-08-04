@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../privacy/capture_protection.dart';
 import '../widgets/capture_shield.dart';
 
@@ -190,7 +191,7 @@ class _ViewOnceBadge extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            'VIEW ONCE',
+            AppLocalizations.of(context).viewOnceViewerBadgeLabel,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 10.5,

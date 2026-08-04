@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../family/family_service.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../models/family.dart';
 import '../keyboard/focusable_tap.dart';
@@ -47,9 +48,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   /// current, which matters here because a co-parent can add or remove a
   /// guardian while this screen is up.
   ChildSummary get _child => widget.family.context.children.firstWhere(
-        (c) => c.user.id == widget.child.user.id,
-        orElse: () => widget.child,
-      );
+    (c) => c.user.id == widget.child.user.id,
+    orElse: () => widget.child,
+  );
 
   @override
   void initState() {
@@ -75,7 +76,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         childId: widget.child.user.id,
       );
       if (mounted) setState(() => _grants = g);
-    } catch (_) {/* dashboard still works without the grant list */}
+    } catch (_) {
+      /* dashboard still works without the grant list */
+    }
   }
 
   Future<void> _set({
@@ -124,7 +127,9 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         approvalId: id,
       );
       await _loadGrants();
-    } catch (_) {/* surfaced by the list simply not changing */}
+    } catch (_) {
+      /* surfaced by the list simply not changing */
+    }
   }
 
   /// One path for every row in the allowed list, whitelisted or not: find out
@@ -136,6 +141,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   /// calls that could fail apart from each other.
   Future<void> _takeBack(ChildContact c) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
 
     // Failing to preview must not mean failing to act, or an offline parent
     // can't remove anyone. Fall back to a preview that reports nothing known,
@@ -181,7 +187,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       await _loadGrants();
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('couldn\'t take them back — try again')),
+        SnackBar(content: Text(l10n.childPolicyScreenTakeBackFailed)),
       );
     }
   }
@@ -189,11 +195,13 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   Future<void> _addByUsername() async {
     final result = await showAdaptiveSheet<_AddContactResult>(
       context,
-      builder: (_) => _AddContactSheet(childName: widget.child.user.displayName),
+      builder: (_) =>
+          _AddContactSheet(childName: widget.child.user.displayName),
     );
     if (result == null || !mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       final requested = await widget.api.allowContactByUsername(
         guardianId: widget.guardianId,
@@ -202,36 +210,45 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         sendRequestNow: result.sendNow,
       );
       await _loadGrants();
-      messenger.showSnackBar(SnackBar(
-        content: Text(requested
-            ? 'added — the request is on its way'
-            : 'added to the allowed list'),
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            requested
+                ? l10n.childPolicyScreenContactAddedRequestSent
+                : l10n.childPolicyScreenContactAddedToList,
+          ),
+        ),
+      );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_humanizeAdd(e))));
+      messenger.showSnackBar(SnackBar(content: Text(_humanizeAdd(e, l10n))));
     }
   }
 
-  String _humanizeAdd(Object e) {
+  String _humanizeAdd(Object e, AppLocalizations l10n) {
     final s = e.toString();
-    if (s.contains('USER_NOT_FOUND')) return 'no account with that username';
-    if (s.contains('CANNOT_ADD_SELF')) return 'that\'s their own username';
-    if (s.contains('NOT_A_GUARDIAN')) return 'that\'s not yours to change';
-    return 'couldn\'t add them — try again';
+    if (s.contains('USER_NOT_FOUND')) {
+      return l10n.childPolicyScreenErrorUserNotFound;
+    }
+    if (s.contains('CANNOT_ADD_SELF')) {
+      return l10n.childPolicyScreenErrorCannotAddSelf;
+    }
+    if (s.contains('NOT_A_GUARDIAN')) {
+      return l10n.childPolicyScreenErrorNotYours;
+    }
+    return l10n.childPolicyScreenErrorAddContactGeneric;
   }
 
   // ── Grown-ups ────────────────────────────────────────────────────────────
 
   Future<void> _addGuardian() async {
+    final l10n = AppLocalizations.of(context);
     final username = await showAdaptiveSheet<String>(
       context,
       builder: (_) => _PromptSheet(
-        heading: 'ADD A GROWN-UP',
-        blurb: 'They get exactly what you have: every request to approve, '
-            'every setting to change, and the power to remove you. '
-            '${_child.user.displayName} sees them as family straight away.',
-        hint: 'their username',
-        ctaLabel: 'ADD',
+        heading: l10n.childPolicyScreenAddGuardianHeading,
+        blurb: l10n.childPolicyScreenAddGuardianBlurb(_child.user.displayName),
+        hint: l10n.childPolicyScreenAddGuardianHint,
+        ctaLabel: l10n.childPolicyScreenAddCta,
       ),
     );
     if (username == null || !mounted) return;
@@ -245,26 +262,35 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       );
       await widget.family.refresh();
       messenger.showSnackBar(
-        const SnackBar(content: Text('added — they can look after them now')),
+        SnackBar(content: Text(l10n.childPolicyScreenGuardianAdded)),
       );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_humanizeGuardian(e))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(_humanizeGuardian(e, l10n))),
+      );
     }
   }
 
   Future<void> _removeGuardian(ChatUser guardian) async {
+    final l10n = AppLocalizations.of(context);
     final isMe = guardian.id == widget.guardianId;
-    final name = isMe ? 'you' : guardian.displayName;
+    final name = isMe ? l10n.childPolicyScreenYou : guardian.displayName;
     final ok = await showConfirmSheet(
       context,
-      headline: isMe ? 'STOP SUPERVISING?' : 'REMOVE ${guardian.displayName.toUpperCase()}?',
+      headline: isMe
+          ? l10n.childPolicyScreenStopSupervisingHeadline
+          : l10n.childPolicyScreenRemoveGuardianHeadline(
+              guardian.displayName.toUpperCase(),
+            ),
       body: isMe
-          ? 'You\'ll lose every bit of visibility into '
-              '${_child.user.displayName}\'s account — their requests, their '
-              'people, their rooms. The other grown-ups keep looking after them.'
-          : '${guardian.displayName} will no longer see or approve anything '
-              'for ${_child.user.displayName}.',
-      confirmLabel: isMe ? 'STOP SUPERVISING' : 'REMOVE',
+          ? l10n.childPolicyScreenStopSupervisingBody(_child.user.displayName)
+          : l10n.childPolicyScreenRemoveGuardianBody(
+              _child.user.displayName,
+              guardian.displayName,
+            ),
+      confirmLabel: isMe
+          ? l10n.childPolicyScreenStopSupervisingCta
+          : l10n.childPolicyScreenRemoveLabel,
     );
     if (!ok || !mounted) return;
 
@@ -281,36 +307,47 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       if (isMe) {
         nav.pop();
       } else {
-        messenger.showSnackBar(SnackBar(content: Text('$name removed')));
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.childPolicyScreenGuardianRemoved(name))),
+        );
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(_humanizeGuardian(e))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(_humanizeGuardian(e, l10n))),
+      );
     }
   }
 
-  String _humanizeGuardian(Object e) {
+  String _humanizeGuardian(Object e, AppLocalizations l10n) {
     final s = e.toString();
     if (s.contains('LAST_GUARDIAN')) {
-      return 'someone has to look after them — add another grown-up first';
+      return l10n.childPolicyScreenErrorLastGuardian;
     }
-    if (s.contains('USER_NOT_FOUND')) return 'no account with that username';
-    if (s.contains('CHILD_NOT_ALLOWED')) return 'a child can\'t be a grown-up';
-    if (s.contains('NOT_A_GUARDIAN')) return 'that\'s not yours to change';
-    return 'couldn\'t do that — try again';
+    if (s.contains('USER_NOT_FOUND')) {
+      return l10n.childPolicyScreenErrorUserNotFound;
+    }
+    if (s.contains('CHILD_NOT_ALLOWED')) {
+      return l10n.childPolicyScreenErrorChildNotAllowed;
+    }
+    if (s.contains('NOT_A_GUARDIAN')) {
+      return l10n.childPolicyScreenErrorNotYours;
+    }
+    return l10n.childPolicyScreenErrorGenericGuardian;
   }
 
   // ── Danger zone ──────────────────────────────────────────────────────────
 
   Future<void> _graduate() async {
+    final l10n = AppLocalizations.of(context);
     final password = await showAdaptiveSheet<String>(
       context,
       builder: (_) => _PromptSheet(
-        heading: 'GRADUATE ${_child.user.displayName.toUpperCase()}',
-        blurb: 'They become a normal account with this password, and every '
-            'grown-up loses all visibility. There is no way back — you would '
-            'have to be invited like anyone else.',
-        hint: 'a password for them',
-        ctaLabel: 'GRADUATE',
+        heading: l10n.childPolicyScreenGraduateHeading(
+          _child.user.displayName.toUpperCase(),
+        ),
+        blurb: l10n.childPolicyScreenGraduateBlurb,
+        hint: l10n.childPolicyScreenGraduateHint,
+        ctaLabel: l10n.childPolicyScreenGraduateCta,
         obscure: true,
         minLength: 8,
       ),
@@ -329,19 +366,19 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       if (mounted) nav.pop();
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('couldn\'t graduate them — try again')),
+        SnackBar(content: Text(l10n.childPolicyScreenGraduateFailed)),
       );
     }
   }
 
   Future<void> _deleteChild() async {
+    final l10n = AppLocalizations.of(context);
     final name = _child.user.displayName;
     final ok = await showConfirmSheet(
       context,
-      headline: 'DELETE $name\'s ACCOUNT?'.toUpperCase(),
-      body: 'Everything goes: their messages, photos, rooms, and friends. '
-          'This cannot be undone, and the username is freed for anyone else.',
-      confirmLabel: 'DELETE FOREVER',
+      headline: l10n.childPolicyScreenDeleteAccountHeadline(name.toUpperCase()),
+      body: l10n.childPolicyScreenDeleteAccountBody,
+      confirmLabel: l10n.childPolicyScreenDeleteForeverCta,
     );
     if (!ok || !mounted) return;
 
@@ -356,7 +393,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
       if (mounted) nav.pop();
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('couldn\'t delete the account — try again')),
+        SnackBar(content: Text(l10n.childPolicyScreenDeleteAccountFailed)),
       );
     }
   }
@@ -364,6 +401,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final grants = _grants;
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -373,209 +411,220 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
           SafeArea(
             child: AdaptivePageBody(
               child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(Icons.arrow_back,
-                            size: 20, color: theme.inkSoft),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          widget.child.user.displayName.toUpperCase(),
-                          style: theme.label.copyWith(letterSpacing: 2.8),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-                    children: [
-                      _SectionHeader('WHAT THEY CAN DO'),
-                      const SizedBox(height: 12),
-                      // Public rooms used to be a toggle here. It is now fixed
-                      // off for every kid and cannot be switched on, so it is a
-                      // statement rather than a control — but it still has to
-                      // be SAID. A guardian who saw the switch before would
-                      // otherwise assume the setting was lost or reset, and one
-                      // who never did deserves to know the limit exists.
-                      _FixedNote(
-                        label: 'PUBLIC ROOMS',
-                        body: 'Always off for kids. Discover — the list of '
-                            'rooms belonging to people you don\'t know — is '
-                            'hidden completely and can\'t be switched on. '
-                            'Rooms someone invites them to still work as '
-                            'normal.',
-                      ),
-                      const SizedBox(height: 10),
-                      _Toggle(
-                        label: 'ASK TO ADD',
-                        on: _policy.canRequestContacts,
-                        onDesc: 'they can ask you about new people',
-                        offDesc: 'family only — no new requests',
-                        onChanged: (v) => _set(canRequestContacts: v),
-                      ),
-                      const SizedBox(height: 10),
-                      _Toggle(
-                        label: 'CALLS',
-                        on: _policy.callsEnabled,
-                        onDesc: 'voice + video with people they\'re allowed',
-                        offDesc: 'messages only',
-                        onChanged: (v) => _set(callsEnabled: v),
-                      ),
-                      const SizedBox(height: 10),
-                      _Toggle(
-                        label: 'PHOTOS + VOICE',
-                        on: _policy.mediaEnabled,
-                        onDesc: 'they can send pictures, video and voice notes',
-                        offDesc: 'text only',
-                        onChanged: (v) => _set(mediaEnabled: v),
-                      ),
-                      const SizedBox(height: 10),
-                      _Toggle(
-                        label: 'MAKE ROOMS',
-                        on: _policy.canCreateRooms,
-                        onDesc: 'they can start their own private rooms',
-                        offDesc: 'they can\'t start rooms',
-                        onChanged: (v) => _set(canCreateRooms: v),
-                      ),
-
-                      const SizedBox(height: 30),
-                      _SectionHeader('PEOPLE YOU\'VE ALLOWED'),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Anyone here can be added without asking you again — '
-                        'whichever of them starts it.',
-                        style: theme.bodySoft,
-                      ),
-                      const SizedBox(height: 12),
-                      if (grants == null)
-                        _Placeholder('loading…')
-                      else ...[
-                        for (final c in grants.contacts)
-                          _GrantRow(
-                            title: c.user.displayName,
-                            subtitle: '@${c.user.username} · ${c.stateLabel}',
-                            leading: UserAvatar(
-                                user: c.user, size: 32, api: widget.api),
-                            onRevoke: () => _takeBack(c),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 20,
+                            color: theme.inkSoft,
                           ),
-                        _AddByUsernameButton(onTap: _addByUsername),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Text(
+                            widget.child.user.displayName.toUpperCase(),
+                            style: theme.label.copyWith(letterSpacing: 2.8),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
-
-                      const SizedBox(height: 30),
-                      _SectionHeader('ROOMS YOU\'VE ALLOWED'),
-                      const SizedBox(height: 12),
-                      if (grants == null)
-                        _Placeholder('loading…')
-                      else if (grants.rooms.isEmpty)
-                        _Placeholder('no rooms yet')
-                      else
-                        for (final r in grants.rooms)
-                          _GrantRow(
-                            title: r.name,
-                            subtitle: '${r.memberCount} in',
-                            leading: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: theme.accentSoft,
-                                borderRadius:
-                                    BorderRadius.circular(theme.radiusMd),
-                              ),
-                              alignment: Alignment.center,
-                              child: Icon(Icons.tag,
-                                  size: 13, color: theme.accent),
-                            ),
-                            onRevoke: () => _revokeRoom(r),
-                          ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Taking a room back also removes them from it. '
-                        'Taking a person back deletes their chat as well — '
-                        'for both of them.',
-                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                      ),
-
-                      const SizedBox(height: 30),
-                      _SectionHeader('GROWN-UPS'),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Everyone here can approve, change settings, and see '
-                        'everything. Any of them can act alone — nothing waits '
-                        'on the others.',
-                        style: theme.bodySoft,
-                      ),
-                      const SizedBox(height: 12),
-                      for (final g in _child.guardians)
-                        _GrantRow(
-                          title: g.id == widget.guardianId
-                              ? '${g.displayName} (you)'
-                              : g.displayName,
-                          subtitle: '@${g.username}',
-                          leading:
-                              UserAvatar(user: g, size: 32, api: widget.api),
-                          // The last grown-up standing can't step away — the
-                          // account would be stranded with nobody able to
-                          // re-adopt or delete it. Graduate or delete instead.
-                          onRevoke: _child.isSoleGuardian
-                              ? null
-                              : () => _removeGuardian(g),
-                          revokeLabel:
-                              g.id == widget.guardianId ? 'STEP AWAY' : 'REMOVE',
-                        ),
-                      _AddByUsernameButton(
-                        label: 'ADD A GROWN-UP',
-                        onTap: _addGuardian,
-                      ),
-
-                      const SizedBox(height: 30),
-                      _SectionHeader('WHEN THEY\'RE DONE'),
-                      const SizedBox(height: 12),
-                      if (_child.isSoleGuardian)
-                        Text(
-                          'You\'re ${_child.user.displayName}\'s only grown-up, '
-                          'so you can\'t just step away — add another first, or '
-                          'use one of these.',
-                          style: theme.bodySoft,
-                        )
-                      else
-                        Text(
-                          'Both of these are final. Stepping away instead is '
-                          'up in GROWN-UPS.',
-                          style: theme.bodySoft,
-                        ),
-                      const SizedBox(height: 12),
-                      _DangerAction(
-                        label: 'GRADUATE TO A FULL ACCOUNT',
-                        detail:
-                            'They keep everything and get a password. You lose '
-                            'all visibility. Irreversible.',
-                        onTap: _graduate,
-                      ),
-                      const SizedBox(height: 10),
-                      _DangerAction(
-                        label:
-                            'DELETE ${_child.user.displayName.toUpperCase()}\'S ACCOUNT',
-                        detail:
-                            'Messages, photos, rooms and friends all go. Cannot '
-                            'be undone.',
-                        filled: true,
-                        onTap: _deleteChild,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+                      children: [
+                        _SectionHeader(
+                          l10n.childPolicyScreenSectionWhatTheyCanDo,
+                        ),
+                        const SizedBox(height: 12),
+                        // Public rooms used to be a toggle here. It is now fixed
+                        // off for every kid and cannot be switched on, so it is a
+                        // statement rather than a control — but it still has to
+                        // be SAID. A guardian who saw the switch before would
+                        // otherwise assume the setting was lost or reset, and one
+                        // who never did deserves to know the limit exists.
+                        _FixedNote(
+                          label: l10n.childPolicyScreenPublicRoomsLabel,
+                          body: l10n.childPolicyScreenPublicRoomsBody,
+                        ),
+                        const SizedBox(height: 10),
+                        _Toggle(
+                          label: l10n.childPolicyScreenAskToAddLabel,
+                          on: _policy.canRequestContacts,
+                          onDesc: l10n.childPolicyScreenAskToAddOnDesc,
+                          offDesc: l10n.childPolicyScreenAskToAddOffDesc,
+                          onChanged: (v) => _set(canRequestContacts: v),
+                        ),
+                        const SizedBox(height: 10),
+                        _Toggle(
+                          label: l10n.childPolicyScreenCallsLabel,
+                          on: _policy.callsEnabled,
+                          onDesc: l10n.childPolicyScreenCallsOnDesc,
+                          offDesc: l10n.childPolicyScreenCallsOffDesc,
+                          onChanged: (v) => _set(callsEnabled: v),
+                        ),
+                        const SizedBox(height: 10),
+                        _Toggle(
+                          label: l10n.childPolicyScreenMediaLabel,
+                          on: _policy.mediaEnabled,
+                          onDesc: l10n.childPolicyScreenMediaOnDesc,
+                          offDesc: l10n.childPolicyScreenMediaOffDesc,
+                          onChanged: (v) => _set(mediaEnabled: v),
+                        ),
+                        const SizedBox(height: 10),
+                        _Toggle(
+                          label: l10n.childPolicyScreenCreateRoomsLabel,
+                          on: _policy.canCreateRooms,
+                          onDesc: l10n.childPolicyScreenCreateRoomsOnDesc,
+                          offDesc: l10n.childPolicyScreenCreateRoomsOffDesc,
+                          onChanged: (v) => _set(canCreateRooms: v),
+                        ),
+
+                        const SizedBox(height: 30),
+                        _SectionHeader(
+                          l10n.childPolicyScreenSectionPeopleAllowed,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.childPolicyScreenPeopleAllowedDesc,
+                          style: theme.bodySoft,
+                        ),
+                        const SizedBox(height: 12),
+                        if (grants == null)
+                          _Placeholder(l10n.childPolicyScreenLoading)
+                        else ...[
+                          for (final c in grants.contacts)
+                            _GrantRow(
+                              title: c.user.displayName,
+                              subtitle: '@${c.user.username} · ${c.stateLabel}',
+                              leading: UserAvatar(
+                                user: c.user,
+                                size: 32,
+                                api: widget.api,
+                              ),
+                              onRevoke: () => _takeBack(c),
+                            ),
+                          _AddByUsernameButton(onTap: _addByUsername),
+                        ],
+
+                        const SizedBox(height: 30),
+                        _SectionHeader(
+                          l10n.childPolicyScreenSectionRoomsAllowed,
+                        ),
+                        const SizedBox(height: 12),
+                        if (grants == null)
+                          _Placeholder(l10n.childPolicyScreenLoading)
+                        else if (grants.rooms.isEmpty)
+                          _Placeholder(l10n.childPolicyScreenNoRoomsYet)
+                        else
+                          for (final r in grants.rooms)
+                            _GrantRow(
+                              title: r.name,
+                              subtitle: l10n.childPolicyScreenRoomMemberCount(
+                                r.memberCount,
+                              ),
+                              leading: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: theme.accentSoft,
+                                  borderRadius: BorderRadius.circular(
+                                    theme.radiusMd,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.tag,
+                                  size: 13,
+                                  color: theme.accent,
+                                ),
+                              ),
+                              onRevoke: () => _revokeRoom(r),
+                            ),
+                        const SizedBox(height: 24),
+                        Text(
+                          l10n.childPolicyScreenGrantsFooterNote,
+                          style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                        ),
+
+                        const SizedBox(height: 30),
+                        _SectionHeader(l10n.childPolicyScreenSectionGrownUps),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.childPolicyScreenGrownUpsDesc,
+                          style: theme.bodySoft,
+                        ),
+                        const SizedBox(height: 12),
+                        for (final g in _child.guardians)
+                          _GrantRow(
+                            title: g.id == widget.guardianId
+                                ? l10n.childPolicyScreenGuardianYouSuffix(
+                                    g.displayName,
+                                  )
+                                : g.displayName,
+                            subtitle: '@${g.username}',
+                            leading: UserAvatar(
+                              user: g,
+                              size: 32,
+                              api: widget.api,
+                            ),
+                            // The last grown-up standing can't step away — the
+                            // account would be stranded with nobody able to
+                            // re-adopt or delete it. Graduate or delete instead.
+                            onRevoke: _child.isSoleGuardian
+                                ? null
+                                : () => _removeGuardian(g),
+                            revokeLabel: g.id == widget.guardianId
+                                ? l10n.childPolicyScreenStepAwayLabel
+                                : l10n.childPolicyScreenRemoveLabel,
+                          ),
+                        _AddByUsernameButton(
+                          label: l10n.childPolicyScreenAddGuardianHeading,
+                          onTap: _addGuardian,
+                        ),
+
+                        const SizedBox(height: 30),
+                        _SectionHeader(l10n.childPolicyScreenSectionWhenDone),
+                        const SizedBox(height: 12),
+                        if (_child.isSoleGuardian)
+                          Text(
+                            l10n.childPolicyScreenSoleGuardianNote(
+                              _child.user.displayName,
+                            ),
+                            style: theme.bodySoft,
+                          )
+                        else
+                          Text(
+                            l10n.childPolicyScreenBothFinalNote,
+                            style: theme.bodySoft,
+                          ),
+                        const SizedBox(height: 12),
+                        _DangerAction(
+                          label: l10n.childPolicyScreenGraduateDangerLabel,
+                          detail: l10n.childPolicyScreenGraduateDangerDetail,
+                          onTap: _graduate,
+                        ),
+                        const SizedBox(height: 10),
+                        _DangerAction(
+                          label: l10n.childPolicyScreenDeleteDangerLabel(
+                            _child.user.displayName.toUpperCase(),
+                          ),
+                          detail: l10n.childPolicyScreenDeleteDangerDetail,
+                          filled: true,
+                          onTap: _deleteChild,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -592,16 +641,20 @@ class _AddContactResult {
 }
 
 class _AddByUsernameButton extends StatelessWidget {
-  const _AddByUsernameButton({
-    required this.onTap,
-    this.label = 'ADD BY USERNAME',
-  });
+  const _AddByUsernameButton({required this.onTap, this.label});
   final VoidCallback onTap;
-  final String label;
+
+  /// Null falls back to the default "ADD BY USERNAME" copy; callers that
+  /// reuse this button for a different action (e.g. adding a grown-up)
+  /// override it.
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final resolvedLabel =
+        label ??
+        AppLocalizations.of(context).childPolicyScreenAddByUsernameLabel;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -618,9 +671,13 @@ class _AddByUsernameButton extends StatelessWidget {
           children: [
             Icon(Icons.person_add_alt, size: 14, color: theme.accent),
             const SizedBox(width: 8),
-            Text(label,
-                style: theme.label
-                    .copyWith(letterSpacing: 2.4, color: theme.accent)),
+            Text(
+              resolvedLabel,
+              style: theme.label.copyWith(
+                letterSpacing: 2.4,
+                color: theme.accent,
+              ),
+            ),
           ],
         ),
       ),
@@ -703,6 +760,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Material(
       type: MaterialType.transparency,
       child: DefaultTextStyle(
@@ -725,20 +783,22 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('ALLOW SOMEONE',
-                      style: theme.label
-                          .copyWith(letterSpacing: 2.4, color: theme.accent)),
+                  Text(
+                    l10n.childPolicyScreenAllowSomeoneHeading,
+                    style: theme.label.copyWith(
+                      letterSpacing: 2.4,
+                      color: theme.accent,
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   Text(
-                    'You won\'t be asked about them again — whether '
-                    '${widget.childName} adds them or they add '
-                    '${widget.childName}.',
+                    l10n.childPolicyScreenAllowSomeoneBlurb(widget.childName),
                     style: theme.bodySoft,
                   ),
                   const SizedBox(height: 18),
                   ThemedInput(
                     controller: _username,
-                    hint: 'username',
+                    hint: l10n.childPolicyScreenUsernameHint,
                     autofocus: true,
                     autocorrect: false,
                     enableSuggestions: false,
@@ -761,14 +821,15 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('SEND THE REQUEST NOW',
-                                    style: theme.label),
+                                Text(
+                                  l10n.childPolicyScreenSendRequestNowLabel,
+                                  style: theme.label,
+                                ),
                                 const SizedBox(height: 2),
                                 Text(
                                   _sendNow
-                                      ? 'they get asked straight away'
-                                      : 'nothing happens until someone adds '
-                                          'the other',
+                                      ? l10n.childPolicyScreenSendNowOnDesc
+                                      : l10n.childPolicyScreenSendNowOffDesc,
                                   style: theme.bodySoft,
                                 ),
                               ],
@@ -795,9 +856,13 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                         color: theme.accent,
                         borderRadius: BorderRadius.circular(theme.radiusMd),
                       ),
-                      child: Text('ALLOW',
-                          style: theme.label.copyWith(
-                              color: theme.accentInk, letterSpacing: 2.4)),
+                      child: Text(
+                        l10n.childPolicyScreenAllowCta,
+                        style: theme.label.copyWith(
+                          color: theme.accentInk,
+                          letterSpacing: 2.4,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -807,8 +872,10 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 15),
                       alignment: Alignment.center,
-                      child: Text('CANCEL',
-                          style: theme.label.copyWith(color: theme.inkSoft)),
+                      child: Text(
+                        l10n.childPolicyScreenCancelLabel,
+                        style: theme.label.copyWith(color: theme.inkSoft),
+                      ),
                     ),
                   ),
                 ],
@@ -875,6 +942,7 @@ class _PromptSheetState extends State<_PromptSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Material(
       type: MaterialType.transparency,
       child: DefaultTextStyle(
@@ -897,9 +965,13 @@ class _PromptSheetState extends State<_PromptSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(widget.heading,
-                      style: theme.label
-                          .copyWith(letterSpacing: 2.4, color: theme.accent)),
+                  Text(
+                    widget.heading,
+                    style: theme.label.copyWith(
+                      letterSpacing: 2.4,
+                      color: theme.accent,
+                    ),
+                  ),
                   const SizedBox(height: 14),
                   Text(widget.blurb, style: theme.bodySoft),
                   const SizedBox(height: 18),
@@ -951,7 +1023,7 @@ class _PromptSheetState extends State<_PromptSheet> {
                   const SizedBox(height: 10),
                   FocusableTap(
                     onTap: () => Navigator.of(context).pop(),
-                    semanticLabel: 'Cancel',
+                    semanticLabel: l10n.childPolicyScreenCancelSemanticLabel,
                     radius: theme.radiusMd,
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
@@ -959,8 +1031,10 @@ class _PromptSheetState extends State<_PromptSheet> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         alignment: Alignment.center,
-                        child: Text('CANCEL',
-                            style: theme.label.copyWith(color: theme.inkSoft)),
+                        child: Text(
+                          l10n.childPolicyScreenCancelLabel,
+                          style: theme.label.copyWith(color: theme.inkSoft),
+                        ),
                       ),
                     ),
                   ),
@@ -992,8 +1066,10 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(label,
-            style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent)),
+        Text(
+          label,
+          style: theme.label.copyWith(letterSpacing: 2.8, color: theme.accent),
+        ),
         const SizedBox(width: 12),
         Expanded(child: Container(height: 1, color: theme.divider)),
       ],
@@ -1029,8 +1105,10 @@ class _FixedNote extends StatelessWidget {
             children: [
               Text(label, style: theme.label),
               const SizedBox(width: 8),
-              Text('LOCKED',
-                  style: theme.label.copyWith(color: theme.inkMuted)),
+              Text(
+                AppLocalizations.of(context).childPolicyScreenLockedLabel,
+                style: theme.label.copyWith(color: theme.inkMuted),
+              ),
             ],
           ),
           const SizedBox(height: 2),
@@ -1100,7 +1178,7 @@ class _GrantRow extends StatelessWidget {
     required this.subtitle,
     required this.leading,
     required this.onRevoke,
-    this.revokeLabel = 'TAKE BACK',
+    this.revokeLabel,
   });
 
   final String title;
@@ -1111,11 +1189,16 @@ class _GrantRow extends StatelessWidget {
   /// guardian, who isn't allowed to step away.
   final VoidCallback? onRevoke;
 
-  final String revokeLabel;
+  /// Null falls back to the default "TAKE BACK" copy; callers that reuse
+  /// this row for a different action (e.g. removing a grown-up) override it.
+  final String? revokeLabel;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final resolvedRevokeLabel =
+        revokeLabel ??
+        AppLocalizations.of(context).childPolicyScreenTakeBackLabel;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -1132,8 +1215,7 @@ class _GrantRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: theme.body, overflow: TextOverflow.ellipsis),
+                Text(title, style: theme.body, overflow: TextOverflow.ellipsis),
                 Text(subtitle, style: theme.monoTiny),
               ],
             ),
@@ -1144,8 +1226,10 @@ class _GrantRow extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Text(revokeLabel,
-                    style: theme.label.copyWith(color: theme.danger)),
+                child: Text(
+                  resolvedRevokeLabel,
+                  style: theme.label.copyWith(color: theme.danger),
+                ),
               ),
             ),
         ],

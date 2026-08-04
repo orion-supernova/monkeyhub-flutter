@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
 class VisibilityBadge extends StatelessWidget {
@@ -16,7 +17,10 @@ class VisibilityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final label = isPublic ? 'PUBLIC' : 'PRIVATE';
+    final loc = AppLocalizations.of(context);
+    final label = isPublic
+        ? loc.enterPublicRoomVisibilityPublicLabel
+        : loc.enterPublicRoomVisibilityPrivateLabel;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 10, vertical: dense ? 3 : 5),
       decoration: theme.chipDecoration(filled: false),
@@ -63,7 +67,10 @@ class JoinedBadge extends StatelessWidget {
         children: [
           Icon(Icons.check_rounded, size: dense ? 10 : 12, color: theme.accent),
           SizedBox(width: dense ? 4 : 6),
-          Text('JOINED', style: theme.monoTiny.copyWith(color: theme.accent)),
+          Text(
+            AppLocalizations.of(context).enterPublicRoomJoinedBadgeLabel,
+            style: theme.monoTiny.copyWith(color: theme.accent),
+          ),
         ],
       ),
     );
@@ -75,16 +82,20 @@ class EphemeralBadge extends StatelessWidget {
   final Duration ttl;
   final bool dense;
 
-  String _fmt() {
+  String _fmt(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final s = ttl.inSeconds;
-    if (s < 60) return '${s}s';
-    if (s < 3600) return '${(s / 60).round()}m';
-    return '${(s / 3600).round()}h';
+    if (s < 60) return loc.enterPublicRoomEphemeralSecondsShort(s);
+    if (s < 3600) {
+      return loc.enterPublicRoomEphemeralMinutesShort((s / 60).round());
+    }
+    return loc.enterPublicRoomEphemeralHoursShort((s / 3600).round());
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 10, vertical: dense ? 3 : 5),
       decoration: theme.chipDecoration(filled: false).copyWith(
@@ -96,7 +107,9 @@ class EphemeralBadge extends StatelessWidget {
           theme.hourglassIcon(size: dense ? 10 : 12, color: theme.accent),
           SizedBox(width: dense ? 4 : 6),
           Text(
-            dense ? _fmt() : 'EPHEMERAL · ${_fmt()}',
+            dense
+                ? _fmt(context)
+                : loc.enterPublicRoomEphemeralBadgeLabel(_fmt(context)),
             style: theme.monoTiny.copyWith(color: theme.accent),
           ),
         ],

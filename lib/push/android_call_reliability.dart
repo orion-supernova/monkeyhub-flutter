@@ -9,6 +9,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import '../calls/call_models.dart';
 import '../calls/call_permissions.dart';
 import '../data/settings_store.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show rootNavigatorKey;
 
 /// Two Android-only, once-per-install prompts that make killed-app incoming
@@ -65,11 +66,14 @@ class AndroidCallReliability {
     try {
       final allowed = await FlutterCallkitIncoming.canUseFullScreenIntent();
       if (allowed) return;
+      // null context = navigator gone; skip localization and let _explain's
+      // own check return null, keeping the one-shot unburned.
+      final context = rootNavigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       final go = await _explain(
-        title: 'Show calls on the lock screen',
-        body: 'To ring like a real phone call when your screen is off, '
-            'MonkeyHub needs "full-screen notifications" turned on. '
-            'The next screen takes you straight to the switch.',
+        title: l10n.bulkActionBarFullScreenIntentDialogTitle,
+        body: l10n.bulkActionBarFullScreenIntentDialogBody,
       );
       // null = dialog never shown (navigator gone) — keep the one-shot
       // unburned so a future launch can still ask.
@@ -89,11 +93,12 @@ class AndroidCallReliability {
           await _device.invokeMethod<bool>('isIgnoringBatteryOptimizations') ??
               true;
       if (exempt) return;
+      final context = rootNavigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+      final l10n = AppLocalizations.of(context);
       final go = await _explain(
-        title: 'Never miss a call',
-        body: 'Some phones pause apps in the background to save battery, '
-            'which can silence incoming calls. Allow MonkeyHub to run '
-            'unrestricted so calls always come through.',
+        title: l10n.bulkActionBarBatteryExemptionDialogTitle,
+        body: l10n.bulkActionBarBatteryExemptionDialogBody,
       );
       if (go == null) return;
       await store.markBatteryOptPrompted();
@@ -109,6 +114,7 @@ class AndroidCallReliability {
   Future<bool?> _explain({required String title, required String body}) async {
     final context = rootNavigatorKey.currentContext;
     if (context == null) return null;
+    final l10n = AppLocalizations.of(context);
     final answer = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -117,11 +123,11 @@ class AndroidCallReliability {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Not now'),
+            child: Text(l10n.bulkActionBarDialogNotNowButton),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Continue'),
+            child: Text(l10n.bulkActionBarDialogContinueButton),
           ),
         ],
       ),

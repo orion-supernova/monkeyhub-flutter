@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
@@ -27,9 +28,11 @@ class FriendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: 'Message ${user.displayName}',
+      semanticLabel: l10n.childSetupScreenFriendRowMessageSemanticLabel(
+          user.displayName),
       radius: theme.radiusXl,
       child: GestureDetector(
         onTap: onTap,
@@ -90,6 +93,7 @@ class PublicRoomTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
       semanticLabel: room.name,
@@ -143,13 +147,14 @@ class PublicRoomTile extends StatelessWidget {
               if (joined)
                 const JoinedBadge(dense: true)
               else if (awaiting)
-                const WaitingPill(label: 'asked')
+                WaitingPill(label: l10n.childSetupScreenWaitingPillAskedLabel)
               else
                 VisibilityBadge(isPublic: room.isPublic, dense: true),
               const SizedBox(width: 8),
               Text('${room.memberCount}', style: theme.monoLarge),
               const SizedBox(width: 4),
-              Text('IN', style: theme.monoTiny),
+              Text(l10n.childSetupScreenMemberCountUnitLabel,
+                  style: theme.monoTiny),
             ],
           ),
         ),
@@ -202,9 +207,10 @@ class SeeAllRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: 'See all $total',
+      semanticLabel: l10n.childSetupScreenSeeAllSemanticLabel(total),
       radius: theme.radiusXl,
       child: GestureDetector(
         onTap: onTap,
@@ -217,7 +223,7 @@ class SeeAllRow extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'see all $total',
+                l10n.childSetupScreenSeeAllLabel(total),
                 style: theme.label.copyWith(color: theme.accent),
               ),
               const SizedBox(width: 8),

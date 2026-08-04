@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
 import '../family/family_service.dart';
 import '../theme/app_theme.dart';
@@ -94,7 +95,7 @@ class _FamilyScreenState extends State<FamilyScreen> {
                             size: 20, color: theme.inkSoft),
                       ),
                       const SizedBox(width: 14),
-                      Text('FAMILY',
+                      Text(AppLocalizations.of(context).familyScreenTitle,
                           style: theme.label.copyWith(letterSpacing: 2.8)),
                     ],
                   ),
@@ -187,9 +188,7 @@ class _PendingBanner extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                count == 1
-                    ? '1 thing needs your OK'
-                    : '$count things need your OK',
+                AppLocalizations.of(context).familyScreenPendingBanner(count),
                 style: theme.body.copyWith(color: theme.accent),
               ),
             ),
@@ -221,17 +220,24 @@ class _ChildCard extends StatelessWidget {
 
   /// Reads the presence pair the way the rest of the app does: an "away" that
   /// has gone stale is really just offline.
-  String get _presence {
+  String _presence(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final status = summary.status;
     final seen = summary.lastSeen;
-    if (status == 'online') return 'online now';
-    if (seen == null) return 'not paired yet';
+    if (status == 'online') return l10n.familyScreenPresenceOnline;
+    if (seen == null) return l10n.familyScreenPresenceNotPaired;
     final ago = DateTime.now().difference(seen);
-    if (status == 'away' && ago.inMinutes < 5) return 'just now';
-    if (ago.inMinutes < 1) return 'just now';
-    if (ago.inMinutes < 60) return '${ago.inMinutes}m ago';
-    if (ago.inHours < 24) return '${ago.inHours}h ago';
-    return '${ago.inDays}d ago';
+    if (status == 'away' && ago.inMinutes < 5) {
+      return l10n.familyScreenPresenceJustNow;
+    }
+    if (ago.inMinutes < 1) return l10n.familyScreenPresenceJustNow;
+    if (ago.inMinutes < 60) {
+      return l10n.familyScreenPresenceMinutesAgo(ago.inMinutes);
+    }
+    if (ago.inHours < 24) {
+      return l10n.familyScreenPresenceHoursAgo(ago.inHours);
+    }
+    return l10n.familyScreenPresenceDaysAgo(ago.inDays);
   }
 
   Color _dot(AppTheme theme) {
@@ -280,7 +286,7 @@ class _ChildCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(_presence, style: theme.monoTiny),
+                            Text(_presence(context), style: theme.monoTiny),
                           ],
                         ),
                       ],
@@ -310,7 +316,7 @@ class _ChildCard extends StatelessWidget {
               Expanded(
                 child: _CardAction(
                   icon: Icons.qr_code_2,
-                  label: 'PAIR',
+                  label: AppLocalizations.of(context).familyScreenPairButton,
                   onTap: onPair,
                 ),
               ),
@@ -318,7 +324,8 @@ class _ChildCard extends StatelessWidget {
               Expanded(
                 child: _CardAction(
                   icon: Icons.phonelink_erase,
-                  label: 'RELEASE',
+                  label:
+                      AppLocalizations.of(context).familyScreenReleaseButton,
                   onTap: onRelease,
                 ),
               ),
@@ -326,7 +333,8 @@ class _ChildCard extends StatelessWidget {
               Expanded(
                 child: _CardAction(
                   icon: Icons.tune,
-                  label: 'SETTINGS',
+                  label:
+                      AppLocalizations.of(context).familyScreenSettingsButton,
                   onTap: onOpen,
                 ),
               ),
@@ -391,7 +399,7 @@ class _AddChildButton extends StatelessWidget {
           children: [
             Icon(Icons.add, size: 15, color: theme.accent),
             const SizedBox(width: 8),
-            Text('ADD A CHILD',
+            Text(AppLocalizations.of(context).familyScreenAddChildButton,
                 style: theme.label
                     .copyWith(letterSpacing: 2.4, color: theme.accent)),
           ],
@@ -411,10 +419,11 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.family_restroom, size: 32, color: theme.inkMuted),
           const SizedBox(height: 14),
-          Text('no children yet', style: theme.displaySmall),
+          Text(AppLocalizations.of(context).familyScreenEmptyStateTitle,
+              style: theme.displaySmall),
           const SizedBox(height: 6),
           Text(
-            'Add an account for your child, then pair it to their phone.',
+            AppLocalizations.of(context).familyScreenEmptyStateBody,
             style: theme.bodySoft,
             textAlign: TextAlign.center,
           ),

@@ -3,6 +3,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
 /// "Continue with Apple / Google", plus the two rules about the pair.
@@ -36,7 +37,7 @@ class SocialSignInButtons extends StatelessWidget {
     required this.onProvider,
     this.busyProvider,
     this.enabled = true,
-    this.dividerLabel = 'or',
+    this.dividerLabel = _autoDividerLabel,
     this.only,
   });
 
@@ -47,7 +48,15 @@ class SocialSignInButtons extends StatelessWidget {
   final bool enabled;
 
   /// Null drops the divider — the Profile screen wants the buttons bare.
+  /// Left unset (the default), the divider shows the localized "or". This
+  /// sentinel exists only because a const constructor's default value must be
+  /// a compile-time constant, so the localized fallback is resolved in
+  /// [build] instead — see [_autoDividerLabel].
   final String? dividerLabel;
+
+  /// Private marker meaning "no explicit [dividerLabel] was provided" —
+  /// distinct from an explicit `null`, which hides the divider entirely.
+  static const String _autoDividerLabel = '__social_sign_in_auto_divider__';
 
   /// Narrows the set to specific providers. Null renders every [available] one,
   /// which is what sign-in wants. Linked Accounts renders them one per card and
@@ -62,9 +71,9 @@ class SocialSignInButtons extends StatelessWidget {
   static const double _buttonHeight = 44;
 
   static List<SocialProvider> get available => [
-        if (SocialSignIn.appleAvailable) SocialProvider.apple,
-        if (SocialSignIn.googleAvailable) SocialProvider.google,
-      ];
+    if (SocialSignIn.appleAvailable) SocialProvider.apple,
+    if (SocialSignIn.googleAvailable) SocialProvider.google,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -76,18 +85,21 @@ class SocialSignInButtons extends StatelessWidget {
     final theme = ThemeScope.of(context);
     // One at a time — a second tap while a native sheet is up would stack two.
     final live = enabled && busyProvider == null;
+    final resolvedDividerLabel = dividerLabel == _autoDividerLabel
+        ? AppLocalizations.of(context).viewOnceViewerSocialDividerOr
+        : dividerLabel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (dividerLabel != null) ...[
+        if (resolvedDividerLabel != null) ...[
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(child: Divider(color: theme.divider, height: 1)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(dividerLabel!, style: theme.caption),
+                child: Text(resolvedDividerLabel, style: theme.caption),
               ),
               Expanded(child: Divider(color: theme.divider, height: 1)),
             ],
@@ -128,14 +140,15 @@ class _AppleButton extends StatelessWidget {
     // the theme's own background rather than a hardcoded choice, because this
     // app ships many themes and several are dark.
     final onDark =
-        ThemeData.estimateBrightnessForColor(theme.background) == Brightness.dark;
+        ThemeData.estimateBrightnessForColor(theme.background) ==
+        Brightness.dark;
 
     return SignInWithAppleButton(
       // Null rather than a no-op closure: the underlying CupertinoButton then
       // renders a real disabled state. A button that visibly accepts a tap and
       // does nothing reads as broken.
       onPressed: enabled ? onTap : null,
-      text: 'Continue with Apple',
+      text: AppLocalizations.of(context).viewOnceViewerAppleContinueButton,
       style: onDark
           ? SignInWithAppleButtonStyle.white
           : SignInWithAppleButtonStyle.black,
@@ -165,7 +178,9 @@ class _GoogleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    const label = 'Continue with Google';
+    final label = AppLocalizations.of(
+      context,
+    ).viewOnceViewerGoogleContinueButton;
     return FocusableTap(
       onTap: enabled ? onTap : null,
       enabled: enabled,

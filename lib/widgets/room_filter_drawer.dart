@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../data/room_filter.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 
@@ -30,13 +31,16 @@ class RoomFilterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final active = filter.isNotEmpty;
 
     return FocusableTap(
       onTap: onTap,
       semanticLabel: active
-          ? 'Filtering by ${filter.summary}. Change filter'
-          : 'Filter chats',
+          ? l10n.roomFilterDrawerButtonActiveSemanticLabel(
+              filter.summary(l10n),
+            )
+          : l10n.roomFilterDrawerButtonSemanticLabel,
       shape: FocusRingShape.circle,
       radius: 999,
       child: GestureDetector(
@@ -110,6 +114,7 @@ class ActiveFilterCue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: Row(
@@ -122,7 +127,10 @@ class ActiveFilterCue extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                '${filter.summary} · $matchCount',
+                l10n.roomFilterDrawerActiveSummary(
+                  matchCount,
+                  filter.summary(l10n),
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.label.copyWith(color: theme.accentInk),
@@ -132,7 +140,7 @@ class ActiveFilterCue extends StatelessWidget {
           const SizedBox(width: 10),
           FocusableTap(
             onTap: onClear,
-            semanticLabel: 'Clear filter',
+            semanticLabel: l10n.roomFilterDrawerClearSemanticLabel,
             shape: FocusRingShape.capsule,
             radius: 999,
             child: GestureDetector(
@@ -144,7 +152,7 @@ class ActiveFilterCue extends StatelessWidget {
                   Icon(CupertinoIcons.xmark, size: 11, color: theme.inkMuted),
                   const SizedBox(width: 5),
                   Text(
-                    'clear',
+                    l10n.roomFilterDrawerClearLabel,
                     style: theme.label.copyWith(color: theme.inkMuted),
                   ),
                 ],
@@ -178,15 +186,21 @@ class RoomFilterPanel extends StatelessWidget {
   final ValueChanged<RoomFilter> onChanged;
   final VoidCallback onDone;
 
-  static const _dimensionLabels = {
-    FacetDimension.type: 'TYPE',
-    FacetDimension.nature: 'NATURE',
-    FacetDimension.status: 'STATUS',
-  };
+  String _dimensionLabel(AppLocalizations l10n, FacetDimension dimension) {
+    switch (dimension) {
+      case FacetDimension.type:
+        return l10n.roomFilterDrawerDimensionType;
+      case FacetDimension.nature:
+        return l10n.roomFilterDrawerDimensionNature;
+      case FacetDimension.status:
+        return l10n.roomFilterDrawerDimensionStatus;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return AnimatedSize(
       duration: theme.motionMed,
@@ -209,7 +223,7 @@ class RoomFilterPanel extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 6, top: 2),
                         child: Text(
-                          _dimensionLabels[dimension]!,
+                          _dimensionLabel(l10n, dimension),
                           style: theme.monoTiny.copyWith(color: theme.inkMuted),
                         ),
                       ),
@@ -233,7 +247,7 @@ class RoomFilterPanel extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         _PanelAction(
-                          label: 'CLEAR',
+                          label: l10n.roomFilterDrawerPanelClear,
                           // Nothing to clear reads as disabled rather than
                           // silently doing nothing.
                           onTap: filter.isEmpty
@@ -245,7 +259,7 @@ class RoomFilterPanel extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         _PanelAction(
-                          label: 'DONE',
+                          label: l10n.roomFilterDrawerPanelDone,
                           filled: true,
                           onTap: onDone,
                         ),
@@ -276,13 +290,17 @@ class _FacetRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     // A facet nothing matches stays tappable — ticking it and seeing "0" is a
     // real answer to "do I have any locked rooms?".
     final empty = count == 0;
 
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: '${facet.label}, $count chats',
+      semanticLabel: l10n.roomFilterDrawerFacetSemanticLabel(
+        count,
+        facet.label(l10n),
+      ),
       selected: selected,
       radius: theme.radiusMd,
       inset: 1,
@@ -307,7 +325,7 @@ class _FacetRow extends StatelessWidget {
                         ? theme.ink
                         : (empty ? theme.inkMuted : theme.inkSoft),
                   ),
-                  child: Text(facet.label),
+                  child: Text(facet.label(l10n)),
                 ),
               ),
               Text(
@@ -421,19 +439,20 @@ class FilteredEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
           Text(
-            'nothing matches ${filter.summary}',
+            l10n.roomFilterDrawerEmptyStateTitle(filter.summary(l10n)),
             style: theme.bodySoft,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 14),
           FocusableTap(
             onTap: onClear,
-            semanticLabel: 'Show all $total chats',
+            semanticLabel: l10n.roomFilterDrawerShowAllSemanticLabel(total),
             radius: theme.radiusMd,
             child: GestureDetector(
               onTap: onClear,
@@ -445,7 +464,7 @@ class FilteredEmptyState extends StatelessWidget {
                 ),
                 decoration: theme.chipDecoration(),
                 child: Text(
-                  'show all $total ${total == 1 ? 'chat' : 'chats'}',
+                  l10n.roomFilterDrawerShowAllLabel(total),
                   style: theme.label.copyWith(color: theme.accent),
                 ),
               ),

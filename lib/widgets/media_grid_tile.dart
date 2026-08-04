@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
 import '../screens/room_items.dart' show formatClockDuration;
@@ -71,10 +72,13 @@ class MediaGridTile extends StatelessWidget {
     // `RemoteImage` cannot decode, which renders as a broken tile rather than
     // as nothing.
     final imageId = _isVideo ? message.posterStorageId : message.mediaStorageId;
+    final l10n = AppLocalizations.of(context);
 
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: _isVideo ? 'Video' : 'Photo',
+      semanticLabel: _isVideo
+          ? l10n.bubbleStyleScreenMediaTileVideoSemanticLabel
+          : l10n.bubbleStyleScreenMediaTilePhotoSemanticLabel,
       radius: 2,
       inset: 1,
       child: GestureDetector(

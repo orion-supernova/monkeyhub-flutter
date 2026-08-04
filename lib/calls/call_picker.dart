@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../keyboard/overlay_modal_scope.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/glass_surface.dart';
 import 'call_models.dart';
@@ -97,6 +98,7 @@ class _CallPickerOverlayState extends State<_CallPickerOverlay>
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
 
     const horizontalMargin = 12.0;
     const gap = 6.0;
@@ -143,7 +145,7 @@ class _CallPickerOverlayState extends State<_CallPickerOverlay>
                     children: [
                       _CallPickerRow(
                         icon: Icons.call,
-                        label: 'VOICE CALL',
+                        label: l10n.discoverListsVoiceCallLabel,
                         onTap: () => _close(CallMediaKind.audio),
                       ),
                       Container(
@@ -153,7 +155,7 @@ class _CallPickerOverlayState extends State<_CallPickerOverlay>
                       ),
                       _CallPickerRow(
                         icon: Icons.videocam,
-                        label: 'VIDEO CALL',
+                        label: l10n.discoverListsVideoCallLabel,
                         onTap: () => _close(CallMediaKind.video),
                       ),
                     ],

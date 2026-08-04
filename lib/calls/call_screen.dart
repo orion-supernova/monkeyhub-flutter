@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
 import '../keyboard/focusable_tap.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/user_avatar.dart';
@@ -150,27 +151,32 @@ class _CallScreenState extends State<CallScreen> {
   /// "Video call" / "Voice call" — prefixed to pre-active statuses so the
   /// two call kinds are never ambiguous (the active state shows the timer
   /// alone, WhatsApp-style).
-  String _kindLabel(CallSession s) =>
-      s.mediaKind == CallMediaKind.video ? 'Video call' : 'Voice call';
+  String _kindLabel(CallSession s) {
+    final loc = AppLocalizations.of(context);
+    return s.mediaKind == CallMediaKind.video
+        ? loc.callScreenVideoCallLabel
+        : loc.callScreenVoiceCallLabel;
+  }
 
   String _statusLabel(CallSession s) {
+    final loc = AppLocalizations.of(context);
     switch (s.status) {
       case CallStatus.outgoingRinging:
-        return '${_kindLabel(s)} · ringing…';
+        return loc.callScreenStatusRinging(_kindLabel(s));
       case CallStatus.incomingRinging:
-        return '${_kindLabel(s)} · incoming';
+        return loc.callScreenStatusIncoming(_kindLabel(s));
       case CallStatus.connecting:
-        return '${_kindLabel(s)} · connecting…';
+        return loc.callScreenStatusConnecting(_kindLabel(s));
       case CallStatus.active:
-        return 'connected';
+        return loc.callScreenStatusConnected;
       case CallStatus.ended:
-        return s.errorMessage ?? 'call ended';
+        return s.errorMessage ?? loc.callScreenStatusEnded;
       case CallStatus.failed:
-        return s.errorMessage ?? 'call failed';
+        return s.errorMessage ?? loc.callScreenStatusFailed;
       case CallStatus.switching:
-        return 'switching device…';
+        return loc.callScreenStatusSwitching;
       case CallStatus.handedOff:
-        return 'moved';
+        return loc.callScreenStatusMoved;
       case CallStatus.idle:
         return '';
     }
@@ -359,9 +365,15 @@ class _CallScreenState extends State<CallScreen> {
               left: 0,
               right: 0,
               child: s.status == CallStatus.switching
-                  ? const _OverlayChip(label: 'switching device…')
+                  ? _OverlayChip(
+                      label: AppLocalizations.of(context)
+                          .callScreenStatusSwitching,
+                    )
                   : s.reconnecting
-                      ? const _OverlayChip(label: 'reconnecting…')
+                      ? _OverlayChip(
+                          label: AppLocalizations.of(context)
+                              .callScreenStatusReconnecting,
+                        )
                       : ValueListenableBuilder<CallQualitySnapshot?>(
                           valueListenable: widget.service.callQuality,
                           builder: (context, q, _) {
@@ -371,8 +383,10 @@ class _CallScreenState extends State<CallScreen> {
                             }
                             return _OverlayChip(
                               label: q.quality == CallQuality.poor
-                                  ? 'poor connection'
-                                  : 'weak connection',
+                                  ? AppLocalizations.of(context)
+                                      .callScreenPoorConnectionLabel
+                                  : AppLocalizations.of(context)
+                                      .callScreenWeakConnectionLabel,
                               spinner: false,
                               tint: const Color(0xFFFFB74D),
                             );
@@ -412,7 +426,11 @@ class _CallScreenState extends State<CallScreen> {
                               icon: s.localMuted ? Icons.mic_off : Icons.mic,
                               active: s.localMuted,
                               onTap: widget.service.toggleMute,
-                              label: s.localMuted ? 'unmute' : 'mute',
+                              label: s.localMuted
+                                  ? AppLocalizations.of(context)
+                                      .callScreenControlUnmute
+                                  : AppLocalizations.of(context)
+                                      .callScreenControlMute,
                             ),
                             if (isVideo)
                               _ControlButton(
@@ -421,13 +439,18 @@ class _CallScreenState extends State<CallScreen> {
                                     : Icons.videocam,
                                 active: s.localVideoOff,
                                 onTap: widget.service.toggleVideo,
-                                label: s.localVideoOff ? 'cam on' : 'cam off',
+                                label: s.localVideoOff
+                                    ? AppLocalizations.of(context)
+                                        .callScreenControlCamOn
+                                    : AppLocalizations.of(context)
+                                        .callScreenControlCamOff,
                               ),
                             if (isVideo)
                               _ControlButton(
                                 icon: Icons.cameraswitch_outlined,
                                 onTap: widget.service.switchCamera,
-                                label: 'flip',
+                                label: AppLocalizations.of(context)
+                                    .callScreenControlFlip,
                                 enabled: !s.localVideoOff,
                               ),
                             _ControlButton(
@@ -436,7 +459,8 @@ class _CallScreenState extends State<CallScreen> {
                                   : Icons.phone_in_talk,
                               active: s.speakerOn,
                               onTap: widget.service.toggleSpeaker,
-                              label: 'speaker',
+                              label: AppLocalizations.of(context)
+                                  .callScreenControlSpeaker,
                             ),
                             _ControlButton(
                               icon: Icons.call_end,
@@ -444,7 +468,8 @@ class _CallScreenState extends State<CallScreen> {
                               iconColor: Colors.white,
                               large: true,
                               onTap: () => widget.service.endCall(),
-                              label: 'end',
+                              label: AppLocalizations.of(context)
+                                  .callScreenControlEnd,
                             ),
                           ],
                         ),

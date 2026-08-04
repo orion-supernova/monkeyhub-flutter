@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/room_filter.dart';
+import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/enums.dart';
+
+final _l10n = AppLocalizationsEn();
 
 ChatRoom room({
   String id = 'r1',
@@ -148,10 +151,10 @@ void main() {
 
     test('summary reads as the cue the chat screen shows', () {
       expect(
-        RoomFilter({RoomFacet.dms, RoomFacet.unread}).summary,
+        RoomFilter({RoomFacet.dms, RoomFacet.unread}).summary(_l10n),
         'dms + unread',
       );
-      expect(RoomFilter.empty.summary, '');
+      expect(RoomFilter.empty.summary(_l10n), '');
     });
   });
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../theme/app_theme.dart';
 import '../keyboard/focusable_tap.dart';
@@ -101,7 +102,7 @@ class _ConfirmSheet extends StatelessWidget {
             color: theme.danger,
             icon: Icons.warning_amber_rounded,
             title: confirmLabel,
-            sub: 'this cannot be undone',
+            sub: AppLocalizations.of(context).destructiveSheetCannotBeUndone,
             filled: true,
             onTap: () => Navigator.of(context).pop(true),
           ),
@@ -112,7 +113,8 @@ class _ConfirmSheet extends StatelessWidget {
           FocusableTap(
             onTap: () => Navigator.of(context).pop(false),
             autofocus: true,
-            semanticLabel: 'Cancel',
+            semanticLabel:
+                AppLocalizations.of(context).destructiveSheetCancelSemanticLabel,
             radius: theme.radiusMd,
             child: GestureDetector(
               onTap: () => Navigator.of(context).pop(false),
@@ -120,7 +122,8 @@ class _ConfirmSheet extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 alignment: Alignment.center,
-                child: Text('CANCEL',
+                child: Text(
+                    AppLocalizations.of(context).destructiveSheetCancelButtonLabel,
                     style: theme.label.copyWith(color: theme.inkMuted)),
               ),
             ),
@@ -316,7 +319,9 @@ class _SharedRoomsPanelState extends State<SharedRoomsPanel> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Text(
-                  _expanded ? 'HIDE' : 'VIEW',
+                  _expanded
+                      ? AppLocalizations.of(context).destructiveSheetHideLabel
+                      : AppLocalizations.of(context).destructiveSheetViewLabel,
                   style: theme.monoTiny.copyWith(color: theme.accent),
                 ),
               ),

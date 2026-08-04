@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../screens/friend_request_draft_screen.dart';
@@ -12,11 +13,12 @@ import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
 /// Relative age of a request, short enough to sit in a card's top-right corner.
-String requestAgo(DateTime then) {
+String requestAgo(BuildContext context, DateTime then) {
+  final l10n = AppLocalizations.of(context);
   final d = DateTime.now().difference(then);
-  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-  if (d.inHours < 24) return '${d.inHours}h ago';
-  return '${d.inDays}d ago';
+  if (d.inMinutes < 60) return l10n.fileMessageAgoMinutes(d.inMinutes);
+  if (d.inHours < 24) return l10n.fileMessageAgoHours(d.inHours);
+  return l10n.fileMessageAgoDays(d.inDays);
 }
 
 /// A connection someone is offering, with the decision attached.
@@ -83,6 +85,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final req = widget.req;
     return GestureDetector(
       onTap: _openDraft,
@@ -131,14 +134,17 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                                 vertical: 3,
                               ),
                               decoration: theme.chipDecoration(),
-                              child: Text('STANDARD', style: theme.monoTiny),
+                              child: Text(
+                                l10n.fileMessageStandardBadge,
+                                style: theme.monoTiny,
+                              ),
                             ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                Text(requestAgo(req.createdAt), style: theme.monoTiny),
+                Text(requestAgo(context, req.createdAt), style: theme.monoTiny),
               ],
             ),
             if (req.initialMessage.isNotEmpty) ...[
@@ -163,7 +169,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      '${req.messageCount} draft messages · tap to view',
+                      l10n.fileMessageDraftMessagesTapToView(req.messageCount),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.monoTiny.copyWith(color: theme.accent),
@@ -177,7 +183,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
               children: [
                 Expanded(
                   child: RequestAction(
-                    label: _busy ? '…' : 'APPROVE',
+                    label: _busy ? '…' : l10n.fileMessageApproveButton,
                     filled: true,
                     onTap: _busy ? null : _accept,
                   ),
@@ -185,7 +191,7 @@ class _IncomingRequestCardState extends State<IncomingRequestCard> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: RequestAction(
-                    label: 'DECLINE',
+                    label: l10n.fileMessageDeclineButton,
                     filled: false,
                     onTap: _busy ? null : _reject,
                   ),
@@ -232,6 +238,7 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
     final req = widget.req;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -263,7 +270,9 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
                 ),
               ),
               Text(
-                'SENT ${requestAgo(req.createdAt).toUpperCase()}',
+                l10n.fileMessageSentAgoLabel(
+                  requestAgo(context, req.createdAt).toUpperCase(),
+                ),
                 style: theme.monoTiny,
               ),
             ],
@@ -273,18 +282,18 @@ class _OutgoingRequestCardState extends State<OutgoingRequestCard> {
             // Distinguishes "my own grown-up hasn't released it yet" from
             // "it's with them now". Deliberately says nothing about the other
             // side's supervision — that would disclose that they're a child.
-            WaitingPill(label: req.stage!.senderLabel),
+            WaitingPill(label: req.stage!.senderLabel(l10n)),
           ],
           if (req.messageCount > 0) ...[
             const SizedBox(height: 12),
             Text(
-              '${req.messageCount} message${req.messageCount == 1 ? '' : 's'} pending',
+              l10n.fileMessageMessagesPending(req.messageCount),
               style: theme.bodySoft,
             ),
           ],
           const SizedBox(height: 14),
           RequestAction(
-            label: _busy ? '…' : 'CANCEL REQUEST',
+            label: _busy ? '…' : l10n.fileMessageCancelRequestButton,
             filled: false,
             onTap: _busy ? null : _cancel,
           ),
