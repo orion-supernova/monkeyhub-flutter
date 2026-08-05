@@ -16,6 +16,32 @@ plugins {
 // on machines without the key. deploy.sh won't start an Android build without
 // key.properties and the keystore it names, and Play rejects a debug-signed
 // bundle outright, so that fallback can't reach users.
+//
+// THREE certificates sign this app, and Google Sign-In needs ALL THREE
+// registered as SHA-1 fingerprints in Firebase console → Project settings →
+// Your apps → Android. Not a style rule — Android's Credential Manager
+// validates package name + signing certificate against the Android OAuth
+// clients in GCP project monkeyhub-2b2c6, so a build signed by a cert that
+// isn't registered cannot sign in at all:
+//
+//   1. Debug keystore   (~/.android/debug.keystore) — `flutter run`
+//   2. Upload key       (the keystore above)        — direct APK/AAB installs
+//   3. Play App Signing (Google's own re-signing key, NOT the upload key)
+//      — every user on ANY Play track, internal testing included.
+//      Read it from Play Console → Test and release → App integrity →
+//      Play app signing. This is the one that gets forgotten, and forgetting
+//      it breaks exactly the users you cannot reproduce locally.
+//
+// Get 1 and 2 with:
+//   keytool -list -v -keystore <path> -alias <alias>
+//
+// iOS is immune to all of this — it authenticates on bundle id and the
+// reversed-client-id URL scheme, no certificate involved. So "Google login
+// works on iOS but not Android" is this list being incomplete until proven
+// otherwise; it is not a Dart-side bug. `google-services.json` grows a
+// `client_type: 1` block once at least one fingerprint is registered, which
+// makes that file a quick way to confirm the registration landed (the sign-in
+// path itself reads the client id from env.local, not from that file).
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("key.properties")
     if (f.exists()) f.inputStream().use { load(it) }
