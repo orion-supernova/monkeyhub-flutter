@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show BrowserContextMenu;
+import 'package:flutter/services.dart'
+    show BrowserContextMenu, SystemChrome, SystemUiMode;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
@@ -16,6 +17,28 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Declare edge-to-edge ourselves. NOT cosmetic — this is what stops the
+  // window's insets from oscillating on Android 15+.
+  //
+  // targetSdk went 34 → 36 to clear Play's minimum. At 35+ Android enforces
+  // edge-to-edge and ignores the opt-out entirely (at 36 the opt-out flag no
+  // longer exists), while the app still said nothing about system UI mode and
+  // the launch themes still declared the legacy
+  // `windowDrawsSystemBarBackgrounds=false`. Platform and framework therefore
+  // disagreed about who owned the bar area, and the window re-derived its
+  // insets on every layout pass. `MediaQuery.padding` flapped with them, so
+  // all 96 SafeArea/viewPadding readers in the app re-laid out each frame:
+  // the whole UI strobed, the bottom pill moved out from under a finger
+  // between pointer-down and pointer-up (taps on the nav "did nothing"), and
+  // the IME closed the frame after it opened. One declared owner settles it.
+  //
+  // Call screens still swap to immersiveSticky and restore edgeToEdge on the
+  // way out (call_screen.dart, group_call_screen.dart) — that restore now
+  // returns to this same baseline instead of silently changing the app's mode.
+  if (!kIsWeb) {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
 
   // Never fetch a typeface over the network. Every family the themes use is
   // bundled under assets/google_fonts (see pubspec.yaml), so this costs nothing
@@ -48,11 +71,14 @@ Future<void> main() async {
     await BrowserContextMenu.disableContextMenu();
   } else {
     // Initialize push and native call handler asynchronously without delaying runApp.
-    PushManager.instance.initialize().then((_) {
-      NativeCallHandler.instance.start();
-    }).catchError((Object e) {
-      debugPrint('PushManager.initialize: $e');
-    });
+    PushManager.instance
+        .initialize()
+        .then((_) {
+          NativeCallHandler.instance.start();
+        })
+        .catchError((Object e) {
+          debugPrint('PushManager.initialize: $e');
+        });
   }
 
   runApp(const MonkeyHubApp());

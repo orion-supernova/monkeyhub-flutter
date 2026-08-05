@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_service.dart';
@@ -80,9 +81,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   late final GroupCallApi _groupCallApi = GroupCallApi(_cv);
   // Group calls mint the same time-limited TURN credentials via
   // calls:getIceConfig, so both stacks share the coturn deployment.
-  late final GroupCallService _groupCallService =
-      GroupCallService.ensure(_groupCallApi)
-        ..iceConfigFetcher = _callApi.getIceConfig;
+  late final GroupCallService _groupCallService = GroupCallService.ensure(
+    _groupCallApi,
+  )..iceConfigFetcher = _callApi.getIceConfig;
   // Cached merged listenable. Created exactly once so AnimatedBuilder's
   // listener subscription on _auth / _themeController is never re-bound
   // across parent rebuilds (each fresh Listenable.merge call would force
@@ -624,49 +625,89 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // WindowClass via context. The `child` (navigator) is captured,
               // so a drag-resize only rebuilds the LayoutScope wrapper, never
               // this Stack.
-              return Listener(
-                // Observe (never consume) the first pointer-down to unlock
-                // audio + request notification permission within a user gesture.
-                onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
-                child: _WindowClassProvider(
-                  child: Stack(
-                    children: [
-                      ?child,
-                      // One top slot, stacked vertically. These used to be two
-                      // separate Positioned(top: 0) layers that overlapped
-                      // whenever both were showing — which would have buried the
-                      // connection banner's retry target under the call pill.
-                      // Both children collapse to zero height when hidden.
-                      if (_bootstrapped && _bootError == null)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              ConnectionBanner(health: _health),
-                              // Global "Move call here" pill — shows when an
-                              // active call exists on another of my devices.
-                              // Tap to handoff.
-                              ActiveCallPill(service: _callService),
-                            ],
+              //
+              // The AnnotatedRegion is the other half of the edge-to-edge fix
+              // in main(): with no style declared, Android 15+ re-derives the
+              // bar appearance on every window resize — including the resize
+              // the soft keyboard causes — which is the visible strobe at the
+              // top of the screen. Pinning it here rather than calling
+              // SystemChrome imperatively keeps it correct across theme
+              // switches for free, since this builder reruns on the same
+              // listenable the theme does.
+              //
+              // Contrast enforcement is off on purpose. That scrim is drawn by
+              // the SYSTEM behind each bar and re-evaluated against whatever
+              // currently sits underneath, so on any scrolling or animating
+              // screen it pulses by design — leaving it on would keep a milder
+              // version of the same flicker after the inset fix lands.
+              //
+              // Safe to govern the whole app from one region: `grep AppBar(`
+              // returns zero hits in lib/, so nothing deeper annotates a
+              // competing style the way a Material AppBar would.
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value: SystemUiOverlayStyle(
+                  statusBarColor: Colors.transparent,
+                  systemNavigationBarColor: Colors.transparent,
+                  systemStatusBarContrastEnforced: false,
+                  systemNavigationBarContrastEnforced: false,
+                  // Glyphs contrast AGAINST the surface behind them: dark
+                  // icons on the light (riso) themes, light icons elsewhere.
+                  statusBarIconBrightness: isLight
+                      ? Brightness.dark
+                      : Brightness.light,
+                  systemNavigationBarIconBrightness: isLight
+                      ? Brightness.dark
+                      : Brightness.light,
+                  // iOS reads this one instead, and it is inverted from the
+                  // pair above: it names the BAR's brightness, not the glyphs'.
+                  statusBarBrightness: isLight
+                      ? Brightness.light
+                      : Brightness.dark,
+                ),
+                child: Listener(
+                  // Observe (never consume) the first pointer-down to unlock
+                  // audio + request notification permission within a user gesture.
+                  onPointerDown: _alertsPrimed ? null : (_) => _primeAlerts(),
+                  child: _WindowClassProvider(
+                    child: Stack(
+                      children: [
+                        ?child,
+                        // One top slot, stacked vertically. These used to be two
+                        // separate Positioned(top: 0) layers that overlapped
+                        // whenever both were showing — which would have buried the
+                        // connection banner's retry target under the call pill.
+                        // Both children collapse to zero height when hidden.
+                        if (_bootstrapped && _bootError == null)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ConnectionBanner(health: _health),
+                                // Global "Move call here" pill — shows when an
+                                // active call exists on another of my devices.
+                                // Tap to handoff.
+                                ActiveCallPill(service: _callService),
+                              ],
+                            ),
                           ),
+                        // Pushes call screens onto the root navigator the moment
+                        // the call service transitions to a non-idle state.
+                        // Invisible.
+                        _CallOverlay(service: _callService, api: _api),
+                        // Same job for group calls: pushes GroupCallScreen /
+                        // the group invite ringer. Invisible.
+                        _GroupCallOverlay(
+                          service: _groupCallService,
+                          api: _api,
                         ),
-                      // Pushes call screens onto the root navigator the moment
-                      // the call service transitions to a non-idle state.
-                      // Invisible.
-                      _CallOverlay(service: _callService, api: _api),
-                      // Same job for group calls: pushes GroupCallScreen /
-                      // the group invite ringer. Invisible.
-                      _GroupCallOverlay(
-                        service: _groupCallService,
-                        api: _api,
-                      ),
-                      // Sits above every other layer so it covers banners +
-                      // overlays during a screen recording.
-                      const CaptureShield(),
-                    ],
+                        // Sits above every other layer so it covers banners +
+                        // overlays during a screen recording.
+                        const CaptureShield(),
+                      ],
+                    ),
                   ),
                 ),
               );
