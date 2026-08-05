@@ -72,6 +72,13 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   /// and the local Approve/Decline/Cancel handlers can't both navigate.
   bool _resolved = false;
 
+  /// Runs while the row is gone and no friendship has shown up to explain it.
+  /// See [requestAbsenceGrace]: the accept and the friendship arrive on two
+  /// different subscriptions, so for a moment an accept is indistinguishable
+  /// from a decline. Nothing is concluded until this has expired.
+  Timer? _absenceTimer;
+  bool _absenceSettled = false;
+
   /// Whether the draft thread ever carried a message — latched, because
   /// `approveDirectRequest` migrates those messages into the new room and
   /// clears the thread, after which an empty payload no longer distinguishes
@@ -158,7 +165,15 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
     final live = _isIncoming
         ? widget.repo.incomingRequests
         : widget.repo.outgoingRequests;
-    if (live.any((r) => r.id == id)) _sawPending = true;
+    final present = live.any((r) => r.id == id);
+    if (present) {
+      _sawPending = true;
+      // The row came back (a reconnect replaying the list, say). Whatever
+      // absence was being timed is no longer the absence to judge.
+      _absenceTimer?.cancel();
+      _absenceTimer = null;
+      _absenceSettled = false;
+    }
 
     final outcome = requestOutcome(
       requestId: id,
@@ -166,9 +181,23 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
       live: live,
       friends: widget.repo.friends,
       sawPending: _sawPending,
+      absenceSettled: _absenceSettled,
     );
-    if (outcome == RequestOutcome.pending) return;
+    if (outcome == RequestOutcome.pending) {
+      // Unexplained absence: hold the verdict open long enough for the
+      // friends list to deliver the other half of the same transaction.
+      if (!present && _sawPending && _absenceTimer == null) {
+        _absenceTimer = Timer(requestAbsenceGrace, () {
+          _absenceTimer = null;
+          _absenceSettled = true;
+          _onRepoChanged();
+        });
+      }
+      return;
+    }
 
+    _absenceTimer?.cancel();
+    _absenceTimer = null;
     _resolved = true;
     _finish(accepted: outcome == RequestOutcome.accepted);
   }
@@ -313,6 +342,7 @@ class _FriendRequestDraftScreenState extends State<FriendRequestDraftScreen> {
   @override
   void dispose() {
     widget.repo.removeListener(_onRepoChanged);
+    _absenceTimer?.cancel();
     _messagesSub?.cancel();
     _composer.dispose();
     _composerFocus.dispose();

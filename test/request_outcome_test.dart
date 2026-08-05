@@ -29,6 +29,7 @@ void main() {
     List<FriendRequest> live = const [],
     List<ChatUser> friends = const [],
     bool sawPending = true,
+    bool absenceSettled = true,
   }) =>
       requestOutcome(
         requestId: 'r1',
@@ -36,6 +37,7 @@ void main() {
         live: live,
         friends: friends,
         sawPending: sawPending,
+        absenceSettled: absenceSettled,
       );
 
   test('a request still in the live list is still pending', () {
@@ -77,5 +79,29 @@ void main() {
 
   test('an unrelated friendship is not this request being accepted', () {
     expect(outcome(friends: [user('other')]), RequestOutcome.ended);
+  });
+
+  test('a just-vanished row is not yet a decline', () {
+    // The bug: an accept clears the pending row and creates the friendship in
+    // one backend transaction, but they arrive on two subscriptions and the
+    // list of requests can land first. Read in that gap, an accepted request
+    // is byte-for-byte a declined one — and the sender was told "declined"
+    // about a friend who had just said yes, while the push said "accepted".
+    expect(outcome(absenceSettled: false), RequestOutcome.pending);
+  });
+
+  test('the friendship arriving during the grace period is still an accept', () {
+    // What the wait is for: the second half of the same transaction lands, and
+    // it is decisive on its own.
+    expect(
+      outcome(friends: [user('them')], absenceSettled: false),
+      RequestOutcome.accepted,
+    );
+  });
+
+  test('an absence that outlives the grace period ends the request', () {
+    // A real decline has no friendship coming, so waiting changes nothing
+    // except when the snackbar appears.
+    expect(outcome(absenceSettled: true), RequestOutcome.ended);
   });
 }
