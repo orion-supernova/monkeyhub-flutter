@@ -1,139 +1,92 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
-
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
-import '../calls/call_models.dart';
-import '../calls/call_permissions.dart';
-import '../data/settings_store.dart';
-import '../l10n/generated/app_localizations.dart';
-import '../main.dart' show rootNavigatorKey;
-
-/// Two Android-only, once-per-install prompts that make killed-app incoming
-/// calls actually ring on real devices:
+/// The two Android-only OS settings that decide whether a call actually reaches
+/// the user, exposed as a read-and-fix surface rather than a prompt.
 ///
-///  1. Full-screen-intent access (Android 14+). Without it the incoming-call
-///     screen degrades to a small heads-up notification when the phone is
-///     locked — easy to miss a call.
-///  2. Battery-optimization exemption. OEM power managers (Xiaomi, Samsung,
-///     Oppo…) defer or drop even priority-high FCM for "optimized" apps,
-///     which is the classic "sometimes rings, sometimes doesn't".
+/// This class used to run all three of its checks from a post-frame callback in
+/// `_bootstrap`, so a new Android user was interrupted three times before
+/// sending a first message — a permission dialog, then two explain-dialogs that
+/// each ejected them into a system settings page. iOS asked for none of it. The
+/// prompts are gone; what they used to open is now reachable on demand from
+/// Settings → NOTIFICATIONS.
 ///
-/// Both open a system settings page, so each is preceded by a short
-/// explanatory dialog and asked at most once (flags in [SettingsStore]);
-/// declining is always recoverable via system settings.
+/// The microphone check went with them and has no replacement here, because it
+/// never needed one: [CallPermissions.ensure] already runs at every point of
+/// use (`call_service.dart`, `group_call_service.dart`), so the pre-grant only
+/// moved the identical dialog earlier and out of context — where Android 11+
+/// turns a second dismissal into a permanent auto-deny. A permanently-denied
+/// mic is handled where it surfaces, by `CallPermissions._explainRefusal`.
+///
+/// What is genuinely lost by not asking: nothing on stock Android, where the
+/// high-priority FCM data pushes in `CallFcmService` already wake the app out
+/// of Doze and App Standby — that tier exists precisely for this. The exemption
+/// only buys protection against OEM power managers (MIUI, EMUI, ColorOS,
+/// Funtouch) that ignore those rules, and it does not fully fix them either:
+/// those skins gate autostart separately, behind a screen no intent can open.
+/// So it is worth offering, and not worth spending onboarding on.
 class AndroidCallReliability {
   AndroidCallReliability._();
   static final AndroidCallReliability instance = AndroidCallReliability._();
 
   static const MethodChannel _device = MethodChannel('monkeyhub/device');
 
-  bool _ranThisSession = false;
+  /// Whether any of this applies. Everything below is a no-op elsewhere, so
+  /// callers can use this to decide whether to render the UI at all.
+  static bool get supported => !kIsWeb && Platform.isAndroid;
 
-  /// Fire-and-forget after login, once the navigator is mounted.
-  Future<void> ensure() async {
-    if (kIsWeb || !Platform.isAndroid || _ranThisSession) return;
-    // Don't latch the session flag while the navigator isn't ready — the
-    // _onAuthChange path can land here a frame before the root navigator
-    // mounts, and burning the attempt would skip the prompts entirely.
-    if (rootNavigatorKey.currentContext == null) return;
-    _ranThisSession = true;
-    await _ensureMicPermission();
-    await _ensureFullScreenIntent();
-    await _ensureBatteryExemption();
-  }
-
-  /// First, because it is the only one of the three whose absence can make a
-  /// call *crash* rather than merely ring badly — see [CallPermissions].
-  ///
-  /// No `_explain()` pre-dialog here: the other two jump the user out to a
-  /// system settings page, which is jarring without warning, whereas this is
-  /// the ordinary in-app permission prompt that needs no preamble.
-  Future<void> _ensureMicPermission() async {
-    final store = SettingsStore.instance;
-    if (store.micPermissionPrompted) return;
-    if (await CallPermissions.granted(CallMediaKind.audio)) return;
-    await store.markMicPermissionPrompted();
-    await CallPermissions.preGrantMicrophone();
-  }
-
-  Future<void> _ensureFullScreenIntent() async {
-    final store = SettingsStore.instance;
-    if (store.fullScreenIntentPrompted) return;
+  /// Android 14+ only grants USE_FULL_SCREEN_INTENT at install to apps Play
+  /// classifies as calling apps. That covers this app on the Play track, so the
+  /// expected answer here is `true` and the row stays quiet — a `false` in the
+  /// field is worth reading as a Play Console declaration problem first, and a
+  /// user problem second.
+  Future<bool> fullScreenIntentAllowed() async {
+    if (!supported) return true;
     try {
-      final allowed = await FlutterCallkitIncoming.canUseFullScreenIntent();
-      if (allowed) return;
-      // null context = navigator gone; skip localization and let _explain's
-      // own check return null, keeping the one-shot unburned.
-      final context = rootNavigatorKey.currentContext;
-      if (context == null || !context.mounted) return;
-      final l10n = AppLocalizations.of(context);
-      final go = await _explain(
-        title: l10n.bulkActionBarFullScreenIntentDialogTitle,
-        body: l10n.bulkActionBarFullScreenIntentDialogBody,
-      );
-      // null = dialog never shown (navigator gone) — keep the one-shot
-      // unburned so a future launch can still ask.
-      if (go == null) return;
-      await store.markFullScreenIntentPrompted();
-      if (go) await FlutterCallkitIncoming.requestFullIntentPermission();
+      return await FlutterCallkitIncoming.canUseFullScreenIntent();
     } catch (e) {
+      // Unknown is reported as fine: a row that cannot read its own state has
+      // nothing useful to tell the user, and "something may be wrong" on every
+      // launch is the anxiety this whole change is removing.
       debugPrint('AndroidCallReliability: full-screen-intent check failed: $e');
+      return true;
     }
   }
 
-  Future<void> _ensureBatteryExemption() async {
-    final store = SettingsStore.instance;
-    if (store.batteryOptPrompted) return;
+  Future<bool> batteryExempt() async {
+    if (!supported) return true;
     try {
-      final exempt =
-          await _device.invokeMethod<bool>('isIgnoringBatteryOptimizations') ??
-              true;
-      if (exempt) return;
-      final context = rootNavigatorKey.currentContext;
-      if (context == null || !context.mounted) return;
-      final l10n = AppLocalizations.of(context);
-      final go = await _explain(
-        title: l10n.bulkActionBarBatteryExemptionDialogTitle,
-        body: l10n.bulkActionBarBatteryExemptionDialogBody,
-      );
-      if (go == null) return;
-      await store.markBatteryOptPrompted();
-      if (go) await _device.invokeMethod('requestIgnoreBatteryOptimizations');
+      return await _device.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          true;
     } catch (e) {
       debugPrint('AndroidCallReliability: battery check failed: $e');
+      return true;
     }
   }
 
-  /// Small pre-prompt so the jump into system settings isn't jarring.
-  /// Returns null when the dialog could not be shown (navigator not ready) —
-  /// callers must NOT mark the one-shot flag in that case. false = declined.
-  Future<bool?> _explain({required String title, required String body}) async {
-    final context = rootNavigatorKey.currentContext;
-    if (context == null) return null;
-    final l10n = AppLocalizations.of(context);
-    final answer = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.bulkActionBarDialogNotNowButton),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.bulkActionBarDialogContinueButton),
-          ),
-        ],
-      ),
-    );
-    // Dialog dismissed without a choice (tap outside / back) counts as a
-    // decline — it WAS shown, so the one-shot is spent.
-    return answer ?? false;
+  /// Opens the system page. Both are best-effort: OEM builds hide or rename
+  /// these screens, and the native side already falls back to the generic list
+  /// (see MainActivity's `requestIgnoreBatteryOptimizations`).
+  Future<void> openFullScreenIntentSettings() async {
+    if (!supported) return;
+    try {
+      await FlutterCallkitIncoming.requestFullIntentPermission();
+    } catch (e) {
+      debugPrint('AndroidCallReliability: full-screen-intent open failed: $e');
+    }
+  }
+
+  Future<void> openBatterySettings() async {
+    if (!supported) return;
+    try {
+      await _device.invokeMethod('requestIgnoreBatteryOptimizations');
+    } catch (e) {
+      debugPrint('AndroidCallReliability: battery settings open failed: $e');
+    }
   }
 }

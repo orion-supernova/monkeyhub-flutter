@@ -4320,6 +4320,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel =>
+      'Appels sur l\'écran de verrouillage';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'Activité en arrière-plan';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'Appuyez pour autoriser';
+
+  @override
   String get settingsScreenRowTheme => 'THÈME';
 
   @override

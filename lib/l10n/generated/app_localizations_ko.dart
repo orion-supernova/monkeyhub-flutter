@@ -4114,6 +4114,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenSectionNotifications => '알림';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => '잠금 화면 통화';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => '백그라운드 활동';
+
+  @override
+  String get settingsCallDeliveryStatusOff => '탭하여 허용';
+
+  @override
   String get settingsScreenRowTheme => '테마';
 
   @override

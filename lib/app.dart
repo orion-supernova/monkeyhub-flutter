@@ -33,7 +33,6 @@ import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'audio/alert_sounds.dart';
 import 'privacy/capture_protection.dart';
-import 'push/android_call_reliability.dart';
 import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
 import 'push/message_alerts.dart';
@@ -444,7 +443,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
     _consumePendingPushRoom();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_auth.session != null) AndroidCallReliability.instance.ensure();
       UpdateChecker.instance.ensure(_api);
       // Covers the cold-start-restore case: an account signed in on a previous
       // launch that still has no recovery phrase. Fire-and-forget, and it
@@ -519,7 +517,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await _signaling.start(s.userId, deviceId: deviceId);
         await NativeCallHandler.instance.replayColdStartCalls();
         _consumePendingPushRoom();
-        AndroidCallReliability.instance.ensure();
         // A session now exists, so ConnectionHealth has something worth healing
         // for. Its recovery loop parks while signed out and nothing else wakes
         // it: the socket's `connected` edge has usually already been spent

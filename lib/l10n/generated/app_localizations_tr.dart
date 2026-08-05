@@ -4224,6 +4224,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'BİLDİRİMLER';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'Kilit ekranı aramaları';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'Arka plan etkinliği';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'İzin vermek için dokun';
+
+  @override
   String get settingsScreenRowTheme => 'TEMA';
 
   @override

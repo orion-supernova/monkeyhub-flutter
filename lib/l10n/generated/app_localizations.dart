@@ -7247,6 +7247,24 @@ abstract class AppLocalizations {
   /// **'NOTIFICATIONS'**
   String get settingsScreenSectionNotifications;
 
+  /// Android-only settings row label for full-screen-intent access, which lets an incoming call take over the lock screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock screen calls'**
+  String get settingsCallDeliveryLockScreenLabel;
+
+  /// Android-only settings row label for the battery-optimization exemption that keeps the app awake enough to receive calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Background activity'**
+  String get settingsCallDeliveryBackgroundLabel;
+
+  /// Status shown on an Android call-delivery settings row when the OS permission is missing. Doubles as the call to action: tapping the row opens the system settings page.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to allow'**
+  String get settingsCallDeliveryStatusOff;
+
   /// All-caps row label that opens the Theme picker screen.
   ///
   /// In en, this message translates to:

@@ -4240,6 +4240,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'Lock screen calls';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'Background activity';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'Tap to allow';
+
+  @override
   String get settingsScreenRowTheme => 'THEME';
 
   @override

@@ -7,8 +7,10 @@ import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/layout.dart';
@@ -509,6 +511,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SectionHeader(label: l10n.settingsScreenSectionNotifications),
               const SizedBox(height: 12),
               _PushToggle(),
+              // Android's two call-delivery settings. Renders nothing at all
+              // when there is nothing to fix — see _CallDeliveryRows.
+              const _CallDeliveryRows(),
 
               const SizedBox(height: 36),
               _VersionStamp(),
@@ -696,6 +701,161 @@ class _PushToggleState extends State<_PushToggle> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The Android-only OS settings that decide whether a call reaches the user:
+/// full-screen-intent access and the battery-optimization exemption.
+///
+/// These used to be asked for during onboarding, from a post-frame callback in
+/// `_bootstrap` — two explain-dialogs that each ejected a brand-new user into a
+/// system settings page before they had sent a message, with nothing equivalent
+/// on iOS. This is where they live now instead: reachable when a user goes
+/// looking because their calls are not ringing, and silent otherwise.
+///
+/// "Silent otherwise" is literal — a row that is already granted renders
+/// NOTHING, so a healthy install shows an empty slot here rather than two
+/// reassurance rows nobody needs. That also means the section can only ever say
+/// something actionable, which is what makes "Tap to allow" sufficient as its
+/// own explanation.
+class _CallDeliveryRows extends StatefulWidget {
+  const _CallDeliveryRows();
+
+  @override
+  State<_CallDeliveryRows> createState() => _CallDeliveryRowsState();
+}
+
+class _CallDeliveryRowsState extends State<_CallDeliveryRows>
+    with WidgetsBindingObserver {
+  bool? _fullScreen;
+  bool? _battery;
+
+  @override
+  void initState() {
+    super.initState();
+    // Both fixes happen in a system settings page we don't control, so the
+    // only signal that one landed is coming back to the app. Re-read on every
+    // resume rather than trusting the answer from mount.
+    WidgetsBinding.instance.addObserver(this);
+    _refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
+
+  Future<void> _refresh() async {
+    if (!AndroidCallReliability.supported) return;
+    final fullScreen = await AndroidCallReliability.instance
+        .fullScreenIntentAllowed();
+    final battery = await AndroidCallReliability.instance.batteryExempt();
+    if (!mounted) return;
+    setState(() {
+      _fullScreen = fullScreen;
+      _battery = battery;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!AndroidCallReliability.supported) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    // Null = not read yet. Treated as granted so the section never flashes a
+    // scary row on the way to discovering there was nothing wrong.
+    final rows = <Widget>[
+      if (_fullScreen == false)
+        _CallDeliveryRow(
+          icon: Icons.lock_clock_outlined,
+          label: l10n.settingsCallDeliveryLockScreenLabel,
+          // Reuses the copy the retired pre-prompt dialog already carried in
+          // all 12 locales, which says exactly what this row needs to say.
+          body: l10n.bulkActionBarFullScreenIntentDialogBody,
+          onTap: AndroidCallReliability.instance.openFullScreenIntentSettings,
+        ),
+      if (_battery == false)
+        _CallDeliveryRow(
+          icon: Icons.battery_saver_outlined,
+          label: l10n.settingsCallDeliveryBackgroundLabel,
+          body: l10n.bulkActionBarBatteryExemptionDialogBody,
+          onTap: AndroidCallReliability.instance.openBatterySettings,
+        ),
+    ];
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: [
+        for (final row in rows) ...[const SizedBox(height: 10), row],
+      ],
+    );
+  }
+}
+
+class _CallDeliveryRow extends StatelessWidget {
+  const _CallDeliveryRow({
+    required this.icon,
+    required this.label,
+    required this.body,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String body;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    // BOTH wrappers, per FocusableTap's doc comment: it binds Enter/Space and
+    // the semantics but registers no gesture recognizer, so the bare detector
+    // is what makes the row answer a touch at all.
+    return FocusableTap(
+      onTap: onTap,
+      radius: theme.radiusMd,
+      semanticLabel: label,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            border: Border.all(color: theme.divider),
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: theme.inkMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: theme.label),
+                    const SizedBox(height: 2),
+                    Text(body, style: theme.bodySoft),
+                    const SizedBox(height: 6),
+                    Text(
+                      l10n.settingsCallDeliveryStatusOff,
+                      style: theme.monoTiny.copyWith(color: theme.accent),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

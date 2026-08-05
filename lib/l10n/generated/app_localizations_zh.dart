@@ -4048,6 +4048,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenSectionNotifications => '通知';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => '锁屏来电';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => '后台活动';
+
+  @override
+  String get settingsCallDeliveryStatusOff => '点按以允许';
+
+  @override
   String get settingsScreenRowTheme => '主题';
 
   @override

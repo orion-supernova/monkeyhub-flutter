@@ -4260,6 +4260,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'नोटिफिकेशन';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'लॉक स्क्रीन कॉल';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'बैकग्राउंड गतिविधि';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'अनुमति देने के लिए टैप करें';
+
+  @override
   String get settingsScreenRowTheme => 'थीम';
 
   @override

@@ -4736,6 +4736,18 @@
   "@settingsScreenSectionNotifications": {
     "description": "All-caps section header above the Push Notifications toggle."
   },
+  "settingsCallDeliveryLockScreenLabel": "Lock screen calls",
+  "@settingsCallDeliveryLockScreenLabel": {
+    "description": "Android-only settings row label for full-screen-intent access, which lets an incoming call take over the lock screen."
+  },
+  "settingsCallDeliveryBackgroundLabel": "Background activity",
+  "@settingsCallDeliveryBackgroundLabel": {
+    "description": "Android-only settings row label for the battery-optimization exemption that keeps the app awake enough to receive calls."
+  },
+  "settingsCallDeliveryStatusOff": "Tap to allow",
+  "@settingsCallDeliveryStatusOff": {
+    "description": "Status shown on an Android call-delivery settings row when the OS permission is missing. Doubles as the call to action: tapping the row opens the system settings page."
+  },
   "settingsScreenRowTheme": "THEME",
   "@settingsScreenRowTheme": {
     "description": "All-caps row label that opens the Theme picker screen."

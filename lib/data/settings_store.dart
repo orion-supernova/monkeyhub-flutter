@@ -31,9 +31,12 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
-  static const _kFullScreenIntentPrompted = 'mh.fullScreenIntentPrompted';
-  static const _kBatteryOptPrompted = 'mh.batteryOptPrompted';
-  static const _kMicPermissionPrompted = 'mh.micPermissionPrompted';
+  // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
+  // 'mh.micPermissionPrompted' were retired with the Android onboarding
+  // prompts they gated. Their values are left on disk rather than migrated
+  // away — they cost three unread booleans, and reusing either name later
+  // would silently inherit a "yes, already asked" from an install that was
+  // asked by the old flow. Pick new keys if a prompt ever comes back.
   static const _kRecoveryPromptDismissed = 'mh.recoveryPromptDismissedFor';
   static const _kFilterStyle = 'mh.filterStyle';
   static const _kRoomFilter = 'mh.roomFilter';
@@ -59,9 +62,6 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
-  bool _fullScreenIntentPrompted = false;
-  bool _batteryOptPrompted = false;
-  bool _micPermissionPrompted = false;
   String? _recoveryPromptDismissedFor;
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
@@ -100,13 +100,6 @@ class SettingsStore extends ChangeNotifier {
   /// Even when on, only contributors whose `seen` visibility allows it will
   /// surface; see [profile_visibility_screen] for the inbound warning.
   bool get viewReadReceipts => _viewReadReceipts;
-
-  /// One-time Android call-reliability prompts (full-screen-intent access and
-  /// battery-optimization exemption). Tracked so the user is asked exactly
-  /// once — both remain reachable from system settings if declined.
-  bool get fullScreenIntentPrompted => _fullScreenIntentPrompted;
-  bool get batteryOptPrompted => _batteryOptPrompted;
-  bool get micPermissionPrompted => _micPermissionPrompted;
 
   /// The userId that declined the "set up a recovery phrase" prompt.
   ///
@@ -225,14 +218,9 @@ class SettingsStore extends ChangeNotifier {
       _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
       final slu = await _storage.read(key: _kShowLinkUrls);
       _showLinkUrls = slu == 'true'; // default false
-      _fullScreenIntentPrompted =
-          await _storage.read(key: _kFullScreenIntentPrompted) == 'true';
-      _batteryOptPrompted =
-          await _storage.read(key: _kBatteryOptPrompted) == 'true';
-      _micPermissionPrompted =
-          await _storage.read(key: _kMicPermissionPrompted) == 'true';
-      _recoveryPromptDismissedFor =
-          await _storage.read(key: _kRecoveryPromptDismissed);
+      _recoveryPromptDismissedFor = await _storage.read(
+        key: _kRecoveryPromptDismissed,
+      );
       final fs = await _storage.read(key: _kFilterStyle);
       // First-launch default is chips; honour an explicit 'drawer' selection.
       _filterStyle = fs == 'drawer' ? FilterStyle.drawer : FilterStyle.chips;
@@ -397,24 +385,6 @@ class SettingsStore extends ChangeNotifier {
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
   }
 
-  Future<void> markFullScreenIntentPrompted() async {
-    if (_fullScreenIntentPrompted) return;
-    _fullScreenIntentPrompted = true;
-    await _storage.write(key: _kFullScreenIntentPrompted, value: 'true');
-  }
-
-  Future<void> markBatteryOptPrompted() async {
-    if (_batteryOptPrompted) return;
-    _batteryOptPrompted = true;
-    await _storage.write(key: _kBatteryOptPrompted, value: 'true');
-  }
-
-  Future<void> markMicPermissionPrompted() async {
-    if (_micPermissionPrompted) return;
-    _micPermissionPrompted = true;
-    await _storage.write(key: _kMicPermissionPrompted, value: 'true');
-  }
-
   /// Records that [userId] declined the recovery-phrase prompt once. The
   /// settings and profile banners carry it from there — this is a prompt, not
   /// a nag.
@@ -445,7 +415,8 @@ class SettingsStore extends ChangeNotifier {
       final list = jsonDecode(raw);
       if (list is! List) return const [];
       return [
-        for (final entry in list.take(kMaxGlassSlots)) ?GlassPreset.fromJson(entry),
+        for (final entry in list.take(kMaxGlassSlots))
+          ?GlassPreset.fromJson(entry),
       ];
     } catch (_) {
       // A slot list that no longer parses costs the user their saved looks,
@@ -555,11 +526,7 @@ class SettingsStore extends ChangeNotifier {
     final i = _glassSlots.indexWhere((s) => s.id == id);
     if (i < 0 || _glassSlots[i].name == name) return;
     final next = [..._glassSlots];
-    next[i] = GlassPreset(
-      id: id,
-      name: name,
-      profile: _glassSlots[i].profile,
-    );
+    next[i] = GlassPreset(id: id, name: name, profile: _glassSlots[i].profile);
     _glassSlots = next;
     notifyListeners();
     _writeSlots();

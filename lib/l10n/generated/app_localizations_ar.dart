@@ -4339,6 +4339,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'الإشعارات';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'المكالمات على شاشة القفل';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'النشاط في الخلفية';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'اضغط للسماح';
+
+  @override
   String get settingsScreenRowTheme => 'السمة';
 
   @override

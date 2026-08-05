@@ -4270,6 +4270,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTISER';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'Samtal på låsskärmen';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'Bakgrundsaktivitet';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'Tryck för att tillåta';
+
+  @override
   String get settingsScreenRowTheme => 'TEMA';
 
   @override

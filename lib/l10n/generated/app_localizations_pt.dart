@@ -4295,6 +4295,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel =>
+      'Chamadas no ecrã de bloqueio';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel =>
+      'Atividade em segundo plano';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'Toque para permitir';
+
+  @override
   String get settingsScreenRowTheme => 'TEMA';
 
   @override
@@ -8917,6 +8928,17 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';
+
+  @override
+  String get settingsCallDeliveryLockScreenLabel =>
+      'Chamadas na tela de bloqueio';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel =>
+      'Atividade em segundo plano';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'Toque para permitir';
 
   @override
   String get settingsScreenRowTheme => 'TEMA';

@@ -4101,6 +4101,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenSectionNotifications => '通知';
 
   @override
+  String get settingsCallDeliveryLockScreenLabel => 'ロック画面の着信';
+
+  @override
+  String get settingsCallDeliveryBackgroundLabel => 'バックグラウンド動作';
+
+  @override
+  String get settingsCallDeliveryStatusOff => 'タップして許可';
+
+  @override
   String get settingsScreenRowTheme => 'テーマ';
 
   @override
