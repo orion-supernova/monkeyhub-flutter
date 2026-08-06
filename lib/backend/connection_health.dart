@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import '../diagnostics/diag_event.dart' show DiagSev;
+import '../diagnostics/diag_log.dart';
+
 /// What the UI should say about connectivity.
 enum ConnectionPhase {
   /// Socket verified live. Nothing shown.
@@ -145,7 +148,11 @@ class ConnectionHealth extends ChangeNotifier {
     DateTime Function() now = DateTime.now,
     Stream<bool>? connectivity,
     bool watchConnectivity = true,
-  }) : initialGraceDelay = initialGraceDelay ?? (graceDelay == const Duration(milliseconds: 1200) ? const Duration(milliseconds: 2500) : graceDelay),
+  }) : initialGraceDelay =
+           initialGraceDelay ??
+           (graceDelay == const Duration(milliseconds: 1200)
+               ? const Duration(milliseconds: 2500)
+               : graceDelay),
        _backend = backend,
        _onReconnected = onReconnected,
        _isActive = isActive,
@@ -325,12 +332,18 @@ class ConnectionHealth extends ChangeNotifier {
   /// waiting out the backoff. Never a verdict — see the class doc.
   void _startConnectivityWatch() {
     try {
-      final stream = _connectivity ??
+      final stream =
+          _connectivity ??
           Connectivity().onConnectivityChanged.map(
-                (results) => results.isNotEmpty &&
-                    !results.contains(ConnectivityResult.none),
-              );
+            (results) =>
+                results.isNotEmpty &&
+                !results.contains(ConnectivityResult.none),
+          );
       _connectivitySub = stream.listen((usable) {
+        // Android emits these far more freely than iOS, so seeing the raw edges
+        // separates "the OS kept telling us the network changed" from "our own
+        // loop was thrashing".
+        DiagLog.connection('interface', usable ? 'usable' : 'lost');
         if (!usable) {
           _noteInterfaceLost();
           return;
@@ -389,6 +402,11 @@ class ConnectionHealth extends ChangeNotifier {
   /// from a probe that actually round-tripped.
   void _onSocketState(bool connected) {
     final wasUp = _socketUp;
+    DiagLog.connection(
+      'socket',
+      '${wasUp ? 'up' : 'down'} → ${connected ? 'up' : 'down'}'
+          ' (healing=$_healing)',
+    );
     _socketUp = connected;
     if (!connected) {
       _beginHealing();
@@ -431,6 +449,11 @@ class ConnectionHealth extends ChangeNotifier {
       return;
     }
     _consecutiveRoundTripFailures++;
+    DiagLog.connection(
+      'heartbeat',
+      'failed ($_consecutiveRoundTripFailures/$heartbeatFailureThreshold)',
+      sev: DiagSev.warn,
+    );
     if (_consecutiveRoundTripFailures >= heartbeatFailureThreshold) {
       _consecutiveRoundTripFailures = 0;
       _beginHealing();
@@ -449,10 +472,17 @@ class ConnectionHealth extends ChangeNotifier {
     _foreground = foreground;
     if (!foreground) {
       _backgroundedAt = _now();
+      DiagLog.connection('foreground', 'parked');
       return;
     }
     final since = _backgroundedAt;
     _backgroundedAt = null;
+    DiagLog.connection(
+      'foreground',
+      since == null
+          ? 'resumed'
+          : 'resumed after ${_now().difference(since).inSeconds}s',
+    );
     if (since != null &&
         _now().difference(since) >= backgroundRebuildThreshold) {
       _wantRebuild = true;
@@ -465,6 +495,13 @@ class ConnectionHealth extends ChangeNotifier {
   /// Pass [manual] = true when invoked by user tap or explicit resume event.
   Future<void> retryNow({bool manual = true}) async {
     if (_disposed) return;
+    // `manual` separates a user tapping the banner from the loop nudging
+    // itself, which is the difference between "the user was fighting it" and
+    // "it was thrashing on its own".
+    DiagLog.connection(
+      'retry',
+      manual ? 'manual/resume' : 'auto (connectivity)',
+    );
     _attempt = 0;
     if (_healing) {
       if (manual) {
@@ -714,7 +751,10 @@ class ConnectionHealth extends ChangeNotifier {
       // When stalled, only reflect retrying spinner if this is an explicit
       // manual tap/resume attempt or attempt 0. Automatic background retries
       // keep the stalled banner UI steady ("can't reach server · tap to retry").
-      final showRetrying = _phase != ConnectionPhase.stalled || _isManualOrResumeRetry || _attempt == 0;
+      final showRetrying =
+          _phase != ConnectionPhase.stalled ||
+          _isManualOrResumeRetry ||
+          _attempt == 0;
       if (showRetrying) _setRetrying(true);
 
       // Rebuild BEFORE the first probe when the gap we just came back from
@@ -911,14 +951,24 @@ class ConnectionHealth extends ChangeNotifier {
     });
   }
 
+  // Both setters are single funnels that already guard on equality, so logging
+  // here records exactly the transitions and nothing else. This is the state
+  // machine a triager reads first: the banner the user sees is a rendering of
+  // `_phase`, so "the app said it was reconnecting" becomes checkable.
   void _setPhase(ConnectionPhase p) {
     if (_phase == p) return;
+    DiagLog.connection(
+      'phase',
+      '${_phase.name} → ${p.name} (attempt $_attempt)',
+      sev: p == ConnectionPhase.stalled ? DiagSev.warn : DiagSev.info,
+    );
     _phase = p;
     if (!_disposed) notifyListeners();
   }
 
   void _setRetrying(bool v) {
     if (_retrying == v) return;
+    DiagLog.connection('retrying', v ? 'started' : 'finished');
     _retrying = v;
     if (!_disposed) notifyListeners();
   }

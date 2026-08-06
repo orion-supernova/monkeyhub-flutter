@@ -164,6 +164,66 @@ class MainActivity : FlutterActivity() {
                         val name = if (!configured.isNullOrBlank()) configured else Build.MODEL
                         result.success(name)
                     }
+                    // Build + display facts for the diagnostics header. Read
+                    // once per launch by DeviceReport; never on a hot path.
+                    //
+                    // The three animation scales, the refresh rate and the
+                    // power-save flag are here because they are live suspects
+                    // for a strobe that reproduces on exactly one Galaxy: a
+                    // variable-refresh panel handing over between modes, a
+                    // battery mode that zeroes animation durations, and an OEM
+                    // power manager throttling the process all look identical
+                    // from Dart, and none of them are visible without this.
+                    //
+                    // Every lookup is individually guarded — a diagnostics
+                    // header with a hole in it beats one that throws.
+                    "getBuildInfo" -> {
+                        val info = HashMap<String, Any?>()
+                        info["sdkInt"] = Build.VERSION.SDK_INT
+                        info["release"] = Build.VERSION.RELEASE
+                        info["manufacturer"] = Build.MANUFACTURER
+                        info["brand"] = Build.BRAND
+                        info["model"] = Build.MODEL
+                        info["device"] = Build.DEVICE
+                        info["hardware"] = Build.HARDWARE
+                        info["fingerprint"] = Build.FINGERPRINT
+
+                        info["powerSaveMode"] = try {
+                            (getSystemService(POWER_SERVICE) as PowerManager).isPowerSaveMode
+                        } catch (_: Throwable) { null }
+
+                        // 0.0 means "animations off", which changes how every
+                        // transition in the app behaves.
+                        for ((key, setting) in listOf(
+                            "animatorScale" to Settings.Global.ANIMATOR_DURATION_SCALE,
+                            "transitionScale" to Settings.Global.TRANSITION_ANIMATION_SCALE,
+                            "windowScale" to Settings.Global.WINDOW_ANIMATION_SCALE,
+                        )) {
+                            info[key] = try {
+                                Settings.Global.getFloat(contentResolver, setting, 1.0f)
+                            } catch (_: Throwable) { null }
+                        }
+
+                        info["refreshRate"] = try {
+                            display?.refreshRate
+                        } catch (_: Throwable) { null }
+
+                        // One UI's version is not on the public SDK. Both known
+                        // routes are reflection over vendor internals, so this
+                        // is strictly best-effort and must never throw — a null
+                        // here just means the header omits one line.
+                        info["oneUi"] = try {
+                            val f = Build.VERSION::class.java.getDeclaredField("SEM_PLATFORM_INT")
+                            val raw = f.getInt(null)
+                            // Samsung encodes One UI as 100000 + major*10000 + …
+                            if (raw >= 100000) {
+                                val v = raw - 90000
+                                "${v / 10000}.${(v % 10000) / 100}"
+                            } else null
+                        } catch (_: Throwable) { null }
+
+                        result.success(info)
+                    }
                     // Battery-optimization exemption — OEM power managers
                     // (Xiaomi/Samsung/Oppo…) defer or drop high-priority FCM
                     // for optimized apps, which is fatal for call wakes.

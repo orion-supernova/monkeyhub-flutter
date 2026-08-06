@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:convex_flutter/convex_flutter.dart' as cv;
 import 'package:flutter/foundation.dart';
 
+import '../diagnostics/diag_log.dart';
 import '../env.dart';
 import 'connection_health.dart' show ConnectionProbe;
 import 'subscription_registry.dart';
@@ -68,28 +69,59 @@ class ConvexBackend implements ConnectionProbe {
 
   cv.ConvexClient get _c => cv.ConvexClient.instance;
 
+  // These four methods are the app's entire backend surface — ChatApi, CallApi,
+  // GroupCallApi and ChatRepository all hold this same singleton, so wrapping
+  // them captures 100% of traffic without touching ~300 call sites. DiagLog is
+  // a static no-op until a device is allowlisted, so the cost here is one bool
+  // read per call.
   Future<dynamic> query(String name, Map<String, dynamic> args) async {
     await _ensureInitialized();
-    final raw = await _c.query(name, args);
-    return _decode(raw);
+    final corr = DiagLog.apiStart('query', name, args);
+    final sw = Stopwatch()..start();
+    try {
+      final decoded = _decode(await _c.query(name, args));
+      DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, decoded);
+      return decoded;
+    } catch (e) {
+      DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
+      rethrow;
+    }
   }
 
   Future<dynamic> mutation(String name, Map<String, dynamic> args) async {
     await _ensureInitialized();
+    final corr = DiagLog.apiStart('mutation', name, args);
+    final sw = Stopwatch()..start();
     try {
-      return _decode(await _c.mutation(name: name, args: args));
+      final decoded = _decode(await _c.mutation(name: name, args: args));
+      DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, decoded);
+      return decoded;
     } catch (e) {
-      if (_isVoidResultThrow(e)) return null;
+      if (_isVoidResultThrow(e)) {
+        // A normalised void result is a SUCCESS. Logging it as an error would
+        // put a spurious red line in the timeline on every `calls:accept`.
+        DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, null);
+        return null;
+      }
+      DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
       rethrow;
     }
   }
 
   Future<dynamic> action(String name, Map<String, dynamic> args) async {
     await _ensureInitialized();
+    final corr = DiagLog.apiStart('action', name, args);
+    final sw = Stopwatch()..start();
     try {
-      return _decode(await _c.action(name: name, args: args));
+      final decoded = _decode(await _c.action(name: name, args: args));
+      DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, decoded);
+      return decoded;
     } catch (e) {
-      if (_isVoidResultThrow(e)) return null;
+      if (_isVoidResultThrow(e)) {
+        DiagLog.apiEnd(corr, name, sw.elapsedMilliseconds, null);
+        return null;
+      }
+      DiagLog.apiError(corr, name, sw.elapsedMilliseconds, e);
       rethrow;
     }
   }
@@ -155,17 +187,29 @@ class ConvexBackend implements ConnectionProbe {
     // was pure cost — up to 3s per subscription, and a rebind re-registers
     // fifteen of them.
     if (kIsWeb) await _awaitConnected();
+    // The onUpdate/onError wrappers already exist, so subscription logging is
+    // free here. Deliveries are recorded by SHAPE and TIMING only (see
+    // DiagLog.subUpdate) — fifteen live subscriptions handing over full
+    // documents would bury every other category in the timeline.
+    final corr = DiagLog.subOpen(name, args);
     return await _c.subscribe(
       name: name,
       args: args,
       onUpdate: (raw) {
         try {
-          onData(_decode(raw));
+          final decoded = _decode(raw);
+          DiagLog.subUpdate(corr, name, decoded);
+          onData(decoded);
         } catch (e) {
+          DiagLog.subError(corr, name, e);
           onError?.call(e);
         }
       },
-      onError: (msg, value) => onError?.call(ConvexError(msg, value)),
+      onError: (msg, value) {
+        final err = ConvexError(msg, value);
+        DiagLog.subError(corr, name, err);
+        onError?.call(err);
+      },
     );
   }
 
@@ -236,7 +280,9 @@ class ConvexBackend implements ConnectionProbe {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     try {
-      await query('releases:latest', const {'channel': 'stable'}).timeout(timeout);
+      await query('releases:latest', const {
+        'channel': 'stable',
+      }).timeout(timeout);
       _lastProbeOkAt = DateTime.now();
       return true;
     } catch (_) {

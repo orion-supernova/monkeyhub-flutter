@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
 import 'calls/native_call_handler.dart';
 import 'data/settings_store.dart';
+import 'diagnostics/diag_boot.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'push/push_manager.dart';
@@ -17,6 +18,16 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // First real statement, on purpose: this replaces the global `debugPrint`,
+  // and anything printed before it would be missed. It also installs the
+  // framework error hooks and applies the CACHED diagnostics verdict, so a
+  // device that is already allowlisted is capturing before the first frame —
+  // a bug that fires during startup is otherwise invisible.
+  //
+  // Captures nothing on a device that has not been allowlisted from the
+  // backend; see DiagGate.
+  await DiagBoot.install();
 
   // Declare edge-to-edge ourselves. NOT cosmetic — this is what stops the
   // window's insets from oscillating on Android 15+.

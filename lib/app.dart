@@ -23,6 +23,11 @@ import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
+import 'diagnostics/diag_buffer.dart';
+import 'diagnostics/diag_gate.dart';
+import 'diagnostics/diag_log.dart';
+import 'diagnostics/metrics_watch.dart';
+import 'diagnostics/route_tracker.dart';
 import 'family/family_service.dart';
 import 'env.dart';
 import 'auth/recovery_gate.dart';
@@ -132,6 +137,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _auth,
     SettingsStore.instance,
   ]);
+
+  /// Created once so the observer list handed to MaterialApp is stable across
+  /// the AnimatedBuilder rebuilds — a fresh observer each build would detach
+  /// and reattach on every theme change and lose the route stack.
+  final DiagRouteTracker _diagRoutes = DiagRouteTracker();
 
   bool _bootstrapped = false;
   Object? _bootError;
@@ -365,8 +375,34 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     });
   }
 
+  /// Window metrics changed — padding, insets, scale.
+  ///
+  /// Nothing in this app implemented this before; it exists purely as a
+  /// detector. Every `SafeArea` in the app moves with these values, so a window
+  /// whose insets keep changing produces exactly the reported symptoms — the UI
+  /// strobing, the bottom nav sliding out from under a finger between
+  /// pointer-down and pointer-up, and the IME closing a frame after it opens.
+  /// [MetricsWatch] emits only on real change and collapses a storm into one
+  /// warning, so this cannot flood the buffer it is trying to fill.
+  @override
+  void didChangeMetrics() {
+    MetricsWatch.instance.onMetricsChanged();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The RAW state, before any of the interpretation below. The whole reason
+    // presence churn was misread once already is that only the derived value
+    // was visible; logging both is what makes the derivation checkable from a
+    // log file rather than from re-reading this method.
+    DiagLog.lifecycle(
+      '$state → presence=${presenceStatusFor(state) ?? 'none'} '
+      '(last sent ${_lastSentStatus ?? 'none'})',
+    );
+    // A backgrounding is the last chance to get the tail of the log onto disk.
+    if (state != AppLifecycleState.resumed) {
+      unawaited(DiagBuffer.instance.flush());
+    }
     // Above the session check on purpose: connection health must keep tracking
     // foreground/background across a signed-out window, so a sign-in that lands
     // right after a resume doesn't inherit a parked recovery loop.
@@ -476,6 +512,18 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
 
     _consumePendingPushRoom();
+    // Refresh the diagnostics allowlist verdict. Fire-and-forget and late on
+    // purpose: the CACHED verdict was already applied before runApp, so this
+    // only ever updates it. Routed through the same client as everything else,
+    // and DiagLog skips its own 'diagnostics:' traffic so the check cannot log
+    // itself into a loop on a device whose socket is flapping.
+    unawaited(
+      DiagGate.instance.refresh(
+        (deviceId) async =>
+            (await _cv.query('diagnostics:isEnabled', {'deviceId': deviceId}))
+                as Map<String, dynamic>?,
+      ),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateChecker.instance.ensure(_api);
       // Covers the cold-start-restore case: an account signed in on a previous
@@ -625,6 +673,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             navigatorKey: rootNavigatorKey,
+            // Root navigator only. Screen attribution turns a flat list of
+            // function names into something you can reason about, and the
+            // push/pop events are their own signal — a route that opens and
+            // closes repeatedly is a bug shape worth seeing next to the layout
+            // events it interleaves with.
+            navigatorObservers: [_diagRoutes],
             title: 'MonkeyHub',
             // Null follows the system language, resolved against
             // supportedLocales by Flutter's default algorithm (falls back to
