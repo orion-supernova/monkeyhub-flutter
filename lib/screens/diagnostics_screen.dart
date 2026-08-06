@@ -85,6 +85,17 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
   List<DiagEvent> get _events =>
       DiagBuffer.instance.snapshot().where(_filter.matches).toList();
 
+  /// Counts over the UNFILTERED buffer, so a chip's number does not change as
+  /// you filter by it — otherwise selecting one category zeroes every other
+  /// chip and the row stops being navigable.
+  static Map<DiagCat, int> _countsByCat(List<DiagEvent> all) {
+    final out = <DiagCat, int>{};
+    for (final e in all) {
+      out[e.cat] = (out[e.cat] ?? 0) + 1;
+    }
+    return out;
+  }
+
   Future<void> _shareLog({Rect? origin}) async {
     if (_busy) return;
     setState(() => _busy = true);
@@ -151,6 +162,29 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                 onCopy: _copySummary,
                 onClose: () => Navigator.of(context).pop(),
               ),
+              _SearchBar(
+                query: _filter.query,
+                onChanged: (q) =>
+                    setState(() => _filter = _filter.copyWith(query: q)),
+              ),
+              // Quick focus row: tap a category to show only it, tap again to
+              // clear, tap several to combine. Each chip carries its live count.
+              //
+              // Not a duplicate of the filter sheet — it exists because of what
+              // a real capture actually looks like. In the first session off
+              // this build, `subscription` was 247 of 352 events, so the useful
+              // move is almost always "show me just layout and connection", and
+              // burying that behind a modal was the wrong call. Only measuring
+              // it showed that.
+              _QuickCats(
+                counts: _countsByCat(buf.snapshot()),
+                selected: _filter.cats,
+                onToggle: (c) => setState(() {
+                  final next = {..._filter.cats};
+                  next.contains(c) ? next.remove(c) : next.add(c);
+                  _filter = _filter.copyWith(cats: next);
+                }),
+              ),
               Expanded(
                 child: groups.isEmpty
                     ? Center(
@@ -172,6 +206,195 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                       ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Always-visible search, collapsed to a hint until tapped.
+///
+/// Search lived only inside the filter sheet at first, which meant finding one
+/// function name cost two taps and a modal. On a screen whose whole job is
+/// finding a needle, that was the wrong place for it.
+class _SearchBar extends StatefulWidget {
+  const _SearchBar({required this.query, required this.onChanged});
+
+  final String query;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_SearchBar> createState() => _SearchBarState();
+}
+
+class _SearchBarState extends State<_SearchBar> {
+  late final TextEditingController _c = TextEditingController(
+    text: widget.query,
+  );
+  bool _open = false;
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    if (!_open && _c.text.isEmpty) {
+      return FocusableTap(
+        onTap: () => setState(() => _open = true),
+        radius: theme.radiusSm,
+        semanticLabel: 'Search',
+        child: GestureDetector(
+          onTap: () => setState(() => _open = true),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            color: theme.surface,
+            child: Row(
+              children: [
+                Icon(Icons.search, size: 15, color: theme.inkMuted),
+                const SizedBox(width: 8),
+                Text(
+                  'Search…',
+                  style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Container(
+      color: theme.surface,
+      padding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+      child: Row(
+        children: [
+          Icon(Icons.search, size: 15, color: theme.inkSoft),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _c,
+              autofocus: true,
+              style: theme.monoTiny,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              onChanged: widget.onChanged,
+            ),
+          ),
+          FocusableTap(
+            onTap: _clear,
+            shape: FocusRingShape.circle,
+            semanticLabel: 'Clear search',
+            child: GestureDetector(
+              onTap: _clear,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(Icons.close, size: 15, color: theme.inkMuted),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clear() {
+    _c.clear();
+    widget.onChanged('');
+    setState(() => _open = false);
+  }
+}
+
+/// One chip per category that actually has events, each showing its count.
+///
+/// Categories with nothing in them are omitted rather than shown empty: eleven
+/// chips of which three are meaningful is a worse control than three chips.
+class _QuickCats extends StatelessWidget {
+  const _QuickCats({
+    required this.counts,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final Map<DiagCat, int> counts;
+  final Set<DiagCat> selected;
+  final ValueChanged<DiagCat> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final present = counts.entries.where((e) => e.value > 0).toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (present.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      color: theme.surface,
+      padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final e in present) ...[
+              _CatChip(
+                cat: e.key,
+                count: e.value,
+                on: selected.contains(e.key),
+                onTap: () => onToggle(e.key),
+              ),
+              const SizedBox(width: 6),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CatChip extends StatelessWidget {
+  const _CatChip({
+    required this.cat,
+    required this.count,
+    required this.on,
+    required this.onTap,
+  });
+
+  final DiagCat cat;
+  final int count;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      radius: theme.radiusSm,
+      semanticLabel: '${cat.name} $count',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: on
+                ? theme.accent.withValues(alpha: 0.2)
+                : theme.surfaceRaised,
+            borderRadius: BorderRadius.circular(theme.radiusSm),
+            border: Border.all(color: on ? theme.accent : theme.divider),
+          ),
+          child: Text(
+            '${cat.name} $count',
+            style: theme.monoTiny.copyWith(
+              color: on ? theme.accent : theme.inkSoft,
+            ),
           ),
         ),
       ),
