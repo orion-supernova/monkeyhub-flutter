@@ -417,6 +417,50 @@ async function purgeUser(ctx: any, userId: any) {
       .collect(),
   );
 
+  // ── Feed board ───────────────────────────────────────────────────────────
+  // Moments last, after their children, so a failure part-way through never
+  // leaves reactions or view records pointing at a row that is already gone.
+  // Blobs are released explicitly: `deleteRows` only removes documents, and a
+  // moment's media would otherwise survive as an invisible billed orphan that
+  // `gcOrphanedFiles` cannot attribute to anyone.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("momentReactions")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("momentViews")
+      .withIndex("by_viewer", (q: any) => q.eq("viewerId", userId))
+      .collect(),
+  );
+  const moments = await ctx.db
+    .query("moments")
+    .withIndex("by_user", byUser(userId))
+    .collect();
+  for (const m of moments) {
+    // Reactions and views left by OTHER people on this user's moments — the
+    // by_user/by_viewer sweeps above only caught the ones this user authored.
+    for (const r of await ctx.db
+      .query("momentReactions")
+      .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
+      .collect()) {
+      await ctx.db.delete(r._id);
+    }
+    for (const vw of await ctx.db
+      .query("momentViews")
+      .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
+      .collect()) {
+      await ctx.db.delete(vw._id);
+    }
+    await deleteStored(ctx, m.mediaStorageId);
+    await deleteStored(ctx, m.posterStorageId);
+  }
+  await deleteRows(ctx, moments);
+
   // ── Family ───────────────────────────────────────────────────────────────
   // Both directions: this user may be the child OR the guardian.
   await deleteRows(

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
+import '../backend/feed_api.dart';
 import '../data/chat_repository.dart';
+import '../data/feed_store.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
@@ -33,11 +35,13 @@ class HomeShell extends StatefulWidget {
     super.key,
     required this.repo,
     required this.api,
+    required this.feedApi,
     required this.auth,
     required this.family,
   });
   final ChatRepository repo;
   final ChatApi api;
+  final FeedApi feedApi;
   final AuthService auth;
   final FamilyService family;
   @override
@@ -54,6 +58,8 @@ class _HomeShellState extends State<HomeShell> {
     widget.family.addListener(_onSettings);
     // Keep the Chat tab's unread badge live as rooms gain/clear unread state.
     widget.repo.addListener(_onSettings);
+    // Same for the Feed tab's unseen-moments badge.
+    FeedStore.instance.addListener(_onSettings);
   }
 
   @override
@@ -61,6 +67,7 @@ class _HomeShellState extends State<HomeShell> {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     widget.repo.removeListener(_onSettings);
+    FeedStore.instance.removeListener(_onSettings);
     super.dispose();
   }
 
@@ -76,6 +83,12 @@ class _HomeShellState extends State<HomeShell> {
   Map<HomeSection, int> get _badges => {
     HomeSection.chat: widget.repo.unreadMessageTotal,
     HomeSection.discover: widget.repo.incomingRequests.length,
+    // Moments from friends the user hasn't opened. One entry lights the badge
+    // in all three nav chromes, and it is the only reason anyone opens this
+    // tab on day thirty. FeedStore is subscribed app-wide (attached in
+    // app.dart, not by the Feed screen), so this stays live while the user is
+    // on another tab.
+    HomeSection.feed: FeedStore.instance.unseenCount,
     HomeSection.settings: widget.family.pendingCount,
   };
 
@@ -95,7 +108,13 @@ class _HomeShellState extends State<HomeShell> {
           family: widget.family,
         );
       case HomeSection.feed:
-        return const FeedScreen();
+        return FeedScreen(
+          repo: widget.repo,
+          api: widget.api,
+          feedApi: widget.feedApi,
+          auth: widget.auth,
+          family: widget.family,
+        );
       case HomeSection.settings:
         return SettingsScreen(
           repo: widget.repo,
@@ -232,7 +251,13 @@ class _HomeShellState extends State<HomeShell> {
           family: widget.family,
         );
       case HomeSection.feed:
-        content = const FeedScreen();
+        content = FeedScreen(
+          repo: widget.repo,
+          api: widget.api,
+          feedApi: widget.feedApi,
+          auth: widget.auth,
+          family: widget.family,
+        );
       case HomeSection.settings:
         content = _SettingsTwoPane(
           repo: widget.repo,

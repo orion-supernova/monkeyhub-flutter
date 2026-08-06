@@ -4032,29 +4032,40 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterPublicRoomJoinFailedMessage => 'couldn\'t join — try again';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'FEED';
+  String get feedBoardTitle => 'TODAY';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'soon.\n';
+  String feedBoardEditionLabel(Object number) {
+    return '№$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'daily moments,\nshared with rooms.';
+  String get feedBoardHighlightsLabel => 'HIGHLIGHTS';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'IN THE PIPE';
+  String get feedBoardHighlightsEmpty => 'nothing captured yet today';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'a daily prompt the room responds to';
+  String get feedBoardPuzzleLabel => 'THE PUZZLE';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'voice notes that auto-fade with the day';
+  String get feedBoardPuzzleEmpty => 'today\'s puzzle isn\'t ready yet';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'a wall of small, slow updates from friends';
+  String get feedBoardStandingsLabel => 'STANDINGS';
+
+  @override
+  String get feedBoardStandingsEmpty => 'no points on the board today';
+
+  @override
+  String get feedBoardActivityLabel => 'ACTIVITY';
+
+  @override
+  String get feedBoardActivityEmpty => 'quiet so far today';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'add a friend and their day shows up here';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'PUBLIC';
@@ -4628,4 +4639,131 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'MOTION';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Full';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Calm';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => 'Match device · full';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'Match device · calm';
+
+  @override
+  String get motionScreenTitle => 'motion.';
+
+  @override
+  String get motionScreenSubtitle => 'how much the app moves';
+
+  @override
+  String get motionScreenSystemLabel => 'MATCH DEVICE';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'your device allows animation right now';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'your device asks for reduced motion right now';
+
+  @override
+  String get motionScreenFullLabel => 'FULL';
+
+  @override
+  String get motionScreenFullSubtitle => 'every drift, glow and flourish';
+
+  @override
+  String get motionScreenCalmLabel => 'CALM';
+
+  @override
+  String get motionScreenCalmSubtitle =>
+      'decoration holds still — nothing else changes';
+
+  @override
+  String get momentRailCaptureLabel => 'CAPTURE';
+
+  @override
+  String get momentRailYouLabel => 'you';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'FATE';
+
+  @override
+  String get momentTagJinx => 'JINX';
+
+  @override
+  String get momentTagLuck => 'LUCK';
+
+  @override
+  String get momentTagCalledIt => 'CALLED IT';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'what are the odds';
+
+  @override
+  String get momentTagJinxHint => 'you did it to yourself';
+
+  @override
+  String get momentTagLuckHint => 'that went your way';
+
+  @override
+  String get momentTagCalledItHint => 'you saw it coming';
+
+  @override
+  String get momentTagNpcHint => 'brain fully off';
+
+  @override
+  String get momentComposerTitle => 'what happened?';
+
+  @override
+  String get momentComposerCaptionHint => 'say something about it';
+
+  @override
+  String get momentComposerTagPrompt => 'scoring? pick one';
+
+  @override
+  String get momentComposerCapture => 'camera';
+
+  @override
+  String get momentComposerLibrary => 'library';
+
+  @override
+  String get momentComposerRemovePhoto => 'remove photo';
+
+  @override
+  String get momentComposerPost => 'POST';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'that\'s twenty of those today — save some for tomorrow';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'a guardian has turned photo sharing off';
+
+  @override
+  String get momentComposerErrorTooLong => 'that\'s a bit long — trim it down';
+
+  @override
+  String get momentComposerErrorEmpty => 'add a photo or a few words';
+
+  @override
+  String get momentComposerErrorGeneric => 'couldn\'t post that — try again';
+
+  @override
+  String get momentViewerDelete => 'delete';
 }

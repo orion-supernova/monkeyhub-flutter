@@ -44,6 +44,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassSlots = 'mh.glass.slots';
   static const _kGlassPreset = 'mh.glass.preset';
   static const _kLocale = 'mh.locale';
+  static const _kMotionLevel = 'mh.motionLevel';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -74,6 +75,9 @@ class SettingsStore extends ChangeNotifier {
   // than their device's — e.g. practicing Turkish, or a shared family
   // handset where members prefer different languages.
   String? _localeCode;
+
+  // Null means "follow the OS accessibility setting" — see [motionLevel].
+  MotionLevel? _motionLevel;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -111,6 +115,24 @@ class SettingsStore extends ChangeNotifier {
   /// and the user would be re-prompted on every single sign-in. SettingsStore
   /// is never cleared. That difference is the whole reason for the split.
   String? get recoveryPromptDismissedFor => _recoveryPromptDismissedFor;
+
+  /// How much decorative motion the app renders.
+  ///
+  /// `null` (the default) means "follow the OS" — iOS Reduce Motion / Android
+  /// Remove Animations, read through `MediaQuery.disableAnimations`. An
+  /// explicit value overrides the OS **in both directions**, so someone who
+  /// turned the system flag on for a different app can still opt this one back
+  /// into full motion, and someone who just finds the board busy can calm it
+  /// without touching a system setting.
+  ///
+  /// Tri-state rather than a bool for exactly that reason: a bare bool cannot
+  /// express "I have not chosen" separately from "I chose the same thing the OS
+  /// happens to say today", so the first time the OS flag flipped the user's
+  /// choice would be silently overwritten.
+  ///
+  /// Resolve it with [MotionScope.of] — never read this getter directly in a
+  /// widget, or the OS half of the contract is lost.
+  MotionLevel? get motionLevel => _motionLevel;
 
   /// Which control the chat list uses to filter rooms. Defaults to
   /// [FilterStyle.chips] — the filters are worth a permanent row, and a control
@@ -246,6 +268,10 @@ class SettingsStore extends ChangeNotifier {
         _glass = _resolvePreset(_glassPresetId).profile;
       }
       _localeCode = await _storage.read(key: _kLocale);
+      // Absent (and unrecognised) reads back as null = "follow the OS", which
+      // is the default every fresh install wants. Parsing cannot throw, so its
+      // position at the tail of this try block costs nothing.
+      _motionLevel = MotionLevel.parse(await _storage.read(key: _kMotionLevel));
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -285,6 +311,20 @@ class SettingsStore extends ChangeNotifier {
     _section = s;
     notifyListeners();
     if (persist) await _storage.write(key: _kSection, value: s.name);
+  }
+
+  /// Sets (or clears) the motion override. Passing null returns to "follow the
+  /// OS", and deletes the key rather than writing a sentinel — the same shape
+  /// [setLocaleCode] uses for its nullable preference.
+  Future<void> setMotionLevel(MotionLevel? m) async {
+    if (_motionLevel == m) return;
+    _motionLevel = m;
+    notifyListeners();
+    if (m == null) {
+      await _storage.delete(key: _kMotionLevel);
+    } else {
+      await _storage.write(key: _kMotionLevel, value: m.name);
+    }
   }
 
   Future<void> setFilterStyle(FilterStyle s) async {
@@ -606,6 +646,30 @@ enum ChatStyle { classic, compact }
 enum ReplyStyle { phantomEcho, stickyNote, comicTail, classic }
 
 enum LogoMode { auto, manual, alwaysDefault }
+
+/// How much decorative motion to render. See [SettingsStore.motionLevel] for
+/// why the stored preference is nullable, and [MotionScope] for how it resolves
+/// against the OS flag.
+///
+/// * `full` — every parallax layer, loop and particle runs.
+/// * `calm` — decorative motion is not shortened, it is **not built**. Looping
+///   tickers never start, the parallax field paints statically, and transitions
+///   collapse to zero duration. Merely shortening durations still costs the
+///   frames and still moves the screen, which is the thing being asked for.
+enum MotionLevel {
+  full,
+  calm;
+
+  static final Map<String, MotionLevel> _byName = values.asNameMap();
+
+  /// Resolves a persisted name. Unknown and absent both mean "no override" —
+  /// the caller falls back to the OS.
+  ///
+  /// Derived from [values] rather than a `switch` with a `default:`, matching
+  /// [HomeSection.parse]: the switch form compiles cleanly when a member is
+  /// added and silently dumps everyone onto the fallback.
+  static MotionLevel? parse(String? s) => s == null ? null : _byName[s];
+}
 
 /// Top-level shell destinations, in nav order.
 enum HomeSection {

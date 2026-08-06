@@ -247,10 +247,23 @@ export const updateVisibility = mutation({
     lastSeen: v.optional(v.string()),
     seen: v.optional(v.string()),
     friendRequests: v.optional(v.string()),
+    feed: v.optional(v.string()),
+    puzzle: v.optional(v.string()),
+    pointsPast: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { userId, avatar, status, lastSeen, seen, friendRequests }
+    {
+      userId,
+      avatar,
+      status,
+      lastSeen,
+      seen,
+      friendRequests,
+      feed,
+      puzzle,
+      pointsPast,
+    }
   ) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
@@ -260,6 +273,7 @@ export const updateVisibility = mutation({
     if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_NOT_ALLOWED);
     const valid = new Set(["public", "friends", "nobody"]);
     const reqValid = new Set(["public", "nobody"]);
+    const feedValid = new Set(["friends", "nobody"]);
     function pick(level: string | undefined, allowed: Set<string>): string | undefined {
       if (level === undefined) return undefined;
       return allowed.has(level) ? level : undefined;
@@ -276,6 +290,16 @@ export const updateVisibility = mutation({
       ...(seen !== undefined ? { seen: pick(seen, valid) } : {}),
       ...(friendRequests !== undefined
         ? { friendRequests: pick(friendRequests, reqValid) }
+        : {}),
+      // Feed keys are friends-or-nobody only. "public" is deliberately not
+      // accepted: the board fans out over accepted friendships and nothing
+      // else, so storing "public" would be a promise the reader cannot keep.
+      // Note these three DEFAULT differently from the rest of this object —
+      // see `visibilityOf` in feed.ts, which owns that decision.
+      ...(feed !== undefined ? { feed: pick(feed, feedValid) } : {}),
+      ...(puzzle !== undefined ? { puzzle: pick(puzzle, feedValid) } : {}),
+      ...(pointsPast !== undefined
+        ? { pointsPast: pick(pointsPast, feedValid) }
         : {}),
     };
     await ctx.db.patch(userId, { visibility: next });

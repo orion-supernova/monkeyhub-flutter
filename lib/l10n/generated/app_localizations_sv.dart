@@ -4062,29 +4062,40 @@ class AppLocalizationsSv extends AppLocalizations {
       'kunde inte gå med — försök igen';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'FLÖDE';
+  String get feedBoardTitle => 'IDAG';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'snart.\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'Nr$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'dagliga stunder,\ndelade med rum.';
+  String get feedBoardHighlightsLabel => 'HÖJDPUNKTER';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'PÅ GÅNG';
+  String get feedBoardHighlightsEmpty => 'inget fångat idag än';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'en daglig fråga som rummet svarar på';
+  String get feedBoardPuzzleLabel => 'PUSSLET';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'röstmeddelanden som bleknar bort automatiskt med dagen';
+  String get feedBoardPuzzleEmpty => 'dagens pussel är inte klart än';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'en vägg med små, stillsamma uppdateringar från vänner';
+  String get feedBoardStandingsLabel => 'STÄLLNING';
+
+  @override
+  String get feedBoardStandingsEmpty => 'inga poäng på tavlan idag';
+
+  @override
+  String get feedBoardActivityLabel => 'AKTIVITET';
+
+  @override
+  String get feedBoardActivityEmpty => 'lugnt hittills idag';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'lägg till en vän så dyker deras dag upp här';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'OFFENTLIG';
@@ -4661,4 +4672,131 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'RÖRELSE';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Full';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Lugn';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => 'Följ enheten · full';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'Följ enheten · lugn';
+
+  @override
+  String get motionScreenTitle => 'rörelse.';
+
+  @override
+  String get motionScreenSubtitle => 'hur mycket appen rör sig';
+
+  @override
+  String get motionScreenSystemLabel => 'FÖLJ ENHETEN';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'din enhet tillåter animation just nu';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'din enhet ber om mindre rörelse just nu';
+
+  @override
+  String get motionScreenFullLabel => 'FULL';
+
+  @override
+  String get motionScreenFullSubtitle => 'varje drift, glöd och krusidull';
+
+  @override
+  String get motionScreenCalmLabel => 'LUGN';
+
+  @override
+  String get motionScreenCalmSubtitle =>
+      'dekoren står stilla — inget annat ändras';
+
+  @override
+  String get momentRailCaptureLabel => 'FÅNGA';
+
+  @override
+  String get momentRailYouLabel => 'du';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'ÖDE';
+
+  @override
+  String get momentTagJinx => 'OTUR';
+
+  @override
+  String get momentTagLuck => 'TUR';
+
+  @override
+  String get momentTagCalledIt => 'VAD VAR DET JAG SA';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'vilket sammanträffande';
+
+  @override
+  String get momentTagJinxHint => 'det där gjorde du mot dig själv';
+
+  @override
+  String get momentTagLuckHint => 'det gick din väg';
+
+  @override
+  String get momentTagCalledItHint => 'du såg det komma';
+
+  @override
+  String get momentTagNpcHint => 'hjärnan helt avstängd';
+
+  @override
+  String get momentComposerTitle => 'vad hände?';
+
+  @override
+  String get momentComposerCaptionHint => 'säg något om det';
+
+  @override
+  String get momentComposerTagPrompt => 'ska det räknas? välj en';
+
+  @override
+  String get momentComposerCapture => 'kamera';
+
+  @override
+  String get momentComposerLibrary => 'galleri';
+
+  @override
+  String get momentComposerRemovePhoto => 'ta bort foto';
+
+  @override
+  String get momentComposerPost => 'PUBLICERA';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'det blev tjugo idag — spara något till imorgon';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'en vårdnadshavare har stängt av fotodelning';
+
+  @override
+  String get momentComposerErrorTooLong => 'lite väl långt — korta ner';
+
+  @override
+  String get momentComposerErrorEmpty => 'lägg till ett foto eller några ord';
+
+  @override
+  String get momentComposerErrorGeneric => 'kunde inte publicera — försök igen';
+
+  @override
+  String get momentViewerDelete => 'radera';
 }

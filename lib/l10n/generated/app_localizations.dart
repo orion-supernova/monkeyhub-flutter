@@ -6875,47 +6875,71 @@ abstract class AppLocalizations {
   /// **'couldn\'t join — try again'**
   String get enterPublicRoomJoinFailedMessage;
 
-  /// All-caps section label next to the app brand mark at the top of the Feed placeholder screen.
+  /// All-caps wordmark in the masthead of the Feed tab's board, beside the app brand mark. Everything on the board is scoped to the current day, which is what this names.
   ///
   /// In en, this message translates to:
-  /// **'FEED'**
-  String get enterPublicRoomFeedTabLabel;
+  /// **'TODAY'**
+  String get feedBoardTitle;
 
-  /// First (large) line of the two-part 'coming soon' headline on the Feed placeholder screen; immediately followed on screen by enterPublicRoomFeedHeadlineDetail in smaller text within the same RichText.
+  /// Edition stamp at the right end of the Feed masthead's rule, like a newspaper issue number. {number} is the count of days since the Feed launched. '№' is the numero sign; substitute the conventional abbreviation for 'number' in your language if '№' is not used (e.g. 'No.', 'Nr.', '#').
   ///
   /// In en, this message translates to:
-  /// **'soon.\n'**
-  String get enterPublicRoomFeedHeadlineSoon;
+  /// **'№{number}'**
+  String feedBoardEditionLabel(Object number);
 
-  /// Second, smaller part of the Feed placeholder headline, continuing the sentence started by enterPublicRoomFeedHeadlineSoon ('soon. daily moments, shared with rooms.').
+  /// All-caps band label for the Feed section showing photos and videos friends captured today — a good sunset, a stray cat, anything worth a look.
   ///
   /// In en, this message translates to:
-  /// **'daily moments,\nshared with rooms.'**
-  String get enterPublicRoomFeedHeadlineDetail;
+  /// **'HIGHLIGHTS'**
+  String get feedBoardHighlightsLabel;
 
-  /// All-caps label above the bullet list of upcoming Feed features (idiom for 'coming up / in progress').
+  /// Muted single line shown under the HIGHLIGHTS band when nobody, including the viewer, has posted a highlight today. Lowercase and conversational to match the app's other empty states.
   ///
   /// In en, this message translates to:
-  /// **'IN THE PIPE'**
-  String get enterPublicRoomFeedPipelineLabel;
+  /// **'nothing captured yet today'**
+  String get feedBoardHighlightsEmpty;
 
-  /// Bullet item describing an upcoming Feed feature: a daily prompt/question the whole room answers.
+  /// All-caps band label for the Feed section holding the once-a-day logic puzzle and everyone's scores.
   ///
   /// In en, this message translates to:
-  /// **'a daily prompt the room responds to'**
-  String get enterPublicRoomFeedBulletPrompt;
+  /// **'THE PUZZLE'**
+  String get feedBoardPuzzleLabel;
 
-  /// Bullet item describing an upcoming Feed feature: voice notes that disappear at the end of the day.
+  /// Muted single line shown under THE PUZZLE band before the daily puzzle is available.
   ///
   /// In en, this message translates to:
-  /// **'voice notes that auto-fade with the day'**
-  String get enterPublicRoomFeedBulletVoiceNotes;
+  /// **'today\'s puzzle isn\'t ready yet'**
+  String get feedBoardPuzzleEmpty;
 
-  /// Bullet item describing an upcoming Feed feature: a feed/wall of low-key updates from friends.
+  /// All-caps band label for the Feed section tallying the points friends award themselves for real-world moments.
   ///
   /// In en, this message translates to:
-  /// **'a wall of small, slow updates from friends'**
-  String get enterPublicRoomFeedBulletWallUpdates;
+  /// **'STANDINGS'**
+  String get feedBoardStandingsLabel;
+
+  /// Muted single line shown under the STANDINGS band when nobody has awarded themselves a point today.
+  ///
+  /// In en, this message translates to:
+  /// **'no points on the board today'**
+  String get feedBoardStandingsEmpty;
+
+  /// All-caps band label for the Feed's chronological list of everything friends did today.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVITY'**
+  String get feedBoardActivityLabel;
+
+  /// Muted single line shown under the ACTIVITY band when the viewer has friends but none of them have done anything today.
+  ///
+  /// In en, this message translates to:
+  /// **'quiet so far today'**
+  String get feedBoardActivityEmpty;
+
+  /// Muted single line shown under the ACTIVITY band when the viewer has no friends yet — explains what would fill the section, rather than only reporting that it is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'add a friend and their day shows up here'**
+  String get feedBoardActivityNoFriends;
 
   /// All-caps badge label shown on a room card/chip when the room is public (widgets/visibility_badge.dart).
   ///
@@ -7960,6 +7984,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'日本語'**
   String get languageValueJapanese;
+
+  /// All-caps label for the Settings > Appearance row that opens the motion screen, where the user chooses how much the app animates.
+  ///
+  /// In en, this message translates to:
+  /// **'MOTION'**
+  String get settingsScreenRowMotion;
+
+  /// Value shown on the Settings MOTION row when the user has explicitly chosen full motion, overriding the device's accessibility setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get settingsScreenValueMotionFull;
+
+  /// Value shown on the Settings MOTION row when the user has explicitly chosen reduced motion, overriding the device's accessibility setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Calm'**
+  String get settingsScreenValueMotionCalm;
+
+  /// Value on the Settings MOTION row when the user follows the device setting AND the device currently allows animation. The '·' separates the mode from what it currently resolves to.
+  ///
+  /// In en, this message translates to:
+  /// **'Match device · full'**
+  String get settingsScreenValueMotionSystemFull;
+
+  /// Value on the Settings MOTION row when the user follows the device setting AND the device currently requests reduced motion. The '·' separates the mode from what it currently resolves to.
+  ///
+  /// In en, this message translates to:
+  /// **'Match device · calm'**
+  String get settingsScreenValueMotionSystemCalm;
+
+  /// Lowercase page title of the motion settings screen, with a full stop. Matches the house style of the other settings sub-screens ('language.', 'theme.').
+  ///
+  /// In en, this message translates to:
+  /// **'motion.'**
+  String get motionScreenTitle;
+
+  /// One-line subtitle under the motion screen's title, next to a short accent rule.
+  ///
+  /// In en, this message translates to:
+  /// **'how much the app moves'**
+  String get motionScreenSubtitle;
+
+  /// All-caps label of the motion option that follows the device's own reduce-motion accessibility setting. This is the default.
+  ///
+  /// In en, this message translates to:
+  /// **'MATCH DEVICE'**
+  String get motionScreenSystemLabel;
+
+  /// Sub-line under the MATCH DEVICE motion option, shown when the device's reduce-motion setting is currently OFF, so following it means full animation.
+  ///
+  /// In en, this message translates to:
+  /// **'your device allows animation right now'**
+  String get motionScreenSystemSubtitleFull;
+
+  /// Sub-line under the MATCH DEVICE motion option, shown when the device's reduce-motion setting is currently ON, so following it means calm animation.
+  ///
+  /// In en, this message translates to:
+  /// **'your device asks for reduced motion right now'**
+  String get motionScreenSystemSubtitleCalm;
+
+  /// All-caps label of the motion option that always renders every animation, even if the device asks for reduced motion.
+  ///
+  /// In en, this message translates to:
+  /// **'FULL'**
+  String get motionScreenFullLabel;
+
+  /// Sub-line under the FULL motion option describing what it enables.
+  ///
+  /// In en, this message translates to:
+  /// **'every drift, glow and flourish'**
+  String get motionScreenFullSubtitle;
+
+  /// All-caps label of the motion option that suppresses decorative animation regardless of the device setting.
+  ///
+  /// In en, this message translates to:
+  /// **'CALM'**
+  String get motionScreenCalmLabel;
+
+  /// Sub-line under the CALM motion option. Reassures the user that only decorative motion stops: scrolling, sheets and gestures behave exactly as before.
+  ///
+  /// In en, this message translates to:
+  /// **'decoration holds still — nothing else changes'**
+  String get motionScreenCalmSubtitle;
+
+  /// All-caps label on the leading tile of the Feed highlights rail, which opens the composer to capture or pick a photo.
+  ///
+  /// In en, this message translates to:
+  /// **'CAPTURE'**
+  String get momentRailCaptureLabel;
+
+  /// Lowercase author label under a card in the Feed highlights rail when the moment is the viewer's own, shown instead of their name.
+  ///
+  /// In en, this message translates to:
+  /// **'you'**
+  String get momentRailYouLabel;
+
+  /// Screen-reader label for a card in the Feed highlights rail. {author} is the person's display name, {caption} is the text they wrote. NOTE: parameters are emitted in ALPHABETICAL order (author, caption), which here matches reading order.
+  ///
+  /// In en, this message translates to:
+  /// **'{author}: {caption}'**
+  String momentRailCardSemanticLabel(Object author, Object caption);
+
+  /// All-caps name of the scoring category for an improbable coincidence — running into your dentist abroad, spotting a celebrity. 'What are the odds', with no benefit implied.
+  ///
+  /// In en, this message translates to:
+  /// **'FATE'**
+  String get momentTagFate;
+
+  /// All-caps name of the scoring category for doing something reasonable and having the timing make it pointless — washing the car and then it rains. Translates the Turkish 'kerizlik': the universe mocking your effort. NOT 'silly' or 'goofy'; the point is self-inflicted bad timing.
+  ///
+  /// In en, this message translates to:
+  /// **'JINX'**
+  String get momentTagJinx;
+
+  /// All-caps name of the scoring category for things going your way — catching the train with seconds to spare, finding parking outside. The mirror of JINX.
+  ///
+  /// In en, this message translates to:
+  /// **'LUCK'**
+  String get momentTagLuck;
+
+  /// All-caps name of the scoring category for predicting something out loud that then happened.
+  ///
+  /// In en, this message translates to:
+  /// **'CALLED IT'**
+  String get momentTagCalledIt;
+
+  /// All-caps name of the scoring category for a total autopilot moment — saying 'you too' to a waiter, putting the cereal in the fridge. From the gaming term for a non-player character who acts on a script; keep it untranslated if the term is used as-is in your language.
+  ///
+  /// In en, this message translates to:
+  /// **'NPC'**
+  String get momentTagNpc;
+
+  /// One-line explanation under the FATE category in the moment composer's picker.
+  ///
+  /// In en, this message translates to:
+  /// **'what are the odds'**
+  String get momentTagFateHint;
+
+  /// One-line explanation under the JINX category in the moment composer's picker — the bad timing was a consequence of your own action.
+  ///
+  /// In en, this message translates to:
+  /// **'you did it to yourself'**
+  String get momentTagJinxHint;
+
+  /// One-line explanation under the LUCK category in the moment composer's picker.
+  ///
+  /// In en, this message translates to:
+  /// **'that went your way'**
+  String get momentTagLuckHint;
+
+  /// One-line explanation under the CALLED IT category in the moment composer's picker.
+  ///
+  /// In en, this message translates to:
+  /// **'you saw it coming'**
+  String get momentTagCalledItHint;
+
+  /// One-line explanation under the NPC category in the moment composer's picker — acting on autopilot, not thinking.
+  ///
+  /// In en, this message translates to:
+  /// **'brain fully off'**
+  String get momentTagNpcHint;
+
+  /// Lowercase title at the top of the sheet for composing a new Feed moment. Conversational, inviting the user to share something from their day.
+  ///
+  /// In en, this message translates to:
+  /// **'what happened?'**
+  String get momentComposerTitle;
+
+  /// Placeholder text in the caption field of the moment composer.
+  ///
+  /// In en, this message translates to:
+  /// **'say something about it'**
+  String get momentComposerCaptionHint;
+
+  /// Small hint above the row of scoring categories in the moment composer, explaining that picking one is optional and makes the moment count on the standings board.
+  ///
+  /// In en, this message translates to:
+  /// **'scoring? pick one'**
+  String get momentComposerTagPrompt;
+
+  /// Label on the button in the moment composer that opens the in-app camera.
+  ///
+  /// In en, this message translates to:
+  /// **'camera'**
+  String get momentComposerCapture;
+
+  /// Label on the button in the moment composer that opens the device photo library.
+  ///
+  /// In en, this message translates to:
+  /// **'library'**
+  String get momentComposerLibrary;
+
+  /// Screen-reader label for the X button that clears the chosen photo in the moment composer.
+  ///
+  /// In en, this message translates to:
+  /// **'remove photo'**
+  String get momentComposerRemovePhoto;
+
+  /// All-caps label on the button that publishes the moment in the composer.
+  ///
+  /// In en, this message translates to:
+  /// **'POST'**
+  String get momentComposerPost;
+
+  /// Error under the composer when the user has already awarded themselves the daily maximum (20) of one scoring category. Light-hearted; the cap exists so the standings board stays meaningful, not as a punishment.
+  ///
+  /// In en, this message translates to:
+  /// **'that\'s twenty of those today — save some for tomorrow'**
+  String get momentComposerErrorDailyCap;
+
+  /// Error under the composer when a supervised (child) account tries to post a photo but their guardian has disabled media.
+  ///
+  /// In en, this message translates to:
+  /// **'a guardian has turned photo sharing off'**
+  String get momentComposerErrorNotAllowed;
+
+  /// Error under the composer when the caption exceeds 280 characters.
+  ///
+  /// In en, this message translates to:
+  /// **'that\'s a bit long — trim it down'**
+  String get momentComposerErrorTooLong;
+
+  /// Error under the composer when the user tries to post with neither a photo nor any text.
+  ///
+  /// In en, this message translates to:
+  /// **'add a photo or a few words'**
+  String get momentComposerErrorEmpty;
+
+  /// Generic error under the composer when publishing fails for an unrecognised reason.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t post that — try again'**
+  String get momentComposerErrorGeneric;
+
+  /// Label on the action that permanently removes the viewer's own moment from the Feed, shown only on moments they wrote.
+  ///
+  /// In en, this message translates to:
+  /// **'delete'**
+  String get momentViewerDelete;
 }
 
 class _AppLocalizationsDelegate

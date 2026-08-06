@@ -10,6 +10,7 @@ import 'backend/call_api.dart';
 import 'backend/chat_api.dart';
 import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
+import 'backend/feed_api.dart';
 import 'backend/group_call_api.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/call_models.dart';
@@ -22,6 +23,7 @@ import 'calls/incoming_group_call_screen.dart';
 import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
+import 'data/feed_store.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_buffer.dart';
 import 'diagnostics/diag_log.dart';
@@ -123,6 +125,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   final ThemeController _themeController = ThemeController(_initialTheme());
   final ConvexBackend _cv = ConvexBackend.instance;
   late final ChatApi _api = ChatApi(_cv);
+  late final FeedApi _feedApi = FeedApi(_cv);
   late final CallApi _callApi = CallApi(_cv);
   late final ChatRepository _repo = ChatRepository(api: _api, cv: _cv);
   late final AuthService _auth = AuthService(_api);
@@ -563,6 +566,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     try {
       await _repo.attach(s.userId);
       _family.attach(s.userId);
+      // Attached here rather than in FeedScreen: the shell disposes that
+      // screen on every tab switch AND every theme change, and the board's
+      // unseen count has to stay live while the user is on another tab or the
+      // nav badge could never light.
+      unawaited(FeedStore.instance.attach(_feedApi, s.userId));
       await PushManager.instance.login(s.userId);
       OneSignalWeb.login(s.userId);
       if (!SettingsStore.instance.pushEnabled) {
@@ -604,6 +612,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       if (s != null && _repo.userId != s.userId) {
         await _repo.attach(s.userId);
         _family.attach(s.userId);
+        unawaited(FeedStore.instance.attach(_feedApi, s.userId));
         await PushManager.instance.login(s.userId);
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
         // Mark online on first attach. Recorded in _lastSentStatus like every
@@ -646,6 +655,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         MessageAlerts.instance.unbind();
         _family.detach();
         await _repo.detach();
+        // Drops the cached board as well as the subscription — those moments
+        // are another account's data and must not flash on screen for whoever
+        // signs in next on a shared handset.
+        await FeedStore.instance.detach();
         await PushManager.instance.logout();
         OneSignalWeb.logout(); // drop web push external_id; no-op off web
         // Storage URLs aren't secret, but the next account shouldn't inherit
@@ -864,6 +877,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               auth: _auth,
               repo: _repo,
               api: _api,
+              feedApi: _feedApi,
               family: _family,
               themeController: _themeController,
               bootstrapped: _bootstrapped,
@@ -1343,6 +1357,7 @@ class _AppHome extends StatefulWidget {
     required this.auth,
     required this.repo,
     required this.api,
+    required this.feedApi,
     required this.family,
     required this.themeController,
     required this.bootstrapped,
@@ -1353,6 +1368,7 @@ class _AppHome extends StatefulWidget {
   final AuthService auth;
   final ChatRepository repo;
   final ChatApi api;
+  final FeedApi feedApi;
   final FamilyService family;
   final ThemeController themeController;
   final bool bootstrapped;
@@ -1403,6 +1419,7 @@ class _AppHomeState extends State<_AppHome> {
             key: ValueKey('home_${theme.id}'),
             repo: widget.repo,
             api: widget.api,
+            feedApi: widget.feedApi,
             auth: widget.auth,
             family: widget.family,
           )

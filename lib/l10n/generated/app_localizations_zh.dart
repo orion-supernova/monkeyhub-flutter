@@ -3854,25 +3854,39 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enterPublicRoomJoinFailedMessage => '加入失败，请重试';
 
   @override
-  String get enterPublicRoomFeedTabLabel => '动态';
+  String get feedBoardTitle => '今天';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => '即将推出。\n';
+  String feedBoardEditionLabel(Object number) {
+    return '第$number期';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail => '每日时刻，\n与房间共享。';
+  String get feedBoardHighlightsLabel => '精彩瞬间';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => '筹备中';
+  String get feedBoardHighlightsEmpty => '今天还没有内容';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt => '全房间共同回应的每日话题';
+  String get feedBoardPuzzleLabel => '谜题';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes => '随当天自动消失的语音留言';
+  String get feedBoardPuzzleEmpty => '今天的谜题还没准备好';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates => '记录好友琐碎日常的动态墙';
+  String get feedBoardStandingsLabel => '积分榜';
+
+  @override
+  String get feedBoardStandingsEmpty => '今天还没有积分';
+
+  @override
+  String get feedBoardActivityLabel => '动态';
+
+  @override
+  String get feedBoardActivityEmpty => '今天还很安静';
+
+  @override
+  String get feedBoardActivityNoFriends => '添加好友后，他们的一天会显示在这里';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => '公开';
@@ -4408,4 +4422,126 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => '动效';
+
+  @override
+  String get settingsScreenValueMotionFull => '完整';
+
+  @override
+  String get settingsScreenValueMotionCalm => '安静';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => '跟随设备 · 完整';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => '跟随设备 · 安静';
+
+  @override
+  String get motionScreenTitle => '动效。';
+
+  @override
+  String get motionScreenSubtitle => '应用的动态程度';
+
+  @override
+  String get motionScreenSystemLabel => '跟随设备';
+
+  @override
+  String get motionScreenSystemSubtitleFull => '你的设备目前允许动画';
+
+  @override
+  String get motionScreenSystemSubtitleCalm => '你的设备目前要求减少动态效果';
+
+  @override
+  String get motionScreenFullLabel => '完整';
+
+  @override
+  String get motionScreenFullSubtitle => '每一次飘移、光晕与点缀';
+
+  @override
+  String get motionScreenCalmLabel => '安静';
+
+  @override
+  String get motionScreenCalmSubtitle => '装饰静止 — 其他一切照旧';
+
+  @override
+  String get momentRailCaptureLabel => '拍摄';
+
+  @override
+  String get momentRailYouLabel => '你';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author：$caption';
+  }
+
+  @override
+  String get momentTagFate => '巧合';
+
+  @override
+  String get momentTagJinx => '自作自受';
+
+  @override
+  String get momentTagLuck => '走运';
+
+  @override
+  String get momentTagCalledIt => '我就说吧';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => '也太巧了';
+
+  @override
+  String get momentTagJinxHint => '这是你自找的';
+
+  @override
+  String get momentTagLuckHint => '事情如你所愿';
+
+  @override
+  String get momentTagCalledItHint => '你早就料到了';
+
+  @override
+  String get momentTagNpcHint => '大脑完全关机';
+
+  @override
+  String get momentComposerTitle => '发生什么了？';
+
+  @override
+  String get momentComposerCaptionHint => '说点什么';
+
+  @override
+  String get momentComposerTagPrompt => '要计分吗？选一个';
+
+  @override
+  String get momentComposerCapture => '相机';
+
+  @override
+  String get momentComposerLibrary => '相册';
+
+  @override
+  String get momentComposerRemovePhoto => '移除照片';
+
+  @override
+  String get momentComposerPost => '发布';
+
+  @override
+  String get momentComposerErrorDailyCap => '今天已经二十个了 — 给明天留点';
+
+  @override
+  String get momentComposerErrorNotAllowed => '监护人已关闭照片分享';
+
+  @override
+  String get momentComposerErrorTooLong => '有点长 — 精简一下';
+
+  @override
+  String get momentComposerErrorEmpty => '加一张照片或几句话';
+
+  @override
+  String get momentComposerErrorGeneric => '发布失败 — 请重试';
+
+  @override
+  String get momentViewerDelete => '删除';
 }

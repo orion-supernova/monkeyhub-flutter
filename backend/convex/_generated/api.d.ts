@@ -15,6 +15,7 @@ import type * as calls from "../calls.js";
 import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
 import type * as family from "../family.js";
+import type * as feed from "../feed.js";
 import type * as files from "../files.js";
 import type * as friends from "../friends.js";
 import type * as groupCalls from "../groupCalls.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   childGuard: typeof childGuard;
   crons: typeof crons;
   family: typeof family;
+  feed: typeof feed;
   files: typeof files;
   friends: typeof friends;
   groupCalls: typeof groupCalls;

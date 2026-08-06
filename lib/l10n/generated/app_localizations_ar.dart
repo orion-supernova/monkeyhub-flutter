@@ -4133,28 +4133,39 @@ class AppLocalizationsAr extends AppLocalizations {
       'تعذّر الانضمام — حاول مرة أخرى';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'خلاصة';
+  String get feedBoardTitle => 'اليوم';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'قريبًا.\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'العدد $number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'لحظات يومية،\nتُشارك مع الغرف.';
+  String get feedBoardHighlightsLabel => 'أبرز اللحظات';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'قيد الإعداد';
+  String get feedBoardHighlightsEmpty => 'لا شيء تم التقاطه اليوم بعد';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt => 'سؤال يومي تُجيب عنه الغرفة';
+  String get feedBoardPuzzleLabel => 'اللغز';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'ملاحظات صوتية تتلاشى تلقائيًا مع نهاية اليوم';
+  String get feedBoardPuzzleEmpty => 'لغز اليوم ليس جاهزًا بعد';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'جدار من التحديثات البسيطة والهادئة من الأصدقاء';
+  String get feedBoardStandingsLabel => 'الترتيب';
+
+  @override
+  String get feedBoardStandingsEmpty => 'لا نقاط على اللوحة اليوم';
+
+  @override
+  String get feedBoardActivityLabel => 'النشاط';
+
+  @override
+  String get feedBoardActivityEmpty => 'هادئ حتى الآن اليوم';
+
+  @override
+  String get feedBoardActivityNoFriends => 'أضف صديقًا وسيظهر يومه هنا';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'عامة';
@@ -4723,4 +4734,127 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'الحركة';
+
+  @override
+  String get settingsScreenValueMotionFull => 'كاملة';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'هادئة';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => 'مثل الجهاز · كاملة';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'مثل الجهاز · هادئة';
+
+  @override
+  String get motionScreenTitle => 'الحركة.';
+
+  @override
+  String get motionScreenSubtitle => 'مقدار حركة التطبيق';
+
+  @override
+  String get motionScreenSystemLabel => 'مثل الجهاز';
+
+  @override
+  String get motionScreenSystemSubtitleFull => 'جهازك يسمح بالحركة الآن';
+
+  @override
+  String get motionScreenSystemSubtitleCalm => 'جهازك يطلب حركة أقل الآن';
+
+  @override
+  String get motionScreenFullLabel => 'كاملة';
+
+  @override
+  String get motionScreenFullSubtitle => 'كل انسياب وتوهّج وزخرفة';
+
+  @override
+  String get motionScreenCalmLabel => 'هادئة';
+
+  @override
+  String get motionScreenCalmSubtitle => 'تتوقف الزخارف — ولا يتغير شيء آخر';
+
+  @override
+  String get momentRailCaptureLabel => 'التقاط';
+
+  @override
+  String get momentRailYouLabel => 'أنت';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'مصادفة';
+
+  @override
+  String get momentTagJinx => 'نحس';
+
+  @override
+  String get momentTagLuck => 'حظ';
+
+  @override
+  String get momentTagCalledIt => 'قلت لكم';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'ما أغرب الصدفة';
+
+  @override
+  String get momentTagJinxHint => 'جلبته لنفسك';
+
+  @override
+  String get momentTagLuckHint => 'سار الأمر لصالحك';
+
+  @override
+  String get momentTagCalledItHint => 'توقّعت ذلك';
+
+  @override
+  String get momentTagNpcHint => 'العقل مغلق تمامًا';
+
+  @override
+  String get momentComposerTitle => 'ماذا حدث؟';
+
+  @override
+  String get momentComposerCaptionHint => 'قل شيئًا عنه';
+
+  @override
+  String get momentComposerTagPrompt => 'هل تُحتسب؟ اختر واحدة';
+
+  @override
+  String get momentComposerCapture => 'الكاميرا';
+
+  @override
+  String get momentComposerLibrary => 'المعرض';
+
+  @override
+  String get momentComposerRemovePhoto => 'إزالة الصورة';
+
+  @override
+  String get momentComposerPost => 'نشر';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'صارت عشرين اليوم — أبقِ شيئًا للغد';
+
+  @override
+  String get momentComposerErrorNotAllowed => 'أوقف وليّ الأمر مشاركة الصور';
+
+  @override
+  String get momentComposerErrorTooLong => 'طويل قليلًا — اختصره';
+
+  @override
+  String get momentComposerErrorEmpty => 'أضف صورة أو بضع كلمات';
+
+  @override
+  String get momentComposerErrorGeneric => 'تعذّر النشر — حاول مجددًا';
+
+  @override
+  String get momentViewerDelete => 'حذف';
 }

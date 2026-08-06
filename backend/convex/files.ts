@@ -173,6 +173,17 @@ async function collectReferenced(ctx: any): Promise<Set<string> | null> {
     add(m.posterStorageId);
   }
 
+  // Feed moments. WITHOUT THIS BLOCK the daily sweep sees every highlight blob
+  // as unreferenced and deletes it 24 hours after upload — silently, a day
+  // late, and unrecoverably. Any future table carrying a `v.id("_storage")`
+  // has to be added here too; that is the whole contract of this function.
+  const moments = await scan("moments");
+  if (moments === null) return null;
+  for (const m of moments) {
+    add(m.mediaStorageId);
+    add(m.posterStorageId);
+  }
+
   return referenced;
 }
 

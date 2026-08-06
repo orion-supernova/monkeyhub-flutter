@@ -1,0 +1,584 @@
+import 'dart:typed_data';
+
+import 'package:camera/camera.dart' show CameraLensDirection;
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../backend/chat_api.dart';
+import '../../backend/feed_api.dart';
+import '../../data/feed_store.dart';
+import '../../keyboard/focusable_tap.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../media/image_raster.dart';
+import '../../media/upload_service.dart';
+import '../../models/moment.dart';
+import '../../theme/theme_scope.dart';
+import '../../widgets/adaptive_sheet.dart';
+import '../../widgets/moment_rail.dart';
+import '../camera_screen.dart';
+import '../image_crop_screen.dart';
+
+/// Composes a moment: a picture, some words, and optionally a category.
+///
+/// One composer for both halves of the feature. Post it untagged and it is a
+/// highlight; pick a category and it also scores on the standings board. That
+/// is the whole difference, and keeping it to one screen is why tagging a photo
+/// you just took costs a single tap.
+///
+/// Returns true when something was published, so the caller can react.
+Future<bool> showMomentComposer(
+  BuildContext context, {
+  required ChatApi api,
+  required FeedApi feedApi,
+  required String userId,
+  MomentTag? initialTag,
+}) async {
+  final posted = await showAdaptiveSheet<bool>(
+    context,
+    builder: (_) => _MomentComposer(
+      api: api,
+      feedApi: feedApi,
+      userId: userId,
+      initialTag: initialTag,
+    ),
+  );
+  return posted == true;
+}
+
+class _MomentComposer extends StatefulWidget {
+  const _MomentComposer({
+    required this.api,
+    required this.feedApi,
+    required this.userId,
+    this.initialTag,
+  });
+
+  final ChatApi api;
+  final FeedApi feedApi;
+  final String userId;
+  final MomentTag? initialTag;
+
+  @override
+  State<_MomentComposer> createState() => _MomentComposerState();
+}
+
+class _MomentComposerState extends State<_MomentComposer> {
+  final _caption = TextEditingController();
+  MomentTag? _tag;
+  CroppedImage? _image;
+  bool _busy = false;
+  String? _errorCode;
+
+  /// Matches `MAX_CAPTION` in backend/convex/feed.ts. Duplicated rather than
+  /// shared because this repo has no Dart↔TypeScript constants mechanism —
+  /// error codes are literals on both sides too.
+  static const _maxCaption = 280;
+
+  @override
+  void initState() {
+    super.initState();
+    _tag = widget.initialTag;
+    _caption.addListener(_onTyped);
+  }
+
+  @override
+  void dispose() {
+    _caption.removeListener(_onTyped);
+    _caption.dispose();
+    super.dispose();
+  }
+
+  void _onTyped() {
+    // Only the counter and the enabled-ness of Post depend on this, so rebuild
+    // rather than tracking a finer-grained listenable for two glyphs.
+    setState(() {});
+  }
+
+  bool get _canPost =>
+      !_busy && (_image != null || _caption.text.trim().isNotEmpty);
+
+  Future<void> _capture() async {
+    // Raise the scrim BEFORE the picker: `ImagePicker.pickImage` with
+    // `imageQuality` re-encodes the asset AFTER the native sheet has already
+    // dismissed, which for a 12MP HEIC is seconds of the user staring at an
+    // apparently unchanged screen.
+    setState(() => _busy = true);
+    try {
+      final result = await CameraScreen.open<CroppedImage>(
+        context,
+        initialLens: CameraLensDirection.back,
+        review: (context, photo) async => ReviewDone(
+          await ImageCropScreen.open(
+            context,
+            source: photo.bytes,
+            shape: CropShape.rect,
+            // A highlight is a picture, not an avatar — keep the frame the
+            // user actually shot rather than forcing it square.
+            aspectRatio: null,
+            mirrored: photo.mirrored,
+            overCamera: true,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      switch (result) {
+        case CameraReviewed(:final value):
+          if (value != null) setState(() => _image = value);
+        case CameraPickLibrary():
+          await _pickFromLibrary();
+        case CameraUnavailable():
+          // No in-app camera (web, or a denied permission). The system camera
+          // is still a way through.
+          final picked = await ImagePicker().pickImage(
+            source: ImageSource.camera,
+            imageQuality: pickerImageQuality,
+          );
+          await _cropInto(await picked?.readAsBytes());
+        case null:
+          break; // backed out
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _pickFromLibrary() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      // Also normalizes EXIF orientation on Android, which the crop screen
+      // relies on — it does not read the orientation tag itself.
+      imageQuality: pickerImageQuality,
+    );
+    await _cropInto(await picked?.readAsBytes());
+  }
+
+  Future<void> _cropInto(Uint8List? source) async {
+    if (source == null || !mounted) return;
+    final cropped = await ImageCropScreen.open(
+      context,
+      source: source,
+      shape: CropShape.rect,
+    );
+    if (!mounted || cropped == null) return;
+    setState(() => _image = cropped);
+  }
+
+  Future<void> _post() async {
+    if (!_canPost) return;
+    setState(() {
+      _busy = true;
+      _errorCode = null;
+    });
+    // Captured before the first await: using `context` after one to read
+    // localizations or pop is the async-gap trap this codebase guards
+    // everywhere.
+    final navigator = Navigator.of(context);
+    try {
+      String? storageId;
+      final image = _image;
+      if (image != null) {
+        storageId = await UploadService(widget.api).uploadFile(
+          bytes: image.bytes,
+          contentType: image.contentType,
+        );
+      }
+      await widget.feedApi.post(
+        userId: widget.userId,
+        // The AUTHOR's local day — the server cannot derive it, and assuming
+        // UTC would file an evening moment under tomorrow for half the world.
+        dayKey: FeedStore.instance.dayKey,
+        tag: _tag,
+        caption: _caption.text.trim().isEmpty ? null : _caption.text.trim(),
+        mediaStorageId: storageId,
+        mediaKind: storageId == null ? MomentMedia.none : MomentMedia.image,
+      );
+      if (!mounted) return;
+      navigator.pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      // Convex wraps thrown errors in a longer server string, so these are
+      // matched by substring — equality never works here.
+      final s = e.toString();
+      setState(() {
+        _busy = false;
+        _errorCode = [
+          'DAILY_CAP_REACHED',
+          'CHILD_NOT_ALLOWED',
+          'CAPTION_TOO_LONG',
+          'EMPTY_MOMENT',
+        ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
+      });
+    }
+  }
+
+  String _errorText(AppLocalizations l10n) => switch (_errorCode) {
+    'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
+    'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
+    'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
+    'EMPTY_MOMENT' => l10n.momentComposerErrorEmpty,
+    _ => l10n.momentComposerErrorGeneric,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final remaining = _maxCaption - _caption.text.characters.length;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        18,
+        20,
+        // Lift clear of the keyboard: this sheet's whole content is a text
+        // field and a button, and both must stay reachable while typing.
+        20 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      decoration: theme.sheetDecoration(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.momentComposerTitle, style: theme.displaySmall),
+          const SizedBox(height: 16),
+          _MediaSlot(
+            image: _image,
+            busy: _busy,
+            onCapture: _capture,
+            onLibrary: _pickFromLibrary,
+            onClear: () => setState(() => _image = null),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _caption,
+            maxLines: 3,
+            minLines: 1,
+            enabled: !_busy,
+            style: theme.body,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: l10n.momentComposerCaptionHint,
+              hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
+              border: InputBorder.none,
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(l10n.momentComposerTagPrompt, style: theme.monoTiny),
+              ),
+              // Only warn as the limit approaches — a permanent counter on a
+              // 280-character field is noise for the 280th of posts that get
+              // anywhere near it.
+              if (remaining <= 40)
+                Text(
+                  '$remaining',
+                  style: theme.monoTiny.copyWith(
+                    color: remaining < 0 ? theme.danger : theme.inkMuted,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _TagPicker(
+            selected: _tag,
+            enabled: !_busy,
+            onPick: (t) => setState(() => _tag = _tag == t ? null : t),
+          ),
+          if (_errorCode != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorText(l10n),
+              style: theme.bodySoft.copyWith(color: theme.danger),
+            ),
+          ],
+          const SizedBox(height: 18),
+          _PostButton(
+            enabled: _canPost && remaining >= 0,
+            busy: _busy,
+            onTap: _post,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The picture slot: two buttons when empty, the framed shot when full.
+class _MediaSlot extends StatelessWidget {
+  const _MediaSlot({
+    required this.image,
+    required this.busy,
+    required this.onCapture,
+    required this.onLibrary,
+    required this.onClear,
+  });
+
+  final CroppedImage? image;
+  final bool busy;
+  final VoidCallback onCapture;
+  final VoidCallback onLibrary;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final img = image;
+
+    if (img != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+            child: AspectRatio(
+              aspectRatio: img.width / img.height,
+              // Image.memory, not RemoteImage: these bytes have not been
+              // uploaded yet and there is no storage id to resolve.
+              child: Image.memory(img.bytes, fit: BoxFit.cover),
+            ),
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: FocusableTap(
+              onTap: busy ? null : onClear,
+              semanticLabel: l10n.momentComposerRemovePhoto,
+              shape: FocusRingShape.circle,
+              child: GestureDetector(
+                onTap: busy ? null : onClear,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.divider),
+                  ),
+                  child: Icon(Icons.close, size: 14, color: theme.inkSoft),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: _SlotButton(
+            icon: Icons.photo_camera_outlined,
+            label: l10n.momentComposerCapture,
+            onTap: busy ? null : onCapture,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SlotButton(
+            icon: Icons.photo_library_outlined,
+            label: l10n.momentComposerLibrary,
+            onTap: busy ? null : onLibrary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SlotButton extends StatelessWidget {
+  const _SlotButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Opacity(
+          opacity: onTap == null ? 0.45 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            decoration: BoxDecoration(
+              color: theme.surfaceSunken,
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+              border: Border.all(color: theme.divider),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, size: 20, color: theme.accent),
+                const SizedBox(height: 8),
+                Text(label, style: theme.monoTiny, maxLines: 1),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The five scoring categories, plus "none" by deselecting.
+class _TagPicker extends StatelessWidget {
+  const _TagPicker({
+    required this.selected,
+    required this.enabled,
+    required this.onPick,
+  });
+
+  final MomentTag? selected;
+  final bool enabled;
+  final void Function(MomentTag) onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SizedBox(
+      // Scaled, not fixed: a horizontal list imposes its cross-axis height as
+      // a hard constraint, so a flat number clips at accessibility text sizes.
+      height: MediaQuery.textScalerOf(context).scale(38).clamp(38.0, 60.0),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        children: [
+          for (final t in MomentTag.values)
+            Padding(
+              key: ValueKey(t.wire),
+              padding: const EdgeInsets.only(right: 8),
+              child: _TagChoice(
+                tag: t,
+                active: selected == t,
+                onTap: enabled ? () => onPick(t) : null,
+                label: MomentTagChip.labelFor(l10n, t),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TagChoice extends StatelessWidget {
+  const _TagChoice({
+    required this.tag,
+    required this.active,
+    required this.onTap,
+    required this.label,
+  });
+
+  final MomentTag tag;
+  final bool active;
+  final VoidCallback? onTap;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      selected: active,
+      shape: FocusRingShape.capsule,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: active ? theme.accent : theme.surfaceSunken,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: active ? theme.accent : theme.divider),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                MomentTagChip.iconFor(tag),
+                size: 12,
+                // accentInk on an accent fill — never white. NeonNight's
+                // accent is pure yellow and Graphite's is near-white.
+                color: active ? theme.accentInk : theme.inkSoft,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: theme.monoTiny.copyWith(
+                  color: active ? theme.accentInk : theme.inkSoft,
+                ),
+                maxLines: 1,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PostButton extends StatelessWidget {
+  const _PostButton({
+    required this.enabled,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final bool enabled;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: enabled ? onTap : null,
+      semanticLabel: l10n.momentComposerPost,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          decoration: BoxDecoration(
+            color: enabled ? theme.accent : theme.surfaceSunken,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+          ),
+          alignment: Alignment.center,
+          child: busy
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(theme.accentInk),
+                  ),
+                )
+              : Text(
+                  l10n.momentComposerPost,
+                  style: theme.label.copyWith(
+                    color: enabled ? theme.accentInk : theme.inkMuted,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}

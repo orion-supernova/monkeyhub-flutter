@@ -33,6 +33,20 @@ export default defineSchema({
         // omits this user's lastReadAt from getReadState responses.
         seen: v.optional(v.string()),
         friendRequests: v.optional(v.string()), // "public" | "nobody"
+        // ── Feed board ───────────────────────────────────────────────────
+        // All three are "friends" | "nobody" — never "public". The board is
+        // friends-only by construction and a "public" value here would be a
+        // lie the UI could not honour, so `updateVisibility` refuses it.
+        //
+        // Absent reads as "friends" for `feed`/`puzzle` and as "nobody" for
+        // `pointsPast`, which is the split the product asks for: today is
+        // shared, history is opt-in. That is the ONE place in this object
+        // where a missing key does not mean "nobody", so it is spelled out at
+        // the single read site (feed.ts `visibilityOf`) rather than being
+        // re-derived per caller.
+        feed: v.optional(v.string()),        // my moments appear on friends' boards
+        puzzle: v.optional(v.string()),      // my daily puzzle score is comparable
+        pointsPast: v.optional(v.string()),  // friends may look past today
       })
     ),
     // Supervised (child) accounts. Absent === "adult" — every pre-existing
@@ -602,6 +616,104 @@ export default defineSchema({
   // reactive queries (listUserRooms / getReadState / getMemberIds), and
   // writing to it on every send would re-fire all of them for every member —
   // the subscription-storm class already documented in messages.ts.
+  // ── Feed board ─────────────────────────────────────────────────────────────
+  //
+  // ONE table for two features. A "highlight" (a photo worth showing, with an
+  // optional caption) and a "point" (you saw a celebrity; you washed the car
+  // and it rained) are the same object: media + words + who + when. The only
+  // difference is whether it carries a `tag`.
+  //
+  // That collapse is load-bearing rather than tidy-minded. It means the
+  // standings board in phase 4 needs no write path of its own — it is a
+  // different READ of the rows the composer already writes — and it means
+  // tagging a photo you just took is one tap rather than a second feature.
+  moments: defineTable({
+    userId: v.id("users"),
+    // "YYYY-MM-DD" in the AUTHOR's local zone, computed client-side. Stored
+    // rather than derived from createdAt because "which day was this" is a
+    // question only the author's timezone can answer, and the server has no
+    // idea what that is. Zero-padded so it sorts lexicographically, which is
+    // what lets the indexes below range-scan it without a numeric twin.
+    dayKey: v.string(),
+    // Absent for a plain highlight. Set to a tag id ("fate" | "jinx" | "luck"
+    // | "calledIt" | "npc") when the moment also scores.
+    //
+    // MUST stay UNSET rather than written as "none"/"" for untagged rows.
+    // Convex has no sparse indexes and orders `undefined` before every string,
+    // so a written sentinel would put every highlight inside the scanned
+    // prefix of `by_user_tag` and turn a point-count into a full scan of that
+    // user's history. `eq("tag", "jinx")` never enters an absent prefix.
+    tag: v.optional(v.string()),
+    caption: v.optional(v.string()),
+    mediaStorageId: v.optional(v.id("_storage")),
+    // Video poster frame. Android/iOS only — video_thumbnail has no web or
+    // desktop implementation, so moments composed there keep the play glyph
+    // permanently, exactly as `messages.posterStorageId` does.
+    posterStorageId: v.optional(v.id("_storage")),
+    mediaKind: v.optional(v.string()), // "image" | "video"
+    createdAt: v.number(),
+    // When this drops off friends' boards. The row and the blob both survive:
+    // the author keeps it in their archive forever. So this is a LISTING rule,
+    // not a deletion deadline, and deliberately not a `ctx.scheduler.runAt`.
+    expiresAt: v.number(),
+
+    // ── Denormalized author projection ─────────────────────────────────────
+    // `feed:board` is a SUBSCRIBED query. If it did `ctx.db.get(m.userId)` to
+    // render a name, the board would join the invalidation set of every users
+    // row it touched — and presence writes land on those rows every 90s per
+    // friend. The board would then re-fire, and re-render, continuously, for
+    // everyone, forever. This is the exact storm class messages.ts documents.
+    //
+    // Cost of the copy: a renamed user's older moments keep the old name until
+    // they post again. That is the right trade, and it is also how
+    // `messages.senderName` already behaves.
+    authorName: v.string(),
+    authorUsername: v.string(),
+    authorAvatarStorageId: v.optional(v.id("_storage")),
+  })
+    // The author's own archive, newest first. Also the per-friend read the
+    // board fans out over.
+    .index("by_user_created", ["userId", "createdAt"])
+    // "everything this friend posted today" — the board's hot path.
+    .index("by_user_day", ["userId", "dayKey"])
+    // Per-type point counts for one person. `tag` sits behind `userId`, so an
+    // equality match is an exact three-part prefix and the absent-value
+    // ordering above never costs a scan.
+    .index("by_user_tag_day", ["userId", "tag", "dayKey"])
+    // Account teardown (auth.ts purgeUser).
+    .index("by_user", ["userId"])
+    // Blob release: whether any other moment still points at these bytes.
+    .index("by_media", ["mediaStorageId"]),
+
+  // Who has already seen which moment — drives the unseen ring on the rail.
+  //
+  // Its own table rather than a `seenBy` array on the moment: an array would
+  // make every viewer's first look a WRITE to the moment row, which the
+  // subscribed board reads, so opening the rail would re-fire the board for
+  // every friend. Same reasoning as `pinnedMessages` and `viewOnceViews`.
+  momentViews: defineTable({
+    momentId: v.id("moments"),
+    viewerId: v.id("users"),
+    viewedAt: v.number(),
+  })
+    .index("by_moment_viewer", ["momentId", "viewerId"])
+    .index("by_moment", ["momentId"])
+    // Account teardown.
+    .index("by_viewer", ["viewerId"]),
+
+  // Reactions on a moment. Mirrors `reactions` on messages exactly, including
+  // the one-row-per-(moment,user,emoji) idempotency.
+  momentReactions: defineTable({
+    momentId: v.id("moments"),
+    userId: v.id("users"),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_moment", ["momentId"])
+    .index("by_moment_user", ["momentId", "userId"])
+    // Account teardown.
+    .index("by_user", ["userId"]),
+
   pushReceipts: defineTable({
     userId: v.id("users"),
     roomId: v.id("rooms"),

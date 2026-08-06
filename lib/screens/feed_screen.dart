@@ -1,119 +1,411 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_service.dart';
+import '../backend/chat_api.dart';
+import '../backend/feed_api.dart';
+import '../data/chat_repository.dart';
+import '../data/feed_store.dart';
+import '../family/family_service.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/app_theme.dart';
+import '../models/moment.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_brand_mark.dart';
+import '../widgets/feed_depth_field.dart';
+import '../widgets/moment_rail.dart';
+import 'feed/moment_composer.dart';
+import 'feed/moment_viewer.dart';
 import 'navigation/destinations.dart';
 
-class FeedScreen extends StatelessWidget {
-  const FeedScreen({super.key});
+/// TODAY — the friends-activity board.
+///
+/// Everything on this board is scoped to the current local day: highlights are
+/// listed for 24 hours, the puzzle is one per day, standings default to today.
+/// That single rule is what makes four separate features read as one product,
+/// and it is also the privacy model — today is shared with friends, the past is
+/// yours unless you open it.
+///
+/// **Why this screen owns so little state.** `HomeShell` keys its section
+/// `AnimatedSwitcher` on `'${section.name}_${theme.id}'`, so tapping away to
+/// another tab — or merely changing theme — fully disposes this widget and
+/// re-runs `initState`. Anything that must not restart lives in [FeedStore].
+/// The stagger below is deliberately *not* latched: it is 300ms of settle and
+/// replaying it on return reads as the board waking up. The masthead's
+/// once-a-day intro is latched, because replaying that on every tab tap would
+/// be obnoxious.
+class FeedScreen extends StatefulWidget {
+  const FeedScreen({
+    super.key,
+    required this.repo,
+    required this.api,
+    required this.feedApi,
+    required this.auth,
+    required this.family,
+  });
+
+  final ChatRepository repo;
+  final ChatApi api;
+  final FeedApi feedApi;
+  final AuthService auth;
+  final FamilyService family;
+
+  @override
+  State<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends State<FeedScreen> {
+  final _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Idempotent — arms the day-rollover timer if some earlier mount hasn't.
+    FeedStore.instance.start();
+    FeedStore.instance.addListener(_onChange);
+    // The empty state turns on the friend count, so the board has to rebuild
+    // when a friend request is accepted while it is on screen.
+    widget.repo.addListener(_onChange);
+  }
+
+  @override
+  void dispose() {
+    FeedStore.instance.removeListener(_onChange);
+    widget.repo.removeListener(_onChange);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _onChange() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  /// Whether this account may publish media.
+  ///
+  /// Gated on `hasContext` as well as `isChild`, because `FamilyContext.empty`
+  /// reads as an unrestricted adult until the family subscription lands — so
+  /// checking `isChild` alone hands a child a fully-composed surface on every
+  /// cold start that then vanishes underneath them.
+  bool get _canCapture {
+    final family = widget.family;
+    // Until the family subscription lands, `isChild` is false and `policy` is
+    // the locked default — so `canSendMedia` alone would read as "yes, adult"
+    // on every cold start and then flip. Gate on hasContext first, matching
+    // DiscoverScreen._roomsUnlocked.
+    if (!family.hasContext) return !family.isChild;
+    return family.canSendMedia;
+  }
+
+  Future<void> _compose() async {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    await showMomentComposer(
+      context,
+      api: widget.api,
+      feedApi: widget.feedApi,
+      userId: userId,
+    );
+    // No refresh call: the board is a live subscription, so a successful post
+    // arrives on its own. Awaiting it only keeps the composer's route alive
+    // until it closes.
+  }
+
+  void _open(Moment moment) {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    showMomentViewer(
+      context,
+      moment: moment,
+      api: widget.api,
+      feedApi: widget.feedApi,
+      userId: userId,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final loc = AppLocalizations.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final store = FeedStore.instance;
+
+    // Sections are assembled as a list so the entrance stagger can index them
+    // without every section needing to know its own position. Deeper sections
+    // travel farther, which is what sells "layers settling" rather than "a list
+    // fading in".
+    final sections = <({String id, Widget child})>[
+      (
+        id: 'masthead',
+        child: _Masthead(edition: store.edition, dayKey: store.dayKey),
+      ),
+      (
+        id: 'highlights',
+        child: _SectionShell(
+          label: l10n.feedBoardHighlightsLabel,
+          body: store.loaded && store.moments.isEmpty && !_canCapture
+              // A supervised account with media switched off has no way to
+              // fill this, so offer the explanation rather than a dead rail.
+              ? _EmptyLine(l10n.feedBoardHighlightsEmpty)
+              : MomentRail(
+                  moments: store.moments,
+                  api: widget.api,
+                  serverNow: store.serverNow,
+                  canCapture: _canCapture,
+                  onCapture: _compose,
+                  onOpen: _open,
+                ),
+        ),
+      ),
+      (
+        id: 'puzzle',
+        child: _SectionShell(
+          label: l10n.feedBoardPuzzleLabel,
+          body: _EmptyLine(l10n.feedBoardPuzzleEmpty),
+        ),
+      ),
+      (
+        id: 'standings',
+        child: _SectionShell(
+          label: l10n.feedBoardStandingsLabel,
+          body: _EmptyLine(l10n.feedBoardStandingsEmpty),
+        ),
+      ),
+      (
+        id: 'activity',
+        child: _SectionShell(
+          label: l10n.feedBoardActivityLabel,
+          body: _EmptyLine(
+            widget.repo.friends.isEmpty
+                ? l10n.feedBoardActivityNoFriends
+                : l10n.feedBoardActivityEmpty,
+          ),
+        ),
+      ),
+    ];
+
     return Stack(
       children: [
         theme.backgroundLayer(context),
+        // Above the themed backdrop, below the content: the field has to read
+        // as light moving over Risograph's halftone and Cyberpunk's scanlines,
+        // not as a replacement for them.
+        Positioned.fill(child: FeedDepthField(scroll: _scroll)),
         SafeArea(
           child: AdaptivePageBody(
-            child: Padding(
+            child: ListView(
+              controller: _scroll,
+              // Versioned so the offset can be deliberately dropped when the
+              // section order changes — bump to _v2 in the phase that reorders.
+              key: const PageStorageKey('feed_board_v1'),
               padding: const EdgeInsets.fromLTRB(
                 20,
                 28,
                 20,
                 kFloatingNavClearance,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const AppBrandMark(size: 30),
-                      const SizedBox(width: 10),
-                      Text(
-                        loc.enterPublicRoomFeedTabLabel,
-                        style: theme.label.copyWith(letterSpacing: 3),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 36),
-                  RichText(
-                    text: TextSpan(
-                      style: theme.displayLarge,
-                      children: [
-                        TextSpan(
-                          text: loc.enterPublicRoomFeedHeadlineSoon,
-                          style: theme.displayLarge,
-                        ),
-                        TextSpan(
-                          text: loc.enterPublicRoomFeedHeadlineDetail,
-                          style: theme.displayLarge.copyWith(
-                            color: theme.inkMuted,
-                            fontSize: theme.displayLarge.fontSize! * 0.6,
-                          ),
-                        ),
-                      ],
+              children: [
+                for (var i = 0; i < sections.length; i++)
+                  TweenAnimationBuilder<double>(
+                    // Stable section id, never the index. The board's sections
+                    // will start appearing and disappearing conditionally in
+                    // later phases, and an index key re-matches elements on
+                    // that change — handing a section someone else's state.
+                    key: ValueKey(sections[i].id),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: motion.stagger(theme.motionMed, i, strideMs: 70),
+                    // motionEntrance, never motionCurve: Risograph and
+                    // Cyberpunk set motionCurve to easeOutBack, which
+                    // overshoots past 1.0 and would assert on the Opacity here.
+                    curve: motion.c(theme.motionEntrance),
+                    builder: (context, v, child) => Transform.translate(
+                      offset: Offset(0, (1 - v) * (10 + 8 * i)),
+                      child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
                     ),
+                    child: sections[i].child,
                   ),
-                  const SizedBox(height: 28),
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: theme.roomCardDecoration(
-                      ephemeral: false,
-                      active: false,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          loc.enterPublicRoomFeedPipelineLabel,
-                          style: theme.label,
-                        ),
-                        const SizedBox(height: 10),
-                        _bullet(theme, loc.enterPublicRoomFeedBulletPrompt),
-                        _bullet(
-                          theme,
-                          loc.enterPublicRoomFeedBulletVoiceNotes,
-                        ),
-                        _bullet(
-                          theme,
-                          loc.enterPublicRoomFeedBulletWallUpdates,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
         ),
       ],
     );
   }
+}
 
-  Widget _bullet(AppTheme theme, String t) {
+/// The board's masthead: brand mark, wordmark, today's date and edition number.
+///
+/// The wordmark settles its letter-spacing once per day. Latched in [FeedStore]
+/// rather than in this widget's `State`, because a tab switch or theme change
+/// disposes the whole screen — a local flag would replay the intro every time
+/// the user came back to the tab.
+class _Masthead extends StatefulWidget {
+  const _Masthead({required this.edition, required this.dayKey});
+
+  final int edition;
+  final String dayKey;
+
+  @override
+  State<_Masthead> createState() => _MastheadState();
+}
+
+class _MastheadState extends State<_Masthead>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _settle = AnimationController(vsync: this);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // ThemeScope is not available in initState — the house rule for every
+    // animated widget that reads a theme duration.
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    _settle.duration = motion.d(theme.motionSlow);
+
+    if (FeedStore.instance.introPlayed) {
+      _settle.value = 1;
+    } else {
+      FeedStore.instance.markIntroPlayed();
+      _settle.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _settle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    // Localized via MaterialLocalizations rather than `intl`: the latter is
+    // only a transitive dependency here, and promoting it to a direct one for a
+    // single date string is not worth the resolution risk.
+    //
+    // Deliberately NOT .toUpperCase()'d despite the all-caps band styling
+    // elsewhere on this board. Dart's toUpperCase is locale-independent, so a
+    // Turkish date containing 'i' would come back with a dotless 'I' instead of
+    // 'İ' — a real, visible mistranslation in one of this app's 12 locales.
+    final date = MaterialLocalizations.of(
+      context,
+    ).formatMediumDate(DateTime.now());
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 30),
+      child: AnimatedBuilder(
+        animation: _settle,
+        builder: (context, _) {
+          final t = Curves.easeOutQuart.transform(_settle.value);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const AppBrandMark(size: 30),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.feedBoardTitle,
+                      // Settles from wide-set to the board's resting spacing.
+                      // Interpolating letterSpacing rather than scale keeps the
+                      // baseline fixed, so nothing below it moves.
+                      style: theme.label.copyWith(
+                        letterSpacing: 9.0 - (9.0 - 3.0) * t,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Text(
+                      date,
+                      style: theme.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Container(height: 1, color: theme.divider)),
+                  const SizedBox(width: 8),
+                  Opacity(
+                    // The edition stamp arrives last, in the tail of the
+                    // settle — the colophon landing after the masthead sets.
+                    opacity: Curves.easeOut.transform(
+                      ((_settle.value - 0.6) / 0.4).clamp(0.0, 1.0),
+                    ),
+                    child: Text(
+                      l10n.feedBoardEditionLabel(widget.edition),
+                      style: theme.monoTiny,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// One band of the board: an all-caps label, a hairline rule, and a body.
+///
+/// Mirrors `DiscoverSectionHeader`'s geometry so the two screens read as the
+/// same app. Not reusing that widget directly because it takes a `count` string
+/// this board has no use for yet — the phases that add real counts should
+/// revisit whether these should merge.
+class _SectionShell extends StatelessWidget {
+  const _SectionShell({required this.label, required this.body});
+
+  final String label;
+  final Widget body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 30),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 6, right: 8),
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                shape: BoxShape.circle,
-              ),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(label, style: theme.label),
+              const SizedBox(width: 8),
+              Expanded(child: Container(height: 1, color: theme.divider)),
+            ],
           ),
-          Expanded(child: Text(t, style: theme.body)),
+          const SizedBox(height: 12),
+          body,
         ],
       ),
     );
+  }
+}
+
+/// A single muted line standing in for a section with nothing in it.
+///
+/// Matches `DiscoverEmptyLine`'s register: lowercase, conversational, and
+/// stating what would put something here rather than merely reporting absence.
+class _EmptyLine extends StatelessWidget {
+  const _EmptyLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Text(text, style: theme.bodySoft.copyWith(color: theme.inkMuted));
   }
 }

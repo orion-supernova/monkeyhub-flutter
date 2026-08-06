@@ -3902,25 +3902,39 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterPublicRoomJoinFailedMessage => '参加できませんでした。もう一度お試しください';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'フィード';
+  String get feedBoardTitle => '今日';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'まもなく。\n';
+  String feedBoardEditionLabel(Object number) {
+    return '第$number号';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail => '日々の瞬間を、\nルームとシェア。';
+  String get feedBoardHighlightsLabel => 'ハイライト';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => '近日公開';
+  String get feedBoardHighlightsEmpty => '今日はまだ何もありません';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt => 'ルームで答える毎日のお題';
+  String get feedBoardPuzzleLabel => 'パズル';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes => 'その日のうちに自動で消えるボイスメモ';
+  String get feedBoardPuzzleEmpty => '今日のパズルはまだ準備中です';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates => '友達からのゆるい近況が並ぶウォール';
+  String get feedBoardStandingsLabel => 'ランキング';
+
+  @override
+  String get feedBoardStandingsEmpty => '今日はまだポイントがありません';
+
+  @override
+  String get feedBoardActivityLabel => 'アクティビティ';
+
+  @override
+  String get feedBoardActivityEmpty => '今日はまだ静かです';
+
+  @override
+  String get feedBoardActivityNoFriends => '友だちを追加すると、その一日がここに表示されます';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => '公開';
@@ -4467,4 +4481,126 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'モーション';
+
+  @override
+  String get settingsScreenValueMotionFull => 'フル';
+
+  @override
+  String get settingsScreenValueMotionCalm => '控えめ';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => '端末に合わせる · フル';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => '端末に合わせる · 控えめ';
+
+  @override
+  String get motionScreenTitle => 'モーション。';
+
+  @override
+  String get motionScreenSubtitle => 'アプリの動きの量';
+
+  @override
+  String get motionScreenSystemLabel => '端末に合わせる';
+
+  @override
+  String get motionScreenSystemSubtitleFull => '現在、端末はアニメーションを許可しています';
+
+  @override
+  String get motionScreenSystemSubtitleCalm => '現在、端末は動きを減らすよう求めています';
+
+  @override
+  String get motionScreenFullLabel => 'フル';
+
+  @override
+  String get motionScreenFullSubtitle => '漂い、光、装飾のすべて';
+
+  @override
+  String get motionScreenCalmLabel => '控えめ';
+
+  @override
+  String get motionScreenCalmSubtitle => '装飾は静止します — ほかは変わりません';
+
+  @override
+  String get momentRailCaptureLabel => '撮る';
+
+  @override
+  String get momentRailYouLabel => 'あなた';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author：$caption';
+  }
+
+  @override
+  String get momentTagFate => '偶然';
+
+  @override
+  String get momentTagJinx => '自爆';
+
+  @override
+  String get momentTagLuck => '幸運';
+
+  @override
+  String get momentTagCalledIt => '言ったとおり';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'すごい偶然';
+
+  @override
+  String get momentTagJinxHint => '自分で招いた';
+
+  @override
+  String get momentTagLuckHint => 'うまくいった';
+
+  @override
+  String get momentTagCalledItHint => '予言どおり';
+
+  @override
+  String get momentTagNpcHint => '頭が完全にオフ';
+
+  @override
+  String get momentComposerTitle => '何があった？';
+
+  @override
+  String get momentComposerCaptionHint => 'ひとこと添えて';
+
+  @override
+  String get momentComposerTagPrompt => '点数にする？ ひとつ選んで';
+
+  @override
+  String get momentComposerCapture => 'カメラ';
+
+  @override
+  String get momentComposerLibrary => 'ライブラリ';
+
+  @override
+  String get momentComposerRemovePhoto => '写真を削除';
+
+  @override
+  String get momentComposerPost => '投稿';
+
+  @override
+  String get momentComposerErrorDailyCap => '今日はもう20件 — 明日の分も残して';
+
+  @override
+  String get momentComposerErrorNotAllowed => '保護者が写真の共有をオフにしています';
+
+  @override
+  String get momentComposerErrorTooLong => '少し長すぎます — 短くしてください';
+
+  @override
+  String get momentComposerErrorEmpty => '写真か、ひとことを追加してください';
+
+  @override
+  String get momentComposerErrorGeneric => '投稿できませんでした — もう一度お試しください';
+
+  @override
+  String get momentViewerDelete => '削除';
 }

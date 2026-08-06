@@ -4016,29 +4016,40 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enterPublicRoomJoinFailedMessage => 'katılamadık — tekrar dene';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'AKIŞ';
+  String get feedBoardTitle => 'BUGÜN';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'yakında.\n';
+  String feedBoardEditionLabel(Object number) {
+    return '№$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'günlük anlar,\nodalarla paylaşılan.';
+  String get feedBoardHighlightsLabel => 'ÖNE ÇIKANLAR';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'YOLDA';
+  String get feedBoardHighlightsEmpty => 'bugün henüz bir şey yakalanmadı';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'odanın yanıt verdiği günlük bir soru';
+  String get feedBoardPuzzleLabel => 'BULMACA';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'günün sonunda kendiliğinden solan sesli notlar';
+  String get feedBoardPuzzleEmpty => 'bugünün bulmacası henüz hazır değil';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'arkadaşlardan gelen küçük, yavaş güncellemelerin olduğu bir duvar';
+  String get feedBoardStandingsLabel => 'PUAN DURUMU';
+
+  @override
+  String get feedBoardStandingsEmpty => 'bugün tabloda puan yok';
+
+  @override
+  String get feedBoardActivityLabel => 'ETKİNLİK';
+
+  @override
+  String get feedBoardActivityEmpty => 'bugün şimdilik sessiz';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'bir arkadaş ekle, günü burada görünsün';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'HERKESE AÇIK';
@@ -4612,4 +4623,132 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'HAREKET';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Tam';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Sakin';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => 'Cihazla aynı · tam';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'Cihazla aynı · sakin';
+
+  @override
+  String get motionScreenTitle => 'hareket.';
+
+  @override
+  String get motionScreenSubtitle => 'uygulama ne kadar hareket etsin';
+
+  @override
+  String get motionScreenSystemLabel => 'CİHAZLA AYNI';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'cihazın şu anda animasyona izin veriyor';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'cihazın şu anda az hareket istiyor';
+
+  @override
+  String get motionScreenFullLabel => 'TAM';
+
+  @override
+  String get motionScreenFullSubtitle => 'her kayma, parıltı ve süsleme';
+
+  @override
+  String get motionScreenCalmLabel => 'SAKİN';
+
+  @override
+  String get motionScreenCalmSubtitle =>
+      'süslemeler durur — başka hiçbir şey değişmez';
+
+  @override
+  String get momentRailCaptureLabel => 'YAKALA';
+
+  @override
+  String get momentRailYouLabel => 'sen';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'TESADÜF';
+
+  @override
+  String get momentTagJinx => 'KERİZLİK';
+
+  @override
+  String get momentTagLuck => 'ŞANS';
+
+  @override
+  String get momentTagCalledIt => 'DEMİŞTİM';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'ne tesadüf';
+
+  @override
+  String get momentTagJinxHint => 'kendi ettin kendi buldun';
+
+  @override
+  String get momentTagLuckHint => 'işine geldi';
+
+  @override
+  String get momentTagCalledItHint => 'geleceği görmüştün';
+
+  @override
+  String get momentTagNpcHint => 'beyin tamamen kapalı';
+
+  @override
+  String get momentComposerTitle => 'ne oldu?';
+
+  @override
+  String get momentComposerCaptionHint => 'bir şeyler yaz';
+
+  @override
+  String get momentComposerTagPrompt => 'puan mı? birini seç';
+
+  @override
+  String get momentComposerCapture => 'kamera';
+
+  @override
+  String get momentComposerLibrary => 'galeri';
+
+  @override
+  String get momentComposerRemovePhoto => 'fotoğrafı kaldır';
+
+  @override
+  String get momentComposerPost => 'PAYLAŞ';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'bugünlük yirmi tane oldu — yarına da kalsın';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'veli fotoğraf paylaşımını kapatmış';
+
+  @override
+  String get momentComposerErrorTooLong => 'biraz uzun olmuş — kısalt';
+
+  @override
+  String get momentComposerErrorEmpty =>
+      'bir fotoğraf ya da birkaç kelime ekle';
+
+  @override
+  String get momentComposerErrorGeneric => 'paylaşılamadı — tekrar dene';
+
+  @override
+  String get momentViewerDelete => 'sil';
 }

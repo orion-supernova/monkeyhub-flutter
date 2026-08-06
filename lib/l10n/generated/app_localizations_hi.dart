@@ -4053,29 +4053,40 @@ class AppLocalizationsHi extends AppLocalizations {
       'जॉइन नहीं हो सका — दोबारा कोशिश करें';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'फ़ीड';
+  String get feedBoardTitle => 'आज';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'जल्द ही।\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'अंक $number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'रोज़ के पल,\nरूम्स के साथ शेयर किए हुए।';
+  String get feedBoardHighlightsLabel => 'ख़ास पल';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'पाइपलाइन में';
+  String get feedBoardHighlightsEmpty => 'आज अभी तक कुछ नहीं';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'रोज़ का एक सवाल, जिसका जवाब पूरा रूम देता है';
+  String get feedBoardPuzzleLabel => 'पहेली';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'वॉइस नोट्स जो दिन के साथ अपने आप मिट जाते हैं';
+  String get feedBoardPuzzleEmpty => 'आज की पहेली अभी तैयार नहीं है';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'दोस्तों के छोटे-छोटे, धीमे अपडेट्स की एक वॉल';
+  String get feedBoardStandingsLabel => 'अंक तालिका';
+
+  @override
+  String get feedBoardStandingsEmpty => 'आज बोर्ड पर कोई अंक नहीं';
+
+  @override
+  String get feedBoardActivityLabel => 'गतिविधि';
+
+  @override
+  String get feedBoardActivityEmpty => 'आज अभी तक शांति है';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'दोस्त जोड़ें और उनका दिन यहाँ दिखेगा';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'पब्लिक';
@@ -4648,4 +4659,131 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'मोशन';
+
+  @override
+  String get settingsScreenValueMotionFull => 'पूरा';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'शांत';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => 'डिवाइस जैसा · पूरा';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'डिवाइस जैसा · शांत';
+
+  @override
+  String get motionScreenTitle => 'मोशन.';
+
+  @override
+  String get motionScreenSubtitle => 'ऐप कितना हिले';
+
+  @override
+  String get motionScreenSystemLabel => 'डिवाइस जैसा';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'आपका डिवाइस अभी एनिमेशन की अनुमति देता है';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'आपका डिवाइस अभी कम मोशन माँगता है';
+
+  @override
+  String get motionScreenFullLabel => 'पूरा';
+
+  @override
+  String get motionScreenFullSubtitle => 'हर बहाव, चमक और सजावट';
+
+  @override
+  String get motionScreenCalmLabel => 'शांत';
+
+  @override
+  String get motionScreenCalmSubtitle =>
+      'सजावट रुक जाती है — और कुछ नहीं बदलता';
+
+  @override
+  String get momentRailCaptureLabel => 'कैप्चर';
+
+  @override
+  String get momentRailYouLabel => 'आप';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'संयोग';
+
+  @override
+  String get momentTagJinx => 'अपनी करनी';
+
+  @override
+  String get momentTagLuck => 'किस्मत';
+
+  @override
+  String get momentTagCalledIt => 'मैंने कहा था';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'क्या संयोग है';
+
+  @override
+  String get momentTagJinxHint => 'अपने ही पैर पर कुल्हाड़ी';
+
+  @override
+  String get momentTagLuckHint => 'बात बन गई';
+
+  @override
+  String get momentTagCalledItHint => 'आपने पहले ही भाँप लिया';
+
+  @override
+  String get momentTagNpcHint => 'दिमाग़ पूरी तरह बंद';
+
+  @override
+  String get momentComposerTitle => 'क्या हुआ?';
+
+  @override
+  String get momentComposerCaptionHint => 'कुछ लिखिए';
+
+  @override
+  String get momentComposerTagPrompt => 'अंक चाहिए? एक चुनें';
+
+  @override
+  String get momentComposerCapture => 'कैमरा';
+
+  @override
+  String get momentComposerLibrary => 'गैलरी';
+
+  @override
+  String get momentComposerRemovePhoto => 'फ़ोटो हटाएँ';
+
+  @override
+  String get momentComposerPost => 'पोस्ट करें';
+
+  @override
+  String get momentComposerErrorDailyCap => 'आज बीस हो गए — कल के लिए भी रखिए';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'अभिभावक ने फ़ोटो साझा करना बंद कर रखा है';
+
+  @override
+  String get momentComposerErrorTooLong => 'थोड़ा लंबा है — छोटा कीजिए';
+
+  @override
+  String get momentComposerErrorEmpty => 'एक फ़ोटो या कुछ शब्द जोड़िए';
+
+  @override
+  String get momentComposerErrorGeneric =>
+      'पोस्ट नहीं हो सका — फिर कोशिश कीजिए';
+
+  @override
+  String get momentViewerDelete => 'हटाएँ';
 }

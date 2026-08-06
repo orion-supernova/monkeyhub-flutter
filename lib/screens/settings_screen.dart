@@ -27,6 +27,7 @@ import 'glass_screen.dart';
 import 'language_screen.dart';
 import 'reply_style_screen.dart';
 import 'logo_screen.dart';
+import 'motion_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
@@ -204,6 +205,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return l10n.settingsScreenValueReplyComicTail;
       case ReplyStyle.classic:
         return l10n.settingsScreenValueClassic;
+    }
+  }
+
+  /// Null resolves against the OS flag rather than showing a third label, so
+  /// the row states what the user will actually get rather than "system".
+  String get _motionLabel {
+    final l10n = AppLocalizations.of(context);
+    switch (SettingsStore.instance.motionLevel) {
+      case MotionLevel.full:
+        return l10n.settingsScreenValueMotionFull;
+      case MotionLevel.calm:
+        return l10n.settingsScreenValueMotionCalm;
+      case null:
+        return MediaQuery.disableAnimationsOf(context)
+            ? l10n.settingsScreenValueMotionSystemCalm
+            : l10n.settingsScreenValueMotionSystemFull;
     }
   }
 
@@ -482,6 +499,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   key: 'replyStyle',
                   builder: (_) => ReplyStyleScreen(api: widget.api),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: l10n.settingsScreenRowMotion,
+                value: _motionLabel,
+                selected: _isOpen('motion'),
+                leading: Icon(
+                  Icons.animation_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'motion',
+                  builder: (_) => const MotionScreen(),
                 ),
               ),
 

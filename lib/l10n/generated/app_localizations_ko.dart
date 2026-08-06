@@ -3915,25 +3915,39 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enterPublicRoomJoinFailedMessage => '참여하지 못했어요. 다시 시도해 주세요';
 
   @override
-  String get enterPublicRoomFeedTabLabel => '피드';
+  String get feedBoardTitle => '오늘';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => '곧.\n';
+  String feedBoardEditionLabel(Object number) {
+    return '제$number호';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail => '일상의 순간들,\n방과 나눠요.';
+  String get feedBoardHighlightsLabel => '하이라이트';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => '준비 중';
+  String get feedBoardHighlightsEmpty => '오늘은 아직 아무것도 없어요';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt => '방 전체가 함께 답하는 하루 질문';
+  String get feedBoardPuzzleLabel => '퍼즐';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes => '하루가 지나면 사라지는 음성 메모';
+  String get feedBoardPuzzleEmpty => '오늘의 퍼즐은 아직 준비 중이에요';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates => '친구들의 소소하고 잔잔한 소식이 쌓이는 벽';
+  String get feedBoardStandingsLabel => '순위';
+
+  @override
+  String get feedBoardStandingsEmpty => '오늘은 아직 점수가 없어요';
+
+  @override
+  String get feedBoardActivityLabel => '활동';
+
+  @override
+  String get feedBoardActivityEmpty => '오늘은 아직 조용해요';
+
+  @override
+  String get feedBoardActivityNoFriends => '친구를 추가하면 친구의 하루가 여기에 나타나요';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => '공개';
@@ -4481,4 +4495,126 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => '모션';
+
+  @override
+  String get settingsScreenValueMotionFull => '가득';
+
+  @override
+  String get settingsScreenValueMotionCalm => '차분';
+
+  @override
+  String get settingsScreenValueMotionSystemFull => '기기 설정 따름 · 가득';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => '기기 설정 따름 · 차분';
+
+  @override
+  String get motionScreenTitle => '모션.';
+
+  @override
+  String get motionScreenSubtitle => '앱이 얼마나 움직일지';
+
+  @override
+  String get motionScreenSystemLabel => '기기 설정 따름';
+
+  @override
+  String get motionScreenSystemSubtitleFull => '지금 기기가 애니메이션을 허용하고 있어요';
+
+  @override
+  String get motionScreenSystemSubtitleCalm => '지금 기기가 모션 줄이기를 요청하고 있어요';
+
+  @override
+  String get motionScreenFullLabel => '가득';
+
+  @override
+  String get motionScreenFullSubtitle => '모든 흐름, 빛, 장식';
+
+  @override
+  String get motionScreenCalmLabel => '차분';
+
+  @override
+  String get motionScreenCalmSubtitle => '장식이 멈춰요 — 다른 건 그대로예요';
+
+  @override
+  String get momentRailCaptureLabel => '촬영';
+
+  @override
+  String get momentRailYouLabel => '나';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => '우연';
+
+  @override
+  String get momentTagJinx => '자충수';
+
+  @override
+  String get momentTagLuck => '행운';
+
+  @override
+  String get momentTagCalledIt => '내가 그랬지';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => '이런 우연이';
+
+  @override
+  String get momentTagJinxHint => '자기가 자초한 일';
+
+  @override
+  String get momentTagLuckHint => '일이 잘 풀렸다';
+
+  @override
+  String get momentTagCalledItHint => '올 줄 알았다';
+
+  @override
+  String get momentTagNpcHint => '머리가 완전히 꺼짐';
+
+  @override
+  String get momentComposerTitle => '무슨 일이 있었나요?';
+
+  @override
+  String get momentComposerCaptionHint => '한마디 남겨보세요';
+
+  @override
+  String get momentComposerTagPrompt => '점수로 칠까요? 하나 고르세요';
+
+  @override
+  String get momentComposerCapture => '카메라';
+
+  @override
+  String get momentComposerLibrary => '보관함';
+
+  @override
+  String get momentComposerRemovePhoto => '사진 삭제';
+
+  @override
+  String get momentComposerPost => '올리기';
+
+  @override
+  String get momentComposerErrorDailyCap => '오늘 스무 개째예요 — 내일도 남겨두세요';
+
+  @override
+  String get momentComposerErrorNotAllowed => '보호자가 사진 공유를 꺼두었어요';
+
+  @override
+  String get momentComposerErrorTooLong => '조금 길어요 — 줄여주세요';
+
+  @override
+  String get momentComposerErrorEmpty => '사진이나 몇 마디를 더해주세요';
+
+  @override
+  String get momentComposerErrorGeneric => '올리지 못했어요 — 다시 시도해주세요';
+
+  @override
+  String get momentViewerDelete => '삭제';
 }

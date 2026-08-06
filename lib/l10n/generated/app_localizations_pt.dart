@@ -4087,29 +4087,40 @@ class AppLocalizationsPt extends AppLocalizations {
       'não foi possível entrar — tenta novamente';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'FEED';
+  String get feedBoardTitle => 'HOJE';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'em breve.\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'N.º$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'momentos diários,\npartilhados em salas.';
+  String get feedBoardHighlightsLabel => 'DESTAQUES';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'A CAMINHO';
+  String get feedBoardHighlightsEmpty => 'ainda não há nada capturado hoje';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'uma pergunta diária a que a sala responde';
+  String get feedBoardPuzzleLabel => 'O ENIGMA';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'notas de voz que desaparecem sozinhas no final do dia';
+  String get feedBoardPuzzleEmpty => 'o enigma de hoje ainda não está pronto';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'um mural de pequenas atualizações tranquilas dos amigos';
+  String get feedBoardStandingsLabel => 'CLASSIFICAÇÃO';
+
+  @override
+  String get feedBoardStandingsEmpty => 'nenhum ponto no quadro hoje';
+
+  @override
+  String get feedBoardActivityLabel => 'ATIVIDADE';
+
+  @override
+  String get feedBoardActivityEmpty => 'hoje está calmo por enquanto';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'adiciona um amigo e o dia dele aparece aqui';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'PÚBLICA';
@@ -4690,6 +4701,135 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'MOVIMENTO';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Completo';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Calmo';
+
+  @override
+  String get settingsScreenValueMotionSystemFull =>
+      'Igual ao dispositivo · completo';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm =>
+      'Igual ao dispositivo · calmo';
+
+  @override
+  String get motionScreenTitle => 'movimento.';
+
+  @override
+  String get motionScreenSubtitle => 'quanto a app se mexe';
+
+  @override
+  String get motionScreenSystemLabel => 'IGUAL AO DISPOSITIVO';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'o teu dispositivo permite animação neste momento';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'o teu dispositivo pede menos movimento neste momento';
+
+  @override
+  String get motionScreenFullLabel => 'COMPLETO';
+
+  @override
+  String get motionScreenFullSubtitle => 'cada deriva, brilho e floreado';
+
+  @override
+  String get motionScreenCalmLabel => 'CALMO';
+
+  @override
+  String get motionScreenCalmSubtitle => 'a decoração para — mais nada muda';
+
+  @override
+  String get momentRailCaptureLabel => 'CAPTURAR';
+
+  @override
+  String get momentRailYouLabel => 'tu';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'DESTINO';
+
+  @override
+  String get momentTagJinx => 'AZAR';
+
+  @override
+  String get momentTagLuck => 'SORTE';
+
+  @override
+  String get momentTagCalledIt => 'EU AVISEI';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'que coincidência';
+
+  @override
+  String get momentTagJinxHint => 'foste tu que provocaste';
+
+  @override
+  String get momentTagLuckHint => 'correu a teu favor';
+
+  @override
+  String get momentTagCalledItHint => 'viste isso a chegar';
+
+  @override
+  String get momentTagNpcHint => 'cérebro desligado';
+
+  @override
+  String get momentComposerTitle => 'o que aconteceu?';
+
+  @override
+  String get momentComposerCaptionHint => 'diz alguma coisa';
+
+  @override
+  String get momentComposerTagPrompt => 'conta pontos? escolhe uma';
+
+  @override
+  String get momentComposerCapture => 'câmara';
+
+  @override
+  String get momentComposerLibrary => 'galeria';
+
+  @override
+  String get momentComposerRemovePhoto => 'remover foto';
+
+  @override
+  String get momentComposerPost => 'PUBLICAR';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'já vão vinte hoje — guarda para amanhã';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'um responsável desativou a partilha de fotos';
+
+  @override
+  String get momentComposerErrorTooLong => 'ficou um pouco longo — encurta';
+
+  @override
+  String get momentComposerErrorEmpty => 'adiciona uma foto ou umas palavras';
+
+  @override
+  String get momentComposerErrorGeneric =>
+      'não foi possível publicar — tenta de novo';
+
+  @override
+  String get momentViewerDelete => 'eliminar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -8774,29 +8914,40 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'não deu pra entrar — tente de novo';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'FEED';
+  String get feedBoardTitle => 'HOJE';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'em breve.\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'Nº$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'momentos diários,\ncompartilhados com as salas.';
+  String get feedBoardHighlightsLabel => 'DESTAQUES';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'NO FORNO';
+  String get feedBoardHighlightsEmpty => 'ainda não tem nada capturado hoje';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'uma pergunta diária que a sala responde';
+  String get feedBoardPuzzleLabel => 'O ENIGMA';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'notas de voz que somem automaticamente com o dia';
+  String get feedBoardPuzzleEmpty => 'o enigma de hoje ainda não está pronto';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'um mural de pequenas atualizações lentas de amigos';
+  String get feedBoardStandingsLabel => 'CLASSIFICAÇÃO';
+
+  @override
+  String get feedBoardStandingsEmpty => 'nenhum ponto no placar hoje';
+
+  @override
+  String get feedBoardActivityLabel => 'ATIVIDADE';
+
+  @override
+  String get feedBoardActivityEmpty => 'hoje está calmo por enquanto';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'adicione um amigo e o dia dele aparece aqui';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'PÚBLICA';
@@ -9378,4 +9529,134 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'MOVIMENTO';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Completo';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Calmo';
+
+  @override
+  String get settingsScreenValueMotionSystemFull =>
+      'Igual ao dispositivo · completo';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm =>
+      'Igual ao dispositivo · calmo';
+
+  @override
+  String get motionScreenTitle => 'movimento.';
+
+  @override
+  String get motionScreenSubtitle => 'quanto o app se mexe';
+
+  @override
+  String get motionScreenSystemLabel => 'IGUAL AO DISPOSITIVO';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'seu dispositivo permite animação neste momento';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'seu dispositivo pede menos movimento neste momento';
+
+  @override
+  String get motionScreenFullLabel => 'COMPLETO';
+
+  @override
+  String get motionScreenFullSubtitle => 'cada deriva, brilho e floreio';
+
+  @override
+  String get motionScreenCalmLabel => 'CALMO';
+
+  @override
+  String get motionScreenCalmSubtitle => 'a decoração para — nada mais muda';
+
+  @override
+  String get momentRailCaptureLabel => 'CAPTURAR';
+
+  @override
+  String get momentRailYouLabel => 'você';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author: $caption';
+  }
+
+  @override
+  String get momentTagFate => 'DESTINO';
+
+  @override
+  String get momentTagJinx => 'AZAR';
+
+  @override
+  String get momentTagLuck => 'SORTE';
+
+  @override
+  String get momentTagCalledIt => 'EU AVISEI';
+
+  @override
+  String get momentTagNpc => 'NPC';
+
+  @override
+  String get momentTagFateHint => 'que coincidência';
+
+  @override
+  String get momentTagJinxHint => 'você mesmo causou';
+
+  @override
+  String get momentTagLuckHint => 'foi a seu favor';
+
+  @override
+  String get momentTagCalledItHint => 'você viu chegando';
+
+  @override
+  String get momentTagNpcHint => 'cérebro desligado';
+
+  @override
+  String get momentComposerTitle => 'o que aconteceu?';
+
+  @override
+  String get momentComposerCaptionHint => 'diga alguma coisa';
+
+  @override
+  String get momentComposerTagPrompt => 'conta ponto? escolha uma';
+
+  @override
+  String get momentComposerCapture => 'câmera';
+
+  @override
+  String get momentComposerLibrary => 'galeria';
+
+  @override
+  String get momentComposerRemovePhoto => 'remover foto';
+
+  @override
+  String get momentComposerPost => 'PUBLICAR';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'já são vinte hoje — guarde para amanhã';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'um responsável desativou o compartilhamento de fotos';
+
+  @override
+  String get momentComposerErrorTooLong => 'ficou um pouco longo — encurte';
+
+  @override
+  String get momentComposerErrorEmpty =>
+      'adicione uma foto ou algumas palavras';
+
+  @override
+  String get momentComposerErrorGeneric =>
+      'não foi possível publicar — tente de novo';
+
+  @override
+  String get momentViewerDelete => 'excluir';
 }

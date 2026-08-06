@@ -4112,29 +4112,40 @@ class AppLocalizationsFr extends AppLocalizations {
       'impossible de rejoindre — réessaie';
 
   @override
-  String get enterPublicRoomFeedTabLabel => 'FIL';
+  String get feedBoardTitle => 'AUJOURD’HUI';
 
   @override
-  String get enterPublicRoomFeedHeadlineSoon => 'bientôt.\n';
+  String feedBoardEditionLabel(Object number) {
+    return 'N°$number';
+  }
 
   @override
-  String get enterPublicRoomFeedHeadlineDetail =>
-      'des moments du quotidien,\npartagés dans tes salons.';
+  String get feedBoardHighlightsLabel => 'MOMENTS FORTS';
 
   @override
-  String get enterPublicRoomFeedPipelineLabel => 'DANS LES TUYAUX';
+  String get feedBoardHighlightsEmpty => 'rien de capturé aujourd’hui';
 
   @override
-  String get enterPublicRoomFeedBulletPrompt =>
-      'une question du jour à laquelle le salon répond';
+  String get feedBoardPuzzleLabel => 'L’ÉNIGME';
 
   @override
-  String get enterPublicRoomFeedBulletVoiceNotes =>
-      'des notes vocales qui s\'effacent automatiquement avec la journée';
+  String get feedBoardPuzzleEmpty => 'l’énigme du jour n’est pas encore prête';
 
   @override
-  String get enterPublicRoomFeedBulletWallUpdates =>
-      'un mur de petites nouvelles tranquilles de tes amis';
+  String get feedBoardStandingsLabel => 'CLASSEMENT';
+
+  @override
+  String get feedBoardStandingsEmpty => 'aucun point au tableau aujourd’hui';
+
+  @override
+  String get feedBoardActivityLabel => 'ACTIVITÉ';
+
+  @override
+  String get feedBoardActivityEmpty => 'calme pour l’instant aujourd’hui';
+
+  @override
+  String get feedBoardActivityNoFriends =>
+      'ajoute un ami et sa journée apparaîtra ici';
 
   @override
   String get enterPublicRoomVisibilityPublicLabel => 'PUBLIC';
@@ -4712,4 +4723,132 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get languageValueJapanese => '日本語';
+
+  @override
+  String get settingsScreenRowMotion => 'MOUVEMENT';
+
+  @override
+  String get settingsScreenValueMotionFull => 'Complet';
+
+  @override
+  String get settingsScreenValueMotionCalm => 'Calme';
+
+  @override
+  String get settingsScreenValueMotionSystemFull =>
+      'Comme l’appareil · complet';
+
+  @override
+  String get settingsScreenValueMotionSystemCalm => 'Comme l’appareil · calme';
+
+  @override
+  String get motionScreenTitle => 'mouvement.';
+
+  @override
+  String get motionScreenSubtitle => 'à quel point l’app bouge';
+
+  @override
+  String get motionScreenSystemLabel => 'COMME L’APPAREIL';
+
+  @override
+  String get motionScreenSystemSubtitleFull =>
+      'ton appareil autorise l’animation en ce moment';
+
+  @override
+  String get motionScreenSystemSubtitleCalm =>
+      'ton appareil demande moins de mouvement en ce moment';
+
+  @override
+  String get motionScreenFullLabel => 'COMPLET';
+
+  @override
+  String get motionScreenFullSubtitle => 'chaque dérive, lueur et fioriture';
+
+  @override
+  String get motionScreenCalmLabel => 'CALME';
+
+  @override
+  String get motionScreenCalmSubtitle =>
+      'le décor s’immobilise — rien d’autre ne change';
+
+  @override
+  String get momentRailCaptureLabel => 'CAPTURER';
+
+  @override
+  String get momentRailYouLabel => 'toi';
+
+  @override
+  String momentRailCardSemanticLabel(Object author, Object caption) {
+    return '$author : $caption';
+  }
+
+  @override
+  String get momentTagFate => 'DESTIN';
+
+  @override
+  String get momentTagJinx => 'POISSE';
+
+  @override
+  String get momentTagLuck => 'CHANCE';
+
+  @override
+  String get momentTagCalledIt => 'JE L’AVAIS DIT';
+
+  @override
+  String get momentTagNpc => 'PNJ';
+
+  @override
+  String get momentTagFateHint => 'quelles sont les chances';
+
+  @override
+  String get momentTagJinxHint => 'tu l’as bien cherché';
+
+  @override
+  String get momentTagLuckHint => 'ça a tourné en ta faveur';
+
+  @override
+  String get momentTagCalledItHint => 'tu l’avais vu venir';
+
+  @override
+  String get momentTagNpcHint => 'cerveau éteint';
+
+  @override
+  String get momentComposerTitle => 'qu’est-ce qui s’est passé ?';
+
+  @override
+  String get momentComposerCaptionHint => 'raconte';
+
+  @override
+  String get momentComposerTagPrompt => 'ça compte ? choisis-en une';
+
+  @override
+  String get momentComposerCapture => 'appareil photo';
+
+  @override
+  String get momentComposerLibrary => 'galerie';
+
+  @override
+  String get momentComposerRemovePhoto => 'retirer la photo';
+
+  @override
+  String get momentComposerPost => 'PUBLIER';
+
+  @override
+  String get momentComposerErrorDailyCap =>
+      'ça fait vingt aujourd’hui — gardes-en pour demain';
+
+  @override
+  String get momentComposerErrorNotAllowed =>
+      'un tuteur a désactivé le partage de photos';
+
+  @override
+  String get momentComposerErrorTooLong => 'c’est un peu long — raccourcis';
+
+  @override
+  String get momentComposerErrorEmpty => 'ajoute une photo ou quelques mots';
+
+  @override
+  String get momentComposerErrorGeneric => 'publication impossible — réessaie';
+
+  @override
+  String get momentViewerDelete => 'supprimer';
 }
