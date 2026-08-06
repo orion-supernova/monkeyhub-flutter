@@ -17,5 +17,13 @@
          This Theme is only used starting with V2 of Flutter's Android embedding. -->
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
+        <!-- Parity with LaunchTheme — see values/styles.xml for why this is
+             load-bearing and not tidiness. Keep all four styles.xml in step.
+             The windowSplashScreen* items above are NOT mirrored here: the
+             Android 12 splash API owns the launch window only, and NormalTheme
+             is applied after it has already handed off. -->
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>
