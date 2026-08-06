@@ -6,6 +6,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
+import '../diagnostics/diag_gate.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -22,6 +23,7 @@ import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
 import 'chat_style_screen.dart';
+import 'diagnostics_screen.dart';
 import 'glass_screen.dart';
 import 'language_screen.dart';
 import 'reply_style_screen.dart';
@@ -929,6 +931,10 @@ class _VersionStamp extends StatefulWidget {
 class _VersionStampState extends State<_VersionStamp> {
   String? _stamp;
 
+  /// Taps inside the current window, for the tap-count route into diagnostics.
+  int _taps = 0;
+  DateTime? _firstTap;
+
   @override
   void initState() {
     super.initState();
@@ -941,9 +947,69 @@ class _VersionStampState extends State<_VersionStamp> {
     setState(() => _stamp = 'MonkeyHub · v${info.version}');
   }
 
+  /// Opens the diagnostics viewer, but only on a device the backend has
+  /// unlocked.
+  ///
+  /// The check comes FIRST and produces no feedback of any kind when it fails.
+  /// A hidden mode that gives a "3 more taps…" hint to everybody is a hidden
+  /// mode that a curious eleven-year-old finds within a week, and this app's
+  /// users are children. On an unlocked device the counter does give feedback
+  /// from the third tap, because the person who needs to find this will be
+  /// following instructions over a phone call.
+  void _openDiagnostics() {
+    if (!DiagGate.instance.viewerReachable) return;
+    openSettingsDetail(
+      context,
+      key: 'diagnostics',
+      builder: (_) => const DiagnosticsScreen(),
+    );
+  }
+
+  void _onTap() {
+    if (!DiagGate.instance.viewerReachable) return;
+    final now = DateTime.now();
+    if (_firstTap == null || now.difference(_firstTap!) > _tapWindow) {
+      _firstTap = now;
+      _taps = 0;
+    }
+    _taps++;
+    if (_taps >= _tapsNeeded) {
+      _taps = 0;
+      _firstTap = null;
+      _openDiagnostics();
+      return;
+    }
+    if (_taps >= 3 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 600),
+          content: Text('Diagnostics in ${_tapsNeeded - _taps}…'),
+        ),
+      );
+    }
+  }
+
+  static const int _tapsNeeded = 5;
+  static const Duration _tapWindow = Duration(seconds: 3);
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Text(_stamp ?? 'MonkeyHub', style: theme.monoTiny);
+    // Two triggers on purpose. The bug this exists to diagnose includes taps
+    // that do not land, so a tap burst may be untriggerable on the very device
+    // we are targeting — the long-press is the one that will actually work
+    // there.
+    //
+    // Deliberately NOT wrapped in FocusableTap, the one considered exception to
+    // the both-wrappers rule used everywhere else in this file: FocusableTap
+    // attaches a semantics label and keyboard activation, which would announce
+    // a hidden developer affordance to every screen-reader user in the shipped
+    // app. A bare detector stays invisible to everything except a finger.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _onTap,
+      onLongPress: _openDiagnostics,
+      child: Text(_stamp ?? 'MonkeyHub', style: theme.monoTiny),
+    );
   }
 }
