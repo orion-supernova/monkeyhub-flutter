@@ -205,6 +205,128 @@ export const findDevices = internalQuery({
   },
 });
 
+/// Unlock every device belonging to one username, in one command.
+///
+/// The device-id route works but has a hole in the middle: a report arrives,
+/// and turning it into a capture means a lookup, a copy-paste of a 36-character
+/// id, and a second command — per device. People do not have one device, and a
+/// mistyped id fails silently, creating a row that never matches anything while
+/// you wait for logs that cannot come.
+///
+/// A username is something the reporter can say out loud. The device ids are
+/// already here from their logins, so resolving them is our job, not theirs.
+export const enableForUser = internalMutation({
+  args: {
+    username: v.string(),
+    days: v.optional(v.number()),
+    note: v.optional(v.string()),
+  },
+  returns: v.object({
+    found: v.boolean(),
+    enabled: v.array(
+      v.object({
+        deviceId: v.string(),
+        label: v.string(),
+        created: v.boolean(),
+      }),
+    ),
+  }),
+  handler: async (ctx, { username, days, note }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username))
+      .unique();
+    if (!user) return { found: false, enabled: [] };
+
+    const devices = await ctx.db
+      .query("userDevices")
+      .withIndex("by_user_device", (q) => q.eq("userId", user._id))
+      .take(50);
+
+    const now = Date.now();
+    const expiresAt = now + (days ?? DEFAULT_DAYS) * DAY_MS;
+    const enabled = [];
+
+    for (const d of devices) {
+      // Label built here rather than left to the caller: `list` a fortnight
+      // later is unreadable without it, and this is the one place that knows
+      // both the account and the hardware.
+      const label = `${username} ${d.deviceName ?? d.platform ?? "device"}`;
+      const existing = await ctx.db
+        .query("diagnosticDevices")
+        .withIndex("by_device", (q) => q.eq("deviceId", d.deviceId))
+        .unique();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, { expiresAt, enabledAt: now, label });
+        enabled.push({ deviceId: d.deviceId, label, created: false });
+      } else {
+        await ctx.db.insert("diagnosticDevices", {
+          deviceId: d.deviceId,
+          label,
+          note,
+          enabledAt: now,
+          expiresAt,
+          createdAt: now,
+        });
+        enabled.push({ deviceId: d.deviceId, label, created: true });
+      }
+    }
+    return { found: true, enabled };
+  },
+});
+
+/// The most recently active devices, newest first.
+///
+/// For the case where you cannot even get a username: somebody says "it just
+/// happened" in a group chat, and the handset that was live ninety seconds ago
+/// is almost certainly theirs. Gives you a name to confirm against rather than
+/// a guess.
+///
+/// Bounded with `.take` and sorted in memory rather than by index — there is no
+/// `by_lastSeenAt` on userDevices, and adding one to serve a debugging tool
+/// would put a write on the hot device-registration path forever. The scan is
+/// capped, so the cost is fixed and small.
+export const recentDevices = internalQuery({
+  args: { limit: v.optional(v.number()) },
+  returns: v.array(
+    v.object({
+      deviceId: v.string(),
+      username: v.union(v.string(), v.null()),
+      platform: v.union(v.string(), v.null()),
+      deviceName: v.union(v.string(), v.null()),
+      lastSeenAt: v.union(v.number(), v.null()),
+      allowlisted: v.boolean(),
+    }),
+  ),
+  handler: async (ctx, { limit }) => {
+    const scanned = await ctx.db.query("userDevices").take(500);
+    const sorted = scanned
+      .sort((a, b) => (b.lastSeenAt ?? 0) - (a.lastSeenAt ?? 0))
+      .slice(0, Math.min(limit ?? 15, 50));
+
+    const out = [];
+    for (const d of sorted) {
+      const user = await ctx.db.get(d.userId);
+      const row = await ctx.db
+        .query("diagnosticDevices")
+        .withIndex("by_device", (q) => q.eq("deviceId", d.deviceId))
+        .unique();
+      out.push({
+        deviceId: d.deviceId,
+        username: user?.username ?? null,
+        platform: d.platform ?? null,
+        deviceName: d.deviceName ?? null,
+        lastSeenAt: d.lastSeenAt ?? null,
+        // So you can see at a glance what is already on, instead of
+        // cross-referencing against `list`.
+        allowlisted: row != null && row.expiresAt > Date.now(),
+      });
+    }
+    return out;
+  },
+});
+
 /// Retention sweep. Bounded with `.take` for the reason spelled out at
 /// users.sweepStalePresence — an unbounded `.collect()` eventually blows the
 /// read limit, at which point the sweep silently stops working and nobody
