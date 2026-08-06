@@ -4101,6 +4101,57 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenSectionNotifications => '通知';
 
   @override
+  String get reportProblemRowLabel => '問題を報告';
+
+  @override
+  String get reportProblemRowValue => '詳細をお送りください';
+
+  @override
+  String get reportProblemIntro =>
+      '何が起きたか教えてください。アプリと端末の情報は自動的に含まれます。原因の特定に役立ちます。';
+
+  @override
+  String get reportProblemDescribeLabel => '何が起きたか';
+
+  @override
+  String get reportProblemDescribeHint => '画面がちらつく、ボタンが反応しない…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'スクリーンショット';
+
+  @override
+  String get reportProblemAddScreenshot => 'スクリーンショットを追加';
+
+  @override
+  String get reportProblemDetailsLabel => 'あなたの情報';
+
+  @override
+  String get reportProblemCopyDetails => '情報をコピー';
+
+  @override
+  String get reportProblemCopied => 'コピーしました';
+
+  @override
+  String get reportProblemSend => 'レポートを送信';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'または $email にメールを送信';
+  }
+
+  @override
+  String get reportProblemShakeTitle => '問題を報告しますか？';
+
+  @override
+  String get reportProblemShakeBody => '端末を振りました。レポート画面を開きますか？';
+
+  @override
+  String get reportProblemShakeOpen => '報告する';
+
+  @override
+  String get reportProblemShakeDismiss => '今はしない';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'ロック画面の着信';
 
   @override

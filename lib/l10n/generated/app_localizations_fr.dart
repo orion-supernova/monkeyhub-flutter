@@ -4320,6 +4320,59 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
 
   @override
+  String get reportProblemRowLabel => 'Signaler un problème';
+
+  @override
+  String get reportProblemRowValue => 'Envoyez-nous les détails';
+
+  @override
+  String get reportProblemIntro =>
+      'Dites-nous ce qui n\'a pas fonctionné. Les informations sur votre app et votre appareil sont incluses automatiquement — elles nous aident à trouver la cause.';
+
+  @override
+  String get reportProblemDescribeLabel => 'CE QUI S\'EST PASSÉ';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'L\'écran scintille, les boutons ne répondent pas…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'CAPTURES D\'ÉCRAN';
+
+  @override
+  String get reportProblemAddScreenshot => 'Ajouter une capture';
+
+  @override
+  String get reportProblemDetailsLabel => 'VOS INFORMATIONS';
+
+  @override
+  String get reportProblemCopyDetails => 'Copier les informations';
+
+  @override
+  String get reportProblemCopied => 'Copié';
+
+  @override
+  String get reportProblemSend => 'Envoyer le signalement';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Ou écrivez à $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Signaler un problème ?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Vous avez secoué votre téléphone. Ouvrir l\'écran de signalement ?';
+
+  @override
+  String get reportProblemShakeOpen => 'Signaler';
+
+  @override
+  String get reportProblemShakeDismiss => 'Pas maintenant';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel =>
       'Appels sur l\'écran de verrouillage';
 

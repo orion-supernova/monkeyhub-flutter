@@ -4048,6 +4048,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenSectionNotifications => '通知';
 
   @override
+  String get reportProblemRowLabel => '报告问题';
+
+  @override
+  String get reportProblemRowValue => '把详情发给我们';
+
+  @override
+  String get reportProblemIntro => '告诉我们出了什么问题。应用和设备信息会自动附上，有助于我们找到原因。';
+
+  @override
+  String get reportProblemDescribeLabel => '发生了什么';
+
+  @override
+  String get reportProblemDescribeHint => '屏幕闪烁、按钮没反应……';
+
+  @override
+  String get reportProblemScreenshotsLabel => '截图';
+
+  @override
+  String get reportProblemAddScreenshot => '添加截图';
+
+  @override
+  String get reportProblemDetailsLabel => '你的信息';
+
+  @override
+  String get reportProblemCopyDetails => '复制信息';
+
+  @override
+  String get reportProblemCopied => '已复制';
+
+  @override
+  String get reportProblemSend => '发送报告';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return '或发邮件至 $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => '要报告问题吗？';
+
+  @override
+  String get reportProblemShakeBody => '你摇了手机。要打开报告页面吗？';
+
+  @override
+  String get reportProblemShakeOpen => '报告';
+
+  @override
+  String get reportProblemShakeDismiss => '暂不';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => '锁屏来电';
 
   @override

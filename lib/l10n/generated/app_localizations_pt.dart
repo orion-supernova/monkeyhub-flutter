@@ -4295,6 +4295,59 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';
 
   @override
+  String get reportProblemRowLabel => 'Comunicar um problema';
+
+  @override
+  String get reportProblemRowValue => 'Envie-nos os detalhes';
+
+  @override
+  String get reportProblemIntro =>
+      'Diga-nos o que correu mal. Os dados da app e do seu dispositivo são incluídos automaticamente — ajudam-nos a encontrar a causa.';
+
+  @override
+  String get reportProblemDescribeLabel => 'O QUE ACONTECEU';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'O ecrã tremeluz, os botões não respondem…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'CAPTURAS DE ECRÃ';
+
+  @override
+  String get reportProblemAddScreenshot => 'Adicionar captura de ecrã';
+
+  @override
+  String get reportProblemDetailsLabel => 'OS SEUS DADOS';
+
+  @override
+  String get reportProblemCopyDetails => 'Copiar dados';
+
+  @override
+  String get reportProblemCopied => 'Copiado';
+
+  @override
+  String get reportProblemSend => 'Enviar relatório';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Ou envie e-mail para $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Comunicar um problema?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Abanou o telemóvel. Abrir o ecrã de relatório?';
+
+  @override
+  String get reportProblemShakeOpen => 'Comunicar';
+
+  @override
+  String get reportProblemShakeDismiss => 'Agora não';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel =>
       'Chamadas no ecrã de bloqueio';
 
@@ -8928,6 +8981,59 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';
+
+  @override
+  String get reportProblemRowLabel => 'Relatar um problema';
+
+  @override
+  String get reportProblemRowValue => 'Envie os detalhes para nós';
+
+  @override
+  String get reportProblemIntro =>
+      'Conte o que deu errado. Os dados do app e do seu aparelho são incluídos automaticamente — eles ajudam a encontrar a causa.';
+
+  @override
+  String get reportProblemDescribeLabel => 'O QUE ACONTECEU';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'A tela pisca, os botões não respondem…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'CAPTURAS DE TELA';
+
+  @override
+  String get reportProblemAddScreenshot => 'Adicionar captura de tela';
+
+  @override
+  String get reportProblemDetailsLabel => 'SEUS DADOS';
+
+  @override
+  String get reportProblemCopyDetails => 'Copiar dados';
+
+  @override
+  String get reportProblemCopied => 'Copiado';
+
+  @override
+  String get reportProblemSend => 'Enviar relatório';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Ou envie um e-mail para $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Relatar um problema?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Você sacudiu o celular. Abrir a tela de relatório?';
+
+  @override
+  String get reportProblemShakeOpen => 'Relatar';
+
+  @override
+  String get reportProblemShakeDismiss => 'Agora não';
 
   @override
   String get settingsCallDeliveryLockScreenLabel =>

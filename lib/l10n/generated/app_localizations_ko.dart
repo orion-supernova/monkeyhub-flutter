@@ -4114,6 +4114,57 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenSectionNotifications => '알림';
 
   @override
+  String get reportProblemRowLabel => '문제 신고';
+
+  @override
+  String get reportProblemRowValue => '자세한 내용을 보내주세요';
+
+  @override
+  String get reportProblemIntro =>
+      '무엇이 잘못되었는지 알려주세요. 앱과 기기 정보가 자동으로 포함되어 원인을 찾는 데 도움이 됩니다.';
+
+  @override
+  String get reportProblemDescribeLabel => '무슨 일이 있었나요';
+
+  @override
+  String get reportProblemDescribeHint => '화면이 깜빡여요, 버튼이 반응하지 않아요…';
+
+  @override
+  String get reportProblemScreenshotsLabel => '스크린샷';
+
+  @override
+  String get reportProblemAddScreenshot => '스크린샷 추가';
+
+  @override
+  String get reportProblemDetailsLabel => '내 정보';
+
+  @override
+  String get reportProblemCopyDetails => '정보 복사';
+
+  @override
+  String get reportProblemCopied => '복사됨';
+
+  @override
+  String get reportProblemSend => '신고 보내기';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return '또는 $email 로 이메일 보내기';
+  }
+
+  @override
+  String get reportProblemShakeTitle => '문제를 신고할까요?';
+
+  @override
+  String get reportProblemShakeBody => '기기를 흔드셨네요. 신고 화면을 열까요?';
+
+  @override
+  String get reportProblemShakeOpen => '신고';
+
+  @override
+  String get reportProblemShakeDismiss => '나중에';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => '잠금 화면 통화';
 
   @override

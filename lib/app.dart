@@ -57,6 +57,7 @@ import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
+import 'widgets/shake_to_report.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
 /// don't write".
@@ -790,6 +791,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                           service: _groupCallService,
                           api: _api,
                         ),
+                        // Listens for a deliberate shake and OFFERS the report
+                        // screen. Invisible; mounted here only so the sensor
+                        // subscription's lifetime matches the app's. Gated on
+                        // bootstrap so a shake during the splash cannot open a
+                        // form over a half-built tree.
+                        if (_bootstrapped && _bootError == null)
+                          ShakeToReport(auth: _auth),
                         // Sits above every other layer so it covers banners +
                         // overlays during a screen recording.
                         const CaptureShield(),

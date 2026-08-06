@@ -4736,6 +4736,76 @@
   "@settingsScreenSectionNotifications": {
     "description": "All-caps section header above the Push Notifications toggle."
   },
+  "reportProblemRowLabel": "Report a problem",
+  "@reportProblemRowLabel": {
+    "description": "Settings row that opens the problem-report screen. Also the title of that screen."
+  },
+  "reportProblemRowValue": "Send us the details",
+  "@reportProblemRowValue": {
+    "description": "Right-aligned hint on the Settings row for reporting a problem."
+  },
+  "reportProblemIntro": "Tell us what went wrong. Your app and device details are included automatically — they help us find the cause.",
+  "@reportProblemIntro": {
+    "description": "Short paragraph at the top of the problem-report screen explaining what will be sent."
+  },
+  "reportProblemDescribeLabel": "WHAT HAPPENED",
+  "@reportProblemDescribeLabel": {
+    "description": "All-caps section header above the free-text field where the user describes the problem."
+  },
+  "reportProblemDescribeHint": "The screen flickers, buttons don't respond…",
+  "@reportProblemDescribeHint": {
+    "description": "Placeholder text inside the problem description field, giving examples of useful detail."
+  },
+  "reportProblemScreenshotsLabel": "SCREENSHOTS",
+  "@reportProblemScreenshotsLabel": {
+    "description": "All-caps section header above the optional screenshot attachments."
+  },
+  "reportProblemAddScreenshot": "Add screenshot",
+  "@reportProblemAddScreenshot": {
+    "description": "Button that opens the photo picker to attach a screenshot to the report."
+  },
+  "reportProblemDetailsLabel": "YOUR DETAILS",
+  "@reportProblemDetailsLabel": {
+    "description": "All-caps section header above the read-only device and account identifiers included in the report."
+  },
+  "reportProblemCopyDetails": "Copy details",
+  "@reportProblemCopyDetails": {
+    "description": "Button that copies the device and account identifiers to the clipboard."
+  },
+  "reportProblemCopied": "Copied",
+  "@reportProblemCopied": {
+    "description": "Brief confirmation shown after copying the device details to the clipboard."
+  },
+  "reportProblemSend": "Send report",
+  "@reportProblemSend": {
+    "description": "Primary button that opens the share sheet to send the problem report."
+  },
+  "reportProblemEmailInstead": "Or email {email}",
+  "@reportProblemEmailInstead": {
+    "description": "Secondary option below the send button, opening the mail app with the report prefilled. Placeholder is the support email address.",
+    "placeholders": {
+      "email": {
+        "type": "String",
+        "example": "info@walhallaa.com"
+      }
+    }
+  },
+  "reportProblemShakeTitle": "Report a problem?",
+  "@reportProblemShakeTitle": {
+    "description": "Title of the sheet that appears when the user shakes the device, offering to open the problem-report screen."
+  },
+  "reportProblemShakeBody": "You shook your phone. Open the report screen?",
+  "@reportProblemShakeBody": {
+    "description": "Body of the shake-triggered sheet, explaining why it appeared."
+  },
+  "reportProblemShakeOpen": "Report",
+  "@reportProblemShakeOpen": {
+    "description": "Confirm button on the shake sheet; opens the problem-report screen."
+  },
+  "reportProblemShakeDismiss": "Not now",
+  "@reportProblemShakeDismiss": {
+    "description": "Dismiss button on the shake sheet; closes it without opening the report screen."
+  },
   "settingsCallDeliveryLockScreenLabel": "Lock screen calls",
   "@settingsCallDeliveryLockScreenLabel": {
     "description": "Android-only settings row label for full-screen-intent access, which lets an incoming call take over the lock screen."

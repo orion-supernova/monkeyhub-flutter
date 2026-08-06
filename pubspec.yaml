@@ -183,6 +183,14 @@ dependencies:
   # dead VPN. Android's ACCESS_NETWORK_STATE ships in the plugin's own manifest
   # and merges automatically; no iOS permission.
   connectivity_plus: ^7.3.1
+
+  # Accelerometer, used for exactly one thing: shake-to-report (see
+  # ShakeDetector). The subscription is opened once at app start and is a
+  # low-rate sensor stream, not a wake lock — but it IS always on, so the
+  # detector is deliberately strict about what counts as a shake and every
+  # trigger goes through a confirm sheet rather than straight into a form.
+  # Needs no permission on either platform.
+  sensors_plus: ^7.0.0
   flutter_localizations:
     sdk: flutter
 

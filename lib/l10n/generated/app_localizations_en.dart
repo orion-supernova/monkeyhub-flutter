@@ -4240,6 +4240,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
 
   @override
+  String get reportProblemRowLabel => 'Report a problem';
+
+  @override
+  String get reportProblemRowValue => 'Send us the details';
+
+  @override
+  String get reportProblemIntro =>
+      'Tell us what went wrong. Your app and device details are included automatically — they help us find the cause.';
+
+  @override
+  String get reportProblemDescribeLabel => 'WHAT HAPPENED';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'The screen flickers, buttons don\'t respond…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'SCREENSHOTS';
+
+  @override
+  String get reportProblemAddScreenshot => 'Add screenshot';
+
+  @override
+  String get reportProblemDetailsLabel => 'YOUR DETAILS';
+
+  @override
+  String get reportProblemCopyDetails => 'Copy details';
+
+  @override
+  String get reportProblemCopied => 'Copied';
+
+  @override
+  String get reportProblemSend => 'Send report';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Or email $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Report a problem?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'You shook your phone. Open the report screen?';
+
+  @override
+  String get reportProblemShakeOpen => 'Report';
+
+  @override
+  String get reportProblemShakeDismiss => 'Not now';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'Lock screen calls';
 
   @override

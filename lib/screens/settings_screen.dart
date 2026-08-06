@@ -32,6 +32,7 @@ import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'profile_screen.dart';
+import 'report_problem_screen.dart';
 import 'room_layout_screen.dart';
 import 'theme_screen.dart';
 
@@ -508,6 +509,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SectionHeader(label: l10n.settingsScreenSectionLinks),
               const SizedBox(height: 12),
               _ShowLinkUrlsToggle(),
+
+              const SizedBox(height: 28),
+              _DisclosureRow(
+                label: l10n.reportProblemRowLabel,
+                value: l10n.reportProblemRowValue,
+                selected: _isOpen('report'),
+                leading: Icon(
+                  Icons.bug_report_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'report',
+                  builder: (_) => ReportProblemScreen(auth: widget.auth),
+                ),
+              ),
 
               const SizedBox(height: 28),
               _SectionHeader(label: l10n.settingsScreenSectionNotifications),

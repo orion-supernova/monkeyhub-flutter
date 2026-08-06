@@ -4260,6 +4260,59 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'नोटिफिकेशन';
 
   @override
+  String get reportProblemRowLabel => 'समस्या की रिपोर्ट करें';
+
+  @override
+  String get reportProblemRowValue => 'हमें विवरण भेजें';
+
+  @override
+  String get reportProblemIntro =>
+      'बताइए क्या गड़बड़ हुई। आपके ऐप और डिवाइस की जानकारी अपने आप जुड़ जाती है — इससे कारण ढूँढ़ने में मदद मिलती है।';
+
+  @override
+  String get reportProblemDescribeLabel => 'क्या हुआ';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'स्क्रीन झिलमिलाती है, बटन काम नहीं करते…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'स्क्रीनशॉट';
+
+  @override
+  String get reportProblemAddScreenshot => 'स्क्रीनशॉट जोड़ें';
+
+  @override
+  String get reportProblemDetailsLabel => 'आपकी जानकारी';
+
+  @override
+  String get reportProblemCopyDetails => 'जानकारी कॉपी करें';
+
+  @override
+  String get reportProblemCopied => 'कॉपी हो गया';
+
+  @override
+  String get reportProblemSend => 'रिपोर्ट भेजें';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'या $email पर ईमेल करें';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'समस्या की रिपोर्ट करें?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'आपने फ़ोन हिलाया। रिपोर्ट स्क्रीन खोलें?';
+
+  @override
+  String get reportProblemShakeOpen => 'रिपोर्ट करें';
+
+  @override
+  String get reportProblemShakeDismiss => 'अभी नहीं';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'लॉक स्क्रीन कॉल';
 
   @override

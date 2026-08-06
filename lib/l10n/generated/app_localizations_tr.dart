@@ -4224,6 +4224,59 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'BİLDİRİMLER';
 
   @override
+  String get reportProblemRowLabel => 'Sorun bildir';
+
+  @override
+  String get reportProblemRowValue => 'Ayrıntıları bize gönderin';
+
+  @override
+  String get reportProblemIntro =>
+      'Neyin yanlış gittiğini anlatın. Uygulama ve cihaz bilgileriniz otomatik olarak eklenir — nedeni bulmamıza yardımcı olur.';
+
+  @override
+  String get reportProblemDescribeLabel => 'NE OLDU';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'Ekran titriyor, düğmeler yanıt vermiyor…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'EKRAN GÖRÜNTÜLERİ';
+
+  @override
+  String get reportProblemAddScreenshot => 'Ekran görüntüsü ekle';
+
+  @override
+  String get reportProblemDetailsLabel => 'BİLGİLERİNİZ';
+
+  @override
+  String get reportProblemCopyDetails => 'Bilgileri kopyala';
+
+  @override
+  String get reportProblemCopied => 'Kopyalandı';
+
+  @override
+  String get reportProblemSend => 'Raporu gönder';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Veya $email adresine e-posta gönderin';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Sorun bildirilsin mi?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Telefonunuzu salladınız. Rapor ekranı açılsın mı?';
+
+  @override
+  String get reportProblemShakeOpen => 'Bildir';
+
+  @override
+  String get reportProblemShakeDismiss => 'Şimdi değil';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'Kilit ekranı aramaları';
 
   @override

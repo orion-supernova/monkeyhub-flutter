@@ -4339,6 +4339,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'الإشعارات';
 
   @override
+  String get reportProblemRowLabel => 'الإبلاغ عن مشكلة';
+
+  @override
+  String get reportProblemRowValue => 'أرسل لنا التفاصيل';
+
+  @override
+  String get reportProblemIntro =>
+      'أخبرنا بما حدث. تُضاف معلومات التطبيق والجهاز تلقائيًا — فهي تساعدنا في معرفة السبب.';
+
+  @override
+  String get reportProblemDescribeLabel => 'ماذا حدث';
+
+  @override
+  String get reportProblemDescribeHint => 'الشاشة ترتجف، الأزرار لا تستجيب…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'لقطات الشاشة';
+
+  @override
+  String get reportProblemAddScreenshot => 'إضافة لقطة شاشة';
+
+  @override
+  String get reportProblemDetailsLabel => 'معلوماتك';
+
+  @override
+  String get reportProblemCopyDetails => 'نسخ المعلومات';
+
+  @override
+  String get reportProblemCopied => 'تم النسخ';
+
+  @override
+  String get reportProblemSend => 'إرسال البلاغ';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'أو راسلنا على $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'هل تريد الإبلاغ عن مشكلة؟';
+
+  @override
+  String get reportProblemShakeBody => 'لقد هززت هاتفك. هل نفتح شاشة البلاغ؟';
+
+  @override
+  String get reportProblemShakeOpen => 'إبلاغ';
+
+  @override
+  String get reportProblemShakeDismiss => 'ليس الآن';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'المكالمات على شاشة القفل';
 
   @override

@@ -4287,6 +4287,59 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTIFICACIONES';
 
   @override
+  String get reportProblemRowLabel => 'Informar de un problema';
+
+  @override
+  String get reportProblemRowValue => 'Envíanos los detalles';
+
+  @override
+  String get reportProblemIntro =>
+      'Cuéntanos qué ha fallado. Los datos de tu app y tu dispositivo se incluyen automáticamente: nos ayudan a encontrar la causa.';
+
+  @override
+  String get reportProblemDescribeLabel => 'QUÉ HA PASADO';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'La pantalla parpadea, los botones no responden…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'CAPTURAS';
+
+  @override
+  String get reportProblemAddScreenshot => 'Añadir captura';
+
+  @override
+  String get reportProblemDetailsLabel => 'TUS DATOS';
+
+  @override
+  String get reportProblemCopyDetails => 'Copiar datos';
+
+  @override
+  String get reportProblemCopied => 'Copiado';
+
+  @override
+  String get reportProblemSend => 'Enviar informe';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'O escríbenos a $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => '¿Informar de un problema?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Has agitado el teléfono. ¿Abrimos la pantalla de informe?';
+
+  @override
+  String get reportProblemShakeOpen => 'Informar';
+
+  @override
+  String get reportProblemShakeDismiss => 'Ahora no';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel =>
       'Llamadas en pantalla de bloqueo';
 

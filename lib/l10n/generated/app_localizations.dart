@@ -7247,6 +7247,102 @@ abstract class AppLocalizations {
   /// **'NOTIFICATIONS'**
   String get settingsScreenSectionNotifications;
 
+  /// Settings row that opens the problem-report screen. Also the title of that screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem'**
+  String get reportProblemRowLabel;
+
+  /// Right-aligned hint on the Settings row for reporting a problem.
+  ///
+  /// In en, this message translates to:
+  /// **'Send us the details'**
+  String get reportProblemRowValue;
+
+  /// Short paragraph at the top of the problem-report screen explaining what will be sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what went wrong. Your app and device details are included automatically — they help us find the cause.'**
+  String get reportProblemIntro;
+
+  /// All-caps section header above the free-text field where the user describes the problem.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT HAPPENED'**
+  String get reportProblemDescribeLabel;
+
+  /// Placeholder text inside the problem description field, giving examples of useful detail.
+  ///
+  /// In en, this message translates to:
+  /// **'The screen flickers, buttons don\'t respond…'**
+  String get reportProblemDescribeHint;
+
+  /// All-caps section header above the optional screenshot attachments.
+  ///
+  /// In en, this message translates to:
+  /// **'SCREENSHOTS'**
+  String get reportProblemScreenshotsLabel;
+
+  /// Button that opens the photo picker to attach a screenshot to the report.
+  ///
+  /// In en, this message translates to:
+  /// **'Add screenshot'**
+  String get reportProblemAddScreenshot;
+
+  /// All-caps section header above the read-only device and account identifiers included in the report.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR DETAILS'**
+  String get reportProblemDetailsLabel;
+
+  /// Button that copies the device and account identifiers to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy details'**
+  String get reportProblemCopyDetails;
+
+  /// Brief confirmation shown after copying the device details to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get reportProblemCopied;
+
+  /// Primary button that opens the share sheet to send the problem report.
+  ///
+  /// In en, this message translates to:
+  /// **'Send report'**
+  String get reportProblemSend;
+
+  /// Secondary option below the send button, opening the mail app with the report prefilled. Placeholder is the support email address.
+  ///
+  /// In en, this message translates to:
+  /// **'Or email {email}'**
+  String reportProblemEmailInstead(String email);
+
+  /// Title of the sheet that appears when the user shakes the device, offering to open the problem-report screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem?'**
+  String get reportProblemShakeTitle;
+
+  /// Body of the shake-triggered sheet, explaining why it appeared.
+  ///
+  /// In en, this message translates to:
+  /// **'You shook your phone. Open the report screen?'**
+  String get reportProblemShakeBody;
+
+  /// Confirm button on the shake sheet; opens the problem-report screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get reportProblemShakeOpen;
+
+  /// Dismiss button on the shake sheet; closes it without opening the report screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get reportProblemShakeDismiss;
+
   /// Android-only settings row label for full-screen-intent access, which lets an incoming call take over the lock screen.
   ///
   /// In en, this message translates to:

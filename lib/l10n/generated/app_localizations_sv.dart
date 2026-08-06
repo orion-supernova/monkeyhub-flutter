@@ -4270,6 +4270,59 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenSectionNotifications => 'NOTISER';
 
   @override
+  String get reportProblemRowLabel => 'Rapportera ett problem';
+
+  @override
+  String get reportProblemRowValue => 'Skicka oss detaljerna';
+
+  @override
+  String get reportProblemIntro =>
+      'Berätta vad som gick fel. Uppgifter om appen och din enhet skickas med automatiskt — de hjälper oss hitta orsaken.';
+
+  @override
+  String get reportProblemDescribeLabel => 'VAD HÄNDE';
+
+  @override
+  String get reportProblemDescribeHint =>
+      'Skärmen flimrar, knappar svarar inte…';
+
+  @override
+  String get reportProblemScreenshotsLabel => 'SKÄRMBILDER';
+
+  @override
+  String get reportProblemAddScreenshot => 'Lägg till skärmbild';
+
+  @override
+  String get reportProblemDetailsLabel => 'DINA UPPGIFTER';
+
+  @override
+  String get reportProblemCopyDetails => 'Kopiera uppgifter';
+
+  @override
+  String get reportProblemCopied => 'Kopierat';
+
+  @override
+  String get reportProblemSend => 'Skicka rapport';
+
+  @override
+  String reportProblemEmailInstead(String email) {
+    return 'Eller mejla $email';
+  }
+
+  @override
+  String get reportProblemShakeTitle => 'Rapportera ett problem?';
+
+  @override
+  String get reportProblemShakeBody =>
+      'Du skakade telefonen. Vill du öppna rapportskärmen?';
+
+  @override
+  String get reportProblemShakeOpen => 'Rapportera';
+
+  @override
+  String get reportProblemShakeDismiss => 'Inte nu';
+
+  @override
   String get settingsCallDeliveryLockScreenLabel => 'Samtal på låsskärmen';
 
   @override
