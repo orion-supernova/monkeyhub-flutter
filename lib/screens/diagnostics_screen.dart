@@ -6,7 +6,6 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../diagnostics/diag_buffer.dart';
 import '../diagnostics/diag_event.dart';
 import '../diagnostics/diag_export.dart';
-import '../diagnostics/diag_gate.dart';
 import '../keyboard/focusable_tap.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -17,10 +16,11 @@ import 'diagnostics/diag_palette.dart';
 
 /// The captured timeline.
 ///
-/// English-only, and legitimately so: it is reachable only from a gesture that
-/// does nothing at all unless the backend has unlocked this specific device, so
-/// no string here is ever visible to an ordinary user and none of it belongs in
-/// the twelve ARB files.
+/// English-only, and deliberately. It is reachable only from an unlabelled
+/// gesture on a version string, so nothing here is on a path an ordinary user
+/// walks — and thirty strings across twelve ARB files, for a screen whose whole
+/// audience is somebody being talked through it on a phone call, would be cost
+/// with no reader.
 class DiagnosticsScreen extends StatefulWidget {
   const DiagnosticsScreen({super.key});
 
@@ -112,11 +112,7 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
         events: events,
         dropped: DiagBuffer.instance.dropped,
       );
-      await DiagExport.share(
-        text: text,
-        label: DiagGate.instance.label ?? 'device',
-        origin: origin,
-      );
+      await DiagExport.share(text: text, label: 'log', origin: origin);
     } finally {
       if (mounted) setState(() => _busy = false);
     }

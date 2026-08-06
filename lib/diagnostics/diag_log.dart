@@ -14,10 +14,20 @@ import 'redactor.dart';
 class DiagLog {
   const DiagLog._();
 
-  /// Off until [DiagGate] says otherwise. Never flipped on by a debug build:
-  /// the whole point is that this runs on a release build on somebody else's
-  /// phone.
-  static bool enabled = false;
+  /// On for everyone.
+  ///
+  /// This was once gated on a per-device allowlist held in the backend, and the
+  /// gate turned out to be the expensive half of the feature: a lookup, a
+  /// copy-pasted id, a deploy and a cold start standing between a bug report
+  /// and any evidence about it. What it bought was small, because the log is
+  /// not sensitive — [Redactor] withholds message content, credentials and
+  /// capability URLs at capture time, so the worst a curious user finds is a
+  /// trace of their own app's timings and their own device id.
+  ///
+  /// Kept as a mutable static rather than a `const true` so it stays a kill
+  /// switch: if capture ever needs to stop, it is one assignment here and not
+  /// another architecture change.
+  static bool enabled = true;
 
   /// The `debugPrint` that existed before we replaced it.
   ///

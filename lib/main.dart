@@ -21,12 +21,11 @@ Future<void> main() async {
 
   // First real statement, on purpose: this replaces the global `debugPrint`,
   // and anything printed before it would be missed. It also installs the
-  // framework error hooks and applies the CACHED diagnostics verdict, so a
-  // device that is already allowlisted is capturing before the first frame —
-  // a bug that fires during startup is otherwise invisible.
+  // framework error hooks and starts capture, so a bug that fires during
+  // startup is recorded rather than missed.
   //
-  // Captures nothing on a device that has not been allowlisted from the
-  // backend; see DiagGate.
+  // Everything it records is redacted at capture time and never leaves the
+  // device on its own; see Redactor and DiagExport.
   await DiagBoot.install();
 
   // Declare edge-to-edge ourselves. NOT cosmetic — this is what stops the

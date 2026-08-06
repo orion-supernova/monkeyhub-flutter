@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import 'diag_buffer.dart';
 import 'diag_event.dart';
-import 'diag_gate.dart';
 import 'diag_log.dart';
 import 'frame_watch.dart';
 
@@ -64,11 +63,8 @@ class DiagBoot {
     FrameWatch.instance.install();
 
     // 5. Last run's file becomes `previous`, so a crash leaves its evidence
-    //    exactly one file away, then apply the cached verdict. Cached first and
-    //    network later is the whole design: the device this runs on may have no
-    //    working socket, and that is precisely when the log matters.
+    //    exactly one file away.
     await DiagBuffer.instance.rollSessions();
-    await DiagGate.instance.loadCached();
 
     if (DiagLog.enabled) {
       DiagLog.add(

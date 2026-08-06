@@ -24,7 +24,6 @@ import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_buffer.dart';
-import 'diagnostics/diag_gate.dart';
 import 'diagnostics/diag_log.dart';
 import 'diagnostics/metrics_watch.dart';
 import 'diagnostics/route_tracker.dart';
@@ -513,18 +512,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
 
     _consumePendingPushRoom();
-    // Refresh the diagnostics allowlist verdict. Fire-and-forget and late on
-    // purpose: the CACHED verdict was already applied before runApp, so this
-    // only ever updates it. Routed through the same client as everything else,
-    // and DiagLog skips its own 'diagnostics:' traffic so the check cannot log
-    // itself into a loop on a device whose socket is flapping.
-    unawaited(
-      DiagGate.instance.refresh(
-        (deviceId) async =>
-            (await _cv.query('diagnostics:isEnabled', {'deviceId': deviceId}))
-                as Map<String, dynamic>?,
-      ),
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateChecker.instance.ensure(_api);
       // Covers the cold-start-restore case: an account signed in on a previous

@@ -6,7 +6,6 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
-import '../diagnostics/diag_gate.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -965,17 +964,21 @@ class _VersionStampState extends State<_VersionStamp> {
     setState(() => _stamp = 'MonkeyHub · v${info.version}');
   }
 
-  /// Opens the diagnostics viewer, but only on a device the backend has
-  /// unlocked.
+  /// Opens the diagnostics viewer.
   ///
-  /// The check comes FIRST and produces no feedback of any kind when it fails.
-  /// A hidden mode that gives a "3 more taps…" hint to everybody is a hidden
-  /// mode that a curious eleven-year-old finds within a week, and this app's
-  /// users are children. On an unlocked device the counter does give feedback
-  /// from the third tap, because the person who needs to find this will be
-  /// following instructions over a phone call.
+  /// Reachable on every device. This used to be gated on a backend allowlist,
+  /// and the gate cost more than it bought: a lookup, a copy-pasted device id,
+  /// a deploy and a cold start standing between a bug report and any evidence
+  /// about it — while what it protected turned out not to need protecting.
+  /// [Redactor] withholds message content, credentials and capability URLs at
+  /// capture time, so the log holds a trace of the reader's own app timings and
+  /// their own device id and nothing else. Somebody who finds this by accident
+  /// learns nothing they did not already have.
+  ///
+  /// The obscurity that remains — five taps, or a long press, on an unlabelled
+  /// version string — is there to keep it out of the way, not to keep anyone
+  /// out.
   void _openDiagnostics() {
-    if (!DiagGate.instance.viewerReachable) return;
     openSettingsDetail(
       context,
       key: 'diagnostics',
@@ -984,7 +987,6 @@ class _VersionStampState extends State<_VersionStamp> {
   }
 
   void _onTap() {
-    if (!DiagGate.instance.viewerReachable) return;
     final now = DateTime.now();
     if (_firstTap == null || now.difference(_firstTap!) > _tapWindow) {
       _firstTap = now;

@@ -36,6 +36,19 @@ class DiagBuffer {
 
   static const Duration _writeDebounce = Duration(milliseconds: 600);
 
+  /// True under `flutter test`.
+  ///
+  /// Disk writes are skipped there and memory capture is not. The debounce
+  /// timer below outlives a widget test's tree and fails it with "pending
+  /// timers" — which is a real complaint about a real timer, not a test-harness
+  /// quirk to route around. Keeping the in-memory half live matters: capture
+  /// now runs for every user on every launch, so the widget tests should go on
+  /// exercising exactly the path that ships.
+  ///
+  /// `kIsWeb` short-circuits first because `Platform.environment` throws there.
+  static final bool _inTest =
+      !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+
   /// Rotation threshold. Two files of this size is the whole on-disk footprint.
   static const int maxFileBytes = 4 * 1024 * 1024;
 
@@ -144,7 +157,7 @@ class DiagBuffer {
   // ───────── disk ─────────
 
   Future<Directory?> _ensureDir() async {
-    if (kIsWeb) return null;
+    if (kIsWeb || _inTest) return null;
     final cached = _dir;
     if (cached != null) return cached;
     try {
@@ -174,7 +187,7 @@ class DiagBuffer {
   /// Called once at boot: last run's session becomes `previous`, so a crash
   /// leaves its evidence exactly one file away.
   Future<void> rollSessions() async {
-    if (kIsWeb) return;
+    if (kIsWeb || _inTest) return;
     try {
       final session = await sessionFile();
       final previous = await previousFile();
@@ -189,7 +202,7 @@ class DiagBuffer {
   }
 
   void _scheduleFlush() {
-    if (kIsWeb) return;
+    if (kIsWeb || _inTest) return;
     _pendingWrites['session']?.cancel();
     _pendingWrites['session'] = Timer(_writeDebounce, () {
       _pendingWrites.remove('session');
@@ -203,7 +216,7 @@ class DiagBuffer {
   /// keeps a buffer in the process, and the process dying with that buffer
   /// unflushed loses precisely the tail that explains why it died.
   Future<void> flush() async {
-    if (kIsWeb) return;
+    if (kIsWeb || _inTest) return;
     _pendingWrites['session']?.cancel();
     _pendingWrites.remove('session');
     try {
@@ -252,7 +265,7 @@ class DiagBuffer {
   /// Reads a session file back. Never loaded at boot — only when the viewer or
   /// an export asks, so a 4 MiB file is not a startup cost.
   Future<List<DiagEvent>> readFile({required bool previous}) async {
-    if (kIsWeb) return const [];
+    if (kIsWeb || _inTest) return const [];
     try {
       final file = previous ? await previousFile() : await sessionFile();
       if (file == null || !await file.exists()) return const [];
@@ -264,7 +277,7 @@ class DiagBuffer {
   }
 
   Future<void> deleteAll() async {
-    if (kIsWeb) return;
+    if (kIsWeb || _inTest) return;
     try {
       for (final f in [await sessionFile(), await previousFile()]) {
         if (f != null && await f.exists()) await f.delete();
