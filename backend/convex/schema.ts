@@ -767,6 +767,30 @@ export default defineSchema({
   // the migration page instead of a download, and carries the explanation in
   // `notes`. No client release was needed to do it. See DEPLOY.md →
   // "Retired: the APK".
+  // Devices allowed to capture diagnostics and open the in-app log viewer.
+  //
+  // Rows are added by hand from the CLI when a bug turns out to reproduce on
+  // one person's handset and nowhere else — see diagnostics.ts, which also
+  // explains why a table keyed on a client-asserted deviceId is an acceptable
+  // gate for this and would not be for an upload channel.
+  //
+  // `expiresAt` is required rather than optional on purpose. Diagnostics
+  // capture is something you switch on to answer a question; an unlock with no
+  // end date is one that stays on long after everybody stopped caring.
+  diagnosticDevices: defineTable({
+    // Client-minted UUIDv4, the same value stored on userDevices.deviceId.
+    deviceId: v.string(),
+    // Human handle so `list` output is readable a month later.
+    label: v.optional(v.string()),
+    note: v.optional(v.string()),
+    enabledAt: v.number(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_device", ["deviceId"])
+    // Retention sweep (diagnostics.gcExpiredDevices) ranges over expiresAt.
+    .index("by_expiresAt", ["expiresAt"]),
+
   appReleases: defineTable({
     channel: v.string(),
     // Display version only, no "+N" build suffix — matches what the client

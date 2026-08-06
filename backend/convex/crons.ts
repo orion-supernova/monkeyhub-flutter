@@ -140,4 +140,16 @@ crons.interval(
   {},
 );
 
+// Delete diagnostic unlocks that lapsed more than a grace period ago. Cheapest
+// job in this file — the table holds single digits of rows — and it exists so
+// an unlock nobody remembered to revoke does not sit in the schema forever.
+// See diagnostics.gcExpiredDevices; expiry itself is enforced on read, so this
+// is cleanup rather than the security boundary.
+crons.interval(
+  "diagnostics.gcExpiredDevices",
+  { hours: 24 },
+  internal.diagnostics.gcExpiredDevices,
+  {},
+);
+
 export default crons;
