@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint, VoidCallback;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:sensors_plus/sensors_plus.dart';
 
 /// Watches the accelerometer for a deliberate shake.
@@ -59,24 +60,69 @@ class ShakeDetector {
 
   bool get isListening => _sub != null;
 
+  /// The plugin's own method channel, which we probe before using its stream.
+  static const MethodChannel _sensorChannel = MethodChannel(
+    'dev.fluttercommunity.plus/sensors/method',
+  );
+
+  /// How often to sample. The package default is 200 ms, which is too coarse to
+  /// reliably catch the PEAK of a shake; 66 ms is fast enough to see it without
+  /// paying for the 20 ms game rate.
+  static const int _samplingMicros = 66667;
+
   /// Starts listening. Safe to call more than once.
-  void start(VoidCallback onShake) {
+  ///
+  /// Probes before subscribing, and that probe is load-bearing rather than
+  /// belt-and-braces. `sensors_plus` fires `setAccelerationSamplingPeriod`
+  /// WITHOUT awaiting it (method_channel_sensors.dart:54), so on any platform
+  /// where the plugin is not registered that future rejects straight into the
+  /// zone as an unhandled exception — one that no try/catch around the call
+  /// site can catch, because the call site never holds the future. Asking the
+  /// same channel ourselves first turns "unhandled crash spam at every launch"
+  /// into a boolean we can branch on.
+  ///
+  /// That is not a hypothetical: the plugin ships Android, iOS and web only, so
+  /// every desktop build would have done exactly this on startup.
+  Future<void> start(VoidCallback onShake) async {
     _onShake = onShake;
     if (_sub != null || kIsWeb) return;
+
+    if (!await _sensorsAvailable()) return;
+
     try {
-      _sub = accelerometerEventStream().listen(
-        _onEvent,
-        onError: (Object e) {
-          // A device with no accelerometer, or one that refuses the stream.
-          // Shake is a convenience; the Settings entry is the real route, so
-          // this is not worth surfacing to anybody.
-          debugPrint('ShakeDetector: sensor unavailable: $e');
-          stop();
-        },
-        cancelOnError: true,
-      );
+      _sub =
+          accelerometerEventStream(
+            samplingPeriod: const Duration(microseconds: _samplingMicros),
+          ).listen(
+            _onEvent,
+            onError: (Object e) {
+              // The stream itself giving up — a sensor that stops responding.
+              // Shake is a convenience and Settings is the real route, so this
+              // is not worth surfacing to anybody.
+              debugPrint('ShakeDetector: sensor stream error: $e');
+              stop();
+            },
+            cancelOnError: true,
+          );
     } catch (e) {
       debugPrint('ShakeDetector.start: $e');
+    }
+  }
+
+  /// True when the accelerometer plugin is actually present on this platform.
+  ///
+  /// Doubles as the sampling-period set, so the package's own un-awaited call
+  /// a moment later is a no-op that repeats a value we already know works.
+  Future<bool> _sensorsAvailable() async {
+    try {
+      await _sensorChannel.invokeMethod(
+        'setAccelerationSamplingPeriod',
+        _samplingMicros,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('ShakeDetector: accelerometer unavailable ($e)');
+      return false;
     }
   }
 

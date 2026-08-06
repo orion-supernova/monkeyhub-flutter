@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
@@ -32,7 +34,9 @@ class _ShakeToReportState extends State<ShakeToReport> {
   @override
   void initState() {
     super.initState();
-    ShakeDetector.instance.start(_onShake);
+    // Fire-and-forget: start() probes the platform channel before subscribing,
+    // so it is async, and nothing here needs to wait for the answer.
+    unawaited(ShakeDetector.instance.start(_onShake));
   }
 
   @override
