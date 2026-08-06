@@ -108,7 +108,6 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[home_shell] build');
     // WindowClass is published app-wide by _WindowClassProvider in app.dart
     // (above the root navigator, so pushed routes see it too). Here we just
     // pick the shell chrome.
@@ -513,7 +512,9 @@ class _SideRail extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 20, top: 4),
                   child: theme.brandMark(size: 34),
                 ),
-                for (final d in navDestinations(AppLocalizations.of(context))) ...[
+                for (final d in navDestinations(
+                  AppLocalizations.of(context),
+                )) ...[
                   _railBtn(
                     theme,
                     d.icon,

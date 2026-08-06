@@ -53,6 +53,41 @@ import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
 
+/// The presence status a lifecycle state implies, or null for "says nothing —
+/// don't write".
+///
+/// Only two states carry real information about whether a person is reachable.
+/// The other two used to write anyway, and that is what made Android users flap
+/// between `online` and `away` about once a second:
+///
+///  * `inactive` is NOT backgrounded. The app is still running with live timers
+///    and a live socket; the platform fires it for a notification-shade pull, an
+///    app-switcher peek, a permission dialog, a Control Centre swipe — and, on
+///    Android, for every single window-focus change. [ConnectionHealth] has
+///    always counted it as foreground (see `setForeground` directly above the
+///    caller); presence disagreeing with that was an inconsistency inside one
+///    method, not a considered decision. Anything that makes the window lose
+///    focus repeatedly therefore turned into two `users` writes per second,
+///    each invalidating every subscription that had read that row.
+///
+///  * `detached` does NOT mean the app died. `MainActivity.shouldDestroyEngineWithHost()`
+///    returns false, so the Dart isolate outlives any single Activity and
+///    `detached` only means the engine lost its host — routinely, when a call is
+///    answered through flutter_callkit_incoming's relaunch. Reporting that as
+///    `offline` claims something we cannot know. A client that genuinely went
+///    away stops heartbeating, and the server's staleness sweep
+///    (`PRESENCE_OFFLINE_MS`, backend/convex/presence.ts) is the honest detector
+///    for that — it does not depend on us getting one last write out through a
+///    radio that is usually already gone.
+///
+/// Kept top-level and pure so the mapping can be tested without a widget tree;
+/// see test/presence_lifecycle_test.dart.
+String? presenceStatusFor(AppLifecycleState state) => switch (state) {
+  AppLifecycleState.resumed => 'online',
+  AppLifecycleState.paused || AppLifecycleState.hidden => 'away',
+  AppLifecycleState.inactive || AppLifecycleState.detached => null,
+};
+
 class MonkeyHubApp extends StatefulWidget {
   const MonkeyHubApp({super.key});
   @override
@@ -239,11 +274,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _auth.addListener(_onAuthChange);
-    _auth.addListener(
-      () => debugPrint(
-        '[app] auth listener fired, isSignedIn=${_auth.isSignedIn}',
-      ),
-    );
     _family.addListener(_syncAccountType);
     PushManager.instance.setOnOpenRoom(_openRoomFromPush);
     PushManager.instance.setOnOpenRequests(_openRequestsFromPush);
@@ -350,19 +380,23 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     );
     final session = _auth.session;
     if (session == null) return;
-    final next = switch (state) {
-      AppLifecycleState.resumed => 'online',
-      AppLifecycleState.inactive ||
-      AppLifecycleState.paused ||
-      AppLifecycleState.hidden => 'away',
-      AppLifecycleState.detached => 'offline',
-    };
+    final next = presenceStatusFor(state);
+    // Null means "this state says nothing about presence" — see
+    // [presenceStatusFor]. Leaves _lastSentStatus untouched, so the next state
+    // that DOES mean something is still compared against what the server holds.
+    if (next == null) return;
     // Only write on an actual change. A single lock/unlock walks through
     // inactive → hidden → inactive → resumed, and three of those four map to
     // the same 'away' — so the unguarded version fired a burst of mutations at
     // the exact moment the radio is least able to carry them, at a deployment
     // where this one-document patch has been seen exceeding Convex's 1s
     // function limit.
+    //
+    // Note this guard only suppresses REPEATS, never alternation: an
+    // online→away→online→away sequence writes every single time, on this side
+    // and on the server's (`users:updateStatus` dedupes on the same value too).
+    // That is why [presenceStatusFor] refusing to react to `inactive` matters
+    // so much more than the guard does.
     if (next != _lastSentStatus) {
       _lastSentStatus = next;
       // Fire-and-forget — network may be unavailable; status reconciles next foreground.
@@ -500,10 +534,15 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         _family.attach(s.userId);
         await PushManager.instance.login(s.userId);
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
-        // Mark online on first attach.
-        _api
-            .updateStatus(userId: s.userId, status: 'online')
-            .catchError((_) {});
+        // Mark online on first attach. Recorded in _lastSentStatus like every
+        // other write: without that the dedupe guard in
+        // didChangeAppLifecycleState starts each session holding a stale value
+        // (usually null), so the first `resumed` after sign-in wrote 'online' a
+        // second time for no reason.
+        _lastSentStatus = 'online';
+        _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {
+          _lastSentStatus = null;
+        });
         BadgeManager.instance.bind(_repo);
         MessageAlerts.instance.bind(_repo);
         _startPresenceHeartbeat(s.userId);
@@ -581,9 +620,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       child: AnimatedBuilder(
         animation: _appListenable,
         builder: (context, _) {
-          debugPrint(
-            '[app] AnimatedBuilder rebuild, isSignedIn=${_auth.isSignedIn}, bootstrapped=$_bootstrapped, bootError=${_bootError != null}',
-          );
           final theme = _themeController.theme;
           final isLight = theme.mood == ThemeMood.riso;
           return MaterialApp(
@@ -1271,18 +1307,12 @@ class _AppHomeState extends State<_AppHome> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
-      '[app_home] build, isSignedIn=${widget.auth.isSignedIn}, bootstrapped=${widget.bootstrapped}, bootError=${widget.bootError != null}',
-    );
     if (!widget.bootstrapped) return const _Splash();
     if (widget.bootError != null) {
       return _BootError(error: widget.bootError!, onRetry: widget.onRetryBoot);
     }
     final theme = widget.themeController.theme;
     final signedIn = widget.auth.isSignedIn;
-    debugPrint(
-      '[app_home] selecting child: ${signedIn ? "HomeShell" : "LoginScreen"}',
-    );
     return signedIn
         ? HomeShell(
             key: ValueKey('home_${theme.id}'),

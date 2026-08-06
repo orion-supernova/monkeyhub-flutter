@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 
 import 'package:flutter/services.dart';
 
@@ -40,31 +40,23 @@ class LauncherIconService {
       final supports =
           await _channel.invokeMethod<bool>('supportsAlternateIcons') ?? false;
       if (!supports) return;
-      final current =
-          await _channel.invokeMethod<String?>('getAlternateIconName');
-      // ignore: avoid_print
-      print(
-        '[launcher_icon] requesting iconName=$iconName (current=$current)',
+      final current = await _channel.invokeMethod<String?>(
+        'getAlternateIconName',
       );
       if (current == iconName) return;
-      await _channel.invokeMethod<void>(
-        'setAlternateIconName',
-        {'iconName': iconName},
-      );
-      // ignore: avoid_print
-      print('[launcher_icon] applied OK: $iconName');
+      await _channel.invokeMethod<void>('setAlternateIconName', {
+        'iconName': iconName,
+      });
     } on PlatformException catch (e) {
       // Surface the iOS-side error so we can see WHY a particular icon swap
       // is rejected (image missing in bundle, name not in plist, user denied,
       // device doesn't support it). The in-app brand mark still updates;
-      // this print is purely diagnostic.
-      // ignore: avoid_print
-      print(
+      // this is purely diagnostic.
+      debugPrint(
         '[launcher_icon] PlatformException: code=${e.code} msg=${e.message} details=${e.details}',
       );
     } catch (e) {
-      // ignore: avoid_print
-      print('[launcher_icon] unexpected error: $e');
+      debugPrint('[launcher_icon] unexpected error: $e');
     }
   }
 
