@@ -104,11 +104,86 @@ class WebConvexClient implements IConvexClient {
   void _abandonSocket(web.WebSocket? socket) {
     if (socket == null) return;
     _abandoned.add(socket);
+    // Whatever this socket was carrying dies with it — see
+    // [_failInFlightRequests].
+    if (identical(socket, _ws)) _failInFlightRequests('connection replaced');
     try {
       socket.close();
     } catch (_) {
       // Already closing or closed — the point was to stop listening to it.
     }
+  }
+
+  /// Mutations and actions written but not yet sent, oldest first.
+  ///
+  /// `_sendMessage` throws when the socket isn't OPEN, and a WebSocket spends
+  /// its first few hundred milliseconds in CONNECTING — so at boot every call
+  /// the app made before `onopen` died on `Bad state: WebSocket not connected`.
+  /// That is not a hypothetical window: in a captured session twelve calls
+  /// failed that way in the first millisecond, including the profile fetch the
+  /// recovery gate needs and the release check, both of which then logged
+  /// themselves as "skipped" and never retried.
+  ///
+  /// Queries and subscriptions don't need a queue — they are already recorded
+  /// in [_subscriptions], and [_replaySubscriptions] registers them the moment
+  /// a socket opens. Mutations and actions have no such record, so they get
+  /// held here and flushed by [_flushSendQueue].
+  final List<_QueuedSend> _sendQueue = <_QueuedSend>[];
+
+  /// True when the live socket can carry a message right now.
+  bool get _socketReady {
+    final ws = _ws;
+    return ws != null && ws.readyState == web.WebSocket.OPEN;
+  }
+
+  /// Send everything that was written while the socket was still connecting.
+  void _flushSendQueue() {
+    if (_sendQueue.isEmpty) return;
+    final queued = List<_QueuedSend>.from(_sendQueue);
+    _sendQueue.clear();
+    for (final send in queued) {
+      try {
+        _sendMessage(send.message);
+      } catch (e) {
+        // The socket died between `onopen` and here. The request is still in
+        // `_pendingRequests`, and it is no longer queued, so the next socket
+        // loss fails it rather than leaving it to time out.
+        debugPrint('ERROR: [WebConvexClient] Queued send failed: $e');
+      }
+    }
+    debugPrint(
+      '=== [WebConvexClient] Flushed ${queued.length} queued message(s) ===',
+    );
+  }
+
+  /// Fail every mutation/action that was already handed to a socket we are
+  /// giving up on.
+  ///
+  /// Convex scopes `requestId` to a connection, so a response to a request sent
+  /// on a dead socket is never coming — the only thing waiting accomplishes is
+  /// spending the full `operationTimeout`. Observed exactly that: a
+  /// `users:updateStatus` sent one millisecond before a reconnect reported
+  /// `Mutation timeout` fifteen seconds later, long after the client had
+  /// rebuilt the connection and moved on.
+  ///
+  /// Requests still sitting in [_sendQueue] are deliberately spared: they were
+  /// never transmitted, so the new socket can carry them without risking a
+  /// double-execute.
+  void _failInFlightRequests(String reason) {
+    if (_pendingRequests.isEmpty) return;
+    final queuedIds = _sendQueue.map((s) => s.requestId).toSet();
+    final stranded =
+        _pendingRequests.keys.where((id) => !queuedIds.contains(id)).toList();
+    if (stranded.isEmpty) return;
+    for (final id in stranded) {
+      final completer = _pendingRequests.remove(id);
+      if (completer != null && !completer.isCompleted) {
+        completer.completeError(StateError('Convex request lost: $reason'));
+      }
+    }
+    debugPrint(
+      '=== [WebConvexClient] Failed ${stranded.length} in-flight request(s): $reason ===',
+    );
   }
   // ── end monkeyhub patch ──────────────────────────────────────────────────
 
@@ -210,6 +285,11 @@ class WebConvexClient implements IConvexClient {
 
       // monkeyhub patch: a new socket starts with an empty query set.
       _replaySubscriptions();
+
+      // monkeyhub patch: and anything written while it was still CONNECTING is
+      // waiting to go out. After the replay so the query set is rebuilt before
+      // mutations start landing against it.
+      _flushSendQueue();
     }.toJS;
 
     // Connection closed
@@ -237,6 +317,9 @@ class WebConvexClient implements IConvexClient {
       // ── end monkeyhub patch ──────────────────────────────────────────────
 
       _updateConnectionState(WebSocketConnectionState.connecting);
+
+      // monkeyhub patch: this socket carried away whatever it was holding.
+      _failInFlightRequests('socket closed (code $code)');
 
       // Attempt reconnection if not disposed
       if (!_isDisposed) {
@@ -334,47 +417,115 @@ class WebConvexClient implements IConvexClient {
       final subscription = _subscriptions[queryId];
       if (subscription == null) continue;
 
-      final value = mod['value'];
-      if (value != null) {
-        final valueJson = jsonEncode(value);
-        subscription.onUpdate(valueJson);
+      final modType = mod['type'] as String?;
+
+      // ── monkeyhub patch ────────────────────────────────────────────────────
+      // `null` is a RESULT, not an absence. Upstream skipped the delivery
+      // whenever `value` was null, so any query that legitimately resolves to
+      // null never completed: the subscriber was never called, the one-shot
+      // `query()` completer stayed pending, and the only way out was the 15s
+      // `operationTimeout`.
+      //
+      // This was not a corner case here — it was the single loudest bug on
+      // web. `releases:latest` is the app's configured `healthCheckQuery`, and
+      // it returns null whenever the channel has no release row. So the
+      // connectivity probe could only ever fail, by timeout, on a socket that
+      // was demonstrably healthy (the server answered `{"queryId":11,
+      // "value":null}` in 130ms, and the probe "timed out" 15 seconds later).
+      // ConnectionHealth read that as an outage, tore down a working socket,
+      // and stranded whatever else was in flight — which produced more
+      // timeouts, which produced the next teardown. `online → reconnecting →
+      // stalled` with three full socket rebuilds a minute, all of it
+      // self-inflicted.
+      //
+      // Same shape, quieter symptoms, for `calls:activeCallForUser` and
+      // `groupCalls:pendingInviteForUser`: both answer null for "no call", so
+      // on web their subscribers were never told, and the call UI could not
+      // settle into its idle state.
+      //
+      // Dispatching on the modification type is what makes "absent" and "null"
+      // distinguishable: only `QueryUpdated` carries a result at all, and its
+      // result is whatever `value` holds — including null, which `jsonEncode`
+      // renders as the string `"null"`, exactly what the native client returns
+      // and what `ConvexBackend._decode` already maps back to null.
+      if (modType == 'QueryUpdated') {
+        subscription.onUpdate(jsonEncode(mod['value']));
+        continue;
       }
+
+      // A query that throws server-side used to be indistinguishable from one
+      // that never answered: no error was routed, so the caller waited out the
+      // full timeout and reported it as a connectivity failure.
+      if (modType == 'QueryFailed') {
+        final errorMessage =
+            mod['errorMessage'] as String? ?? 'Query failed: ${subscription.name}';
+        final errorData = mod['errorData'];
+        subscription.onError(
+          errorMessage,
+          errorData == null ? null : jsonEncode(errorData),
+        );
+        continue;
+      }
+
+      // `QueryRemoved` is the server acknowledging our own Remove. Nothing to
+      // deliver, and nothing is wrong.
+      // ── end monkeyhub patch ────────────────────────────────────────────────
     }
   }
 
   /// Handles MutationResponse messages.
   void _handleMutationResponse(Map<String, dynamic> message) {
-    final requestId = message['requestId'] as int?;
-    if (requestId == null) return;
-
-    final completer = _pendingRequests.remove(requestId);
-    if (completer == null) return;
-
-    final result = message['result'];
-    if (result != null) {
-      final resultJson = jsonEncode(result);
-      completer.complete(resultJson);
-    } else {
-      completer.completeError(Exception('No result in mutation response'));
-    }
+    _completeRequest(message, 'mutation');
   }
 
   /// Handles ActionResponse messages.
   void _handleActionResponse(Map<String, dynamic> message) {
+    _completeRequest(message, 'action');
+  }
+
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Resolve the pending mutation/action for this response.
+  ///
+  /// Upstream branched on `result` alone and never read `success`, which got
+  /// both cases exactly backwards:
+  ///
+  ///  * A SUCCESSFUL void call — `{"success":true,"result":null}`, which is what
+  ///    every `Future<void>` mutation returns, and most of this app's are —
+  ///    was reported as the error "No result in mutation response". The app
+  ///    papers over that in `ConvexBackend._isVoidResultThrow`, but only by
+  ///    string-matching the message, and only after the error has already been
+  ///    thrown.
+  ///  * A FAILED call — `{"success":false,"result":"<error message>"}`, where
+  ///    the server puts the error text in `result` — has a non-null `result`,
+  ///    so it took the success branch and completed with the error string as
+  ///    though it were the return value. A rejected mutation read as a
+  ///    successful one on web, and (because the app normalises the void throw
+  ///    above) there was no path left for it to surface as a failure at all.
+  ///
+  /// `success` is the field that says which of the two happened; `result` only
+  /// says what came back.
+  void _completeRequest(Map<String, dynamic> message, String kind) {
     final requestId = message['requestId'] as int?;
     if (requestId == null) return;
 
     final completer = _pendingRequests.remove(requestId);
     if (completer == null) return;
 
-    final result = message['result'];
-    if (result != null) {
-      final resultJson = jsonEncode(result);
-      completer.complete(resultJson);
-    } else {
-      completer.completeError(Exception('No result in action response'));
+    if (message['success'] == false) {
+      // `errorMessage` is the modern field; `result` carried the text on older
+      // server builds. Either way the call failed and must throw.
+      final error = message['errorMessage'] as String? ??
+          message['result']?.toString() ??
+          'Convex $kind failed';
+      completer.completeError(Exception(error));
+      return;
     }
+
+    // Null is a legitimate return value for a void function, and `jsonEncode`
+    // renders it as `"null"` — the same string the native client hands back.
+    completer.complete(jsonEncode(message['result']));
   }
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
 
   /// Handles FatalError messages.
   void _handleFatalError(Map<String, dynamic> message) {
@@ -510,6 +661,52 @@ class WebConvexClient implements IConvexClient {
   }
 
   // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Add one query to the server's query set, if there is a socket to add it
+  /// to.
+  ///
+  /// Both `query()` and `subscribe()` record the query in [_subscriptions]
+  /// before calling this, and [_replaySubscriptions] rebuilds the whole set
+  /// from that map on every `onopen`. So a socket that isn't OPEN yet is not a
+  /// failure — the registration simply happens a few hundred milliseconds
+  /// later, when there is a connection to register it on. Throwing instead (the
+  /// upstream behaviour, via `_sendMessage`) turned every call issued during
+  /// the initial CONNECTING window into a hard `Bad state: WebSocket not
+  /// connected`, which is what made a freshly loaded page come up with an empty
+  /// room list and a skipped recovery gate.
+  ///
+  /// The version counter is rolled back on failure so the query set stays
+  /// contiguous; a gap is a protocol error the server closes the connection
+  /// over.
+  void _registerQuery(int queryId, String name, Map<String, dynamic> args) {
+    if (!_socketReady) {
+      debugPrint(
+        '=== [WebConvexClient] Deferring queryId=$queryId ($name) until the socket opens ===',
+      );
+      return;
+    }
+
+    final baseVersion = _querySetVersion;
+    final newVersion = ++_querySetVersion;
+    try {
+      _sendMessage({
+        'type': 'ModifyQuerySet',
+        'baseVersion': baseVersion,
+        'newVersion': newVersion,
+        'modifications': [
+          {
+            'type': 'Add',
+            'queryId': queryId,
+            'udfPath': name,
+            'args': [args], // Args must be array, not object
+          }
+        ],
+      });
+    } catch (e) {
+      _querySetVersion = baseVersion;
+      debugPrint('ERROR: [WebConvexClient] Query registration deferred: $e');
+    }
+  }
+
   /// Re-register every live subscription on a freshly opened socket.
   ///
   /// A new connection begins with an empty query set — `_querySetVersion` is
@@ -563,6 +760,34 @@ class WebConvexClient implements IConvexClient {
       _querySetVersion = baseVersion;
       debugPrint('ERROR: [WebConvexClient] Subscription replay failed: $e');
     }
+  }
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
+
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Send a mutation/action now, or hold it until the socket opens.
+  ///
+  /// Unlike a query there is nothing to re-derive a mutation from later, so it
+  /// waits in [_sendQueue] instead of failing. Being queued is also what marks
+  /// it as never-transmitted, which is what lets [_failInFlightRequests] tell
+  /// "this can safely be sent on the next socket" apart from "this may already
+  /// have executed and must not be sent twice".
+  /// Abandon a request the caller has stopped waiting for. Drops the queued
+  /// copy too, so a message whose caller already timed out isn't delivered to
+  /// the next socket with nobody left to receive the answer.
+  void _forgetRequest(int requestId) {
+    _pendingRequests.remove(requestId);
+    _sendQueue.removeWhere((s) => s.requestId == requestId);
+  }
+
+  void _sendOrQueue(int requestId, Map<String, dynamic> message) {
+    if (!_socketReady) {
+      _sendQueue.add(_QueuedSend(requestId: requestId, message: message));
+      debugPrint(
+        '=== [WebConvexClient] Queued ${message['type']} ${message['udfPath']} until the socket opens ===',
+      );
+      return;
+    }
+    _sendMessage(message);
   }
   // ── end monkeyhub patch ────────────────────────────────────────────────────
 
@@ -624,23 +849,9 @@ class WebConvexClient implements IConvexClient {
     _subscriptions[queryIdStr] = subscription;
 
     try {
-      // Send ModifyQuerySet with Add (Convex protocol for queries)
-      final baseVersion = _querySetVersion;
-      final newVersion = ++_querySetVersion;
-
-      _sendMessage({
-        'type': 'ModifyQuerySet',
-        'baseVersion': baseVersion,
-        'newVersion': newVersion,
-        'modifications': [
-          {
-            'type': 'Add',
-            'queryId': queryId,
-            'udfPath': name,
-            'args': [args],  // Args must be array
-          }
-        ],
-      });
+      // monkeyhub patch: `_registerQuery` tolerates a socket that hasn't opened
+      // yet — see there.
+      _registerQuery(queryId, name, args);
 
       return await completer.future.timeout(
         config.operationTimeout,
@@ -669,8 +880,9 @@ class WebConvexClient implements IConvexClient {
     _pendingRequests[requestId] = completer;
 
     try {
-      // Send Mutation message (Convex protocol)
-      _sendMessage({
+      // monkeyhub patch: queued rather than thrown when the socket is still
+      // connecting — see `_sendOrQueue`.
+      _sendOrQueue(requestId, {
         'type': 'Mutation',
         'requestId': requestId,
         'udfPath': name,  // Use udfPath instead of name
@@ -680,12 +892,12 @@ class WebConvexClient implements IConvexClient {
       return await completer.future.timeout(
         config.operationTimeout,
         onTimeout: () {
-          _pendingRequests.remove(requestId);
+          _forgetRequest(requestId);
           throw TimeoutException('Mutation timeout: $name');
         },
       );
     } catch (e) {
-      _pendingRequests.remove(requestId);
+      _forgetRequest(requestId);
       rethrow;
     }
   }
@@ -700,8 +912,8 @@ class WebConvexClient implements IConvexClient {
     _pendingRequests[requestId] = completer;
 
     try {
-      // Send Action message (Convex protocol)
-      _sendMessage({
+      // monkeyhub patch: see `_sendOrQueue`.
+      _sendOrQueue(requestId, {
         'type': 'Action',
         'requestId': requestId,
         'udfPath': name,  // Use udfPath instead of name
@@ -711,12 +923,12 @@ class WebConvexClient implements IConvexClient {
       return await completer.future.timeout(
         config.operationTimeout,
         onTimeout: () {
-          _pendingRequests.remove(requestId);
+          _forgetRequest(requestId);
           throw TimeoutException('Action timeout: $name');
         },
       );
     } catch (e) {
-      _pendingRequests.remove(requestId);
+      _forgetRequest(requestId);
       rethrow;
     }
   }
@@ -746,23 +958,8 @@ class WebConvexClient implements IConvexClient {
     _subscriptions[queryIdStr] = subscription;
 
     try {
-      // Send ModifyQuerySet with Add modification (Convex protocol)
-      final baseVersion = _querySetVersion;
-      final newVersion = ++_querySetVersion;
-
-      _sendMessage({
-        'type': 'ModifyQuerySet',
-        'baseVersion': baseVersion,
-        'newVersion': newVersion,
-        'modifications': [
-          {
-            'type': 'Add',
-            'queryId': queryId,
-            'udfPath': name,  // Use udfPath instead of name
-            'args': [args],   // Args must be array, not object
-          }
-        ],
-      });
+      // monkeyhub patch: see `_registerQuery`.
+      _registerQuery(queryId, name, args);
 
       debugPrint('=== [WebConvexClient] Subscription created: queryId=$queryId ===');
 
@@ -993,12 +1190,27 @@ class WebConvexClient implements IConvexClient {
     _connectionStateController.close();
 
     // Clear pending requests and subscriptions
+    // monkeyhub patch: fail them rather than dropping them silently — a caller
+    // awaiting a request on a disposed client would otherwise hang for the
+    // whole `operationTimeout` waiting on a socket that no longer exists.
+    _sendQueue.clear();
+    _failInFlightRequests('client disposed');
     _pendingRequests.clear();
     _subscriptions.clear();
 
     debugPrint('=== [WebConvexClient] Client disposed ===');
   }
 }
+
+// ── monkeyhub patch ──────────────────────────────────────────────────────────
+/// A mutation/action written before the socket was ready to carry it.
+class _QueuedSend {
+  _QueuedSend({required this.requestId, required this.message});
+
+  final int requestId;
+  final Map<String, dynamic> message;
+}
+// ── end monkeyhub patch ──────────────────────────────────────────────────────
 
 /// Internal subscription record for web client.
 class _WebSubscription {

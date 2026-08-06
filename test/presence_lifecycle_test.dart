@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/app.dart' show presenceStatusFor;
@@ -18,7 +19,21 @@ void main() {
 
     test('a real background reports away', () {
       expect(presenceStatusFor(AppLifecycleState.paused), 'away');
-      expect(presenceStatusFor(AppLifecycleState.hidden), 'away');
+    });
+
+    test('hidden reports away everywhere except web', () {
+      // Same flap, one state over. Flutter web fires `hidden` for a plain
+      // window blur — address bar, alt-tab, devtools — so on web it carries no
+      // more information than `inactive` does, and honouring it wrote
+      // away/online six times in 84 seconds while the person sat reading the
+      // page. On mobile `hidden` still means the app actually went away.
+      //
+      // Both arms are real: this file runs under `flutter test` (kIsWeb false)
+      // and under `flutter test --platform chrome` (kIsWeb true).
+      expect(
+        presenceStatusFor(AppLifecycleState.hidden),
+        kIsWeb ? isNull : 'away',
+      );
     });
 
     test('inactive writes nothing — it is still foreground', () {

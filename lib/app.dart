@@ -85,11 +85,26 @@ import 'widgets/shake_to_report.dart';
 ///    for that — it does not depend on us getting one last write out through a
 ///    radio that is usually already gone.
 ///
+///  * `hidden` is the same story as `inactive`, but on WEB only. Flutter web
+///    fires it for a plain window blur — clicking the address bar, alt-tabbing,
+///    opening devtools — not just for a tab that actually went away. So the
+///    Android flap this mapping was written to stop reappeared on web one state
+///    over: a captured session writes `away`/`online` six times in 84 seconds
+///    while the person is sitting there reading the screen, and each write
+///    invalidates every subscription that had read that row. On mobile `hidden`
+///    still means what it says, so the demotion is web-only.
+///
+///    Nothing is lost by staying quiet: a tab that genuinely goes away stops
+///    heartbeating, and the server's staleness sweep (`PRESENCE_OFFLINE_MS`,
+///    backend/convex/presence.ts) is the honest detector for that — the same
+///    argument already made for `detached` above.
+///
 /// Kept top-level and pure so the mapping can be tested without a widget tree;
 /// see test/presence_lifecycle_test.dart.
 String? presenceStatusFor(AppLifecycleState state) => switch (state) {
   AppLifecycleState.resumed => 'online',
-  AppLifecycleState.paused || AppLifecycleState.hidden => 'away',
+  AppLifecycleState.hidden => kIsWeb ? null : 'away',
+  AppLifecycleState.paused => 'away',
   AppLifecycleState.inactive || AppLifecycleState.detached => null,
 };
 
@@ -411,8 +426,29 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // and a live socket, and iOS fires it for every Control Centre swipe and
     // app-switcher peek. Parking there would stall recovery mid-outage and burn
     // a probe on the way back for something that never interrupted anything.
+    //
+    // On web the whole park/rebuild mechanism is switched off, because the
+    // premise it rests on is a mobile one. `backgroundRebuildThreshold` exists
+    // for a socket whose NAT binding expired or whose interface changed while
+    // the *device* slept — something neither end notices, so the gap length is
+    // the only evidence available. A browser tab that loses focus is not that:
+    // the tab keeps running, and the WebSocket stays open and healthy. And in
+    // the case where the browser really does freeze the tab, the socket is
+    // closed for us and `onclose` schedules the reconnect — evidence, not
+    // inference.
+    //
+    // Meanwhile the events themselves are near-meaningless here. Flutter web
+    // fires `hidden` for a window blur, not just a tab hide, so alt-tabbing or
+    // clicking the address bar produces one. A captured session shows four
+    // park/resume cycles in 84 seconds — "resumed after 22s", "after 6s",
+    // "after 5s" — each one clearing the backoff and forcing a full socket
+    // teardown and rebuild on a connection that had nothing wrong with it. That
+    // is the same reasoning that already makes `inactive` count as foreground
+    // above; web just needs it applied one state further.
     _health.setForeground(
-      state == AppLifecycleState.resumed || state == AppLifecycleState.inactive,
+      kIsWeb ||
+          state == AppLifecycleState.resumed ||
+          state == AppLifecycleState.inactive,
     );
     final session = _auth.session;
     if (session == null) return;

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
@@ -264,6 +266,31 @@ class AuthService extends ChangeNotifier {
   /// Children cannot sign themselves out — that's the whole point of a
   /// supervised device. The UI hides the button; this is the backstop so a
   /// stray call site can't strand a child on the login screen.
+  /// Signing out is LOCAL-FIRST, and deliberately so.
+  ///
+  /// This used to run three awaits before touching any local state, and the
+  /// caller (`ProfileScreen._signOut`) holds a `_busy` latch across the whole
+  /// future — so the button sat spinning, un-retryable, for as long as the
+  /// slowest of them took. On web that was the reported "can't log out":
+  ///
+  ///  * `auth:logout` is a network mutation. During the reconnect churn that
+  ///    the web client used to produce, a mutation sent on a socket that was
+  ///    about to be replaced could only fail by timeout — the full 15s
+  ///    `operationTimeout`, with the tap already swallowed.
+  ///  * `SocialSignIn.forgetProviders()` calls into the Google plugin. That
+  ///    plugin is initialised lazily by the sign-in path, so on a restored
+  ///    session it has never run — and `googleAvailable` is keyed on the
+  ///    server client id being configured, not on the platform, so web calls it
+  ///    anyway. Its try/catch stops a throw, but nothing stopped a hang.
+  ///
+  /// None of that work is load-bearing for signing out. The server does not
+  /// need our permission to end a session, and the provider SDK only affects
+  /// what the NEXT sign-in looks like. So the local teardown happens first and
+  /// unconditionally, and the remote half is fired off behind it.
+  ///
+  /// Children cannot sign themselves out — that's the whole point of a
+  /// supervised device. The UI hides the button; this is the backstop so a
+  /// stray call site can't strand a child on the login screen.
   Future<void> signOut() async {
     final s = _session;
     if (s == null) return;
@@ -271,14 +298,18 @@ class AuthService extends ChangeNotifier {
       debugPrint('[auth] signOut ignored — child accounts stay signed in');
       return;
     }
+
+    // The one step still awaited: it is the only one whose failure is felt
+    // later, because a session left in secure storage is restored on the next
+    // launch and the person is silently signed back in. Bounded so a wedged
+    // storage plugin degrades to "signed out until relaunch" rather than to a
+    // button that never comes back.
     try {
-      await _api.logout(userId: s.userId);
-    } catch (_) {}
-    // Otherwise the provider SDK silently reuses the last account and the next
-    // "Sign in with Google" tap lands straight back in the account they just
-    // left, with no chooser — which reads as sign-out being broken.
-    await SocialSignIn.forgetProviders();
-    await SessionStore.instance.clearSession();
+      await SessionStore.instance.clearSession().timeout(_localSignOutTimeout);
+    } catch (e) {
+      debugPrint('[auth] signOut: clearing the stored session failed: $e');
+    }
+
     _session = null;
     // A pending rotation belongs to the account that just left. Carrying it
     // into the next sign-in would gate the wrong person, with a password that
@@ -286,6 +317,32 @@ class AuthService extends ChangeNotifier {
     _needsPhraseRotation = false;
     _pendingRotationPassword = null;
     notifyListeners();
+
+    // Best-effort, and off the critical path. Neither can hold the UI now.
+    unawaited(_afterSignOut(s.userId));
+  }
+
+  /// How long the local half of [signOut] may take before we give up on it and
+  /// sign out anyway.
+  static const _localSignOutTimeout = Duration(seconds: 5);
+
+  /// Server-side session teardown and provider forgetting, neither of which the
+  /// user should ever wait on. Failures are logged, not surfaced: by the time
+  /// this runs the person is already signed out of this device.
+  Future<void> _afterSignOut(String userId) async {
+    try {
+      await _api.logout(userId: userId);
+    } catch (e) {
+      debugPrint('[auth] signOut: auth:logout failed: $e');
+    }
+    // Otherwise the provider SDK silently reuses the last account and the next
+    // "Sign in with Google" tap lands straight back in the account they just
+    // left, with no chooser — which reads as sign-out being broken.
+    try {
+      await SocialSignIn.forgetProviders().timeout(_localSignOutTimeout);
+    } catch (e) {
+      debugPrint('[auth] signOut: forgetProviders failed: $e');
+    }
   }
 
   /// Hands this handset back, using a release code a guardian minted on their
