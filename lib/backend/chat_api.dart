@@ -253,6 +253,9 @@ class ChatApi {
     FieldVisibility? lastSeen,
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
+    FieldVisibility? feed,
+    FieldVisibility? puzzle,
+    FieldVisibility? pointsPast,
   }) async {
     await _cv.mutation('users:updateVisibility', {
       'userId': userId,
@@ -261,6 +264,11 @@ class ChatApi {
       if (lastSeen != null) 'lastSeen': lastSeen.wire,
       if (seen != null) 'seen': seen.wire,
       if (friendRequests != null) 'friendRequests': friendRequests.wire,
+      // Feed keys accept only friends/nobody — the server drops "public"
+      // rather than storing a value the board could not honour.
+      if (feed != null) 'feed': feed.wire,
+      if (puzzle != null) 'puzzle': puzzle.wire,
+      if (pointsPast != null) 'pointsPast': pointsPast.wire,
     });
   }
 

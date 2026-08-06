@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart' show CameraLensDirection;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -9,8 +10,10 @@ import '../../backend/feed_api.dart';
 import '../../data/feed_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../media/file_meta.dart';
 import '../../media/image_raster.dart';
 import '../../media/upload_service.dart';
+import '../../media/video_poster.dart';
 import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
@@ -66,6 +69,10 @@ class _MomentComposerState extends State<_MomentComposer> {
   final _caption = TextEditingController();
   MomentTag? _tag;
   CroppedImage? _image;
+
+  /// A picked video, held as bytes with its poster frame. Mutually exclusive
+  /// with [_image] — a moment carries one piece of media, not a gallery.
+  ({Uint8List bytes, Uint8List? poster, String name})? _video;
   bool _busy = false;
   String? _errorCode;
 
@@ -95,7 +102,8 @@ class _MomentComposerState extends State<_MomentComposer> {
   }
 
   bool get _canPost =>
-      !_busy && (_image != null || _caption.text.trim().isNotEmpty);
+      !_busy &&
+      (_image != null || _video != null || _caption.text.trim().isNotEmpty);
 
   Future<void> _capture() async {
     // Raise the scrim BEFORE the picker: `ImagePicker.pickImage` with
@@ -123,7 +131,12 @@ class _MomentComposerState extends State<_MomentComposer> {
       if (!mounted) return;
       switch (result) {
         case CameraReviewed(:final value):
-          if (value != null) setState(() => _image = value);
+          if (value != null) {
+            setState(() {
+              _image = value;
+              _video = null;
+            });
+          }
         case CameraPickLibrary():
           await _pickFromLibrary();
         case CameraUnavailable():
@@ -152,6 +165,44 @@ class _MomentComposerState extends State<_MomentComposer> {
     await _cropInto(await picked?.readAsBytes());
   }
 
+  /// Picks a video from the library.
+  ///
+  /// Gallery only — there is no in-app video recording yet (`CameraScreen` is
+  /// stills, `enableAudio: false`). This is the same path chat already uses, so
+  /// it inherits the poster extraction, the size cap and the web caveats
+  /// wholesale rather than growing a second video pipeline.
+  Future<void> _pickVideo() async {
+    setState(() => _busy = true);
+    try {
+      final picked = await ImagePicker().pickVideo(source: ImageSource.gallery);
+      if (picked == null) return;
+
+      // Before readAsBytes, and only off web: `XFile.path` is a real
+      // filesystem path on mobile, which is what the extractor needs. On web
+      // it is a `blob:` URL with nothing behind it, and video_thumbnail has no
+      // web implementation to receive it — so a video composed there keeps the
+      // play glyph permanently. That is a designed state, not a placeholder.
+      final poster = kIsWeb ? null : await VideoPoster.extract(picked.path);
+      final bytes = await picked.readAsBytes();
+
+      if (!mounted) return;
+      if (bytes.length > kMaxFileUploadBytes) {
+        // Refused at PICK time rather than at upload time on purpose: past the
+        // repository's retained-bytes cap a failed send has no bytes left to
+        // retry from, which is a dead end.
+        setState(() => _errorCode = 'TOO_BIG');
+        return;
+      }
+      setState(() {
+        _video = (bytes: bytes, poster: poster, name: picked.name);
+        _image = null;
+        _errorCode = null;
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _cropInto(Uint8List? source) async {
     if (source == null || !mounted) return;
     final cropped = await ImageCropScreen.open(
@@ -160,7 +211,10 @@ class _MomentComposerState extends State<_MomentComposer> {
       shape: CropShape.rect,
     );
     if (!mounted || cropped == null) return;
-    setState(() => _image = cropped);
+    setState(() {
+      _image = cropped;
+      _video = null;
+    });
   }
 
   Future<void> _post() async {
@@ -174,13 +228,37 @@ class _MomentComposerState extends State<_MomentComposer> {
     // everywhere.
     final navigator = Navigator.of(context);
     try {
+      final uploader = UploadService(widget.api);
       String? storageId;
+      String? posterId;
+      var kind = MomentMedia.none;
+
       final image = _image;
+      final video = _video;
       if (image != null) {
-        storageId = await UploadService(widget.api).uploadFile(
+        storageId = await uploader.uploadFile(
           bytes: image.bytes,
           contentType: image.contentType,
         );
+        kind = MomentMedia.image;
+      } else if (video != null) {
+        // Poster first, best-effort: if it fails the video still sends and the
+        // card falls back to the play glyph, which is the same outcome web and
+        // desktop get permanently.
+        final posterBytes = video.poster;
+        if (posterBytes != null) {
+          try {
+            posterId = await uploader.uploadFile(
+              bytes: posterBytes,
+              contentType: 'image/jpeg',
+            );
+          } catch (_) {/* the glyph is a fine fallback */}
+        }
+        storageId = await uploader.uploadFile(
+          bytes: video.bytes,
+          contentType: mimeTypeForFileName(video.name),
+        );
+        kind = MomentMedia.video;
       }
       await widget.feedApi.post(
         userId: widget.userId,
@@ -190,7 +268,8 @@ class _MomentComposerState extends State<_MomentComposer> {
         tag: _tag,
         caption: _caption.text.trim().isEmpty ? null : _caption.text.trim(),
         mediaStorageId: storageId,
-        mediaKind: storageId == null ? MomentMedia.none : MomentMedia.image,
+        posterStorageId: posterId,
+        mediaKind: kind,
       );
       if (!mounted) return;
       navigator.pop(true);
@@ -216,6 +295,7 @@ class _MomentComposerState extends State<_MomentComposer> {
     'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
     'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
     'EMPTY_MOMENT' => l10n.momentComposerErrorEmpty,
+    'TOO_BIG' => l10n.momentComposerErrorTooBig,
     _ => l10n.momentComposerErrorGeneric,
   };
 
@@ -243,10 +323,15 @@ class _MomentComposerState extends State<_MomentComposer> {
           const SizedBox(height: 16),
           _MediaSlot(
             image: _image,
+            video: _video,
             busy: _busy,
             onCapture: _capture,
             onLibrary: _pickFromLibrary,
-            onClear: () => setState(() => _image = null),
+            onVideo: _pickVideo,
+            onClear: () => setState(() {
+              _image = null;
+              _video = null;
+            }),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -310,16 +395,20 @@ class _MomentComposerState extends State<_MomentComposer> {
 class _MediaSlot extends StatelessWidget {
   const _MediaSlot({
     required this.image,
+    required this.video,
     required this.busy,
     required this.onCapture,
     required this.onLibrary,
+    required this.onVideo,
     required this.onClear,
   });
 
   final CroppedImage? image;
+  final ({Uint8List bytes, Uint8List? poster, String name})? video;
   final bool busy;
   final VoidCallback onCapture;
   final VoidCallback onLibrary;
+  final VoidCallback onVideo;
   final VoidCallback onClear;
 
   @override
@@ -327,6 +416,58 @@ class _MediaSlot extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final img = image;
+    final vid = video;
+
+    if (vid != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(theme.radiusLg),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: vid.poster != null
+                  // Image.memory, not RemoteImage: nothing is uploaded yet.
+                  ? Image.memory(vid.poster!, fit: BoxFit.cover)
+                  : ColoredBox(color: theme.surfaceSunken),
+            ),
+          ),
+          Positioned.fill(
+            child: Center(
+              child: Icon(
+                Icons.play_circle_outline,
+                size: 34,
+                // On web and desktop there is no poster at all — video_thumbnail
+                // has no implementation there — so this glyph over a flat
+                // surface is the designed state, not a loading placeholder.
+                color: theme.ink.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: FocusableTap(
+              onTap: busy ? null : onClear,
+              semanticLabel: l10n.momentComposerRemovePhoto,
+              shape: FocusRingShape.circle,
+              child: GestureDetector(
+                onTap: busy ? null : onClear,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: theme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.divider),
+                  ),
+                  child: Icon(Icons.close, size: 14, color: theme.inkSoft),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     if (img != null) {
       return Stack(
@@ -381,6 +522,14 @@ class _MediaSlot extends StatelessWidget {
             icon: Icons.photo_library_outlined,
             label: l10n.momentComposerLibrary,
             onTap: busy ? null : onLibrary,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _SlotButton(
+            icon: Icons.videocam_outlined,
+            label: l10n.momentComposerVideo,
+            onTap: busy ? null : onVideo,
           ),
         ),
       ],

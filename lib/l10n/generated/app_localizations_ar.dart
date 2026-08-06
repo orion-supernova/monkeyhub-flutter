@@ -4857,4 +4857,140 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'حذف';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who نشر لحظة';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name حصل على $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => 'الآن';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '$countد';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '$countس';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count أخرى اليوم',
+      many: '$count أخرى اليوم',
+      few: '$count أخرى اليوم',
+      two: 'اثنان آخران اليوم',
+      one: 'واحد آخر اليوم',
+      zero: 'لا مزيد اليوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'اللغز.';
+
+  @override
+  String get puzzleScreenSubtitle => 'خمسة رموز، ست محاولات';
+
+  @override
+  String get puzzleSubmit => 'تخمين';
+
+  @override
+  String get puzzleBackspace => 'حذف آخر رمز';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'الرمز $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return 'حُلّ في $count';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'نفدت المحاولات';
+
+  @override
+  String get puzzleAnswerWas => 'كان الرمز';
+
+  @override
+  String get puzzleShare => 'نسخ النتيجة';
+
+  @override
+  String get puzzleShareCopied => 'تم النسخ — أرسلها إلى صديق';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'لقد حللت لغز اليوم بالفعل';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'لا محاولات متبقية اليوم';
+
+  @override
+  String get puzzleErrorGeneric => 'تعذّر الإرسال — حاول مجددًا';
+
+  @override
+  String get puzzleScoreboardLabel => 'نتائج اليوم';
+
+  @override
+  String get puzzleScoreboardEmpty => 'لم ينتهِ أحد اليوم بعد';
+
+  @override
+  String get puzzleTilePlay => 'العب لغز اليوم';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return 'بقي $count';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '#$rank من $total';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'الموجز';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'لحظاتي';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'ما إذا كان ما تنشره يظهر على لوحات أصدقائك ذلك اليوم';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'نتيجتي في اللغز';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'ما إذا كان أصدقاؤك يرون أداءك في لغز اليوم';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'ماضيي';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'اليوم يُشارك دائمًا مع الأصدقاء — هذا يفتح كل ما قبله';
+
+  @override
+  String get momentComposerVideo => 'فيديو';
+
+  @override
+  String get momentComposerErrorTooBig =>
+      'هذا الفيديو كبير جدًا — الحد الأقصى 20 ميغابايت';
 }

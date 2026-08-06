@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../backend/convex_client.dart';
 import '../backend/feed_api.dart';
 import '../models/moment.dart';
+import '../models/puzzle.dart';
 import 'feed_day.dart';
 
 /// Board state that must outlive the Feed tab's widget.
@@ -54,6 +55,7 @@ class FeedStore extends ChangeNotifier {
   int _attachGen = 0;
 
   List<Moment> _moments = const [];
+  PuzzleState _puzzle = const PuzzleState();
   DateTime _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
   Object? _error;
@@ -82,6 +84,9 @@ class FeedStore extends ChangeNotifier {
 
   /// Per-author, per-tag totals for today, highest first.
   List<MomentTally> get tallies => MomentTally.from(_moments);
+
+  /// Today's puzzle — the viewer's attempt and everyone who has finished.
+  PuzzleState get puzzle => _puzzle;
 
   /// Identity of the local calendar day the board is currently showing.
   String get dayKey => _dayKey;
@@ -148,6 +153,7 @@ class FeedStore extends ChangeNotifier {
           // current one's state.
           if (gen != _attachGen) return;
           _moments = board.moments;
+          _puzzle = board.puzzle;
           _serverNow = board.serverNow;
           _loaded = true;
           _error = null;
@@ -186,6 +192,7 @@ class FeedStore extends ChangeNotifier {
     _api = null;
     _userId = null;
     _moments = const [];
+    _puzzle = const PuzzleState();
     _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
     _loaded = false;
     _error = null;

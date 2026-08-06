@@ -460,6 +460,13 @@ async function purgeUser(ctx: any, userId: any) {
     await deleteStored(ctx, m.posterStorageId);
   }
   await deleteRows(ctx, moments);
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("puzzleResults")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
 
   // ── Family ───────────────────────────────────────────────────────────────
   // Both directions: this user may be the child OR the guardian.

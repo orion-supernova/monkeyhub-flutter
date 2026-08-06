@@ -1,4 +1,5 @@
 import '../models/moment.dart';
+import '../models/puzzle.dart';
 import 'convex_client.dart';
 
 /// Every Convex call the Feed board makes.
@@ -124,6 +125,28 @@ class FeedApi {
     });
   }
 
+  /// Submits one guess at today's puzzle.
+  ///
+  /// Returns the WHOLE attempt, not just the new row, so a client that missed
+  /// a response can resync from any single call. The board subscription also
+  /// carries the same state, but this return is what lets the tile flip its
+  /// feedback in immediately rather than a round trip later.
+  ///
+  /// Throws `BAD_GUESS` for a malformed guess, `ALREADY_SOLVED` for a replay
+  /// after winning, and `OUT_OF_GUESSES` past the sixth try.
+  Future<PuzzleAttempt> guess({
+    required String userId,
+    required String dayKey,
+    required List<int> guess,
+  }) async {
+    final res = await _cv.mutation('puzzle:guess', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'guess': guess,
+    });
+    return PuzzleAttempt.fromJson((res as Map).cast<String, dynamic>())!;
+  }
+
   /// A page of moment history, newest first.
   ///
   /// One-shot, not a subscription — the archive is cold data and a second live
@@ -157,9 +180,17 @@ class FeedApi {
 
 /// One board payload.
 class FeedBoard {
-  const FeedBoard({required this.moments, required this.serverNow});
+  const FeedBoard({
+    required this.moments,
+    required this.serverNow,
+    this.puzzle = const PuzzleState(),
+  });
 
   final List<Moment> moments;
+
+  /// Today's puzzle, carried in THIS payload rather than a query of its own —
+  /// see [FeedApi.subscribeBoard] on why the board is one subscription.
+  final PuzzleState puzzle;
 
   /// The server's clock at the moment this was computed.
   ///
@@ -180,6 +211,9 @@ class FeedBoard {
       serverNow: DateTime.fromMillisecondsSinceEpoch(
         (map['serverNow'] as num?)?.toInt() ??
             DateTime.now().millisecondsSinceEpoch,
+      ),
+      puzzle: PuzzleState.fromJson(
+        (map['puzzle'] as Map?)?.cast<String, dynamic>(),
       ),
     );
   }

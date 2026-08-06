@@ -4766,4 +4766,135 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'delete';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who posted a highlight';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name took a $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => 'now';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '${count}m';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '${count}h';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count more today',
+      one: '1 more today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'the puzzle.';
+
+  @override
+  String get puzzleScreenSubtitle => 'five symbols, six tries';
+
+  @override
+  String get puzzleSubmit => 'GUESS';
+
+  @override
+  String get puzzleBackspace => 'delete last symbol';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'symbol $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return 'solved in $count';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'out of guesses';
+
+  @override
+  String get puzzleAnswerWas => 'THE CODE WAS';
+
+  @override
+  String get puzzleShare => 'COPY RESULT';
+
+  @override
+  String get puzzleShareCopied => 'copied — paste it to a friend';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'you already solved today\'s';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'no guesses left today';
+
+  @override
+  String get puzzleErrorGeneric => 'couldn\'t send that guess — try again';
+
+  @override
+  String get puzzleScoreboardLabel => 'TODAY\'S SCORES';
+
+  @override
+  String get puzzleScoreboardEmpty => 'nobody has finished yet today';
+
+  @override
+  String get puzzleTilePlay => 'play today\'s puzzle';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '$count left';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '#$rank of $total';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'FEED';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'my moments';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'whether what you post shows up on friends\' boards for the day';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'my puzzle score';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'whether friends see how you did on the daily puzzle';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'my past';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'today is always shared with friends — this opens up everything before it';
+
+  @override
+  String get momentComposerVideo => 'video';
+
+  @override
+  String get momentComposerErrorTooBig => 'that video\'s too large — 20 MB max';
 }

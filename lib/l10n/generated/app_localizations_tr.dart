@@ -4751,4 +4751,134 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'sil';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who bir an paylaştı';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name bir $tag aldı';
+  }
+
+  @override
+  String get momentActivityJustNow => 'şimdi';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '${count}dk';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '${count}sa';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'bugün $count tane daha',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'bulmaca.';
+
+  @override
+  String get puzzleScreenSubtitle => 'beş sembol, altı hak';
+
+  @override
+  String get puzzleSubmit => 'TAHMİN';
+
+  @override
+  String get puzzleBackspace => 'son sembolü sil';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'sembol $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return '$count tahminde çözüldü';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'hakkın bitti';
+
+  @override
+  String get puzzleAnswerWas => 'KOD ŞUYDU';
+
+  @override
+  String get puzzleShare => 'SONUCU KOPYALA';
+
+  @override
+  String get puzzleShareCopied => 'kopyalandı — bir arkadaşına yapıştır';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'bugünkünü zaten çözdün';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'bugün hakkın kalmadı';
+
+  @override
+  String get puzzleErrorGeneric => 'tahmin gönderilemedi — tekrar dene';
+
+  @override
+  String get puzzleScoreboardLabel => 'BUGÜNÜN SKORLARI';
+
+  @override
+  String get puzzleScoreboardEmpty => 'bugün henüz kimse bitirmedi';
+
+  @override
+  String get puzzleTilePlay => 'bugünün bulmacasını oyna';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '$count hak kaldı';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '$total kişi içinde #$rank';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'AKIŞ';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'paylaştıklarım';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'paylaştıklarının o gün arkadaşlarının panosunda görünüp görünmeyeceği';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'bulmaca skorum';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'arkadaşlarının günlük bulmacada nasıl yaptığını görüp göremeyeceği';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'geçmişim';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'bugün her zaman arkadaşlarınla paylaşılır — bu, öncesindeki her şeyi açar';
+
+  @override
+  String get momentComposerVideo => 'video';
+
+  @override
+  String get momentComposerErrorTooBig => 'bu video çok büyük — en fazla 20 MB';
 }

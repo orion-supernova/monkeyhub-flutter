@@ -4786,4 +4786,136 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'हटाएँ';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who ने एक पल साझा किया';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name को एक $tag मिला';
+  }
+
+  @override
+  String get momentActivityJustNow => 'अभी';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '$countमि';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '$countघं';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'आज $count और',
+      one: 'आज 1 और',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'पहेली।';
+
+  @override
+  String get puzzleScreenSubtitle => 'पाँच चिह्न, छह मौके';
+
+  @override
+  String get puzzleSubmit => 'अनुमान';
+
+  @override
+  String get puzzleBackspace => 'आख़िरी चिह्न मिटाएँ';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'चिह्न $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return '$count में हल';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'मौके ख़त्म';
+
+  @override
+  String get puzzleAnswerWas => 'कोड यह था';
+
+  @override
+  String get puzzleShare => 'परिणाम कॉपी करें';
+
+  @override
+  String get puzzleShareCopied => 'कॉपी हो गया — दोस्त को भेजें';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'आज की पहेली आप हल कर चुके हैं';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'आज कोई मौका नहीं बचा';
+
+  @override
+  String get puzzleErrorGeneric => 'भेजा नहीं जा सका — फिर कोशिश करें';
+
+  @override
+  String get puzzleScoreboardLabel => 'आज के स्कोर';
+
+  @override
+  String get puzzleScoreboardEmpty => 'आज अभी किसी ने पूरी नहीं की';
+
+  @override
+  String get puzzleTilePlay => 'आज की पहेली खेलें';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '$count बचे';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '$total में #$rank';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'फ़ीड';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'मेरे पल';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'आप जो साझा करते हैं वह उस दिन दोस्तों के बोर्ड पर दिखे या नहीं';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'मेरा पहेली स्कोर';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'दोस्त देख सकें कि रोज़ की पहेली में आपने कैसा किया';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'मेरा अतीत';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'आज हमेशा दोस्तों के साथ साझा होता है — यह उससे पहले का सब कुछ खोलता है';
+
+  @override
+  String get momentComposerVideo => 'वीडियो';
+
+  @override
+  String get momentComposerErrorTooBig =>
+      'यह वीडियो बहुत बड़ा है — अधिकतम 20 MB';
 }

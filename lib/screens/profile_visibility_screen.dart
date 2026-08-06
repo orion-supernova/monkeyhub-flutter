@@ -86,6 +86,9 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     FieldVisibility? lastSeen,
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
+    FieldVisibility? feed,
+    FieldVisibility? puzzle,
+    FieldVisibility? pointsPast,
   }) async {
     final me = widget.repo.userId;
     if (me == null || widget.readOnly) return;
@@ -97,6 +100,9 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         lastSeen: lastSeen,
         seen: seen,
         friendRequests: friendRequests,
+        feed: feed,
+        puzzle: puzzle,
+        pointsPast: pointsPast,
       );
     });
     try {
@@ -107,6 +113,9 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         lastSeen: lastSeen,
         seen: seen,
         friendRequests: friendRequests,
+        feed: feed,
+        puzzle: puzzle,
+        pointsPast: pointsPast,
       );
     } catch (_) {/* leave optimistic state; user can retry */} finally {
       if (mounted) setState(() => _saving = false);
@@ -221,6 +230,36 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: AppLocalizations.of(context).profileVisibilityScreenFriendRequestsDesc,
                                 value: _vis.friendRequests,
                                 onChanged: (v) => _patch(friendRequests: v),
+                                enabled: !widget.readOnly,
+                              ),
+
+                              const SizedBox(height: 34),
+                              _Section(theme: theme, label: AppLocalizations.of(context).profileVisibilityScreenSectionFeed),
+                              const SizedBox(height: 22),
+                              _RowFeed(
+                                theme: theme,
+                                label: AppLocalizations.of(context).profileVisibilityScreenFeedLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenFeedDesc,
+                                value: _vis.feed,
+                                onChanged: (v) => _patch(feed: v),
+                                enabled: !widget.readOnly,
+                              ),
+                              const SizedBox(height: 22),
+                              _RowFeed(
+                                theme: theme,
+                                label: AppLocalizations.of(context).profileVisibilityScreenPuzzleLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenPuzzleDesc,
+                                value: _vis.puzzle,
+                                onChanged: (v) => _patch(puzzle: v),
+                                enabled: !widget.readOnly,
+                              ),
+                              const SizedBox(height: 22),
+                              _RowFeed(
+                                theme: theme,
+                                label: AppLocalizations.of(context).profileVisibilityScreenPointsPastLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenPointsPastDesc,
+                                value: _vis.pointsPast,
+                                onChanged: (v) => _patch(pointsPast: v),
                                 enabled: !widget.readOnly,
                               ),
 
@@ -486,6 +525,50 @@ class _RowBinary extends StatelessWidget {
           (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
         ],
         value: value == FieldVisibility.friends ? FieldVisibility.public : value,
+        onChanged: onChanged,
+        enabled: enabled,
+      ),
+    );
+  }
+}
+
+/// A friends-or-nobody row, for the three Feed keys.
+///
+/// Distinct from [_RowBinary], which offers ANYONE or nobody. The Feed board
+/// fans out over accepted friendships and nothing else, so "anyone" is not an
+/// option it could honour — the server refuses to store it — and offering it
+/// here would be a control that silently does nothing.
+class _RowFeed extends StatelessWidget {
+  const _RowFeed({
+    required this.theme,
+    required this.label,
+    required this.desc,
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
+  final AppTheme theme;
+  final String label;
+  final String desc;
+  final FieldVisibility value;
+  final ValueChanged<FieldVisibility> onChanged;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Field(
+      theme: theme,
+      label: label,
+      desc: desc,
+      child: _Seg<FieldVisibility>(
+        theme: theme,
+        options: [
+          (FieldVisibility.friends, AppLocalizations.of(context).profileVisibilityScreenOptionFriends),
+          (FieldVisibility.nobody, AppLocalizations.of(context).profileVisibilityScreenOptionNobody),
+        ],
+        // A stored "public" from some future client collapses to friends
+        // rather than leaving the segment showing neither option selected.
+        value: value == FieldVisibility.public ? FieldVisibility.friends : value,
         onChanged: onChanged,
         enabled: enabled,
       ),

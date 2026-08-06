@@ -5393,5 +5393,141 @@
   "momentViewerDelete": "delete",
   "@momentViewerDelete": {
     "description": "Label on the action that permanently removes the viewer's own moment from the Feed, shown only on moments they wrote."
+  },
+  "momentActivityPostedHighlight": "{who} posted a highlight",
+  "@momentActivityPostedHighlight": {
+    "description": "Activity-river line for an untagged moment. {who} is a display name, or the localized word for 'you' when it is the viewer's own."
+  },
+  "momentActivityScored": "{name} took a {tag}",
+  "@momentActivityScored": {
+    "description": "Activity-river line for a moment that scored. {name} is a display name (or 'you'); {tag} is the localized category name such as JINX or FATE. 'took a' is idiomatic for earning a point in this game. NOTE: gen-l10n emits parameters in ALPHABETICAL order (name, tag), which here matches reading order."
+  },
+  "momentActivityJustNow": "now",
+  "@momentActivityJustNow": {
+    "description": "Compact timestamp on an activity row for something that happened less than a minute ago. Keep it very short — it sits in a narrow column beside a name."
+  },
+  "momentActivityMinutesAgo": "{count}m",
+  "@momentActivityMinutesAgo": {
+    "description": "Compact timestamp on an activity row, in minutes. Keep it very short (one letter suffix) — it sits in a narrow column beside a name."
+  },
+  "momentActivityHoursAgo": "{count}h",
+  "@momentActivityHoursAgo": {
+    "description": "Compact timestamp on an activity row, in hours. Keep it very short (one letter suffix) — it sits in a narrow column beside a name."
+  },
+  "momentActivityMoreCount": "{count, plural, one{1 more today} other{{count} more today}}",
+  "@momentActivityMoreCount": {
+    "description": "Muted line at the end of a truncated activity river, stating how many entries are not shown. Says what was hidden rather than letting the list stop silently."
+  },
+  "puzzleScreenTitle": "the puzzle.",
+  "@puzzleScreenTitle": {
+    "description": "Lowercase page title of the daily puzzle screen, with a full stop, matching the house style of the other sub-screens ('language.', 'motion.')."
+  },
+  "puzzleScreenSubtitle": "five symbols, six tries",
+  "@puzzleScreenSubtitle": {
+    "description": "One-line subtitle under the puzzle screen's title, next to a short accent rule. States the rules in the fewest possible words."
+  },
+  "puzzleSubmit": "GUESS",
+  "@puzzleSubmit": {
+    "description": "All-caps label on the button that submits the composed row of symbols."
+  },
+  "puzzleBackspace": "delete last symbol",
+  "@puzzleBackspace": {
+    "description": "Screen-reader label for the backspace key on the puzzle keypad."
+  },
+  "puzzleSymbolSemanticLabel": "symbol {number}",
+  "@puzzleSymbolSemanticLabel": {
+    "description": "Screen-reader label for a symbol key on the puzzle keypad. {number} is its position in the alphabet, 1-6. The symbols are abstract shapes with no names, so they are identified by number."
+  },
+  "puzzleSolvedTitle": "solved in {count}",
+  "@puzzleSolvedTitle": {
+    "description": "Headline shown when the player has cracked the code. {count} is how many guesses it took."
+  },
+  "puzzleFailedTitle": "out of guesses",
+  "@puzzleFailedTitle": {
+    "description": "Headline shown when the player has used all six tries without solving the puzzle."
+  },
+  "puzzleAnswerWas": "THE CODE WAS",
+  "@puzzleAnswerWas": {
+    "description": "All-caps label above the revealed answer, shown only after the player has run out of guesses."
+  },
+  "puzzleShare": "COPY RESULT",
+  "@puzzleShare": {
+    "description": "All-caps label on the action that copies the shareable emoji grid to the clipboard."
+  },
+  "puzzleShareCopied": "copied — paste it to a friend",
+  "@puzzleShareCopied": {
+    "description": "Confirmation shown after the puzzle result grid is copied to the clipboard."
+  },
+  "puzzleShareHeader": "MonkeyHub №{edition} {score}/6",
+  "@puzzleShareHeader": {
+    "description": "First line of the copied puzzle result, above the emoji grid. {edition} is the day number; {score} is the number of guesses used, or the letter X if unsolved. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (edition, score), which here matches reading order."
+  },
+  "puzzleErrorAlreadySolved": "you already solved today's",
+  "@puzzleErrorAlreadySolved": {
+    "description": "Error shown if a guess is submitted after the puzzle has been solved — normally only reachable from a stale screen."
+  },
+  "puzzleErrorOutOfGuesses": "no guesses left today",
+  "@puzzleErrorOutOfGuesses": {
+    "description": "Error shown if a guess is submitted after all six tries have been used."
+  },
+  "puzzleErrorGeneric": "couldn't send that guess — try again",
+  "@puzzleErrorGeneric": {
+    "description": "Generic error when submitting a puzzle guess fails for an unrecognised reason."
+  },
+  "puzzleScoreboardLabel": "TODAY'S SCORES",
+  "@puzzleScoreboardLabel": {
+    "description": "All-caps band label above the list of friends who have finished today's puzzle."
+  },
+  "puzzleScoreboardEmpty": "nobody has finished yet today",
+  "@puzzleScoreboardEmpty": {
+    "description": "Muted line shown under TODAY'S SCORES when no friend, including the viewer, has completed the puzzle."
+  },
+  "puzzleTilePlay": "play today's puzzle",
+  "@puzzleTilePlay": {
+    "description": "Label on the Feed board's puzzle tile when the viewer has not started today's puzzle."
+  },
+  "puzzleTileInProgress": "{count} left",
+  "@puzzleTileInProgress": {
+    "description": "Label on the Feed board's puzzle tile mid-game. {count} is how many guesses remain."
+  },
+  "puzzleTileRank": "#{rank} of {total}",
+  "@puzzleTileRank": {
+    "description": "Where the viewer placed among friends who finished today's puzzle, shown on the Feed board's puzzle tile. NOTE: parameters are emitted in ALPHABETICAL order (rank, total), which here matches reading order."
+  },
+  "profileVisibilityScreenSectionFeed": "FEED",
+  "@profileVisibilityScreenSectionFeed": {
+    "description": "All-caps section header in the profile visibility screen, grouping the three controls for what friends can see on the Feed board (moments, puzzle score, past points)."
+  },
+  "profileVisibilityScreenFeedLabel": "my moments",
+  "@profileVisibilityScreenFeedLabel": {
+    "description": "Label for the control deciding whether the user's photos and points appear on friends' Feed boards."
+  },
+  "profileVisibilityScreenFeedDesc": "whether what you post shows up on friends' boards for the day",
+  "@profileVisibilityScreenFeedDesc": {
+    "description": "Explanation under the 'my moments' visibility control. 'for the day' matters: moments drop off friends' boards after 24 hours regardless of this setting."
+  },
+  "profileVisibilityScreenPuzzleLabel": "my puzzle score",
+  "@profileVisibilityScreenPuzzleLabel": {
+    "description": "Label for the control deciding whether the user's daily puzzle result is visible to friends."
+  },
+  "profileVisibilityScreenPuzzleDesc": "whether friends see how you did on the daily puzzle",
+  "@profileVisibilityScreenPuzzleDesc": {
+    "description": "Explanation under the 'my puzzle score' visibility control."
+  },
+  "profileVisibilityScreenPointsPastLabel": "my past",
+  "@profileVisibilityScreenPointsPastLabel": {
+    "description": "Label for the control deciding whether friends can look further back than today on the user's Feed history."
+  },
+  "profileVisibilityScreenPointsPastDesc": "today is always shared with friends — this opens up everything before it",
+  "@profileVisibilityScreenPointsPastDesc": {
+    "description": "Explanation under the 'my past' visibility control. Makes clear that turning it off does NOT hide today, only history."
+  },
+  "momentComposerVideo": "video",
+  "@momentComposerVideo": {
+    "description": "Label on the button in the moment composer that picks a video from the device library."
+  },
+  "momentComposerErrorTooBig": "that video's too large — 20 MB max",
+  "@momentComposerErrorTooBig": {
+    "description": "Error under the composer when a picked video exceeds the 20 MB upload limit. Shown at pick time, before any upload starts."
   }
 }

@@ -4603,4 +4603,132 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get momentViewerDelete => '削除';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$whoがハイライトを投稿';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$nameが$tagを獲得';
+  }
+
+  @override
+  String get momentActivityJustNow => 'たった今';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '$count分';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '$count時間';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今日はあと$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'パズル。';
+
+  @override
+  String get puzzleScreenSubtitle => '5つの記号、6回まで';
+
+  @override
+  String get puzzleSubmit => '予想する';
+
+  @override
+  String get puzzleBackspace => '最後の記号を削除';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return '記号 $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return '$count回で正解';
+  }
+
+  @override
+  String get puzzleFailedTitle => '回数切れ';
+
+  @override
+  String get puzzleAnswerWas => '正解はこちら';
+
+  @override
+  String get puzzleShare => '結果をコピー';
+
+  @override
+  String get puzzleShareCopied => 'コピーしました — 友だちに貼り付けて';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => '今日の分はすでに解けています';
+
+  @override
+  String get puzzleErrorOutOfGuesses => '今日の回数は残っていません';
+
+  @override
+  String get puzzleErrorGeneric => '送信できませんでした — もう一度お試しください';
+
+  @override
+  String get puzzleScoreboardLabel => '今日のスコア';
+
+  @override
+  String get puzzleScoreboardEmpty => '今日はまだ誰も終えていません';
+
+  @override
+  String get puzzleTilePlay => '今日のパズルで遊ぶ';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '残り$count回';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '$total人中 #$rank';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'フィード';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'わたしの投稿';
+
+  @override
+  String get profileVisibilityScreenFeedDesc => '投稿がその日、友だちのボードに表示されるかどうか';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'わたしのパズル結果';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc => '日々のパズルの成績を友だちが見られるかどうか';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'わたしの過去';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      '今日はつねに友だちと共有されます — これはそれ以前のすべてを開きます';
+
+  @override
+  String get momentComposerVideo => '動画';
+
+  @override
+  String get momentComposerErrorTooBig => 'この動画は大きすぎます — 最大20MB';
 }

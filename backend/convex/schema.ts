@@ -714,6 +714,28 @@ export default defineSchema({
     // Account teardown.
     .index("by_user", ["userId"]),
 
+  // One row per player per day of the daily puzzle.
+  //
+  // There is no companion `puzzleDays` table: the answer is derived from the
+  // day key by a pure function (`puzzle.answerFor`), so there is nothing to
+  // create, nothing to seed, and no race between the day's first two players.
+  puzzleResults: defineTable({
+    userId: v.id("users"),
+    dayKey: v.string(),
+    // Every guess so far, oldest first, each an array of SLOTS symbol indices.
+    // Feedback is NOT stored — it is a pure function of (guess, answer) and
+    // storing it would be a second source of truth that can disagree.
+    guesses: v.array(v.array(v.number())),
+    solved: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    // Set once the player can no longer act: solved, or out of guesses.
+    finishedAt: v.optional(v.number()),
+  })
+    .index("by_user_day", ["userId", "dayKey"])
+    // Account teardown (auth.ts purgeUser).
+    .index("by_user", ["userId"]),
+
   pushReceipts: defineTable({
     userId: v.id("users"),
     roomId: v.id("rooms"),

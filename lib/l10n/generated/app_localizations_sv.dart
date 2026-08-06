@@ -4799,4 +4799,135 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'radera';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who lade upp ett ögonblick';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name tog en $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => 'nyss';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '${count}m';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '${count}h';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count till idag',
+      one: '1 till idag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'pusslet.';
+
+  @override
+  String get puzzleScreenSubtitle => 'fem symboler, sex försök';
+
+  @override
+  String get puzzleSubmit => 'GISSA';
+
+  @override
+  String get puzzleBackspace => 'radera sista symbolen';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'symbol $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return 'löst på $count';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'slut på försök';
+
+  @override
+  String get puzzleAnswerWas => 'KODEN VAR';
+
+  @override
+  String get puzzleShare => 'KOPIERA RESULTAT';
+
+  @override
+  String get puzzleShareCopied => 'kopierat — klistra in till en vän';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'du har redan löst dagens';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'inga försök kvar idag';
+
+  @override
+  String get puzzleErrorGeneric => 'kunde inte skicka — försök igen';
+
+  @override
+  String get puzzleScoreboardLabel => 'DAGENS RESULTAT';
+
+  @override
+  String get puzzleScoreboardEmpty => 'ingen har blivit klar idag än';
+
+  @override
+  String get puzzleTilePlay => 'spela dagens pussel';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '$count kvar';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '#$rank av $total';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'FLÖDE';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'mina ögonblick';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'om det du lägger upp syns på vännernas tavlor den dagen';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'mitt pusselresultat';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'om vänner ser hur det gick för dig i dagens pussel';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'mitt förflutna';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'idag delas alltid med vänner — det här öppnar allt dessförinnan';
+
+  @override
+  String get momentComposerVideo => 'video';
+
+  @override
+  String get momentComposerErrorTooBig => 'videon är för stor — max 20 MB';
 }

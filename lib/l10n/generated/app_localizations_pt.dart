@@ -4830,6 +4830,139 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get momentViewerDelete => 'eliminar';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who publicou um momento';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name levou um $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => 'agora';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '${count}min';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '${count}h';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'mais $count hoje',
+      one: 'mais 1 hoje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'o enigma.';
+
+  @override
+  String get puzzleScreenSubtitle => 'cinco símbolos, seis tentativas';
+
+  @override
+  String get puzzleSubmit => 'ADIVINHAR';
+
+  @override
+  String get puzzleBackspace => 'apagar último símbolo';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'símbolo $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return 'resolvido em $count';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'sem tentativas';
+
+  @override
+  String get puzzleAnswerWas => 'O CÓDIGO ERA';
+
+  @override
+  String get puzzleShare => 'COPIAR RESULTADO';
+
+  @override
+  String get puzzleShareCopied => 'copiado — envia a um amigo';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'já resolveste o de hoje';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'não tens tentativas hoje';
+
+  @override
+  String get puzzleErrorGeneric => 'não foi possível enviar — tenta de novo';
+
+  @override
+  String get puzzleScoreboardLabel => 'PONTUAÇÕES DE HOJE';
+
+  @override
+  String get puzzleScoreboardEmpty => 'ainda ninguém terminou hoje';
+
+  @override
+  String get puzzleTilePlay => 'joga o enigma de hoje';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return 'faltam $count';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '#$rank de $total';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'FEED';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'os meus momentos';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'se o que publicas aparece nos quadros dos teus amigos nesse dia';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel =>
+      'a minha pontuação do enigma';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'se os teus amigos veem como te saíste no enigma diário';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'o meu passado';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'hoje é sempre partilhado com os amigos — isto abre tudo o que veio antes';
+
+  @override
+  String get momentComposerVideo => 'vídeo';
+
+  @override
+  String get momentComposerErrorTooBig =>
+      'esse vídeo é muito grande — máximo 20 MB';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -9659,4 +9792,136 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get momentViewerDelete => 'excluir';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who publicou um momento';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name levou um $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => 'agora';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '${count}min';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '${count}h';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'mais $count hoje',
+      one: 'mais 1 hoje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => 'o enigma.';
+
+  @override
+  String get puzzleScreenSubtitle => 'cinco símbolos, seis tentativas';
+
+  @override
+  String get puzzleSubmit => 'ADIVINHAR';
+
+  @override
+  String get puzzleBackspace => 'apagar último símbolo';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return 'símbolo $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return 'resolvido em $count';
+  }
+
+  @override
+  String get puzzleFailedTitle => 'sem tentativas';
+
+  @override
+  String get puzzleAnswerWas => 'O CÓDIGO ERA';
+
+  @override
+  String get puzzleShare => 'COPIAR RESULTADO';
+
+  @override
+  String get puzzleShareCopied => 'copiado — mande para um amigo';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => 'você já resolveu o de hoje';
+
+  @override
+  String get puzzleErrorOutOfGuesses => 'você não tem tentativas hoje';
+
+  @override
+  String get puzzleErrorGeneric => 'não foi possível enviar — tente de novo';
+
+  @override
+  String get puzzleScoreboardLabel => 'PONTUAÇÕES DE HOJE';
+
+  @override
+  String get puzzleScoreboardEmpty => 'ninguém terminou hoje ainda';
+
+  @override
+  String get puzzleTilePlay => 'jogue o enigma de hoje';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return 'faltam $count';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '#$rank de $total';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => 'FEED';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => 'meus momentos';
+
+  @override
+  String get profileVisibilityScreenFeedDesc =>
+      'se o que você publica aparece nos quadros dos seus amigos naquele dia';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => 'minha pontuação do enigma';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc =>
+      'se seus amigos veem como você foi no enigma diário';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => 'meu passado';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      'hoje é sempre compartilhado com os amigos — isto abre tudo o que veio antes';
+
+  @override
+  String get momentComposerVideo => 'vídeo';
+
+  @override
+  String get momentComposerErrorTooBig =>
+      'esse vídeo é muito grande — máximo 20 MB';
 }

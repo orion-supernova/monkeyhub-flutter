@@ -4544,4 +4544,132 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get momentViewerDelete => '删除';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who 发布了一个瞬间';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name 拿到一个 $tag';
+  }
+
+  @override
+  String get momentActivityJustNow => '刚刚';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '$count分';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '$count小时';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今天还有 $count 条',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => '谜题。';
+
+  @override
+  String get puzzleScreenSubtitle => '五个符号，六次机会';
+
+  @override
+  String get puzzleSubmit => '猜';
+
+  @override
+  String get puzzleBackspace => '删除最后一个符号';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return '符号 $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return '$count 次解开';
+  }
+
+  @override
+  String get puzzleFailedTitle => '次数已用完';
+
+  @override
+  String get puzzleAnswerWas => '答案是';
+
+  @override
+  String get puzzleShare => '复制结果';
+
+  @override
+  String get puzzleShareCopied => '已复制 — 发给朋友';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => '今天的你已经解开了';
+
+  @override
+  String get puzzleErrorOutOfGuesses => '今天没有剩余次数';
+
+  @override
+  String get puzzleErrorGeneric => '发送失败 — 请重试';
+
+  @override
+  String get puzzleScoreboardLabel => '今日成绩';
+
+  @override
+  String get puzzleScoreboardEmpty => '今天还没有人完成';
+
+  @override
+  String get puzzleTilePlay => '来玩今天的谜题';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '还剩 $count 次';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '第 $rank 名 / 共 $total 人';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => '动态';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => '我的瞬间';
+
+  @override
+  String get profileVisibilityScreenFeedDesc => '你发布的内容当天是否出现在好友的看板上';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => '我的谜题成绩';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc => '好友能否看到你每日谜题的表现';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => '我的过往';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      '今天始终与好友共享 — 此项开放的是今天之前的全部';
+
+  @override
+  String get momentComposerVideo => '视频';
+
+  @override
+  String get momentComposerErrorTooBig => '这个视频太大了 — 最大 20 MB';
 }

@@ -6,16 +6,22 @@ import '../backend/feed_api.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../family/family_service.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/moment.dart';
+import '../models/puzzle.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/app_brand_mark.dart';
 import '../widgets/feed_depth_field.dart';
+import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
+import '../widgets/moment_standings.dart';
+import '../widgets/puzzle_symbol.dart';
 import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
+import 'feed/puzzle_screen.dart';
 import 'navigation/destinations.dart';
 
 /// TODAY — the friends-activity board.
@@ -111,6 +117,17 @@ class _FeedScreenState extends State<FeedScreen> {
     // until it closes.
   }
 
+  void _openPuzzle() {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            PuzzleScreen(feedApi: widget.feedApi, userId: userId),
+      ),
+    );
+  }
+
   void _open(Moment moment) {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -161,25 +178,36 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'puzzle',
         child: _SectionShell(
           label: l10n.feedBoardPuzzleLabel,
-          body: _EmptyLine(l10n.feedBoardPuzzleEmpty),
+          body: _PuzzleTile(
+            state: store.puzzle,
+            viewerId: widget.repo.userId ?? '',
+            onTap: _openPuzzle,
+          ),
         ),
       ),
       (
         id: 'standings',
         child: _SectionShell(
           label: l10n.feedBoardStandingsLabel,
-          body: _EmptyLine(l10n.feedBoardStandingsEmpty),
+          body: MomentStandings(
+            moments: store.moments,
+            viewerId: widget.repo.userId ?? '',
+          ),
         ),
       ),
       (
         id: 'activity',
         child: _SectionShell(
           label: l10n.feedBoardActivityLabel,
-          body: _EmptyLine(
-            widget.repo.friends.isEmpty
-                ? l10n.feedBoardActivityNoFriends
-                : l10n.feedBoardActivityEmpty,
-          ),
+          body: store.moments.isEmpty && widget.repo.friends.isEmpty
+              // Distinct from "quiet today": someone with no friends yet needs
+              // to know what would fill this, not that nothing happened.
+              ? _EmptyLine(l10n.feedBoardActivityNoFriends)
+              : MomentActivity(
+                  moments: store.moments,
+                  viewerId: widget.repo.userId ?? '',
+                  onOpen: _open,
+                ),
         ),
       ),
     ];
@@ -389,6 +417,95 @@ class _SectionShell extends StatelessWidget {
           const SizedBox(height: 12),
           body,
         ],
+      ),
+    );
+  }
+}
+
+/// The board's summary of today's puzzle.
+///
+/// Three states, and the difference between them is the whole point of the
+/// tile: not started (an invitation), in progress (how many tries are left),
+/// finished (your score and where it put you). A tile that looked the same in
+/// all three would give nobody a reason to glance at it.
+class _PuzzleTile extends StatelessWidget {
+  const _PuzzleTile({
+    required this.state,
+    required this.viewerId,
+    required this.onTap,
+  });
+
+  final PuzzleState state;
+  final String viewerId;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final mine = state.mine;
+    final rank = state.rankOf(viewerId);
+
+    final String headline;
+    if (mine == null || !mine.started) {
+      headline = l10n.puzzleTilePlay;
+    } else if (!mine.done) {
+      headline = l10n.puzzleTileInProgress(mine.remaining);
+    } else {
+      headline = mine.solved
+          ? l10n.puzzleSolvedTitle(mine.guesses.length)
+          : l10n.puzzleFailedTitle;
+    }
+
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: headline,
+      radius: theme.radiusLg,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: theme.roomCardDecoration(
+            // Reuse the ephemeral treatment as the "unplayed" state — it is
+            // the theme's own way of saying "this is on a clock", which is
+            // exactly what an unplayed daily puzzle is.
+            ephemeral: mine == null || !mine.started,
+            active: false,
+          ),
+          child: Row(
+            children: [
+              // A hint of the alphabet, so the tile shows what the game looks
+              // like rather than only describing it.
+              for (var i = 0; i < 3; i++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: PuzzleSymbol(index: i, size: 18, accent: theme.accent),
+                ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      headline,
+                      style: theme.bodyEmph,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (rank != null && state.scores.length > 1)
+                      Text(
+                        l10n.puzzleTileRank(rank, state.scores.length),
+                        style: theme.monoTiny,
+                        maxLines: 1,
+                      ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -4617,4 +4617,132 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get momentViewerDelete => '삭제';
+
+  @override
+  String momentActivityPostedHighlight(Object who) {
+    return '$who님이 하이라이트를 올렸어요';
+  }
+
+  @override
+  String momentActivityScored(Object name, Object tag) {
+    return '$name님이 $tag를 받았어요';
+  }
+
+  @override
+  String get momentActivityJustNow => '방금';
+
+  @override
+  String momentActivityMinutesAgo(Object count) {
+    return '$count분';
+  }
+
+  @override
+  String momentActivityHoursAgo(Object count) {
+    return '$count시간';
+  }
+
+  @override
+  String momentActivityMoreCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '오늘 $count개 더',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get puzzleScreenTitle => '퍼즐.';
+
+  @override
+  String get puzzleScreenSubtitle => '기호 다섯 개, 여섯 번의 기회';
+
+  @override
+  String get puzzleSubmit => '추측';
+
+  @override
+  String get puzzleBackspace => '마지막 기호 지우기';
+
+  @override
+  String puzzleSymbolSemanticLabel(Object number) {
+    return '기호 $number';
+  }
+
+  @override
+  String puzzleSolvedTitle(Object count) {
+    return '$count번 만에 해결';
+  }
+
+  @override
+  String get puzzleFailedTitle => '기회 소진';
+
+  @override
+  String get puzzleAnswerWas => '정답은';
+
+  @override
+  String get puzzleShare => '결과 복사';
+
+  @override
+  String get puzzleShareCopied => '복사했어요 — 친구에게 붙여넣기';
+
+  @override
+  String puzzleShareHeader(Object edition, Object score) {
+    return 'MonkeyHub №$edition $score/6';
+  }
+
+  @override
+  String get puzzleErrorAlreadySolved => '오늘 건 이미 풀었어요';
+
+  @override
+  String get puzzleErrorOutOfGuesses => '오늘 남은 기회가 없어요';
+
+  @override
+  String get puzzleErrorGeneric => '보내지 못했어요 — 다시 시도해주세요';
+
+  @override
+  String get puzzleScoreboardLabel => '오늘의 점수';
+
+  @override
+  String get puzzleScoreboardEmpty => '오늘은 아직 아무도 끝내지 않았어요';
+
+  @override
+  String get puzzleTilePlay => '오늘의 퍼즐 풀기';
+
+  @override
+  String puzzleTileInProgress(Object count) {
+    return '$count번 남음';
+  }
+
+  @override
+  String puzzleTileRank(Object rank, Object total) {
+    return '$total명 중 #$rank';
+  }
+
+  @override
+  String get profileVisibilityScreenSectionFeed => '피드';
+
+  @override
+  String get profileVisibilityScreenFeedLabel => '내 순간';
+
+  @override
+  String get profileVisibilityScreenFeedDesc => '올린 것이 그날 친구들의 보드에 보일지 여부';
+
+  @override
+  String get profileVisibilityScreenPuzzleLabel => '내 퍼즐 점수';
+
+  @override
+  String get profileVisibilityScreenPuzzleDesc => '친구들이 오늘의 퍼즐 결과를 볼 수 있는지 여부';
+
+  @override
+  String get profileVisibilityScreenPointsPastLabel => '내 지난 기록';
+
+  @override
+  String get profileVisibilityScreenPointsPastDesc =>
+      '오늘은 항상 친구와 공유돼요 — 이 설정은 그 이전 전부를 열어요';
+
+  @override
+  String get momentComposerVideo => '동영상';
+
+  @override
+  String get momentComposerErrorTooBig => '동영상이 너무 커요 — 최대 20MB';
 }

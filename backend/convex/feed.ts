@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { assertChildPolicy } from "./childGuard";
 import { deleteStored } from "./files";
+import { MAX_GUESSES, SLOTS, answerFor, score } from "./puzzle";
 
 /**
  * The Feed board — "TODAY".
@@ -208,7 +209,81 @@ export const board = query({
     }
 
     out.sort((a, b) => b.createdAt - a.createdAt);
-    return { moments: out, serverNow: now };
+
+    // ── The daily puzzle ────────────────────────────────────────────────────
+    // Carried in THIS payload rather than a query of its own. Four pillars
+    // modelled as four subscriptions would be a 25% increase in the app's
+    // whole live-query budget for one screen; folding the puzzle in also means
+    // a friend's score lands on your board the instant they finish, which is
+    // most of the point of having a scoreboard at all.
+    const answer = answerFor(dayKey);
+    const scores: any[] = [];
+    let mine: any = null;
+
+    for (const playerId of authorIds) {
+      const isMe = playerId === userId;
+      let playerName = "";
+      if (!isMe) {
+        const player = await ctx.db.get(playerId);
+        if (!player) continue;
+        if (!visibilityOf(player).puzzle) continue;
+        // The scoreboard needs a name, and this row is already loaded for the
+        // visibility check — so it costs nothing here, where a separate lookup
+        // per score would be another users read inside a subscribed query.
+        playerName = player.name ?? player.username;
+      }
+      const row = await ctx.db
+        .query("puzzleResults")
+        .withIndex("by_user_day", (q: any) =>
+          q.eq("userId", playerId).eq("dayKey", dayKey)
+        )
+        .first();
+      if (!row) continue;
+
+      const finished = row.solved || row.guesses.length >= MAX_GUESSES;
+      if (isMe) {
+        mine = {
+          guesses: row.guesses,
+          feedback: row.guesses.map((g: number[]) => score(g, answer)),
+          solved: row.solved,
+          done: finished,
+          // Same rule as the guess mutation: the code is revealed only once
+          // the player can no longer act on it.
+          answer: finished && !row.solved ? answer : undefined,
+        };
+      }
+      // A friend's IN-PROGRESS attempt is deliberately not exposed — not the
+      // guess count, not the feedback. Knowing someone is on their fifth try
+      // leaks how hard today is, and watching a live counter turns a quiet
+      // daily puzzle into a race.
+      if (!finished) continue;
+      scores.push({
+        userId: playerId,
+        name: playerName,
+        solved: row.solved,
+        guessCount: row.guesses.length,
+        finishedAt: row.finishedAt ?? row.updatedAt,
+        // The emoji grid is derived from feedback, so it ships as counts and
+        // the client renders it — no second encoding to keep in step.
+        feedback: row.guesses.map((g: number[]) => score(g, answer)),
+      });
+    }
+
+    // Solved first, then fewest guesses, then earliest finish. Ties broken by
+    // id so equal results hold a stable order rather than reshuffling on every
+    // board render — the leaderboard animates rows by identity.
+    scores.sort((a, b) => {
+      if (a.solved !== b.solved) return a.solved ? -1 : 1;
+      if (a.guessCount !== b.guessCount) return a.guessCount - b.guessCount;
+      if (a.finishedAt !== b.finishedAt) return a.finishedAt - b.finishedAt;
+      return a.userId < b.userId ? -1 : 1;
+    });
+
+    return {
+      moments: out,
+      serverNow: now,
+      puzzle: { slots: SLOTS, maxGuesses: MAX_GUESSES, mine, scores },
+    };
   },
 });
 

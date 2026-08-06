@@ -30,6 +30,14 @@ class ProfileVisibility {
     this.lastSeen = FieldVisibility.nobody,
     this.seen = FieldVisibility.nobody,
     this.friendRequests = FieldVisibility.nobody, // public | nobody only
+    // The three Feed keys are the ONE place in this object where absent does
+    // not mean "nobody". A board nobody opted into is a dead board, so sharing
+    // today with friends is the default and only the PAST is opt-in. The
+    // server owns that decision (`visibilityOf` in backend/convex/feed.ts);
+    // these defaults exist so an optimistic local update agrees with it.
+    this.feed = FieldVisibility.friends,
+    this.puzzle = FieldVisibility.friends,
+    this.pointsPast = FieldVisibility.nobody,
   });
 
   FieldVisibility avatar;
@@ -41,12 +49,36 @@ class ProfileVisibility {
   FieldVisibility seen;
   FieldVisibility friendRequests;
 
+  /// Whether your moments appear on friends' Feed boards. Friends or nobody —
+  /// never public; the board fans out over accepted friendships and nothing
+  /// else, so "public" would be a promise the reader could not keep.
+  FieldVisibility feed;
+
+  /// Whether your daily puzzle score is comparable on friends' scoreboards.
+  FieldVisibility puzzle;
+
+  /// Whether friends may look back past today. Off by default — today is
+  /// shared, history is opt-in, and that split is the whole reason this
+  /// setting exists.
+  FieldVisibility pointsPast;
+
   factory ProfileVisibility.fromJson(Map<String, dynamic> j) => ProfileVisibility(
         avatar: FieldVisibilityWire.parse(j['avatar'] as String?),
         status: FieldVisibilityWire.parse(j['status'] as String?),
         lastSeen: FieldVisibilityWire.parse(j['lastSeen'] as String?),
         seen: FieldVisibilityWire.parse(j['seen'] as String?),
         friendRequests: FieldVisibilityWire.parse(j['friendRequests'] as String?),
+        // `FieldVisibilityWire.parse` fails closed to `nobody`, which is right
+        // for every other key here and wrong for these two — so an ABSENT
+        // value (a user who has never touched the setting) must read as
+        // `friends`, matching the server. A stored "nobody" still wins.
+        feed: j['feed'] == null
+            ? FieldVisibility.friends
+            : FieldVisibilityWire.parse(j['feed'] as String?),
+        puzzle: j['puzzle'] == null
+            ? FieldVisibility.friends
+            : FieldVisibilityWire.parse(j['puzzle'] as String?),
+        pointsPast: FieldVisibilityWire.parse(j['pointsPast'] as String?),
       );
 
   ProfileVisibility copyWith({
@@ -55,6 +87,9 @@ class ProfileVisibility {
     FieldVisibility? lastSeen,
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
+    FieldVisibility? feed,
+    FieldVisibility? puzzle,
+    FieldVisibility? pointsPast,
   }) =>
       ProfileVisibility(
         avatar: avatar ?? this.avatar,
@@ -62,6 +97,9 @@ class ProfileVisibility {
         lastSeen: lastSeen ?? this.lastSeen,
         seen: seen ?? this.seen,
         friendRequests: friendRequests ?? this.friendRequests,
+        feed: feed ?? this.feed,
+        puzzle: puzzle ?? this.puzzle,
+        pointsPast: pointsPast ?? this.pointsPast,
       );
 }
 
