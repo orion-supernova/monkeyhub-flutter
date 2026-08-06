@@ -3,9 +3,9 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import '../../diagnostics/diag_event.dart';
 import '../../keyboard/focusable_tap.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/theme_scope.dart';
 import 'diag_collapse.dart';
+import 'diag_palette.dart';
 import 'json_highlight.dart';
 
 /// One row of the timeline — a single event, or a collapsed run of them.
@@ -28,7 +28,14 @@ class _DiagEventRowState extends State<DiagEventRow> {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final e = widget.group.first;
-    final colour = _severityColour(theme, e.sev);
+    // Two channels, doing two different jobs. The left rule is the CATEGORY,
+    // so a scroll reads as bands of colour and you can find the layout events
+    // among four hundred subscription ones without reading a word. Severity is
+    // a background wash, and only for warn/error — if every row is emphasised
+    // then none of them is.
+    final colour = DiagPalette.cat(e.cat);
+    final loud = DiagPalette.isLoud(e.sev);
+    final sevColour = DiagPalette.severity(theme, e.sev);
     final prev = widget.previous;
     final delta = prev == null ? null : e.upMs - prev.upMs;
 
@@ -44,9 +51,13 @@ class _DiagEventRowState extends State<DiagEventRow> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: theme.surfaceRaised,
+              color: loud
+                  ? sevColour.withValues(alpha: 0.10)
+                  : theme.surfaceRaised,
               borderRadius: BorderRadius.circular(theme.radiusSm),
-              border: Border(left: BorderSide(color: colour, width: 2)),
+              border: Border(
+                left: BorderSide(color: colour, width: loud ? 3 : 2),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,6 +86,17 @@ class _DiagEventRowState extends State<DiagEventRow> {
                         children: [
                           Row(
                             children: [
+                              if (loud) ...[
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: sevColour,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                              ],
                               Text(
                                 '${e.cat.name}/${e.event}',
                                 style: theme.monoTiny.copyWith(color: colour),
@@ -221,13 +243,3 @@ class _Badge extends StatelessWidget {
     );
   }
 }
-
-/// Severity colours come from the active theme rather than a private palette,
-/// so the screen stays readable on every one of the app's themes.
-Color _severityColour(AppTheme theme, DiagSev sev) => switch (sev) {
-  DiagSev.error => theme.danger,
-  DiagSev.warn => theme.danger,
-  DiagSev.info => theme.accent,
-  DiagSev.debug => theme.inkSoft,
-  DiagSev.trace => theme.inkMuted,
-};

@@ -13,6 +13,7 @@ import '../widgets/adaptive_page_body.dart';
 import 'diagnostics/diag_collapse.dart';
 import 'diagnostics/diag_event_row.dart';
 import 'diagnostics/diag_filter_sheet.dart';
+import 'diagnostics/diag_palette.dart';
 
 /// The captured timeline.
 ///
@@ -71,6 +72,11 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
     // away under them. Re-engage only when they return to the bottom.
     final atBottom = _scroll.offset >= _scroll.position.maxScrollExtent - 40;
     if (atBottom != _follow && mounted) setState(() => _follow = atBottom);
+  }
+
+  void _resumeFollow() {
+    setState(() => _follow = true);
+    _jumpToEnd();
   }
 
   void _jumpToEnd() {
@@ -184,26 +190,126 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
                   next.contains(c) ? next.remove(c) : next.add(c);
                   _filter = _filter.copyWith(cats: next);
                 }),
+                onAll: () =>
+                    setState(() => _filter = _filter.copyWith(cats: const {})),
               ),
               Expanded(
                 child: groups.isEmpty
-                    ? Center(
-                        child: Text(
-                          buf.length == 0
-                              ? 'Nothing captured yet.'
-                              : 'No events match the filter.',
-                          style: theme.bodySoft,
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scroll,
-                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
-                        itemCount: groups.length,
-                        itemBuilder: (context, i) => DiagEventRow(
-                          group: groups[i],
-                          previous: i == 0 ? null : groups[i - 1].last,
-                        ),
+                    ? _Empty(captured: buf.length)
+                    : Stack(
+                        children: [
+                          ListView.builder(
+                            controller: _scroll,
+                            padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
+                            itemCount: groups.length,
+                            itemBuilder: (context, i) => DiagEventRow(
+                              group: groups[i],
+                              previous: i == 0 ? null : groups[i - 1].last,
+                            ),
+                          ),
+                          // Only while paused. Scrolling up in a live log
+                          // parks the follow, and without this the way back
+                          // is a long flick through however many events
+                          // arrived meanwhile.
+                          if (!_follow)
+                            Positioned(
+                              right: 12,
+                              bottom: 12,
+                              child: _JumpToEnd(onTap: _resumeFollow),
+                            ),
+                        ],
                       ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the list has nothing in it, and it distinguishes the two reasons.
+///
+/// "Nothing captured yet" and "your filter excluded everything" are completely
+/// different situations — one means the feature is broken, the other means you
+/// tapped a chip. A single generic empty state would leave you unable to tell.
+class _Empty extends StatelessWidget {
+  const _Empty({required this.captured});
+  final int captured;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final nothingAtAll = captured == 0;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              nothingAtAll ? Icons.hourglass_empty : Icons.filter_alt_off,
+              size: 30,
+              color: theme.inkMuted,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              nothingAtAll ? 'Nothing captured yet' : 'No events match',
+              style: theme.bodyEmph,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              nothingAtAll
+                  ? 'Use the app for a moment and events will appear here.'
+                  : 'Tap All above to clear the filter.',
+              style: theme.bodySoft,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Back to live. Deliberately a floating pill rather than a header button — it
+/// belongs next to the content it moves, and only exists while it is useful.
+class _JumpToEnd extends StatelessWidget {
+  const _JumpToEnd({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      shape: FocusRingShape.capsule,
+      semanticLabel: 'Jump to latest',
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 14, 8),
+          decoration: BoxDecoration(
+            color: theme.accent,
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.arrow_downward, size: 14, color: theme.accentInk),
+              const SizedBox(width: 6),
+              Text(
+                'Latest',
+                style: theme.monoTiny.copyWith(color: theme.accentInk),
               ),
             ],
           ),
@@ -313,20 +419,30 @@ class _SearchBarState extends State<_SearchBar> {
   }
 }
 
-/// One chip per category that actually has events, each showing its count.
+/// The category row: an explicit **All**, then one chip per category that has
+/// events, each carrying its colour and live count.
 ///
-/// Categories with nothing in them are omitted rather than shown empty: eleven
-/// chips of which three are meaningful is a worse control than three chips.
+/// "All" is not decoration. The filter treats an empty selection as
+/// "everything", which is the right internal model and reads as a bug on
+/// screen — every chip renders unselected, so the default state looks like
+/// nothing is on and the list looks unfiltered by accident. An explicit chip
+/// that lights up when the set is empty says what is actually happening, and
+/// gives a one-tap way back from any filter.
+///
+/// Categories with nothing in them are omitted rather than shown at zero:
+/// eleven chips of which three are meaningful is a worse control than three.
 class _QuickCats extends StatelessWidget {
   const _QuickCats({
     required this.counts,
     required this.selected,
     required this.onToggle,
+    required this.onAll,
   });
 
   final Map<DiagCat, int> counts;
   final Set<DiagCat> selected;
   final ValueChanged<DiagCat> onToggle;
+  final VoidCallback onAll;
 
   @override
   Widget build(BuildContext context) {
@@ -335,17 +451,35 @@ class _QuickCats extends StatelessWidget {
       ..sort((a, b) => b.value.compareTo(a.value));
     if (present.isEmpty) return const SizedBox.shrink();
 
+    final total = present.fold<int>(0, (a, e) => a + e.value);
+
     return Container(
       color: theme.surface,
-      padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+      padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
+            _CatChip(
+              label: 'All',
+              count: total,
+              colour: theme.accent,
+              on: selected.isEmpty,
+              onTap: onAll,
+            ),
+            // A rule, so All reads as the reset it is rather than as one more
+            // category sitting alongside the others.
+            Container(
+              width: 1,
+              height: 18,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              color: theme.divider,
+            ),
             for (final e in present) ...[
               _CatChip(
-                cat: e.key,
+                label: e.key.name,
                 count: e.value,
+                colour: DiagPalette.cat(e.key),
                 on: selected.contains(e.key),
                 onTap: () => onToggle(e.key),
               ),
@@ -360,14 +494,16 @@ class _QuickCats extends StatelessWidget {
 
 class _CatChip extends StatelessWidget {
   const _CatChip({
-    required this.cat,
+    required this.label,
     required this.count,
+    required this.colour,
     required this.on,
     required this.onTap,
   });
 
-  final DiagCat cat;
+  final String label;
   final int count;
+  final Color colour;
   final bool on;
   final VoidCallback onTap;
 
@@ -376,25 +512,49 @@ class _CatChip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     return FocusableTap(
       onTap: onTap,
-      radius: theme.radiusSm,
-      semanticLabel: '${cat.name} $count',
+      shape: FocusRingShape.capsule,
+      semanticLabel: '$label $count',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
           decoration: BoxDecoration(
-            color: on
-                ? theme.accent.withValues(alpha: 0.2)
-                : theme.surfaceRaised,
-            borderRadius: BorderRadius.circular(theme.radiusSm),
-            border: Border.all(color: on ? theme.accent : theme.divider),
-          ),
-          child: Text(
-            '${cat.name} $count',
-            style: theme.monoTiny.copyWith(
-              color: on ? theme.accent : theme.inkSoft,
+            color: on ? colour.withValues(alpha: 0.16) : theme.surfaceRaised,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: on ? colour : theme.divider,
+              width: on ? 1.2 : 1,
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // The dot is what makes the row scannable, and it is the same hue
+              // the timeline uses for that category — so a chip and the rows it
+              // selects are visibly the same thing.
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: colour,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: theme.monoTiny.copyWith(
+                  color: on ? theme.ink : theme.inkSoft,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '$count',
+                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              ),
+            ],
           ),
         ),
       ),

@@ -31,7 +31,9 @@ class DiagGroup {
 /// gap would destroy the ordering that makes the log worth reading.
 List<DiagGroup> collapseEvents(List<DiagEvent> events, {bool enabled = true}) {
   if (!enabled) {
-    return [for (final e in events) DiagGroup([e])];
+    return [
+      for (final e in events) DiagGroup([e]),
+    ];
   }
 
   final out = <DiagGroup>[];
