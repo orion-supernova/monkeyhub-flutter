@@ -4195,6 +4195,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'Já estás nesta sala';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'OS DETALHES';
+
+  @override
+  String get roomInfoSheetNoDescription => 'ainda sem descrição';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'CRIADA EM';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'PROTEÇÃO DE CAPTURA DE ECRÃ';
 
   @override
@@ -9728,6 +9737,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomBadgeJoinedTooltip => 'Você já está nesta sala';
+
+  @override
+  String get roomInfoSheetDetailsLabel => 'OS DETALHES';
+
+  @override
+  String get roomInfoSheetNoDescription => 'ainda sem descrição';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'CRIADA EM';
 
   @override
   String get countBadgeCaptureProtectionLabel =>

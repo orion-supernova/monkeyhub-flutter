@@ -7049,6 +7049,24 @@ abstract class AppLocalizations {
   /// **'You\'re already in this room'**
   String get roomBadgeJoinedTooltip;
 
+  /// Section heading in the room info sheet, above the labelled lines describing the room's visibility, password and self-destruct settings. Rendered in caps.
+  ///
+  /// In en, this message translates to:
+  /// **'THE DETAILS'**
+  String get roomInfoSheetDetailsLabel;
+
+  /// Stands in for the description in the room info sheet when the room's owner never wrote one. Quiet, lowercase.
+  ///
+  /// In en, this message translates to:
+  /// **'no description yet'**
+  String get roomInfoSheetNoDescription;
+
+  /// Label on the room info sheet line whose body is the date the room was created. Rendered in caps.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATED'**
+  String get roomInfoSheetCreatedLabel;
+
   /// All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart).
   ///
   /// In en, this message translates to:

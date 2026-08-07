@@ -16,6 +16,9 @@ import '../theme/theme_scope.dart';
 ///
 /// Either way the words survive: the tap tooltip spells the state out in full,
 /// and Semantics carries the label so a screen reader never meets a bare icon.
+///
+/// A caller whose surface already answers the question can turn the tooltip off
+/// with [explainOnTap] — see the flag's own note.
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.icon,
@@ -25,6 +28,7 @@ class _Badge extends StatelessWidget {
     required this.textStyle,
     required this.dense,
     required this.iconOnly,
+    required this.explainOnTap,
   });
 
   /// Built by the caller at the size the badge asks for.
@@ -37,6 +41,15 @@ class _Badge extends StatelessWidget {
   final TextStyle textStyle;
   final bool dense;
   final bool iconOnly;
+
+  /// Whether the pill answers for itself on tap.
+  ///
+  /// Off for a pill sitting inside a row that is itself one tap target — a
+  /// Discover room row opens a sheet that spells every one of these states out
+  /// in full sentences, so a tooltip there would only swallow the tap meant for
+  /// the row and hand back less than the row was about to give. The [tooltip]
+  /// sentence still reaches a screen reader either way.
+  final bool explainOnTap;
 
   /// Themes draw the chip border anywhere from 0.5 to 1.0 wide; assume the
   /// widest so the fit check never claims room the border is using.
@@ -74,6 +87,32 @@ class _Badge extends StatelessWidget {
     final chromeWidth =
         labelledPadding.horizontal + _borderWidth * 2 + labelledIcon + gap;
 
+    final pill = LayoutBuilder(
+      builder: (context, constraints) {
+        final showLabel =
+            !iconOnly && _labelFits(context, constraints.maxWidth, chromeWidth);
+        return Semantics(
+          label: showLabel ? null : label,
+          container: !showLabel,
+          child: Container(
+            padding: showLabel ? labelledPadding : soloPadding,
+            decoration: decoration,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                icon(showLabel ? labelledIcon : soloIcon),
+                if (showLabel) ...[
+                  SizedBox(width: gap),
+                  Text(label, style: textStyle, maxLines: 1, softWrap: false),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!explainOnTap) return pill;
+
     return Tooltip(
       message: tooltip,
       triggerMode: TooltipTriggerMode.tap,
@@ -83,30 +122,7 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: theme.tooltipDecoration(),
       textStyle: theme.body.copyWith(fontSize: 12, color: theme.ink),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final showLabel = !iconOnly &&
-              _labelFits(context, constraints.maxWidth, chromeWidth);
-          return Semantics(
-            label: showLabel ? null : label,
-            container: !showLabel,
-            child: Container(
-              padding: showLabel ? labelledPadding : soloPadding,
-              decoration: decoration,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  icon(showLabel ? labelledIcon : soloIcon),
-                  if (showLabel) ...[
-                    SizedBox(width: gap),
-                    Text(label, style: textStyle, maxLines: 1, softWrap: false),
-                  ],
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+      child: pill,
     );
   }
 }
@@ -123,12 +139,14 @@ class VisibilityBadge extends StatelessWidget {
     this.dense = false,
     this.invert = false,
     this.iconOnly = false,
+    this.explainOnTap = true,
   });
 
   final bool isPublic;
   final bool dense;
   final bool invert;
   final bool iconOnly;
+  final bool explainOnTap;
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +155,7 @@ class VisibilityBadge extends StatelessWidget {
     return _Badge(
       dense: dense,
       iconOnly: iconOnly,
+      explainOnTap: explainOnTap,
       icon: (size) => theme.visibilityIcon(isPublic: isPublic, size: size),
       label: isPublic
           ? loc.enterPublicRoomVisibilityPublicLabel
@@ -156,10 +175,16 @@ class VisibilityBadge extends StatelessWidget {
 /// Worth knowing before the tap, not after: the join sheet is where a locked
 /// room used to first admit it wanted a password.
 class LockedBadge extends StatelessWidget {
-  const LockedBadge({super.key, this.dense = false, this.iconOnly = false});
+  const LockedBadge({
+    super.key,
+    this.dense = false,
+    this.iconOnly = false,
+    this.explainOnTap = true,
+  });
 
   final bool dense;
   final bool iconOnly;
+  final bool explainOnTap;
 
   @override
   Widget build(BuildContext context) {
@@ -168,6 +193,7 @@ class LockedBadge extends StatelessWidget {
     return _Badge(
       dense: dense,
       iconOnly: iconOnly,
+      explainOnTap: explainOnTap,
       icon: (size) =>
           Icon(Icons.lock_outline_rounded, size: size, color: theme.inkSoft),
       label: loc.roomCardLockedBadge,
@@ -185,10 +211,16 @@ class LockedBadge extends StatelessWidget {
 /// that you can just walk in is. Filled rather than outlined so the "already
 /// yours" tiles read as a distinct group at a glance.
 class JoinedBadge extends StatelessWidget {
-  const JoinedBadge({super.key, this.dense = false, this.iconOnly = false});
+  const JoinedBadge({
+    super.key,
+    this.dense = false,
+    this.iconOnly = false,
+    this.explainOnTap = true,
+  });
 
   final bool dense;
   final bool iconOnly;
+  final bool explainOnTap;
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +229,7 @@ class JoinedBadge extends StatelessWidget {
     return _Badge(
       dense: dense,
       iconOnly: iconOnly,
+      explainOnTap: explainOnTap,
       icon: (size) =>
           Icon(Icons.check_rounded, size: size, color: theme.accent),
       label: loc.enterPublicRoomJoinedBadgeLabel,
@@ -214,6 +247,19 @@ class JoinedBadge extends StatelessWidget {
   }
 }
 
+/// The shortest honest form of a self-destruct interval: `45s`, `5m`, `2h`.
+///
+/// Lives here rather than on [EphemeralBadge] because the room info sheet says
+/// the same interval in a longer sentence, and the pill and the sentence
+/// disagreeing about how long a room keeps its messages would be worse than
+/// either being terse.
+String ephemeralShort(AppLocalizations loc, Duration ttl) {
+  final s = ttl.inSeconds;
+  if (s < 60) return loc.enterPublicRoomEphemeralSecondsShort(s);
+  if (s < 3600) return loc.enterPublicRoomEphemeralMinutesShort((s / 60).round());
+  return loc.enterPublicRoomEphemeralHoursShort((s / 3600).round());
+}
+
 /// Marks a room whose messages delete themselves, and after how long.
 ///
 /// The duration is the whole point of the badge, so when the pill goes
@@ -225,34 +271,28 @@ class EphemeralBadge extends StatelessWidget {
     required this.ttl,
     this.dense = false,
     this.iconOnly = false,
+    this.explainOnTap = true,
   });
 
   final Duration ttl;
   final bool dense;
   final bool iconOnly;
-
-  String _fmt(BuildContext context) {
-    final loc = AppLocalizations.of(context);
-    final s = ttl.inSeconds;
-    if (s < 60) return loc.enterPublicRoomEphemeralSecondsShort(s);
-    if (s < 3600) {
-      return loc.enterPublicRoomEphemeralMinutesShort((s / 60).round());
-    }
-    return loc.enterPublicRoomEphemeralHoursShort((s / 3600).round());
-  }
+  final bool explainOnTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
+    final ttlLabel = ephemeralShort(loc, ttl);
     return _Badge(
       dense: dense,
       iconOnly: iconOnly,
+      explainOnTap: explainOnTap,
       icon: (size) => theme.hourglassIcon(size: size, color: theme.accent),
       label: dense
-          ? _fmt(context)
-          : loc.enterPublicRoomEphemeralBadgeLabel(_fmt(context)),
-      tooltip: loc.roomBadgeEphemeralTooltip(_fmt(context)),
+          ? ttlLabel
+          : loc.enterPublicRoomEphemeralBadgeLabel(ttlLabel),
+      tooltip: loc.roomBadgeEphemeralTooltip(ttlLabel),
       decoration: theme.chipDecoration(filled: false).copyWith(
             border: Border.all(
               color: theme.accent.withValues(alpha: 0.55),

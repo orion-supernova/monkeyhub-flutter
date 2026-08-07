@@ -4016,6 +4016,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomBadgeJoinedTooltip => '이미 이 방에 있어요';
 
   @override
+  String get roomInfoSheetDetailsLabel => '세부 정보';
+
+  @override
+  String get roomInfoSheetNoDescription => '아직 설명이 없어요';
+
+  @override
+  String get roomInfoSheetCreatedLabel => '생성일';
+
+  @override
   String get countBadgeCaptureProtectionLabel => '화면 캡처 보호';
 
   @override

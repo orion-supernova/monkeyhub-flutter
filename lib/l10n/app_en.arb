@@ -4604,6 +4604,18 @@
   "@roomBadgeJoinedTooltip": {
     "description": "Tap-to-explain tooltip on the JOINED badge in Discover/search, marking a room the viewer is already a member of."
   },
+  "roomInfoSheetDetailsLabel": "THE DETAILS",
+  "@roomInfoSheetDetailsLabel": {
+    "description": "Section heading in the room info sheet, above the labelled lines describing the room's visibility, password and self-destruct settings. Rendered in caps."
+  },
+  "roomInfoSheetNoDescription": "no description yet",
+  "@roomInfoSheetNoDescription": {
+    "description": "Stands in for the description in the room info sheet when the room's owner never wrote one. Quiet, lowercase."
+  },
+  "roomInfoSheetCreatedLabel": "CREATED",
+  "@roomInfoSheetCreatedLabel": {
+    "description": "Label on the room info sheet line whose body is the date the room was created. Rendered in caps."
+  },
   "countBadgeCaptureProtectionLabel": "SCREEN CAPTURE PROTECTION",
   "@countBadgeCaptureProtectionLabel": {
     "description": "All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart)."
