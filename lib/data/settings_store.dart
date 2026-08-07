@@ -688,8 +688,8 @@ enum MotionLevel {
 /// Top-level shell destinations, in nav order.
 enum HomeSection {
   chat,
-  discover,
   feed,
+  discover,
   settings;
 
   static final Map<String, HomeSection> _byName = values.asNameMap();

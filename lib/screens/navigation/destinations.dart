@@ -72,16 +72,16 @@ List<NavDest> navDestinations(AppLocalizations l10n) {
       short: l10n.destinationsChatShort,
     ),
     (
-      section: HomeSection.discover,
-      icon: CupertinoIcons.compass,
-      label: l10n.destinationsDiscoverLabel,
-      short: l10n.destinationsDiscoverShort,
-    ),
-    (
       section: HomeSection.feed,
       icon: CupertinoIcons.sparkles,
       label: l10n.destinationsFeedLabel,
       short: l10n.destinationsFeedShort,
+    ),
+    (
+      section: HomeSection.discover,
+      icon: CupertinoIcons.compass,
+      label: l10n.destinationsDiscoverLabel,
+      short: l10n.destinationsDiscoverShort,
     ),
     (
       section: HomeSection.settings,
