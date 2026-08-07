@@ -625,20 +625,64 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     final s = _auth.session;
     try {
       if (s != null && _repo.userId != s.userId) {
+        // ─────────── calling attaches FIRST, on its own failure boundary ──
+        // This block used to sit at the END of this method, behind
+        // `await _repo.attach(...)` and `await PushManager.login(...)`, all
+        // inside the single swallow-everything catch below. Two ways that
+        // silently killed every incoming call on this device:
+        //   1. `PushManager.login` awaits OneSignal login AND the
+        //      notification-permission prompt. On a cold start woken by a
+        //      VoIP push, that can hang indefinitely — and everything after
+        //      it, including the entire call stack, never runs.
+        //   2. Anything above throwing lands in the shared `catch (_) {}`,
+        //      which logs nothing at all.
+        // Either way `CallService` stayed unattached and
+        // `calls:signalsForUser` was never subscribed, so an incoming call
+        // rang the native CallKit UI (PushKit is native and needs none of
+        // this) while Dart had no session to answer with — the call was
+        // dead on arrival and simply vanished a moment later.
+        try {
+          final deviceId = await DeviceIdentity.ensure();
+          _callService.attach(
+            userId: s.userId,
+            displayName: s.name,
+            deviceId: deviceId,
+          );
+          _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+          await _signaling.start(s.userId, deviceId: deviceId);
+          // Fire-and-forget: reconciling stale native cards must never be
+          // able to delay the live signaling path that was just opened.
+          unawaited(NativeCallHandler.instance.replayColdStartCalls());
+        } catch (e, st) {
+          // Never silent — an unattached call stack is invisible otherwise,
+          // which is exactly how this went unnoticed.
+          DiagLog.error('call attach failed', e, stack: st);
+          debugPrint('CRITICAL: call stack attach failed: $e\n$st');
+        }
+
         await _repo.attach(s.userId);
         _family.attach(s.userId);
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
-        await PushManager.instance.login(s.userId);
+        // Deliberately NOT awaited — see the note above. Push registration is
+        // a best-effort background concern; nothing in this method may block
+        // on it. The opt-out still has to follow the login that would
+        // otherwise re-enable notifications, so the two stay chained to each
+        // other rather than to us.
+        unawaited(() async {
+          try {
+            await PushManager.instance.login(s.userId);
+            // [PushManager.login] registers this device for push
+            // unconditionally, so an account that turned notifications OFF
+            // has to be opted back out straight afterwards or a cold start
+            // silently re-enables them.
+            if (!SettingsStore.instance.pushEnabled) {
+              await PushManager.instance.optOut();
+            }
+          } catch (e, st) {
+            DiagLog.error('push login failed', e, stack: st);
+          }
+        }());
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
-        // [PushManager.login] registers this device for push unconditionally,
-        // so an account that turned notifications OFF has to be opted back out
-        // straight afterwards or a cold start silently re-enables them. This
-        // used to live only in the second, bootstrap-side copy of this method
-        // — which is exactly the drift that made two copies dangerous rather
-        // than merely wasteful.
-        if (!SettingsStore.instance.pushEnabled) {
-          await PushManager.instance.optOut();
-        }
         // Mark online on first attach. Recorded in _lastSentStatus like every
         // other write: without that the dedupe guard in
         // didChangeAppLifecycleState starts each session holding a stale value
@@ -651,15 +695,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         BadgeManager.instance.bind(_repo);
         MessageAlerts.instance.bind(_repo);
         _startPresenceHeartbeat(s.userId);
-        final deviceId = await DeviceIdentity.ensure();
-        _callService.attach(
-          userId: s.userId,
-          displayName: s.name,
-          deviceId: deviceId,
-        );
-        _groupCallService.attach(userId: s.userId, deviceId: deviceId);
-        await _signaling.start(s.userId, deviceId: deviceId);
-        await NativeCallHandler.instance.replayColdStartCalls();
         _consumePendingPushRoom();
         // A session now exists, so ConnectionHealth has something worth healing
         // for. Its recovery loop parks while signed out and nothing else wakes
@@ -703,10 +738,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // where Sign Out is reached from).
         await SettingsStore.instance.setSection(HomeSection.chat);
       }
-    } catch (_) {
-      // Swallow: post-auth attach failures shouldn't crash the listener
-      // pipeline. The UI (AnimatedBuilder) is on a separate listener slot
-      // and must stay reactive even if repo/push setup throws.
+    } catch (e, st) {
+      // Don't crash the listener pipeline — the UI (AnimatedBuilder) is on a
+      // separate listener slot and must stay reactive even if repo setup
+      // throws. But never swallow silently: this catch hid a dead call stack
+      // for as long as it existed. The calling attach above has its own
+      // boundary, so a failure here no longer takes calls down with it.
+      DiagLog.error('auth attach failed', e, stack: st);
+      debugPrint('_onAuthChange failed: $e\n$st');
     }
   }
 

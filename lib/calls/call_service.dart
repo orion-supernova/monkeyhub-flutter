@@ -644,7 +644,15 @@ class CallService extends ChangeNotifier {
   Future<void> toggleSpeaker() async {
     final s = _session;
     if (s == null) return;
-    await _applyAudioRoute(speaker: !s.speakerOn);
+    final next = !s.speakerOn;
+    // Rewrite the CATEGORY first, not just the route. `defaultToSpeaker`
+    // lives on flutter_webrtc's process-wide shared AVAudioSession config,
+    // and `setSpeakerphoneOn` only overrides the current output port without
+    // clearing that bit — so switching to the earpiece while the bit was
+    // still set held only until the next thing reconfigured the session
+    // from it, then snapped back to the loudspeaker.
+    await _applyIosAudioConfig(s.mediaKind, speakerOn: next);
+    await _applyAudioRoute(speaker: next);
   }
 
   /// Sets the audio output route (loudspeaker vs earpiece) and keeps the
@@ -696,6 +704,34 @@ class CallService extends ChangeNotifier {
       unawaited(_applyIosAudioConfig(s2.mediaKind, speakerOn: s2.speakerOn));
       unawaited(_applyAudioRoute(speaker: s2.speakerOn));
     });
+  }
+
+  /// Re-assert the chosen output route a few times after connect.
+  ///
+  /// The callkit plugin re-runs its own `configureAudioSession` when CallKit
+  /// activates the session AND once more ~1200ms after answer — both with
+  /// mode `.default` and no `defaultToSpeaker`, clobbering whatever route we
+  /// set. [onNativeAudioSessionActivated] is supposed to be our hook for
+  /// exactly that, but its
+  /// `ACTION_CALL_TOGGLE_AUDIO_SESSION` event never survives the plugin's
+  /// own parser (see NativeCallHandler.start) — so on iOS it simply never
+  /// fires, and the plugin's config was the last writer for the rest of the
+  /// call. That is why a video call stayed pinned to the loudspeaker no
+  /// matter what the toggle said.
+  ///
+  /// Cheap enough to just do unconditionally: three no-op-if-unchanged
+  /// route writes bracketing the plugin's known clobber points, rather than
+  /// waiting to be told about an activation we can't hear.
+  void _scheduleAudioRouteReasserts() {
+    for (final ms in const [400, 1500, 3000]) {
+      Timer(Duration(milliseconds: ms), () {
+        final s = _session;
+        if (s == null || !inCall) return;
+        if (s.status != CallStatus.active) return;
+        unawaited(_applyIosAudioConfig(s.mediaKind, speakerOn: s.speakerOn));
+        unawaited(_applyAudioRoute(speaker: s.speakerOn));
+      });
+    }
   }
 
   /// Cycle the local audio tracks' enabled flag to restart WebRTC's audio
@@ -1561,6 +1597,7 @@ class CallService extends ChangeNotifier {
         // CallKit session activated (silent-capture race).
         unawaited(_applyAudioRoute(speaker: cur.speakerOn));
         _reprimeLocalAudio();
+        _scheduleAudioRouteReasserts();
         // Start (or restart, post-handoff) stats polling against this PC.
         _stats?.dispose();
         _stats = CallStatsMonitor(pc: pc, target: callQuality)..start();

@@ -106,7 +106,24 @@ class NativeCallHandler {
     if (kIsWeb) return; // flutter_callkit_incoming has no web implementation.
     if (_started) return;
     _started = true;
-    FlutterCallkitIncoming.onEvent.listen(_onEvent);
+    // `onError` is not optional here. flutter_callkit_incoming 3.1.3 parses
+    // every native event through a single `map(_receiveCallEvent)` that
+    // THROWS on anything it doesn't like — and it throws on every
+    // ACTION_CALL_TOGGLE_AUDIO_SESSION iOS sends us, because it demands a
+    // `body.isActive` that isn't in the payload (see the plugin's
+    // `_receiveCallEvent`; the message even misreports it as "id is null").
+    // Without a handler those land as uncaught zone errors — noise in every
+    // call's logs, and one `cancelOnError` default away from silently
+    // killing this subscription and with it every accept/decline/end event.
+    // The dropped audio-session event itself is compensated for in
+    // CallService's post-connect route re-asserts, which no longer wait to
+    // be told the session went active.
+    FlutterCallkitIncoming.onEvent.listen(
+      _onEvent,
+      onError: (Object e) =>
+          debugPrint('NativeCallHandler: dropped malformed callkit event: $e'),
+      cancelOnError: false,
+    );
   }
 
   Future<void> _onEvent(CallEvent? event) async {
