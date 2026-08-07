@@ -387,10 +387,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenJustTappedAction => '실수로 눌렀어요';
 
   @override
-  String get profileScreenLegalSection => '법적 정보';
+  String get settingsScreenLegalSection => '법적 정보';
 
   @override
-  String get profileScreenLicence => '오픈소스 라이선스';
+  String get settingsScreenLicence => '오픈소스 라이선스';
 
   @override
   String get profileScreenLinkedAccountsLabel => '연결된 계정';
@@ -420,7 +420,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => '사진 접근 권한이 거부되었어요.';
 
   @override
-  String get profileScreenPrivacyPolicy => '개인정보처리방침';
+  String get settingsScreenPrivacyPolicy => '개인정보처리방침';
 
   @override
   String get profileScreenPrivacySection => '개인정보';
@@ -469,7 +469,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenTapAgainToConfirmDelete => '한 번 더 눌러서 삭제 확인';
 
   @override
-  String get profileScreenTermsOfService => '이용약관';
+  String get settingsScreenTermsOfService => '이용약관';
 
   @override
   String get profileScreenThisPhoneSection => '이 휴대폰';

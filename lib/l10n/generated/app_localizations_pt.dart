@@ -409,10 +409,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileScreenJustTappedAction => 'FOI SEM QUERER';
 
   @override
-  String get profileScreenLegalSection => 'LEGAL';
+  String get settingsScreenLegalSection => 'LEGAL';
 
   @override
-  String get profileScreenLicence => 'LICENÇA';
+  String get settingsScreenLicence => 'LICENÇA';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'CONTAS LIGADAS';
@@ -443,7 +443,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'permissão de fotos negada.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDADE';
+  String get settingsScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDADE';
 
   @override
   String get profileScreenPrivacySection => 'PRIVACIDADE';
@@ -496,7 +496,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'TOCA DE NOVO PARA CONFIRMAR A ELIMINAÇÃO';
 
   @override
-  String get profileScreenTermsOfService => 'TERMOS DE SERVIÇO';
+  String get settingsScreenTermsOfService => 'TERMOS DE SERVIÇO';
 
   @override
   String get profileScreenThisPhoneSection => 'ESTE TELEMÓVEL';
@@ -5905,10 +5905,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get profileScreenJustTappedAction => 'TOQUEI SEM QUERER';
 
   @override
-  String get profileScreenLegalSection => 'JURÍDICO';
+  String get settingsScreenLegalSection => 'JURÍDICO';
 
   @override
-  String get profileScreenLicence => 'LICENÇA';
+  String get settingsScreenLicence => 'LICENÇA';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'CONTAS VINCULADAS';
@@ -5939,7 +5939,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get profileScreenPhotoPermissionDenied => 'permissão de fotos negada.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDADE';
+  String get settingsScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDADE';
 
   @override
   String get profileScreenPrivacySection => 'PRIVACIDADE';
@@ -5992,7 +5992,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'TOQUE DE NOVO PARA CONFIRMAR EXCLUSÃO';
 
   @override
-  String get profileScreenTermsOfService => 'TERMOS DE USO';
+  String get settingsScreenTermsOfService => 'TERMOS DE USO';
 
   @override
   String get profileScreenThisPhoneSection => 'ESTE CELULAR';

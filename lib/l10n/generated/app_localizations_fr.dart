@@ -409,10 +409,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'TOUCHÉ PAR ERREUR';
 
   @override
-  String get profileScreenLegalSection => 'MENTIONS LÉGALES';
+  String get settingsScreenLegalSection => 'MENTIONS LÉGALES';
 
   @override
-  String get profileScreenLicence => 'LICENCE';
+  String get settingsScreenLicence => 'LICENCE';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'COMPTES LIÉS';
@@ -444,7 +444,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'permission photo refusée.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'POLITIQUE DE CONFIDENTIALITÉ';
+  String get settingsScreenPrivacyPolicy => 'POLITIQUE DE CONFIDENTIALITÉ';
 
   @override
   String get profileScreenPrivacySection => 'CONFIDENTIALITÉ';
@@ -497,7 +497,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'APPUIE ENCORE POUR CONFIRMER LA SUPPRESSION';
 
   @override
-  String get profileScreenTermsOfService => 'CONDITIONS D’UTILISATION';
+  String get settingsScreenTermsOfService => 'CONDITIONS D’UTILISATION';
 
   @override
   String get profileScreenThisPhoneSection => 'CE TÉLÉPHONE';

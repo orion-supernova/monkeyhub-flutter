@@ -402,10 +402,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenJustTappedAction => 'TRYCKTE FEL';
 
   @override
-  String get profileScreenLegalSection => 'JURIDISKT';
+  String get settingsScreenLegalSection => 'JURIDISKT';
 
   @override
-  String get profileScreenLicence => 'LICENS';
+  String get settingsScreenLicence => 'LICENS';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'LÄNKADE KONTON';
@@ -437,7 +437,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'fotobehörighet nekad.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'INTEGRITETSPOLICY';
+  String get settingsScreenPrivacyPolicy => 'INTEGRITETSPOLICY';
 
   @override
   String get profileScreenPrivacySection => 'INTEGRITET';
@@ -489,7 +489,7 @@ class AppLocalizationsSv extends AppLocalizations {
       'TRYCK IGEN FÖR ATT BEKRÄFTA RADERING';
 
   @override
-  String get profileScreenTermsOfService => 'ANVÄNDARVILLKOR';
+  String get settingsScreenTermsOfService => 'ANVÄNDARVILLKOR';
 
   @override
   String get profileScreenThisPhoneSection => 'DEN HÄR TELEFONEN';

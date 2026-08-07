@@ -432,12 +432,12 @@
   "@profileScreenJustTappedAction": {
     "description": "All-caps dismiss button in the confirm dialog before editing name/email, meaning 'that was an accidental tap'."
   },
-  "profileScreenLegalSection": "LEGAL",
-  "@profileScreenLegalSection": {
+  "settingsScreenLegalSection": "LEGAL",
+  "@settingsScreenLegalSection": {
     "description": "All-caps section header above the privacy policy / terms / licence links, shown to every account including children."
   },
-  "profileScreenLicence": "LICENCE",
-  "@profileScreenLicence": {
+  "settingsScreenLicence": "LICENCE",
+  "@settingsScreenLicence": {
     "description": "All-caps row label linking to the app's open-source licence page."
   },
   "profileScreenLinkedAccountsLabel": "LINKED ACCOUNTS",
@@ -476,8 +476,8 @@
   "@profileScreenPhotoPermissionDenied": {
     "description": "SnackBar shown when photo library access is denied while trying to save an avatar."
   },
-  "profileScreenPrivacyPolicy": "PRIVACY POLICY",
-  "@profileScreenPrivacyPolicy": {
+  "settingsScreenPrivacyPolicy": "PRIVACY POLICY",
+  "@settingsScreenPrivacyPolicy": {
     "description": "All-caps row label linking to the app's privacy policy."
   },
   "profileScreenPrivacySection": "PRIVACY",
@@ -540,8 +540,8 @@
   "@profileScreenTapAgainToConfirmDelete": {
     "description": "All-caps armed-state label on the delete-account row after the first tap, before the second confirming tap."
   },
-  "profileScreenTermsOfService": "TERMS OF SERVICE",
-  "@profileScreenTermsOfService": {
+  "settingsScreenTermsOfService": "TERMS OF SERVICE",
+  "@settingsScreenTermsOfService": {
     "description": "All-caps row label linking to the app's terms of service."
   },
   "profileScreenThisPhoneSection": "THIS PHONE",

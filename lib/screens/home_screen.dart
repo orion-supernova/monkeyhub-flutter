@@ -155,12 +155,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   me: me,
                   api: widget.api,
                   greeting: session.name.split(' ').first.toLowerCase(),
+                  // The same profile Settings opens, not a lesser one. Without
+                  // `auth` and `family` the screen silently drops its whole
+                  // ACCOUNT section — family, linked accounts, recovery phrase,
+                  // sign out, delete — so tapping your own avatar used to land
+                  // on a page that looked like your profile with half of it
+                  // missing, and the missing half is the half people go looking
+                  // for.
                   onProfileTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => ProfileScreen(
                         user: me,
                         repo: widget.repo,
                         api: widget.api,
+                        auth: widget.auth,
+                        family: widget.family,
                       ),
                     ),
                   ),

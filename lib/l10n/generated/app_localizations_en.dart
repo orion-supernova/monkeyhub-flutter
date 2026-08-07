@@ -401,10 +401,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenJustTappedAction => 'JUST TAPPED';
 
   @override
-  String get profileScreenLegalSection => 'LEGAL';
+  String get settingsScreenLegalSection => 'LEGAL';
 
   @override
-  String get profileScreenLicence => 'LICENCE';
+  String get settingsScreenLicence => 'LICENCE';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'LINKED ACCOUNTS';
@@ -436,7 +436,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'photo permission denied.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'PRIVACY POLICY';
+  String get settingsScreenPrivacyPolicy => 'PRIVACY POLICY';
 
   @override
   String get profileScreenPrivacySection => 'PRIVACY';
@@ -488,7 +488,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'TAP AGAIN TO CONFIRM DELETE';
 
   @override
-  String get profileScreenTermsOfService => 'TERMS OF SERVICE';
+  String get settingsScreenTermsOfService => 'TERMS OF SERVICE';
 
   @override
   String get profileScreenThisPhoneSection => 'THIS PHONE';

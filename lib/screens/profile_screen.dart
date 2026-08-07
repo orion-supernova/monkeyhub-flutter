@@ -15,13 +15,11 @@ import '../data/chat_repository.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../legal_links.dart';
 import '../media/file_url_cache.dart';
 import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
-import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -29,7 +27,7 @@ import '../widgets/adaptive_page_body.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
-import '../widgets/count_badge.dart';
+import '../widgets/detail_link_row.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/recovery_banner.dart';
 import '../widgets/social_sign_in_buttons.dart';
@@ -74,9 +72,10 @@ class ProfileScreen extends StatefulWidget {
 
   /// Enables the family rows inside that ACCOUNT section. Who looks after whom
   /// is an account fact, not a preference, so it lives here rather than up in
-  /// Settings among the themes and bubble shapes. Only Settings passes it —
-  /// every other entry point opens somebody else's profile, which has no
-  /// ACCOUNT section at all.
+  /// Settings among the themes and bubble shapes. Passed by the two entry
+  /// points that open your OWN profile — the Settings card and the chat list's
+  /// header avatar. Every other one opens somebody else's, which has no ACCOUNT
+  /// section at all.
   final FamilyService? family;
 
   @override
@@ -1216,7 +1215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (canPrivacy) ...[
           _sectionHeader(theme, AppLocalizations.of(context).profileScreenPrivacySection),
           const SizedBox(height: 12),
-          _RowLink(
+          DetailLinkRow(
             label: AppLocalizations.of(context).profileScreenVisibilityPreferences,
             icon: Icons.visibility_outlined,
             onTap: () => Navigator.of(context).push(
@@ -1230,7 +1229,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          _RowLink(
+          DetailLinkRow(
             label: AppLocalizations.of(context).profileScreenBlockedUsers,
             icon: Icons.block,
             onTap: () => Navigator.of(context).push(
@@ -1254,7 +1253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
           ],
           if (family != null) ...[
-            _RowLink(
+            DetailLinkRow(
               label: AppLocalizations.of(context).profileScreenFamilyLabel,
               value: _familyLabel,
               badge: family.pendingCount,
@@ -1265,7 +1264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // No children, nothing to approve — the row would be a permanent
             // "nothing waiting" for everyone who never adds one.
             if (family.context.children.isNotEmpty) ...[
-              _RowLink(
+              DetailLinkRow(
                 label: AppLocalizations.of(context).profileScreenApprovalsLabel,
                 value: family.pendingCount == 0
                     ? AppLocalizations.of(context).profileScreenApprovalsNothingWaiting
@@ -1280,7 +1279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Hidden where neither provider is offered — a row promising a screen
           // that would open empty is worse than no row.
           if (SocialSignInButtons.available.isNotEmpty) ...[
-            _RowLink(
+            DetailLinkRow(
               label: AppLocalizations.of(context).profileScreenLinkedAccountsLabel,
               value: _linkedAccountsLabel,
               icon: Icons.link_rounded,
@@ -1288,7 +1287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 8),
           ],
-          _RowLink(
+          DetailLinkRow(
             label: _u.hasRecoveryKey == true
                 ? AppLocalizations.of(context).profileScreenChangeRecoveryPhrase
                 : AppLocalizations.of(context).profileScreenSetUpRecoveryPhrase,
@@ -1350,31 +1349,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             style: theme.monoTiny.copyWith(color: theme.inkMuted),
           ),
         ],
-        // Shown to EVERY account, children included, and outside all the
-        // conditionals above on purpose. Guideline 5.1.1(i) and Google's User
-        // Data policy both require a privacy policy reachable from inside the
-        // app, with no carve-out for supervised accounts — and a child is the
-        // reader with the most at stake in the deletion section.
-        const SizedBox(height: 28),
-        _sectionHeader(theme, AppLocalizations.of(context).profileScreenLegalSection),
-        const SizedBox(height: 10),
-        _RowLink(
-          label: AppLocalizations.of(context).profileScreenPrivacyPolicy,
-          icon: Icons.privacy_tip_outlined,
-          onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
-        ),
-        const SizedBox(height: 8),
-        _RowLink(
-          label: AppLocalizations.of(context).profileScreenTermsOfService,
-          icon: Icons.gavel_outlined,
-          onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
-        ),
-        const SizedBox(height: 8),
-        _RowLink(
-          label: AppLocalizations.of(context).profileScreenLicence,
-          icon: Icons.description_outlined,
-          onTap: () => LinkOpener.open(context, kEulaUrl),
-        ),
+        // LEGAL used to sit here, below everything else. It has moved to
+        // Settings: the privacy policy, the terms and the licence say nothing
+        // about *this* account, so they never belonged among the rows that do.
+        // The store requirement they satisfy — Guideline 5.1.1(i) and Google's
+        // User Data policy, a privacy policy reachable from inside the app with
+        // no carve-out for supervised accounts — is unchanged, because Settings
+        // is reachable by every account, children included.
       ],
     );
   }
@@ -1386,78 +1367,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       Expanded(child: Container(height: 1, color: theme.divider)),
     ],
   );
-}
-
-class _RowLink extends StatelessWidget {
-  const _RowLink({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.value,
-    this.badge = 0,
-    this.iconColor,
-  });
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  /// Current state, right-aligned. Null or empty leaves the row a plain link —
-  /// which is what an action like SET UP RECOVERY PHRASE wants, since its label
-  /// already says everything there is to say.
-  final String? value;
-
-  /// Count shown as an accent pill before the chevron. Zero hides it.
-  final int badge;
-
-  /// Overrides the leading icon's colour to call attention to the row.
-  final Color? iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final v = value;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: theme.surface,
-          border: Border.all(color: theme.divider),
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: iconColor ?? theme.inkSoft),
-            const SizedBox(width: 12),
-            // Flexible rather than Expanded: with a value present the label
-            // takes only what it needs and leaves the rest to the value.
-            Flexible(child: Text(label, style: theme.label)),
-            if (v != null && v.isNotEmpty)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: Text(
-                    v,
-                    style: theme.body.copyWith(color: theme.inkSoft),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              )
-            else
-              const Spacer(),
-            if (badge > 0) ...[
-              const SizedBox(width: 8),
-              CountBadge(count: badge),
-            ],
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Who looks after this child, stated plainly. Moved here from Settings when
