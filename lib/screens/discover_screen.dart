@@ -65,7 +65,27 @@ class DiscoverScreen extends StatefulWidget {
 enum _RequestsTab { incoming, outgoing }
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
-  List<ChatRoom> _rooms = [];
+  /// The last public-room list Discover drew, and whose it was.
+  ///
+  /// Switching sections destroys this screen's [State] outright, so a return to
+  /// Discover used to start with an empty list and paint one quiet "looking for
+  /// rooms" line where five tiles had been — several hundred points shorter. The
+  /// [ListView] restores its saved scroll offset into that shorter page, the
+  /// offset is now past the end of it, and the scroll position glides back to
+  /// the new bottom: open Discover while scrolled down and it scrolls itself
+  /// upwards for no reason the user can see. Repainting the rooms we already had
+  /// keeps the page the height its offset was measured against; the refresh
+  /// still runs underneath and replaces them.
+  ///
+  /// Keyed by user because a public list is viewer-dependent — the backend
+  /// blanks it for a child who isn't allowed public rooms — and an app instance
+  /// can change hands without restarting.
+  static List<ChatRoom> _lastRooms = const [];
+  static String? _lastRoomsFor;
+
+  late List<ChatRoom> _rooms = _lastRoomsFor == widget.repo.userId
+      ? _lastRooms
+      : const [];
   bool _loading = false;
 
   _RequestsTab _requestsTab = _RequestsTab.incoming;
@@ -174,6 +194,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       // Passing the viewer lets the backend blank this list for a child who
       // isn't allowed public rooms — belt and braces with hiding the section.
       final rs = await widget.api.listPublic(viewerUserId: widget.repo.userId);
+      _lastRooms = rs;
+      _lastRoomsFor = widget.repo.userId;
       if (!mounted) return;
       setState(() => _rooms = rs);
       if (widget.family.isChild) await _refreshAwaiting();
@@ -484,6 +506,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                               PublicRoomTile(
                                 key: ValueKey(r.id),
                                 room: r,
+                                api: widget.api,
                                 awaiting: _awaiting.contains(r.id),
                                 joined: widget.repo.isJoined(r),
                                 onTap: () => _onTapRoom(r),
