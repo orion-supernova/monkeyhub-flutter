@@ -5209,4 +5209,198 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'archives';
+
+  @override
+  String get feedBoardGamesLabel => 'LES JEUX';
+
+  @override
+  String get feedBoardGamesOpen => 'tous les jeux';
+
+  @override
+  String get gamesScreenTitle => 'les jeux.';
+
+  @override
+  String get gamesScreenSubtitle =>
+      'quatre grilles par jour, les mêmes pour tout le monde';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'il en reste $count aujourd\'hui',
+      one: 'il en reste un aujourd\'hui',
+      zero: 'tout est fait aujourd\'hui',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'impossible de charger les jeux du jour';
+
+  @override
+  String get gamesRetry => 'RÉESSAYER';
+
+  @override
+  String get gameQueensName => 'reines';
+
+  @override
+  String get gameQueensRule =>
+      'une couronne par ligne, colonne et couleur — jamais adjacentes';
+
+  @override
+  String get gameTangoName => 'tango';
+
+  @override
+  String get gameTangoRule =>
+      'trois soleils, trois lunes, jamais trois à la suite';
+
+  @override
+  String get gameZipName => 'zip';
+
+  @override
+  String get gameZipRule =>
+      'une ligne par toutes les cases, les nombres dans l\'ordre';
+
+  @override
+  String get gameSudokuName => 'mini sudoku';
+
+  @override
+  String get gameSudokuRule => 'de 1 à 6 une fois par ligne, colonne et bloc';
+
+  @override
+  String get gameCodeName => 'le code';
+
+  @override
+  String get gameStatusUnplayed => 'pas joué';
+
+  @override
+  String get gameStatusUnfinished => 'en cours';
+
+  @override
+  String get gameStatusGaveUp => 'abandonné';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'pause';
+
+  @override
+  String get gameResume => 'reprendre';
+
+  @override
+  String get gamePausedTitle => 'en pause';
+
+  @override
+  String get gamePausedBody => 'le chrono est arrêté et la grille masquée';
+
+  @override
+  String get gameUndo => 'annuler';
+
+  @override
+  String get gameClear => 'effacer';
+
+  @override
+  String get gameHint => 'indice';
+
+  @override
+  String get gameNotes => 'notes';
+
+  @override
+  String get gameErase => 'gomme';
+
+  @override
+  String get gameAutoCross => 'croix auto';
+
+  @override
+  String get gameGiveUp => 'abandonner';
+
+  @override
+  String get gameGiveUpTitle => 'afficher la solution ?';
+
+  @override
+  String get gameGiveUpBody =>
+      'la grille du jour se ferme et sera comptée comme non résolue.';
+
+  @override
+  String get gameGiveUpCancel => 'CONTINUER';
+
+  @override
+  String get gameGiveUpConfirm => 'AFFICHER';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return 'résolu en $time';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'la solution du jour';
+
+  @override
+  String get gameFirstInToday => 'premier aujourd\'hui';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '$place sur $total pour l\'instant';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count erreurs',
+      one: '1 erreur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count indices',
+      one: '1 indice',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'TEMPS DU JOUR';
+
+  @override
+  String get gameStandingsEmpty => 'personne ne l\'a encore terminé';
+
+  @override
+  String get gameShare => 'COPIER LE RÉSULTAT';
+
+  @override
+  String get gameShareCopied => 'copié — colle-le à un ami';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'tous les jeux';
+
+  @override
+  String get gameElapsedSemantic => 'temps écoulé';
+
+  @override
+  String get gameErrorNotSolved => 'cette grille n\'est pas encore terminée';
+
+  @override
+  String get gameErrorAlreadyFinished => 'tu as déjà terminé celui du jour';
+
+  @override
+  String get gameErrorNoHint => 'pas d\'indice pour celui-ci';
+
+  @override
+  String get gameErrorGeneric => 'impossible de joindre les jeux — réessaie';
 }

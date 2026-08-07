@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/feed_api.dart';
+import '../models/daily_game.dart';
 import '../models/moment.dart';
 import '../models/puzzle.dart';
 import 'feed_day.dart';
@@ -56,6 +57,7 @@ class FeedStore extends ChangeNotifier {
 
   List<Moment> _moments = const [];
   PuzzleState _puzzle = const PuzzleState();
+  Map<DailyGame, GameResult> _games = const {};
   DateTime _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
   bool _loaded = false;
   Object? _error;
@@ -101,6 +103,18 @@ class FeedStore extends ChangeNotifier {
 
   /// Today's puzzle — the viewer's attempt and everyone who has finished.
   PuzzleState get puzzle => _puzzle;
+
+  /// How the viewer is doing on each daily game today.
+  ///
+  /// The viewer's own rows only — friends' times are one-shot fetched by
+  /// [GamesStore] when the hub opens, rather than fanned out on every board
+  /// render. An absent game has not been opened today.
+  Map<DailyGame, GameResult> get games => _games;
+
+  /// How many of today's games are still untouched, for the Feed band's
+  /// "3 left" line and the nav badge.
+  int get gamesLeft =>
+      DailyGame.values.where((g) => !(_games[g]?.finished ?? false)).length;
 
   /// Identity of the local calendar day the board is currently showing.
   String get dayKey => _dayKey;
@@ -168,6 +182,7 @@ class FeedStore extends ChangeNotifier {
           if (gen != _attachGen) return;
           _moments = board.moments;
           _puzzle = board.puzzle;
+          _games = board.games;
           _serverNow = board.serverNow;
           _loaded = true;
           _error = null;
@@ -207,6 +222,7 @@ class FeedStore extends ChangeNotifier {
     _userId = null;
     _moments = const [];
     _puzzle = const PuzzleState();
+    _games = const {};
     _serverNow = DateTime.fromMillisecondsSinceEpoch(0);
     _loaded = false;
     _error = null;

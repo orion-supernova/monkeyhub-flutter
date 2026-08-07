@@ -1,0 +1,243 @@
+import '../models/daily_game.dart';
+import 'convex_client.dart';
+
+/// Every Convex call the daily games make.
+///
+/// A facade beside [FeedApi] for the same reason that one sits beside
+/// [ChatApi]: the games are a self-contained surface with their own backend
+/// module, and decoding here means no screen ever handles a raw map.
+///
+/// **Nothing in here subscribes.** That is the point. This app runs ~15 live
+/// queries and the codebase has repeatedly turned down new ones; a daily
+/// leaderboard refreshed when the hub opens and again when someone finishes is
+/// indistinguishable from a live one, at zero standing cost. The board tiles on
+/// the Feed ride along in the board payload that was already being delivered.
+class GamesApi {
+  GamesApi(this._cv);
+  final ConvexBackend _cv;
+
+  /// Today's four boards.
+  ///
+  /// [dayKey] must be the VIEWER's local day, for the same reason the Feed
+  /// board takes one: the server has no idea what zone the phone is in, and
+  /// assuming UTC hands everyone west of Greenwich yesterday's games all
+  /// evening.
+  ///
+  /// Server-side this reads no table at all — the boards are a pure function of
+  /// the day key — so it is about as cheap as a network call gets.
+  Future<DailyBoards> daily({required String dayKey}) async {
+    final res = await _cv.query('games:daily', {'dayKey': dayKey});
+    return DailyBoards.fromJson(res);
+  }
+
+  /// The viewer's own rows, any half-finished board, and a leaderboard per game
+  /// over accepted friends.
+  Future<GameStandings> standings({
+    required String userId,
+    required String dayKey,
+  }) async {
+    final res = await _cv.query('games:standings', {
+      'userId': userId,
+      'dayKey': dayKey,
+    });
+    return GameStandings.fromJson(res);
+  }
+
+  /// Starts the clock, or returns the clock that is already running.
+  ///
+  /// Idempotent on the server by existence rather than a flag, so reopening a
+  /// board you walked away from does not reset its start — otherwise a good
+  /// time is farmable by backing out and coming straight back in.
+  Future<GameSession> start({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+  }) async {
+    final res = await _cv.mutation('games:start', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+    });
+    final j = (res as Map).cast<String, dynamic>();
+    return GameSession(
+      startedAt: DateTime.fromMillisecondsSinceEpoch(
+        (j['startedAt'] as num?)?.toInt() ?? 0,
+      ),
+      progress: [
+        for (final v in (j['progress'] as List?) ?? const []) (v as num).toInt(),
+      ],
+      elapsedMs: (j['elapsedMs'] as num?)?.toInt() ?? 0,
+      hintsUsed: (j['hintsUsed'] as num?)?.toInt() ?? 0,
+      mistakes: (j['mistakes'] as num?)?.toInt() ?? 0,
+      finished: j['finished'] == true,
+    );
+  }
+
+  /// Stores a half-finished board.
+  ///
+  /// Called when the player leaves the screen, never per move — a mutation per
+  /// tap on a grid you tap sixty times would be the chattiest thing in the app.
+  /// Failures are swallowed by the caller on purpose: losing an autosave is a
+  /// disappointment, and an error toast on the way out of a screen is worse.
+  Future<void> saveProgress({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+    required List<int> progress,
+    required int elapsedMs,
+    int mistakes = 0,
+  }) async {
+    await _cv.mutation('games:saveProgress', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+      'progress': progress,
+      'elapsedMs': elapsedMs,
+      'mistakes': mistakes,
+    });
+  }
+
+  /// Reveals one correct cell of [board] and counts it against the player.
+  ///
+  /// [board] is in the same shape [submit] takes, which differs by game: a
+  /// column per row for Queens — so [GameHint.index] is a ROW there — and a
+  /// value per cell for Tango and Sudoku.
+  ///
+  /// Throws `NO_HINT` for Zip, which has no single next-correct move to point
+  /// at: any route covering every cell in order wins, so the only thing the
+  /// server could steer someone onto is the route it happened to generate,
+  /// discarding whatever legal line they had already drawn.
+  Future<GameHint> hint({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+    required List<int> board,
+  }) async {
+    final res = await _cv.mutation('games:hint', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+      'board': board,
+    });
+    final j = (res as Map).cast<String, dynamic>();
+    return GameHint(
+      index: (j['index'] as num?)?.toInt() ?? -1,
+      value: (j['value'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Submits a finished board.
+  ///
+  /// The server re-validates the grid against the same generator it came from,
+  /// so [solved] in the reply is a verdict rather than an echo. [elapsedMs] is
+  /// what the client measured and the server clamps it to the window since
+  /// `start` — see `submit` in backend/convex/games.ts for why a stopwatch that
+  /// stops when you put the phone down is the right trade here.
+  ///
+  /// Throws `NOT_STARTED` if no clock is running and `NOT_SOLVED` if the grid
+  /// does not actually finish the board.
+  Future<GameOutcome> submit({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+    required List<int> solution,
+    required int elapsedMs,
+    int hintsUsed = 0,
+    int mistakes = 0,
+  }) async {
+    final res = await _cv.mutation('games:submit', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+      'solution': solution,
+      'elapsedMs': elapsedMs,
+      'hintsUsed': hintsUsed,
+      'mistakes': mistakes,
+    });
+    final j = (res as Map).cast<String, dynamic>();
+    return GameOutcome(
+      solved: j['solved'] == true,
+      durationMs: (j['durationMs'] as num?)?.toInt(),
+      replay: j['replay'] == true,
+    );
+  }
+
+  /// Gives up and returns the answer.
+  ///
+  /// Recorded as a result, not left blank — and it closes the board, so the
+  /// answer cannot then be handed back as a solve.
+  Future<List<int>> reveal({
+    required String userId,
+    required String dayKey,
+    required DailyGame game,
+  }) async {
+    final res = await _cv.mutation('games:reveal', {
+      'userId': userId,
+      'dayKey': dayKey,
+      'game': game.wire,
+    });
+    final j = (res as Map).cast<String, dynamic>();
+    return [
+      for (final v in (j['answer'] as List?) ?? const []) (v as num).toInt(),
+    ];
+  }
+}
+
+/// A running clock on one board.
+class GameSession {
+  const GameSession({
+    required this.startedAt,
+    required this.progress,
+    required this.elapsedMs,
+    required this.hintsUsed,
+    required this.mistakes,
+    required this.finished,
+  });
+
+  /// The server's clock when the player first opened this board. The ceiling on
+  /// any time they can report.
+  final DateTime startedAt;
+
+  /// The board as they left it, empty if they have not played it yet.
+  final List<int> progress;
+
+  /// The stopwatch as it stood when they last left. Restored rather than reset,
+  /// or backing out of a board four minutes in would hand back a better time
+  /// than sitting still and finishing it.
+  final int elapsedMs;
+
+  final int hintsUsed;
+  final int mistakes;
+
+  /// Whether they have already finished it today.
+  final bool finished;
+}
+
+/// One revealed cell.
+class GameHint {
+  const GameHint({required this.index, required this.value});
+
+  /// Cell to fill — or, in Queens, the ROW whose crown belongs at [value].
+  /// `-1` when there was nothing left to reveal.
+  final int index;
+
+  final int value;
+
+  bool get isEmpty => index < 0;
+}
+
+/// What `submit` decided.
+class GameOutcome {
+  const GameOutcome({
+    required this.solved,
+    required this.durationMs,
+    required this.replay,
+  });
+
+  final bool solved;
+  final int? durationMs;
+
+  /// True when the board was already finished — a retried call after a flaky
+  /// socket, answered with the stored result rather than a new one.
+  final bool replay;
+}

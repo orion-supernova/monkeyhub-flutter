@@ -24,6 +24,7 @@ import 'calls/native_call_handler.dart';
 import 'calls/signaling_subscriber.dart';
 import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
+import 'data/games_store.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_buffer.dart';
 import 'diagnostics/diag_log.dart';
@@ -774,6 +775,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // are another account's data and must not flash on screen for whoever
         // signs in next on a shared handset.
         await FeedStore.instance.detach();
+        // Same rule for the daily games: the standings carry friends' names.
+        GamesStore.instance.clear();
         await PushManager.instance.logout();
         OneSignalWeb.logout(); // drop web push external_id; no-op off web
         // Storage URLs aren't secret, but the next account shouldn't inherit

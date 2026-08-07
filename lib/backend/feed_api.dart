@@ -1,3 +1,4 @@
+import '../models/daily_game.dart';
 import '../models/moment.dart';
 import '../models/puzzle.dart';
 import 'convex_client.dart';
@@ -184,6 +185,7 @@ class FeedBoard {
     required this.moments,
     required this.serverNow,
     this.puzzle = const PuzzleState(),
+    this.games = const {},
   });
 
   final List<Moment> moments;
@@ -191,6 +193,16 @@ class FeedBoard {
   /// Today's puzzle, carried in THIS payload rather than a query of its own —
   /// see [FeedApi.subscribeBoard] on why the board is one subscription.
   final PuzzleState puzzle;
+
+  /// How the VIEWER is doing on each daily game, keyed by game.
+  ///
+  /// Their own rows only — one indexed read on the server, no fan-out over
+  /// friends. It rides along here so the Feed's games band can say "solved in
+  /// 1:42" rather than four identical unplayed tiles, which is the difference
+  /// between a feature people notice and one they have to remember to go and
+  /// look for. Friends' times cost a read each and live on the hub, which
+  /// fetches them one-shot when it opens.
+  final Map<DailyGame, GameResult> games;
 
   /// The server's clock at the moment this was computed.
   ///
@@ -215,9 +227,21 @@ class FeedBoard {
       puzzle: PuzzleState.fromJson(
         (map['puzzle'] as Map?)?.cast<String, dynamic>(),
       ),
+      games: Map.fromEntries([
+        for (final g in (map['games'] as List?) ?? const [])
+          ?_gameEntry(GameResult.fromJson((g as Map).cast<String, dynamic>())),
+      ]),
     );
   }
 }
+
+/// One `game: result` pair, or null for a row this build does not know about.
+///
+/// A game the server has started shipping and this app version has never heard
+/// of decodes to null, and the band simply does not draw a tile for it — rather
+/// than the whole board payload failing to parse on an older client.
+MapEntry<DailyGame, GameResult>? _gameEntry(GameResult? row) =>
+    row == null ? null : MapEntry(row.game, row);
 
 /// One page of [FeedApi.archive].
 class MomentPage {

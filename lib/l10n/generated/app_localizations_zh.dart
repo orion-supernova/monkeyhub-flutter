@@ -4873,4 +4873,193 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => '存档';
+
+  @override
+  String get feedBoardGamesLabel => '今日游戏';
+
+  @override
+  String get feedBoardGamesOpen => '全部游戏';
+
+  @override
+  String get gamesScreenTitle => '游戏。';
+
+  @override
+  String get gamesScreenSubtitle => '每天四道题，所有人都一样';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今天还剩 $count 个',
+      one: '今天还剩 1 个',
+      zero: '今天全部完成',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => '无法加载今天的游戏';
+
+  @override
+  String get gamesRetry => '重试';
+
+  @override
+  String get gameQueensName => '皇后';
+
+  @override
+  String get gameQueensRule => '每行、每列、每色各一顶王冠，且不相邻';
+
+  @override
+  String get gameTangoName => '探戈';
+
+  @override
+  String get gameTangoRule => '三个太阳、三个月亮，不能连续三个相同';
+
+  @override
+  String get gameZipName => '连线';
+
+  @override
+  String get gameZipRule => '一条线经过每一格，数字按顺序';
+
+  @override
+  String get gameSudokuName => '迷你数独';
+
+  @override
+  String get gameSudokuRule => '每行、每列、每宫各填 1 到 6 一次';
+
+  @override
+  String get gameCodeName => '密码';
+
+  @override
+  String get gameStatusUnplayed => '未开始';
+
+  @override
+  String get gameStatusUnfinished => '进行中';
+
+  @override
+  String get gameStatusGaveUp => '已放弃';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '第$rank名';
+  }
+
+  @override
+  String get gamePause => '暂停';
+
+  @override
+  String get gameResume => '继续';
+
+  @override
+  String get gamePausedTitle => '已暂停';
+
+  @override
+  String get gamePausedBody => '计时已停止，棋盘已隐藏';
+
+  @override
+  String get gameUndo => '撤销';
+
+  @override
+  String get gameClear => '清空';
+
+  @override
+  String get gameHint => '提示';
+
+  @override
+  String get gameNotes => '笔记';
+
+  @override
+  String get gameErase => '擦除';
+
+  @override
+  String get gameAutoCross => '自动打叉';
+
+  @override
+  String get gameGiveUp => '放弃';
+
+  @override
+  String get gameGiveUpTitle => '显示答案？';
+
+  @override
+  String get gameGiveUpBody => '今天的棋盘将结束，并记为未解出。';
+
+  @override
+  String get gameGiveUpCancel => '继续尝试';
+
+  @override
+  String get gameGiveUpConfirm => '显示';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return '用时 $time 解出';
+  }
+
+  @override
+  String get gameGaveUpTitle => '今天的答案';
+
+  @override
+  String get gameFirstInToday => '今天第一个';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '目前 $total 人中第 $place 名';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 次失误',
+      one: '1 次失误',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 次提示',
+      one: '1 次提示',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => '今日成绩';
+
+  @override
+  String get gameStandingsEmpty => '还没有人完成';
+
+  @override
+  String get gameShare => '复制成绩';
+
+  @override
+  String get gameShareCopied => '已复制 — 粘贴给好友';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => '全部游戏';
+
+  @override
+  String get gameElapsedSemantic => '已用时间';
+
+  @override
+  String get gameErrorNotSolved => '这局还没完成';
+
+  @override
+  String get gameErrorAlreadyFinished => '你今天已经完成了';
+
+  @override
+  String get gameErrorNoHint => '这局没有提示';
+
+  @override
+  String get gameErrorGeneric => '无法连接游戏 — 请重试';
 }

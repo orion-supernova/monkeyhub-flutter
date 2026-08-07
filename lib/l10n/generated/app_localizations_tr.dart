@@ -5102,4 +5102,196 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'arşiv';
+
+  @override
+  String get feedBoardGamesLabel => 'OYUNLAR';
+
+  @override
+  String get feedBoardGamesOpen => 'tüm oyunlar';
+
+  @override
+  String get gamesScreenTitle => 'oyunlar.';
+
+  @override
+  String get gamesScreenSubtitle => 'günde dört tahta, herkese aynısı';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'bugün $count tane kaldı',
+      one: 'bugün bir tane kaldı',
+      zero: 'bugünlük hepsi bitti',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'bugünün oyunları yüklenemedi';
+
+  @override
+  String get gamesRetry => 'TEKRAR DENE';
+
+  @override
+  String get gameQueensName => 'kraliçeler';
+
+  @override
+  String get gameQueensRule =>
+      'her satır, sütun ve renkte bir taç — asla bitişik değil';
+
+  @override
+  String get gameTangoName => 'tango';
+
+  @override
+  String get gameTangoRule => 'üç güneş, üç ay, asla art arda üç tane';
+
+  @override
+  String get gameZipName => 'zip';
+
+  @override
+  String get gameZipRule => 'her kareden geçen tek bir çizgi, sayılar sırayla';
+
+  @override
+  String get gameSudokuName => 'mini sudoku';
+
+  @override
+  String get gameSudokuRule =>
+      'her satır, sütun ve kutuda 1\'den 6\'ya birer kez';
+
+  @override
+  String get gameCodeName => 'şifre';
+
+  @override
+  String get gameStatusUnplayed => 'oynanmadı';
+
+  @override
+  String get gameStatusUnfinished => 'devam ediyor';
+
+  @override
+  String get gameStatusGaveUp => 'pes etti';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'duraklat';
+
+  @override
+  String get gameResume => 'devam et';
+
+  @override
+  String get gamePausedTitle => 'duraklatıldı';
+
+  @override
+  String get gamePausedBody => 'sayaç durdu, tahta gizlendi';
+
+  @override
+  String get gameUndo => 'geri al';
+
+  @override
+  String get gameClear => 'temizle';
+
+  @override
+  String get gameHint => 'ipucu';
+
+  @override
+  String get gameNotes => 'notlar';
+
+  @override
+  String get gameErase => 'sil';
+
+  @override
+  String get gameAutoCross => 'otomatik çarpı';
+
+  @override
+  String get gameGiveUp => 'pes et';
+
+  @override
+  String get gameGiveUpTitle => 'cevabı göster?';
+
+  @override
+  String get gameGiveUpBody =>
+      'bugünün tahtası kapanır ve çözülmemiş olarak kaydedilir.';
+
+  @override
+  String get gameGiveUpCancel => 'DEVAM ET';
+
+  @override
+  String get gameGiveUpConfirm => 'GÖSTER';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return '$time içinde çözüldü';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'bugünün cevabı';
+
+  @override
+  String get gameFirstInToday => 'bugünün ilki';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return 'şimdilik $total kişi içinde $place.';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count hata',
+      one: '1 hata',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ipucu',
+      one: '1 ipucu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'BUGÜNÜN SÜRELERİ';
+
+  @override
+  String get gameStandingsEmpty => 'bunu henüz kimse bitirmedi';
+
+  @override
+  String get gameShare => 'SONUCU KOPYALA';
+
+  @override
+  String get gameShareCopied => 'kopyalandı — bir arkadaşına yapıştır';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'tüm oyunlar';
+
+  @override
+  String get gameElapsedSemantic => 'geçen süre';
+
+  @override
+  String get gameErrorNotSolved => 'bu tahta henüz bitmedi';
+
+  @override
+  String get gameErrorAlreadyFinished => 'bugünkünü zaten bitirdin';
+
+  @override
+  String get gameErrorNoHint => 'bunda ipucu yok';
+
+  @override
+  String get gameErrorGeneric => 'oyunlara ulaşılamadı — tekrar dene';
 }

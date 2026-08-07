@@ -5785,5 +5785,213 @@
   "feedBoardOpenArchive": "archive",
   "@feedBoardOpenArchive": {
     "description": "Label on the control in the HIGHLIGHTS section header that opens the user's own archive of kept moments."
+  },
+  "feedBoardGamesLabel": "THE GAMES",
+  "@feedBoardGamesLabel": {
+    "description": "All-caps band label for the Feed section holding today's four logic games (Queens, Tango, Zip, Mini Sudoku) as small board thumbnails."
+  },
+  "feedBoardGamesOpen": "all games",
+  "@feedBoardGamesOpen": {
+    "description": "Label on the control in the THE GAMES section header that opens the games hub, where all of today's boards and everyone's times live."
+  },
+  "gamesScreenTitle": "the games.",
+  "@gamesScreenTitle": {
+    "description": "Lowercase page title of the games hub, with a full stop, matching the house style of the other sub-screens ('the puzzle.', 'language.')."
+  },
+  "gamesScreenSubtitle": "four boards a day, the same four for everyone",
+  "@gamesScreenSubtitle": {
+    "description": "One-line subtitle under the games hub title, next to a short accent rule. States what the daily games are in the fewest possible words; the point being made is that every player worldwide gets the identical boards."
+  },
+  "gamesRemaining": "{count, plural, =0{all done today} =1{one left today} other{{count} left today}}",
+  "@gamesRemaining": {
+    "description": "Muted line under the games hub subtitle. {count} is how many of today's four boards the player has not finished yet."
+  },
+  "gamesLoadFailed": "couldn't load today's games",
+  "@gamesLoadFailed": {
+    "description": "Shown on the games hub when today's boards could not be fetched at all — a network failure, not an empty day."
+  },
+  "gamesRetry": "TRY AGAIN",
+  "@gamesRetry": {
+    "description": "All-caps action under the games hub's load-failure message; refetches today's boards."
+  },
+  "gameQueensName": "queens",
+  "@gameQueensName": {
+    "description": "Name of the Queens daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game is about placing crowns on a coloured grid."
+  },
+  "gameQueensRule": "one crown per row, column and colour — never touching",
+  "@gameQueensRule": {
+    "description": "Queens' rules in one line, under its title. Exactly one crown goes in each row, each column and each coloured region, and no two crowns may be adjacent, including diagonally."
+  },
+  "gameTangoName": "tango",
+  "@gameTangoName": {
+    "description": "Name of the Tango daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game fills a grid with suns and moons."
+  },
+  "gameTangoRule": "three suns, three moons, never three in a row",
+  "@gameTangoRule": {
+    "description": "Tango's rules in one line, under its title. Each row and column holds three of each symbol, and the same symbol may never appear three times consecutively."
+  },
+  "gameZipName": "zip",
+  "@gameZipName": {
+    "description": "Name of the Zip daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game draws a single line through every square of a grid."
+  },
+  "gameZipRule": "one line through every square, numbers in order",
+  "@gameZipRule": {
+    "description": "Zip's rules in one line, under its title. One unbroken line must pass through every square exactly once while visiting the numbered dots in ascending order."
+  },
+  "gameSudokuName": "mini sudoku",
+  "@gameSudokuName": {
+    "description": "Name of the Mini Sudoku daily game, shown on its tile and as the title of its board screen. Lowercase, house style. A 6x6 sudoku rather than the usual 9x9."
+  },
+  "gameSudokuRule": "1 to 6 once per row, column and box",
+  "@gameSudokuRule": {
+    "description": "Mini Sudoku's rules in one line, under its title. The grid is 6x6 and its boxes are two rows tall by three columns wide."
+  },
+  "gameCodeName": "the code",
+  "@gameCodeName": {
+    "description": "Name of the symbol-code puzzle on its tile in the games hub, where it sits beside the four newer boards. It is the same game the dedicated puzzle screen calls 'the puzzle.'; here it needs a shorter name that distinguishes it from its four neighbours."
+  },
+  "gameStatusUnplayed": "not played",
+  "@gameStatusUnplayed": {
+    "description": "Status on a game tile the viewer has not opened today."
+  },
+  "gameStatusUnfinished": "in progress",
+  "@gameStatusUnfinished": {
+    "description": "Status on a game tile the viewer has started but not finished today."
+  },
+  "gameStatusGaveUp": "gave up",
+  "@gameStatusGaveUp": {
+    "description": "Status shown in place of a time, on a tile or a leaderboard row, when the player asked to see the answer instead of solving the board."
+  },
+  "gameRankBadge": "#{rank}",
+  "@gameRankBadge": {
+    "description": "Small badge next to a solved time on a game tile. {rank} is the viewer's 1-based place among friends who have finished that board today."
+  },
+  "gamePause": "pause",
+  "@gamePause": {
+    "description": "Tooltip on the pause control in a game board's top bar. Stops the stopwatch and hides the board."
+  },
+  "gameResume": "resume",
+  "@gameResume": {
+    "description": "Tooltip on the same control while a game board is paused. Restarts the stopwatch and uncovers the board."
+  },
+  "gamePausedTitle": "paused",
+  "@gamePausedTitle": {
+    "description": "Headline on the card that covers a game board while it is paused."
+  },
+  "gamePausedBody": "the clock is stopped and the board is hidden",
+  "@gamePausedBody": {
+    "description": "Explains the pause card. The board is deliberately covered as well as the clock stopped, so pausing cannot be used as free thinking time."
+  },
+  "gameUndo": "undo",
+  "@gameUndo": {
+    "description": "Label on the tool that takes back the last move on a game board."
+  },
+  "gameClear": "clear",
+  "@gameClear": {
+    "description": "Label on the tool that wipes a game board back to empty. Only Zip has one, where it erases the whole drawn line."
+  },
+  "gameHint": "hint",
+  "@gameHint": {
+    "description": "Label on the tool that reveals one correct square. Counted against the player and shown beside their result."
+  },
+  "gameNotes": "notes",
+  "@gameNotes": {
+    "description": "Label on the Mini Sudoku toggle that makes the keypad write small pencil marks instead of answers."
+  },
+  "gameErase": "erase",
+  "@gameErase": {
+    "description": "Screen-reader label for the backspace key on the Mini Sudoku keypad, which empties the selected square."
+  },
+  "gameAutoCross": "auto-cross",
+  "@gameAutoCross": {
+    "description": "Label on the Queens toggle that faintly crosses out every square a placed crown rules out, so the player does not have to track it by hand."
+  },
+  "gameGiveUp": "give up",
+  "@gameGiveUp": {
+    "description": "Label on the tool that ends today's board and shows its answer."
+  },
+  "gameGiveUpTitle": "show the answer?",
+  "@gameGiveUpTitle": {
+    "description": "Title of the confirmation asked before a player gives up on a board."
+  },
+  "gameGiveUpBody": "today's board closes and it goes down as unsolved.",
+  "@gameGiveUpBody": {
+    "description": "Body of the give-up confirmation. States both consequences: the board can no longer be played today, and the result is recorded as a failure."
+  },
+  "gameGiveUpCancel": "KEEP TRYING",
+  "@gameGiveUpCancel": {
+    "description": "All-caps dismissal on the give-up confirmation; returns to the board."
+  },
+  "gameGiveUpConfirm": "SHOW IT",
+  "@gameGiveUpConfirm": {
+    "description": "All-caps confirmation on the give-up dialog; ends the board and reveals the answer."
+  },
+  "gameSolvedTitle": "solved in {time}",
+  "@gameSolvedTitle": {
+    "description": "Headline on the result card once a board is solved. {time} is a stopwatch reading such as 2:41, already formatted and never localized — digits and a colon read the same everywhere and the leaderboard compares them side by side."
+  },
+  "gameGaveUpTitle": "today's answer",
+  "@gameGaveUpTitle": {
+    "description": "Headline on the result card when the player gave up and the board is showing the solution instead of their own work."
+  },
+  "gameFirstInToday": "first one in today",
+  "@gameFirstInToday": {
+    "description": "Shown under a result instead of a rank when nobody else has finished that board yet. Avoids reporting a podium of one."
+  },
+  "gameRankLine": "{place} of {total} so far",
+  "@gameRankLine": {
+    "description": "Shown under a result. {place} is the viewer's 1-based position and {total} how many friends have finished that board today. 'so far' because more people will finish later and the position can slip. NOTE: parameters are emitted in ALPHABETICAL order (place, total), which here matches reading order."
+  },
+  "gameMistakeCount": "{count, plural, =1{1 mistake} other{{count} mistakes}}",
+  "@gameMistakeCount": {
+    "description": "Part of the advisory line under a game result. {count} is how many moves broke a rule. Never used to rank anyone — it is shown, not scored."
+  },
+  "gameHintCount": "{count, plural, =1{1 hint} other{{count} hints}}",
+  "@gameHintCount": {
+    "description": "Part of the advisory line under a game result. {count} is how many squares the player had revealed for them."
+  },
+  "gameStandingsLabel": "TODAY'S TIMES",
+  "@gameStandingsLabel": {
+    "description": "All-caps header above the per-game leaderboard of friends who have finished that board today, fastest first."
+  },
+  "gameStandingsEmpty": "nobody's finished this one yet",
+  "@gameStandingsEmpty": {
+    "description": "Muted line where a game's leaderboard would be, when no friend — and not the viewer either — has completed that board today."
+  },
+  "gameShare": "COPY RESULT",
+  "@gameShare": {
+    "description": "All-caps action on a finished game's result card; copies a one-line result to the clipboard."
+  },
+  "gameShareCopied": "copied — paste it to a friend",
+  "@gameShareCopied": {
+    "description": "Confirmation shown after a game result is copied to the clipboard."
+  },
+  "gameShareLine": "MonkeyHub {name} №{number} — {time}",
+  "@gameShareLine": {
+    "description": "The whole copied game result, one line. {name} is the game's own localized name, {number} the day's edition number, {time} a stopwatch reading or the localized 'gave up'. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (name, number, time), which here matches reading order."
+  },
+  "gameBackToHub": "all games",
+  "@gameBackToHub": {
+    "description": "Tooltip on the back arrow in a game board's top bar, which returns to the games hub."
+  },
+  "gameElapsedSemantic": "elapsed time",
+  "@gameElapsedSemantic": {
+    "description": "Screen-reader label for the running stopwatch in a game board's top bar."
+  },
+  "gameErrorNotSolved": "that board isn't finished yet",
+  "@gameErrorNotSolved": {
+    "description": "Error shown when a submitted game board does not actually satisfy its rules — normally only reachable from a stale screen."
+  },
+  "gameErrorAlreadyFinished": "you already finished today's",
+  "@gameErrorAlreadyFinished": {
+    "description": "Error shown when an action arrives for a board the player has already completed or given up on today."
+  },
+  "gameErrorNoHint": "no hint for this one",
+  "@gameErrorNoHint": {
+    "description": "Error shown when a hint is asked for on a board that has none. Zip is the case: any line covering every square in order wins, so there is no single next-correct move to point at."
+  },
+  "gameErrorGeneric": "couldn't reach the games — try again",
+  "@gameErrorGeneric": {
+    "description": "Generic error when a daily-game action fails for an unrecognised reason."
   }
 }

@@ -5136,4 +5136,194 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'संग्रह';
+
+  @override
+  String get feedBoardGamesLabel => 'खेल';
+
+  @override
+  String get feedBoardGamesOpen => 'सभी खेल';
+
+  @override
+  String get gamesScreenTitle => 'खेल।';
+
+  @override
+  String get gamesScreenSubtitle => 'हर दिन चार बोर्ड, सबके लिए एक जैसे';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'आज $count बाकी',
+      one: 'आज एक बाकी',
+      zero: 'आज सब पूरे',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'आज के खेल लोड नहीं हो सके';
+
+  @override
+  String get gamesRetry => 'फिर कोशिश करें';
+
+  @override
+  String get gameQueensName => 'क्वीन्स';
+
+  @override
+  String get gameQueensRule =>
+      'हर पंक्ति, स्तंभ और रंग में एक ताज — कभी छूते नहीं';
+
+  @override
+  String get gameTangoName => 'टैंगो';
+
+  @override
+  String get gameTangoRule => 'तीन सूरज, तीन चाँद, कभी लगातार तीन नहीं';
+
+  @override
+  String get gameZipName => 'ज़िप';
+
+  @override
+  String get gameZipRule => 'हर खाने से गुज़रती एक रेखा, संख्याएँ क्रम में';
+
+  @override
+  String get gameSudokuName => 'मिनी सुडोकु';
+
+  @override
+  String get gameSudokuRule => 'हर पंक्ति, स्तंभ और बॉक्स में 1 से 6 एक-एक बार';
+
+  @override
+  String get gameCodeName => 'कोड';
+
+  @override
+  String get gameStatusUnplayed => 'नहीं खेला';
+
+  @override
+  String get gameStatusUnfinished => 'जारी';
+
+  @override
+  String get gameStatusGaveUp => 'छोड़ा';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'रोकें';
+
+  @override
+  String get gameResume => 'जारी रखें';
+
+  @override
+  String get gamePausedTitle => 'रुका हुआ';
+
+  @override
+  String get gamePausedBody => 'घड़ी रुकी है और बोर्ड छिपा है';
+
+  @override
+  String get gameUndo => 'पूर्ववत';
+
+  @override
+  String get gameClear => 'साफ़ करें';
+
+  @override
+  String get gameHint => 'संकेत';
+
+  @override
+  String get gameNotes => 'नोट्स';
+
+  @override
+  String get gameErase => 'मिटाएँ';
+
+  @override
+  String get gameAutoCross => 'स्वतः क्रॉस';
+
+  @override
+  String get gameGiveUp => 'हार मानें';
+
+  @override
+  String get gameGiveUpTitle => 'जवाब दिखाएँ?';
+
+  @override
+  String get gameGiveUpBody => 'आज का बोर्ड बंद हो जाएगा और अनसुलझा दर्ज होगा।';
+
+  @override
+  String get gameGiveUpCancel => 'कोशिश जारी';
+
+  @override
+  String get gameGiveUpConfirm => 'दिखाएँ';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return '$time में हल';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'आज का जवाब';
+
+  @override
+  String get gameFirstInToday => 'आज सबसे पहले';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return 'अब तक $total में से $place';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count गलतियाँ',
+      one: '1 गलती',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count संकेत',
+      one: '1 संकेत',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'आज के समय';
+
+  @override
+  String get gameStandingsEmpty => 'अभी किसी ने पूरा नहीं किया';
+
+  @override
+  String get gameShare => 'परिणाम कॉपी करें';
+
+  @override
+  String get gameShareCopied => 'कॉपी हुआ — किसी दोस्त को भेजें';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'सभी खेल';
+
+  @override
+  String get gameElapsedSemantic => 'बीता समय';
+
+  @override
+  String get gameErrorNotSolved => 'यह बोर्ड अभी पूरा नहीं हुआ';
+
+  @override
+  String get gameErrorAlreadyFinished => 'आज का पहले ही पूरा कर चुके';
+
+  @override
+  String get gameErrorNoHint => 'इसके लिए कोई संकेत नहीं';
+
+  @override
+  String get gameErrorGeneric => 'खेलों तक नहीं पहुँच सके — फिर कोशिश करें';
 }
