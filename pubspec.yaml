@@ -220,6 +220,12 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
 
+  # Transitively present via flutter_secure_storage; declared explicitly because
+  # `test/device_identity_test.dart` implements `FlutterSecureStoragePlatform`
+  # directly. The package's own in-memory double ignores the `options` map, and
+  # the accessibility class inside it is the entire subject of that test.
+  flutter_secure_storage_platform_interface: ^2.0.1
+
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

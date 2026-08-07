@@ -145,6 +145,7 @@ class ConnectionHealth extends ChangeNotifier {
     this.offlineGrace = const Duration(milliseconds: 600),
     this.maxStalledRearms = 2,
     this.minLoopInterval = const Duration(milliseconds: 750),
+    this.tickInterval = const Duration(seconds: 5),
     DateTime Function() now = DateTime.now,
     Stream<bool>? connectivity,
     bool watchConnectivity = true,
@@ -235,6 +236,15 @@ class ConnectionHealth extends ChangeNotifier {
   /// The part of a backoff wait that no wake may cut short. See [_sleepAtLeast].
   final Duration minLoopInterval;
 
+  /// How often the liveness tick stamps [_lastTickAt].
+  ///
+  /// The tick exists only to measure suspensions, so its period is the
+  /// resolution of that measurement and nothing else — comfortably finer than
+  /// [backgroundRebuildThreshold], and cheap enough to leave running (one
+  /// clock read). Injectable so tests can hold it far outside their own
+  /// runtime and drive the gap through the fake clock instead.
+  final Duration tickInterval;
+
   /// Injectable wall clock. Tests advance it instantly instead of waiting.
   final DateTime Function() _now;
 
@@ -273,6 +283,23 @@ class ConnectionHealth extends ChangeNotifier {
   /// wasting a probe timeout on it. Consumed by [_loop].
   bool _wantRebuild = false;
 
+  /// Probes that genuinely returned `false` this healing episode.
+  ///
+  /// Deliberately NOT [_attempt], which is the backoff position and which
+  /// [retryNow] resets to 0 on every call. The rebuild gate used to read
+  /// [_attempt], so anything that called [retryNow] — a tap on "can't reach
+  /// server · tap to retry", or one of the bursts of interface changes both
+  /// platforms emit per unlock — knocked the ladder back to 0 before it could
+  /// reach [rebuildAfterAttempt]. On the one connection that needed a rebuild
+  /// most, [ConnectionProbe.reconnect] was therefore never called at all, and
+  /// a user tapping retry made that *less* likely rather than more.
+  ///
+  /// Captured on an iPhone that cold-launched while locked: 19 minutes of
+  /// probes, `_attempt` reaching 2 exactly once, and a manual retry cancelling
+  /// that probe 1.1s later. Reset only by [_beginHealing] and [_markOnline] —
+  /// the two edges that genuinely begin and end an episode.
+  int _probeFailures = 0;
+
   DateTime? _lastConnectivityRetryAt;
   Timer? _offlineTimer;
 
@@ -304,6 +331,15 @@ class ConnectionHealth extends ChangeNotifier {
   /// suspended app's dead socket accomplishes nothing and costs battery.
   bool _foreground = true;
 
+  /// When [_tickTimer] last ran, or null before [start].
+  ///
+  /// A suspended process cannot run a timer, so the wall-clock gap since this
+  /// stamp is a lower bound on how long the OS froze us — and unlike
+  /// [_backgroundedAt] it does not depend on the OS having told us anything.
+  /// See [setForeground] for the case that needs it.
+  DateTime? _lastTickAt;
+  Timer? _tickTimer;
+
   int _consecutiveRoundTripFailures = 0;
 
   /// Completes to break the current backoff sleep early (manual retry,
@@ -325,6 +361,9 @@ class ConnectionHealth extends ChangeNotifier {
     _connectivitySub?.cancel();
     _connectivitySub = null;
     if (_watchConnectivity) _startConnectivityWatch();
+    _lastTickAt = _now();
+    _tickTimer?.cancel();
+    _tickTimer = Timer.periodic(tickInterval, (_) => _lastTickAt = _now());
     if (!_socketUp) _beginHealing();
   }
 
@@ -376,6 +415,7 @@ class ConnectionHealth extends ChangeNotifier {
     _healing = false;
     _socketSub?.cancel();
     _connectivitySub?.cancel();
+    _tickTimer?.cancel();
     _offlineTimer?.cancel();
     _disarmUiTimers();
     _interruptAttempt(force: true);
@@ -468,7 +508,42 @@ class ConnectionHealth extends ChangeNotifier {
   /// notice. Rebuild it on sight rather than spending a probe timeout learning
   /// what the length of the gap already told us.
   void setForeground(bool foreground) {
-    if (_disposed || _foreground == foreground) return;
+    if (_disposed) return;
+    if (_foreground == foreground) {
+      if (!foreground) return;
+      // Not a transition — but on iOS it can still be a resume from a long
+      // suspension, and this is the case that used to be invisible.
+      //
+      // The app can be launched STRAIGHT into the background: a VoIP or silent
+      // push waking a locked phone. `_foreground` starts true, no
+      // paused/hidden callback is ever delivered, and the `resumed` that
+      // arrives after the unlock lands here and returned immediately. So
+      // `_backgroundedAt` stayed null, [backgroundRebuildThreshold] never
+      // fired, and the socket the OS had frozen for seventeen minutes was
+      // never rebuilt on sight — recovery fell back to the slow escalation
+      // path and (see [_probeFailures]) never finished it either. A capture
+      // shows the whole shape: `resumed` logged, and neither `foreground
+      // parked` nor `foreground resumed` anywhere in the file.
+      //
+      // The tick gap settles it without needing the OS to say anything: our
+      // own timer cannot have run while the process was frozen.
+      final gap = _gapSinceTick();
+      _lastTickAt = _now();
+      // Only a genuine suspension is worth acting on here. `inactive` counts
+      // as foreground (see the call site), and iOS fires it for every Control
+      // Centre swipe and app-switcher peek — while `retryNow(manual: true)`
+      // force-interrupts the probe in flight. Reacting to all of them would
+      // cancel probes faster than they can resolve, which is its own version
+      // of this bug.
+      if (gap < backgroundRebuildThreshold) return;
+      DiagLog.connection(
+        'foreground',
+        'resumed after ${gap.inSeconds}s (tick gap; no park was reported)',
+      );
+      _wantRebuild = true;
+      retryNow(manual: true);
+      return;
+    }
     _foreground = foreground;
     if (!foreground) {
       _backgroundedAt = _now();
@@ -477,17 +552,30 @@ class ConnectionHealth extends ChangeNotifier {
     }
     final since = _backgroundedAt;
     _backgroundedAt = null;
+    // Prefer the observed park when we have one; the tick gap is the fallback
+    // for a park that was never reported.
+    final gap = since != null ? _now().difference(since) : _gapSinceTick();
+    _lastTickAt = _now();
     DiagLog.connection(
       'foreground',
-      since == null
-          ? 'resumed'
-          : 'resumed after ${_now().difference(since).inSeconds}s',
+      'resumed after ${gap.inSeconds}s${since == null ? ' (tick gap)' : ''}',
     );
-    if (since != null &&
-        _now().difference(since) >= backgroundRebuildThreshold) {
+    if (gap >= backgroundRebuildThreshold) {
       _wantRebuild = true;
     }
     retryNow(manual: true);
+  }
+
+  /// Wall-clock time the process appears to have been frozen, measured as the
+  /// overshoot of the liveness tick. [Duration.zero] before the first tick.
+  ///
+  /// The tick's own period is subtracted: a timer that fired on schedule is
+  /// evidence of nothing.
+  Duration _gapSinceTick() {
+    final last = _lastTickAt;
+    if (last == null) return Duration.zero;
+    final gap = _now().difference(last) - tickInterval;
+    return gap.isNegative ? Duration.zero : gap;
   }
 
   /// Force an immediate attempt: reset the backoff and skip any pending wait.
@@ -502,7 +590,13 @@ class ConnectionHealth extends ChangeNotifier {
       'retry',
       manual ? 'manual/resume' : 'auto (connectivity)',
     );
+    // Backoff position only. The rebuild gate reads [_probeFailures], which
+    // this deliberately does not touch — see its doc.
     _attempt = 0;
+    // A tap on "can't reach server · tap to retry" arrives only after probing
+    // has already failed for [stalledAfter] with nothing to show for it. One
+    // more probe is not what that tap is asking for, so do the strong thing.
+    if (manual && _phase == ConnectionPhase.stalled) _wantRebuild = true;
     if (_healing) {
       if (manual) {
         _isManualOrResumeRetry = true;
@@ -606,6 +700,7 @@ class ConnectionHealth extends ChangeNotifier {
     _healing = true;
     _loopGen++;
     _attempt = 0;
+    _probeFailures = 0;
     _wakePending = false;
     // Note the loop itself arms the UI clocks, and only once it is genuinely
     // probing — see [_armUiTimers].
@@ -790,11 +885,17 @@ class ConnectionHealth extends ChangeNotifier {
       // ordinary result of a long background, and one convex-rs itself notices
       // only after 30s on a clock that does not run while the device sleeps.
       //
-      // Gated on the attempt count so a merely slow server does not get its
+      // Gated on the failure count so a merely slow server does not get its
       // socket torn down on the first miss: a rebuild throws away a query set
       // that then has to be re-registered, which is not free.
+      //
+      // [_probeFailures], NOT [_attempt]. This gate read the backoff position
+      // until a capture showed why it must not: [retryNow] zeroes that on
+      // every call, so a user tapping "tap to retry" — or an unlock's burst of
+      // interface changes — held the ladder below the gate indefinitely and
+      // this branch never ran once in nineteen minutes.
       if (ok == false &&
-          _attempt >= rebuildAfterAttempt &&
+          _probeFailures >= rebuildAfterAttempt &&
           _healing &&
           !_disposed) {
         final healed = await _raceInterrupt(
@@ -851,6 +952,7 @@ class ConnectionHealth extends ChangeNotifier {
       _armUiTimers();
 
       _attempt++;
+      _probeFailures++;
       await _sleepAtLeast(_backoffFor(_attempt));
     }
   }
@@ -937,6 +1039,7 @@ class ConnectionHealth extends ChangeNotifier {
     if (!_healing && _phase == ConnectionPhase.online) return;
     _healing = false;
     _attempt = 0;
+    _probeFailures = 0;
     _consecutiveRoundTripFailures = 0;
     _interruptsInARow = 0;
     _wantRebuild = false;

@@ -698,6 +698,103 @@ void main() {
       },
     );
 
+    // The bug this pins is the one that made a stuck connection permanent, and
+    // it inverted the meaning of the retry button: the gate read the BACKOFF
+    // position, which `retryNow` zeroes on every call, so each tap on "can't
+    // reach server · tap to retry" knocked the ladder back below the gate. The
+    // more the user asked for a fix, the more certainly they prevented it.
+    //
+    // Timings mirror the capture that found it, scaled ~500x: a probe that
+    // takes most of the interval, one retry arriving per completed probe, and
+    // therefore an `_attempt` that oscillates 0 → 1 → 0 and never reaches 2.
+    // Nineteen minutes of that produced exactly zero rebuilds.
+    test('repeated manual retries cannot starve the rebuild', () async {
+      probe.probeResult = false;
+      probe.reconnectResult = false;
+      probe.probeDelay = const Duration(milliseconds: 20);
+      build(backoff: const [Duration(milliseconds: 5)]).start();
+
+      probe.emit(false);
+
+      final deadline = DateTime.now().add(const Duration(milliseconds: 400));
+      while (probe.reconnectCalls == 0 && DateTime.now().isBefore(deadline)) {
+        unawaited(health.retryNow());
+        await settle(const Duration(milliseconds: 30));
+      }
+
+      expect(
+        probe.reconnectCalls,
+        greaterThan(0),
+        reason:
+            'the rebuild gate must count probe FAILURES, which a retry does '
+            'not undo — not the backoff position, which it resets',
+      );
+    });
+
+    // By the time this banner is on screen, probing has failed for
+    // `stalledAfter` with nothing to show for it. Another probe is not what the
+    // tap is asking for.
+    test('a tap while stalled forces a rebuild rather than another probe',
+        () async {
+      probe.probeResult = false;
+      probe.reconnectResult = false;
+      // High enough that the automatic escalation cannot fire — so a rebuild
+      // here can only have come from the tap.
+      build(rebuildAfterAttempt: 99).start();
+
+      probe.emit(false);
+      await expectPhase(ConnectionPhase.stalled);
+      expect(probe.reconnectCalls, 0, reason: 'nothing has asked for one yet');
+
+      unawaited(health.retryNow());
+      await settle(const Duration(milliseconds: 60));
+
+      expect(probe.reconnectCalls, greaterThan(0));
+    });
+
+    // The background-launch case, and the reason the gap is measured off our
+    // own tick rather than off `setForeground(false)`.
+    //
+    // A VoIP or silent push can launch the app STRAIGHT into the background on
+    // a locked phone. `_foreground` starts true, no paused/hidden callback is
+    // ever delivered, and the `resumed` that follows the unlock is therefore
+    // not a transition at all — `setForeground` used to return on the spot. A
+    // capture shows seventeen minutes suspended with `resumed` logged and no
+    // `foreground parked` anywhere, so the socket was never rebuilt on sight.
+    test('a resume rebuilds even when the park was never reported', () async {
+      build().start();
+
+      // Note: no setForeground(false). This is the whole point.
+      clock.advance(const Duration(minutes: 5));
+      health.setForeground(true);
+      await settle(const Duration(milliseconds: 30));
+
+      expect(
+        probe.calls.first,
+        'reconnect',
+        reason:
+            'our own timer cannot have run while the OS had us frozen, so the '
+            'tick gap is evidence even when no lifecycle event was delivered',
+      );
+      expect(health.phase, ConnectionPhase.online);
+    });
+
+    // The other half of that change. `inactive` counts as foreground and iOS
+    // fires it for every Control Centre swipe and app-switcher peek, while
+    // `retryNow(manual: true)` force-interrupts the probe in flight — so
+    // reacting to every repeated `true` would cancel probes faster than they
+    // can resolve, which is a fresh version of the bug being fixed.
+    test('a repeated foreground signal with no gap does nothing', () async {
+      build().start();
+
+      health.setForeground(true);
+      health.setForeground(true);
+      await settle(const Duration(milliseconds: 30));
+
+      expect(probe.reconnectCalls, 0);
+      expect(probe.probeCalls, 0);
+    });
+
     test(
       'a rebuild is re-probed at once and does not reset the backoff',
       () async {
