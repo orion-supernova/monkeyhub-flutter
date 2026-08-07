@@ -1,7 +1,8 @@
 import 'dart:io' show Platform;
 import 'dart:math';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb, visibleForTesting;
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -13,15 +14,51 @@ class DeviceIdentity {
   DeviceIdentity._();
 
   static const _storageKey = 'monkeyhub.device_id';
-  static const _storage = FlutterSecureStorage();
+
+  // `first_unlock_this_device`, NOT the plugin default (`unlocked`) — the same
+  // reasoning, and the same accessibility class, as [SessionStore]. A VoIP push
+  // cold-starts the app while the phone is LOCKED, and this id is the FIRST
+  // thing `_onAuthChange` reads: `CallService.attach`, `GroupCallService.attach`
+  // and `SignalingService.start` all take it, and all three sit behind it in
+  // one try block.
+  //
+  // Under `unlocked` that read throws `errSecInteractionNotAllowed (-25308)` on
+  // a locked device, so the whole calling stack was skipped and the process
+  // never recovered — `_repo.attach` sets `_repo.userId` immediately after, and
+  // that permanently disarms the guard which would let the block re-run. A
+  // capture shows exactly this: `CRITICAL: call stack attach failed`, then
+  // silence. `PushManager.login` reads the same key and left `_deviceId` null
+  // for the process lifetime, so VoIP tokens never uploaded either.
+  //
+  // SessionStore already fixed its half of this and documented why. This class
+  // was the hole in that fix: the session restored fine on a locked cold start,
+  // and then the device id failed one layer further down.
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+    ),
+  );
+
+  // Pre-existing installs wrote this key under `unlocked`, and that item may be
+  // invisible to a read issued with the new accessibility attribute. Without
+  // the fallback below, every current install would silently mint a NEW device
+  // id on upgrade — orphaning its backend device row and its registered VoIP
+  // token, which is a worse outcome than the bug being fixed.
+  static const _legacyStorage = FlutterSecureStorage();
+
   static final Random _random = Random.secure();
 
   static String? _cached;
 
+  /// Drop the process-lifetime cache. Tests only — [ensure] is memoised on
+  /// purpose, which would otherwise make them order-dependent.
+  @visibleForTesting
+  static void resetCacheForTest() => _cached = null;
+
   static Future<String> ensure() async {
     final cached = _cached;
     if (cached != null) return cached;
-    final existing = await _storage.read(key: _storageKey);
+    final existing = await _read();
     if (existing != null && existing.isNotEmpty) {
       _cached = existing;
       return existing;
@@ -30,6 +67,38 @@ class DeviceIdentity {
     await _storage.write(key: _storageKey, value: fresh);
     _cached = fresh;
     return fresh;
+  }
+
+  /// Read the id, falling back to (and migrating forward from) the legacy
+  /// default-accessibility item on iOS.
+  ///
+  /// The migration write re-stamps the item with the new accessibility class,
+  /// so from the next launch onward it is readable on a locked phone.
+  ///
+  /// A keychain failure propagates on purpose, and [ensure] with it. "The item
+  /// is unreadable right now" and "there is no item" must not collapse into the
+  /// same answer here: swallowing the error would make [ensure] mint a fresh id
+  /// and orphan the real one. Callers retry once the device is unlocked — see
+  /// the resume path in `app.dart`. Only the migration *write* is tolerated to
+  /// fail, since by then the id is already in hand.
+  static Future<String?> _read() async {
+    final value = await _storage.read(key: _storageKey);
+    if (value != null) return value;
+    // `defaultTargetPlatform` rather than `Platform.isIOS`: it is what the
+    // storage plugin itself dispatches its own options on, so the two agree by
+    // construction — and unlike dart:io it can be overridden in a test, which
+    // is what lets the migration below be covered at all.
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return null;
+    final legacy = await _legacyStorage.read(key: _storageKey);
+    if (legacy != null && legacy.isNotEmpty) {
+      try {
+        await _storage.write(key: _storageKey, value: legacy);
+      } catch (_) {
+        // Re-stamping failed (locked device, most likely). The id itself is
+        // good and is what the caller needs; the next launch retries.
+      }
+    }
+    return legacy;
   }
 
   /// `"ios" | "ios-simulator" | "android" | "macos" | "windows" | "linux" | "web"`.

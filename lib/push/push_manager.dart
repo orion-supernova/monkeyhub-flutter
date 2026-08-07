@@ -314,7 +314,23 @@ class PushManager {
   /// a transient APNs error) is restored without waiting for a cold login.
   Future<void> refreshTokens() async {
     if (!_pushSupported) return; // web/other: no VoIP/FCM tokens, no OneSignal
-    if (_userId == null || _deviceId == null) return;
+    if (_userId == null) return;
+    // Repair a device id that [login] never got. It reads the keychain, which
+    // throws `errSecInteractionNotAllowed (-25308)` on a locked phone — the
+    // ordinary state during the headless VoIP cold start this method's own
+    // doc describes. `_deviceId` then stayed null for the process lifetime and
+    // every upload path below early-returned on it, so VoIP and FCM tokens
+    // were never registered at all and the resume that was supposed to fix it
+    // bailed on the same null. We are foreground here, so the read succeeds.
+    if (_deviceId == null) {
+      try {
+        _deviceId = await DeviceIdentity.ensure();
+        _deviceName ??= await DeviceIdentity.displayName();
+      } catch (e) {
+        debugPrint('PushManager.refreshTokens: device id still unavailable: $e');
+        return;
+      }
+    }
     // Covers the headless-login case: if the permission ask was skipped
     // because the app wasn't foregrounded, retry it now (resume path).
     // No-op once permission is determined — iOS shows the prompt only once.

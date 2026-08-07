@@ -557,6 +557,15 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           return;
         }
         _lastResumeSync = now;
+        // The device is unlocked by definition once we are resumed, so this is
+        // the moment a keychain read that failed on a locked cold start can
+        // finally succeed. Without it a single `-25308` left calls dead until
+        // the next relaunch — [_attachCallStack] has the full account. No-ops
+        // once attached.
+        final resumeSession = _auth.session;
+        if (resumeSession != null && !_callStackAttached) {
+          unawaited(_attachCallStack(resumeSession));
+        }
         BadgeManager.instance.sync();
         PushManager.instance.refreshTokens();
         _family.refresh();
@@ -608,8 +617,16 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
     try {
       await _auth.restore();
-    } catch (_) {
-      /* secure storage may not be available in test harness */
+    } catch (e, st) {
+      // Still non-fatal — secure storage may genuinely be absent in a test
+      // harness — but no longer silent. On a real handset this catch also
+      // absorbs a keychain `-25308` (the device has not been unlocked since
+      // boot, so not even `first_unlock_this_device` can be read), and it
+      // turned "keychain locked" into "signed out" with no trace at all: the
+      // user is dropped at the login screen and the diagnostics file offers
+      // nothing to explain why.
+      DiagLog.error('session restore failed', e, stack: st);
+      debugPrint('_auth.restore failed: $e\n$st');
     }
 
     // Set _bootstrapped true immediately so the UI mounts in <150ms from local cache.
@@ -661,11 +678,81 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _auth.applyAccountType(_family.context.accountType);
   }
 
+  /// Whether [_attachCallStack] has completed for the current session.
+  ///
+  /// Its own guard, because [_onAuthChange]'s (`_repo.userId != s.userId`) is
+  /// no use here: `_repo.attach` runs immediately after the attach and sets
+  /// that id whether the attach succeeded or threw, so from then on every
+  /// `notifyListeners` no-ops the whole block. A single failed attach was
+  /// therefore permanent for the process — see [_attachCallStack].
+  bool _callStackAttached = false;
+
+  /// Attach the calling stack: CallService, group calls, and the signaling
+  /// socket. Kept on its own failure boundary and idempotent, so the resume
+  /// handler can re-run it.
+  ///
+  /// The retry is not theoretical. Every one of these needs a device id, and
+  /// [DeviceIdentity.ensure] reads the keychain — which throws
+  /// `errSecInteractionNotAllowed (-25308)` when the phone is locked. A VoIP
+  /// push cold-starting a locked handset therefore lands here, throws on the
+  /// very first line, and skips the entire calling stack: CallKit rings from
+  /// native, Dart has nothing to answer with, and the call vanishes. Calls
+  /// then stay dead for the whole process — which is what the retry fixes.
+  /// (The accessibility class that caused it is fixed in [DeviceIdentity]; this
+  /// covers the residue, including a device that has not been unlocked at all
+  /// since boot, where no accessibility class can help.)
+  Future<void> _attachCallStack(Session s) async {
+    if (_callStackAttached) return;
+    try {
+      final deviceId = await DeviceIdentity.ensure();
+      _callService.attach(
+        userId: s.userId,
+        displayName: s.name,
+        deviceId: deviceId,
+      );
+      _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+      await _signaling.start(s.userId, deviceId: deviceId);
+      _callStackAttached = true;
+      // Fire-and-forget: reconciling stale native cards must never be
+      // able to delay the live signaling path that was just opened.
+      unawaited(NativeCallHandler.instance.replayColdStartCalls());
+    } catch (e, st) {
+      // Never silent — an unattached call stack is invisible otherwise,
+      // which is exactly how this went unnoticed.
+      DiagLog.error('call attach failed', e, stack: st);
+      debugPrint('CRITICAL: call stack attach failed: $e\n$st');
+    }
+  }
+
   void _onAuthChange() async {
     final s = _auth.session;
     try {
       if (s != null && _repo.userId != s.userId) {
-        // ─────────── calling attaches FIRST, on its own failure boundary ──
+        // ─────────── recovery is armed FIRST, above every await below ──
+        //
+        // A session now exists, so ConnectionHealth has something worth healing
+        // for (`isActive` reads `_auth.session`). Its recovery loop parks while
+        // signed out, and nothing else wakes it: `_health.start()` runs BEFORE
+        // `_auth.restore()`, so the loop parks at boot, and a socket `down`
+        // edge deliberately does not wake a parked loop.
+        //
+        // These two lines used to sit at the END of this block, behind
+        // `await _repo.attach(...)` — which awaits subscriptions that are
+        // unbounded at every layer (no `.timeout` in `NativeConvexClient
+        // .subscribe`, none in the Rust `internal_subscribe`). On a socket that
+        // never completes its handshake that await simply never returns, so the
+        // one line that starts recovery was unreachable in exactly the case
+        // recovery exists for. A capture of a locked-phone cold start shows the
+        // result: zero probes issued in the first eighteen minutes, and the
+        // `attach … → presence=` line below never printed at all.
+        //
+        // The heartbeat moves for the same reason — `noteRoundTrip` is the only
+        // path back online that does not depend on the probe loop, and it never
+        // got to start either. Neither call needs the repo.
+        unawaited(_health.retryNow());
+        _startPresenceHeartbeat(s.userId);
+
+        // ─────────── calling attaches next, on its own failure boundary ──
         // This block used to sit at the END of this method, behind
         // `await _repo.attach(...)` and `await PushManager.login(...)`, all
         // inside the single swallow-everything catch below. Two ways that
@@ -681,24 +768,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // rang the native CallKit UI (PushKit is native and needs none of
         // this) while Dart had no session to answer with — the call was
         // dead on arrival and simply vanished a moment later.
-        try {
-          final deviceId = await DeviceIdentity.ensure();
-          _callService.attach(
-            userId: s.userId,
-            displayName: s.name,
-            deviceId: deviceId,
-          );
-          _groupCallService.attach(userId: s.userId, deviceId: deviceId);
-          await _signaling.start(s.userId, deviceId: deviceId);
-          // Fire-and-forget: reconciling stale native cards must never be
-          // able to delay the live signaling path that was just opened.
-          unawaited(NativeCallHandler.instance.replayColdStartCalls());
-        } catch (e, st) {
-          // Never silent — an unattached call stack is invisible otherwise,
-          // which is exactly how this went unnoticed.
-          DiagLog.error('call attach failed', e, stack: st);
-          debugPrint('CRITICAL: call stack attach failed: $e\n$st');
-        }
+        await _attachCallStack(s);
 
         await _repo.attach(s.userId);
         _family.attach(s.userId);
@@ -751,14 +821,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         });
         BadgeManager.instance.bind(_repo);
         MessageAlerts.instance.bind(_repo);
-        _startPresenceHeartbeat(s.userId);
         _consumePendingPushRoom();
-        // A session now exists, so ConnectionHealth has something worth healing
-        // for. Its recovery loop parks while signed out and nothing else wakes
-        // it: the socket's `connected` edge has usually already been spent
-        // during the park, so without this nudge the phase could only be
-        // cleared by luck (a connectivity change, or a background round trip).
-        unawaited(_health.retryNow());
         // Covers the fresh-sign-in case, including the rotation owed after a
         // password reset — the reset signs the user in, which disposes the
         // LoginScreen that would otherwise have pushed the gate.
@@ -766,6 +829,8 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       } else if (s == null) {
         // Drop the per-account latch so signing in as someone else re-checks.
         RecoveryGate.instance.reset();
+        // Same for the attach latch — the next account needs its own attach.
+        _callStackAttached = false;
         _stopPresenceHeartbeat();
         BadgeManager.instance.unbind();
         MessageAlerts.instance.unbind();

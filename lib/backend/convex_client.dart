@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:convex_flutter/convex_flutter.dart' as cv;
 import 'package:flutter/foundation.dart';
 
+import '../diagnostics/diag_event.dart' show DiagSev;
 import '../diagnostics/diag_log.dart';
 import '../env.dart';
 import 'connection_health.dart' show ConnectionProbe;
@@ -343,6 +344,11 @@ class ConvexBackend implements ConnectionProbe {
     final last = _lastForcedReconnectAt;
     if (last != null &&
         DateTime.now().difference(last) < _minForcedReconnectInterval) {
+      // Logged, not silent. Whether a rebuild ran is the single most useful
+      // fact in a stuck-connection capture, and it used to be the one thing
+      // the diagnostics file could not tell you — a whole investigation had to
+      // infer it from which events were *absent*.
+      DiagLog.connection('rebuild', 'suppressed (rate-limited)');
       return false;
     }
     _lastForcedReconnectAt = DateTime.now();
@@ -350,15 +356,36 @@ class ConvexBackend implements ConnectionProbe {
     // skip its connectivity wait on the strength of a probe that round-tripped
     // over the socket we just destroyed.
     _lastProbeOkAt = null;
+    DiagLog.connection('rebuild', 'started');
     try {
       await _ensureInitialized();
       final ok = await _c.forceReconnect();
-      if (!ok) return false;
-      if (_rebuildOrphansSubscriptions) {
-        await _registry.rebindAll(++_generation);
+      if (!ok) {
+        DiagLog.connection('rebuild', 'failed', sev: DiagSev.warn);
+        return false;
       }
+      if (_rebuildOrphansSubscriptions) {
+        // Deliberately NOT awaited. The caller's contract is "a fresh
+        // transport exists" — [ConnectionHealth] caps this call at
+        // `rebuildTimeout` (6s) and reads a timeout as `false`, while
+        // `rebindAll` fans out over ~15 subscribes that are unbounded on a
+        // socket which has not handshaken yet. So awaiting it reported a
+        // rebuild that had genuinely succeeded as a failure, and the loop
+        // backed off as though nothing had happened.
+        //
+        // Safe to let run: every entry is stamped with [_generation], and a
+        // bind that lands after a later rebuild superseded it is discarded by
+        // the stale-generation check in [SubscriptionRegistry].
+        unawaited(
+          _registry.rebindAll(++_generation).catchError((Object e) {
+            DiagLog.connection('rebind', 'failed: $e', sev: DiagSev.warn);
+          }),
+        );
+      }
+      DiagLog.connection('rebuild', 'ok (transport only, not yet verified)');
       return true;
     } catch (e) {
+      DiagLog.connection('rebuild', 'failed: $e', sev: DiagSev.warn);
       debugPrint('ConvexBackend.reconnect: $e');
       return false;
     }
