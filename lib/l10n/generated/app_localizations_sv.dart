@@ -4453,6 +4453,66 @@ class AppLocalizationsSv extends AppLocalizations {
       'bara förhandsgranskning — renare bubblor, tryck för att öppna';
 
   @override
+  String get settingsScreenSectionCalls => 'SAMTAL';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'Videokvalitet';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'Auto';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => 'VISA NÄTVERKSSTATISTIK';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'bithastighet, ping och paketförlust i realtid under samtal';
+
+  @override
+  String get videoQualityScreenTitle => 'Videokvalitet';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'Välj ett upplösningstak för utgående video';
+
+  @override
+  String get videoQualityScreenAutoSubtitle =>
+      'Anpassar sig automatiskt efter din anslutning';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'Full HD — skarpare, använder mer data';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'Ultra HD — bäst med en stark anslutning';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'Den faktiska upplösningen beror på båda enheternas kameror och nätverksförhållanden.';
+
+  @override
+  String get callScreenControlOptions => 'Mer';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'Jitter';
+
+  @override
+  String get callScreenStatsLossLabel => 'Förlust';
+
+  @override
+  String get callOptionsSheetTitle => 'Samtalsalternativ';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'PUSHNOTISER';
 
   @override

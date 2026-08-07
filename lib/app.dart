@@ -524,6 +524,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         BadgeManager.instance.sync();
         PushManager.instance.refreshTokens();
         _family.refresh();
+        // Reconcile native CallKit/ConnectionService cards against backend
+        // truth on every resume, not just cold start (app.dart used to call
+        // this once at session-attach only) — a call that ended while we
+        // were backgrounded, but whose native-clear push we missed, gets
+        // swept here instead of staying stuck until the next full relaunch.
+        unawaited(NativeCallHandler.instance.replayColdStartCalls());
       });
     }
   }
@@ -1059,19 +1065,33 @@ class _CallOverlayState extends State<_CallOverlay> {
   /// call-state change directly, so it works even when a backgrounded web tab
   /// has stopped producing frames. See `_ringingCallId`.
   void _syncRingtone(CallSession? s) {
-    final ringing =
+    final incomingRinging =
         s != null &&
         s.status == CallStatus.incomingRinging &&
         !s.isCaller &&
         !_nativeRinger &&
         !widget.service.acceptedNatively;
+    // Caller-side ringback: no platform provides one natively (CallKit's own
+    // UI is silent while the callee's phone rings), so — unlike the incoming
+    // case above — this plays on every platform, real phones included. Gated
+    // on [localStream] rather than the bare status transition:
+    // `CallService.initiate` sets `outgoingRinging` BEFORE `_attachLocalMedia`
+    // reclassifies the shared AVAudioSession, so starting playback at the
+    // raw status change risks racing that reclassification.
+    final outgoingRinging =
+        s != null &&
+        s.status == CallStatus.outgoingRinging &&
+        s.isCaller &&
+        widget.service.localStream != null;
+    final ringing = incomingRinging || outgoingRinging;
     if (ringing) {
       if (_ringingCallId == s.callId) return;
       _ringingCallId = s.callId;
       AlertSounds.instance.startRingtone();
       // When the tab isn't focused the in-app ringer never mounts (no frames),
       // so surface a persistent OS banner. No-op off web / when focused.
-      if (!WebNotifier.isFocused) {
+      // Incoming-call only — the caller already knows they're dialing.
+      if (incomingRinging && !WebNotifier.isFocused) {
         final l10n = AppLocalizations.of(context);
         WebNotifier.showCall(
           title: l10n.incomingCallNotificationTitle,

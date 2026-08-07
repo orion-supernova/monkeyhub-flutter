@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/group_call_api.dart';
+import '../data/settings_store.dart';
 import 'call_config.dart';
 import 'call_media.dart';
 import 'call_models.dart';
@@ -14,12 +15,16 @@ import 'call_permissions.dart';
 import 'call_recovery.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
-/// per remote peer, so the budget shrinks as the call grows.
-int meshVideoBitrate(int remotePeerCount) {
-  if (remotePeerCount <= 1) return 1200000;
-  if (remotePeerCount == 2) return 900000;
-  if (remotePeerCount == 3) return 700000;
-  return 500000;
+/// per remote peer, so the budget shrinks as the call grows. [baseline] is
+/// the solo-call cap — the selected [VideoQualityTier]'s
+/// `videoQualityPresets[tier].maxBitrate` — and the same ratios this used to
+/// hardcode (900k/700k/500k against a 1200k baseline) apply proportionally,
+/// so picking a higher tier still tapers the same way as group size grows.
+int meshVideoBitrate(int remotePeerCount, {int baseline = 1200000}) {
+  if (remotePeerCount <= 1) return baseline;
+  if (remotePeerCount == 2) return (baseline * 0.75).round();
+  if (remotePeerCount == 3) return (baseline * 7 / 12).round();
+  return (baseline * 5 / 12).round();
 }
 
 /// One remote participant's connection state inside the mesh.
@@ -79,6 +84,18 @@ class GroupCallService extends ChangeNotifier {
   CallMediaKind get mediaKind => _mediaKind;
   bool get inCall => _groupCallId != null;
   bool _ending = false;
+
+  /// Set first thing in [dispose]. [leaveCall] can be mid-`await` (its own
+  /// API call, a track's `stop()`) when a widget-tree teardown disposes this
+  /// service out from under it; without this guard its trailing
+  /// `notifyListeners()` would fire after `super.dispose()` already ran and
+  /// throw "used after being disposed."
+  bool _disposed = false;
+
+  /// Read once at [_enterCall] and held for the call's duration — mirrors
+  /// how the 1:1 [CallService] path fetches it fresh per call rather than
+  /// mid-call, since the encoder cap below is per-peer-link, not global.
+  VideoQualityTier _videoTier = VideoQualityTier.auto;
 
   MediaStream? _localStream;
   MediaStream? get localStream => _localStream;
@@ -233,7 +250,8 @@ class GroupCallService extends ChangeNotifier {
 
     try {
       await applyIosCallAudioConfig(kind);
-      _localStream = await getCallUserMedia(kind);
+      _videoTier = SettingsStore.instance.videoQualityTier;
+      _localStream = await getCallUserMedia(kind, tier: _videoTier);
       speakerOn = kind == CallMediaKind.video;
       await applyCallAudioRoute(speaker: speakerOn);
     } catch (e, st) {
@@ -291,19 +309,27 @@ class GroupCallService extends ChangeNotifier {
     }
     _peers.clear();
     rosterRows = const [];
-    try {
-      final ls = _localStream;
-      if (ls != null) {
-        for (final t in ls.getTracks()) {
+    final ls = _localStream;
+    if (ls != null) {
+      // Per-track try/catch: one track throwing on stop() (seen on some
+      // Android OEMs for the video track specifically) used to abort the
+      // shared try block and skip stopping every track after it — leaving
+      // the mic held open even though `_localStream` was about to be
+      // dropped either way.
+      for (final t in ls.getTracks()) {
+        try {
           await t.stop();
-        }
-        await ls.dispose();
+        } catch (_) {}
       }
-    } catch (_) {}
+      try {
+        await ls.dispose();
+      } catch (_) {}
+    }
     _localStream = null;
     _groupCallId = null;
     _roomId = null;
     _ending = false;
+    if (_disposed) return;
     notifyListeners();
   }
 
@@ -370,7 +396,10 @@ class GroupCallService extends ChangeNotifier {
       }
     }
     // Re-cap encoders for the new mesh size.
-    final bitrate = meshVideoBitrate(_peers.length);
+    final bitrate = meshVideoBitrate(
+      _peers.length,
+      baseline: videoQualityPresets[_videoTier]!.maxBitrate,
+    );
     for (final peer in _peers.values) {
       final pc = peer.pc;
       if (pc != null) {
@@ -404,8 +433,13 @@ class GroupCallService extends ChangeNotifier {
           await pc.addTrack(track, ls);
         }
       }
-      await configureVideoSenders(pc,
-          maxBitrate: meshVideoBitrate(_peers.length));
+      await configureVideoSenders(
+        pc,
+        maxBitrate: meshVideoBitrate(
+          _peers.length,
+          baseline: videoQualityPresets[_videoTier]!.maxBitrate,
+        ),
+      );
       await preferH264Codec(pc);
       if (_iOffer(peer.userId)) {
         final offer = await pc.createOffer({
@@ -877,6 +911,7 @@ class GroupCallService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _heartbeat?.cancel();
     _rosterSub?.cancel();
     _signalsSub?.cancel();
@@ -885,6 +920,19 @@ class GroupCallService extends ChangeNotifier {
       _disposePeerLink(peer);
     }
     _peers.clear();
+    // Unlike `leaveCall()`, this used to never touch `_localStream` — a call
+    // torn down via provider/widget-tree disposal without going through
+    // `leaveCall()` first left the mic (and camera) held open, the OS
+    // mic-in-use indicator included. `dispose()` can't be `async`, so this
+    // mirrors `_disposePeerLink`'s fire-and-forget `unawaited(...)` style.
+    final ls = _localStream;
+    if (ls != null) {
+      for (final t in ls.getTracks()) {
+        unawaited(t.stop().catchError((_) {}));
+      }
+      unawaited(ls.dispose().catchError((_) {}));
+    }
+    _localStream = null;
     super.dispose();
   }
 }

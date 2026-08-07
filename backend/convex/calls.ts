@@ -279,7 +279,7 @@ export const accept = mutation({
     // .answeredElsewhere. The accepting device is excluded.
     await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
       callId,
-      calleeId: call.calleeId,
+      targetUserId: call.calleeId,
       excludeDeviceId: acceptingDeviceId ?? null,
       reason: "accepted",
     });
@@ -328,7 +328,7 @@ export const reject = mutation({
     await purgeCallSignals(ctx, callId, [sigToCaller, sigToCallee]);
     await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
       callId,
-      calleeId: call.calleeId,
+      targetUserId: call.calleeId,
       excludeDeviceId: acceptingDeviceId ?? null,
       reason: "rejected",
     });
@@ -363,7 +363,7 @@ export const cancel = mutation({
     // can clear the lingering ring. Fan to ALL callee devices (no exclude).
     await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
       callId,
-      calleeId: call.calleeId,
+      targetUserId: call.calleeId,
       excludeDeviceId: null,
       reason: "cancelled",
     });
@@ -393,6 +393,18 @@ export const end = mutation({
       consumed: false,
     });
     await purgeCallSignals(ctx, callId, sigId);
+    // Clear the peer's native CallKit/ConnectionService card too. Without
+    // this, a peer whose app is backgrounded/killed never learns the call
+    // ended — the realtime `bye` signal above only reaches a live
+    // subscription — and their native call UI is orphaned "active"
+    // indefinitely. `sendVoipTaken` already dismisses by callId regardless
+    // of `reason` on both platforms, so this reuses it verbatim.
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      targetUserId: peer,
+      excludeDeviceId: null,
+      reason: "ended",
+    });
   },
 });
 
@@ -445,7 +457,7 @@ export const expireRingingCall = internalMutation({
     // "taken" VoIP payload to every callee device (see cancel mutation).
     await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
       callId,
-      calleeId: call.calleeId,
+      targetUserId: call.calleeId,
       excludeDeviceId: null,
       reason: "timeout",
     });
@@ -919,13 +931,89 @@ export const gcStuckRinging = internalMutation({
       // Clear any native CallKit ringer still up on a locked/killed callee.
       await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
         callId: call._id,
-        calleeId: call.calleeId,
+        targetUserId: call.calleeId,
         excludeDeviceId: null,
         reason: "timeout",
       });
     }
     if (rows.length > 0) {
       console.log(`gcStuckRinging: rescued ${rows.length} call(s)`);
+    }
+  },
+});
+
+// Client pings this every ~20s while status is "active" (see
+// CallService's heartbeat timer). Powers `gcStuckActive` below — an active
+// call with no recent heartbeat from either side is treated as abandoned.
+export const heartbeat = mutation({
+  args: { callId: v.id("calls"), userId: v.id("users") },
+  handler: async (ctx, { callId, userId }) => {
+    const call = await assertCallParticipant(ctx, callId, userId);
+    if (call.status !== "active") return;
+    await ctx.db.patch(callId, { lastHeartbeatAt: Date.now() });
+  },
+});
+
+// Safety net for `active` calls abandoned by both sides without either ever
+// calling `end` (app crash, dead battery, OS jetsam killing the process
+// outright). Unlike `gcStuckRinging`, staleness can't be judged from
+// `startedAt` alone — calls legitimately run for a long time — so this keys
+// off `lastHeartbeatAt` (falling back to `acceptedAt`/`startedAt` for a call
+// that's never received one, e.g. one that went stale within the first
+// heartbeat interval). Generous cutoff vs. the ~20s client interval, same
+// backstop posture as `gcStuckRinging`.
+const STUCK_ACTIVE_MS = 3 * 60 * 1000; // 3 min without a heartbeat
+
+export const gcStuckActive = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - STUCK_ACTIVE_MS;
+    // No range filter on the index — staleness is judged by heartbeat, not
+    // by `startedAt`, so every `active` row needs inspecting. Capped like
+    // every other sweep in this file (see the cost note atop this file):
+    // "active" calls should be a tiny live set in practice, but nothing
+    // should scan unbounded on this box.
+    const rows = await ctx.db
+      .query("calls")
+      .withIndex("by_status_started", (q) => q.eq("status", "active"))
+      .take(50);
+    let rescued = 0;
+    for (const call of rows) {
+      const lastSeen =
+        call.lastHeartbeatAt ?? call.acceptedAt ?? call.startedAt;
+      if (lastSeen >= cutoff) continue;
+      rescued++;
+      await ctx.db.patch(call._id, {
+        status: "ended",
+        endedAt: Date.now(),
+      });
+      // Either side's native CallKit/ConnectionService card could be the
+      // orphaned one (the abandoned device, or a live peer whose app never
+      // heard the other side vanish) — drop a bye signal and clear the
+      // native card for both.
+      for (const [fromUserId, toUserId] of [
+        [call.callerId, call.calleeId],
+        [call.calleeId, call.callerId],
+      ]) {
+        await ctx.db.insert("callSignals", {
+          callId: call._id,
+          fromUserId,
+          toUserId,
+          kind: "bye",
+          payload: '{"reason":"stuck"}',
+          createdAt: Date.now(),
+          consumed: false,
+        });
+        await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+          callId: call._id,
+          targetUserId: toUserId,
+          excludeDeviceId: null,
+          reason: "stuck",
+        });
+      }
+    }
+    if (rescued > 0) {
+      console.log(`gcStuckActive: rescued ${rescued} call(s)`);
     }
   },
 });

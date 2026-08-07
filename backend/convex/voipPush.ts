@@ -236,13 +236,29 @@ export const sendVoip = internalAction({
 export const sendVoipTaken = internalAction({
   args: {
     callId: v.id("calls"),
-    calleeId: v.id("users"),
+    // Whose devices to clear the native card on. Historically only ever the
+    // callee (accept/reject/cancel/expire all dismiss the ringer on the
+    // callee's other devices), but `calls.end` and `gcStuckActive` also need
+    // to clear an *active* call's card on either side — so this is just
+    // "the user whose native call UI should be dismissed," not necessarily
+    // the original callee.
+    targetUserId: v.id("users"),
     excludeDeviceId: v.optional(v.union(v.string(), v.null())),
-    reason: v.string(), // "accepted" | "rejected" | "cancelled" | "timeout"
+    // Embedded verbatim in the native push payload (see `payload` below) —
+    // a literal union so a typo is a schema-validation error at the call
+    // site, not a silently-wrong string reaching CallKit/ConnectionService.
+    reason: v.union(
+      v.literal("accepted"),
+      v.literal("rejected"),
+      v.literal("cancelled"),
+      v.literal("timeout"),
+      v.literal("ended"),
+      v.literal("stuck"),
+    ),
   },
   handler: async (ctx, args) => {
     const devices = await ctx.runQuery(internal.voipPush._loadUserDevices, {
-      userId: args.calleeId,
+      userId: args.targetUserId,
     });
     // Any device with a native token, exactly like the invite fan-out in
     // sendVoip — pushToDevice picks APNs or FCM per device and skips
@@ -261,7 +277,7 @@ export const sendVoipTaken = internalAction({
       reason: args.reason,
     };
     await Promise.allSettled(
-      targets.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
+      targets.map((d) => pushToDevice(ctx, args.targetUserId, d, payload)),
     );
   },
 });

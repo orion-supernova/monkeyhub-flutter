@@ -4282,6 +4282,62 @@ class AppLocalizationsJa extends AppLocalizations {
       '現在はプレビューのみ — すっきりした吹き出しで、タップで開けます';
 
   @override
+  String get settingsScreenSectionCalls => '通話';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'ビデオ品質';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => '自動';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => 'ネットワーク統計を表示';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      '通話中のビットレート、Ping、パケットロスをリアルタイムで表示します';
+
+  @override
+  String get videoQualityScreenTitle => 'ビデオ品質';
+
+  @override
+  String get videoQualityScreenSubtitle => '送信ビデオの解像度の上限を選んでください';
+
+  @override
+  String get videoQualityScreenAutoSubtitle => '接続状況に自動的に適応します';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle => 'フルHD — よりシャープですがデータ消費が増えます';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle => '4K — 高速な接続で最適です';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      '実際の解像度は両方のデバイスのカメラとネットワーク状況によって異なります。';
+
+  @override
+  String get callScreenControlOptions => 'その他';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'ジッター';
+
+  @override
+  String get callScreenStatsLossLabel => 'ロス';
+
+  @override
+  String get callOptionsSheetTitle => '通話オプション';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'プッシュ通知';
 
   @override

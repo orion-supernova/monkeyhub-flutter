@@ -4970,6 +4970,78 @@
   "@settingsScreenLinksUrlsOffBody": {
     "description": "Caption under SHOW LINK URLS when the toggle is off."
   },
+  "settingsScreenSectionCalls": "CALLS",
+  "@settingsScreenSectionCalls": {
+    "description": "All-caps section header above the call-related settings (video quality, network stats)."
+  },
+  "settingsScreenRowVideoQuality": "Video quality",
+  "@settingsScreenRowVideoQuality": {
+    "description": "Settings disclosure row label that opens the video quality tier picker."
+  },
+  "settingsScreenValueVideoQualityAuto": "Auto",
+  "@settingsScreenValueVideoQualityAuto": {
+    "description": "Value shown next to Video quality when the auto (adaptive) tier is selected. Also the tier's own label on the picker screen."
+  },
+  "settingsScreenValueVideoQuality1080p": "1080p",
+  "@settingsScreenValueVideoQuality1080p": {
+    "description": "Value shown next to Video quality when the 1080p tier is selected. Numeric — left untranslated in every locale."
+  },
+  "settingsScreenValueVideoQuality4k": "4K",
+  "@settingsScreenValueVideoQuality4k": {
+    "description": "Value shown next to Video quality when the 4K tier is selected. Numeric — left untranslated in every locale."
+  },
+  "settingsScreenShowNetworkStatsLabel": "SHOW NETWORK STATS",
+  "@settingsScreenShowNetworkStatsLabel": {
+    "description": "All-caps label on the Show Network Stats toggle row (also reused as the in-call options sheet row label)."
+  },
+  "settingsScreenShowNetworkStatsBody": "live bitrate, ping, and packet loss during calls",
+  "@settingsScreenShowNetworkStatsBody": {
+    "description": "Caption under SHOW NETWORK STATS describing what the toggle does."
+  },
+  "videoQualityScreenTitle": "Video quality",
+  "@videoQualityScreenTitle": {
+    "description": "Title of the video quality tier picker screen."
+  },
+  "videoQualityScreenSubtitle": "Choose a resolution ceiling for outgoing video",
+  "@videoQualityScreenSubtitle": {
+    "description": "Subtitle under the Video quality screen title."
+  },
+  "videoQualityScreenAutoSubtitle": "Adapts to your connection automatically",
+  "@videoQualityScreenAutoSubtitle": {
+    "description": "Description under the Auto tier card."
+  },
+  "videoQualityScreenHd1080Subtitle": "Full HD — sharper, uses more data",
+  "@videoQualityScreenHd1080Subtitle": {
+    "description": "Description under the 1080p tier card."
+  },
+  "videoQualityScreenUhd4kSubtitle": "Ultra HD — best on a strong connection",
+  "@videoQualityScreenUhd4kSubtitle": {
+    "description": "Description under the 4K tier card."
+  },
+  "videoQualityScreenFootnote": "Actual resolution depends on both devices' cameras and network conditions.",
+  "@videoQualityScreenFootnote": {
+    "description": "Small print at the bottom of the Video quality screen — no capability check backs the tiers, so hardware or network can still negotiate a call down from what's selected."
+  },
+  "callScreenControlOptions": "More",
+  "@callScreenControlOptions": {
+    "description": "Label under the call screen's control-bar button that opens the call options sheet (network stats toggle, video quality)."
+  },
+  "callScreenStatsRttLabel": "RTT",
+  "@callScreenStatsRttLabel": {
+    "description": "Abbreviation label preceding the round-trip-time value in the in-call network stats panel."
+  },
+  "callScreenStatsJitterLabel": "Jitter",
+  "@callScreenStatsJitterLabel": {
+    "description": "Label preceding the jitter value in the in-call network stats panel."
+  },
+  "callScreenStatsLossLabel": "Loss",
+  "@callScreenStatsLossLabel": {
+    "description": "Label preceding the packet-loss percentage in the in-call network stats panel."
+  },
+  "callOptionsSheetTitle": "Call options",
+  "@callOptionsSheetTitle": {
+    "description": "Title of the in-call bottom sheet holding the network stats toggle and video quality picker."
+  },
   "settingsScreenPushNotificationsLabel": "PUSH NOTIFICATIONS",
   "@settingsScreenPushNotificationsLabel": {
     "description": "All-caps label on the Push Notifications toggle row."

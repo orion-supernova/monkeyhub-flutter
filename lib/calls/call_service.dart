@@ -7,6 +7,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/call_api.dart';
 import '../backend/convex_client.dart';
+import '../data/settings_store.dart';
 import 'call_config.dart';
 import 'call_media.dart';
 import 'call_models.dart';
@@ -168,6 +169,12 @@ class CallService extends ChangeNotifier {
   Timer? _restartTimer;
   int _restartAttempt = 0;
   DateTime? _outageStart;
+
+  /// Pings the backend every 20s while the call is active so
+  /// `calls:gcStuckActive` can distinguish a genuinely abandoned call from
+  /// one that's just running long. Started once the PC first connects,
+  /// cancelled in [_teardown]/[_disposePc]. See [_startHeartbeat].
+  Timer? _heartbeatTimer;
 
   /// Live connection-quality readout for the active call — null between
   /// calls and until the first stats poll lands. The call UI listens via
@@ -549,6 +556,66 @@ class CallService extends ChangeNotifier {
       await Helper.switchCamera(tracks.first);
     } catch (e) {
       debugPrint('switchCamera failed: $e');
+    }
+  }
+
+  /// Guards [switchVideoQuality] against overlapping calls — two taps in
+  /// quick succession would otherwise both read the same old track before
+  /// either finished swapping it in, leaking a camera resource that no
+  /// longer corresponds to what's being sent.
+  bool _switchingVideoQuality = false;
+
+  /// Live resolution/bitrate switch — persists the choice, then (if a video
+  /// call is actually in progress) re-acquires the camera at the new tier
+  /// and swaps it onto the existing sender via `replaceTrack`. No SDP
+  /// renegotiation: the sender/transceiver stays put, only its track and
+  /// encoder params change.
+  Future<void> switchVideoQuality(VideoQualityTier tier) async {
+    await SettingsStore.instance.setVideoQualityTier(tier);
+    final s = _session;
+    final pc = _pc;
+    final oldStream = _localStream;
+    if (s == null ||
+        pc == null ||
+        oldStream == null ||
+        s.mediaKind == CallMediaKind.audio ||
+        _switchingVideoQuality) {
+      return;
+    }
+    final oldVideoTracks = oldStream.getVideoTracks();
+    if (oldVideoTracks.isEmpty) return;
+    final oldTrack = oldVideoTracks.first;
+    _switchingVideoQuality = true;
+    try {
+      final newTrack = await getCallVideoOnlyTrack(tier);
+      newTrack.enabled = !s.localVideoOff;
+      final senders = await pc.getSenders();
+      for (final sender in senders) {
+        if (sender.track?.kind == 'video') {
+          await sender.replaceTrack(newTrack);
+        }
+      }
+      // Add the new track before removing the old one, and never let a
+      // throwing stop() skip the swap — otherwise a track that fails to
+      // stop (seen on some Android OEMs, see GroupCallService.leaveCall)
+      // would leave the stream with zero video tracks and every later
+      // switch attempt silently no-oping on the empty-tracks guard above.
+      oldStream.addTrack(newTrack);
+      oldStream.removeTrack(oldTrack);
+      try {
+        await oldTrack.stop();
+      } catch (e) {
+        debugPrint('switchVideoQuality: old track stop failed: $e');
+      }
+      await configureVideoSenders(
+        pc,
+        maxBitrate: videoQualityPresets[tier]!.maxBitrate,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('switchVideoQuality($tier) failed: $e');
+    } finally {
+      _switchingVideoQuality = false;
     }
   }
 
@@ -1464,6 +1531,7 @@ class CallService extends ChangeNotifier {
         // Start (or restart, post-handoff) stats polling against this PC.
         _stats?.dispose();
         _stats = CallStatsMonitor(pc: pc, target: callQuality)..start();
+        _startHeartbeat(cur.callId);
       } else if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
         // A network flip (Wi-Fi↔LTE) lands here — recover via ICE restart;
         // teardown happens only once recovery is exhausted.
@@ -1647,22 +1715,32 @@ class CallService extends ChangeNotifier {
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
     // Classify the audio session before getUserMedia starts the mic unit.
     await _applyIosAudioConfig(kind);
-    _localStream = await getCallUserMedia(kind);
+    final tier = SettingsStore.instance.videoQualityTier;
+    _localStream = await getCallUserMedia(kind, tier: tier);
     final localKinds =
         _localStream!.getTracks().map((t) => t.kind).join(',');
     debugPrint(
       'CallService._attachLocalMedia: requested=${kind.wire} '
-      'got=[$localKinds]',
+      'tier=${tier.wire} got=[$localKinds]',
     );
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
     }
-    await configureVideoSenders(_pc!);
+    await configureVideoSenders(
+      _pc!,
+      maxBitrate: videoQualityPresets[tier]!.maxBitrate,
+    );
     await preferH264Codec(_pc!);
     // Default output route: loudspeaker for video, earpiece for voice — on
     // both platforms. iOS won't latch this until its audio session is active,
     // so onConnectionState (connected) re-asserts it.
     await _applyAudioRoute(speaker: kind == CallMediaKind.video);
+    // Nothing else notifies between `outgoingRinging`/`connecting` being set
+    // and the peer answering, so without this, listeners gating on
+    // [localStream] (the call screen's local-camera preview, the caller
+    // ringback tone) wouldn't see it become non-null until some unrelated
+    // later change happened to fire.
+    notifyListeners();
   }
 
   /// Pulls the `typ` token out of an ICE candidate SDP line:
@@ -1693,6 +1771,20 @@ class CallService extends ChangeNotifier {
         }),
       );
     } catch (_) {}
+  }
+
+  /// Idempotent — cancels any prior timer first, so an ICE-restart
+  /// reconnect (which re-enters the `Connected` branch) just restarts the
+  /// interval against the same callId rather than stacking timers.
+  void _startHeartbeat(String callId) {
+    _heartbeatTimer?.cancel();
+    final me = _userId;
+    if (me == null) return;
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      unawaited(api.heartbeat(callId: callId, userId: me).catchError((e) {
+        debugPrint('CallService heartbeat failed: $e');
+      }));
+    });
   }
 
   Future<void> _teardown(CallStatus terminal, {String? errorMessage}) async {
@@ -1735,6 +1827,8 @@ class CallService extends ChangeNotifier {
     _pcGeneration++;
     _disconnectTimer?.cancel();
     _restartTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
     _stats?.dispose();
     _stats = null;
     _remoteDescSet = false;

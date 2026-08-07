@@ -7589,6 +7589,114 @@ abstract class AppLocalizations {
   /// **'currently preview only — cleaner bubbles, tap to open'**
   String get settingsScreenLinksUrlsOffBody;
 
+  /// All-caps section header above the call-related settings (video quality, network stats).
+  ///
+  /// In en, this message translates to:
+  /// **'CALLS'**
+  String get settingsScreenSectionCalls;
+
+  /// Settings disclosure row label that opens the video quality tier picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Video quality'**
+  String get settingsScreenRowVideoQuality;
+
+  /// Value shown next to Video quality when the auto (adaptive) tier is selected. Also the tier's own label on the picker screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get settingsScreenValueVideoQualityAuto;
+
+  /// Value shown next to Video quality when the 1080p tier is selected. Numeric — left untranslated in every locale.
+  ///
+  /// In en, this message translates to:
+  /// **'1080p'**
+  String get settingsScreenValueVideoQuality1080p;
+
+  /// Value shown next to Video quality when the 4K tier is selected. Numeric — left untranslated in every locale.
+  ///
+  /// In en, this message translates to:
+  /// **'4K'**
+  String get settingsScreenValueVideoQuality4k;
+
+  /// All-caps label on the Show Network Stats toggle row (also reused as the in-call options sheet row label).
+  ///
+  /// In en, this message translates to:
+  /// **'SHOW NETWORK STATS'**
+  String get settingsScreenShowNetworkStatsLabel;
+
+  /// Caption under SHOW NETWORK STATS describing what the toggle does.
+  ///
+  /// In en, this message translates to:
+  /// **'live bitrate, ping, and packet loss during calls'**
+  String get settingsScreenShowNetworkStatsBody;
+
+  /// Title of the video quality tier picker screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Video quality'**
+  String get videoQualityScreenTitle;
+
+  /// Subtitle under the Video quality screen title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a resolution ceiling for outgoing video'**
+  String get videoQualityScreenSubtitle;
+
+  /// Description under the Auto tier card.
+  ///
+  /// In en, this message translates to:
+  /// **'Adapts to your connection automatically'**
+  String get videoQualityScreenAutoSubtitle;
+
+  /// Description under the 1080p tier card.
+  ///
+  /// In en, this message translates to:
+  /// **'Full HD — sharper, uses more data'**
+  String get videoQualityScreenHd1080Subtitle;
+
+  /// Description under the 4K tier card.
+  ///
+  /// In en, this message translates to:
+  /// **'Ultra HD — best on a strong connection'**
+  String get videoQualityScreenUhd4kSubtitle;
+
+  /// Small print at the bottom of the Video quality screen — no capability check backs the tiers, so hardware or network can still negotiate a call down from what's selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual resolution depends on both devices\' cameras and network conditions.'**
+  String get videoQualityScreenFootnote;
+
+  /// Label under the call screen's control-bar button that opens the call options sheet (network stats toggle, video quality).
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get callScreenControlOptions;
+
+  /// Abbreviation label preceding the round-trip-time value in the in-call network stats panel.
+  ///
+  /// In en, this message translates to:
+  /// **'RTT'**
+  String get callScreenStatsRttLabel;
+
+  /// Label preceding the jitter value in the in-call network stats panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Jitter'**
+  String get callScreenStatsJitterLabel;
+
+  /// Label preceding the packet-loss percentage in the in-call network stats panel.
+  ///
+  /// In en, this message translates to:
+  /// **'Loss'**
+  String get callScreenStatsLossLabel;
+
+  /// Title of the in-call bottom sheet holding the network stats toggle and video quality picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Call options'**
+  String get callOptionsSheetTitle;
+
   /// All-caps label on the Push Notifications toggle row.
   ///
   /// In en, this message translates to:

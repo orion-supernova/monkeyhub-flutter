@@ -4406,6 +4406,67 @@ class AppLocalizationsTr extends AppLocalizations {
       'şuan sadece önizleme — daha sade baloncuklar, açmak için dokun';
 
   @override
+  String get settingsScreenSectionCalls => 'ARAMALAR';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'Video kalitesi';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'Otomatik';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel =>
+      'AĞ İSTATİSTİKLERİNİ GÖSTER';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'aramalar sırasında canlı bit hızı, ping ve paket kaybı';
+
+  @override
+  String get videoQualityScreenTitle => 'Video kalitesi';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'Giden video için bir çözünürlük sınırı seç';
+
+  @override
+  String get videoQualityScreenAutoSubtitle =>
+      'Bağlantına otomatik olarak uyum sağlar';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'Full HD — daha keskin, daha fazla veri kullanır';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'Ultra HD — güçlü bağlantılarda en iyisi';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'Gerçek çözünürlük her iki cihazın kamerasına ve ağ koşullarına bağlıdır.';
+
+  @override
+  String get callScreenControlOptions => 'Diğer';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'Gecikme sapması';
+
+  @override
+  String get callScreenStatsLossLabel => 'Kayıp';
+
+  @override
+  String get callOptionsSheetTitle => 'Arama seçenekleri';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'ANLIK BİLDİRİMLER';
 
   @override

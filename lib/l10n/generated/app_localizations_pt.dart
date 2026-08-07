@@ -4480,6 +4480,67 @@ class AppLocalizationsPt extends AppLocalizations {
       'apenas pré-visualização — balões mais limpos, toca para abrir';
 
   @override
+  String get settingsScreenSectionCalls => 'CHAMADAS';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'Qualidade de vídeo';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'Automático';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel =>
+      'MOSTRAR ESTATÍSTICAS DE REDE';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
+
+  @override
+  String get videoQualityScreenTitle => 'Qualidade de vídeo';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'Escolhe um limite de resolução para o vídeo de saída';
+
+  @override
+  String get videoQualityScreenAutoSubtitle =>
+      'Adapta-se automaticamente à tua ligação';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'Full HD — mais nítido, usa mais dados';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'Ultra HD — melhor numa ligação forte';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'A resolução real depende das câmaras de ambos os dispositivos e das condições da rede.';
+
+  @override
+  String get callScreenControlOptions => 'Mais';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'Variação (jitter)';
+
+  @override
+  String get callScreenStatsLossLabel => 'Perda';
+
+  @override
+  String get callOptionsSheetTitle => 'Opções de chamada';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'NOTIFICAÇÕES PUSH';
 
   @override
@@ -9596,6 +9657,67 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsScreenLinksUrlsOffBody =>
       'só a prévia — balões mais limpos, toque para abrir';
+
+  @override
+  String get settingsScreenSectionCalls => 'CHAMADAS';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'Qualidade de vídeo';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'Automático';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel =>
+      'MOSTRAR ESTATÍSTICAS DE REDE';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
+
+  @override
+  String get videoQualityScreenTitle => 'Qualidade de vídeo';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'Escolha um limite de resolução para o vídeo de saída';
+
+  @override
+  String get videoQualityScreenAutoSubtitle =>
+      'Adapta-se automaticamente à sua conexão';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'Full HD — mais nítido, usa mais dados';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'Ultra HD — melhor em uma conexão forte';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'A resolução real depende das câmeras de ambos os dispositivos e das condições da rede.';
+
+  @override
+  String get callScreenControlOptions => 'Mais';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'Variação (jitter)';
+
+  @override
+  String get callScreenStatsLossLabel => 'Perda';
+
+  @override
+  String get callOptionsSheetTitle => 'Opções de chamada';
 
   @override
   String get settingsScreenPushNotificationsLabel => 'NOTIFICAÇÕES PUSH';

@@ -4225,6 +4225,60 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenLinksUrlsOffBody => '当前仅显示预览——气泡更简洁，点击即可打开';
 
   @override
+  String get settingsScreenSectionCalls => '通话';
+
+  @override
+  String get settingsScreenRowVideoQuality => '视频画质';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => '自动';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => '显示网络统计';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody => '通话期间实时显示比特率、延迟和丢包率';
+
+  @override
+  String get videoQualityScreenTitle => '视频画质';
+
+  @override
+  String get videoQualityScreenSubtitle => '选择传出视频的分辨率上限';
+
+  @override
+  String get videoQualityScreenAutoSubtitle => '自动适应你的网络状况';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle => '全高清——更清晰，占用更多流量';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle => '超高清——网络良好时效果最佳';
+
+  @override
+  String get videoQualityScreenFootnote => '实际分辨率取决于双方设备的摄像头和网络状况。';
+
+  @override
+  String get callScreenControlOptions => '更多';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => '抖动';
+
+  @override
+  String get callScreenStatsLossLabel => '丢包';
+
+  @override
+  String get callOptionsSheetTitle => '通话选项';
+
+  @override
   String get settingsScreenPushNotificationsLabel => '推送通知';
 
   @override

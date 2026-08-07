@@ -6,12 +6,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_sheet.dart';
 import '../widgets/user_avatar.dart';
 import 'call_models.dart';
+import 'call_options_sheet.dart';
 import 'call_service.dart';
 import 'call_stats_monitor.dart';
 
@@ -374,21 +377,35 @@ class _CallScreenState extends State<CallScreen> {
                           label: AppLocalizations.of(context)
                               .callScreenStatusReconnecting,
                         )
-                      : ValueListenableBuilder<CallQualitySnapshot?>(
-                          valueListenable: widget.service.callQuality,
-                          builder: (context, q, _) {
-                            if (q == null ||
-                                q.quality == CallQuality.good) {
-                              return const SizedBox.shrink();
-                            }
-                            return _OverlayChip(
-                              label: q.quality == CallQuality.poor
-                                  ? AppLocalizations.of(context)
-                                      .callScreenPoorConnectionLabel
-                                  : AppLocalizations.of(context)
-                                      .callScreenWeakConnectionLabel,
-                              spinner: false,
-                              tint: const Color(0xFFFFB74D),
+                      : AnimatedBuilder(
+                          animation: SettingsStore.instance,
+                          builder: (context, _) {
+                            final showStats =
+                                SettingsStore.instance.showNetworkStats;
+                            return ValueListenableBuilder<
+                                CallQualitySnapshot?>(
+                              valueListenable: widget.service.callQuality,
+                              builder: (context, q, _) {
+                                if (q == null) return const SizedBox.shrink();
+                                // Opted in via Settings or the in-call
+                                // toggle: full numeric panel regardless of
+                                // quality tier, not just when degraded.
+                                if (showStats) {
+                                  return _NetworkStatsPanel(snapshot: q);
+                                }
+                                if (q.quality == CallQuality.good) {
+                                  return const SizedBox.shrink();
+                                }
+                                return _OverlayChip(
+                                  label: q.quality == CallQuality.poor
+                                      ? AppLocalizations.of(context)
+                                          .callScreenPoorConnectionLabel
+                                      : AppLocalizations.of(context)
+                                          .callScreenWeakConnectionLabel,
+                                  spinner: false,
+                                  tint: const Color(0xFFFFB74D),
+                                );
+                              },
                             );
                           },
                         ),
@@ -461,6 +478,18 @@ class _CallScreenState extends State<CallScreen> {
                               onTap: widget.service.toggleSpeaker,
                               label: AppLocalizations.of(context)
                                   .callScreenControlSpeaker,
+                            ),
+                            _ControlButton(
+                              icon: Icons.tune,
+                              onTap: () => showAdaptiveSheet(
+                                context,
+                                builder: (_) => CallOptionsSheet(
+                                  service: widget.service,
+                                  showVideoQuality: isVideo,
+                                ),
+                              ),
+                              label: AppLocalizations.of(context)
+                                  .callScreenControlOptions,
                             ),
                             _ControlButton(
                               icon: Icons.call_end,
@@ -763,6 +792,70 @@ class _OverlayChip extends StatelessWidget {
                 letterSpacing: 0.4,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Detailed live numeric readout — opt-in replacement for [_OverlayChip]'s
+/// plain "poor/weak connection" label, driven by the same
+/// [CallQualitySnapshot] the chip already reads. Shown whenever
+/// [SettingsStore.showNetworkStats] is on, at every quality tier, not just
+/// when degraded.
+class _NetworkStatsPanel extends StatelessWidget {
+  const _NetworkStatsPanel({required this.snapshot});
+  final CallQualitySnapshot snapshot;
+
+  String _fmtKbps(double? v) => v == null ? '—' : '${v.round()} kbps';
+  String _fmtMs(double? v) => v == null ? '—' : '${v.round()} ms';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final q = snapshot;
+    final res = (q.frameWidth != null && q.frameHeight != null)
+        ? '${q.frameWidth}×${q.frameHeight}'
+            '${q.fps != null ? '@${q.fps!.round()}' : ''}'
+        : null;
+    final tint = switch (q.quality) {
+      CallQuality.poor => const Color(0xFFFF6B6B),
+      CallQuality.fair => const Color(0xFFFFB74D),
+      CallQuality.good => Colors.white,
+    };
+    final rows = <String>[
+      ?res,
+      '↓${_fmtKbps(q.inKbps)} ↑${_fmtKbps(q.outKbps)}',
+      '${l10n.callScreenStatsRttLabel} ${_fmtMs(q.rttMs)}',
+      if (q.jitterMs != null)
+        '${l10n.callScreenStatsJitterLabel} ${_fmtMs(q.jitterMs)}',
+      if (q.lossPercent != null)
+        '${l10n.callScreenStatsLossLabel} '
+            '${q.lossPercent!.toStringAsFixed(1)}%',
+      if (q.candidateType != null) q.candidateType!,
+    ];
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+          border: Border.all(color: tint.withValues(alpha: 0.2)),
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 4,
+          children: [
+            for (final r in rows)
+              Text(
+                r,
+                style: theme.monoTiny.copyWith(
+                  color: tint.withValues(alpha: 0.95),
+                ),
+              ),
           ],
         ),
       ),

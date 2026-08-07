@@ -793,6 +793,10 @@ export default defineSchema({
     // watch this through `activeCallForUser` to render the global "Move
     // call here" pill (pill renders when this !== my deviceId).
     acceptingDeviceId: v.optional(v.string()),
+    // Set by `heartbeat` while status is "active"; `gcStuckActive` treats a
+    // stale value as an abandoned call (crash, dead battery, OS jetsam) that
+    // neither side ever explicitly ended.
+    lastHeartbeatAt: v.optional(v.number()),
   })
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])

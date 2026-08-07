@@ -4519,6 +4519,65 @@ class AppLocalizationsAr extends AppLocalizations {
       'حاليًا معاينة فقط — فقاعات أنظف، اضغط للفتح';
 
   @override
+  String get settingsScreenSectionCalls => 'المكالمات';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'جودة الفيديو';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'تلقائي';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => 'إظهار إحصاءات الشبكة';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'معدل البت والزمن ونسبة فقدان الحزم أثناء المكالمات مباشرةً';
+
+  @override
+  String get videoQualityScreenTitle => 'جودة الفيديو';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'اختر الحد الأقصى لدقة الفيديو الصادر';
+
+  @override
+  String get videoQualityScreenAutoSubtitle => 'يتكيف تلقائيًا مع اتصالك';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'دقة عالية جدًا — أوضح، يستخدم بيانات أكثر';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'دقة فائقة الوضوح — الأفضل مع اتصال قوي';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'تعتمد الدقة الفعلية على كاميرات كلا الجهازين وحالة الشبكة.';
+
+  @override
+  String get callScreenControlOptions => 'المزيد';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'تذبذب';
+
+  @override
+  String get callScreenStatsLossLabel => 'فقدان';
+
+  @override
+  String get callOptionsSheetTitle => 'خيارات المكالمة';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'الإشعارات الفورية';
 
   @override

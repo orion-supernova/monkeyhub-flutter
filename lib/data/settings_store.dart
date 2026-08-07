@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../calls/call_models.dart' show VideoQualityTier, VideoQualityTierWire;
 import '../services/launcher_icon_service.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/theme_scope.dart';
@@ -31,6 +32,8 @@ class SettingsStore extends ChangeNotifier {
   static const _kLogoMode = 'mh.logoMode';
   static const _kManualLogoThemeId = 'mh.manualLogoThemeId';
   static const _kShowLinkUrls = 'mh.showLinkUrls';
+  static const _kShowNetworkStats = 'mh.showNetworkStats';
+  static const _kVideoQualityTier = 'mh.videoQualityTier';
   // NOTE: 'mh.fullScreenIntentPrompted', 'mh.batteryOptPrompted' and
   // 'mh.micPermissionPrompted' were retired with the Android onboarding
   // prompts they gated. Their values are left on disk rather than migrated
@@ -63,6 +66,8 @@ class SettingsStore extends ChangeNotifier {
   LogoMode _logoMode = LogoMode.auto;
   String? _manualLogoThemeId;
   bool _showLinkUrls = false;
+  bool _showNetworkStats = false;
+  VideoQualityTier _videoQualityTier = VideoQualityTier.auto;
   String? _recoveryPromptDismissedFor;
   FilterStyle _filterStyle = FilterStyle.chips;
   RoomFilter _roomFilter = RoomFilter.empty;
@@ -98,6 +103,20 @@ class SettingsStore extends ChangeNotifier {
   /// preview card. Default `false` — the preview alone communicates the
   /// link, and keeping the URL text out makes mixed messages read clean.
   bool get showLinkUrls => _showLinkUrls;
+
+  /// When `true`, the in-call warning chip expands into a live numeric
+  /// stats panel (bitrate, RTT, loss, jitter, resolution/fps) instead of
+  /// just a "poor/weak connection" label — and shows even when the
+  /// connection is good, not only when degraded. Default `false`. Also
+  /// toggleable from an icon inside the call view itself — same setting,
+  /// reachable from both places.
+  bool get showNetworkStats => _showNetworkStats;
+
+  /// Resolution ceiling for outgoing video on both the 1:1 and group call
+  /// paths. Default `auto` — today's long-standing 720p/adaptive behavior,
+  /// unchanged unless the user opts into a higher tier. Also switchable from
+  /// inside the call view; both write here.
+  VideoQualityTier get videoQualityTier => _videoQualityTier;
 
   /// When false (default), the "SEEN" indicator on the user's own messages is
   /// suppressed even if read-state data flows in. Off by default — opt-in.
@@ -240,6 +259,11 @@ class SettingsStore extends ChangeNotifier {
       _manualLogoThemeId = await _storage.read(key: _kManualLogoThemeId);
       final slu = await _storage.read(key: _kShowLinkUrls);
       _showLinkUrls = slu == 'true'; // default false
+      final sns = await _storage.read(key: _kShowNetworkStats);
+      _showNetworkStats = sns == 'true'; // default false
+      _videoQualityTier = VideoQualityTierWire.parse(
+        await _storage.read(key: _kVideoQualityTier),
+      );
       _recoveryPromptDismissedFor = await _storage.read(
         key: _kRecoveryPromptDismissed,
       );
@@ -423,6 +447,20 @@ class SettingsStore extends ChangeNotifier {
     _showLinkUrls = v;
     notifyListeners();
     await _storage.write(key: _kShowLinkUrls, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setShowNetworkStats(bool v) async {
+    if (_showNetworkStats == v) return;
+    _showNetworkStats = v;
+    notifyListeners();
+    await _storage.write(key: _kShowNetworkStats, value: v ? 'true' : 'false');
+  }
+
+  Future<void> setVideoQualityTier(VideoQualityTier v) async {
+    if (_videoQualityTier == v) return;
+    _videoQualityTier = v;
+    notifyListeners();
+    await _storage.write(key: _kVideoQualityTier, value: v.wire);
   }
 
   /// Records that [userId] declined the recovery-phrase prompt once. The

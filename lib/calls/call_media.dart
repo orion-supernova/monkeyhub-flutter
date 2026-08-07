@@ -17,24 +17,100 @@ import 'call_models.dart';
 bool get isMobileCallPlatform =>
     !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
+/// Resolution ceiling + encoder cap for one [VideoQualityTier]. No capability
+/// probing backs this (nothing in this codebase enumerates camera formats) —
+/// `min`/`ideal`/`max` constraints negotiate down on hardware that can't
+/// reach a tier, same as the legacy-constraint fallback below already does
+/// for the pre-existing 720p default.
+class VideoQualityPreset {
+  const VideoQualityPreset({
+    required this.minWidth,
+    required this.idealWidth,
+    required this.maxWidth,
+    required this.minHeight,
+    required this.idealHeight,
+    required this.maxHeight,
+    required this.maxBitrate,
+  });
+
+  final int minWidth;
+  final int idealWidth;
+  final int maxWidth;
+  final int minHeight;
+  final int idealHeight;
+  final int maxHeight;
+
+  /// Passed to [configureVideoSenders]. Solo-call baseline — group calls
+  /// scale it further down per peer via `meshVideoBitrate`.
+  final int maxBitrate;
+}
+
+/// `auto` is byte-for-byte the constraint set this file used before video
+/// quality tiers existed — selecting it is a strict no-op for every existing
+/// call.
+const Map<VideoQualityTier, VideoQualityPreset> videoQualityPresets = {
+  VideoQualityTier.auto: VideoQualityPreset(
+    minWidth: 480,
+    idealWidth: 1280,
+    maxWidth: 1280,
+    minHeight: 360,
+    idealHeight: 720,
+    maxHeight: 720,
+    maxBitrate: 1200000,
+  ),
+  VideoQualityTier.hd1080: VideoQualityPreset(
+    minWidth: 640,
+    idealWidth: 1920,
+    maxWidth: 1920,
+    minHeight: 480,
+    idealHeight: 1080,
+    maxHeight: 1080,
+    maxBitrate: 2500000,
+  ),
+  VideoQualityTier.uhd4k: VideoQualityPreset(
+    minWidth: 1280,
+    idealWidth: 3840,
+    maxWidth: 3840,
+    minHeight: 720,
+    idealHeight: 2160,
+    maxHeight: 2160,
+    maxBitrate: 8000000,
+  ),
+};
+
+Map<String, dynamic> _videoConstraintsFor(VideoQualityTier tier) {
+  final preset = videoQualityPresets[tier]!;
+  return {
+    'facingMode': 'user',
+    'width': {
+      'min': preset.minWidth,
+      'ideal': preset.idealWidth,
+      'max': preset.maxWidth,
+    },
+    'height': {
+      'min': preset.minHeight,
+      'ideal': preset.idealHeight,
+      'max': preset.maxHeight,
+    },
+    'frameRate': {'min': 15, 'ideal': 30, 'max': 30},
+  };
+}
+
 /// getUserMedia with production constraints; falls back once to the legacy
 /// `mandatory` form on devices that reject the ideal/min/max map.
-Future<MediaStream> getCallUserMedia(CallMediaKind kind) async {
+Future<MediaStream> getCallUserMedia(
+  CallMediaKind kind, {
+  VideoQualityTier tier = VideoQualityTier.auto,
+}) async {
   final constraints = <String, dynamic>{
     'audio': {
       'echoCancellation': true,
       'noiseSuppression': true,
       'autoGainControl': true,
     },
-    if (kind == CallMediaKind.video)
-      'video': {
-        'facingMode': 'user',
-        'width': {'min': 480, 'ideal': 1280, 'max': 1280},
-        'height': {'min': 360, 'ideal': 720, 'max': 720},
-        'frameRate': {'min': 15, 'ideal': 30, 'max': 30},
-      }
-    else
-      'video': false,
+    'video': kind == CallMediaKind.video
+        ? _videoConstraintsFor(tier)
+        : false,
   };
   try {
     return await navigator.mediaDevices.getUserMedia(constraints);
@@ -58,6 +134,25 @@ Future<MediaStream> getCallUserMedia(CallMediaKind kind) async {
         'video': false,
     });
   }
+}
+
+/// Re-acquire just the camera at a new [tier], for a mid-call quality switch
+/// — deliberately video-only (`audio: false`) so it never touches the live
+/// mic track the way a full [getCallUserMedia] call would. Caller is
+/// expected to `RTCRtpSender.replaceTrack` the result onto the existing
+/// video sender and stop the old track; no renegotiation needed.
+Future<MediaStreamTrack> getCallVideoOnlyTrack(VideoQualityTier tier) async {
+  final stream = await navigator.mediaDevices.getUserMedia({
+    'audio': false,
+    'video': _videoConstraintsFor(tier),
+  });
+  final track = stream.getVideoTracks().first;
+  // Detach the track before disposing its wrapper stream — `dispose()`
+  // would otherwise stop every track still inside it, including the one
+  // the caller is about to hand off to `replaceTrack`.
+  stream.removeTrack(track);
+  await stream.dispose();
+  return track;
 }
 
 /// Cap the video encoder so it can't starve the link. [maxBitrate] defaults

@@ -4295,6 +4295,63 @@ class AppLocalizationsKo extends AppLocalizations {
       '지금은 미리보기만 표시돼요 — 말풍선이 깔끔해지고, 탭하면 열려요';
 
   @override
+  String get settingsScreenSectionCalls => '통화';
+
+  @override
+  String get settingsScreenRowVideoQuality => '화질';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => '자동';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => '네트워크 통계 표시';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      '통화 중 실시간 비트레이트, 핑, 패킷 손실을 표시해요';
+
+  @override
+  String get videoQualityScreenTitle => '화질';
+
+  @override
+  String get videoQualityScreenSubtitle => '발신 영상의 해상도 상한을 선택하세요';
+
+  @override
+  String get videoQualityScreenAutoSubtitle => '연결 상태에 자동으로 맞춰져요';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'Full HD — 더 선명하지만 데이터를 더 사용해요';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle => 'Ultra HD — 강한 연결에서 가장 좋아요';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      '실제 해상도는 양쪽 기기의 카메라와 네트워크 상태에 따라 달라져요.';
+
+  @override
+  String get callScreenControlOptions => '더보기';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => '지터';
+
+  @override
+  String get callScreenStatsLossLabel => '손실';
+
+  @override
+  String get callOptionsSheetTitle => '통화 옵션';
+
+  @override
   String get settingsScreenPushNotificationsLabel => '푸시 알림';
 
   @override

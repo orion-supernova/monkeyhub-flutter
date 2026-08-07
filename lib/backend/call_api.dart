@@ -58,6 +58,13 @@ class CallApi {
     await _cv.mutation('calls:end', {'callId': callId, 'userId': userId});
   }
 
+  /// Pinged periodically while a call is active so `calls:gcStuckActive` can
+  /// tell a genuinely abandoned call (crash, dead battery) apart from one
+  /// that's just running long. No-op server-side once the call isn't active.
+  Future<void> heartbeat({required String callId, required String userId}) async {
+    await _cv.mutation('calls:heartbeat', {'callId': callId, 'userId': userId});
+  }
+
   Future<void> sendCallSignal({
     required String callId,
     required String fromUserId,

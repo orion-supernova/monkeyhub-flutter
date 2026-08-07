@@ -616,32 +616,48 @@ class NativeCallHandler {
   Future<void> endNativeByCallId(String callId) async {
     if (!_nativeCallUi) return;
     final known = _uuidByCallId.remove(callId);
-    try {
-      // Prefer the plugin's own record so a natively-minted id (iOS PushKit)
-      // is matched exactly.
-      var ended = false;
-      final active = (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
-      for (final c in active) {
-        if (c is Map &&
-            ((c['extra'] as Map?)?['callId']?.toString() == callId)) {
-          final uuid = c['id']?.toString();
-          if (uuid != null && uuid.isNotEmpty) {
-            await FlutterCallkitIncoming.endCall(uuid);
-            ended = true;
+    // One retry after a short delay before giving up — this is the same
+    // call a stuck-call push relies on to clear an orphaned CallKit/
+    // ConnectionService card, so a single transient failure (a busy plugin
+    // channel, a momentary platform-call race) shouldn't leave it stranded.
+    for (var attempt = 1; attempt <= 2; attempt++) {
+      try {
+        // Prefer the plugin's own record so a natively-minted id (iOS
+        // PushKit) is matched exactly.
+        var ended = false;
+        final active =
+            (await FlutterCallkitIncoming.activeCalls()) as List<dynamic>;
+        for (final c in active) {
+          if (c is Map &&
+              ((c['extra'] as Map?)?['callId']?.toString() == callId)) {
+            final uuid = c['id']?.toString();
+            if (uuid != null && uuid.isNotEmpty) {
+              await FlutterCallkitIncoming.endCall(uuid);
+              ended = true;
+            }
           }
         }
+        if (!ended && Platform.isAndroid) {
+          // `activeCalls()` on Android only reports the last call, so a card
+          // we know about can be missing from that list. Both Android ring
+          // paths derive the id from the callId, so we can still address it.
+          // Android-only on purpose: an iOS card the plugin doesn't list is
+          // either gone or on AppDelegate's fallback provider (cleared
+          // below), and handing CallKit a UUID it has never issued is not
+          // worth the risk.
+          await FlutterCallkitIncoming.endCall(known ?? derivedUuid(callId));
+        }
+        break;
+      } catch (e) {
+        if (attempt == 2) {
+          debugPrint(
+            'NativeCallHandler.endNativeByCallId failed after retry: $e',
+          );
+          break;
+        }
+        debugPrint('NativeCallHandler.endNativeByCallId failed, retrying: $e');
+        await Future.delayed(const Duration(milliseconds: 500));
       }
-      if (!ended && Platform.isAndroid) {
-        // `activeCalls()` on Android only reports the last call, so a card we
-        // know about can be missing from that list. Both Android ring paths
-        // derive the id from the callId, so we can still address it.
-        // Android-only on purpose: an iOS card the plugin doesn't list is
-        // either gone or on AppDelegate's fallback provider (cleared below),
-        // and handing CallKit a UUID it has never issued is not worth the risk.
-        await FlutterCallkitIncoming.endCall(known ?? derivedUuid(callId));
-      }
-    } catch (e) {
-      debugPrint('NativeCallHandler.endNativeByCallId failed: $e');
     }
     // AppDelegate's last-resort ringer lives on a CXProvider the plugin can't
     // see, and it holds at most one card, so there is nothing finer to target.

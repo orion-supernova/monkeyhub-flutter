@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
+import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
@@ -37,6 +38,7 @@ import 'profile_screen.dart';
 import 'report_problem_screen.dart';
 import 'room_layout_screen.dart';
 import 'theme_screen.dart';
+import 'video_quality_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -141,6 +143,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
     return l10n.settingsScreenValueCustom;
+  }
+
+  String get _videoQualityLabel {
+    final l10n = AppLocalizations.of(context);
+    switch (SettingsStore.instance.videoQualityTier) {
+      case VideoQualityTier.auto:
+        return l10n.settingsScreenValueVideoQualityAuto;
+      case VideoQualityTier.hd1080:
+        return l10n.settingsScreenValueVideoQuality1080p;
+      case VideoQualityTier.uhd4k:
+        return l10n.settingsScreenValueVideoQuality4k;
+    }
   }
 
   String get _chatStyleLabel {
@@ -539,6 +553,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SectionHeader(label: l10n.settingsScreenSectionLinks),
               const SizedBox(height: 12),
               _ShowLinkUrlsToggle(),
+
+              const SizedBox(height: 28),
+              _SectionHeader(label: l10n.settingsScreenSectionCalls),
+              const SizedBox(height: 12),
+              _DisclosureRow(
+                label: l10n.settingsScreenRowVideoQuality,
+                value: _videoQualityLabel,
+                selected: _isOpen('videoQuality'),
+                leading: Icon(
+                  Icons.high_quality_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'videoQuality',
+                  builder: (_) => const VideoQualityScreen(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _ShowNetworkStatsToggle(),
 
               const SizedBox(height: 28),
               _DisclosureRow(
@@ -951,6 +986,66 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
                         on
                             ? l10n.settingsScreenLinksUrlsOnBody
                             : l10n.settingsScreenLinksUrlsOffBody,
+                        style: theme.bodySoft,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Switch.adaptive(
+                  value: on,
+                  onChanged: _toggle,
+                  activeThumbColor: theme.accent,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ShowNetworkStatsToggle extends StatelessWidget {
+  Future<void> _toggle(bool v) =>
+      SettingsStore.instance.setShowNetworkStats(v);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final on = SettingsStore.instance.showNetworkStats;
+        return GestureDetector(
+          onTap: () => _toggle(!on),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(color: theme.divider),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.speed_outlined,
+                  size: 16,
+                  color: on ? theme.accent : theme.inkMuted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.settingsScreenShowNetworkStatsLabel,
+                        style: theme.label,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.settingsScreenShowNetworkStatsBody,
                         style: theme.bodySoft,
                       ),
                     ],

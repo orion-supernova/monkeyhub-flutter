@@ -14,6 +14,8 @@ class CallQualitySnapshot {
     this.rttMs,
     this.lossPercent,
     this.outKbps,
+    this.inKbps,
+    this.jitterMs,
     this.frameWidth,
     this.frameHeight,
     this.fps,
@@ -25,6 +27,14 @@ class CallQualitySnapshot {
   final double? rttMs;
   final double? lossPercent;
   final double? outKbps;
+
+  /// Inbound (received) bitrate — the counterpart to [outKbps]. Same delta
+  /// math, off `inbound-rtp.bytesReceived`.
+  final double? inKbps;
+
+  /// Jitter buffer delay on the inbound stream, straight from
+  /// `inbound-rtp.jitter` (WebRTC reports it in seconds; converted to ms).
+  final double? jitterMs;
   final int? frameWidth;
   final int? frameHeight;
   final double? fps;
@@ -50,6 +60,7 @@ class CallStatsMonitor {
 
   Timer? _timer;
   int _lastBytesSent = 0;
+  int _lastBytesReceived = 0;
   int _lastPacketsLost = 0;
   int _lastPacketsReceived = 0;
   DateTime? _lastPollAt;
@@ -87,6 +98,9 @@ class CallStatsMonitor {
     double? rttMs;
     String? candidateType;
     double? outKbps;
+    double? inKbps;
+    double? videoJitterMs;
+    double? audioJitterMs;
     int? frameWidth;
     int? frameHeight;
     double? fps;
@@ -135,16 +149,29 @@ class CallStatsMonitor {
 
     int packetsLost = 0;
     int packetsReceived = 0;
+    int bytesReceived = 0;
     for (final r in reports) {
       if (r.type != 'inbound-rtp') continue;
       final v = r.values;
       packetsLost += _num(v['packetsLost'])?.toInt() ?? 0;
       packetsReceived += _num(v['packetsReceived'])?.toInt() ?? 0;
+      // Total download bitrate, audio + video — unlike [outKbps] this isn't
+      // video-only, since jitter/bitrate on the audio leg matters just as
+      // much for a voice-only call.
+      bytesReceived += _num(v['bytesReceived'])?.toInt() ?? 0;
+      final jitter = _num(v['jitter']);
       final kind = (v['kind'] ?? v['mediaType'])?.toString();
       if (kind == 'video') {
         inboundFps = _num(v['framesPerSecond']) ?? inboundFps;
+        if (jitter != null) videoJitterMs = jitter * 1000;
+      } else if (kind == 'audio') {
+        if (jitter != null) audioJitterMs = jitter * 1000;
       }
     }
+    // Video leg preferred when both exist, same convention as [videoFps]
+    // below — otherwise whichever report happened to be visited last in
+    // getStats()'s unordered result would silently win.
+    final jitterMs = videoJitterMs ?? audioJitterMs;
     final dLost = packetsLost - _lastPacketsLost;
     final dRecv = packetsReceived - _lastPacketsReceived;
     if (dRecv + dLost > 0 && dLost >= 0 && dRecv >= 0) {
@@ -152,6 +179,10 @@ class CallStatsMonitor {
     }
     _lastPacketsLost = packetsLost;
     _lastPacketsReceived = packetsReceived;
+    if (elapsed != null && elapsed > 0 && bytesReceived >= _lastBytesReceived) {
+      inKbps = (bytesReceived - _lastBytesReceived) * 8 / 1000 / elapsed;
+    }
+    _lastBytesReceived = bytesReceived;
 
     final videoFps = fps ?? inboundFps;
     final quality = classifyQuality(
@@ -177,6 +208,8 @@ class CallStatsMonitor {
       rttMs: rttMs,
       lossPercent: lossPercent,
       outKbps: outKbps,
+      inKbps: inKbps,
+      jitterMs: jitterMs,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
       fps: videoFps,

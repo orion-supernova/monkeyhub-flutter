@@ -40,6 +40,17 @@ crons.interval(
   {},
 );
 
+// Safety net: any 'active' call whose heartbeat has gone silent for 3+ min
+// (client crashed, battery died, OS jetsam) gets forced to 'ended' and both
+// sides' native CallKit/ConnectionService cards are cleared. See calls.ts
+// heartbeat/gcStuckActive.
+crons.interval(
+  "calls.gcStuckActive",
+  { minutes: 5 },
+  internal.calls.gcStuckActive,
+  {},
+);
+
 // Group calls: reap joined participants whose heartbeat went silent and end
 // emptied calls; sweep consumed pair signals. See groupCalls.ts.
 // Stays at 1 minute — the exception noted above. This one is not a garbage

@@ -1,5 +1,26 @@
 enum CallMediaKind { audio, video }
 
+/// User-selectable video call resolution ceiling. `auto` is today's
+/// long-standing default verbatim (720p ideal/max, WebRTC's own bandwidth
+/// adaptation via `MAINTAIN_FRAMERATE` degradation) — picking a higher tier
+/// raises the ceiling `getCallUserMedia`/`configureVideoSenders` negotiate
+/// against; it does not disable adaptation under real congestion.
+enum VideoQualityTier { auto, hd1080, uhd4k }
+
+extension VideoQualityTierWire on VideoQualityTier {
+  String get wire => switch (this) {
+        VideoQualityTier.auto => 'auto',
+        VideoQualityTier.hd1080 => 'hd1080',
+        VideoQualityTier.uhd4k => 'uhd4k',
+      };
+
+  static VideoQualityTier parse(String? s) => switch (s) {
+        'hd1080' => VideoQualityTier.hd1080,
+        'uhd4k' => VideoQualityTier.uhd4k,
+        _ => VideoQualityTier.auto,
+      };
+}
+
 extension CallMediaKindWire on CallMediaKind {
   String get wire => this == CallMediaKind.audio ? 'audio' : 'video';
   static CallMediaKind parse(String? s) =>

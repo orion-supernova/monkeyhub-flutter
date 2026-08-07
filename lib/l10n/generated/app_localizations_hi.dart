@@ -4442,6 +4442,66 @@ class AppLocalizationsHi extends AppLocalizations {
       'फिलहाल सिर्फ़ प्रीव्यू — साफ़-सुथरे बबल, खोलने के लिए टैप करें';
 
   @override
+  String get settingsScreenSectionCalls => 'कॉल';
+
+  @override
+  String get settingsScreenRowVideoQuality => 'वीडियो क्वालिटी';
+
+  @override
+  String get settingsScreenValueVideoQualityAuto => 'ऑटो';
+
+  @override
+  String get settingsScreenValueVideoQuality1080p => '1080p';
+
+  @override
+  String get settingsScreenValueVideoQuality4k => '4K';
+
+  @override
+  String get settingsScreenShowNetworkStatsLabel => 'नेटवर्क आँकड़े दिखाएं';
+
+  @override
+  String get settingsScreenShowNetworkStatsBody =>
+      'कॉल के दौरान लाइव बिटरेट, पिंग और पैकेट लॉस दिखाता है';
+
+  @override
+  String get videoQualityScreenTitle => 'वीडियो क्वालिटी';
+
+  @override
+  String get videoQualityScreenSubtitle =>
+      'आउटगोइंग वीडियो के लिए एक रिज़ॉल्यूशन सीमा चुनें';
+
+  @override
+  String get videoQualityScreenAutoSubtitle =>
+      'आपके कनेक्शन के हिसाब से अपने आप एडजस्ट हो जाता है';
+
+  @override
+  String get videoQualityScreenHd1080Subtitle =>
+      'फुल एचडी — ज़्यादा शार्प, ज़्यादा डेटा इस्तेमाल करता है';
+
+  @override
+  String get videoQualityScreenUhd4kSubtitle =>
+      'अल्ट्रा एचडी — मज़बूत कनेक्शन पर सबसे अच्छा';
+
+  @override
+  String get videoQualityScreenFootnote =>
+      'असली रिज़ॉल्यूशन दोनों डिवाइस के कैमरे और नेटवर्क की स्थिति पर निर्भर करता है।';
+
+  @override
+  String get callScreenControlOptions => 'अधिक';
+
+  @override
+  String get callScreenStatsRttLabel => 'RTT';
+
+  @override
+  String get callScreenStatsJitterLabel => 'जिटर';
+
+  @override
+  String get callScreenStatsLossLabel => 'लॉस';
+
+  @override
+  String get callOptionsSheetTitle => 'कॉल विकल्प';
+
+  @override
   String get settingsScreenPushNotificationsLabel => 'पुश नोटिफिकेशन';
 
   @override
