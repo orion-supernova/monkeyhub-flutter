@@ -248,6 +248,7 @@ export const updateVisibility = mutation({
     seen: v.optional(v.string()),
     friendRequests: v.optional(v.string()),
     feed: v.optional(v.string()),
+    points: v.optional(v.string()),
     puzzle: v.optional(v.string()),
     pointsPast: v.optional(v.string()),
   },
@@ -261,6 +262,7 @@ export const updateVisibility = mutation({
       seen,
       friendRequests,
       feed,
+      points,
       puzzle,
       pointsPast,
     }
@@ -297,6 +299,7 @@ export const updateVisibility = mutation({
       // Note these three DEFAULT differently from the rest of this object —
       // see `visibilityOf` in feed.ts, which owns that decision.
       ...(feed !== undefined ? { feed: pick(feed, feedValid) } : {}),
+      ...(points !== undefined ? { points: pick(points, feedValid) } : {}),
       ...(puzzle !== undefined ? { puzzle: pick(puzzle, feedValid) } : {}),
       ...(pointsPast !== undefined
         ? { pointsPast: pick(pointsPast, feedValid) }

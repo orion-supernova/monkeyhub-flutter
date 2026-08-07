@@ -108,9 +108,37 @@ function visibilityOf(user: any) {
   const vis = user?.visibility ?? {};
   return {
     feed: vis.feed !== "nobody",
+    points: vis.points !== "nobody",
     puzzle: vis.puzzle !== "nobody",
     pointsPast: vis.pointsPast === "friends",
   };
+}
+
+/**
+ * Whether [viewerId] may see [moment], honouring its author's settings.
+ *
+ * Centralised because "every surface respects the setting" is not something
+ * three separate hand-written checks can promise — one of them will drift. Any
+ * new read path calls THIS, and the only correct way to skip it is to be the
+ * author.
+ *
+ * Note the split: a tagged row is a POINT and obeys `points`; an untagged row
+ * is a HIGHLIGHT and obeys `feed`. They are separate settings because sharing
+ * your running joke but not your camera roll is a reasonable position.
+ */
+async function canSeeMoment(ctx: any, viewerId: any, moment: any) {
+  if (moment.userId === viewerId) return true;
+  const link = await ctx.db
+    .query("friendships")
+    .withIndex("by_pair", (q: any) =>
+      q.eq("userId", viewerId).eq("friendId", moment.userId)
+    )
+    .first();
+  if (!link || link.status !== "accepted") return false;
+  const author = await ctx.db.get(moment.userId);
+  if (!author) return false;
+  const vis = visibilityOf(author);
+  return moment.tag === undefined ? vis.feed : vis.points;
 }
 
 /** The ids of everyone [userId] has an accepted friendship with. */
@@ -157,16 +185,25 @@ export const board = query({
     for (const authorId of authorIds) {
       const mine = authorId === userId;
 
+      // Highlights and points are SEPARATE surfaces with separate settings, so
+      // this resolves both and filters per row below rather than skipping the
+      // author wholesale. Someone who shares their points but not their photos
+      // is a real and reasonable position, and the old single check made it
+      // unrepresentable.
+      let allowHighlights = true;
+      let allowPoints = true;
       if (!mine) {
-        // One users read per FRIEND (not per moment) to honour their feed
-        // visibility. This is the one place the board touches a users row, and
-        // it is the reason `board` re-fires on a friend's presence heartbeat.
-        // Accepted as the cost of the setting being real; the alternative is
-        // denormalizing a privacy flag onto every moment and having a change
-        // to it silently not apply to yesterday's rows.
+        // One users read per FRIEND (not per moment). This is the one place
+        // the board touches a users row, and it is the reason `board` re-fires
+        // on a friend's presence heartbeat. Accepted as the cost of the
+        // settings being real; denormalizing a privacy flag onto every moment
+        // would mean a change to it silently not applying to older rows.
         const author = await ctx.db.get(authorId);
         if (!author) continue;
-        if (!visibilityOf(author).feed) continue;
+        const vis = visibilityOf(author);
+        allowHighlights = vis.feed;
+        allowPoints = vis.points;
+        if (!allowHighlights && !allowPoints) continue;
       }
 
       const rows = await ctx.db
@@ -181,6 +218,11 @@ export const board = query({
         // local day — you should be able to see what you posted this morning
         // even once friends can't.
         if (!mine && m.expiresAt <= now) continue;
+        // A tagged row is a POINT, an untagged one is a HIGHLIGHT, and each
+        // obeys its own setting.
+        if (!mine && !(m.tag === undefined ? allowHighlights : allowPoints)) {
+          continue;
+        }
 
         const reactions = await ctx.db
           .query("momentReactions")
@@ -421,6 +463,10 @@ export const markSeen = mutation({
       // Silently skip a moment that vanished mid-swipe rather than throwing —
       // the viewer did nothing wrong and there is no useful client recovery.
       if (!m || m.userId === userId) continue;
+      // Also skip anything this viewer is not entitled to. Writing a view row
+      // for a hidden moment would leak nothing directly, but it would put the
+      // viewer's id on a stranger's content and survive a later privacy change.
+      if (!(await canSeeMoment(ctx, userId, m))) continue;
       await ctx.db.insert("momentViews", { momentId, viewerId: userId, viewedAt: now });
     }
   },
@@ -437,18 +483,11 @@ export const react = mutation({
     const m = await ctx.db.get(momentId);
     if (!m) throw new Error("MOMENT_NOT_FOUND");
 
-    // Reacting proves you can see it, which means friendship. Re-checked here
-    // rather than trusted from the board payload: a client can call this with
-    // any moment id, and the board is not an authorization token.
-    if (m.userId !== userId) {
-      const link = await ctx.db
-        .query("friendships")
-        .withIndex("by_pair", (q: any) =>
-          q.eq("userId", userId).eq("friendId", m.userId)
-        )
-        .first();
-      if (!link || link.status !== "accepted") throw new Error("NOT_A_FRIEND");
-    }
+    // Friendship alone is NOT enough: an author who shares highlights but not
+    // points has friends who must not be able to react to a point. Re-checked
+    // server-side rather than trusted from the board payload — a client can
+    // call this with any moment id, and the board is not an auth token.
+    if (!(await canSeeMoment(ctx, userId, m))) throw new Error("NOT_A_FRIEND");
 
     const existing = await ctx.db
       .query("momentReactions")
@@ -522,7 +561,24 @@ export const archive = query({
       const author = await ctx.db.get(target);
       if (!author) throw new Error("USER_NOT_FOUND");
       const vis = visibilityOf(author);
-      if (!vis.feed || !vis.pointsPast) throw new Error("HISTORY_PRIVATE");
+      // History is gated first — it is the setting that says "you may look
+      // back at all". Then each row still has to clear its own type's setting,
+      // below, so opening your past does not retroactively share a category
+      // you keep private today.
+      if (!vis.pointsPast) throw new Error("HISTORY_PRIVATE");
+      if (!vis.feed && !vis.points) throw new Error("HISTORY_PRIVATE");
+    }
+
+    // Resolved once for the whole page rather than per row: `canSeeMoment`
+    // would re-read the same users doc for every item, and inside a paged read
+    // that is the difference between one lookup and sixty.
+    let allowHighlights = true;
+    let allowPoints = true;
+    if (!mine) {
+      const author = await ctx.db.get(target);
+      const vis = visibilityOf(author);
+      allowHighlights = vis.feed;
+      allowPoints = vis.points;
     }
 
     const take = Math.min(limit ?? 30, 60);
@@ -540,6 +596,9 @@ export const archive = query({
     const page = rows.slice(0, take);
     const items = [];
     for (const m of page) {
+      if (!mine && !(m.tag === undefined ? allowHighlights : allowPoints)) {
+        continue;
+      }
       const reactions = await ctx.db
         .query("momentReactions")
         .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))

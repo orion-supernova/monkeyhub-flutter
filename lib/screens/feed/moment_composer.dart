@@ -17,16 +17,16 @@ import '../../media/video_poster.dart';
 import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
-import '../../widgets/moment_rail.dart';
 import '../camera_screen.dart';
 import '../image_crop_screen.dart';
 
-/// Composes a moment: a picture, some words, and optionally a category.
+/// Composes a HIGHLIGHT: a picture or a video, and a few words about it.
 ///
-/// One composer for both halves of the feature. Post it untagged and it is a
-/// highlight; pick a category and it also scores on the standings board. That
-/// is the whole difference, and keeping it to one screen is why tagging a photo
-/// you just took costs a single tap.
+/// Points live in `point_composer.dart` and are a different act entirely — a
+/// sentence about something that happened, with the photo optional. Merging
+/// them into one sheet made highlights feel like they needed a score and points
+/// feel like they needed a camera, and neither is true. They still write the
+/// same row; only the composing is separate, which is where it matters.
 ///
 /// Returns true when something was published, so the caller can react.
 Future<bool> showMomentComposer(
@@ -34,7 +34,6 @@ Future<bool> showMomentComposer(
   required ChatApi api,
   required FeedApi feedApi,
   required String userId,
-  MomentTag? initialTag,
 }) async {
   final posted = await showAdaptiveSheet<bool>(
     context,
@@ -42,7 +41,6 @@ Future<bool> showMomentComposer(
       api: api,
       feedApi: feedApi,
       userId: userId,
-      initialTag: initialTag,
     ),
   );
   return posted == true;
@@ -53,13 +51,11 @@ class _MomentComposer extends StatefulWidget {
     required this.api,
     required this.feedApi,
     required this.userId,
-    this.initialTag,
   });
 
   final ChatApi api;
   final FeedApi feedApi;
   final String userId;
-  final MomentTag? initialTag;
 
   @override
   State<_MomentComposer> createState() => _MomentComposerState();
@@ -67,7 +63,6 @@ class _MomentComposer extends StatefulWidget {
 
 class _MomentComposerState extends State<_MomentComposer> {
   final _caption = TextEditingController();
-  MomentTag? _tag;
   CroppedImage? _image;
 
   /// A picked video, held as bytes with its poster frame. Mutually exclusive
@@ -84,7 +79,6 @@ class _MomentComposerState extends State<_MomentComposer> {
   @override
   void initState() {
     super.initState();
-    _tag = widget.initialTag;
     _caption.addListener(_onTyped);
   }
 
@@ -265,7 +259,6 @@ class _MomentComposerState extends State<_MomentComposer> {
         // The AUTHOR's local day — the server cannot derive it, and assuming
         // UTC would file an evening moment under tomorrow for half the world.
         dayKey: FeedStore.instance.dayKey,
-        tag: _tag,
         caption: _caption.text.trim().isEmpty ? null : _caption.text.trim(),
         mediaStorageId: storageId,
         posterStorageId: posterId,
@@ -351,9 +344,7 @@ class _MomentComposerState extends State<_MomentComposer> {
           const SizedBox(height: 6),
           Row(
             children: [
-              Expanded(
-                child: Text(l10n.momentComposerTagPrompt, style: theme.monoTiny),
-              ),
+              const Spacer(),
               // Only warn as the limit approaches — a permanent counter on a
               // 280-character field is noise for the 280th of posts that get
               // anywhere near it.
@@ -365,12 +356,6 @@ class _MomentComposerState extends State<_MomentComposer> {
                   ),
                 ),
             ],
-          ),
-          const SizedBox(height: 10),
-          _TagPicker(
-            selected: _tag,
-            enabled: !_busy,
-            onPick: (t) => setState(() => _tag = _tag == t ? null : t),
           ),
           if (_errorCode != null) ...[
             const SizedBox(height: 12),
@@ -574,105 +559,6 @@ class _SlotButton extends StatelessWidget {
                 Text(label, style: theme.monoTiny, maxLines: 1),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The five scoring categories, plus "none" by deselecting.
-class _TagPicker extends StatelessWidget {
-  const _TagPicker({
-    required this.selected,
-    required this.enabled,
-    required this.onPick,
-  });
-
-  final MomentTag? selected;
-  final bool enabled;
-  final void Function(MomentTag) onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      // Scaled, not fixed: a horizontal list imposes its cross-axis height as
-      // a hard constraint, so a flat number clips at accessibility text sizes.
-      height: MediaQuery.textScalerOf(context).scale(38).clamp(38.0, 60.0),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        children: [
-          for (final t in MomentTag.values)
-            Padding(
-              key: ValueKey(t.wire),
-              padding: const EdgeInsets.only(right: 8),
-              child: _TagChoice(
-                tag: t,
-                active: selected == t,
-                onTap: enabled ? () => onPick(t) : null,
-                label: MomentTagChip.labelFor(l10n, t),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TagChoice extends StatelessWidget {
-  const _TagChoice({
-    required this.tag,
-    required this.active,
-    required this.onTap,
-    required this.label,
-  });
-
-  final MomentTag tag;
-  final bool active;
-  final VoidCallback? onTap;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      selected: active,
-      shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: active ? theme.accent : theme.surfaceSunken,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: active ? theme.accent : theme.divider),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                MomentTagChip.iconFor(tag),
-                size: 12,
-                // accentInk on an accent fill — never white. NeonNight's
-                // accent is pure yellow and Graphite's is near-white.
-                color: active ? theme.accentInk : theme.inkSoft,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: theme.monoTiny.copyWith(
-                  color: active ? theme.accentInk : theme.inkSoft,
-                ),
-                maxLines: 1,
-              ),
-            ],
           ),
         ),
       ),

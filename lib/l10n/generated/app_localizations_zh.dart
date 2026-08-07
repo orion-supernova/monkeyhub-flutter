@@ -4513,7 +4513,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get momentComposerCaptionHint => '说点什么';
 
   @override
-  String get momentComposerTagPrompt => '要计分吗？选一个';
+  String get momentComposerTagPrompt => '拿到分了？现在就加';
 
   @override
   String get momentComposerCapture => '相机';
@@ -4649,10 +4649,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => '动态';
 
   @override
-  String get profileVisibilityScreenFeedLabel => '我的瞬间';
+  String get profileVisibilityScreenFeedLabel => '我的精彩瞬间';
 
   @override
-  String get profileVisibilityScreenFeedDesc => '你发布的内容当天是否出现在好友的看板上';
+  String get profileVisibilityScreenFeedDesc => '你发布的照片和视频当天是否出现在好友的看板上';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => '我的谜题成绩';
@@ -4672,4 +4672,88 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => '这个视频太大了 — 最大 20 MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => '你发布了一个瞬间';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return '你拿到一个 $tag';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return '你 · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => '发生什么了？';
+
+  @override
+  String get pointComposerNoteHint => '先在上面选一个，然后讲讲';
+
+  @override
+  String get pointComposerAdd => '添加积分';
+
+  @override
+  String get pointComposerAddPhoto => '添加照片';
+
+  @override
+  String get pointsBoardAdd => '添加一个积分';
+
+  @override
+  String get pointsExplainerOpen => '这是什么？';
+
+  @override
+  String get pointsExplainerTitle => '积分游戏';
+
+  @override
+  String get pointsExplainerIntro =>
+      '一个记着分数的长期玩笑。当你遇到什么事 — 好的、坏的，或者只是离奇 — 就记下来，它会在当天出现在看板上。';
+
+  @override
+  String get pointsExplainerRuleHonour => '分是你自己给的。没人核对 — 这正是乐趣所在，过头了朋友自然会说你。';
+
+  @override
+  String get pointsExplainerRuleToday => '积分每天清零。看板显示今天；你自己的记录归你保留。';
+
+  @override
+  String get pointsExplainerRuleCap => '同一种每天二十个，免得有人把看板刷成一堆废话。';
+
+  @override
+  String get pointsExplainerGotIt => '知道了';
+
+  @override
+  String get momentTagFateExample => '在另一个国家撞见了我的牙医';
+
+  @override
+  String get momentTagJinxExample => '洗完车，四点就下雨了';
+
+  @override
+  String get momentTagLuckExample => '差两秒赶上了火车';
+
+  @override
+  String get momentTagCalledItExample => '我说续集会扑，果然扑了';
+
+  @override
+  String get momentTagNpcExample => '对服务员说了‘你也是’';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return '动态第 $number 天';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => '值得一看的照片和视频';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => '我的积分';
+
+  @override
+  String get profileVisibilityScreenPointsDesc => '你记录的积分是否出现在好友的看板上';
 }

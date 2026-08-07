@@ -82,6 +82,20 @@ class FeedStore extends ChangeNotifier {
   /// ring, and the count on the Feed tab's nav badge.
   int get unseenCount => _moments.where((m) => !m.mine && !m.seen).length;
 
+  /// Untagged moments — the HIGHLIGHTS rail. Photos and videos worth showing.
+  ///
+  /// Split from [points] because these are two different things to a person
+  /// even though they are one row in the database. A highlight is something you
+  /// saw; a point is something that happened to you. Mixing them into one rail
+  /// made the photos carry the scoring and the scores need a photo, and neither
+  /// is true.
+  List<Moment> get highlights =>
+      List.unmodifiable(_moments.where((m) => m.tag == null));
+
+  /// Tagged moments — the POINTS board. Usually just a line of text.
+  List<Moment> get points =>
+      List.unmodifiable(_moments.where((m) => m.tag != null));
+
   /// Per-author, per-tag totals for today, highest first.
   List<MomentTally> get tallies => MomentTally.from(_moments);
 

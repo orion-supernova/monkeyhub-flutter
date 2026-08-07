@@ -15,7 +15,7 @@ library;
 const int kPuzzleSymbolCount = 6;
 
 /// Slots in the code.
-const int kPuzzleSlots = 5;
+const int kPuzzleSlots = 4;
 
 /// Guesses allowed.
 const int kPuzzleMaxGuesses = 6;

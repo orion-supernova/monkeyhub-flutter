@@ -4788,7 +4788,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get momentComposerCaptionHint => 'cuenta algo';
 
   @override
-  String get momentComposerTagPrompt => '¿puntúa? elige una';
+  String get momentComposerTagPrompt => '¿has ganado un punto? añádelo';
 
   @override
   String get momentComposerCapture => 'cámara';
@@ -4928,11 +4928,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'FEED';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'mis momentos';
+  String get profileVisibilityScreenFeedLabel => 'mis destacados';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'si lo que publicas aparece ese día en los tableros de tus amigos';
+      'si las fotos y vídeos que publicas aparecen ese día en los tableros de tus amigos';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'mi puntuación del puzle';
@@ -4954,4 +4954,93 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get momentComposerErrorTooBig =>
       'ese vídeo es muy grande — 20 MB máximo';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'has publicado un momento';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'te has llevado un $tag';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'tú · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => '¿qué ha pasado?';
+
+  @override
+  String get pointComposerNoteHint => 'elige una arriba y cuéntalo';
+
+  @override
+  String get pointComposerAdd => 'AÑADIR PUNTO';
+
+  @override
+  String get pointComposerAddPhoto => 'añadir foto';
+
+  @override
+  String get pointsBoardAdd => 'AÑADIR UN PUNTO';
+
+  @override
+  String get pointsExplainerOpen => '¿qué es esto?';
+
+  @override
+  String get pointsExplainerTitle => 'el juego de los puntos';
+
+  @override
+  String get pointsExplainerIntro =>
+      'Una broma recurrente con marcador. Cuando te pasa algo — bueno, malo o simplemente raro — lo apuntas y queda en el tablero ese día.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'Los puntos te los das tú. Nadie lo comprueba: esa es la gracia, y tus amigos ya te dirán si te pasas.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'Los puntos se reinician cada día. El tablero muestra hoy; tu historial es tuyo.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'Veinte de cada tipo al día, para que nadie convierta el tablero en un disparate.';
+
+  @override
+  String get pointsExplainerGotIt => 'ENTENDIDO';
+
+  @override
+  String get momentTagFateExample => 'me encontré a mi dentista en otro país';
+
+  @override
+  String get momentTagJinxExample => 'lavé el coche y llovió a las cuatro';
+
+  @override
+  String get momentTagLuckExample => 'cogí el tren por dos segundos';
+
+  @override
+  String get momentTagCalledItExample =>
+      'dije que la secuela sería un fracaso, y lo fue';
+
+  @override
+  String get momentTagNpcExample => 'le dije ‘igualmente’ al camarero';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'día $number del feed';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'fotos y vídeos que merecen un vistazo';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'mis puntos';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'si los puntos que apuntas aparecen en los tableros de tus amigos';
 }

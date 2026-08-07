@@ -8162,7 +8162,7 @@ abstract class AppLocalizations {
   /// Small hint above the row of scoring categories in the moment composer, explaining that picking one is optional and makes the moment count on the standings board.
   ///
   /// In en, this message translates to:
-  /// **'scoring? pick one'**
+  /// **'won a point? add it now'**
   String get momentComposerTagPrompt;
 
   /// Label on the button in the moment composer that opens the in-app camera.
@@ -8384,13 +8384,13 @@ abstract class AppLocalizations {
   /// Label for the control deciding whether the user's photos and points appear on friends' Feed boards.
   ///
   /// In en, this message translates to:
-  /// **'my moments'**
+  /// **'my highlights'**
   String get profileVisibilityScreenFeedLabel;
 
   /// Explanation under the 'my moments' visibility control. 'for the day' matters: moments drop off friends' boards after 24 hours regardless of this setting.
   ///
   /// In en, this message translates to:
-  /// **'whether what you post shows up on friends\' boards for the day'**
+  /// **'whether the photos and videos you post show up on friends\' boards for the day'**
   String get profileVisibilityScreenFeedDesc;
 
   /// Label for the control deciding whether the user's daily puzzle result is visible to friends.
@@ -8428,6 +8428,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'that video\'s too large — 20 MB max'**
   String get momentComposerErrorTooBig;
+
+  /// Activity-river line for the VIEWER'S OWN untagged moment. Separate from momentActivityPostedHighlight (which names another person) because languages with verb agreement — Turkish, Japanese, Korean and others — cannot conjugate correctly from an interpolated name. Write this in the second person.
+  ///
+  /// In en, this message translates to:
+  /// **'you posted a highlight'**
+  String get momentActivityPostedHighlightSelf;
+
+  /// Activity-river line for the VIEWER'S OWN point. {tag} is the localized category name such as JINX. Second person; see momentActivityPostedHighlightSelf for why this is a separate key.
+  ///
+  /// In en, this message translates to:
+  /// **'you took a {tag}'**
+  String momentActivityScoredSelf(Object tag);
+
+  /// Compact header above your own point on the points board. {tag} is the localized category name. Very short — the sentence underneath is the actual content.
+  ///
+  /// In en, this message translates to:
+  /// **'you · {tag}'**
+  String pointLineSelf(Object tag);
+
+  /// Compact header above someone else's point on the points board. {name} is their display name, {tag} the localized category. NOTE: parameters are emitted in ALPHABETICAL order (name, tag), matching reading order here.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · {tag}'**
+  String pointLineOther(Object name, Object tag);
+
+  /// Title of the sheet for logging a point. Conversational — a point is a small story, not a form.
+  ///
+  /// In en, this message translates to:
+  /// **'what happened?'**
+  String get pointComposerTitle;
+
+  /// Placeholder in the point composer's text field before a category has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'pick one above, then tell the story'**
+  String get pointComposerNoteHint;
+
+  /// All-caps label on the button that logs the point.
+  ///
+  /// In en, this message translates to:
+  /// **'ADD POINT'**
+  String get pointComposerAdd;
+
+  /// Label on the optional photo button in the point composer. Optional is the point: most points are just a sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'add a photo'**
+  String get pointComposerAddPhoto;
+
+  /// All-caps label on the button under the points board that opens the point composer.
+  ///
+  /// In en, this message translates to:
+  /// **'ADD A POINT'**
+  String get pointsBoardAdd;
+
+  /// Label on the small chip that opens the explainer for the points game. Appears on the POINTS section header and in the composer.
+  ///
+  /// In en, this message translates to:
+  /// **'what\'s this?'**
+  String get pointsExplainerOpen;
+
+  /// Title of the sheet explaining what the points board is.
+  ///
+  /// In en, this message translates to:
+  /// **'the points game'**
+  String get pointsExplainerTitle;
+
+  /// Opening paragraph of the points explainer. Sets up that this is a game friends play about real life, not a social feed.
+  ///
+  /// In en, this message translates to:
+  /// **'A running joke you keep score of. When something happens to you — good, bad or just strange — you log it and it goes on the board for the day.'**
+  String get pointsExplainerIntro;
+
+  /// Bullet in the points explainer covering the honour system.
+  ///
+  /// In en, this message translates to:
+  /// **'You award your own points. Nobody checks — that\'s the fun, and your friends will tell you if you\'re pushing it.'**
+  String get pointsExplainerRuleHonour;
+
+  /// Bullet in the points explainer covering the daily reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Points reset every day. The board shows today; your own history is yours to keep.'**
+  String get pointsExplainerRuleToday;
+
+  /// Bullet in the points explainer covering the daily per-category cap.
+  ///
+  /// In en, this message translates to:
+  /// **'Twenty of any one kind per day, so nobody can farm the board into nonsense.'**
+  String get pointsExplainerRuleCap;
+
+  /// All-caps label on the button that dismisses the points explainer.
+  ///
+  /// In en, this message translates to:
+  /// **'GOT IT'**
+  String get pointsExplainerGotIt;
+
+  /// Concrete example under the FATE category, and the composer's placeholder once FATE is picked. Should read like something a real person typed.
+  ///
+  /// In en, this message translates to:
+  /// **'ran into my dentist in another country'**
+  String get momentTagFateExample;
+
+  /// Concrete example under the JINX category. This is the canonical case: you did a reasonable thing and the timing made it pointless.
+  ///
+  /// In en, this message translates to:
+  /// **'washed the car, it rained at four'**
+  String get momentTagJinxExample;
+
+  /// Concrete example under the LUCK category.
+  ///
+  /// In en, this message translates to:
+  /// **'caught the train with two seconds to spare'**
+  String get momentTagLuckExample;
+
+  /// Concrete example under the CALLED IT category.
+  ///
+  /// In en, this message translates to:
+  /// **'said the sequel would flop, it flopped'**
+  String get momentTagCalledItExample;
+
+  /// Concrete example under the NPC category. Uses curly quotes deliberately, matching the app's typography.
+  ///
+  /// In en, this message translates to:
+  /// **'said ‘you too’ to the waiter'**
+  String get momentTagNpcExample;
+
+  /// Explains the № stamp in the Feed masthead when tapped. {number} is how many days the feed has been running.
+  ///
+  /// In en, this message translates to:
+  /// **'day {number} of the feed'**
+  String feedBoardEditionHint(Object number);
+
+  /// Sub-line under the HIGHLIGHTS band clarifying that this section is media, as distinct from the points board below it.
+  ///
+  /// In en, this message translates to:
+  /// **'photos and videos worth a look'**
+  String get feedBoardHighlightsHint;
+
+  /// Label for the control deciding whether the user's points (JINX, FATE, etc.) appear on friends' boards. Separate from 'my moments', which covers photo highlights.
+  ///
+  /// In en, this message translates to:
+  /// **'my points'**
+  String get profileVisibilityScreenPointsLabel;
+
+  /// Explanation under the 'my points' visibility control.
+  ///
+  /// In en, this message translates to:
+  /// **'whether the points you log show up on friends\' boards'**
+  String get profileVisibilityScreenPointsDesc;
 }
 
 class _AppLocalizationsDelegate

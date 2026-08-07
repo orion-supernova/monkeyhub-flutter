@@ -87,6 +87,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
     FieldVisibility? feed,
+    FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
   }) async {
@@ -101,6 +102,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         seen: seen,
         friendRequests: friendRequests,
         feed: feed,
+        points: points,
         puzzle: puzzle,
         pointsPast: pointsPast,
       );
@@ -114,6 +116,7 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
         seen: seen,
         friendRequests: friendRequests,
         feed: feed,
+        points: points,
         puzzle: puzzle,
         pointsPast: pointsPast,
       );
@@ -242,6 +245,15 @@ class _ProfileVisibilityScreenState extends State<ProfileVisibilityScreen> {
                                 desc: AppLocalizations.of(context).profileVisibilityScreenFeedDesc,
                                 value: _vis.feed,
                                 onChanged: (v) => _patch(feed: v),
+                                enabled: !widget.readOnly,
+                              ),
+                              const SizedBox(height: 22),
+                              _RowFeed(
+                                theme: theme,
+                                label: AppLocalizations.of(context).profileVisibilityScreenPointsLabel,
+                                desc: AppLocalizations.of(context).profileVisibilityScreenPointsDesc,
+                                value: _vis.points,
+                                onChanged: (v) => _patch(points: v),
                                 enabled: !widget.readOnly,
                               ),
                               const SizedBox(height: 22),

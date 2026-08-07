@@ -4825,7 +4825,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get momentComposerCaptionHint => 'قل شيئًا عنه';
 
   @override
-  String get momentComposerTagPrompt => 'هل تُحتسب؟ اختر واحدة';
+  String get momentComposerTagPrompt => 'كسبت نقطة؟ أضفها الآن';
 
   @override
   String get momentComposerCapture => 'الكاميرا';
@@ -4967,11 +4967,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'الموجز';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'لحظاتي';
+  String get profileVisibilityScreenFeedLabel => 'أبرز لحظاتي';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'ما إذا كان ما تنشره يظهر على لوحات أصدقائك ذلك اليوم';
+      'ما إذا كانت الصور والمقاطع التي تنشرها تظهر على لوحات أصدقائك ذلك اليوم';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'نتيجتي في اللغز';
@@ -4993,4 +4993,92 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get momentComposerErrorTooBig =>
       'هذا الفيديو كبير جدًا — الحد الأقصى 20 ميغابايت';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'نشرت لحظة';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'حصلت على $tag';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'أنت · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => 'ماذا حدث؟';
+
+  @override
+  String get pointComposerNoteHint => 'اختر واحدة أعلاه ثم احكِ';
+
+  @override
+  String get pointComposerAdd => 'إضافة نقطة';
+
+  @override
+  String get pointComposerAddPhoto => 'إضافة صورة';
+
+  @override
+  String get pointsBoardAdd => 'أضف نقطة';
+
+  @override
+  String get pointsExplainerOpen => 'ما هذا؟';
+
+  @override
+  String get pointsExplainerTitle => 'لعبة النقاط';
+
+  @override
+  String get pointsExplainerIntro =>
+      'نكتة متكررة تحتفظون بنتيجتها. عندما يحدث لك شيء — جيد أو سيئ أو غريب فحسب — تسجّله فيبقى على اللوحة ذلك اليوم.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'أنت من يمنح نفسه النقاط. لا أحد يتحقق — وهذه هي المتعة، وأصدقاؤك سيخبرونك إن بالغت.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'تُصفَّر النقاط كل يوم. اللوحة تعرض اليوم؛ وسجلّك يبقى لك.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'عشرون من كل نوع يوميًا، حتى لا يحوّل أحد اللوحة إلى عبث.';
+
+  @override
+  String get pointsExplainerGotIt => 'فهمت';
+
+  @override
+  String get momentTagFateExample => 'صادفت طبيب أسناني في بلد آخر';
+
+  @override
+  String get momentTagJinxExample => 'غسلت السيارة، فأمطرت في الرابعة';
+
+  @override
+  String get momentTagLuckExample => 'لحقت القطار بثانيتين';
+
+  @override
+  String get momentTagCalledItExample => 'قلت إن الجزء الثاني سيفشل، ففشل';
+
+  @override
+  String get momentTagNpcExample => 'قلت ‘وأنت أيضًا’ للنادل';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'اليوم $number من الموجز';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'صور ومقاطع تستحق النظر';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'نقاطي';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'ما إذا كانت النقاط التي تسجّلها تظهر على لوحات أصدقائك';
 }

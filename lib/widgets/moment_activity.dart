@@ -93,10 +93,26 @@ class _ActivityRow extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
-    final who = moment.userId == viewerId
-        ? l10n.momentRailYouLabel
-        : moment.authorName;
+    final mine = moment.userId == viewerId;
     final tag = moment.tag;
+    // Verb agreement rules this out of a single interpolated template. Turkish
+    // conjugates the verb for person, so "{who} paylaştı" with who="sen" reads
+    // as "you posted[3rd person]" — wrong, and invisibly so to anyone reading
+    // only the English. Japanese and Korean have the same problem via
+    // politeness forms. Two keys per sentence, one per grammatical person, is
+    // the only shape that can be correct in all twelve locales.
+    final headline = mine
+        ? (tag == null
+              ? l10n.momentActivityPostedHighlightSelf
+              : l10n.momentActivityScoredSelf(
+                  MomentTagChip.labelFor(l10n, tag),
+                ))
+        : (tag == null
+              ? l10n.momentActivityPostedHighlight(moment.authorName)
+              : l10n.momentActivityScored(
+                  moment.authorName,
+                  MomentTagChip.labelFor(l10n, tag),
+                ));
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -108,7 +124,7 @@ class _ActivityRow extends StatelessWidget {
       ),
       child: FocusableTap(
         onTap: onTap,
-        semanticLabel: who,
+        semanticLabel: headline,
         radius: theme.radiusSm,
         child: GestureDetector(
           onTap: onTap,
@@ -133,17 +149,7 @@ class _ActivityRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tag == null
-                            ? l10n.momentActivityPostedHighlight(who)
-                            // Two placeholders. gen-l10n emits them sorted
-                            // ALPHABETICALLY by name, not in string order — so
-                            // these are named `name` and `tag` precisely so
-                            // alphabetical IS reading order and the call site
-                            // cannot silently swap them.
-                            : l10n.momentActivityScored(
-                                who,
-                                MomentTagChip.labelFor(l10n, tag),
-                              ),
+                        headline,
                         style: theme.body,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

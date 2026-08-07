@@ -349,6 +349,19 @@ class MomentTagChip extends StatelessWidget {
     MomentTag.npc => l10n.momentTagNpcHint,
   };
 
+  /// A concrete example — the part that actually teaches the category.
+  ///
+  /// Doubles as the composer's placeholder once a category is picked, so the
+  /// field itself shows you the shape of the sentence it wants.
+  static String exampleFor(AppLocalizations l10n, MomentTag tag) =>
+      switch (tag) {
+        MomentTag.fate => l10n.momentTagFateExample,
+        MomentTag.jinx => l10n.momentTagJinxExample,
+        MomentTag.luck => l10n.momentTagLuckExample,
+        MomentTag.calledIt => l10n.momentTagCalledItExample,
+        MomentTag.npc => l10n.momentTagNpcExample,
+      };
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);

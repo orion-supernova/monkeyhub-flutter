@@ -4733,7 +4733,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get momentComposerCaptionHint => 'say something about it';
 
   @override
-  String get momentComposerTagPrompt => 'scoring? pick one';
+  String get momentComposerTagPrompt => 'won a point? add it now';
 
   @override
   String get momentComposerCapture => 'camera';
@@ -4872,11 +4872,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'FEED';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'my moments';
+  String get profileVisibilityScreenFeedLabel => 'my highlights';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'whether what you post shows up on friends\' boards for the day';
+      'whether the photos and videos you post show up on friends\' boards for the day';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'my puzzle score';
@@ -4897,4 +4897,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => 'that video\'s too large — 20 MB max';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'you posted a highlight';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'you took a $tag';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'you · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => 'what happened?';
+
+  @override
+  String get pointComposerNoteHint => 'pick one above, then tell the story';
+
+  @override
+  String get pointComposerAdd => 'ADD POINT';
+
+  @override
+  String get pointComposerAddPhoto => 'add a photo';
+
+  @override
+  String get pointsBoardAdd => 'ADD A POINT';
+
+  @override
+  String get pointsExplainerOpen => 'what\'s this?';
+
+  @override
+  String get pointsExplainerTitle => 'the points game';
+
+  @override
+  String get pointsExplainerIntro =>
+      'A running joke you keep score of. When something happens to you — good, bad or just strange — you log it and it goes on the board for the day.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'You award your own points. Nobody checks — that\'s the fun, and your friends will tell you if you\'re pushing it.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'Points reset every day. The board shows today; your own history is yours to keep.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'Twenty of any one kind per day, so nobody can farm the board into nonsense.';
+
+  @override
+  String get pointsExplainerGotIt => 'GOT IT';
+
+  @override
+  String get momentTagFateExample => 'ran into my dentist in another country';
+
+  @override
+  String get momentTagJinxExample => 'washed the car, it rained at four';
+
+  @override
+  String get momentTagLuckExample =>
+      'caught the train with two seconds to spare';
+
+  @override
+  String get momentTagCalledItExample =>
+      'said the sequel would flop, it flopped';
+
+  @override
+  String get momentTagNpcExample => 'said ‘you too’ to the waiter';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'day $number of the feed';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'photos and videos worth a look';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'my points';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'whether the points you log show up on friends\' boards';
 }

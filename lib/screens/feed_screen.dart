@@ -17,10 +17,13 @@ import '../widgets/app_brand_mark.dart';
 import '../widgets/feed_depth_field.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
-import '../widgets/moment_standings.dart';
+import '../widgets/points_board.dart';
+import '../widgets/puzzle_score_strip.dart';
 import '../widgets/puzzle_symbol.dart';
 import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
+import 'feed/point_composer.dart';
+import 'feed/points_explainer.dart';
 import 'feed/puzzle_screen.dart';
 import 'navigation/destinations.dart';
 
@@ -117,6 +120,17 @@ class _FeedScreenState extends State<FeedScreen> {
     // until it closes.
   }
 
+  Future<void> _addPoint() async {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    await showPointComposer(
+      context,
+      api: widget.api,
+      feedApi: widget.feedApi,
+      userId: userId,
+    );
+  }
+
   void _openPuzzle() {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -160,12 +174,12 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'highlights',
         child: _SectionShell(
           label: l10n.feedBoardHighlightsLabel,
-          body: store.loaded && store.moments.isEmpty && !_canCapture
+          body: store.loaded && store.highlights.isEmpty && !_canCapture
               // A supervised account with media switched off has no way to
               // fill this, so offer the explanation rather than a dead rail.
               ? _EmptyLine(l10n.feedBoardHighlightsEmpty)
               : MomentRail(
-                  moments: store.moments,
+                  moments: store.highlights,
                   api: widget.api,
                   serverNow: store.serverNow,
                   canCapture: _canCapture,
@@ -178,10 +192,26 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'puzzle',
         child: _SectionShell(
           label: l10n.feedBoardPuzzleLabel,
-          body: _PuzzleTile(
-            state: store.puzzle,
-            viewerId: widget.repo.userId ?? '',
-            onTap: _openPuzzle,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PuzzleTile(
+                state: store.puzzle,
+                viewerId: widget.repo.userId ?? '',
+                onTap: _openPuzzle,
+              ),
+              // The scoreboard belongs HERE, not only inside the puzzle
+              // screen. A daily game whose scores you have to navigate to see
+              // is a daily game nobody compares — which is the entire reason
+              // it exists.
+              if (store.puzzle.scores.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                PuzzleScoreStrip(
+                  state: store.puzzle,
+                  viewerId: widget.repo.userId ?? '',
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -189,9 +219,15 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'standings',
         child: _SectionShell(
           label: l10n.feedBoardStandingsLabel,
-          body: MomentStandings(
-            moments: store.moments,
+          // The concept is new enough that the header carries its own
+          // explainer — this is not a feed of photos with a score attached, it
+          // is a game, and nobody arrives knowing that.
+          action: _HeaderHelp(onTap: () => showPointsExplainer(context)),
+          body: PointsBoard(
+            points: store.points,
             viewerId: widget.repo.userId ?? '',
+            onAdd: _addPoint,
+            onOpen: _open,
           ),
         ),
       ),
@@ -370,10 +406,34 @@ class _MastheadState extends State<_Masthead>
                     opacity: Curves.easeOut.transform(
                       ((_settle.value - 0.6) / 0.4).clamp(0.0, 1.0),
                     ),
-                    child: Text(
-                      l10n.feedBoardEditionLabel(widget.edition),
-                      style: theme.monoTiny,
-                      maxLines: 1,
+                    // Tappable, because "№219" beside a date is a riddle
+                    // otherwise — it is the board's day count, and there is
+                    // nowhere else that could possibly say so.
+                    child: FocusableTap(
+                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            l10n.feedBoardEditionHint(widget.edition),
+                          ),
+                        ),
+                      ),
+                      semanticLabel: l10n.feedBoardEditionHint(widget.edition),
+                      shape: FocusRingShape.capsule,
+                      child: GestureDetector(
+                        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              l10n.feedBoardEditionHint(widget.edition),
+                            ),
+                          ),
+                        ),
+                        behavior: HitTestBehavior.opaque,
+                        child: Text(
+                          l10n.feedBoardEditionLabel(widget.edition),
+                          style: theme.monoTiny,
+                          maxLines: 1,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -393,10 +453,19 @@ class _MastheadState extends State<_Masthead>
 /// this board has no use for yet — the phases that add real counts should
 /// revisit whether these should merge.
 class _SectionShell extends StatelessWidget {
-  const _SectionShell({required this.label, required this.body});
+  const _SectionShell({
+    required this.label,
+    required this.body,
+    this.action,
+  });
 
   final String label;
   final Widget body;
+
+  /// Optional trailing control on the band — currently only the points
+  /// explainer. Sits after the rule so the rule still separates label from
+  /// content at every width.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -412,6 +481,7 @@ class _SectionShell extends StatelessWidget {
               Text(label, style: theme.label),
               const SizedBox(width: 8),
               Expanded(child: Container(height: 1, color: theme.divider)),
+              if (action != null) ...[const SizedBox(width: 8), action!],
             ],
           ),
           const SizedBox(height: 12),
@@ -503,6 +573,46 @@ class _PuzzleTile extends StatelessWidget {
                 ),
               ),
               Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The "what is this?" chip on a section band.
+class _HeaderHelp extends StatelessWidget {
+  const _HeaderHelp({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: l10n.pointsExplainerOpen,
+      shape: FocusRingShape.capsule,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: theme.accentSoft,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.help_outline, size: 11, color: theme.accent),
+              const SizedBox(width: 5),
+              Text(
+                l10n.pointsExplainerOpen,
+                style: theme.monoTiny.copyWith(color: theme.accent),
+              ),
             ],
           ),
         ),

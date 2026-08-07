@@ -254,6 +254,7 @@ class ChatApi {
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
     FieldVisibility? feed,
+    FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
   }) async {
@@ -267,6 +268,7 @@ class ChatApi {
       // Feed keys accept only friends/nobody — the server drops "public"
       // rather than storing a value the board could not honour.
       if (feed != null) 'feed': feed.wire,
+      if (points != null) 'points': points.wire,
       if (puzzle != null) 'puzzle': puzzle.wire,
       if (pointsPast != null) 'pointsPast': pointsPast.wire,
     });

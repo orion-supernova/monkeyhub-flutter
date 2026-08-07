@@ -4717,7 +4717,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get momentComposerCaptionHint => 'bir şeyler yaz';
 
   @override
-  String get momentComposerTagPrompt => 'puan mı? birini seç';
+  String get momentComposerTagPrompt => 'puan mı kazandın? hemen ekle';
 
   @override
   String get momentComposerCapture => 'kamera';
@@ -4856,11 +4856,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'AKIŞ';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'paylaştıklarım';
+  String get profileVisibilityScreenFeedLabel => 'öne çıkanlarım';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'paylaştıklarının o gün arkadaşlarının panosunda görünüp görünmeyeceği';
+      'paylaştığın fotoğraf ve videoların o gün arkadaşlarının panosunda görünüp görünmeyeceği';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'bulmaca skorum';
@@ -4881,4 +4881,93 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => 'bu video çok büyük — en fazla 20 MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'bir an paylaştın';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'bir $tag aldın';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'sen · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => 'ne oldu?';
+
+  @override
+  String get pointComposerNoteHint => 'yukarıdan birini seç, sonra anlat';
+
+  @override
+  String get pointComposerAdd => 'PUAN EKLE';
+
+  @override
+  String get pointComposerAddPhoto => 'fotoğraf ekle';
+
+  @override
+  String get pointsBoardAdd => 'PUAN EKLE';
+
+  @override
+  String get pointsExplainerOpen => 'bu ne?';
+
+  @override
+  String get pointsExplainerTitle => 'puan oyunu';
+
+  @override
+  String get pointsExplainerIntro =>
+      'Skorunu tuttuğun bir muhabbet. Başına bir şey geldiğinde — iyi, kötü ya da sadece tuhaf — kaydediyorsun ve o gün panoda duruyor.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'Puanı kendin veriyorsun. Kimse denetlemiyor — zaten eğlencesi bu, abartırsan arkadaşların zaten söyler.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'Puanlar her gün sıfırlanır. Pano bugünü gösterir; kendi geçmişin sende kalır.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'Aynı türden günde yirmi tane — kimse panoyu saçmalığa çeviremesin diye.';
+
+  @override
+  String get pointsExplainerGotIt => 'ANLADIM';
+
+  @override
+  String get momentTagFateExample => 'başka ülkede dişçime rastladım';
+
+  @override
+  String get momentTagJinxExample =>
+      'arabayı yıkadım, saat dörtte yağmur yağdı';
+
+  @override
+  String get momentTagLuckExample => 'treni iki saniyeyle yakaladım';
+
+  @override
+  String get momentTagCalledItExample => 'devam filmi batar demiştim, battı';
+
+  @override
+  String get momentTagNpcExample => 'garsona ‘sen de’ dedim';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'akışın $number. günü';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'bakmaya değer fotoğraflar ve videolar';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'puanlarım';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'kaydettiğin puanların arkadaşlarının panosunda görünüp görünmeyeceği';
 }

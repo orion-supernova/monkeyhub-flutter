@@ -36,6 +36,7 @@ class ProfileVisibility {
     // server owns that decision (`visibilityOf` in backend/convex/feed.ts);
     // these defaults exist so an optimistic local update agrees with it.
     this.feed = FieldVisibility.friends,
+    this.points = FieldVisibility.friends,
     this.puzzle = FieldVisibility.friends,
     this.pointsPast = FieldVisibility.nobody,
   });
@@ -53,6 +54,11 @@ class ProfileVisibility {
   /// never public; the board fans out over accepted friendships and nothing
   /// else, so "public" would be a promise the reader could not keep.
   FieldVisibility feed;
+
+  /// Whether your POINTS reach friends' boards. Separate from [feed], which
+  /// governs photo highlights — sharing your running joke but not your camera
+  /// roll is a perfectly reasonable position and used to be unrepresentable.
+  FieldVisibility points;
 
   /// Whether your daily puzzle score is comparable on friends' scoreboards.
   FieldVisibility puzzle;
@@ -75,6 +81,9 @@ class ProfileVisibility {
         feed: j['feed'] == null
             ? FieldVisibility.friends
             : FieldVisibilityWire.parse(j['feed'] as String?),
+        points: j['points'] == null
+            ? FieldVisibility.friends
+            : FieldVisibilityWire.parse(j['points'] as String?),
         puzzle: j['puzzle'] == null
             ? FieldVisibility.friends
             : FieldVisibilityWire.parse(j['puzzle'] as String?),
@@ -88,6 +97,7 @@ class ProfileVisibility {
     FieldVisibility? seen,
     FieldVisibility? friendRequests,
     FieldVisibility? feed,
+    FieldVisibility? points,
     FieldVisibility? puzzle,
     FieldVisibility? pointsPast,
   }) =>
@@ -98,6 +108,7 @@ class ProfileVisibility {
         seen: seen ?? this.seen,
         friendRequests: friendRequests ?? this.friendRequests,
         feed: feed ?? this.feed,
+        points: points ?? this.points,
         puzzle: puzzle ?? this.puzzle,
         pointsPast: pointsPast ?? this.pointsPast,
       );

@@ -26,12 +26,30 @@ void main() {
     });
 
     test('orders green, then yellow, then blank', () {
+      // Built from kPuzzleSlots rather than hardcoded, so changing the board
+      // width fails the assertions that are genuinely about ORDER and not the
+      // ones that are only about length — the previous version failed all of
+      // them at once when the code went from five slots to four.
+      String row(int green, int yellow) =>
+          '🟩' * green + '🟨' * yellow + '⬜' * (kPuzzleSlots - green - yellow);
+
+      expect(const PuzzlePegs(exact: 2, present: 1).shareRow, row(2, 1));
+      expect(const PuzzlePegs(exact: 0, present: 0).shareRow, row(0, 0));
       expect(
-        const PuzzlePegs(exact: 2, present: 1).shareRow,
-        '🟩🟩🟨⬜⬜',
+        PuzzlePegs(exact: kPuzzleSlots, present: 0).shareRow,
+        row(kPuzzleSlots, 0),
       );
-      expect(const PuzzlePegs(exact: 0, present: 0).shareRow, '⬜⬜⬜⬜⬜');
-      expect(const PuzzlePegs(exact: 5, present: 0).shareRow, '🟩🟩🟩🟩🟩');
+      // The order itself: greens can never follow a yellow or a blank.
+      final mixed = const PuzzlePegs(exact: 1, present: 1).shareRow;
+      expect(mixed.startsWith('🟩'), isTrue);
+      expect(mixed.runes.length, kPuzzleSlots);
+    });
+
+    test('a full board of exacts is all green', () {
+      expect(
+        PuzzlePegs(exact: kPuzzleSlots, present: 0).shareRow.contains('⬜'),
+        isFalse,
+      );
     });
 
     test('reveals no positional information', () {

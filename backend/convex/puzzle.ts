@@ -28,8 +28,19 @@ import { v } from "convex/values";
 /** Symbols in the alphabet. Mirrored by `kPuzzleSymbolCount` in Dart. */
 export const SYMBOLS = 6;
 
-/** Slots in the code. */
-export const SLOTS = 5;
+/**
+ * Slots in the code.
+ *
+ * Four, not five. Five slots over six symbols with repeats allowed is 7,776
+ * possibilities in six guesses — HARDER than classic Mastermind, which gives
+ * ten guesses for 1,296. Combined with positionless feedback (you are told how
+ * many are right, never which), that is not a daily puzzle, it is a chore.
+ *
+ * Four slots is 1,296: the classic board, solved by a careful human in five or
+ * six. That is the difficulty a daily is supposed to have — beatable most days,
+ * lost occasionally.
+ */
+export const SLOTS = 4;
 
 /** Guesses allowed. */
 export const MAX_GUESSES = 6;
@@ -64,8 +75,13 @@ function seedFor(dayKey: string): number {
 }
 
 /**
- * The code for [dayKey]. Repeats are allowed — 6^5 = 7,776 possibilities,
- * which is Wordle-equivalent difficulty at six guesses.
+ * The code for [dayKey].
+ *
+ * Repeats ARE allowed, and that is deliberate rather than an oversight: without
+ * them the space collapses to 6P4 = 360 and the puzzle is over in three
+ * guesses. With them it is 6^4 = 1,296. The cost is that a repeat is genuinely
+ * harder to reason about, which is why the explainer sheet says so outright
+ * instead of leaving people to discover it by losing.
  */
 export function answerFor(dayKey: string): number[] {
   const rand = mulberry32(seedFor(dayKey));

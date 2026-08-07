@@ -4586,7 +4586,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentComposerCaptionHint => '한마디 남겨보세요';
 
   @override
-  String get momentComposerTagPrompt => '점수로 칠까요? 하나 고르세요';
+  String get momentComposerTagPrompt => '점수 땄나요? 지금 추가하세요';
 
   @override
   String get momentComposerCapture => '카메라';
@@ -4722,10 +4722,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => '피드';
 
   @override
-  String get profileVisibilityScreenFeedLabel => '내 순간';
+  String get profileVisibilityScreenFeedLabel => '내 하이라이트';
 
   @override
-  String get profileVisibilityScreenFeedDesc => '올린 것이 그날 친구들의 보드에 보일지 여부';
+  String get profileVisibilityScreenFeedDesc =>
+      '올린 사진과 동영상이 그날 친구들의 보드에 보일지 여부';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => '내 퍼즐 점수';
@@ -4745,4 +4746,91 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => '동영상이 너무 커요 — 최대 20MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => '하이라이트를 올렸어요';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return '$tag를 받았어요';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return '나 · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => '무슨 일이 있었나요?';
+
+  @override
+  String get pointComposerNoteHint => '위에서 하나 고르고 이야기해 주세요';
+
+  @override
+  String get pointComposerAdd => '점수 추가';
+
+  @override
+  String get pointComposerAddPhoto => '사진 추가';
+
+  @override
+  String get pointsBoardAdd => '점수 추가하기';
+
+  @override
+  String get pointsExplainerOpen => '이게 뭔가요?';
+
+  @override
+  String get pointsExplainerTitle => '점수 게임';
+
+  @override
+  String get pointsExplainerIntro =>
+      '점수를 매기며 이어가는 농담이에요. 좋은 일이든 나쁜 일이든 그냥 이상한 일이든, 기록하면 그날 보드에 올라가요.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      '점수는 스스로 줍니다. 아무도 확인하지 않아요 — 그게 재미고, 과하면 친구들이 말해줄 거예요.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      '점수는 매일 초기화돼요. 보드는 오늘을 보여주고, 내 기록은 내게 남아요.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      '같은 종류는 하루 스무 개까지. 아무도 보드를 엉망으로 만들 수 없게요.';
+
+  @override
+  String get pointsExplainerGotIt => '알겠어요';
+
+  @override
+  String get momentTagFateExample => '다른 나라에서 치과 선생님을 마주쳤어요';
+
+  @override
+  String get momentTagJinxExample => '세차했더니 네 시에 비가 왔어요';
+
+  @override
+  String get momentTagLuckExample => '2초 차이로 기차를 탔어요';
+
+  @override
+  String get momentTagCalledItExample => '속편은 망한다고 했는데 진짜 망했어요';
+
+  @override
+  String get momentTagNpcExample => '종업원에게 ‘당신도요’라고 했어요';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return '피드 $number일째';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => '볼 만한 사진과 동영상';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => '내 점수';
+
+  @override
+  String get profileVisibilityScreenPointsDesc => '기록한 점수가 친구들의 보드에 보일지 여부';
 }

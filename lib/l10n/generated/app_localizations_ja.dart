@@ -4572,7 +4572,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentComposerCaptionHint => 'ひとこと添えて';
 
   @override
-  String get momentComposerTagPrompt => '点数にする？ ひとつ選んで';
+  String get momentComposerTagPrompt => 'ポイント獲得？ いま追加';
 
   @override
   String get momentComposerCapture => 'カメラ';
@@ -4708,10 +4708,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'フィード';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'わたしの投稿';
+  String get profileVisibilityScreenFeedLabel => 'わたしのハイライト';
 
   @override
-  String get profileVisibilityScreenFeedDesc => '投稿がその日、友だちのボードに表示されるかどうか';
+  String get profileVisibilityScreenFeedDesc =>
+      '投稿した写真や動画がその日、友だちのボードに表示されるかどうか';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'わたしのパズル結果';
@@ -4731,4 +4732,90 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => 'この動画は大きすぎます — 最大20MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'ハイライトを投稿しました';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return '$tagを獲得しました';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'あなた · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => '何があった？';
+
+  @override
+  String get pointComposerNoteHint => '上からひとつ選んで、そのあと書いてください';
+
+  @override
+  String get pointComposerAdd => 'ポイントを追加';
+
+  @override
+  String get pointComposerAddPhoto => '写真を追加';
+
+  @override
+  String get pointsBoardAdd => 'ポイントを追加';
+
+  @override
+  String get pointsExplainerOpen => 'これは何？';
+
+  @override
+  String get pointsExplainerTitle => 'ポイントのゲーム';
+
+  @override
+  String get pointsExplainerIntro =>
+      '点数をつけて楽しむ、続きもののネタです。よいことも悪いことも、ただ妙なことも、起きたら記録すればその日のボードに載ります。';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'ポイントは自己申告です。誰も確認しません — そこが面白いところで、やりすぎれば友だちが言ってくれます。';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'ポイントは毎日リセットされます。ボードは今日の分で、自分の履歴は残ります。';
+
+  @override
+  String get pointsExplainerRuleCap => '同じ種類は1日20件まで。ボードが意味をなさなくなるのを防ぐためです。';
+
+  @override
+  String get pointsExplainerGotIt => 'わかった';
+
+  @override
+  String get momentTagFateExample => '別の国で歯医者にばったり会った';
+
+  @override
+  String get momentTagJinxExample => '洗車したら4時に雨が降った';
+
+  @override
+  String get momentTagLuckExample => '2秒差で電車に間に合った';
+
+  @override
+  String get momentTagCalledItExample => '続編はコケると言ったら、本当にコケた';
+
+  @override
+  String get momentTagNpcExample => '店員に「あなたも」と言ってしまった';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'フィード$number日目';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => '見る価値のある写真と動画';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'わたしのポイント';
+
+  @override
+  String get profileVisibilityScreenPointsDesc => '記録したポイントを友だちのボードに表示するかどうか';
 }

@@ -4753,7 +4753,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get momentComposerCaptionHint => 'कुछ लिखिए';
 
   @override
-  String get momentComposerTagPrompt => 'अंक चाहिए? एक चुनें';
+  String get momentComposerTagPrompt => 'अंक मिला? अभी जोड़ें';
 
   @override
   String get momentComposerCapture => 'कैमरा';
@@ -4892,11 +4892,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'फ़ीड';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'मेरे पल';
+  String get profileVisibilityScreenFeedLabel => 'मेरे ख़ास पल';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'आप जो साझा करते हैं वह उस दिन दोस्तों के बोर्ड पर दिखे या नहीं';
+      'आपकी साझा की गई फ़ोटो और वीडियो उस दिन दोस्तों के बोर्ड पर दिखें या नहीं';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'मेरा पहेली स्कोर';
@@ -4918,4 +4918,93 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get momentComposerErrorTooBig =>
       'यह वीडियो बहुत बड़ा है — अधिकतम 20 MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'आपने एक पल साझा किया';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'आपको एक $tag मिला';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'आप · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => 'क्या हुआ?';
+
+  @override
+  String get pointComposerNoteHint => 'ऊपर से एक चुनें, फिर बताएँ';
+
+  @override
+  String get pointComposerAdd => 'अंक जोड़ें';
+
+  @override
+  String get pointComposerAddPhoto => 'फ़ोटो जोड़ें';
+
+  @override
+  String get pointsBoardAdd => 'एक अंक जोड़ें';
+
+  @override
+  String get pointsExplainerOpen => 'यह क्या है?';
+
+  @override
+  String get pointsExplainerTitle => 'अंकों का खेल';
+
+  @override
+  String get pointsExplainerIntro =>
+      'एक चलता हुआ मज़ाक, जिसका हिसाब रखा जाता है। जब आपके साथ कुछ होता है — अच्छा, बुरा या बस अजीब — आप उसे दर्ज करते हैं और वह उस दिन बोर्ड पर रहता है।';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'अंक आप ख़ुद देते हैं। कोई जाँच नहीं करता — मज़ा यही है, और हद से बढ़े तो दोस्त बता ही देंगे।';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'अंक हर दिन शून्य हो जाते हैं। बोर्ड आज दिखाता है; आपका अपना इतिहास आपके पास रहता है।';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'एक ही तरह के दिन में बीस, ताकि कोई बोर्ड को बेमानी न बना दे।';
+
+  @override
+  String get pointsExplainerGotIt => 'समझ गया';
+
+  @override
+  String get momentTagFateExample =>
+      'दूसरे देश में अपने दंत-चिकित्सक से टकरा गया';
+
+  @override
+  String get momentTagJinxExample => 'गाड़ी धोई, चार बजे बारिश हो गई';
+
+  @override
+  String get momentTagLuckExample => 'दो सेकंड से ट्रेन पकड़ ली';
+
+  @override
+  String get momentTagCalledItExample => 'कहा था सीक्वल पिटेगी, पिट गई';
+
+  @override
+  String get momentTagNpcExample => 'वेटर से ‘आप भी’ कह दिया';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'फ़ीड का दिन $number';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'देखने लायक फ़ोटो और वीडियो';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'मेरे अंक';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'आपके दर्ज किए अंक दोस्तों के बोर्ड पर दिखें या नहीं';
 }

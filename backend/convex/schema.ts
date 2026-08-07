@@ -44,7 +44,8 @@ export default defineSchema({
         // where a missing key does not mean "nobody", so it is spelled out at
         // the single read site (feed.ts `visibilityOf`) rather than being
         // re-derived per caller.
-        feed: v.optional(v.string()),        // my moments appear on friends' boards
+        feed: v.optional(v.string()),        // my HIGHLIGHTS (photos) reach friends
+        points: v.optional(v.string()),      // my POINTS (jinx/fate/…) reach friends
         puzzle: v.optional(v.string()),      // my daily puzzle score is comparable
         pointsPast: v.optional(v.string()),  // friends may look past today
       })

@@ -4766,7 +4766,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get momentComposerCaptionHint => 'säg något om det';
 
   @override
-  String get momentComposerTagPrompt => 'ska det räknas? välj en';
+  String get momentComposerTagPrompt => 'vunnit en poäng? lägg till den';
 
   @override
   String get momentComposerCapture => 'kamera';
@@ -4905,11 +4905,11 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileVisibilityScreenSectionFeed => 'FLÖDE';
 
   @override
-  String get profileVisibilityScreenFeedLabel => 'mina ögonblick';
+  String get profileVisibilityScreenFeedLabel => 'mina höjdpunkter';
 
   @override
   String get profileVisibilityScreenFeedDesc =>
-      'om det du lägger upp syns på vännernas tavlor den dagen';
+      'om foton och videor du lägger upp syns på vännernas tavlor den dagen';
 
   @override
   String get profileVisibilityScreenPuzzleLabel => 'mitt pusselresultat';
@@ -4930,4 +4930,94 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentComposerErrorTooBig => 'videon är för stor — max 20 MB';
+
+  @override
+  String get momentActivityPostedHighlightSelf => 'du lade upp ett ögonblick';
+
+  @override
+  String momentActivityScoredSelf(Object tag) {
+    return 'du tog en $tag';
+  }
+
+  @override
+  String pointLineSelf(Object tag) {
+    return 'du · $tag';
+  }
+
+  @override
+  String pointLineOther(Object name, Object tag) {
+    return '$name · $tag';
+  }
+
+  @override
+  String get pointComposerTitle => 'vad hände?';
+
+  @override
+  String get pointComposerNoteHint => 'välj en ovan och berätta';
+
+  @override
+  String get pointComposerAdd => 'LÄGG TILL POÄNG';
+
+  @override
+  String get pointComposerAddPhoto => 'lägg till foto';
+
+  @override
+  String get pointsBoardAdd => 'LÄGG TILL EN POÄNG';
+
+  @override
+  String get pointsExplainerOpen => 'vad är det här?';
+
+  @override
+  String get pointsExplainerTitle => 'poängleken';
+
+  @override
+  String get pointsExplainerIntro =>
+      'Ett återkommande skämt som ni för protokoll över. När något händer dig — bra, dåligt eller bara märkligt — noterar du det och det ligger på tavlan den dagen.';
+
+  @override
+  String get pointsExplainerRuleHonour =>
+      'Du delar ut dina egna poäng. Ingen kontrollerar — det är själva poängen, och dina vänner säger till om du tänjer på det.';
+
+  @override
+  String get pointsExplainerRuleToday =>
+      'Poängen nollställs varje dag. Tavlan visar idag; din egen historik behåller du.';
+
+  @override
+  String get pointsExplainerRuleCap =>
+      'Tjugo av varje sort per dag, så att ingen kan mala sönder tavlan.';
+
+  @override
+  String get pointsExplainerGotIt => 'JAG FATTAR';
+
+  @override
+  String get momentTagFateExample =>
+      'sprang på min tandläkare i ett annat land';
+
+  @override
+  String get momentTagJinxExample => 'tvättade bilen, det regnade vid fyra';
+
+  @override
+  String get momentTagLuckExample => 'hann tåget med två sekunder till godo';
+
+  @override
+  String get momentTagCalledItExample =>
+      'sa att uppföljaren skulle floppa, den floppade';
+
+  @override
+  String get momentTagNpcExample => 'sa ‘detsamma’ till servitören';
+
+  @override
+  String feedBoardEditionHint(Object number) {
+    return 'dag $number av flödet';
+  }
+
+  @override
+  String get feedBoardHighlightsHint => 'foton och videor värda en titt';
+
+  @override
+  String get profileVisibilityScreenPointsLabel => 'mina poäng';
+
+  @override
+  String get profileVisibilityScreenPointsDesc =>
+      'om poängen du noterar syns på vännernas tavlor';
 }
