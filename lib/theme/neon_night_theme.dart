@@ -220,7 +220,7 @@ class NeonNightTheme implements AppTheme {
 
   @override
   Widget visibilityIcon({required bool isPublic, double size = 14}) =>
-      Icon(isPublic ? Icons.public : Icons.lock_outline, size: size, color: cyan);
+      Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: cyan);
 
   @override
   Widget hourglassIcon({double size = 16, Color? color}) =>

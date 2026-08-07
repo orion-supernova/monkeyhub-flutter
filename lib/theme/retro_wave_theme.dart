@@ -245,7 +245,7 @@ class RetroWaveTheme implements AppTheme {
 
   @override
   Widget visibilityIcon({required bool isPublic, double size = 14}) =>
-      Icon(isPublic ? Icons.public : Icons.lock_outline, size: size, color: accent);
+      Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: accent);
 
   @override
   Widget hourglassIcon({double size = 16, Color? color}) =>

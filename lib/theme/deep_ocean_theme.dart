@@ -192,7 +192,7 @@ class DeepOceanTheme implements AppTheme {
 
   @override
   Widget visibilityIcon({required bool isPublic, double size = 14}) =>
-      Icon(isPublic ? Icons.public : Icons.lock_outline, size: size, color: inkSoft);
+      Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: inkSoft);
 
   @override
   Widget hourglassIcon({double size = 16, Color? color}) =>

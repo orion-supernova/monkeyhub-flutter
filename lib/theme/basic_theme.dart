@@ -296,7 +296,7 @@ class BasicTheme implements AppTheme {
 
   @override
   Widget visibilityIcon({required bool isPublic, double size = 14}) {
-    return Icon(isPublic ? Icons.public : Icons.lock_outline, size: size, color: inkSoft);
+    return Icon(isPublic ? Icons.public : Icons.public_off, size: size, color: inkSoft);
   }
 
   @override

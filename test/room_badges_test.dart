@@ -156,6 +156,47 @@ void main() {
     });
   });
 
+  group('iconography', () {
+    // A private room and a password-protected one are different questions —
+    // who can see it, versus what it costs to walk in — and a group room can
+    // be both at once. When both pills drew a padlock the tile said the same
+    // thing twice and neither said which.
+    final padlocks = <IconData>{
+      Icons.lock,
+      Icons.lock_outline,
+      Icons.lock_outline_rounded,
+      Icons.lock_rounded,
+      Icons.lock_open,
+    };
+
+    testWidgets('no theme locks the private room pill', (tester) async {
+      for (final theme in ThemeController.all) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(child: theme.visibilityIcon(isPublic: false)),
+          ),
+        );
+        final icons = tester.widgetList<Icon>(find.byType(Icon));
+        for (final icon in icons) {
+          expect(
+            padlocks.contains(icon.icon),
+            isFalse,
+            reason: '${theme.id} draws a padlock for private — that glyph '
+                'belongs to LockedBadge',
+          );
+        }
+      }
+    });
+
+    testWidgets('the locked pill is the one that locks', (tester) async {
+      await tester.pumpWidget(host(const LockedBadge()));
+      final icon = tester.widget<Icon>(
+        find.descendant(of: find.byType(LockedBadge), matching: find.byType(Icon)),
+      );
+      expect(padlocks.contains(icon.icon), isTrue);
+    });
+  });
+
   group('row card', () {
     testWidgets('keeps the words a grid tile has no room for', (tester) async {
       final loc = await en();

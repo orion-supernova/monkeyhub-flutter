@@ -471,25 +471,24 @@ class _VaultVisibilityPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final c = Offset(size.width / 2, size.height / 2);
-    if (isPublic) {
-      // Eye
-      final w = size.width * 0.84;
-      final h = size.height * 0.5;
-      final path = Path()
-        ..moveTo(c.dx - w / 2, c.dy)
-        ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w / 2, c.dy)
-        ..quadraticBezierTo(c.dx, c.dy + h, c.dx - w / 2, c.dy);
-      canvas.drawPath(path, p);
-      canvas.drawCircle(c, size.width * 0.14, p);
-    } else {
-      // Padlock
-      final r = Rect.fromCenter(center: Offset(c.dx, c.dy + size.height * 0.15), width: size.width * 0.7, height: size.height * 0.55);
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(1.5)), p);
-      // shackle
-      final shackle = Path()
-        ..moveTo(c.dx - size.width * 0.22, c.dy - size.height * 0.12)
-        ..quadraticBezierTo(c.dx, c.dy - size.height * 0.65, c.dx + size.width * 0.22, c.dy - size.height * 0.12);
-      canvas.drawPath(shackle, p);
+    // Eye, open or struck through. Private used to be a padlock, which now
+    // belongs to the password badge alone — and a lock answered the wrong
+    // question anyway: this pill is about who can *see* the room, not what
+    // it costs to get in.
+    final w = size.width * 0.84;
+    final h = size.height * 0.5;
+    final eye = Path()
+      ..moveTo(c.dx - w / 2, c.dy)
+      ..quadraticBezierTo(c.dx, c.dy - h, c.dx + w / 2, c.dy)
+      ..quadraticBezierTo(c.dx, c.dy + h, c.dx - w / 2, c.dy);
+    canvas.drawPath(eye, p);
+    canvas.drawCircle(c, size.width * 0.14, p);
+    if (!isPublic) {
+      canvas.drawLine(
+        Offset(c.dx - w / 2, c.dy + h * 0.72),
+        Offset(c.dx + w / 2, c.dy - h * 0.72),
+        p,
+      );
     }
   }
 

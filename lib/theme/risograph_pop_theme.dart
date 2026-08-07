@@ -357,30 +357,29 @@ class _RisoVisibilityPainter extends CustomPainter {
       ..strokeJoin = StrokeJoin.round;
     final f = Paint()..color = fill;
     final c = Offset(size.width / 2, size.height / 2);
+    // The megaphone, announcing or struck out. Private used to be a padlock,
+    // which now belongs to the password badge alone — and this pill was never
+    // about the door anyway, it's about whether the room gets shouted about.
+    final path = Path()
+      ..moveTo(size.width * 0.15, size.height * 0.35)
+      ..lineTo(size.width * 0.7, size.height * 0.15)
+      ..lineTo(size.width * 0.7, size.height * 0.85)
+      ..lineTo(size.width * 0.15, size.height * 0.65)
+      ..close();
+    canvas.drawPath(path, f);
+    canvas.drawPath(path, s);
     if (isPublic) {
-      // Megaphone shape
-      final path = Path()
-        ..moveTo(size.width * 0.15, size.height * 0.35)
-        ..lineTo(size.width * 0.7, size.height * 0.15)
-        ..lineTo(size.width * 0.7, size.height * 0.85)
-        ..lineTo(size.width * 0.15, size.height * 0.65)
-        ..close();
-      canvas.drawPath(path, f);
-      canvas.drawPath(path, s);
       // sound waves
       canvas.drawArc(Rect.fromCenter(center: Offset(size.width * 0.78, c.dy), width: size.width * 0.18, height: size.height * 0.45), -0.6, 1.2, false, s);
     } else {
-      // Padlock filled
-      final body = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(c.dx, c.dy + size.height * 0.18), width: size.width * 0.65, height: size.height * 0.5),
-        const Radius.circular(1.5),
+      canvas.drawLine(
+        Offset(size.width * 0.1, size.height * 0.86),
+        Offset(size.width * 0.9, size.height * 0.14),
+        Paint()
+          ..color = color
+          ..strokeWidth = 2
+          ..strokeCap = StrokeCap.round,
       );
-      canvas.drawRRect(body, f);
-      canvas.drawRRect(body, s);
-      final shackle = Path()
-        ..moveTo(c.dx - size.width * 0.2, c.dy - size.height * 0.08)
-        ..quadraticBezierTo(c.dx, c.dy - size.height * 0.6, c.dx + size.width * 0.2, c.dy - size.height * 0.08);
-      canvas.drawPath(shackle, s);
     }
   }
 

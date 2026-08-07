@@ -56,13 +56,23 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final iconSize = dense ? 10.0 : 12.0;
     final gap = dense ? 4.0 : 6.0;
-    final padding = EdgeInsets.symmetric(
+    // Beside a word the glyph is a bullet and stays out of the way. Alone it
+    // *is* the badge — the only thing carrying the meaning until someone taps
+    // it — so it grows, and the pill tightens around it into a token you can
+    // actually aim at.
+    final labelledIcon = dense ? 10.0 : 12.0;
+    final soloIcon = dense ? 15.0 : 18.0;
+    final labelledPadding = EdgeInsets.symmetric(
       horizontal: dense ? 6 : 10,
       vertical: dense ? 3 : 5,
     );
-    final chromeWidth = padding.horizontal + _borderWidth * 2 + iconSize + gap;
+    final soloPadding = EdgeInsets.symmetric(
+      horizontal: dense ? 5 : 7,
+      vertical: dense ? 4 : 6,
+    );
+    final chromeWidth =
+        labelledPadding.horizontal + _borderWidth * 2 + labelledIcon + gap;
 
     return Tooltip(
       message: tooltip,
@@ -81,12 +91,12 @@ class _Badge extends StatelessWidget {
             label: showLabel ? null : label,
             container: !showLabel,
             child: Container(
-              padding: padding,
+              padding: showLabel ? labelledPadding : soloPadding,
               decoration: decoration,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  icon(iconSize),
+                  icon(showLabel ? labelledIcon : soloIcon),
                   if (showLabel) ...[
                     SizedBox(width: gap),
                     Text(label, style: textStyle, maxLines: 1, softWrap: false),
