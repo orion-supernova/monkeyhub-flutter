@@ -10,7 +10,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/remote_image.dart';
 import '../widgets/steady_hero.dart';
-import '../widgets/video_message.dart';
+import '../widgets/video_message.dart' show VideoPlayerSurface;
 
 /// Fullscreen media, swipeable across everything in the MEDIA tab.
 ///
@@ -19,10 +19,10 @@ import '../widgets/video_message.dart';
 /// the set is on screen, and a viewer that made you back out and tap again to
 /// see the next one would be the only gallery that works that way.
 ///
-/// Only the current page mounts a [VideoMessage]. `PageView` keeps neighbours
-/// alive, and each of those would otherwise build and `initialize()` its own
-/// `VideoPlayerController` — three concurrent pipelines while swiping, and
-/// three `<video>` elements on web.
+/// Only the current page mounts a [VideoPlayerSurface]. `PageView` keeps
+/// neighbours alive, and each of those would otherwise build and
+/// `initialize()` its own `VideoPlayerController` — three concurrent
+/// pipelines while swiping, and three `<video>` elements on web.
 class MediaPagerScreen extends StatefulWidget {
   const MediaPagerScreen({
     super.key,
@@ -182,7 +182,11 @@ class _Page extends StatelessWidget {
       // carries the flight, which is the one that is on screen when a flight
       // actually starts.
       return Center(
-        child: VideoMessage(api: api, storageId: id, isMine: false),
+        child: VideoPlayerSurface(
+          api: api,
+          storageId: id,
+          posterStorageId: message.posterStorageId,
+        ),
       );
     }
 

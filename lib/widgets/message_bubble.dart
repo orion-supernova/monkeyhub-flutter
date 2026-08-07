@@ -16,6 +16,7 @@ import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
+import '../screens/fullscreen_video_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'file_message.dart';
@@ -1053,6 +1054,7 @@ Widget buildMessageContent({
       );
     case MessageType.video:
       final videoUpload = message.upload;
+      final videoStorageId = message.mediaStorageId;
       final videoTile = StampedMedia(
         tile: ClipRRect(
           borderRadius: mediaRadius,
@@ -1072,9 +1074,20 @@ Widget buildMessageContent({
                 )
               : VideoMessage(
                   api: api,
-                  storageId: message.mediaStorageId,
+                  storageId: videoStorageId,
                   isMine: isMine,
+                  posterStorageId: message.posterStorageId,
+                  mediaAspectRatio: message.mediaAspectRatio,
+                  durationMs: message.mediaDurationMs,
                   maxWidth: metrics?.videoMaxWidth,
+                  onOpen: videoStorageId == null
+                      ? null
+                      : () => FullscreenVideoViewer.open(
+                            context,
+                            storageId: videoStorageId,
+                            api: api,
+                            posterStorageId: message.posterStorageId,
+                          ),
                 ),
         ),
         stamp: hasCaption ? null : stampFor(StampTone.onMedia),
