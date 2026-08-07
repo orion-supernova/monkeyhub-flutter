@@ -4746,7 +4746,27 @@
   },
   "settingsScreenSectionGeneral": "GENERAL",
   "@settingsScreenSectionGeneral": {
-    "description": "All-caps section header grouping the Language row."
+    "description": "All-caps section header grouping the Language row and the Check for Updates row."
+  },
+  "settingsScreenCheckForUpdatesLabel": "CHECK FOR UPDATES",
+  "@settingsScreenCheckForUpdatesLabel": {
+    "description": "All-caps label on the Settings row that manually re-runs the app update check against the backend."
+  },
+  "settingsScreenUpdateAvailableValue": "UPDATE AVAILABLE",
+  "@settingsScreenUpdateAvailableValue": {
+    "description": "All-caps trailing value on the Check for Updates row when a newer build has been found (by either the launch check or a previous manual tap)."
+  },
+  "settingsScreenUpdateUpToDateSnackbar": "You're on the latest version.",
+  "@settingsScreenUpdateUpToDateSnackbar": {
+    "description": "SnackBar shown after a manual Check for Updates tap finds no newer build."
+  },
+  "settingsScreenUpdateUnsupportedSnackbar": "Can't check for updates on this build.",
+  "@settingsScreenUpdateUnsupportedSnackbar": {
+    "description": "SnackBar shown after a manual Check for Updates tap on a build with no meaningful \"latest\" to compare against (debug build, simulator, or an unrecognised channel)."
+  },
+  "settingsScreenUpdateErrorSnackbar": "Couldn't check for updates. Try again later.",
+  "@settingsScreenUpdateErrorSnackbar": {
+    "description": "SnackBar shown after a manual Check for Updates tap fails (offline, backend unreachable)."
   },
   "settingsScreenSectionLinks": "LINKS",
   "@settingsScreenSectionLinks": {

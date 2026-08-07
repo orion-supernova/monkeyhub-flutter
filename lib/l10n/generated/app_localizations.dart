@@ -7259,11 +7259,41 @@ abstract class AppLocalizations {
   /// **'LAYOUT'**
   String get settingsScreenSectionLayout;
 
-  /// All-caps section header grouping the Language row.
+  /// All-caps section header grouping the Language row and the Check for Updates row.
   ///
   /// In en, this message translates to:
   /// **'GENERAL'**
   String get settingsScreenSectionGeneral;
+
+  /// All-caps label on the Settings row that manually re-runs the app update check against the backend.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK FOR UPDATES'**
+  String get settingsScreenCheckForUpdatesLabel;
+
+  /// All-caps trailing value on the Check for Updates row when a newer build has been found (by either the launch check or a previous manual tap).
+  ///
+  /// In en, this message translates to:
+  /// **'UPDATE AVAILABLE'**
+  String get settingsScreenUpdateAvailableValue;
+
+  /// SnackBar shown after a manual Check for Updates tap finds no newer build.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the latest version.'**
+  String get settingsScreenUpdateUpToDateSnackbar;
+
+  /// SnackBar shown after a manual Check for Updates tap on a build with no meaningful "latest" to compare against (debug build, simulator, or an unrecognised channel).
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t check for updates on this build.'**
+  String get settingsScreenUpdateUnsupportedSnackbar;
+
+  /// SnackBar shown after a manual Check for Updates tap fails (offline, backend unreachable).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates. Try again later.'**
+  String get settingsScreenUpdateErrorSnackbar;
 
   /// All-caps section header above the Show Link URLs toggle.
   ///

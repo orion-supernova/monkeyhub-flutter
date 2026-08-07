@@ -4348,6 +4348,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'عام';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'التحقق من التحديثات';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'يتوفر تحديث';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar => 'لديك أحدث إصدار.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'تعذّر التحقق من التحديثات في هذا الإصدار.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'تعذّر التحقق من التحديثات. حاول مرة أخرى لاحقًا.';
+
+  @override
   String get settingsScreenSectionLinks => 'الروابط';
 
   @override

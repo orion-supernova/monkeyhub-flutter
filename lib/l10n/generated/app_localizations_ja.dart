@@ -4112,6 +4112,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenSectionGeneral => '一般';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'アップデートを確認';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'アップデートあり';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar => '最新バージョンです。';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'このビルドではアップデートを確認できません。';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'アップデートを確認できませんでした。後でもう一度お試しください。';
+
+  @override
   String get settingsScreenSectionLinks => 'リンク';
 
   @override

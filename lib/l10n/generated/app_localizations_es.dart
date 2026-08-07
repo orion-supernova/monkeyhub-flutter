@@ -4296,6 +4296,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'GENERAL';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'BUSCAR ACTUALIZACIONES';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'ACTUALIZACIÓN DISPONIBLE';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'Tienes la última versión.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'No se pueden buscar actualizaciones en esta versión.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'No se pudieron buscar actualizaciones. Inténtalo más tarde.';
+
+  @override
   String get settingsScreenSectionLinks => 'ENLACES';
 
   @override

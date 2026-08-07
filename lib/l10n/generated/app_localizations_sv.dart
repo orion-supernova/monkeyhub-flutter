@@ -4279,6 +4279,24 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'ALLMÄNT';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'SÖK EFTER UPPDATERINGAR';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'UPPDATERING TILLGÄNGLIG';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'Du har den senaste versionen.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'Det går inte att söka efter uppdateringar i den här versionen.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'Det gick inte att söka efter uppdateringar. Försök igen senare.';
+
+  @override
   String get settingsScreenSectionLinks => 'LÄNKAR';
 
   @override

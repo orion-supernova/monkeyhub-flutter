@@ -4059,6 +4059,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenSectionGeneral => '通用';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => '检查更新';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => '有可用更新';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar => '你已是最新版本。';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar => '此版本无法检查更新。';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar => '无法检查更新，请稍后重试。';
+
+  @override
   String get settingsScreenSectionLinks => '链接';
 
   @override

@@ -4304,6 +4304,24 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'GERAL';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'VERIFICAR ATUALIZAÇÕES';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'ATUALIZAÇÃO DISPONÍVEL';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'Tens a versão mais recente.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'Não é possível verificar atualizações nesta versão.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'Não foi possível verificar atualizações. Tenta mais tarde.';
+
+  @override
   String get settingsScreenSectionLinks => 'LIGAÇÕES';
 
   @override
@@ -9402,6 +9420,24 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsScreenSectionGeneral => 'GERAL';
+
+  @override
+  String get settingsScreenCheckForUpdatesLabel => 'VERIFICAR ATUALIZAÇÕES';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'ATUALIZAÇÃO DISPONÍVEL';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'Você está na versão mais recente.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'Não é possível verificar atualizações nesta versão.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'Não foi possível verificar atualizações. Tente novamente mais tarde.';
 
   @override
   String get settingsScreenSectionLinks => 'LINKS';
