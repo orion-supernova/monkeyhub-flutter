@@ -637,15 +637,25 @@ class NativeCallHandler {
             }
           }
         }
-        if (!ended && Platform.isAndroid) {
-          // `activeCalls()` on Android only reports the last call, so a card
-          // we know about can be missing from that list. Both Android ring
-          // paths derive the id from the callId, so we can still address it.
-          // Android-only on purpose: an iOS card the plugin doesn't list is
-          // either gone or on AppDelegate's fallback provider (cleared
-          // below), and handing CallKit a UUID it has never issued is not
-          // worth the risk.
-          await FlutterCallkitIncoming.endCall(known ?? derivedUuid(callId));
+        if (!ended) {
+          if (known != null) {
+            // `known` is never a blind guess: it's either the UUID we
+            // ourselves handed to FlutterCallkitIncoming.startCall
+            // (showOutgoing/showIncoming, via _uuidFor) or one captured off
+            // a genuine CallEventActionCallAccept event
+            // (_captureNativeUuidFromParams). Safe to hand back to the
+            // plugin on either platform even though activeCalls() didn't
+            // report it — e.g. a card the plugin's own list has already
+            // dropped, or Android's activeCalls() only reporting the last
+            // call.
+            await FlutterCallkitIncoming.endCall(known);
+          } else if (Platform.isAndroid) {
+            // No UUID we ourselves issued. Android can still reliably
+            // derive one — both ring paths derive the id from the callId —
+            // but the equivalent guess on iOS risks handing CallKit a UUID
+            // it has never issued, so iOS stays excluded here.
+            await FlutterCallkitIncoming.endCall(derivedUuid(callId));
+          }
         }
         break;
       } catch (e) {

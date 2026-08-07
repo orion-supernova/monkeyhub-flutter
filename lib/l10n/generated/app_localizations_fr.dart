@@ -4519,11 +4519,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => 'AFFICHER LES STATS RÉSEAU';
+  String get settingsScreenShowNetworkStatsLabel =>
+      'AFFICHER LES STATS D\'APPEL';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'débit, ping et perte de paquets en direct pendant les appels';
+      'résolution, débit, ping et perte de paquets en direct pendant les appels';
 
   @override
   String get videoQualityScreenTitle => 'Qualité vidéo';
@@ -4559,6 +4560,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'Perte';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel =>
+      'Changer la vue de la caméra';
 
   @override
   String get callOptionsSheetTitle => 'Options d\'appel';

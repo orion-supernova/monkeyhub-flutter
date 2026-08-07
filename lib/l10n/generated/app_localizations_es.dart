@@ -4488,11 +4488,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsScreenShowNetworkStatsLabel =>
-      'MOSTRAR ESTADÍSTICAS DE RED';
+      'MOSTRAR ESTADÍSTICAS DE LA LLAMADA';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'velocidad de bits, ping y pérdida de paquetes en vivo durante las llamadas';
+      'resolución, velocidad de bits, ping y pérdida de paquetes en vivo durante las llamadas';
 
   @override
   String get videoQualityScreenTitle => 'Calidad de video';
@@ -4528,6 +4528,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'Pérdida';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'Cambiar vista de la cámara';
 
   @override
   String get callOptionsSheetTitle => 'Opciones de llamada';

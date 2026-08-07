@@ -7619,16 +7619,16 @@ abstract class AppLocalizations {
   /// **'4K'**
   String get settingsScreenValueVideoQuality4k;
 
-  /// All-caps label on the Show Network Stats toggle row (also reused as the in-call options sheet row label).
+  /// All-caps label on the Show Call Stats toggle row (also reused as the in-call options sheet row label).
   ///
   /// In en, this message translates to:
-  /// **'SHOW NETWORK STATS'**
+  /// **'SHOW CALL STATS'**
   String get settingsScreenShowNetworkStatsLabel;
 
-  /// Caption under SHOW NETWORK STATS describing what the toggle does.
+  /// Caption under SHOW CALL STATS describing what the toggle does.
   ///
   /// In en, this message translates to:
-  /// **'live bitrate, ping, and packet loss during calls'**
+  /// **'live resolution, bitrate, ping, and packet loss during calls'**
   String get settingsScreenShowNetworkStatsBody;
 
   /// Title of the video quality tier picker screen.
@@ -7690,6 +7690,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loss'**
   String get callScreenStatsLossLabel;
+
+  /// Accessibility label for tapping the full-screen video or the small preview tile to swap which feed is shown large during a video call.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap camera views'**
+  String get callScreenSwapPreviewSemanticLabel;
 
   /// Title of the in-call bottom sheet holding the network stats toggle and video quality picker.
   ///

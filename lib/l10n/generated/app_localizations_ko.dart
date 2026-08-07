@@ -4310,11 +4310,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => '네트워크 통계 표시';
+  String get settingsScreenShowNetworkStatsLabel => '통화 통계 표시';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      '통화 중 실시간 비트레이트, 핑, 패킷 손실을 표시해요';
+      '통화 중 실시간 해상도, 비트레이트, 핑, 패킷 손실을 표시해요';
 
   @override
   String get videoQualityScreenTitle => '화질';
@@ -4347,6 +4347,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => '손실';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => '카메라 화면 전환';
 
   @override
   String get callOptionsSheetTitle => '통화 옵션';

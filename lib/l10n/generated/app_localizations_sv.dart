@@ -4468,11 +4468,11 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => 'VISA NÄTVERKSSTATISTIK';
+  String get settingsScreenShowNetworkStatsLabel => 'VISA SAMTALSSTATISTIK';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'bithastighet, ping och paketförlust i realtid under samtal';
+      'upplösning, bithastighet, ping och paketförlust i realtid under samtal';
 
   @override
   String get videoQualityScreenTitle => 'Videokvalitet';
@@ -4508,6 +4508,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'Förlust';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'Växla kameravy';
 
   @override
   String get callOptionsSheetTitle => 'Samtalsalternativ';

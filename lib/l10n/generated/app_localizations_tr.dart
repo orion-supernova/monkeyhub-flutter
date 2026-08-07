@@ -4422,11 +4422,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsScreenShowNetworkStatsLabel =>
-      'AĞ İSTATİSTİKLERİNİ GÖSTER';
+      'ARAMA İSTATİSTİKLERİNİ GÖSTER';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'aramalar sırasında canlı bit hızı, ping ve paket kaybı';
+      'aramalar sırasında canlı çözünürlük, bit hızı, ping ve paket kaybı';
 
   @override
   String get videoQualityScreenTitle => 'Video kalitesi';
@@ -4462,6 +4462,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'Kayıp';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel =>
+      'Kamera görünümlerini değiştir';
 
   @override
   String get callOptionsSheetTitle => 'Arama seçenekleri';

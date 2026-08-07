@@ -194,6 +194,15 @@ class CallService extends ChangeNotifier {
   int _remoteStreamTick = 0;
   int get remoteStreamTick => _remoteStreamTick;
 
+  /// Increments whenever [switchVideoQuality] swaps a new video track onto
+  /// the existing [_localStream] object in place (replaceTrack +
+  /// addTrack/removeTrack) — the stream reference itself never changes, so a
+  /// reference-equality check in the renderer sync would miss the swap and
+  /// leave the local renderer bound to the now-stopped old track forever.
+  /// Same class of problem [_remoteStreamTick] solves for the remote side.
+  int _localStreamTick = 0;
+  int get localStreamTick => _localStreamTick;
+
   /// Set when the user accepted the incoming call via the native CallKit /
   /// ConnectionService UI. Consumed in two places:
   ///   - `_CallOverlay` skips pushing `IncomingCallScreen` and routes
@@ -611,6 +620,7 @@ class CallService extends ChangeNotifier {
         pc,
         maxBitrate: videoQualityPresets[tier]!.maxBitrate,
       );
+      _localStreamTick++;
       notifyListeners();
     } catch (e) {
       debugPrint('switchVideoQuality($tier) failed: $e');

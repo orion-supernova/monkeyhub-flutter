@@ -4457,11 +4457,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => 'नेटवर्क आँकड़े दिखाएं';
+  String get settingsScreenShowNetworkStatsLabel => 'कॉल आँकड़े दिखाएं';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'कॉल के दौरान लाइव बिटरेट, पिंग और पैकेट लॉस दिखाता है';
+      'कॉल के दौरान लाइव रिज़ॉल्यूशन, बिटरेट, पिंग और पैकेट लॉस दिखाता है';
 
   @override
   String get videoQualityScreenTitle => 'वीडियो क्वालिटी';
@@ -4497,6 +4497,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'लॉस';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'कैमरा दृश्य बदलें';
 
   @override
   String get callOptionsSheetTitle => 'कॉल विकल्प';

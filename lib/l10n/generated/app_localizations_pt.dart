@@ -4496,11 +4496,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsScreenShowNetworkStatsLabel =>
-      'MOSTRAR ESTATÍSTICAS DE REDE';
+      'MOSTRAR ESTATÍSTICAS DA CHAMADA';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
+      'resolução, taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
 
   @override
   String get videoQualityScreenTitle => 'Qualidade de vídeo';
@@ -4536,6 +4536,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'Perda';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'Alternar vista da câmara';
 
   @override
   String get callOptionsSheetTitle => 'Opções de chamada';
@@ -9675,11 +9678,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsScreenShowNetworkStatsLabel =>
-      'MOSTRAR ESTATÍSTICAS DE REDE';
+      'MOSTRAR ESTATÍSTICAS DA CHAMADA';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
+      'resolução, taxa de bits, ping e perda de pacotes em tempo real durante as chamadas';
 
   @override
   String get videoQualityScreenTitle => 'Qualidade de vídeo';
@@ -9715,6 +9718,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get callScreenStatsLossLabel => 'Perda';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel =>
+      'Alternar visualização da câmera';
 
   @override
   String get callOptionsSheetTitle => 'Opções de chamada';

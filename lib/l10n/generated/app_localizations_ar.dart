@@ -4534,11 +4534,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => 'إظهار إحصاءات الشبكة';
+  String get settingsScreenShowNetworkStatsLabel => 'إظهار إحصاءات المكالمة';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      'معدل البت والزمن ونسبة فقدان الحزم أثناء المكالمات مباشرةً';
+      'الدقة ومعدل البت والزمن ونسبة فقدان الحزم أثناء المكالمات مباشرةً';
 
   @override
   String get videoQualityScreenTitle => 'جودة الفيديو';
@@ -4573,6 +4573,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'فقدان';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'تبديل عرض الكاميرا';
 
   @override
   String get callOptionsSheetTitle => 'خيارات المكالمة';

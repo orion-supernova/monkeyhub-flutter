@@ -4990,13 +4990,13 @@
   "@settingsScreenValueVideoQuality4k": {
     "description": "Value shown next to Video quality when the 4K tier is selected. Numeric — left untranslated in every locale."
   },
-  "settingsScreenShowNetworkStatsLabel": "SHOW NETWORK STATS",
+  "settingsScreenShowNetworkStatsLabel": "SHOW CALL STATS",
   "@settingsScreenShowNetworkStatsLabel": {
-    "description": "All-caps label on the Show Network Stats toggle row (also reused as the in-call options sheet row label)."
+    "description": "All-caps label on the Show Call Stats toggle row (also reused as the in-call options sheet row label)."
   },
-  "settingsScreenShowNetworkStatsBody": "live bitrate, ping, and packet loss during calls",
+  "settingsScreenShowNetworkStatsBody": "live resolution, bitrate, ping, and packet loss during calls",
   "@settingsScreenShowNetworkStatsBody": {
-    "description": "Caption under SHOW NETWORK STATS describing what the toggle does."
+    "description": "Caption under SHOW CALL STATS describing what the toggle does."
   },
   "videoQualityScreenTitle": "Video quality",
   "@videoQualityScreenTitle": {
@@ -5037,6 +5037,10 @@
   "callScreenStatsLossLabel": "Loss",
   "@callScreenStatsLossLabel": {
     "description": "Label preceding the packet-loss percentage in the in-call network stats panel."
+  },
+  "callScreenSwapPreviewSemanticLabel": "Swap camera views",
+  "@callScreenSwapPreviewSemanticLabel": {
+    "description": "Accessibility label for tapping the full-screen video or the small preview tile to swap which feed is shown large during a video call."
   },
   "callOptionsSheetTitle": "Call options",
   "@callOptionsSheetTitle": {

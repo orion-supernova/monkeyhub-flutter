@@ -4297,11 +4297,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => 'ネットワーク統計を表示';
+  String get settingsScreenShowNetworkStatsLabel => '通話統計を表示';
 
   @override
   String get settingsScreenShowNetworkStatsBody =>
-      '通話中のビットレート、Ping、パケットロスをリアルタイムで表示します';
+      '通話中の解像度、ビットレート、Ping、パケットロスをリアルタイムで表示します';
 
   @override
   String get videoQualityScreenTitle => 'ビデオ品質';
@@ -4333,6 +4333,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => 'ロス';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => 'カメラ表示を切り替え';
 
   @override
   String get callOptionsSheetTitle => '通話オプション';

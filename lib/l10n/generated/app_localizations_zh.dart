@@ -4240,10 +4240,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenValueVideoQuality4k => '4K';
 
   @override
-  String get settingsScreenShowNetworkStatsLabel => '显示网络统计';
+  String get settingsScreenShowNetworkStatsLabel => '显示通话统计';
 
   @override
-  String get settingsScreenShowNetworkStatsBody => '通话期间实时显示比特率、延迟和丢包率';
+  String get settingsScreenShowNetworkStatsBody => '通话期间实时显示分辨率、比特率、延迟和丢包率';
 
   @override
   String get videoQualityScreenTitle => '视频画质';
@@ -4274,6 +4274,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get callScreenStatsLossLabel => '丢包';
+
+  @override
+  String get callScreenSwapPreviewSemanticLabel => '切换摄像头视图';
 
   @override
   String get callOptionsSheetTitle => '通话选项';
