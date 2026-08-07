@@ -3953,9 +3953,6 @@ class AppLocalizationsFr extends AppLocalizations {
       'Réessayer la connexion';
 
   @override
-  String get roomGridTileLockedBadge => 'VERROUILLÉ';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'calme pour l\'instant';
 
   @override
@@ -4179,6 +4176,26 @@ class AppLocalizationsFr extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Tout le monde peut trouver ce salon et le rejoindre';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Sur invitation seulement — invisible dans Découvre';
+
+  @override
+  String get roomBadgeLockedTooltip =>
+      'Il te faut le mot de passe du salon pour entrer';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'Les messages disparaissent après $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Tu es déjà dans ce salon';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'PROTECTION CAPTURE D\'ÉCRAN';

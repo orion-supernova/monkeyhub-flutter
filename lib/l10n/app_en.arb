@@ -4320,10 +4320,6 @@
   "@attachmentMenuConnectionRetrySemanticLabel": {
     "description": "Screen-reader semantic label for the tappable connection banner in its stalled state (connection_banner.dart)."
   },
-  "roomGridTileLockedBadge": "LOCKED",
-  "@roomGridTileLockedBadge": {
-    "description": "All-caps badge shown on a room grid tile when the room requires a password."
-  },
   "roomGridTileEmptyLastMessage": "quiet so far",
   "@roomGridTileEmptyLastMessage": {
     "description": "Placeholder subtitle on a room grid tile when the room has no last message yet."
@@ -4563,6 +4559,26 @@
   "enterPublicRoomEphemeralHoursShort": "{hours}h",
   "@enterPublicRoomEphemeralHoursShort": {
     "description": "Compact duration suffix for an ephemeral room's remaining time-to-live in hours, e.g. '2h'. Also used standalone in the dense badge variant."
+  },
+  "roomBadgePublicTooltip": "Anyone can find this room and join it",
+  "@roomBadgePublicTooltip": {
+    "description": "Tap-to-explain tooltip on the PUBLIC room badge (widgets/visibility_badge.dart)."
+  },
+  "roomBadgePrivateTooltip": "Invite only — it won't show up in Discover",
+  "@roomBadgePrivateTooltip": {
+    "description": "Tap-to-explain tooltip on the PRIVATE room badge (widgets/visibility_badge.dart). Never shown for DMs."
+  },
+  "roomBadgeLockedTooltip": "You'll need the room password to join",
+  "@roomBadgeLockedTooltip": {
+    "description": "Tap-to-explain tooltip on the LOCKED room badge, shown when the room needs a password to join."
+  },
+  "roomBadgeEphemeralTooltip": "Messages disappear after {duration}",
+  "@roomBadgeEphemeralTooltip": {
+    "description": "Tap-to-explain tooltip on the ephemeral room badge. {duration} is a pre-formatted short string like '5m', produced by enterPublicRoomEphemeralSecondsShort/MinutesShort/HoursShort."
+  },
+  "roomBadgeJoinedTooltip": "You're already in this room",
+  "@roomBadgeJoinedTooltip": {
+    "description": "Tap-to-explain tooltip on the JOINED badge in Discover/search, marking a room the viewer is already a member of."
   },
   "countBadgeCaptureProtectionLabel": "SCREEN CAPTURE PROTECTION",
   "@countBadgeCaptureProtectionLabel": {

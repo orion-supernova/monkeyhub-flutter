@@ -3876,9 +3876,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attachmentMenuConnectionRetrySemanticLabel => 'Retry connection';
 
   @override
-  String get roomGridTileLockedBadge => 'LOCKED';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'quiet so far';
 
   @override
@@ -4099,6 +4096,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip => 'Anyone can find this room and join it';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Invite only — it won\'t show up in Discover';
+
+  @override
+  String get roomBadgeLockedTooltip => 'You\'ll need the room password to join';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'Messages disappear after $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'You\'re already in this room';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'SCREEN CAPTURE PROTECTION';

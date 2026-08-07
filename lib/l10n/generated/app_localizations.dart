@@ -6623,12 +6623,6 @@ abstract class AppLocalizations {
   /// **'Retry connection'**
   String get attachmentMenuConnectionRetrySemanticLabel;
 
-  /// All-caps badge shown on a room grid tile when the room requires a password.
-  ///
-  /// In en, this message translates to:
-  /// **'LOCKED'**
-  String get roomGridTileLockedBadge;
-
   /// Placeholder subtitle on a room grid tile when the room has no last message yet.
   ///
   /// In en, this message translates to:
@@ -6988,6 +6982,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{hours}h'**
   String enterPublicRoomEphemeralHoursShort(Object hours);
+
+  /// Tap-to-explain tooltip on the PUBLIC room badge (widgets/visibility_badge.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can find this room and join it'**
+  String get roomBadgePublicTooltip;
+
+  /// Tap-to-explain tooltip on the PRIVATE room badge (widgets/visibility_badge.dart). Never shown for DMs.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite only — it won\'t show up in Discover'**
+  String get roomBadgePrivateTooltip;
+
+  /// Tap-to-explain tooltip on the LOCKED room badge, shown when the room needs a password to join.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need the room password to join'**
+  String get roomBadgeLockedTooltip;
+
+  /// Tap-to-explain tooltip on the ephemeral room badge. {duration} is a pre-formatted short string like '5m', produced by enterPublicRoomEphemeralSecondsShort/MinutesShort/HoursShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages disappear after {duration}'**
+  String roomBadgeEphemeralTooltip(Object duration);
+
+  /// Tap-to-explain tooltip on the JOINED badge in Discover/search, marking a room the viewer is already a member of.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already in this room'**
+  String get roomBadgeJoinedTooltip;
 
   /// All-caps section label above the capture-protection toggle row in settings (lib/widgets/capture_protection_toggle.dart).
   ///
