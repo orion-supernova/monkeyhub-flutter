@@ -25,6 +25,7 @@ import 'home_screen.dart' as chat;
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'navigation/pill_bottom_nav.dart';
+import 'navigation/section_switcher.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
 
@@ -143,18 +144,14 @@ class _HomeShellState extends State<HomeShell> {
     return context.isExpanded ? _buildDesktop(context) : _buildCompact(context);
   }
 
-  /// The active major section, cross-faded on section/theme change. Shared by
+  /// The active major section, transitioned on section/theme change. Shared by
   /// the compact (bottom-nav) and desktop (side-rail) shells.
-  Widget _sectionSwitcher(AppTheme theme, SettingsStore settings) {
-    return AnimatedSwitcher(
-      duration: theme.motionMed,
-      switchInCurve: theme.motionEntrance,
-      child: KeyedSubtree(
-        key: ValueKey('${settings.section.name}_${theme.id}'),
+  Widget _sectionSwitcher(AppTheme theme, SettingsStore settings) =>
+      SectionSwitcher(
+        section: settings.section,
+        variant: theme.id,
         child: _section(),
-      ),
-    );
-  }
+      );
 
   Widget _buildCompact(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -276,13 +273,10 @@ class _HomeShellState extends State<HomeShell> {
           family: widget.family,
         );
     }
-    return AnimatedSwitcher(
-      duration: theme.motionMed,
-      switchInCurve: theme.motionEntrance,
-      child: KeyedSubtree(
-        key: ValueKey('desktop_${settings.section.name}_${theme.id}'),
-        child: content,
-      ),
+    return SectionSwitcher(
+      section: settings.section,
+      variant: 'desktop_${theme.id}',
+      child: content,
     );
   }
 }

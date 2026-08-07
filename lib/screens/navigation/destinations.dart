@@ -54,8 +54,38 @@ const double kFloatingNavClearance = 110;
 /// `indexWhere` miss.
 double segmentAlignmentX(int index, int count) {
   if (count <= 1 || index < 0) return 0;
-  return -1 + index * (2 / (count - 1));
+  return segmentAlignmentAt(index.toDouble(), count);
 }
+
+/// [segmentAlignmentX] for a *fractional* segment.
+///
+/// The indicator no longer steps from one segment to the next; it is driven by
+/// a spring and by the finger during a drag, so it spends most of its life
+/// between two segments. [position] is in segment-index space and may sit
+/// slightly outside `0..count-1` while the pill rubber-bands past an end.
+double segmentAlignmentAt(double position, int count) {
+  if (count <= 1) return 0;
+  return -1 + position * (2 / (count - 1));
+}
+
+/// Nav order, independent of localization.
+///
+/// [navDestinations] is built from this, so a destination's index here is the
+/// index the bottom pill's indicator, the side rail and the radial fan all
+/// derive their geometry from. Separate from that list because the index is
+/// needed in places that have no [AppLocalizations] to hand — the pill's
+/// `didUpdateWidget`, and the shell deciding which way a section transition
+/// should travel.
+const List<HomeSection> navOrder = [
+  HomeSection.chat,
+  HomeSection.feed,
+  HomeSection.discover,
+  HomeSection.settings,
+];
+
+/// Where [s] sits in [navOrder]. Never -1: every [HomeSection] is a nav
+/// destination.
+int navIndexOf(HomeSection s) => navOrder.indexOf(s);
 
 /// Localized per call — [label]/[short] can't be a compile-time [const] once
 /// they come from [AppLocalizations], so every caller now asks for a fresh
@@ -63,31 +93,37 @@ double segmentAlignmentX(int index, int count) {
 ///
 /// Takes the resolved [AppLocalizations] rather than a BuildContext so it
 /// stays plain-Dart testable without pumping a widget tree.
+/// Ordered by [navOrder] rather than by a second hand-written list, so the
+/// index a caller computes with [navIndexOf] and the index it finds here can
+/// never disagree.
 List<NavDest> navDestinations(AppLocalizations l10n) {
   return [
-    (
-      section: HomeSection.chat,
-      icon: CupertinoIcons.bubble_left,
-      label: l10n.destinationsChatLabel,
-      short: l10n.destinationsChatShort,
-    ),
-    (
-      section: HomeSection.feed,
-      icon: CupertinoIcons.sparkles,
-      label: l10n.destinationsFeedLabel,
-      short: l10n.destinationsFeedShort,
-    ),
-    (
-      section: HomeSection.discover,
-      icon: CupertinoIcons.compass,
-      label: l10n.destinationsDiscoverLabel,
-      short: l10n.destinationsDiscoverShort,
-    ),
-    (
-      section: HomeSection.settings,
-      icon: CupertinoIcons.gear,
-      label: l10n.destinationsSettingsLabel,
-      short: l10n.destinationsSettingsShort,
-    ),
+    for (final s in navOrder)
+      switch (s) {
+        HomeSection.chat => (
+          section: s,
+          icon: CupertinoIcons.bubble_left,
+          label: l10n.destinationsChatLabel,
+          short: l10n.destinationsChatShort,
+        ),
+        HomeSection.feed => (
+          section: s,
+          icon: CupertinoIcons.sparkles,
+          label: l10n.destinationsFeedLabel,
+          short: l10n.destinationsFeedShort,
+        ),
+        HomeSection.discover => (
+          section: s,
+          icon: CupertinoIcons.compass,
+          label: l10n.destinationsDiscoverLabel,
+          short: l10n.destinationsDiscoverShort,
+        ),
+        HomeSection.settings => (
+          section: s,
+          icon: CupertinoIcons.gear,
+          label: l10n.destinationsSettingsLabel,
+          short: l10n.destinationsSettingsShort,
+        ),
+      },
   ];
 }
