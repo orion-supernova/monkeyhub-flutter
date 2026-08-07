@@ -4585,7 +4585,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get puzzleScreenTitle => '谜题。';
 
   @override
-  String get puzzleScreenSubtitle => '五个符号，六次机会';
+  String get puzzleScreenSubtitle => '四个符号，六次机会';
 
   @override
   String get puzzleSubmit => '猜';

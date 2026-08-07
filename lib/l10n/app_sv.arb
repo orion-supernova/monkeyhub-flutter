@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}h",
   "momentActivityMoreCount": "{count, plural, one{1 till idag} other{{count} till idag}}",
   "puzzleScreenTitle": "pusslet.",
-  "puzzleScreenSubtitle": "fem symboler, sex försök",
+  "puzzleScreenSubtitle": "fyra symboler, sex försök",
   "puzzleSubmit": "GISSA",
   "puzzleBackspace": "radera sista symbolen",
   "puzzleSymbolSemanticLabel": "symbol {number}",

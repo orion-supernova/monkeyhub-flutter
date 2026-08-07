@@ -4829,7 +4829,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get puzzleScreenTitle => 'पहेली।';
 
   @override
-  String get puzzleScreenSubtitle => 'पाँच चिह्न, छह मौके';
+  String get puzzleScreenSubtitle => 'चार चिह्न, छह मौके';
 
   @override
   String get puzzleSubmit => 'अनुमान';

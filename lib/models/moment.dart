@@ -66,6 +66,21 @@ enum MomentMedia {
   };
 }
 
+/// One person's reaction to a moment, with the name already attached — the
+/// board never resolves a `users` document (see `feed.ts`'s `momentView`), so
+/// the name has to already be riding on the row it's read from.
+class MomentReactor {
+  const MomentReactor({
+    required this.emoji,
+    required this.userId,
+    required this.name,
+  });
+
+  final String emoji;
+  final String userId;
+  final String name;
+}
+
 class Moment {
   const Moment({
     required this.id,
@@ -85,6 +100,7 @@ class Moment {
     this.authorAvatarStorageId,
     this.reactionCounts = const {},
     this.myReactions = const {},
+    this.reactors = const [],
   });
 
   final String id;
@@ -125,6 +141,11 @@ class Moment {
 
   /// The emoji the viewer themselves added, for the filled/unfilled state.
   final Set<String> myReactions;
+
+  /// Who's behind each count in [reactionCounts]. Sparser than the counts:
+  /// reactions from before names were denormalized onto the row are dropped
+  /// rather than shown with a blank name, so this can undercount briefly.
+  final List<MomentReactor> reactors;
 
   /// Whether this still counts toward friends' boards at [now].
   ///
@@ -192,6 +213,15 @@ class Moment {
       myReactions: {
         for (final e in (j['myReactions'] as List?) ?? const []) e.toString(),
       },
+      reactors: [
+        for (final r in (j['reactors'] as List?) ?? const [])
+          if (r is Map)
+            MomentReactor(
+              emoji: r['emoji']?.toString() ?? '',
+              userId: r['userId']?.toString() ?? '',
+              name: r['name']?.toString() ?? '',
+            ),
+      ],
     );
   }
 }

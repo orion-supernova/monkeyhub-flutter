@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}घं",
   "momentActivityMoreCount": "{count, plural, one{आज 1 और} other{आज {count} और}}",
   "puzzleScreenTitle": "पहेली।",
-  "puzzleScreenSubtitle": "पाँच चिह्न, छह मौके",
+  "puzzleScreenSubtitle": "चार चिह्न, छह मौके",
   "puzzleSubmit": "अनुमान",
   "puzzleBackspace": "आख़िरी चिह्न मिटाएँ",
   "puzzleSymbolSemanticLabel": "चिह्न {number}",

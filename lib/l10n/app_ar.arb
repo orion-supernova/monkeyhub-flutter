@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}س",
   "momentActivityMoreCount": "{count, plural, zero{لا مزيد اليوم} one{واحد آخر اليوم} two{اثنان آخران اليوم} few{{count} أخرى اليوم} many{{count} أخرى اليوم} other{{count} أخرى اليوم}}",
   "puzzleScreenTitle": "اللغز.",
-  "puzzleScreenSubtitle": "خمسة رموز، ست محاولات",
+  "puzzleScreenSubtitle": "أربعة رموز، ست محاولات",
   "puzzleSubmit": "تخمين",
   "puzzleBackspace": "حذف آخر رمز",
   "puzzleSymbolSemanticLabel": "الرمز {number}",

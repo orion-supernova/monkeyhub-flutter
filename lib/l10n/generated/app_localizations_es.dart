@@ -4865,7 +4865,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get puzzleScreenTitle => 'el puzle.';
 
   @override
-  String get puzzleScreenSubtitle => 'cinco símbolos, seis intentos';
+  String get puzzleScreenSubtitle => 'cuatro símbolos, seis intentos';
 
   @override
   String get puzzleSubmit => 'ADIVINAR';

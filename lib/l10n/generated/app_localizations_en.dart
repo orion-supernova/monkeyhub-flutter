@@ -4809,7 +4809,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get puzzleScreenTitle => 'the puzzle.';
 
   @override
-  String get puzzleScreenSubtitle => 'five symbols, six tries';
+  String get puzzleScreenSubtitle => 'four symbols, six tries';
 
   @override
   String get puzzleSubmit => 'GUESS';

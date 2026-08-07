@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}h",
   "momentActivityMoreCount": "{count, plural, one{1 de plus aujourd’hui} other{{count} de plus aujourd’hui}}",
   "puzzleScreenTitle": "l’énigme.",
-  "puzzleScreenSubtitle": "cinq symboles, six essais",
+  "puzzleScreenSubtitle": "quatre symboles, six essais",
   "puzzleSubmit": "DEVINER",
   "puzzleBackspace": "effacer le dernier symbole",
   "puzzleSymbolSemanticLabel": "symbole {number}",

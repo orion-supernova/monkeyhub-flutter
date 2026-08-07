@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 import { assertChildPolicy } from "./childGuard";
 import { deleteStored } from "./files";
-import { MAX_GUESSES, SLOTS, answerFor, score } from "./puzzle";
+import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
 
 /**
  * The Feed board — "TODAY".
@@ -107,6 +107,18 @@ function momentView(
     authorUsername: m.authorUsername,
     authorAvatarStorageId: m.authorAvatarStorageId,
     reactionCounts: counts,
+    // Who's behind each count. A flat array of (emoji, name) pairs, not an
+    // object keyed by emoji — same reason `reactionCounts` is an array above.
+    // Rows written before `userName` existed are filtered out rather than
+    // shown with a blank name; they age out the first time that person
+    // reacts to anything again.
+    reactors: opts.reactions
+      .filter((r: any) => typeof r.userName === "string" && r.userName)
+      .map((r: any) => ({
+        emoji: r.emoji,
+        userId: r.userId,
+        name: r.userName,
+      })),
     // Resolved here rather than patched onto the result by each caller. Both
     // call sites used to do that themselves, which is one caller away from a
     // surface that silently reports nobody's own reactions.
@@ -308,7 +320,13 @@ export const board = query({
       if (isMe) {
         mine = {
           guesses: row.guesses,
-          feedback: row.guesses.map((g: number[]) => score(g, answer)),
+          // Ordered per-slot status, unlike `scores[].feedback` below — this
+          // is the player's own attempt, so revealing which slot is right
+          // leaks nothing to anyone who hasn't played.
+          feedback: row.guesses.map((g: number[]) => ({
+            ...score(g, answer),
+            slots: pegsForSlots(g, answer),
+          })),
           solved: row.solved,
           done: finished,
           // Same rule as the guess mutation: the code is revealed only once
@@ -520,11 +538,17 @@ export const react = mutation({
       .first();
     if (existing) return existing._id;
 
+    // Safe to read here — this is a mutation, not the subscribed `board`
+    // query, so it doesn't join anyone's invalidation set.
+    const reactor = await ctx.db.get(userId);
+    const userName = reactor?.name ?? reactor?.username;
+
     return await ctx.db.insert("momentReactions", {
       momentId,
       userId,
       emoji,
       createdAt: Date.now(),
+      userName,
     });
   },
 });

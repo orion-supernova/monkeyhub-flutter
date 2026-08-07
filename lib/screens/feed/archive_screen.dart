@@ -309,7 +309,10 @@ class _DateRail extends StatelessWidget {
   Widget build(BuildContext context) {
     // Scaled and clamped: a horizontal list imposes its cross-axis height as a
     // hard constraint, so a flat number clips the label at accessibility sizes.
-    final height = MediaQuery.textScalerOf(context).scale(62).clamp(62.0, 92.0);
+    // Base accounts for the chip's three text lines (day/month/count, ~58px
+    // at 1.4x line-height) plus its own padding, border and the rail's own
+    // padding (~30px overhead) — 92 is that budget with a few px to spare.
+    final height = MediaQuery.textScalerOf(context).scale(92).clamp(92.0, 124.0);
     return SizedBox(
       height: height,
       child: ListView.builder(

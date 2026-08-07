@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}시간",
   "momentActivityMoreCount": "{count, plural, other{오늘 {count}개 더}}",
   "puzzleScreenTitle": "퍼즐.",
-  "puzzleScreenSubtitle": "기호 다섯 개, 여섯 번의 기회",
+  "puzzleScreenSubtitle": "기호 네 개, 여섯 번의 기회",
   "puzzleSubmit": "추측",
   "puzzleBackspace": "마지막 기호 지우기",
   "puzzleSymbolSemanticLabel": "기호 {number}",

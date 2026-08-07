@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}時間",
   "momentActivityMoreCount": "{count, plural, other{今日はあと{count}件}}",
   "puzzleScreenTitle": "パズル。",
-  "puzzleScreenSubtitle": "5つの記号、6回まで",
+  "puzzleScreenSubtitle": "4つの記号、6回まで",
   "puzzleSubmit": "予想する",
   "puzzleBackspace": "最後の記号を削除",
   "puzzleSymbolSemanticLabel": "記号 {number}",

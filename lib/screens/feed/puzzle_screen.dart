@@ -244,6 +244,15 @@ class _Row extends StatelessWidget {
   final bool revealed;
   final Color accent;
 
+  /// This slot's status, once revealed. Green means exactly right, the
+  /// accent-tinted "light" means the right symbol in the wrong place — the
+  /// Wordle-style per-tile read `pegsForSlots` computes server-side, only for
+  /// the player's own guesses (see the library doc on why).
+  PuzzlePegSlot? _statusFor(int i) {
+    if (!revealed || pegs == null || i >= pegs!.slots.length) return null;
+    return pegs!.slots[i];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -267,67 +276,50 @@ class _Row extends StatelessWidget {
                       ? motion.stagger(theme.motionMed, i, strideMs: 90)
                       : motion.d(theme.motionFast),
                   curve: motion.c(theme.motionEntrance),
-                  builder: (context, v, child) => Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0012)
-                      ..rotateX(revealed ? (1 - v) * 1.4 : 0),
-                    child: child,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: theme.surfaceSunken,
-                      borderRadius: BorderRadius.circular(theme.radiusMd),
-                      border: Border.all(color: theme.divider),
-                    ),
-                    alignment: Alignment.center,
-                    child: i < symbols.length
-                        ? PuzzleSymbol(
-                            index: symbols[i],
-                            size: 22,
-                            accent: accent,
-                          )
-                        : null,
-                  ),
+                  builder: (context, v, child) {
+                    final status = v > 0.5 ? _statusFor(i) : null;
+                    final Color? lit = switch (status) {
+                      PuzzlePegSlot.exact => theme.success,
+                      PuzzlePegSlot.present => theme.accent,
+                      _ => null,
+                    };
+                    return Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.0012)
+                        ..rotateX(revealed ? (1 - v) * 1.4 : 0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: lit != null
+                              ? lit.withValues(alpha: 0.22)
+                              : theme.surfaceSunken,
+                          borderRadius: BorderRadius.circular(theme.radiusMd),
+                          border: Border.all(
+                            color: lit ?? theme.divider,
+                            width: lit != null ? 1.6 : 1,
+                          ),
+                          boxShadow: lit == null
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color: lit.withValues(alpha: 0.45),
+                                    blurRadius: 10,
+                                    spreadRadius: 0.5,
+                                  ),
+                                ],
+                        ),
+                        alignment: Alignment.center,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: i < symbols.length
+                      ? PuzzleSymbol(index: symbols[i], size: 22, accent: accent)
+                      : null,
                 ),
               ),
             ),
           ),
-        // The pegs. Positionless on purpose — which slot was right is exactly
-        // the information the puzzle is withholding.
-        SizedBox(
-          width: 44,
-          child: pegs == null
-              ? null
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (pegs!.exact > 0) ...[
-                      Text(
-                        '${pegs!.exact}',
-                        style: theme.monoLarge.copyWith(
-                          fontSize: 14,
-                          color: theme.success,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(Icons.circle, size: 7, color: theme.success),
-                    ],
-                    if (pegs!.present > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '${pegs!.present}',
-                        style: theme.monoLarge.copyWith(
-                          fontSize: 14,
-                          color: theme.accent,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Icon(Icons.circle_outlined, size: 7, color: theme.accent),
-                    ],
-                  ],
-                ),
-        ),
       ],
     );
   }

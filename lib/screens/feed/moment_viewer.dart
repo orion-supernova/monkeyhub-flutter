@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,6 +11,7 @@ import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/glass_close_button.dart';
 import '../../widgets/moment_rail.dart';
+import '../../widgets/moment_reactor_sheet.dart';
 import '../../widgets/remote_image.dart';
 
 /// Reactions offered on a moment.
@@ -82,6 +84,22 @@ class _MomentViewerState extends State<_MomentViewer> {
   late final Set<String> _mine = {...widget.moment.myReactions};
   late final Map<String, int> _counts = {...widget.moment.reactionCounts};
 
+  /// Same optimistic-overlay reasoning as [_mine]/[_counts], for the names
+  /// behind each count.
+  late final Map<String, List<_ReactorEntry>> _reactors = _groupReactors(
+    widget.moment.reactors,
+  );
+
+  static Map<String, List<_ReactorEntry>> _groupReactors(
+    List<MomentReactor> reactors,
+  ) {
+    final out = <String, List<_ReactorEntry>>{};
+    for (final r in reactors) {
+      out.putIfAbsent(r.emoji, () => []).add(_ReactorEntry(r.userId, r.name));
+    }
+    return out;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -95,22 +113,32 @@ class _MomentViewerState extends State<_MomentViewer> {
     }
   }
 
+  /// Applies (or reverses) one local reaction edit across [_mine], [_counts]
+  /// and [_reactors] together, so the three never drift out of step.
+  void _applyLocal(String emoji, bool reacted) {
+    if (reacted) {
+      _mine.add(emoji);
+      _counts[emoji] = (_counts[emoji] ?? 0) + 1;
+      // Name left blank: the sheet substitutes the localized "you" for this
+      // user's own id, same as the puzzle scoreboard and leaderboard do.
+      _reactors
+          .putIfAbsent(emoji, () => [])
+          .add(_ReactorEntry(widget.userId, ''));
+    } else {
+      _mine.remove(emoji);
+      final n = (_counts[emoji] ?? 1) - 1;
+      if (n <= 0) {
+        _counts.remove(emoji);
+      } else {
+        _counts[emoji] = n;
+      }
+      _reactors[emoji]?.removeWhere((r) => r.userId == widget.userId);
+    }
+  }
+
   Future<void> _toggle(String emoji) async {
     final had = _mine.contains(emoji);
-    setState(() {
-      if (had) {
-        _mine.remove(emoji);
-        final n = (_counts[emoji] ?? 1) - 1;
-        if (n <= 0) {
-          _counts.remove(emoji);
-        } else {
-          _counts[emoji] = n;
-        }
-      } else {
-        _mine.add(emoji);
-        _counts[emoji] = (_counts[emoji] ?? 0) + 1;
-      }
-    });
+    setState(() => _applyLocal(emoji, !had));
     // Haptic on the commitment, not on the animation — the house rule.
     HapticFeedback.selectionClick();
     try {
@@ -132,21 +160,21 @@ class _MomentViewerState extends State<_MomentViewer> {
       // not exist on the server — the next board payload would silently
       // contradict it and the count would appear to flicker on its own.
       if (!mounted) return;
-      setState(() {
-        if (had) {
-          _mine.add(emoji);
-          _counts[emoji] = (_counts[emoji] ?? 0) + 1;
-        } else {
-          _mine.remove(emoji);
-          final n = (_counts[emoji] ?? 1) - 1;
-          if (n <= 0) {
-            _counts.remove(emoji);
-          } else {
-            _counts[emoji] = n;
-          }
-        }
-      });
+      setState(() => _applyLocal(emoji, had));
     }
+  }
+
+  void _showReactors(BuildContext context, String emoji) {
+    final l10n = AppLocalizations.of(context);
+    final names = (_reactors[emoji] ?? const <_ReactorEntry>[])
+        .map(
+          (r) =>
+              r.userId == widget.userId ? l10n.momentRailYouLabel : r.name,
+        )
+        .toList();
+    if (names.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    showMomentReactorSheet(context, emoji: emoji, names: names);
   }
 
   Future<void> _delete() async {
@@ -258,6 +286,7 @@ class _MomentViewerState extends State<_MomentViewer> {
                           counts: _counts,
                           mine: _mine,
                           onTap: _toggle,
+                          onLongPress: (e) => _showReactors(context, e),
                         ),
                         if (m.mine) ...[
                           const SizedBox(height: 12),
@@ -301,18 +330,30 @@ class _MomentViewerState extends State<_MomentViewer> {
   }
 }
 
+/// One reactor's identity, as the moment already carries it — no live lookup,
+/// see `MomentReactor`.
+class _ReactorEntry {
+  const _ReactorEntry(this.userId, this.name);
+  final String userId;
+  final String name;
+}
+
 class _ReactionRow extends StatelessWidget {
   const _ReactionRow({
     required this.emojis,
     required this.counts,
     required this.mine,
     required this.onTap,
+    required this.onLongPress,
   });
 
   final List<String> emojis;
   final Map<String, int> counts;
   final Set<String> mine;
   final void Function(String emoji) onTap;
+
+  /// Long-press a pill to see who's behind it.
+  final void Function(String emoji) onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -328,6 +369,7 @@ class _ReactionRow extends StatelessWidget {
               count: counts[e] ?? 0,
               active: mine.contains(e),
               onTap: () => onTap(e),
+              onLongPress: () => onLongPress(e),
             ),
           ),
         // Reactions anyone added that are outside this moment's quick set —
@@ -342,6 +384,7 @@ class _ReactionRow extends StatelessWidget {
               count: counts[e] ?? 0,
               active: mine.contains(e),
               onTap: () => onTap(e),
+              onLongPress: () => onLongPress(e),
             ),
           ),
         const Spacer(),
@@ -360,12 +403,14 @@ class _ReactionPill extends StatelessWidget {
     required this.count,
     required this.active,
     required this.onTap,
+    required this.onLongPress,
   });
 
   final String emoji;
   final int count;
   final bool active;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -375,9 +420,25 @@ class _ReactionPill extends StatelessWidget {
       semanticLabel: emoji,
       selected: active,
       shape: FocusRingShape.capsule,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
+      child: RawGestureDetector(
+        gestures: {
+          TapGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                () => TapGestureRecognizer(),
+                (instance) => instance
+                  ..onTap = onTap
+                  // Desktop/trackpad right-click reaches the same sheet, same
+                  // as the chat reaction chip's own long-press stand-in.
+                  ..onSecondaryTap = onLongPress,
+              ),
+          LongPressGestureRecognizer:
+              GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(
+                  duration: const Duration(milliseconds: 200),
+                ),
+                (instance) => instance.onLongPress = onLongPress,
+              ),
+        },
         child: AnimatedContainer(
           duration: theme.motionFast,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

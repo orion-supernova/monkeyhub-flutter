@@ -4644,7 +4644,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get puzzleScreenTitle => 'パズル。';
 
   @override
-  String get puzzleScreenSubtitle => '5つの記号、6回まで';
+  String get puzzleScreenSubtitle => '4つの記号、6回まで';
 
   @override
   String get puzzleSubmit => '予想する';

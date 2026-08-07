@@ -709,6 +709,12 @@ export default defineSchema({
     userId: v.id("users"),
     emoji: v.string(),
     createdAt: v.number(),
+    // Denormalized at write time, same reason as `moments.authorName`: the
+    // board is a subscribed query and must never read a `users` document, so
+    // "who reacted" has to already be sitting on the row it's read from.
+    // Optional because rows written before this field existed don't have it —
+    // they just fall out of the reactor list until reacted again.
+    userName: v.optional(v.string()),
   })
     .index("by_moment", ["momentId"])
     .index("by_moment_user", ["momentId", "userId"])

@@ -8276,7 +8276,7 @@ abstract class AppLocalizations {
   /// One-line subtitle under the puzzle screen's title, next to a short accent rule. States the rules in the fewest possible words.
   ///
   /// In en, this message translates to:
-  /// **'five symbols, six tries'**
+  /// **'four symbols, six tries'**
   String get puzzleScreenSubtitle;
 
   /// All-caps label on the button that submits the composed row of symbols.

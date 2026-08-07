@@ -1,11 +1,16 @@
 /// The daily puzzle's client-side model.
 ///
-/// A Mastermind, not a Wordle: guess a hidden five-symbol code in six tries,
-/// each guess answered with how many symbols are exactly right and how many are
-/// right but misplaced. No words anywhere — which is the whole reason for it.
-/// This app ships in twelve languages, a real Wordle needs a curated answer
-/// list per locale, and friends on different app languages would then be
-/// solving different puzzles, making the shared scoreboard compare nothing.
+/// Wordle's tension, minus the words: guess a hidden four-symbol code in six
+/// tries, each guess answered tile by tile — exactly right, right symbol
+/// wrong place, or absent. No words anywhere, because this app ships in
+/// twelve languages: a real Wordle needs a curated answer list per locale,
+/// and friends on different app languages would then be solving different
+/// puzzles, making the shared scoreboard compare nothing.
+///
+/// The per-slot read ([PuzzlePegs.slots]) is only ever populated for the
+/// player's OWN guesses ([PuzzleAttempt.feedback]). A friend's finished
+/// attempt ([PuzzleScore.feedback]) stays aggregate-only — see the class doc
+/// there for why an ordered grid would leak the shared answer.
 ///
 /// The answer never reaches the device until the player can no longer act on
 /// it: guesses are scored on the server and only feedback comes back.
@@ -20,9 +25,31 @@ const int kPuzzleSlots = 4;
 /// Guesses allowed.
 const int kPuzzleMaxGuesses = 6;
 
+/// One slot's status within a guess.
+enum PuzzlePegSlot {
+  /// Right symbol, right place.
+  exact,
+
+  /// Right symbol, wrong place.
+  present,
+
+  /// Not in the code at all.
+  absent;
+
+  static PuzzlePegSlot _parse(String s) => switch (s) {
+    'exact' => exact,
+    'present' => present,
+    _ => absent,
+  };
+}
+
 /// The result of scoring one guess.
 class PuzzlePegs {
-  const PuzzlePegs({required this.exact, required this.present});
+  const PuzzlePegs({
+    required this.exact,
+    required this.present,
+    this.slots = const [],
+  });
 
   /// Right symbol, right slot.
   final int exact;
@@ -31,9 +58,18 @@ class PuzzlePegs {
   /// `exact + present` can never exceed the number of slots.
   final int present;
 
+  /// Per-slot status, index-aligned with the guess. Empty for a friend's row
+  /// — see the library doc for why ordered feedback is only ever sent for the
+  /// player's own attempt.
+  final List<PuzzlePegSlot> slots;
+
   static PuzzlePegs fromJson(Map<String, dynamic> j) => PuzzlePegs(
     exact: (j['exact'] as num?)?.toInt() ?? 0,
     present: (j['present'] as num?)?.toInt() ?? 0,
+    slots: [
+      for (final s in (j['slots'] as List?) ?? const [])
+        PuzzlePegSlot._parse(s.toString()),
+    ],
   );
 
   /// One row of the shareable grid.
@@ -41,8 +77,10 @@ class PuzzlePegs {
   /// Green for exact, yellow for misplaced, white for nothing — the same
   /// vocabulary Wordle made universal, so a pasted grid reads correctly to
   /// anyone regardless of what language they play in. Deliberately does NOT
-  /// reveal which SLOT was which: the pegs are positionless by design and an
-  /// ordered grid would leak the answer to anyone who hasn't played.
+  /// use [slots]' order even when it's populated: the share text goes to
+  /// people who may not have played today yet, and an ordered grid would tell
+  /// them which slots of the (shared, identical) answer are right before
+  /// they've earned that. Aggregate counts only, always.
   String get shareRow =>
       '🟩' * exact + '🟨' * present + '⬜' * (kPuzzleSlots - exact - present);
 }

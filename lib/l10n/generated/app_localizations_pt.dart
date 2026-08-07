@@ -4873,7 +4873,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get puzzleScreenTitle => 'o enigma.';
 
   @override
-  String get puzzleScreenSubtitle => 'cinco símbolos, seis tentativas';
+  String get puzzleScreenSubtitle => 'quatro símbolos, seis tentativas';
 
   @override
   String get puzzleSubmit => 'ADIVINHAR';
@@ -9974,7 +9974,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get puzzleScreenTitle => 'o enigma.';
 
   @override
-  String get puzzleScreenSubtitle => 'cinco símbolos, seis tentativas';
+  String get puzzleScreenSubtitle => 'quatro símbolos, seis tentativas';
 
   @override
   String get puzzleSubmit => 'ADIVINHAR';

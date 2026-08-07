@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}小时",
   "momentActivityMoreCount": "{count, plural, other{今天还有 {count} 条}}",
   "puzzleScreenTitle": "谜题。",
-  "puzzleScreenSubtitle": "五个符号，六次机会",
+  "puzzleScreenSubtitle": "四个符号，六次机会",
   "puzzleSubmit": "猜",
   "puzzleBackspace": "删除最后一个符号",
   "puzzleSymbolSemanticLabel": "符号 {number}",

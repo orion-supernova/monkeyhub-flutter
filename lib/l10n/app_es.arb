@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}h",
   "momentActivityMoreCount": "{count, plural, one{1 más hoy} other{{count} más hoy}}",
   "puzzleScreenTitle": "el puzle.",
-  "puzzleScreenSubtitle": "cinco símbolos, seis intentos",
+  "puzzleScreenSubtitle": "cuatro símbolos, seis intentos",
   "puzzleSubmit": "ADIVINAR",
   "puzzleBackspace": "borrar último símbolo",
   "puzzleSymbolSemanticLabel": "símbolo {number}",

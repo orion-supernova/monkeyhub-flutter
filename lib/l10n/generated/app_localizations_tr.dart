@@ -4792,7 +4792,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get puzzleScreenTitle => 'bulmaca.';
 
   @override
-  String get puzzleScreenSubtitle => 'beş sembol, altı hak';
+  String get puzzleScreenSubtitle => 'dört sembol, altı hak';
 
   @override
   String get puzzleSubmit => 'TAHMİN';

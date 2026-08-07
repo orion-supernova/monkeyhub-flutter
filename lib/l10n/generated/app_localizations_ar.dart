@@ -4904,7 +4904,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get puzzleScreenTitle => 'اللغز.';
 
   @override
-  String get puzzleScreenSubtitle => 'خمسة رموز، ست محاولات';
+  String get puzzleScreenSubtitle => 'أربعة رموز، ست محاولات';
 
   @override
   String get puzzleSubmit => 'تخمين';

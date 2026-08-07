@@ -1355,7 +1355,7 @@
   "momentActivityHoursAgo": "{count}sa",
   "momentActivityMoreCount": "{count, plural, other{bugün {count} tane daha}}",
   "puzzleScreenTitle": "bulmaca.",
-  "puzzleScreenSubtitle": "beş sembol, altı hak",
+  "puzzleScreenSubtitle": "dört sembol, altı hak",
   "puzzleSubmit": "TAHMİN",
   "puzzleBackspace": "son sembolü sil",
   "puzzleSymbolSemanticLabel": "sembol {number}",

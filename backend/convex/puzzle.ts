@@ -4,17 +4,23 @@ import { v } from "convex/values";
 /**
  * The daily puzzle.
  *
- * A Mastermind, not a Wordle. Guess a hidden five-symbol code in six tries;
- * each guess comes back with how many symbols are in the right place and how
- * many are right but misplaced. Mechanically it is Wordle — same tension, same
- * shareable grid — with one decisive difference: **there are no words**.
+ * Wordle's tension — a hidden code, six tries, each guess comes back tile by
+ * tile as exactly right / right symbol wrong place / absent — with one
+ * decisive difference: **there are no words**.
  *
- * That is the entire reason for the choice. This app ships in twelve languages.
- * A real Wordle needs a hand-curated answer list per locale, and friends on
- * different app languages would then be solving *different puzzles*, which
- * quietly makes the shared scoreboard compare nothing. Symbols are identical
- * everywhere, so every friend in the world plays the same puzzle and the
- * standings mean something.
+ * That is the entire reason for the choice. This app ships in twelve
+ * languages. A real Wordle needs a hand-curated answer list per locale, and
+ * friends on different app languages would then be solving *different
+ * puzzles*, which quietly makes the shared scoreboard compare nothing.
+ * Symbols are identical everywhere, so every friend in the world plays the
+ * same puzzle and the standings mean something.
+ *
+ * A friend's FINISHED row, and the shareable grid, both stay positionless —
+ * aggregate exact/present counts only, via `score()`. The ordered per-slot
+ * read (`pegsForSlots()`) is only ever handed back for the player's OWN
+ * attempt: pasting an ordered grid into a group chat would tell every friend
+ * who hasn't played yet which slots of the (identical, shared) answer are
+ * right, before they've earned that.
  *
  * ## Where the answer lives
  *
@@ -31,14 +37,11 @@ export const SYMBOLS = 6;
 /**
  * Slots in the code.
  *
- * Four, not five. Five slots over six symbols with repeats allowed is 7,776
- * possibilities in six guesses — HARDER than classic Mastermind, which gives
- * ten guesses for 1,296. Combined with positionless feedback (you are told how
- * many are right, never which), that is not a daily puzzle, it is a chore.
- *
- * Four slots is 1,296: the classic board, solved by a careful human in five or
- * six. That is the difficulty a daily is supposed to have — beatable most days,
- * lost occasionally.
+ * No symbol repeats within a code (see `answerFor`), so four slots over six
+ * symbols is 6×5×4×3 = 360 possible codes. Combined with per-slot feedback —
+ * which tile is exactly right, which is right-symbol-wrong-place — that is
+ * comfortably solvable by a careful human in six, the same shape of difficulty
+ * a daily is supposed to have: beatable most days, lost occasionally.
  */
 export const SLOTS = 4;
 
@@ -50,9 +53,10 @@ export const MAX_GUESSES = 6;
  *
  * Chosen over `Math.random` for the obvious reason — the answer has to be the
  * same for every player and on every call — and over a hash-slice because a
- * proper generator gives an even distribution across all 7,776 codes. A biased
- * one would make certain openings reliably good, which is exactly the kind of
- * thing a group of friends works out by week three.
+ * proper generator gives an even distribution across all 360 codes (and,
+ * downstream, a fair shuffle in `answerFor`). A biased one would make certain
+ * openings reliably good, which is exactly the kind of thing a group of
+ * friends works out by week three.
  */
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -77,54 +81,82 @@ function seedFor(dayKey: string): number {
 /**
  * The code for [dayKey].
  *
- * Repeats ARE allowed, and that is deliberate rather than an oversight: without
- * them the space collapses to 6P4 = 360 and the puzzle is over in three
- * guesses. With them it is 6^4 = 1,296. The cost is that a repeat is genuinely
- * harder to reason about, which is why the explainer sheet says so outright
- * instead of leaving people to discover it by losing.
+ * No repeats: a Fisher-Yates shuffle of all SYMBOLS, truncated to SLOTS, so
+ * every symbol in the code is distinct. That is what makes per-slot feedback
+ * safe to hand back at all — see `pegsForSlots` below — and it is also just
+ * more legible: a code the player can reason about symbol-by-symbol rather
+ * than tracking how many of a repeated one are left.
  */
 export function answerFor(dayKey: string): number[] {
   const rand = mulberry32(seedFor(dayKey));
-  const out: number[] = [];
-  for (let i = 0; i < SLOTS; i++) out.push(Math.floor(rand() * SYMBOLS));
-  return out;
+  const pool = Array.from({ length: SYMBOLS }, (_, i) => i);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, SLOTS);
+}
+
+/**
+ * Per-slot feedback for one guess against [answer]: which slots are the exact
+ * symbol in the exact place, which are the right symbol in the wrong place,
+ * and which are absent.
+ *
+ * Two-pass, same as classic Mastermind/Wordle scoring: exact matches are
+ * consumed first, then the remaining answer symbols are pooled and matched by
+ * multiset against the remaining guess symbols. That still matters even though
+ * the ANSWER no longer repeats a symbol — the GUESS can, and without the pool
+ * step a guess like `AABC` against answer `ABCD` would mark both `A`s as
+ * "present" when only one `A` exists to be present at all.
+ *
+ * Safe to hand back ordered, unlike the old aggregate-only feedback: this is
+ * only ever returned for the player's OWN attempt (see `guess` below and
+ * `board` in feed.ts), never for a friend's row. A friend's finished attempt
+ * still gets the aggregate `score()` counts only — ordered pegs would tell
+ * someone who hasn't played yet which slots of the shared answer are right.
+ */
+export function pegsForSlots(
+  guess: number[],
+  answer: number[]
+): Array<"exact" | "present" | "absent"> {
+  const status: Array<"exact" | "present" | "absent"> = new Array(
+    answer.length
+  ).fill("absent");
+  const pool = new Map<number, number>();
+  for (let i = 0; i < answer.length; i++) {
+    if (guess[i] === answer[i]) {
+      status[i] = "exact";
+    } else {
+      pool.set(answer[i], (pool.get(answer[i]) ?? 0) + 1);
+    }
+  }
+  for (let i = 0; i < guess.length; i++) {
+    if (status[i] === "exact") continue;
+    const n = pool.get(guess[i]) ?? 0;
+    if (n > 0) {
+      status[i] = "present";
+      pool.set(guess[i], n - 1);
+    }
+  }
+  return status;
 }
 
 /**
  * Scores one guess: how many are exactly right, and how many are the right
- * symbol in the wrong slot.
- *
- * The two-pass structure is not incidental. Counting "present" naively
- * double-counts a symbol that is both exact somewhere and repeated elsewhere —
- * guess `AABBB` against answer `ABBBB` would report more matches than there are
- * symbols. Exact positions are consumed first, then the remainder is matched by
- * multiset, which is the standard Mastermind rule and the only one that is
- * self-consistent when repeats are allowed.
+ * symbol in the wrong slot. The aggregate view of `pegsForSlots` — this is
+ * what a friend's row gets, since a count alone reveals nothing about which
+ * slots of the shared answer are right.
  */
 export function score(
   guess: number[],
   answer: number[]
 ): { exact: number; present: number } {
+  const slots = pegsForSlots(guess, answer);
   let exact = 0;
-  const guessLeft: number[] = [];
-  const answerLeft: number[] = [];
-  for (let i = 0; i < answer.length; i++) {
-    if (guess[i] === answer[i]) {
-      exact++;
-    } else {
-      guessLeft.push(guess[i]);
-      answerLeft.push(answer[i]);
-    }
-  }
   let present = 0;
-  const pool = new Map<number, number>();
-  for (const s of answerLeft) pool.set(s, (pool.get(s) ?? 0) + 1);
-  for (const s of guessLeft) {
-    const n = pool.get(s) ?? 0;
-    if (n > 0) {
-      present++;
-      pool.set(s, n - 1);
-    }
+  for (const s of slots) {
+    if (s === "exact") exact++;
+    else if (s === "present") present++;
   }
   return { exact, present };
 }
@@ -193,8 +225,13 @@ export const guess = mutation({
 
     return {
       // Feedback for every guess so far, not just this one — a client that
-      // dropped a response can rebuild the whole grid from this.
-      feedback: guesses.map((row) => score(row, answer)),
+      // dropped a response can rebuild the whole grid from this. Ordered
+      // per-slot status is safe here: this response only ever reaches the
+      // player who made these exact guesses.
+      feedback: guesses.map((row) => ({
+        ...score(row, answer),
+        slots: pegsForSlots(row, answer),
+      })),
       guesses,
       solved,
       done,

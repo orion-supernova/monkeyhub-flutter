@@ -4658,7 +4658,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get puzzleScreenTitle => '퍼즐.';
 
   @override
-  String get puzzleScreenSubtitle => '기호 다섯 개, 여섯 번의 기회';
+  String get puzzleScreenSubtitle => '기호 네 개, 여섯 번의 기회';
 
   @override
   String get puzzleSubmit => '추측';

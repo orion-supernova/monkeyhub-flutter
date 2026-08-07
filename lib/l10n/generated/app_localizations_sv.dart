@@ -4842,7 +4842,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get puzzleScreenTitle => 'pusslet.';
 
   @override
-  String get puzzleScreenSubtitle => 'fem symboler, sex försök';
+  String get puzzleScreenSubtitle => 'fyra symboler, sex försök';
 
   @override
   String get puzzleSubmit => 'GISSA';

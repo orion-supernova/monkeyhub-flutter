@@ -5426,7 +5426,7 @@
   "@puzzleScreenTitle": {
     "description": "Lowercase page title of the daily puzzle screen, with a full stop, matching the house style of the other sub-screens ('language.', 'motion.')."
   },
-  "puzzleScreenSubtitle": "five symbols, six tries",
+  "puzzleScreenSubtitle": "four symbols, six tries",
   "@puzzleScreenSubtitle": {
     "description": "One-line subtitle under the puzzle screen's title, next to a short accent rule. States the rules in the fewest possible words."
   },
