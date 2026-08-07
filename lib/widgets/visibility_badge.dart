@@ -2,6 +2,83 @@ import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
+/// One pill: a small icon, a short label, a rounded chip around both.
+///
+/// The label is the first thing to go when the pill is squeezed. A grid tile
+/// can hand the badge slot less than 90px, and a translated label runs well
+/// past that ("HERKESE AÇIK" needs ~104px), so the pill measures its label
+/// against the space it was actually given and falls back to the icon alone
+/// rather than overflowing or ellipsing two words into noise. The words stay
+/// available to screen readers either way.
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.icon,
+    required this.label,
+    required this.decoration,
+    required this.textStyle,
+    required this.dense,
+  });
+
+  /// Built by the caller at the size the badge asks for.
+  final Widget Function(double size) icon;
+  final String label;
+  final BoxDecoration decoration;
+  final TextStyle textStyle;
+  final bool dense;
+
+  /// Themes draw the chip border anywhere from 0.5 to 1.0 wide; assume the
+  /// widest so the fit check never claims room the border is using.
+  static const double _borderWidth = 1;
+
+  bool _labelFits(BuildContext context, double maxWidth, double chromeWidth) {
+    if (!maxWidth.isFinite) return true;
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: textStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    return chromeWidth + painter.width <= maxWidth;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final iconSize = dense ? 10.0 : 12.0;
+    final gap = dense ? 4.0 : 6.0;
+    final padding = EdgeInsets.symmetric(
+      horizontal: dense ? 6 : 10,
+      vertical: dense ? 3 : 5,
+    );
+    final chromeWidth =
+        padding.horizontal + _borderWidth * 2 + iconSize + gap;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showLabel =
+            _labelFits(context, constraints.maxWidth, chromeWidth);
+        return Semantics(
+          label: showLabel ? null : label,
+          container: !showLabel,
+          child: Container(
+            padding: padding,
+            decoration: decoration,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                icon(iconSize),
+                if (showLabel) ...[
+                  SizedBox(width: gap),
+                  Text(label, style: textStyle, maxLines: 1, softWrap: false),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class VisibilityBadge extends StatelessWidget {
   const VisibilityBadge({
     super.key,
@@ -18,20 +95,15 @@ class VisibilityBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    final label = isPublic
-        ? loc.enterPublicRoomVisibilityPublicLabel
-        : loc.enterPublicRoomVisibilityPrivateLabel;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 10, vertical: dense ? 3 : 5),
+    return _Badge(
+      dense: dense,
+      icon: (size) => theme.visibilityIcon(isPublic: isPublic, size: size),
+      label: isPublic
+          ? loc.enterPublicRoomVisibilityPublicLabel
+          : loc.enterPublicRoomVisibilityPrivateLabel,
       decoration: theme.chipDecoration(filled: false),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          theme.visibilityIcon(isPublic: isPublic, size: dense ? 10 : 12),
-          SizedBox(width: dense ? 4 : 6),
-          Text(label, style: theme.monoTiny.copyWith(color: invert ? theme.background : theme.inkSoft)),
-        ],
-      ),
+      textStyle: theme.monoTiny
+          .copyWith(color: invert ? theme.background : theme.inkSoft),
     );
   }
 }
@@ -49,11 +121,11 @@ class JoinedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: dense ? 6 : 10,
-        vertical: dense ? 3 : 5,
-      ),
+    return _Badge(
+      dense: dense,
+      icon: (size) =>
+          Icon(Icons.check_rounded, size: size, color: theme.accent),
+      label: AppLocalizations.of(context).enterPublicRoomJoinedBadgeLabel,
       decoration: BoxDecoration(
         color: theme.accentSoft,
         borderRadius: BorderRadius.circular(999),
@@ -62,17 +134,7 @@ class JoinedBadge extends StatelessWidget {
           width: 0.5,
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_rounded, size: dense ? 10 : 12, color: theme.accent),
-          SizedBox(width: dense ? 4 : 6),
-          Text(
-            AppLocalizations.of(context).enterPublicRoomJoinedBadgeLabel,
-            style: theme.monoTiny.copyWith(color: theme.accent),
-          ),
-        ],
-      ),
+      textStyle: theme.monoTiny.copyWith(color: theme.accent),
     );
   }
 }
@@ -96,24 +158,17 @@ class EphemeralBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 6 : 10, vertical: dense ? 3 : 5),
+    return _Badge(
+      dense: dense,
+      icon: (size) => theme.hourglassIcon(size: size, color: theme.accent),
+      label: dense
+          ? _fmt(context)
+          : loc.enterPublicRoomEphemeralBadgeLabel(_fmt(context)),
       decoration: theme.chipDecoration(filled: false).copyWith(
-            border: Border.all(color: theme.accent.withValues(alpha: 0.55), width: 1),
+            border:
+                Border.all(color: theme.accent.withValues(alpha: 0.55), width: 1),
           ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          theme.hourglassIcon(size: dense ? 10 : 12, color: theme.accent),
-          SizedBox(width: dense ? 4 : 6),
-          Text(
-            dense
-                ? _fmt(context)
-                : loc.enterPublicRoomEphemeralBadgeLabel(_fmt(context)),
-            style: theme.monoTiny.copyWith(color: theme.accent),
-          ),
-        ],
-      ),
+      textStyle: theme.monoTiny.copyWith(color: theme.accent),
     );
   }
 }
