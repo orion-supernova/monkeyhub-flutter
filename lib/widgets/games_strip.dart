@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/daily_game.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'game_info_sheet.dart';
 
 /// Today's four games, compact enough to live on the Feed board.
 ///
@@ -109,7 +110,23 @@ class _StripTile extends StatelessWidget {
                         : theme.divider,
                   ),
                 ),
-                child: _preview(theme),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _preview(theme),
+                    Positioned(
+                      // Hangs off the corner of a tile that is barely wider
+                      // than a thumb, so the glyph stays small while the tap
+                      // target keeps its full size.
+                      top: -8,
+                      right: -8,
+                      child: GameInfoButton(
+                        onTap: () => showGameInfo(context, game),
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 6),

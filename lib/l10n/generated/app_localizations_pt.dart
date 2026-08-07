@@ -5378,6 +5378,127 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get gameErrorGeneric =>
       'não foi possível chegar aos jogos — tenta de novo';
+
+  @override
+  String get gameInfoOpen => 'como se joga';
+
+  @override
+  String get gameInfoLabel => 'COMO SE JOGA';
+
+  @override
+  String get gameInfoRulesLabel => 'AS REGRAS';
+
+  @override
+  String get gameInfoControlsLabel => 'CONTROLOS';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'o relógio corre enquanto o tabuleiro está no ecrã e para se pausares ou saíres. quem for mais rápido lidera a lista de hoje.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'a pontuação é pelo número de tentativas, não pelo tempo.';
+
+  @override
+  String get gameInfoSameForEveryone =>
+      'hoje toda a gente joga o mesmo tabuleiro.';
+
+  @override
+  String get gameInfoGotIt => 'ENTENDI';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'coloca uma coroa em cada linha, coluna e cor.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'oito coroas: uma em cada linha e uma em cada coluna.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'cada bloco de cor leva também exatamente uma coroa.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'duas coroas não podem tocar-se, nem sequer por um canto.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'toca numa casa uma vez para uma cruz que a descarta, outra vez para uma coroa e outra para limpar.';
+
+  @override
+  String get gameInfoTangoGoal => 'preenche a grelha com sóis e luas.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'cada linha e coluna leva três sóis e três luas.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'nunca três iguais seguidos, na horizontal ou na vertical.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'um = entre duas casas significa que são iguais; um × que são diferentes.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'toca numa casa para um sol, outra vez para uma lua e outra para limpar. as casas impressas não mudam.';
+
+  @override
+  String get gameInfoZipGoal =>
+      'desenha uma linha que passe por todos os quadrados.';
+
+  @override
+  String get gameInfoZipRule1 => 'começa no 1 e acaba no último número.';
+
+  @override
+  String get gameInfoZipRule2 =>
+      'passa pelos números por ordem ao longo do caminho.';
+
+  @override
+  String get gameInfoZipRule3 => 'cada quadrado é usado exatamente uma vez.';
+
+  @override
+  String get gameInfoZipControls =>
+      'arrasta o dedo para desenhar. volta por cima da linha para a apagar.';
+
+  @override
+  String get gameInfoSudokuGoal =>
+      'preenche a grelha com os algarismos de 1 a 6.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'cada linha usa de 1 a 6, uma vez cada.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'cada coluna, igual.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'e cada caixa de 2x3, também.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'toca numa casa e depois num algarismo. toca no mesmo algarismo outra vez para apagar. o modo notas escreve marcas pequenas a lápis.';
+
+  @override
+  String get gameInfoCodeGoal =>
+      'descobre o código escondido de quatro símbolos.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'seis tentativas, e o código nunca repete um símbolo.';
+
+  @override
+  String get gameInfoCodeRule2 =>
+      'verde significa símbolo certo no lugar certo.';
+
+  @override
+  String get gameInfoCodeRule3 =>
+      'amarelo significa símbolo certo no lugar errado.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'toca em símbolos para formar uma tentativa e envia-a. o tabuleiro diz-te quão perto estiveste.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -10755,4 +10876,125 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get gameErrorGeneric =>
       'não deu para conectar aos jogos — tente de novo';
+
+  @override
+  String get gameInfoOpen => 'como jogar';
+
+  @override
+  String get gameInfoLabel => 'COMO JOGAR';
+
+  @override
+  String get gameInfoRulesLabel => 'AS REGRAS';
+
+  @override
+  String get gameInfoControlsLabel => 'CONTROLES';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'o relógio corre enquanto o tabuleiro está na tela e para se você pausar ou sair. quem for mais rápido lidera a lista de hoje.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'a pontuação é pelo número de tentativas, não pelo tempo.';
+
+  @override
+  String get gameInfoSameForEveryone =>
+      'hoje todo mundo joga o mesmo tabuleiro.';
+
+  @override
+  String get gameInfoGotIt => 'ENTENDI';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'coloque uma coroa em cada linha, coluna e cor.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'oito coroas: uma em cada linha e uma em cada coluna.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'cada bloco de cor recebe também exatamente uma coroa.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'duas coroas não podem se encostar, nem pela quina.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'toque numa casa uma vez para um X que a descarta, de novo para uma coroa e de novo para limpar.';
+
+  @override
+  String get gameInfoTangoGoal => 'preencha a grade com sóis e luas.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'cada linha e coluna tem três sóis e três luas.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'nunca três iguais seguidos, na horizontal ou na vertical.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'um = entre duas casas significa que são iguais; um × que são diferentes.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'toque numa casa para um sol, de novo para uma lua e de novo para limpar. as casas impressas não mudam.';
+
+  @override
+  String get gameInfoZipGoal =>
+      'desenhe uma linha que passe por todos os quadrados.';
+
+  @override
+  String get gameInfoZipRule1 => 'comece no 1 e termine no último número.';
+
+  @override
+  String get gameInfoZipRule2 =>
+      'passe pelos números em ordem ao longo do caminho.';
+
+  @override
+  String get gameInfoZipRule3 => 'cada quadrado é usado exatamente uma vez.';
+
+  @override
+  String get gameInfoZipControls =>
+      'arraste o dedo para desenhar. volte por cima da linha para apagar.';
+
+  @override
+  String get gameInfoSudokuGoal =>
+      'preencha a grade com os algarismos de 1 a 6.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'cada linha usa de 1 a 6, uma vez cada.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'cada coluna, igual.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'e cada bloco de 2x3, também.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'toque numa casa e depois num algarismo. toque no mesmo algarismo de novo para apagar. o modo anotações escreve marquinhas a lápis.';
+
+  @override
+  String get gameInfoCodeGoal =>
+      'descubra o código escondido de quatro símbolos.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'seis tentativas, e o código nunca repete um símbolo.';
+
+  @override
+  String get gameInfoCodeRule2 =>
+      'verde significa símbolo certo no lugar certo.';
+
+  @override
+  String get gameInfoCodeRule3 =>
+      'amarelo significa símbolo certo no lugar errado.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'toque nos símbolos para montar um palpite e envie. o tabuleiro mostra o quão perto você chegou.';
 }

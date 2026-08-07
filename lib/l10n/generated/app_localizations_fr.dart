@@ -5403,4 +5403,126 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'impossible de joindre les jeux — réessaie';
+
+  @override
+  String get gameInfoOpen => 'comment jouer';
+
+  @override
+  String get gameInfoLabel => 'COMMENT JOUER';
+
+  @override
+  String get gameInfoRulesLabel => 'LES RÈGLES';
+
+  @override
+  String get gameInfoControlsLabel => 'COMMANDES';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'le chrono tourne tant que la grille est à l\'écran et s\'arrête si tu mets en pause ou si tu sors. le plus rapide est en tête du jour.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'le score dépend du nombre d\'essais, pas du chrono.';
+
+  @override
+  String get gameInfoSameForEveryone =>
+      'tout le monde a la même grille aujourd\'hui.';
+
+  @override
+  String get gameInfoGotIt => 'COMPRIS';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'place une couronne dans chaque ligne, colonne et couleur.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'huit couronnes : une par ligne et une par colonne.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'chaque bloc de couleur reçoit aussi exactement une couronne.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'deux couronnes ne peuvent pas se toucher, même par un coin.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'touche une case une fois pour une croix qui l\'écarte, encore pour une couronne, encore pour l\'effacer.';
+
+  @override
+  String get gameInfoTangoGoal => 'remplis la grille de soleils et de lunes.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'chaque ligne et chaque colonne contient trois soleils et trois lunes.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'jamais trois identiques à la suite, en ligne comme en colonne.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'un = entre deux cases veut dire qu\'elles sont identiques ; un × qu\'elles diffèrent.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'touche une case pour un soleil, encore pour une lune, encore pour l\'effacer. les cases imprimées ne bougent pas.';
+
+  @override
+  String get gameInfoZipGoal =>
+      'trace une seule ligne qui passe par toutes les cases.';
+
+  @override
+  String get gameInfoZipRule1 =>
+      'commence sur le 1 et termine sur le dernier nombre.';
+
+  @override
+  String get gameInfoZipRule2 =>
+      'passe par les nombres dans l\'ordre en chemin.';
+
+  @override
+  String get gameInfoZipRule3 =>
+      'chaque case est utilisée exactement une fois.';
+
+  @override
+  String get gameInfoZipControls =>
+      'fais glisser ton doigt pour tracer. reviens sur la ligne pour l\'effacer.';
+
+  @override
+  String get gameInfoSudokuGoal =>
+      'remplis la grille avec les chiffres de 1 à 6.';
+
+  @override
+  String get gameInfoSudokuRule1 =>
+      'chaque ligne utilise 1 à 6, une fois chacun.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'chaque colonne aussi.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'et chaque bloc de 2x3 aussi.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'touche une case, puis un chiffre. retouche le même chiffre pour l\'effacer. le mode notes écrit de petites annotations.';
+
+  @override
+  String get gameInfoCodeGoal => 'devine le code caché de quatre symboles.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'six essais, et le code ne répète jamais un symbole.';
+
+  @override
+  String get gameInfoCodeRule2 => 'vert veut dire bon symbole, bonne place.';
+
+  @override
+  String get gameInfoCodeRule3 =>
+      'jaune veut dire bon symbole, mauvaise place.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'touche des symboles pour composer un essai, puis envoie-le. la grille te dit à quel point tu étais proche.';
 }

@@ -5993,5 +5993,137 @@
   "gameErrorGeneric": "couldn't reach the games — try again",
   "@gameErrorGeneric": {
     "description": "Generic error when a daily-game action fails for an unrecognised reason."
+  },
+  "gameInfoOpen": "how to play",
+  "@gameInfoOpen": {
+    "description": "Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game."
+  },
+  "gameInfoLabel": "HOW TO PLAY",
+  "@gameInfoLabel": {
+    "description": "All-caps eyebrow above the game's name at the top of the how-to-play sheet."
+  },
+  "gameInfoRulesLabel": "THE RULES",
+  "@gameInfoRulesLabel": {
+    "description": "All-caps header above the bulleted rules in the how-to-play sheet."
+  },
+  "gameInfoControlsLabel": "CONTROLS",
+  "@gameInfoControlsLabel": {
+    "description": "All-caps header above the line explaining what to tap or drag, in the how-to-play sheet."
+  },
+  "gameInfoScoringTimed": "the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today's list.",
+  "@gameInfoScoringTimed": {
+    "description": "Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard."
+  },
+  "gameInfoScoringGuesses": "scored by how few guesses it takes, not by the clock.",
+  "@gameInfoScoringGuesses": {
+    "description": "Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time."
+  },
+  "gameInfoSameForEveryone": "everyone gets the same board today.",
+  "@gameInfoSameForEveryone": {
+    "description": "Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful."
+  },
+  "gameInfoGotIt": "GOT IT",
+  "@gameInfoGotIt": {
+    "description": "All-caps button that closes the how-to-play sheet."
+  },
+  "gameInfoQueensGoal": "place one crown in every row, column and colour.",
+  "@gameInfoQueensGoal": {
+    "description": "One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet."
+  },
+  "gameInfoQueensRule1": "eight crowns: one in each row, one in each column.",
+  "@gameInfoQueensRule1": {
+    "description": "First rule bullet in the Queens how-to-play sheet."
+  },
+  "gameInfoQueensRule2": "each colour block gets exactly one crown too.",
+  "@gameInfoQueensRule2": {
+    "description": "Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown."
+  },
+  "gameInfoQueensRule3": "no two crowns may touch — not even at a corner.",
+  "@gameInfoQueensRule3": {
+    "description": "Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally."
+  },
+  "gameInfoQueensControls": "tap a square once for a cross to rule it out, again for a crown, again to clear it.",
+  "@gameInfoQueensControls": {
+    "description": "Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown."
+  },
+  "gameInfoTangoGoal": "fill the grid with suns and moons.",
+  "@gameInfoTangoGoal": {
+    "description": "One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet."
+  },
+  "gameInfoTangoRule1": "every row and column holds three suns and three moons.",
+  "@gameInfoTangoRule1": {
+    "description": "First rule bullet in the Tango how-to-play sheet."
+  },
+  "gameInfoTangoRule2": "never three of the same next to each other, across or down.",
+  "@gameInfoTangoRule2": {
+    "description": "Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically."
+  },
+  "gameInfoTangoRule3": "= between two squares means they match. × means they differ.",
+  "@gameInfoTangoRule3": {
+    "description": "Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are."
+  },
+  "gameInfoTangoControls": "tap a square for a sun, again for a moon, again to clear. printed squares don't move.",
+  "@gameInfoTangoControls": {
+    "description": "Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed."
+  },
+  "gameInfoZipGoal": "draw one line that goes through every square.",
+  "@gameInfoZipGoal": {
+    "description": "One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet."
+  },
+  "gameInfoZipRule1": "start on 1 and finish on the last number.",
+  "@gameInfoZipRule1": {
+    "description": "First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one."
+  },
+  "gameInfoZipRule2": "touch the numbers in order along the way.",
+  "@gameInfoZipRule2": {
+    "description": "Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order."
+  },
+  "gameInfoZipRule3": "every square gets used exactly once.",
+  "@gameInfoZipRule3": {
+    "description": "Third rule bullet in the Zip how-to-play sheet."
+  },
+  "gameInfoZipControls": "drag your finger to draw. drag back over the line to rub it out.",
+  "@gameInfoZipControls": {
+    "description": "Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it."
+  },
+  "gameInfoSudokuGoal": "fill the grid with the digits 1 to 6.",
+  "@gameInfoSudokuGoal": {
+    "description": "One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet."
+  },
+  "gameInfoSudokuRule1": "each row uses 1 to 6, once each.",
+  "@gameInfoSudokuRule1": {
+    "description": "First rule bullet in the Mini Sudoku how-to-play sheet."
+  },
+  "gameInfoSudokuRule2": "so does each column.",
+  "@gameInfoSudokuRule2": {
+    "description": "Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it."
+  },
+  "gameInfoSudokuRule3": "and so does each 2x3 box.",
+  "@gameInfoSudokuRule3": {
+    "description": "Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide."
+  },
+  "gameInfoSudokuControls": "tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.",
+  "@gameInfoSudokuControls": {
+    "description": "Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks."
+  },
+  "gameInfoCodeGoal": "work out the hidden four-symbol code.",
+  "@gameInfoCodeGoal": {
+    "description": "One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet."
+  },
+  "gameInfoCodeRule1": "six tries, and the code never repeats a symbol.",
+  "@gameInfoCodeRule1": {
+    "description": "First rule bullet in the symbol-code puzzle's how-to-play sheet."
+  },
+  "gameInfoCodeRule2": "green means right symbol, right place.",
+  "@gameInfoCodeRule2": {
+    "description": "Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in."
+  },
+  "gameInfoCodeRule3": "yellow means right symbol, wrong place.",
+  "@gameInfoCodeRule3": {
+    "description": "Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in."
+  },
+  "gameInfoCodeControls": "tap symbols to build a guess, then send it. the board tells you how close you were.",
+  "@gameInfoCodeControls": {
+    "description": "Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback."
   }
 }

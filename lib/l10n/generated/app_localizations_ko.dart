@@ -5144,4 +5144,106 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => '게임에 연결하지 못했어 — 다시 시도해';
+
+  @override
+  String get gameInfoOpen => '게임 방법';
+
+  @override
+  String get gameInfoLabel => '게임 방법';
+
+  @override
+  String get gameInfoRulesLabel => '규칙';
+
+  @override
+  String get gameInfoControlsLabel => '조작';
+
+  @override
+  String get gameInfoScoringTimed =>
+      '보드가 화면에 있는 동안만 시계가 돌고, 일시정지하거나 나가면 멈춰. 가장 빠르면 오늘 1위야.';
+
+  @override
+  String get gameInfoScoringGuesses => '시간이 아니라 몇 번 만에 맞혔는지로 점수가 매겨져.';
+
+  @override
+  String get gameInfoSameForEveryone => '오늘은 모두 같은 보드를 받아.';
+
+  @override
+  String get gameInfoGotIt => '알겠어';
+
+  @override
+  String get gameInfoQueensGoal => '모든 행, 열, 색에 왕관을 하나씩 놓아.';
+
+  @override
+  String get gameInfoQueensRule1 => '왕관 여덟 개, 각 행에 하나 각 열에 하나.';
+
+  @override
+  String get gameInfoQueensRule2 => '색 덩어리마다도 정확히 하나씩.';
+
+  @override
+  String get gameInfoQueensRule3 => '왕관끼리는 닿으면 안 돼. 모서리끼리도 안 돼.';
+
+  @override
+  String get gameInfoQueensControls => '칸을 한 번 누르면 X, 다시 누르면 왕관, 또 누르면 비워져.';
+
+  @override
+  String get gameInfoTangoGoal => '격자를 해와 달로 채워.';
+
+  @override
+  String get gameInfoTangoRule1 => '모든 행과 열에 해 셋, 달 셋.';
+
+  @override
+  String get gameInfoTangoRule2 => '같은 것이 셋 연속으로 붙으면 안 돼. 가로도 세로도.';
+
+  @override
+  String get gameInfoTangoRule3 => '칸 사이의 = 는 같다는 뜻, × 는 다르다는 뜻이야.';
+
+  @override
+  String get gameInfoTangoControls =>
+      '칸을 누르면 해, 다시 누르면 달, 또 누르면 비워져. 미리 찍혀 있는 칸은 안 바뀌어.';
+
+  @override
+  String get gameInfoZipGoal => '모든 칸을 지나는 선을 하나 그려.';
+
+  @override
+  String get gameInfoZipRule1 => '1에서 시작해 마지막 숫자에서 끝내.';
+
+  @override
+  String get gameInfoZipRule2 => '가는 길에 숫자를 순서대로 지나가.';
+
+  @override
+  String get gameInfoZipRule3 => '모든 칸을 정확히 한 번씩 써.';
+
+  @override
+  String get gameInfoZipControls => '손가락을 끌어서 그려. 선 위로 되돌아가면 지워져.';
+
+  @override
+  String get gameInfoSudokuGoal => '격자를 1부터 6까지의 숫자로 채워.';
+
+  @override
+  String get gameInfoSudokuRule1 => '각 행에 1부터 6까지 한 번씩.';
+
+  @override
+  String get gameInfoSudokuRule2 => '각 열도 마찬가지야.';
+
+  @override
+  String get gameInfoSudokuRule3 => '2x3 박스도 마찬가지.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      '칸을 누른 다음 숫자를 눌러. 같은 숫자를 다시 누르면 지워져. 메모 모드에서는 작은 연필 표시가 들어가.';
+
+  @override
+  String get gameInfoCodeGoal => '숨겨진 기호 네 개짜리 코드를 알아내.';
+
+  @override
+  String get gameInfoCodeRule1 => '여섯 번의 기회, 코드에 같은 기호는 반복되지 않아.';
+
+  @override
+  String get gameInfoCodeRule2 => '초록은 기호도 자리도 맞다는 뜻.';
+
+  @override
+  String get gameInfoCodeRule3 => '노랑은 기호는 맞지만 자리가 틀렸다는 뜻.';
+
+  @override
+  String get gameInfoCodeControls => '기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘.';
 }

@@ -5310,4 +5310,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'couldn\'t reach the games — try again';
+
+  @override
+  String get gameInfoOpen => 'how to play';
+
+  @override
+  String get gameInfoLabel => 'HOW TO PLAY';
+
+  @override
+  String get gameInfoRulesLabel => 'THE RULES';
+
+  @override
+  String get gameInfoControlsLabel => 'CONTROLS';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today\'s list.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'scored by how few guesses it takes, not by the clock.';
+
+  @override
+  String get gameInfoSameForEveryone => 'everyone gets the same board today.';
+
+  @override
+  String get gameInfoGotIt => 'GOT IT';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'place one crown in every row, column and colour.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'eight crowns: one in each row, one in each column.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'each colour block gets exactly one crown too.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'no two crowns may touch — not even at a corner.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'tap a square once for a cross to rule it out, again for a crown, again to clear it.';
+
+  @override
+  String get gameInfoTangoGoal => 'fill the grid with suns and moons.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'every row and column holds three suns and three moons.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'never three of the same next to each other, across or down.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      '= between two squares means they match. × means they differ.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'tap a square for a sun, again for a moon, again to clear. printed squares don\'t move.';
+
+  @override
+  String get gameInfoZipGoal => 'draw one line that goes through every square.';
+
+  @override
+  String get gameInfoZipRule1 => 'start on 1 and finish on the last number.';
+
+  @override
+  String get gameInfoZipRule2 => 'touch the numbers in order along the way.';
+
+  @override
+  String get gameInfoZipRule3 => 'every square gets used exactly once.';
+
+  @override
+  String get gameInfoZipControls =>
+      'drag your finger to draw. drag back over the line to rub it out.';
+
+  @override
+  String get gameInfoSudokuGoal => 'fill the grid with the digits 1 to 6.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'each row uses 1 to 6, once each.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'so does each column.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'and so does each 2x3 box.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.';
+
+  @override
+  String get gameInfoCodeGoal => 'work out the hidden four-symbol code.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'six tries, and the code never repeats a symbol.';
+
+  @override
+  String get gameInfoCodeRule2 => 'green means right symbol, right place.';
+
+  @override
+  String get gameInfoCodeRule3 => 'yellow means right symbol, wrong place.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'tap symbols to build a guess, then send it. the board tells you how close you were.';
 }

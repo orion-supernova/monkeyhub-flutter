@@ -11,6 +11,7 @@ import '../models/daily_game.dart';
 import '../models/puzzle.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'game_info_sheet.dart';
 import 'puzzle_symbol.dart';
 
 /// One game on the hub: today's real board, its name, and how you did.
@@ -51,6 +52,7 @@ class GameTile extends StatelessWidget {
     return _TileShell(
       width: width,
       onTap: onTap,
+      onInfo: () => showGameInfo(context, game),
       semanticLabel: _name(l10n),
       preview: _preview(theme),
       title: _name(l10n),
@@ -117,6 +119,7 @@ class CodePuzzleTile extends StatelessWidget {
     return _TileShell(
       width: width,
       onTap: onTap,
+      onInfo: () => showCodePuzzleInfo(context),
       semanticLabel: l10n.gameCodeName,
       title: l10n.gameCodeName,
       preview: Center(
@@ -152,6 +155,7 @@ class _TileShell extends StatelessWidget {
   const _TileShell({
     required this.width,
     required this.onTap,
+    required this.onInfo,
     required this.semanticLabel,
     required this.preview,
     required this.title,
@@ -160,6 +164,11 @@ class _TileShell extends StatelessWidget {
 
   final double width;
   final VoidCallback onTap;
+
+  /// Opens the how-to-play sheet. A separate target inside the tile's own tap
+  /// region — children are hit-tested before their parents, so the ⓘ takes the
+  /// tap and everywhere else still opens the board.
+  final VoidCallback onInfo;
   final String semanticLabel;
   final Widget preview;
   final String title;
@@ -188,7 +197,20 @@ class _TileShell extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                AspectRatio(aspectRatio: 1, child: preview),
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      preview,
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: GameInfoButton(onTap: onInfo),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Text(
                   title,

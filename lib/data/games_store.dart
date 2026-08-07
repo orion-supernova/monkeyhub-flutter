@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../backend/convex_client.dart';
 import '../backend/games_api.dart';
@@ -60,6 +63,35 @@ class GamesStore extends ChangeNotifier {
   /// The day the held state belongs to.
   String get dayKey => _dayKey;
 
+  /// Notifies, but never from inside a build.
+  ///
+  /// Every game screen kicks [load] off from its `initState`, and [load]
+  /// settles some state — the day key, the loading flag, a board cleared across
+  /// a rollover — *before* its first `await`. That puts a `notifyListeners()`
+  /// in the same call stack as the build that is mounting the screen, and
+  /// `FeedScreen` is still listening from behind the new route, so it gets
+  /// marked dirty mid-build. Flutter rejects that outright: the first tap on a
+  /// game tile threw "setState() or markNeedsBuild() called during build".
+  ///
+  /// The guard lives on the store rather than at the call sites because this is
+  /// a singleton reached from six places, and "remember to wrap your call in a
+  /// post-frame callback" is a rule that holds until the seventh.
+  ///
+  /// A microtask rather than `addPostFrameCallback`: it fires whether or not
+  /// another frame is scheduled, and it runs as soon as the frame's synchronous
+  /// work unwinds, so a deferred notification is still handled on the next
+  /// frame rather than whenever something else happens to request one.
+  void _notify() {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      scheduleMicrotask(notifyListeners);
+      return;
+    }
+    // Outside a build there is nothing to defer around, and routing every
+    // update through a microtask would put a frame's delay on all of them.
+    notifyListeners();
+  }
+
   /// Loads whatever is missing for [userId]'s current local day.
   ///
   /// The boards themselves are fetched once per day and then held: they are a
@@ -94,7 +126,7 @@ class GamesStore extends ChangeNotifier {
     _userId = userId;
     _loading = true;
     _error = null;
-    notifyListeners();
+    _notify();
 
     try {
       // Issued together: the boards read no table server-side and the standings
@@ -117,7 +149,7 @@ class GamesStore extends ChangeNotifier {
       // error mid-game must not blank a grid the player is halfway through.
       _error = e;
     }
-    notifyListeners();
+    _notify();
   }
 
   /// Fetches today's boards and nothing else.
@@ -140,7 +172,7 @@ class GamesStore extends ChangeNotifier {
       final next = await api.daily(dayKey: day);
       if (gen != _gen) return;
       _boards = next;
-      notifyListeners();
+      _notify();
     } catch (_) {
       // Silent. The band degrades to muted placeholders, which is the right
       // outcome for a strip nobody asked to refresh — the hub has a real
@@ -163,11 +195,11 @@ class GamesStore extends ChangeNotifier {
       if (gen != _gen) return;
       _standings = next;
       _error = null;
-      notifyListeners();
+      _notify();
     } catch (e) {
       if (gen != _gen) return;
       _error = e;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -183,7 +215,7 @@ class GamesStore extends ChangeNotifier {
       progress: _standings.progress,
       boards: _standings.boards,
     );
-    notifyListeners();
+    _notify();
   }
 
   /// Drops everything on sign-out.
@@ -198,6 +230,6 @@ class GamesStore extends ChangeNotifier {
     _standings = const GameStandings();
     _loading = false;
     _error = null;
-    notifyListeners();
+    _notify();
   }
 }

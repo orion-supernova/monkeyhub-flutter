@@ -5128,4 +5128,106 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'ゲームに接続できませんでした — もう一度お試しください';
+
+  @override
+  String get gameInfoOpen => '遊び方';
+
+  @override
+  String get gameInfoLabel => '遊び方';
+
+  @override
+  String get gameInfoRulesLabel => 'ルール';
+
+  @override
+  String get gameInfoControlsLabel => '操作';
+
+  @override
+  String get gameInfoScoringTimed =>
+      '盤面を開いている間だけ時計が進み、一時停止や離脱で止まります。最速なら今日のトップです。';
+
+  @override
+  String get gameInfoScoringGuesses => 'スコアは推測回数の少なさで決まり、時間は関係ありません。';
+
+  @override
+  String get gameInfoSameForEveryone => '今日は全員が同じ盤面です。';
+
+  @override
+  String get gameInfoGotIt => 'わかった';
+
+  @override
+  String get gameInfoQueensGoal => '各行・各列・各色に王冠を1つずつ置きます。';
+
+  @override
+  String get gameInfoQueensRule1 => '王冠は8つ。各行に1つ、各列に1つ。';
+
+  @override
+  String get gameInfoQueensRule2 => '色のかたまりごとにもちょうど1つずつ。';
+
+  @override
+  String get gameInfoQueensRule3 => '王冠どうしは接してはいけません。角どうしもだめです。';
+
+  @override
+  String get gameInfoQueensControls => 'マスを1回タップでバツ、2回で王冠、3回で空に戻ります。';
+
+  @override
+  String get gameInfoTangoGoal => '盤面を太陽と月で埋めます。';
+
+  @override
+  String get gameInfoTangoRule1 => '各行・各列に太陽3つと月3つ。';
+
+  @override
+  String get gameInfoTangoRule2 => '同じものが3つ続いてはいけません。縦も横もです。';
+
+  @override
+  String get gameInfoTangoRule3 => 'マスの間の = は同じ、× は違うという意味です。';
+
+  @override
+  String get gameInfoTangoControls =>
+      'マスをタップで太陽、もう一度で月、もう一度で空に。最初から入っているマスは動きません。';
+
+  @override
+  String get gameInfoZipGoal => 'すべてのマスを通る線を1本描きます。';
+
+  @override
+  String get gameInfoZipRule1 => '1から始めて、最後の数字で終わります。';
+
+  @override
+  String get gameInfoZipRule2 => '途中の数字は順番どおりに通ります。';
+
+  @override
+  String get gameInfoZipRule3 => 'どのマスもちょうど1回ずつ使います。';
+
+  @override
+  String get gameInfoZipControls => '指をなぞって描きます。線の上を戻ると消えます。';
+
+  @override
+  String get gameInfoSudokuGoal => '盤面を1〜6の数字で埋めます。';
+
+  @override
+  String get gameInfoSudokuRule1 => '各行に1〜6を1回ずつ。';
+
+  @override
+  String get gameInfoSudokuRule2 => '各列も同じです。';
+
+  @override
+  String get gameInfoSudokuRule3 => '2×3のブロックも同じです。';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'マスをタップしてから数字をタップします。同じ数字をもう一度押すと消えます。メモではえんぴつの小さな数字になります。';
+
+  @override
+  String get gameInfoCodeGoal => '隠された4つの記号のコードを当てます。';
+
+  @override
+  String get gameInfoCodeRule1 => '6回まで。コードに同じ記号は現れません。';
+
+  @override
+  String get gameInfoCodeRule2 => '緑は記号も位置も正解です。';
+
+  @override
+  String get gameInfoCodeRule3 => '黄色は記号は合っているが位置が違います。';
+
+  @override
+  String get gameInfoCodeControls => '記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。';
 }

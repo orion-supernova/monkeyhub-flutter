@@ -5326,4 +5326,116 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'खेलों तक नहीं पहुँच सके — फिर कोशिश करें';
+
+  @override
+  String get gameInfoOpen => 'कैसे खेलें';
+
+  @override
+  String get gameInfoLabel => 'कैसे खेलें';
+
+  @override
+  String get gameInfoRulesLabel => 'नियम';
+
+  @override
+  String get gameInfoControlsLabel => 'नियंत्रण';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'जब तक बोर्ड स्क्रीन पर है घड़ी चलती है; रोकने या बाहर जाने पर रुक जाती है। सबसे तेज़ आज की सूची में सबसे ऊपर।';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'स्कोर कम अनुमानों से बनता है, घड़ी से नहीं।';
+
+  @override
+  String get gameInfoSameForEveryone => 'आज सबको एक ही बोर्ड मिलता है।';
+
+  @override
+  String get gameInfoGotIt => 'समझ गए';
+
+  @override
+  String get gameInfoQueensGoal => 'हर पंक्ति, स्तंभ और रंग में एक ताज रखें।';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'आठ ताज: हर पंक्ति में एक, हर स्तंभ में एक।';
+
+  @override
+  String get gameInfoQueensRule2 => 'हर रंग-खंड में भी ठीक एक ताज होता है।';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'कोई दो ताज नहीं छू सकते — कोने से भी नहीं।';
+
+  @override
+  String get gameInfoQueensControls =>
+      'किसी खाने पर एक बार टैप करें तो क्रॉस, दोबारा टैप करें तो ताज, फिर से टैप करें तो खाली।';
+
+  @override
+  String get gameInfoTangoGoal => 'ग्रिड को सूरज और चाँद से भरें।';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'हर पंक्ति और स्तंभ में तीन सूरज और तीन चाँद होते हैं।';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'कभी भी तीन एक जैसे साथ-साथ नहीं, न आड़े न खड़े।';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'दो खानों के बीच = का मतलब वे एक जैसे हैं, × का मतलब अलग हैं।';
+
+  @override
+  String get gameInfoTangoControls =>
+      'खाने पर टैप करें तो सूरज, दोबारा चाँद, फिर खाली। छपे हुए खाने नहीं बदलते।';
+
+  @override
+  String get gameInfoZipGoal => 'एक ऐसी रेखा खींचें जो हर खाने से गुज़रे।';
+
+  @override
+  String get gameInfoZipRule1 => '1 से शुरू करें और आखिरी संख्या पर खत्म करें।';
+
+  @override
+  String get gameInfoZipRule2 => 'रास्ते में संख्याओं को क्रम से छुएँ।';
+
+  @override
+  String get gameInfoZipRule3 => 'हर खाना ठीक एक बार इस्तेमाल होता है।';
+
+  @override
+  String get gameInfoZipControls =>
+      'उँगली घसीटकर खींचें। रेखा पर वापस घसीटें तो मिट जाएगी।';
+
+  @override
+  String get gameInfoSudokuGoal => 'ग्रिड को 1 से 6 अंकों से भरें।';
+
+  @override
+  String get gameInfoSudokuRule1 => 'हर पंक्ति में 1 से 6 तक एक-एक बार।';
+
+  @override
+  String get gameInfoSudokuRule2 => 'हर स्तंभ में भी वैसा ही।';
+
+  @override
+  String get gameInfoSudokuRule3 => 'और हर 2x3 बॉक्स में भी।';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'खाने पर टैप करें, फिर अंक पर। वही अंक दोबारा टैप करें तो मिट जाएगा। नोट्स मोड में छोटे पेंसिल निशान लगते हैं।';
+
+  @override
+  String get gameInfoCodeGoal => 'चार-चिह्न वाले छिपे कोड का पता लगाएँ।';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'छह कोशिशें, और कोड में कोई चिह्न दोहराया नहीं जाता।';
+
+  @override
+  String get gameInfoCodeRule2 => 'हरा मतलब सही चिह्न, सही जगह।';
+
+  @override
+  String get gameInfoCodeRule3 => 'पीला मतलब सही चिह्न, गलत जगह।';
+
+  @override
+  String get gameInfoCodeControls =>
+      'अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।';
 }

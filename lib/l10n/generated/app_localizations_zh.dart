@@ -5062,4 +5062,103 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => '无法连接游戏 — 请重试';
+
+  @override
+  String get gameInfoOpen => '玩法说明';
+
+  @override
+  String get gameInfoLabel => '玩法说明';
+
+  @override
+  String get gameInfoRulesLabel => '规则';
+
+  @override
+  String get gameInfoControlsLabel => '操作';
+
+  @override
+  String get gameInfoScoringTimed => '棋盘在屏幕上时计时进行，暂停或离开即停止。用时最短的人排在今天第一。';
+
+  @override
+  String get gameInfoScoringGuesses => '按猜的次数计分，与用时无关。';
+
+  @override
+  String get gameInfoSameForEveryone => '今天所有人拿到的是同一道题。';
+
+  @override
+  String get gameInfoGotIt => '知道了';
+
+  @override
+  String get gameInfoQueensGoal => '在每一行、每一列和每种颜色中各放一顶王冠。';
+
+  @override
+  String get gameInfoQueensRule1 => '八顶王冠：每行一顶，每列一顶。';
+
+  @override
+  String get gameInfoQueensRule2 => '每个颜色块也恰好放一顶王冠。';
+
+  @override
+  String get gameInfoQueensRule3 => '任意两顶王冠都不能相邻，连对角也不行。';
+
+  @override
+  String get gameInfoQueensControls => '点一下方格打叉排除，再点放王冠，再点清空。';
+
+  @override
+  String get gameInfoTangoGoal => '用太阳和月亮填满格子。';
+
+  @override
+  String get gameInfoTangoRule1 => '每行每列各有三个太阳和三个月亮。';
+
+  @override
+  String get gameInfoTangoRule2 => '横向或纵向都不能连续出现三个相同的。';
+
+  @override
+  String get gameInfoTangoRule3 => '两格之间的 = 表示相同，× 表示不同。';
+
+  @override
+  String get gameInfoTangoControls => '点方格放太阳，再点放月亮，再点清空。题目自带的格子不能改。';
+
+  @override
+  String get gameInfoZipGoal => '画一条经过每一格的线。';
+
+  @override
+  String get gameInfoZipRule1 => '从 1 开始，在最后一个数字上结束。';
+
+  @override
+  String get gameInfoZipRule2 => '沿途按顺序经过每个数字。';
+
+  @override
+  String get gameInfoZipRule3 => '每一格恰好经过一次。';
+
+  @override
+  String get gameInfoZipControls => '拖动手指画线。沿线往回拖即可擦除。';
+
+  @override
+  String get gameInfoSudokuGoal => '用数字 1 到 6 填满格子。';
+
+  @override
+  String get gameInfoSudokuRule1 => '每行用 1 到 6 各一次。';
+
+  @override
+  String get gameInfoSudokuRule2 => '每列也一样。';
+
+  @override
+  String get gameInfoSudokuRule3 => '每个 2x3 的宫也一样。';
+
+  @override
+  String get gameInfoSudokuControls => '先点方格，再点数字。再点同一个数字即可清除。笔记模式写的是小号铅笔标记。';
+
+  @override
+  String get gameInfoCodeGoal => '推理出隐藏的四个符号密码。';
+
+  @override
+  String get gameInfoCodeRule1 => '六次机会，密码中不会出现重复符号。';
+
+  @override
+  String get gameInfoCodeRule2 => '绿色表示符号对、位置也对。';
+
+  @override
+  String get gameInfoCodeRule3 => '黄色表示符号对但位置不对。';
+
+  @override
+  String get gameInfoCodeControls => '点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。';
 }

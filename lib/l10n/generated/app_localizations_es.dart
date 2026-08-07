@@ -5369,4 +5369,126 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get gameErrorGeneric =>
       'no se pudo conectar con los juegos — inténtalo de nuevo';
+
+  @override
+  String get gameInfoOpen => 'cómo se juega';
+
+  @override
+  String get gameInfoLabel => 'CÓMO SE JUEGA';
+
+  @override
+  String get gameInfoRulesLabel => 'LAS REGLAS';
+
+  @override
+  String get gameInfoControlsLabel => 'CONTROLES';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'el reloj corre mientras el tablero está en pantalla y se para si pausas o sales. el más rápido encabeza la lista de hoy.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'se puntúa por cuántos intentos necesitas, no por el tiempo.';
+
+  @override
+  String get gameInfoSameForEveryone => 'hoy todos juegan el mismo tablero.';
+
+  @override
+  String get gameInfoGotIt => 'ENTENDIDO';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'coloca una corona en cada fila, columna y color.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'ocho coronas: una en cada fila y una en cada columna.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'cada bloque de color lleva también exactamente una corona.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'dos coronas no pueden tocarse, ni siquiera por una esquina.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'toca una casilla una vez para una cruz que la descarta, otra vez para una corona y otra para vaciarla.';
+
+  @override
+  String get gameInfoTangoGoal => 'rellena la cuadrícula con soles y lunas.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'cada fila y columna lleva tres soles y tres lunas.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'nunca tres iguales seguidos, ni en horizontal ni en vertical.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'un = entre dos casillas significa que son iguales; una × que son distintas.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'toca una casilla para un sol, otra vez para una luna y otra para vaciarla. las casillas impresas no se mueven.';
+
+  @override
+  String get gameInfoZipGoal =>
+      'dibuja una línea que pase por todas las casillas.';
+
+  @override
+  String get gameInfoZipRule1 =>
+      'empieza en el 1 y termina en el último número.';
+
+  @override
+  String get gameInfoZipRule2 =>
+      've tocando los números en orden por el camino.';
+
+  @override
+  String get gameInfoZipRule3 => 'cada casilla se usa exactamente una vez.';
+
+  @override
+  String get gameInfoZipControls =>
+      'arrastra el dedo para dibujar. vuelve sobre la línea para borrarla.';
+
+  @override
+  String get gameInfoSudokuGoal =>
+      'rellena la cuadrícula con los dígitos del 1 al 6.';
+
+  @override
+  String get gameInfoSudokuRule1 =>
+      'cada fila usa del 1 al 6, una vez cada uno.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'cada columna, igual.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'y cada caja de 2x3, también.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'toca una casilla y luego un dígito. toca el mismo dígito otra vez para borrarlo. con notas escribes marcas pequeñas a lápiz.';
+
+  @override
+  String get gameInfoCodeGoal =>
+      'descubre el código oculto de cuatro símbolos.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'seis intentos, y el código nunca repite un símbolo.';
+
+  @override
+  String get gameInfoCodeRule2 =>
+      'verde significa símbolo correcto en el lugar correcto.';
+
+  @override
+  String get gameInfoCodeRule3 =>
+      'amarillo significa símbolo correcto en el lugar equivocado.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'toca símbolos para formar un intento y envíalo. el tablero te dice cuánto te acercaste.';
 }

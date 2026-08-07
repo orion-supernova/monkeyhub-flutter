@@ -5294,4 +5294,117 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'oyunlara ulaşılamadı — tekrar dene';
+
+  @override
+  String get gameInfoOpen => 'nasıl oynanır';
+
+  @override
+  String get gameInfoLabel => 'NASIL OYNANIR';
+
+  @override
+  String get gameInfoRulesLabel => 'KURALLAR';
+
+  @override
+  String get gameInfoControlsLabel => 'KONTROLLER';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'tahta ekrandayken sayaç işler, duraklattığında ya da çıktığında durur. en hızlı olan bugünün listesinde başa geçer.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'puan, süreye göre değil kaç denemede bildiğine göre verilir.';
+
+  @override
+  String get gameInfoSameForEveryone => 'bugün herkese aynı tahta geliyor.';
+
+  @override
+  String get gameInfoGotIt => 'ANLADIM';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'her satıra, sütuna ve renge birer taç yerleştir.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'sekiz taç: her satırda bir, her sütunda bir.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'her renk bloğunda da tam olarak bir taç bulunur.';
+
+  @override
+  String get gameInfoQueensRule3 => 'iki taç birbirine değemez — köşeden bile.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'bir kareye bir kez dokun çarpı, tekrar dokun taç, bir daha dokun boş.';
+
+  @override
+  String get gameInfoTangoGoal => 'ızgarayı güneşler ve aylarla doldur.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'her satır ve sütunda üç güneş, üç ay bulunur.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'art arda üç aynı olamaz, ne yatay ne dikey.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'iki kare arasındaki = aynı, × farklı demektir.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'kareye dokun güneş, tekrar dokun ay, bir daha dokun boş. basılı kareler değişmez.';
+
+  @override
+  String get gameInfoZipGoal => 'her kareden geçen tek bir çizgi çiz.';
+
+  @override
+  String get gameInfoZipRule1 => '1\'den başla, son sayıda bitir.';
+
+  @override
+  String get gameInfoZipRule2 => 'yol boyunca sayılara sırayla uğra.';
+
+  @override
+  String get gameInfoZipRule3 => 'her kare tam olarak bir kez kullanılır.';
+
+  @override
+  String get gameInfoZipControls =>
+      'parmağını sürükleyerek çiz. çizginin üstünden geri gel, silinsin.';
+
+  @override
+  String get gameInfoSudokuGoal => 'ızgarayı 1\'den 6\'ya rakamlarla doldur.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'her satırda 1\'den 6\'ya birer kez.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'her sütunda da aynısı.';
+
+  @override
+  String get gameInfoSudokuRule3 => 've her 2x3 kutuda da.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'önce bir kareye, sonra bir rakama dokun. aynı rakama tekrar dokunursan silinir. notlar modunda küçük kurşun kalem işaretleri yazılır.';
+
+  @override
+  String get gameInfoCodeGoal => 'gizli dört sembollü şifreyi çöz.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'altı deneme, ve şifrede hiçbir sembol tekrarlanmaz.';
+
+  @override
+  String get gameInfoCodeRule2 => 'yeşil, doğru sembol doğru yerde demek.';
+
+  @override
+  String get gameInfoCodeRule3 => 'sarı, doğru sembol yanlış yerde demek.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'sembollere dokunarak bir tahmin kur ve gönder. tahta ne kadar yaklaştığını söyler.';
 }

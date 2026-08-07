@@ -5396,4 +5396,114 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'تعذّر الوصول إلى الألعاب — حاول مجددًا';
+
+  @override
+  String get gameInfoOpen => 'كيف تلعب';
+
+  @override
+  String get gameInfoLabel => 'كيف تلعب';
+
+  @override
+  String get gameInfoRulesLabel => 'القواعد';
+
+  @override
+  String get gameInfoControlsLabel => 'التحكّم';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'الوقت يعمل ما دام اللوح ظاهرًا، ويتوقّف عند الإيقاف أو الخروج. الأسرع يتصدّر قائمة اليوم.';
+
+  @override
+  String get gameInfoScoringGuesses => 'النتيجة بعدد المحاولات، لا بالوقت.';
+
+  @override
+  String get gameInfoSameForEveryone => 'الجميع يحصل على نفس اللوح اليوم.';
+
+  @override
+  String get gameInfoGotIt => 'فهمت';
+
+  @override
+  String get gameInfoQueensGoal => 'ضع تاجًا واحدًا في كل صف وعمود ولون.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'ثمانية تيجان: واحد في كل صف وواحد في كل عمود.';
+
+  @override
+  String get gameInfoQueensRule2 =>
+      'كل كتلة لونية تحصل أيضًا على تاج واحد بالضبط.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'لا يجوز أن يتلامس تاجان — ولا حتى من الزاوية.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'اضغط المربع مرة لوضع علامة استبعاد، ومرة أخرى للتاج، ومرة ثالثة للمسح.';
+
+  @override
+  String get gameInfoTangoGoal => 'املأ الشبكة بالشموس والأقمار.';
+
+  @override
+  String get gameInfoTangoRule1 => 'كل صف وعمود يحتوي ثلاث شموس وثلاثة أقمار.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'لا ثلاثة متشابهة متجاورة، أفقيًا أو رأسيًا.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'علامة = بين مربعين تعني تطابقهما، و× تعني اختلافهما.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'اضغط المربع لشمس، ومرة أخرى لقمر، ومرة ثالثة للمسح. المربعات المطبوعة ثابتة.';
+
+  @override
+  String get gameInfoZipGoal => 'ارسم خطًا واحدًا يمرّ بكل مربع.';
+
+  @override
+  String get gameInfoZipRule1 => 'ابدأ من 1 وانتهِ عند آخر رقم.';
+
+  @override
+  String get gameInfoZipRule2 => 'مُرّ بالأرقام بالترتيب في طريقك.';
+
+  @override
+  String get gameInfoZipRule3 => 'كل مربع يُستخدم مرة واحدة بالضبط.';
+
+  @override
+  String get gameInfoZipControls => 'اسحب إصبعك للرسم، وارجع فوق الخط لمحوه.';
+
+  @override
+  String get gameInfoSudokuGoal => 'املأ الشبكة بالأرقام من 1 إلى 6.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'كل صف يستخدم 1 إلى 6 مرة واحدة لكل رقم.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'وكذلك كل عمود.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'وكذلك كل مربع 2×3.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'اضغط مربعًا ثم رقمًا. اضغط الرقم نفسه مجددًا للمسح. وضع الملاحظات يكتب علامات صغيرة بدلًا من ذلك.';
+
+  @override
+  String get gameInfoCodeGoal =>
+      'اكتشف الشيفرة المخفيّة المكوّنة من أربعة رموز.';
+
+  @override
+  String get gameInfoCodeRule1 => 'ست محاولات، والشيفرة لا تكرّر أي رمز.';
+
+  @override
+  String get gameInfoCodeRule2 => 'الأخضر يعني الرمز الصحيح في المكان الصحيح.';
+
+  @override
+  String get gameInfoCodeRule3 => 'الأصفر يعني الرمز الصحيح في المكان الخطأ.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت.';
 }

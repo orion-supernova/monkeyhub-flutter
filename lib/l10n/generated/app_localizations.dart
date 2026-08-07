@@ -9124,6 +9124,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'couldn\'t reach the games — try again'**
   String get gameErrorGeneric;
+
+  /// Screen-reader label and tooltip for the small question-mark button on a game tile, which opens the sheet explaining that game.
+  ///
+  /// In en, this message translates to:
+  /// **'how to play'**
+  String get gameInfoOpen;
+
+  /// All-caps eyebrow above the game's name at the top of the how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'HOW TO PLAY'**
+  String get gameInfoLabel;
+
+  /// All-caps header above the bulleted rules in the how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'THE RULES'**
+  String get gameInfoRulesLabel;
+
+  /// All-caps header above the line explaining what to tap or drag, in the how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTROLS'**
+  String get gameInfoControlsLabel;
+
+  /// Closing line of the how-to-play sheet for the four timed boards. Says both how the stopwatch behaves and what winning means, because a player should not discover either by seeing their name on a leaderboard.
+  ///
+  /// In en, this message translates to:
+  /// **'the clock runs while the board is on screen and stops when you pause or leave. finish fastest and you top today\'s list.'**
+  String get gameInfoScoringTimed;
+
+  /// Closing line of the how-to-play sheet for the symbol-code puzzle — the one game on the hub that is ranked by guesses rather than by time.
+  ///
+  /// In en, this message translates to:
+  /// **'scored by how few guesses it takes, not by the clock.'**
+  String get gameInfoScoringGuesses;
+
+  /// Muted footnote at the bottom of the how-to-play sheet. The point being made is that the boards are identical for every player worldwide, which is what makes comparing results meaningful.
+  ///
+  /// In en, this message translates to:
+  /// **'everyone gets the same board today.'**
+  String get gameInfoSameForEveryone;
+
+  /// All-caps button that closes the how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'GOT IT'**
+  String get gameInfoGotIt;
+
+  /// One-sentence description of what the player is trying to do in Queens, at the top of its how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'place one crown in every row, column and colour.'**
+  String get gameInfoQueensGoal;
+
+  /// First rule bullet in the Queens how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'eight crowns: one in each row, one in each column.'**
+  String get gameInfoQueensRule1;
+
+  /// Second rule bullet in the Queens how-to-play sheet. The board is divided into coloured regions and each holds exactly one crown.
+  ///
+  /// In en, this message translates to:
+  /// **'each colour block gets exactly one crown too.'**
+  String get gameInfoQueensRule2;
+
+  /// Third rule bullet in the Queens how-to-play sheet. Crowns may not be adjacent horizontally, vertically or diagonally.
+  ///
+  /// In en, this message translates to:
+  /// **'no two crowns may touch — not even at a corner.'**
+  String get gameInfoQueensRule3;
+
+  /// Explains the Queens board's controls: a tap cycles a square through empty, the player's own cross, and a crown.
+  ///
+  /// In en, this message translates to:
+  /// **'tap a square once for a cross to rule it out, again for a crown, again to clear it.'**
+  String get gameInfoQueensControls;
+
+  /// One-sentence description of what the player is trying to do in Tango, at the top of its how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'fill the grid with suns and moons.'**
+  String get gameInfoTangoGoal;
+
+  /// First rule bullet in the Tango how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'every row and column holds three suns and three moons.'**
+  String get gameInfoTangoRule1;
+
+  /// Second rule bullet in the Tango how-to-play sheet. No run of three identical symbols horizontally or vertically.
+  ///
+  /// In en, this message translates to:
+  /// **'never three of the same next to each other, across or down.'**
+  String get gameInfoTangoRule2;
+
+  /// Third rule bullet in the Tango how-to-play sheet. Explains the two operators printed on the edges between adjacent squares. Keep the '=' and '×' symbols as they are.
+  ///
+  /// In en, this message translates to:
+  /// **'= between two squares means they match. × means they differ.'**
+  String get gameInfoTangoRule3;
+
+  /// Explains the Tango board's controls. 'printed squares' are the ones the puzzle starts with, which cannot be changed.
+  ///
+  /// In en, this message translates to:
+  /// **'tap a square for a sun, again for a moon, again to clear. printed squares don\'t move.'**
+  String get gameInfoTangoControls;
+
+  /// One-sentence description of what the player is trying to do in Zip, at the top of its how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'draw one line that goes through every square.'**
+  String get gameInfoZipGoal;
+
+  /// First rule bullet in the Zip how-to-play sheet. The board has numbered dots and the line must begin at 1 and end at the highest one.
+  ///
+  /// In en, this message translates to:
+  /// **'start on 1 and finish on the last number.'**
+  String get gameInfoZipRule1;
+
+  /// Second rule bullet in the Zip how-to-play sheet. The numbered dots must be visited in ascending order.
+  ///
+  /// In en, this message translates to:
+  /// **'touch the numbers in order along the way.'**
+  String get gameInfoZipRule2;
+
+  /// Third rule bullet in the Zip how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'every square gets used exactly once.'**
+  String get gameInfoZipRule3;
+
+  /// Explains the Zip board's controls. The line is drawn with a drag and retracts when the finger moves back along it.
+  ///
+  /// In en, this message translates to:
+  /// **'drag your finger to draw. drag back over the line to rub it out.'**
+  String get gameInfoZipControls;
+
+  /// One-sentence description of what the player is trying to do in Mini Sudoku, at the top of its how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'fill the grid with the digits 1 to 6.'**
+  String get gameInfoSudokuGoal;
+
+  /// First rule bullet in the Mini Sudoku how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'each row uses 1 to 6, once each.'**
+  String get gameInfoSudokuRule1;
+
+  /// Second rule bullet in the Mini Sudoku how-to-play sheet. Reads as a continuation of the row rule immediately above it.
+  ///
+  /// In en, this message translates to:
+  /// **'so does each column.'**
+  String get gameInfoSudokuRule2;
+
+  /// Third rule bullet in the Mini Sudoku how-to-play sheet. The 6x6 grid is divided into boxes two rows tall and three columns wide.
+  ///
+  /// In en, this message translates to:
+  /// **'and so does each 2x3 box.'**
+  String get gameInfoSudokuRule3;
+
+  /// Explains the Mini Sudoku board's controls, including the notes toggle that switches the keypad to writing small pencil marks.
+  ///
+  /// In en, this message translates to:
+  /// **'tap a square, then a digit. tap the same digit again to clear it. notes writes small pencil marks instead.'**
+  String get gameInfoSudokuControls;
+
+  /// One-sentence description of what the player is trying to do in the symbol-code puzzle, at the top of its how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'work out the hidden four-symbol code.'**
+  String get gameInfoCodeGoal;
+
+  /// First rule bullet in the symbol-code puzzle's how-to-play sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'six tries, and the code never repeats a symbol.'**
+  String get gameInfoCodeRule1;
+
+  /// Second rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a correctly-placed symbol is shown in.
+  ///
+  /// In en, this message translates to:
+  /// **'green means right symbol, right place.'**
+  String get gameInfoCodeRule2;
+
+  /// Third rule bullet in the symbol-code puzzle's how-to-play sheet, describing the colour a misplaced symbol is shown in.
+  ///
+  /// In en, this message translates to:
+  /// **'yellow means right symbol, wrong place.'**
+  String get gameInfoCodeRule3;
+
+  /// Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback.
+  ///
+  /// In en, this message translates to:
+  /// **'tap symbols to build a guess, then send it. the board tells you how close you were.'**
+  String get gameInfoCodeControls;
 }
 
 class _AppLocalizationsDelegate

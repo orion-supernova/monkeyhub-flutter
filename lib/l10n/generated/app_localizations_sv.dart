@@ -5341,4 +5341,117 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get gameErrorGeneric => 'kunde inte nå spelen — försök igen';
+
+  @override
+  String get gameInfoOpen => 'så spelar du';
+
+  @override
+  String get gameInfoLabel => 'SÅ SPELAR DU';
+
+  @override
+  String get gameInfoRulesLabel => 'REGLERNA';
+
+  @override
+  String get gameInfoControlsLabel => 'KONTROLLER';
+
+  @override
+  String get gameInfoScoringTimed =>
+      'klockan går så länge brickan är uppe och stannar när du pausar eller lämnar. snabbast toppar dagens lista.';
+
+  @override
+  String get gameInfoScoringGuesses =>
+      'poängen sätts av hur få gissningar du behöver, inte av klockan.';
+
+  @override
+  String get gameInfoSameForEveryone => 'alla får samma bricka idag.';
+
+  @override
+  String get gameInfoGotIt => 'OKEJ';
+
+  @override
+  String get gameInfoQueensGoal =>
+      'placera en krona i varje rad, kolumn och färg.';
+
+  @override
+  String get gameInfoQueensRule1 =>
+      'åtta kronor: en i varje rad och en i varje kolumn.';
+
+  @override
+  String get gameInfoQueensRule2 => 'varje färgblock får också exakt en krona.';
+
+  @override
+  String get gameInfoQueensRule3 =>
+      'två kronor får inte nudda varandra, inte ens i ett hörn.';
+
+  @override
+  String get gameInfoQueensControls =>
+      'tryck på en ruta en gång för ett kryss som stryker den, igen för en krona, igen för att tömma.';
+
+  @override
+  String get gameInfoTangoGoal => 'fyll rutnätet med solar och månar.';
+
+  @override
+  String get gameInfoTangoRule1 =>
+      'varje rad och kolumn har tre solar och tre månar.';
+
+  @override
+  String get gameInfoTangoRule2 =>
+      'aldrig tre likadana i rad, varken vågrätt eller lodrätt.';
+
+  @override
+  String get gameInfoTangoRule3 =>
+      'ett = mellan två rutor betyder lika, ett × betyder olika.';
+
+  @override
+  String get gameInfoTangoControls =>
+      'tryck på en ruta för en sol, igen för en måne, igen för att tömma. förtryckta rutor går inte att ändra.';
+
+  @override
+  String get gameInfoZipGoal => 'rita en linje som går genom varje ruta.';
+
+  @override
+  String get gameInfoZipRule1 => 'börja på 1 och sluta på det sista talet.';
+
+  @override
+  String get gameInfoZipRule2 => 'ta siffrorna i ordning på vägen.';
+
+  @override
+  String get gameInfoZipRule3 => 'varje ruta används exakt en gång.';
+
+  @override
+  String get gameInfoZipControls =>
+      'dra fingret för att rita. dra tillbaka längs linjen för att sudda.';
+
+  @override
+  String get gameInfoSudokuGoal => 'fyll rutnätet med siffrorna 1 till 6.';
+
+  @override
+  String get gameInfoSudokuRule1 => 'varje rad använder 1 till 6, en gång var.';
+
+  @override
+  String get gameInfoSudokuRule2 => 'samma sak för varje kolumn.';
+
+  @override
+  String get gameInfoSudokuRule3 => 'och varje 2x3-ruta också.';
+
+  @override
+  String get gameInfoSudokuControls =>
+      'tryck på en ruta och sedan på en siffra. tryck på samma siffra igen för att sudda. anteckningsläget skriver små blyertsmarkeringar i stället.';
+
+  @override
+  String get gameInfoCodeGoal => 'lista ut den dolda koden på fyra symboler.';
+
+  @override
+  String get gameInfoCodeRule1 =>
+      'sex försök, och koden upprepar aldrig en symbol.';
+
+  @override
+  String get gameInfoCodeRule2 => 'grönt betyder rätt symbol på rätt plats.';
+
+  @override
+  String get gameInfoCodeRule3 => 'gult betyder rätt symbol på fel plats.';
+
+  @override
+  String get gameInfoCodeControls =>
+      'tryck på symboler för att bygga en gissning och skicka den. brickan visar hur nära du var.';
 }
