@@ -4132,7 +4132,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'l’énigme du jour n’est pas encore prête';
 
   @override
-  String get feedBoardStandingsLabel => 'CLASSEMENT';
+  String get feedBoardStandingsLabel => 'POINTS DE VIE';
 
   @override
   String get feedBoardStandingsEmpty => 'aucun point au tableau aujourd’hui';
@@ -4834,7 +4834,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'ça fait vingt aujourd’hui — gardes-en pour demain';
+      'ça fait cinq aujourd’hui — gardes-en pour demain';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -5038,7 +5038,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Vingt d’un même type par jour, pour que personne ne transforme le tableau en n’importe quoi.';
+      'Cinq d’un même type par jour, pour que personne ne transforme le tableau en n’importe quoi.';
 
   @override
   String get pointsExplainerGotIt => 'COMPRIS';
@@ -5076,4 +5076,53 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'si les points que tu notes apparaissent sur les tableaux de tes amis';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORIGINAL';
+
+  @override
+  String get momentComposerEditPhoto => 'modifier le cadrage';
+
+  @override
+  String get archiveScreenTitle => 'tes archives';
+
+  @override
+  String get archiveScreenEnd => 'c’est tout';
+
+  @override
+  String get archiveScreenEmptyTitle => 'rien de gardé pour l’instant';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'les moments quittent les tableaux de tes amis après un jour, mais ils restent ici pour toi.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'rien ici';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'cette personne n’a encore rien publié que tu puisses voir.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'son passé est privé';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'tu peux toujours voir ce qu’elle publie aujourd’hui.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'vous n’êtes pas amis';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'tu ne peux remonter que les journées d’un ami.';
+
+  @override
+  String get archiveScreenErrorTitle => 'chargement impossible';
+
+  @override
+  String get archiveScreenErrorBody => 'vérifie ta connexion et réessaie.';
+
+  @override
+  String get feedBoardOpenArchive => 'archives';
 }

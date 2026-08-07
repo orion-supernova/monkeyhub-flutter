@@ -3922,7 +3922,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get feedBoardPuzzleEmpty => '今日のパズルはまだ準備中です';
 
   @override
-  String get feedBoardStandingsLabel => 'ランキング';
+  String get feedBoardStandingsLabel => 'ライフポイント';
 
   @override
   String get feedBoardStandingsEmpty => '今日はまだポイントがありません';
@@ -4587,7 +4587,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get momentComposerPost => '投稿';
 
   @override
-  String get momentComposerErrorDailyCap => '今日はもう20件 — 明日の分も残して';
+  String get momentComposerErrorDailyCap => '今日はもう5件 — 明日の分も残して';
 
   @override
   String get momentComposerErrorNotAllowed => '保護者が写真の共有をオフにしています';
@@ -4785,7 +4785,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'ポイントは毎日リセットされます。ボードは今日の分で、自分の履歴は残ります。';
 
   @override
-  String get pointsExplainerRuleCap => '同じ種類は1日20件まで。ボードが意味をなさなくなるのを防ぐためです。';
+  String get pointsExplainerRuleCap => '同じ種類は1日5件まで。ボードが意味をなさなくなるのを防ぐためです。';
 
   @override
   String get pointsExplainerGotIt => 'わかった';
@@ -4818,4 +4818,49 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '記録したポイントを友だちのボードに表示するかどうか';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'オリジナル';
+
+  @override
+  String get momentComposerEditPhoto => 'トリミングを編集';
+
+  @override
+  String get archiveScreenTitle => 'あなたのアーカイブ';
+
+  @override
+  String get archiveScreenEnd => '以上です';
+
+  @override
+  String get archiveScreenEmptyTitle => 'まだ何も残っていません';
+
+  @override
+  String get archiveScreenEmptyBody => '投稿は1日で友だちのボードから消えますが、ここにはあなたのために残ります。';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'ここには何もありません';
+
+  @override
+  String get archiveScreenEmptyFriendBody => 'まだあなたが見られる投稿はありません。';
+
+  @override
+  String get archiveScreenPrivateTitle => 'この人の過去は非公開です';
+
+  @override
+  String get archiveScreenPrivateBody => '今日の投稿はこれまでどおり見られます。';
+
+  @override
+  String get archiveScreenNotFriendTitle => '友だちではありません';
+
+  @override
+  String get archiveScreenNotFriendBody => '友だちの過去の日だけをさかのぼれます。';
+
+  @override
+  String get archiveScreenErrorTitle => '読み込めませんでした';
+
+  @override
+  String get archiveScreenErrorBody => '接続を確認してもう一度お試しください。';
+
+  @override
+  String get feedBoardOpenArchive => 'アーカイブ';
 }

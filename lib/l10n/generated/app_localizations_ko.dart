@@ -3935,7 +3935,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get feedBoardPuzzleEmpty => '오늘의 퍼즐은 아직 준비 중이에요';
 
   @override
-  String get feedBoardStandingsLabel => '순위';
+  String get feedBoardStandingsLabel => '라이프 포인트';
 
   @override
   String get feedBoardStandingsEmpty => '오늘은 아직 점수가 없어요';
@@ -4601,7 +4601,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get momentComposerPost => '올리기';
 
   @override
-  String get momentComposerErrorDailyCap => '오늘 스무 개째예요 — 내일도 남겨두세요';
+  String get momentComposerErrorDailyCap => '오늘 다섯 개째예요 — 내일도 남겨두세요';
 
   @override
   String get momentComposerErrorNotAllowed => '보호자가 사진 공유를 꺼두었어요';
@@ -4800,7 +4800,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      '같은 종류는 하루 스무 개까지. 아무도 보드를 엉망으로 만들 수 없게요.';
+      '같은 종류는 하루 다섯 개까지. 아무도 보드를 엉망으로 만들 수 없게요.';
 
   @override
   String get pointsExplainerGotIt => '알겠어요';
@@ -4833,4 +4833,49 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '기록한 점수가 친구들의 보드에 보일지 여부';
+
+  @override
+  String get imageCropScreenRatioOriginal => '원본';
+
+  @override
+  String get momentComposerEditPhoto => '자르기 편집';
+
+  @override
+  String get archiveScreenTitle => '내 보관함';
+
+  @override
+  String get archiveScreenEnd => '여기까지예요';
+
+  @override
+  String get archiveScreenEmptyTitle => '아직 저장된 게 없어요';
+
+  @override
+  String get archiveScreenEmptyBody => '순간은 하루 뒤 친구들의 보드에서 사라지지만, 여기에는 남아 있어요.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => '여기엔 아무것도 없어요';
+
+  @override
+  String get archiveScreenEmptyFriendBody => '아직 볼 수 있는 게시물이 없어요.';
+
+  @override
+  String get archiveScreenPrivateTitle => '지난 기록은 비공개예요';
+
+  @override
+  String get archiveScreenPrivateBody => '오늘 올리는 건 계속 볼 수 있어요.';
+
+  @override
+  String get archiveScreenNotFriendTitle => '친구가 아니에요';
+
+  @override
+  String get archiveScreenNotFriendBody => '친구의 지난 날만 되돌아볼 수 있어요.';
+
+  @override
+  String get archiveScreenErrorTitle => '불러오지 못했어요';
+
+  @override
+  String get archiveScreenErrorBody => '연결을 확인하고 다시 시도해주세요.';
+
+  @override
+  String get feedBoardOpenArchive => '보관함';
 }

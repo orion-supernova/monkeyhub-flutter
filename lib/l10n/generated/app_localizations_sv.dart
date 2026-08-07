@@ -4082,7 +4082,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'dagens pussel är inte klart än';
 
   @override
-  String get feedBoardStandingsLabel => 'STÄLLNING';
+  String get feedBoardStandingsLabel => 'LIVSPOÄNG';
 
   @override
   String get feedBoardStandingsEmpty => 'inga poäng på tavlan idag';
@@ -4782,7 +4782,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'det blev tjugo idag — spara något till imorgon';
+      'det blev fem idag — spara något till imorgon';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -4984,7 +4984,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Tjugo av varje sort per dag, så att ingen kan mala sönder tavlan.';
+      'Fem av varje sort per dag, så att ingen kan mala sönder tavlan.';
 
   @override
   String get pointsExplainerGotIt => 'JAG FATTAR';
@@ -5020,4 +5020,53 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'om poängen du noterar syns på vännernas tavlor';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORIGINAL';
+
+  @override
+  String get momentComposerEditPhoto => 'redigera beskärning';
+
+  @override
+  String get archiveScreenTitle => 'ditt arkiv';
+
+  @override
+  String get archiveScreenEnd => 'det var allt';
+
+  @override
+  String get archiveScreenEmptyTitle => 'inget sparat än';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'ögonblick lämnar vännernas tavlor efter ett dygn, men de stannar här för dig.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'inget här';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'har inte lagt upp något du kan se än.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'deras förflutna är privat';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'du ser fortfarande det som läggs upp idag.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'ni är inte vänner';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'du kan bara bläddra bakåt bland en väns dagar.';
+
+  @override
+  String get archiveScreenErrorTitle => 'kunde inte laddas';
+
+  @override
+  String get archiveScreenErrorBody => 'kolla anslutningen och försök igen.';
+
+  @override
+  String get feedBoardOpenArchive => 'arkiv';
 }

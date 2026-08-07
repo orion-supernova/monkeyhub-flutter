@@ -65,6 +65,15 @@ class _MomentComposerState extends State<_MomentComposer> {
   final _caption = TextEditingController();
   CroppedImage? _image;
 
+  /// The bytes the crop was made FROM.
+  ///
+  /// Re-editing has to start from the original, not from the previous export:
+  /// cropping a crop re-encodes a JPEG that was already re-encoded, and three
+  /// passes of that is visibly mushy. Costs one extra buffer for the life of
+  /// the sheet, which is the same order as the picked photo itself.
+  Uint8List? _imageSource;
+  bool _sourceMirrored = false;
+
   /// A picked video, held as bytes with its poster frame. Mutually exclusive
   /// with [_image] — a moment carries one piece of media, not a gallery.
   ({Uint8List bytes, Uint8List? poster, String name})? _video;
@@ -128,6 +137,12 @@ class _MomentComposerState extends State<_MomentComposer> {
           if (value != null) {
             setState(() {
               _image = value;
+              // The camera path crops INSIDE the camera route, so the raw
+              // frame is not handed back here. Re-edit therefore reworks the
+              // export — acceptable, and the alternative is threading the
+              // original frame back out through CameraResult for one button.
+              _imageSource = value.bytes;
+              _sourceMirrored = false;
               _video = null;
             });
           }
@@ -197,18 +212,36 @@ class _MomentComposerState extends State<_MomentComposer> {
     }
   }
 
-  Future<void> _cropInto(Uint8List? source) async {
+  Future<void> _cropInto(Uint8List? source, {bool mirrored = false}) async {
     if (source == null || !mounted) return;
     final cropped = await ImageCropScreen.open(
       context,
       source: source,
       shape: CropShape.rect,
+      mirrored: mirrored,
+      // A rect crop with no ratio choice cannot crop — the window is the
+      // image's own shape, so only zoom is available. These are the choices
+      // that make it a real cropper.
+      ratioChoices: const [null, 1.0, 4 / 5, 16 / 9],
     );
     if (!mounted || cropped == null) return;
     setState(() {
       _image = cropped;
+      _imageSource = source;
+      _sourceMirrored = mirrored;
       _video = null;
     });
+  }
+
+  /// Re-opens the cropper on the ORIGINAL bytes.
+  ///
+  /// Backing out of the crop screen used to drop you back here with no way to
+  /// return to it short of picking the photo again — which is exactly the
+  /// moment you have just changed your mind twice and are least willing to.
+  Future<void> _editImage() async {
+    final source = _imageSource;
+    if (source == null) return;
+    await _cropInto(source, mirrored: _sourceMirrored);
   }
 
   Future<void> _post() async {
@@ -308,10 +341,20 @@ class _MomentComposerState extends State<_MomentComposer> {
         20 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       decoration: theme.sheetDecoration(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      // Scrolls, and is bounded. A 9:16 photo previewed at full aspect ratio
+      // is taller than the viewport on its own, which pushed POST off the
+      // bottom of an unscrollable sheet with no way to reach it. Both halves
+      // of that are fixed: the preview is capped below, and what is left over
+      // scrolls.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
           Text(l10n.momentComposerTitle, style: theme.displaySmall),
           const SizedBox(height: 16),
           _MediaSlot(
@@ -321,8 +364,10 @@ class _MomentComposerState extends State<_MomentComposer> {
             onCapture: _capture,
             onLibrary: _pickFromLibrary,
             onVideo: _pickVideo,
+            onEdit: _imageSource == null ? null : _editImage,
             onClear: () => setState(() {
               _image = null;
+              _imageSource = null;
               _video = null;
             }),
           ),
@@ -370,7 +415,9 @@ class _MomentComposerState extends State<_MomentComposer> {
             busy: _busy,
             onTap: _post,
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -385,6 +432,7 @@ class _MediaSlot extends StatelessWidget {
     required this.onCapture,
     required this.onLibrary,
     required this.onVideo,
+    required this.onEdit,
     required this.onClear,
   });
 
@@ -394,6 +442,10 @@ class _MediaSlot extends StatelessWidget {
   final VoidCallback onCapture;
   final VoidCallback onLibrary;
   final VoidCallback onVideo;
+
+  /// Re-opens the cropper on the original bytes. Null when there is nothing to
+  /// re-edit — a video, or a camera capture whose raw frame was not kept.
+  final VoidCallback? onEdit;
   final VoidCallback onClear;
 
   @override
@@ -431,23 +483,10 @@ class _MediaSlot extends StatelessWidget {
           Positioned(
             right: 8,
             top: 8,
-            child: FocusableTap(
+            child: _SlotChip(
+              icon: Icons.close,
+              label: l10n.momentComposerRemovePhoto,
               onTap: busy ? null : onClear,
-              semanticLabel: l10n.momentComposerRemovePhoto,
-              shape: FocusRingShape.circle,
-              child: GestureDetector(
-                onTap: busy ? null : onClear,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.divider),
-                  ),
-                  child: Icon(Icons.close, size: 14, color: theme.inkSoft),
-                ),
-              ),
             ),
           ),
         ],
@@ -459,33 +498,38 @@ class _MediaSlot extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(theme.radiusLg),
-            child: AspectRatio(
-              aspectRatio: img.width / img.height,
-              // Image.memory, not RemoteImage: these bytes have not been
-              // uploaded yet and there is no storage id to resolve.
-              child: Image.memory(img.bytes, fit: BoxFit.cover),
+            child: ConstrainedBox(
+              // Capped. A 9:16 photo at its true aspect ratio is taller than
+              // the phone, and an uncapped preview is what pushed POST off the
+              // bottom of the sheet.
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: AspectRatio(
+                aspectRatio: img.width / img.height,
+                // Image.memory, not RemoteImage: these bytes have not been
+                // uploaded yet and there is no storage id to resolve.
+                child: Image.memory(img.bytes, fit: BoxFit.cover),
+              ),
             ),
           ),
           Positioned(
             right: 8,
             top: 8,
-            child: FocusableTap(
-              onTap: busy ? null : onClear,
-              semanticLabel: l10n.momentComposerRemovePhoto,
-              shape: FocusRingShape.circle,
-              child: GestureDetector(
-                onTap: busy ? null : onClear,
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.divider),
+            child: Row(
+              children: [
+                if (onEdit != null) ...[
+                  _SlotChip(
+                    icon: Icons.crop,
+                    label: l10n.momentComposerEditPhoto,
+                    onTap: busy ? null : onEdit,
                   ),
-                  child: Icon(Icons.close, size: 14, color: theme.inkSoft),
+                  const SizedBox(width: 6),
+                ],
+                _SlotChip(
+                  icon: Icons.close,
+                  label: l10n.momentComposerRemovePhoto,
+                  onTap: busy ? null : onClear,
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -518,6 +562,42 @@ class _MediaSlot extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A small circular control floating over the media preview.
+class _SlotChip extends StatelessWidget {
+  const _SlotChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: theme.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.divider),
+          ),
+          child: Icon(icon, size: 14, color: theme.inkSoft),
+        ),
+      ),
     );
   }
 }

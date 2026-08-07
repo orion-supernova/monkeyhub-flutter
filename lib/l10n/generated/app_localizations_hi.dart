@@ -4073,7 +4073,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'आज की पहेली अभी तैयार नहीं है';
 
   @override
-  String get feedBoardStandingsLabel => 'अंक तालिका';
+  String get feedBoardStandingsLabel => 'ज़िंदगी अंक';
 
   @override
   String get feedBoardStandingsEmpty => 'आज बोर्ड पर कोई अंक नहीं';
@@ -4768,7 +4768,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get momentComposerPost => 'पोस्ट करें';
 
   @override
-  String get momentComposerErrorDailyCap => 'आज बीस हो गए — कल के लिए भी रखिए';
+  String get momentComposerErrorDailyCap => 'आज पाँच हो गए — कल के लिए भी रखिए';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -4972,7 +4972,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'एक ही तरह के दिन में बीस, ताकि कोई बोर्ड को बेमानी न बना दे।';
+      'एक ही तरह के दिन में पाँच, ताकि कोई बोर्ड को बेमानी न बना दे।';
 
   @override
   String get pointsExplainerGotIt => 'समझ गया';
@@ -5007,4 +5007,52 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'आपके दर्ज किए अंक दोस्तों के बोर्ड पर दिखें या नहीं';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'मूल';
+
+  @override
+  String get momentComposerEditPhoto => 'क्रॉप बदलें';
+
+  @override
+  String get archiveScreenTitle => 'आपका संग्रह';
+
+  @override
+  String get archiveScreenEnd => 'बस इतना ही';
+
+  @override
+  String get archiveScreenEmptyTitle => 'अभी कुछ सहेजा नहीं';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'पल एक दिन बाद दोस्तों के बोर्ड से चले जाते हैं, पर यहाँ आपके लिए बने रहते हैं।';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'यहाँ कुछ नहीं';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'अभी ऐसा कुछ साझा नहीं किया जो आप देख सकें।';
+
+  @override
+  String get archiveScreenPrivateTitle => 'इनका अतीत निजी है';
+
+  @override
+  String get archiveScreenPrivateBody => 'आज जो साझा करेंगे वह फिर भी दिखेगा।';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'आप दोस्त नहीं हैं';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'आप केवल किसी दोस्त के दिन पीछे देख सकते हैं।';
+
+  @override
+  String get archiveScreenErrorTitle => 'लोड नहीं हो सका';
+
+  @override
+  String get archiveScreenErrorBody => 'कनेक्शन जाँचकर फिर कोशिश करें।';
+
+  @override
+  String get feedBoardOpenArchive => 'संग्रह';
 }

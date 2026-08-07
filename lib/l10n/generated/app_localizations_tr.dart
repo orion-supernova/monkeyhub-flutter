@@ -4036,7 +4036,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'bugünün bulmacası henüz hazır değil';
 
   @override
-  String get feedBoardStandingsLabel => 'PUAN DURUMU';
+  String get feedBoardStandingsLabel => 'HAYAT PUANI';
 
   @override
   String get feedBoardStandingsEmpty => 'bugün tabloda puan yok';
@@ -4733,7 +4733,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'bugünlük yirmi tane oldu — yarına da kalsın';
+      'bugünlük beş tane oldu — yarına da kalsın';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -4935,7 +4935,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Aynı türden günde yirmi tane — kimse panoyu saçmalığa çeviremesin diye.';
+      'Aynı türden günde beş tane — kimse panoyu saçmalığa çeviremesin diye.';
 
   @override
   String get pointsExplainerGotIt => 'ANLADIM';
@@ -4970,4 +4970,53 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'kaydettiğin puanların arkadaşlarının panosunda görünüp görünmeyeceği';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORİJİNAL';
+
+  @override
+  String get momentComposerEditPhoto => 'kırpmayı düzenle';
+
+  @override
+  String get archiveScreenTitle => 'arşivin';
+
+  @override
+  String get archiveScreenEnd => 'hepsi bu kadar';
+
+  @override
+  String get archiveScreenEmptyTitle => 'henüz bir şey saklanmadı';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'anlar bir gün sonra arkadaşlarının panosundan gider, ama burada sende kalır.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'burada bir şey yok';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'henüz görebileceğin bir şey paylaşmamış.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'geçmişi gizli';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'bugün paylaştıklarını yine de görebilirsin.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'arkadaş değilsiniz';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'yalnızca bir arkadaşının günlerine geri bakabilirsin.';
+
+  @override
+  String get archiveScreenErrorTitle => 'yüklenemedi';
+
+  @override
+  String get archiveScreenErrorBody => 'bağlantını kontrol edip tekrar dene.';
+
+  @override
+  String get feedBoardOpenArchive => 'arşiv';
 }

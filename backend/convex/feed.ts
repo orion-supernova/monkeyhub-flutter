@@ -38,14 +38,17 @@ const TAGS = new Set(["fate", "jinx", "luck", "calledIt", "npc"]);
 /**
  * Per-day, per-tag cap on self-awarded points.
  *
- * Points are self-reported and unverifiable — that is the joke, and it works
- * between friends. What does not work is one person quietly awarding
- * themselves four hundred, at which point the number stops meaning anything
- * for everyone. Enforced server-side because a client-side cap is a
- * suggestion. Untagged highlights are NOT capped; there is no scoreboard to
- * distort and rate limiting someone's photos would be hostile.
+ * Five, not twenty. Points are self-reported and unverifiable — that is the
+ * joke, and it works between friends — but the cap is what keeps a number
+ * meaning something. Twenty was high enough that nobody would ever hit it,
+ * which makes it not a cap at all; five is low enough that the fifth JINX of
+ * the day is a real decision about whether it earned the slot.
+ *
+ * Enforced server-side because a client-side cap is a suggestion. Untagged
+ * highlights are NOT capped: there is no scoreboard to distort, and rate
+ * limiting someone's photos would be hostile.
  */
-const MAX_TAGGED_PER_DAY = 20;
+const MAX_TAGGED_PER_DAY = 5;
 
 /** Longest caption we will store. Matches the composer's own counter. */
 const MAX_CAPTION = 280;

@@ -6914,7 +6914,7 @@ abstract class AppLocalizations {
   /// All-caps band label for the Feed section tallying the points friends award themselves for real-world moments.
   ///
   /// In en, this message translates to:
-  /// **'STANDINGS'**
+  /// **'LIFE POINTS'**
   String get feedBoardStandingsLabel;
 
   /// Muted single line shown under the STANDINGS band when nobody has awarded themselves a point today.
@@ -8192,7 +8192,7 @@ abstract class AppLocalizations {
   /// Error under the composer when the user has already awarded themselves the daily maximum (20) of one scoring category. Light-hearted; the cap exists so the standings board stays meaningful, not as a punishment.
   ///
   /// In en, this message translates to:
-  /// **'that\'s twenty of those today — save some for tomorrow'**
+  /// **'that\'s five of those today — save some for tomorrow'**
   String get momentComposerErrorDailyCap;
 
   /// Error under the composer when a supervised (child) account tries to post a photo but their guardian has disabled media.
@@ -8516,7 +8516,7 @@ abstract class AppLocalizations {
   /// Bullet in the points explainer covering the daily per-category cap.
   ///
   /// In en, this message translates to:
-  /// **'Twenty of any one kind per day, so nobody can farm the board into nonsense.'**
+  /// **'Five of any one kind per day, so nobody can farm the board into nonsense.'**
   String get pointsExplainerRuleCap;
 
   /// All-caps label on the button that dismisses the points explainer.
@@ -8578,6 +8578,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'whether the points you log show up on friends\' boards'**
   String get profileVisibilityScreenPointsDesc;
+
+  /// All-caps label on the crop screen's shape option that keeps the photo's own proportions. The other options are locale-invariant notation (1:1, 4:5, 16:9) and are not translated.
+  ///
+  /// In en, this message translates to:
+  /// **'ORIGINAL'**
+  String get imageCropScreenRatioOriginal;
+
+  /// Screen-reader label for the crop button over the chosen photo in the composer, which re-opens the cropper on the original image.
+  ///
+  /// In en, this message translates to:
+  /// **'edit crop'**
+  String get momentComposerEditPhoto;
+
+  /// Lowercase title of the screen showing every moment the user has kept, grouped by day.
+  ///
+  /// In en, this message translates to:
+  /// **'your archive'**
+  String get archiveScreenTitle;
+
+  /// Muted line at the bottom of the archive once every page has loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'that\'s everything'**
+  String get archiveScreenEnd;
+
+  /// Title of the archive's empty state for the viewer's own archive.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing kept yet'**
+  String get archiveScreenEmptyTitle;
+
+  /// Body of the archive's empty state for the viewer's own archive. Explains what the archive is for.
+  ///
+  /// In en, this message translates to:
+  /// **'moments leave your friends\' boards after a day, but they stay here for you.'**
+  String get archiveScreenEmptyBody;
+
+  /// Title of the archive's empty state when viewing a friend who has kept nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing here'**
+  String get archiveScreenEmptyFriendTitle;
+
+  /// Body of the archive's empty state when viewing a friend who has kept nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'they haven\'t posted anything you can see yet.'**
+  String get archiveScreenEmptyFriendBody;
+
+  /// Title shown when a friend has not opened their history to friends.
+  ///
+  /// In en, this message translates to:
+  /// **'their past is private'**
+  String get archiveScreenPrivateTitle;
+
+  /// Body shown when a friend's history is private. Reassures that today is unaffected.
+  ///
+  /// In en, this message translates to:
+  /// **'you can still see what they post today.'**
+  String get archiveScreenPrivateBody;
+
+  /// Title shown when trying to view the archive of someone who is no longer a friend.
+  ///
+  /// In en, this message translates to:
+  /// **'not friends'**
+  String get archiveScreenNotFriendTitle;
+
+  /// Body shown when trying to view a non-friend's archive.
+  ///
+  /// In en, this message translates to:
+  /// **'you can only look back through a friend\'s days.'**
+  String get archiveScreenNotFriendBody;
+
+  /// Title of the archive's generic error state.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t load that'**
+  String get archiveScreenErrorTitle;
+
+  /// Body of the archive's generic error state.
+  ///
+  /// In en, this message translates to:
+  /// **'check your connection and try again.'**
+  String get archiveScreenErrorBody;
+
+  /// Label on the control in the HIGHLIGHTS section header that opens the user's own archive of kept moments.
+  ///
+  /// In en, this message translates to:
+  /// **'archive'**
+  String get feedBoardOpenArchive;
 }
 
 class _AppLocalizationsDelegate

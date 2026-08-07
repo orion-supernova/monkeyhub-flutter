@@ -4512,7 +4512,7 @@
   "@feedBoardPuzzleEmpty": {
     "description": "Muted single line shown under THE PUZZLE band before the daily puzzle is available."
   },
-  "feedBoardStandingsLabel": "STANDINGS",
+  "feedBoardStandingsLabel": "LIFE POINTS",
   "@feedBoardStandingsLabel": {
     "description": "All-caps band label for the Feed section tallying the points friends award themselves for real-world moments."
   },
@@ -5370,7 +5370,7 @@
   "@momentComposerPost": {
     "description": "All-caps label on the button that publishes the moment in the composer."
   },
-  "momentComposerErrorDailyCap": "that's twenty of those today — save some for tomorrow",
+  "momentComposerErrorDailyCap": "that's five of those today — save some for tomorrow",
   "@momentComposerErrorDailyCap": {
     "description": "Error under the composer when the user has already awarded themselves the daily maximum (20) of one scoring category. Light-hearted; the cap exists so the standings board stays meaningful, not as a punishment."
   },
@@ -5586,7 +5586,7 @@
   "@pointsExplainerRuleToday": {
     "description": "Bullet in the points explainer covering the daily reset."
   },
-  "pointsExplainerRuleCap": "Twenty of any one kind per day, so nobody can farm the board into nonsense.",
+  "pointsExplainerRuleCap": "Five of any one kind per day, so nobody can farm the board into nonsense.",
   "@pointsExplainerRuleCap": {
     "description": "Bullet in the points explainer covering the daily per-category cap."
   },
@@ -5629,5 +5629,65 @@
   "profileVisibilityScreenPointsDesc": "whether the points you log show up on friends' boards",
   "@profileVisibilityScreenPointsDesc": {
     "description": "Explanation under the 'my points' visibility control."
+  },
+  "imageCropScreenRatioOriginal": "ORIGINAL",
+  "@imageCropScreenRatioOriginal": {
+    "description": "All-caps label on the crop screen's shape option that keeps the photo's own proportions. The other options are locale-invariant notation (1:1, 4:5, 16:9) and are not translated."
+  },
+  "momentComposerEditPhoto": "edit crop",
+  "@momentComposerEditPhoto": {
+    "description": "Screen-reader label for the crop button over the chosen photo in the composer, which re-opens the cropper on the original image."
+  },
+  "archiveScreenTitle": "your archive",
+  "@archiveScreenTitle": {
+    "description": "Lowercase title of the screen showing every moment the user has kept, grouped by day."
+  },
+  "archiveScreenEnd": "that's everything",
+  "@archiveScreenEnd": {
+    "description": "Muted line at the bottom of the archive once every page has loaded."
+  },
+  "archiveScreenEmptyTitle": "nothing kept yet",
+  "@archiveScreenEmptyTitle": {
+    "description": "Title of the archive's empty state for the viewer's own archive."
+  },
+  "archiveScreenEmptyBody": "moments leave your friends' boards after a day, but they stay here for you.",
+  "@archiveScreenEmptyBody": {
+    "description": "Body of the archive's empty state for the viewer's own archive. Explains what the archive is for."
+  },
+  "archiveScreenEmptyFriendTitle": "nothing here",
+  "@archiveScreenEmptyFriendTitle": {
+    "description": "Title of the archive's empty state when viewing a friend who has kept nothing."
+  },
+  "archiveScreenEmptyFriendBody": "they haven't posted anything you can see yet.",
+  "@archiveScreenEmptyFriendBody": {
+    "description": "Body of the archive's empty state when viewing a friend who has kept nothing."
+  },
+  "archiveScreenPrivateTitle": "their past is private",
+  "@archiveScreenPrivateTitle": {
+    "description": "Title shown when a friend has not opened their history to friends."
+  },
+  "archiveScreenPrivateBody": "you can still see what they post today.",
+  "@archiveScreenPrivateBody": {
+    "description": "Body shown when a friend's history is private. Reassures that today is unaffected."
+  },
+  "archiveScreenNotFriendTitle": "not friends",
+  "@archiveScreenNotFriendTitle": {
+    "description": "Title shown when trying to view the archive of someone who is no longer a friend."
+  },
+  "archiveScreenNotFriendBody": "you can only look back through a friend's days.",
+  "@archiveScreenNotFriendBody": {
+    "description": "Body shown when trying to view a non-friend's archive."
+  },
+  "archiveScreenErrorTitle": "couldn't load that",
+  "@archiveScreenErrorTitle": {
+    "description": "Title of the archive's generic error state."
+  },
+  "archiveScreenErrorBody": "check your connection and try again.",
+  "@archiveScreenErrorBody": {
+    "description": "Body of the archive's generic error state."
+  },
+  "feedBoardOpenArchive": "archive",
+  "@feedBoardOpenArchive": {
+    "description": "Label on the control in the HIGHLIGHTS section header that opens the user's own archive of kept moments."
   }
 }

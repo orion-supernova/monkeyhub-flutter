@@ -121,6 +121,7 @@ class _PointComposerState extends State<_PointComposer> {
         context,
         source: bytes,
         shape: CropShape.rect,
+        ratioChoices: const [null, 1.0, 4 / 5, 16 / 9],
       );
       if (!mounted || cropped == null) return;
       setState(() => _image = cropped);

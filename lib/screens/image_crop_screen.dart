@@ -40,6 +40,7 @@ class ImageCropScreen extends StatefulWidget {
     this.confirmLabel,
     this.title,
     this.mirrored = false,
+    this.ratioChoices,
   });
 
   /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
@@ -71,6 +72,18 @@ class ImageCropScreen extends StatefulWidget {
   /// Falls back to a localized "adjust" when null.
   final String? title;
 
+  /// Selectable crop ratios, or null for a fixed window.
+  ///
+  /// Null (the default) keeps every existing caller exactly as it was — the
+  /// avatar path wants a circle and nothing else, and offering it a shape
+  /// picker would be noise. When a list IS given the screen grows a row of
+  /// choices, where a `null` entry means "the image's own ratio".
+  ///
+  /// This exists because a rect crop with no ratio choice cannot actually crop:
+  /// the window is the image's own shape, so the only edit available is zoom.
+  /// That was the whole of the "crop doesn't crop" complaint.
+  final List<double?>? ratioChoices;
+
   /// [overCamera] pushes with no transition, for the camera's in-place review:
   /// the crop takes the preview's place in the frame after the shutter rather
   /// than presenting itself as a second screen. A photo from the library has no
@@ -85,6 +98,7 @@ class ImageCropScreen extends StatefulWidget {
     String? title,
     bool mirrored = false,
     bool overCamera = false,
+    List<double?>? ratioChoices,
   }) {
     final screen = ImageCropScreen(
       source: source,
@@ -94,6 +108,7 @@ class ImageCropScreen extends StatefulWidget {
       confirmLabel: confirmLabel,
       title: title,
       mirrored: mirrored,
+      ratioChoices: ratioChoices,
     );
     return Navigator.of(context).push<CroppedImage>(
       overCamera
@@ -118,6 +133,11 @@ class _ImageCropScreenState extends State<ImageCropScreen>
   late final AnimationController _animCtrl;
   Animation<Matrix4>? _animTween;
 
+  /// The crop window's live aspect ratio. Seeded from `widget.aspectRatio` and
+  /// only ever changed by the ratio picker, which is absent unless the caller
+  /// passed `ratioChoices`. Null means "the image's own ratio".
+  double? _ratio;
+
   ui.Image? _image;
   bool _loadFailed = false;
   bool _saving = false;
@@ -135,6 +155,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
   @override
   void initState() {
     super.initState();
+    _ratio = widget.aspectRatio;
     _animCtrl =
         AnimationController(
           vsync: this,
@@ -444,9 +465,12 @@ class _ImageCropScreenState extends State<ImageCropScreen>
           constraints.maxWidth - 32,
           constraints.maxHeight - 32,
         );
+        // Reads _ratio, not widget.aspectRatio, so the picker can change it.
+        // The window-change detector below already re-fits the transform on
+        // any size change, so switching ratio needs no extra plumbing.
         final ratio = widget.shape == CropShape.circle
             ? 1.0
-            : (widget.aspectRatio ?? img.width / img.height);
+            : (_ratio ?? img.width / img.height);
         var w = math.min(available.width, available.height * ratio);
         w = math.max(w, 1);
         final window = Size(w, w / ratio);
@@ -521,6 +545,55 @@ class _ImageCropScreenState extends State<ImageCropScreen>
     );
   }
 
+  /// The shape choices, when the caller offered any.
+  ///
+  /// Sits above the hint rather than beside the buttons so the row reads as
+  /// part of the picture, not part of the commit — changing shape is still
+  /// editing, and it must not look like a second confirm.
+  Widget _ratioPicker(AppTheme theme) {
+    final choices = widget.ratioChoices;
+    if (choices == null || choices.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (final r in choices)
+            Padding(
+              key: ValueKey('ratio_${r ?? 'orig'}'),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: _RatioChip(
+                label: _ratioLabel(r),
+                active: _ratio == r,
+                onTap: _saving
+                    ? null
+                    : () {
+                        if (_ratio == r) return;
+                        // Only the ratio changes. `build` recomputes the
+                        // window, the existing size-change detector notices,
+                        // and `_fit()` re-frames the image — the same path a
+                        // rotation already takes.
+                        setState(() => _ratio = r);
+                        HapticFeedback.selectionClick();
+                      },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Ratios are locale-invariant notation (`1:1`, `4:5`), the way `file_meta`
+  /// already treats them. Only "original" is a word, so only it is translated.
+  String _ratioLabel(double? r) {
+    if (r == null) return AppLocalizations.of(context).imageCropScreenRatioOriginal;
+    if ((r - 1).abs() < 0.01) return '1:1';
+    if ((r - 4 / 5).abs() < 0.01) return '4:5';
+    if ((r - 16 / 9).abs() < 0.01) return '16:9';
+    if ((r - 3 / 4).abs() < 0.01) return '3:4';
+    return r.toStringAsFixed(2);
+  }
+
   Widget _bottomBar(AppTheme theme) {
     final ready = _image != null && _window != null && !_saving;
     return Padding(
@@ -528,6 +601,7 @@ class _ImageCropScreenState extends State<ImageCropScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _ratioPicker(theme),
           Text(
             widget.shape == CropShape.circle
                 ? AppLocalizations.of(context).imageCropScreenHintCircle
@@ -638,6 +712,57 @@ class _CropMaskPainter extends CustomPainter {
 
 /// CANCEL / USE PHOTO. Bare GestureDetector + FocusableTap — this app renders
 /// no ink anywhere.
+/// One shape choice in the crop screen's ratio row.
+class _RatioChip extends StatelessWidget {
+  const _RatioChip({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      selected: active,
+      shape: FocusRingShape.capsule,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            // PhotoChrome, not the theme: this screen sits over a photograph,
+            // where the app's surface colours would be invisible on a light
+            // image and garish on a dark one.
+            color: active ? PhotoChrome.ink : PhotoChrome.fill,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: PhotoChrome.stroke),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 1,
+              fontWeight: FontWeight.w600,
+              color: active ? PhotoChrome.fill : PhotoChrome.ink,
+              // Explicit, because this subtree is over a photo and a missing
+              // DefaultTextStyle would have Flutter paint its debug underline.
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CropButton extends StatefulWidget {
   const _CropButton({
     required this.label,

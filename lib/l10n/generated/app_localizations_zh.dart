@@ -3874,7 +3874,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedBoardPuzzleEmpty => '今天的谜题还没准备好';
 
   @override
-  String get feedBoardStandingsLabel => '积分榜';
+  String get feedBoardStandingsLabel => '生活积分';
 
   @override
   String get feedBoardStandingsEmpty => '今天还没有积分';
@@ -4528,7 +4528,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get momentComposerPost => '发布';
 
   @override
-  String get momentComposerErrorDailyCap => '今天已经二十个了 — 给明天留点';
+  String get momentComposerErrorDailyCap => '今天已经五个了 — 给明天留点';
 
   @override
   String get momentComposerErrorNotAllowed => '监护人已关闭照片分享';
@@ -4723,7 +4723,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pointsExplainerRuleToday => '积分每天清零。看板显示今天；你自己的记录归你保留。';
 
   @override
-  String get pointsExplainerRuleCap => '同一种每天二十个，免得有人把看板刷成一堆废话。';
+  String get pointsExplainerRuleCap => '同一种每天五个，免得有人把看板刷成一堆废话。';
 
   @override
   String get pointsExplainerGotIt => '知道了';
@@ -4756,4 +4756,49 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '你记录的积分是否出现在好友的看板上';
+
+  @override
+  String get imageCropScreenRatioOriginal => '原始';
+
+  @override
+  String get momentComposerEditPhoto => '编辑裁剪';
+
+  @override
+  String get archiveScreenTitle => '你的存档';
+
+  @override
+  String get archiveScreenEnd => '就这些了';
+
+  @override
+  String get archiveScreenEmptyTitle => '还没有保存任何内容';
+
+  @override
+  String get archiveScreenEmptyBody => '瞬间一天后会从好友的看板消失，但会一直留在这里。';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => '这里什么都没有';
+
+  @override
+  String get archiveScreenEmptyFriendBody => '还没有发布你能看到的内容。';
+
+  @override
+  String get archiveScreenPrivateTitle => '对方的过往是私密的';
+
+  @override
+  String get archiveScreenPrivateBody => '你仍然能看到今天发布的内容。';
+
+  @override
+  String get archiveScreenNotFriendTitle => '你们不是好友';
+
+  @override
+  String get archiveScreenNotFriendBody => '只能回看好友的日子。';
+
+  @override
+  String get archiveScreenErrorTitle => '加载失败';
+
+  @override
+  String get archiveScreenErrorBody => '检查网络后重试。';
+
+  @override
+  String get feedBoardOpenArchive => '存档';
 }

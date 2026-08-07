@@ -4153,7 +4153,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'لغز اليوم ليس جاهزًا بعد';
 
   @override
-  String get feedBoardStandingsLabel => 'الترتيب';
+  String get feedBoardStandingsLabel => 'نقاط الحياة';
 
   @override
   String get feedBoardStandingsEmpty => 'لا نقاط على اللوحة اليوم';
@@ -4841,7 +4841,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'صارت عشرين اليوم — أبقِ شيئًا للغد';
+      'صارت خمسًا اليوم — أبقِ شيئًا للغد';
 
   @override
   String get momentComposerErrorNotAllowed => 'أوقف وليّ الأمر مشاركة الصور';
@@ -5047,7 +5047,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'عشرون من كل نوع يوميًا، حتى لا يحوّل أحد اللوحة إلى عبث.';
+      'خمس من كل نوع يوميًا، حتى لا يحوّل أحد اللوحة إلى عبث.';
 
   @override
   String get pointsExplainerGotIt => 'فهمت';
@@ -5081,4 +5081,50 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'ما إذا كانت النقاط التي تسجّلها تظهر على لوحات أصدقائك';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'الأصلي';
+
+  @override
+  String get momentComposerEditPhoto => 'تعديل القص';
+
+  @override
+  String get archiveScreenTitle => 'أرشيفك';
+
+  @override
+  String get archiveScreenEnd => 'هذا كل شيء';
+
+  @override
+  String get archiveScreenEmptyTitle => 'لا شيء محفوظ بعد';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'تغادر اللحظات لوحات أصدقائك بعد يوم، لكنها تبقى هنا لك.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'لا شيء هنا';
+
+  @override
+  String get archiveScreenEmptyFriendBody => 'لم ينشر بعد ما يمكنك رؤيته.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'ماضيه خاص';
+
+  @override
+  String get archiveScreenPrivateBody => 'لا يزال بإمكانك رؤية ما ينشره اليوم.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'لستما صديقين';
+
+  @override
+  String get archiveScreenNotFriendBody => 'يمكنك العودة في أيام صديق فقط.';
+
+  @override
+  String get archiveScreenErrorTitle => 'تعذّر التحميل';
+
+  @override
+  String get archiveScreenErrorBody => 'تحقق من اتصالك وحاول مجددًا.';
+
+  @override
+  String get feedBoardOpenArchive => 'الأرشيف';
 }

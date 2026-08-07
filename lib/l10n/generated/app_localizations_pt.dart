@@ -4107,7 +4107,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'o enigma de hoje ainda não está pronto';
 
   @override
-  String get feedBoardStandingsLabel => 'CLASSIFICAÇÃO';
+  String get feedBoardStandingsLabel => 'PONTOS DE VIDA';
 
   @override
   String get feedBoardStandingsEmpty => 'nenhum ponto no quadro hoje';
@@ -4812,7 +4812,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'já vão vinte hoje — guarda para amanhã';
+      'já vão cinco hoje — guarda para amanhã';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -5017,7 +5017,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Vinte de cada tipo por dia, para ninguém transformar o quadro num disparate.';
+      'Cinco de cada tipo por dia, para ninguém transformar o quadro num disparate.';
 
   @override
   String get pointsExplainerGotIt => 'PERCEBI';
@@ -5052,6 +5052,55 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'se os pontos que registas aparecem nos quadros dos teus amigos';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORIGINAL';
+
+  @override
+  String get momentComposerEditPhoto => 'editar recorte';
+
+  @override
+  String get archiveScreenTitle => 'o teu arquivo';
+
+  @override
+  String get archiveScreenEnd => 'é tudo';
+
+  @override
+  String get archiveScreenEmptyTitle => 'ainda não guardaste nada';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'os momentos saem dos quadros dos teus amigos ao fim de um dia, mas ficam aqui para ti.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'não há nada aqui';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'ainda não publicou nada que possas ver.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'o passado é privado';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'podes na mesma ver o que publicar hoje.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'não são amigos';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'só podes recuar nos dias de um amigo.';
+
+  @override
+  String get archiveScreenErrorTitle => 'não foi possível carregar';
+
+  @override
+  String get archiveScreenErrorBody => 'verifica a ligação e tenta de novo.';
+
+  @override
+  String get feedBoardOpenArchive => 'arquivo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -9156,7 +9205,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get feedBoardPuzzleEmpty => 'o enigma de hoje ainda não está pronto';
 
   @override
-  String get feedBoardStandingsLabel => 'CLASSIFICAÇÃO';
+  String get feedBoardStandingsLabel => 'PONTOS DE VIDA';
 
   @override
   String get feedBoardStandingsEmpty => 'nenhum ponto no placar hoje';
@@ -9862,7 +9911,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'já são vinte hoje — guarde para amanhã';
+      'já são cinco hoje — guarde para amanhã';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -10067,7 +10116,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Vinte de cada tipo por dia, para ninguém transformar o quadro em bobagem.';
+      'Cinco de cada tipo por dia, para ninguém transformar o quadro em bobagem.';
 
   @override
   String get pointsExplainerGotIt => 'ENTENDI';
@@ -10102,4 +10151,53 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'se os pontos que você registra aparecem nos quadros dos seus amigos';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORIGINAL';
+
+  @override
+  String get momentComposerEditPhoto => 'editar recorte';
+
+  @override
+  String get archiveScreenTitle => 'seu arquivo';
+
+  @override
+  String get archiveScreenEnd => 'é tudo';
+
+  @override
+  String get archiveScreenEmptyTitle => 'você ainda não guardou nada';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'os momentos saem dos quadros dos seus amigos depois de um dia, mas ficam aqui para você.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'não tem nada aqui';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'ainda não publicou nada que você possa ver.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'o passado é privado';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'você ainda vê o que for publicado hoje.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'vocês não são amigos';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'você só pode voltar nos dias de um amigo.';
+
+  @override
+  String get archiveScreenErrorTitle => 'não foi possível carregar';
+
+  @override
+  String get archiveScreenErrorBody => 'verifique sua conexão e tente de novo.';
+
+  @override
+  String get feedBoardOpenArchive => 'arquivo';
 }

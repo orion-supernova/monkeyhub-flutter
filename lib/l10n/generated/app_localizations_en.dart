@@ -4052,7 +4052,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedBoardPuzzleEmpty => 'today\'s puzzle isn\'t ready yet';
 
   @override
-  String get feedBoardStandingsLabel => 'STANDINGS';
+  String get feedBoardStandingsLabel => 'LIFE POINTS';
 
   @override
   String get feedBoardStandingsEmpty => 'no points on the board today';
@@ -4749,7 +4749,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get momentComposerErrorDailyCap =>
-      'that\'s twenty of those today — save some for tomorrow';
+      'that\'s five of those today — save some for tomorrow';
 
   @override
   String get momentComposerErrorNotAllowed =>
@@ -4951,7 +4951,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pointsExplainerRuleCap =>
-      'Twenty of any one kind per day, so nobody can farm the board into nonsense.';
+      'Five of any one kind per day, so nobody can farm the board into nonsense.';
 
   @override
   String get pointsExplainerGotIt => 'GOT IT';
@@ -4987,4 +4987,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'whether the points you log show up on friends\' boards';
+
+  @override
+  String get imageCropScreenRatioOriginal => 'ORIGINAL';
+
+  @override
+  String get momentComposerEditPhoto => 'edit crop';
+
+  @override
+  String get archiveScreenTitle => 'your archive';
+
+  @override
+  String get archiveScreenEnd => 'that\'s everything';
+
+  @override
+  String get archiveScreenEmptyTitle => 'nothing kept yet';
+
+  @override
+  String get archiveScreenEmptyBody =>
+      'moments leave your friends\' boards after a day, but they stay here for you.';
+
+  @override
+  String get archiveScreenEmptyFriendTitle => 'nothing here';
+
+  @override
+  String get archiveScreenEmptyFriendBody =>
+      'they haven\'t posted anything you can see yet.';
+
+  @override
+  String get archiveScreenPrivateTitle => 'their past is private';
+
+  @override
+  String get archiveScreenPrivateBody =>
+      'you can still see what they post today.';
+
+  @override
+  String get archiveScreenNotFriendTitle => 'not friends';
+
+  @override
+  String get archiveScreenNotFriendBody =>
+      'you can only look back through a friend\'s days.';
+
+  @override
+  String get archiveScreenErrorTitle => 'couldn\'t load that';
+
+  @override
+  String get archiveScreenErrorBody => 'check your connection and try again.';
+
+  @override
+  String get feedBoardOpenArchive => 'archive';
 }

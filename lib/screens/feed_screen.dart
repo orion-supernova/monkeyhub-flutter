@@ -20,6 +20,7 @@ import '../widgets/moment_rail.dart';
 import '../widgets/points_board.dart';
 import '../widgets/puzzle_score_strip.dart';
 import '../widgets/puzzle_symbol.dart';
+import 'feed/archive_screen.dart';
 import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
 import 'feed/point_composer.dart';
@@ -131,6 +132,20 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
+  void _openArchive() {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ArchiveScreen(
+          api: widget.api,
+          feedApi: widget.feedApi,
+          userId: userId,
+        ),
+      ),
+    );
+  }
+
   void _openPuzzle() {
     final userId = widget.repo.userId;
     if (userId == null) return;
@@ -174,6 +189,13 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'highlights',
         child: _SectionShell(
           label: l10n.feedBoardHighlightsLabel,
+          // Highlights leave friends' boards after a day but are kept
+          // forever — without a way in, that promise was invisible.
+          action: _HeaderAction(
+            icon: Icons.inventory_2_outlined,
+            label: l10n.feedBoardOpenArchive,
+            onTap: _openArchive,
+          ),
           body: store.loaded && store.highlights.isEmpty && !_canCapture
               // A supervised account with media switched off has no way to
               // fill this, so offer the explanation rather than a dead rail.
@@ -222,7 +244,11 @@ class _FeedScreenState extends State<FeedScreen> {
           // The concept is new enough that the header carries its own
           // explainer — this is not a feed of photos with a score attached, it
           // is a game, and nobody arrives knowing that.
-          action: _HeaderHelp(onTap: () => showPointsExplainer(context)),
+          action: _HeaderAction(
+            icon: Icons.help_outline,
+            label: l10n.pointsExplainerOpen,
+            onTap: () => showPointsExplainer(context),
+          ),
           body: PointsBoard(
             points: store.points,
             viewerId: widget.repo.userId ?? '',
@@ -581,19 +607,25 @@ class _PuzzleTile extends StatelessWidget {
   }
 }
 
-/// The "what is this?" chip on a section band.
-class _HeaderHelp extends StatelessWidget {
-  const _HeaderHelp({required this.onTap});
+/// A small trailing control on a section band — the archive link, the points
+/// explainer. One widget so the two cannot drift apart visually.
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: onTap,
-      semanticLabel: l10n.pointsExplainerOpen,
+      semanticLabel: label,
       shape: FocusRingShape.capsule,
       child: GestureDetector(
         onTap: onTap,
@@ -607,10 +639,10 @@ class _HeaderHelp extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.help_outline, size: 11, color: theme.accent),
+              Icon(icon, size: 11, color: theme.accent),
               const SizedBox(width: 5),
               Text(
-                l10n.pointsExplainerOpen,
+                label,
                 style: theme.monoTiny.copyWith(color: theme.accent),
               ),
             ],
