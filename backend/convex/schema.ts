@@ -72,7 +72,15 @@ export default defineSchema({
     .index("by_username", ["username"])
     // Presence staleness sweep (users.sweepStalePresence) ranges over lastSeen
     // to find clients that stopped heartbeating. See presence.ts.
-    .index("by_lastSeen", ["lastSeen"]),
+    //
+    // `status` leads on purpose. Ranging `lastSeen` alone gave the 200 OLDEST
+    // rows in the table, and the sweep only patches `status` — so a swept row
+    // kept its ancient `lastSeen`, stayed in the range forever, and every tick
+    // re-read the same prefix of long-dead accounts. Past ~200 of those, nobody
+    // newly stale was ever reached. Leading with `status` means a patched row
+    // leaves the scanned range immediately, which is what makes the bound on
+    // the query a page size rather than a permanent ceiling.
+    .index("by_status_lastSeen", ["status", "lastSeen"]),
 
   // Per-device push registration. One row per (userId, deviceId) — every
   // logged-in device gets its own entry so a sibling device login doesn't

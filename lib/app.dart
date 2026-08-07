@@ -110,6 +110,40 @@ String? presenceStatusFor(AppLifecycleState state) => switch (state) {
   AppLifecycleState.inactive || AppLifecycleState.detached => null,
 };
 
+/// The presence status to assert when a session first attaches.
+///
+/// Deliberately NOT [presenceStatusFor]. That mapping answers "what does this
+/// transition tell me, given I already asserted the previous state", so its
+/// `null` means *stay quiet, nothing changed*. An attach has no previous
+/// assertion to lean on, and it runs in a state nobody had in mind when the
+/// `online` write was put there:
+///
+/// `AppDelegate.didFinishLaunchingWithOptions` calls `engine.run()` on EVERY
+/// iOS launch, including the background one an incoming VoIP push triggers —
+/// that is exactly what lets Dart restore auth and attach signaling so an
+/// answered call connects (see the comment on that method). So a phone that
+/// merely RANG runs this path, headless, with nobody looking at it. Hardcoding
+/// `online` here meant being called marked you as present: the callee lit up
+/// green in the caller's UI having never opened the app, and stayed green
+/// because [_startPresenceHeartbeat] then kept `lastSeen` fresh underneath it.
+///
+/// That is also why every non-foreground state must write `away` rather than
+/// stay quiet. Silence leaves the STORED status untouched — very often a stale
+/// `online` from the last real session — while the heartbeat refreshes
+/// `lastSeen` under it, and `users.heartbeat` only refuses to resurrect
+/// `offline`. Saying nothing would not fix the lie; it would preserve it.
+///
+/// A hand-launched app can therefore write `away` and then `online` a few
+/// frames later once the first `resumed` lands. That costs one extra write per
+/// cold start and buys an honest answer during the moment we genuinely do not
+/// know yet. It cannot bring back the Android focus-flap the mapping above
+/// exists to prevent: this runs once per attach, not per lifecycle event.
+///
+/// Kept top-level and pure so it can be tested without a widget tree; see
+/// test/presence_lifecycle_test.dart.
+String presenceStatusOnAttach(AppLifecycleState? state) =>
+    state == AppLifecycleState.resumed ? 'online' : 'away';
+
 class MonkeyHubApp extends StatefulWidget {
   const MonkeyHubApp({super.key});
   @override
@@ -687,13 +721,30 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           }
         }());
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
-        // Mark online on first attach. Recorded in _lastSentStatus like every
-        // other write: without that the dedupe guard in
-        // didChangeAppLifecycleState starts each session holding a stale value
-        // (usually null), so the first `resumed` after sign-in wrote 'online' a
-        // second time for no reason.
-        _lastSentStatus = 'online';
-        _api.updateStatus(userId: s.userId, status: 'online').catchError((_) {
+        // Report presence on first attach — from the ACTUAL lifecycle state,
+        // never a hardcoded 'online'. This method also runs on the headless
+        // background launch an incoming VoIP push triggers, where assuming
+        // foreground turned "their phone rang" into "they are online"; see
+        // [presenceStatusOnAttach] for the full account.
+        //
+        // Recorded in _lastSentStatus like every other write: without that the
+        // dedupe guard in didChangeAppLifecycleState starts each session
+        // holding a stale value (usually null), so the first `resumed` after
+        // sign-in wrote 'online' a second time for no reason.
+        final lifecycle = WidgetsBinding.instance.lifecycleState;
+        final attachStatus = presenceStatusOnAttach(lifecycle);
+        // Both halves, for the same reason didChangeAppLifecycleState logs
+        // both: the derived value alone can't tell you whether a surprising
+        // presence write came from a bad mapping or from a lifecycle state we
+        // didn't expect to attach in. This is the line that shows a background
+        // VoIP launch reporting something other than `resumed`.
+        DiagLog.lifecycle(
+          'attach ${lifecycle ?? 'unknown'} → presence=$attachStatus',
+        );
+        _lastSentStatus = attachStatus;
+        _api.updateStatus(userId: s.userId, status: attachStatus).catchError((
+          _,
+        ) {
           _lastSentStatus = null;
         });
         BadgeManager.instance.bind(_repo);
