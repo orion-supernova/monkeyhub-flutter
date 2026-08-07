@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { lensFor } from "./visibility";
 import { v } from "convex/values";
 import {
   ACCOUNT_ADULT,
@@ -556,6 +557,7 @@ export const listGuardianQueue = query({
   args: { guardianId: v.id("users") },
   handler: async (ctx, { guardianId }) => {
     const kids = await childrenOf(ctx, guardianId);
+    const lens = await lensFor(ctx, guardianId);
     const items: any[] = [];
 
     for (const childId of kids) {
@@ -585,7 +587,7 @@ export const listGuardianQueue = query({
           createdAt: r.createdAt,
           note: r.initialMessage ?? "",
           child: childBrief,
-          other: briefOf(other),
+          other: briefOf(lens, other),
         });
       }
 
@@ -606,7 +608,7 @@ export const listGuardianQueue = query({
           createdAt: r.createdAt,
           note: r.initialMessage ?? "",
           child: childBrief,
-          other: briefOf(other),
+          other: briefOf(lens, other),
         });
       }
 
@@ -642,12 +644,21 @@ export const listGuardianQueue = query({
   },
 });
 
-function briefOf(u: any) {
+/**
+ * The thumbnail identity of one person on a family screen.
+ *
+ * The avatar goes through the viewer's lens like everywhere else. For the
+ * guardian's own children that is a no-op — the lens bypasses the setting for
+ * a ward, which is the whole point of guardianship — but the same helper also
+ * renders co-guardians and the strangers in a child's approval queue, and
+ * neither of those has consented to anything.
+ */
+function briefOf(lens: any, u: any) {
   return {
     _id: u._id,
     username: u.username,
     name: u.name ?? u.username,
-    avatarStorageId: u.avatarStorageId,
+    avatarStorageId: lens.canSee(u, "avatar") ? u.avatarStorageId : undefined,
     accountType: u.accountType ?? ACCOUNT_ADULT,
   };
 }
@@ -1042,13 +1053,14 @@ export const getFamilyContext = query({
   handler: async (ctx, { userId }) => {
     const me = await ctx.db.get(userId);
     if (!me) return null;
+    const lens = await lensFor(ctx, userId);
     const child = (me.accountType ?? ACCOUNT_ADULT) === ACCOUNT_CHILD;
 
     const guardianIds = child ? await guardiansOf(ctx, userId) : [];
     const guardians = [];
     for (const g of guardianIds) {
       const u: any = await ctx.db.get(g);
-      if (u) guardians.push(briefOf(u));
+      if (u) guardians.push(briefOf(lens, u));
     }
 
     const kidIds = child ? [] : await childrenOf(ctx, userId);
@@ -1066,11 +1078,11 @@ export const getFamilyContext = query({
       const coGuardians = [];
       for (const g of await guardiansOf(ctx, k)) {
         const gu: any = await ctx.db.get(g);
-        if (gu) coGuardians.push(briefOf(gu));
+        if (gu) coGuardians.push(briefOf(lens, gu));
       }
 
       children.push({
-        ...briefOf(u),
+        ...briefOf(lens, u),
         status: u.status,
         lastSeen: u.lastSeen,
         childPolicy: u.childPolicy ?? DEFAULT_CHILD_POLICY,
@@ -1149,6 +1161,7 @@ export const listChildGrants = query({
     if (!(await isGuardianOf(ctx, guardianId, childId))) {
       throw new Error(ERR_NOT_GUARDIAN);
     }
+    const lens = await lensFor(ctx, guardianId);
 
     const approved = await ctx.db
       .query("approvalRequests")
@@ -1202,7 +1215,7 @@ export const listChildGrants = query({
       const u: any = await ctx.db.get(id as any);
       if (!u) continue;
       contacts.push({
-        ...briefOf(u),
+        ...briefOf(lens, u),
         connected: connected.has(id),
         // Present only for whitelist entries — it's what `revokeApproval`
         // needs to take the pre-approval back.

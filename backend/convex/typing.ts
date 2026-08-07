@@ -1,23 +1,29 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { lensFor } from "./visibility";
 
 const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactivity, heartbeat every 2s
 
 /**
  * Shape both typing queries return per typist. Deliberately mirrors the keys
  * `ChatUser.fromJson` reads on the client, so the indicator can render a real
- * `UserAvatar` without a bespoke model. Avatars are unfiltered here for the
- * same reason `rooms.getMembers` leaves them unfiltered: everyone in this list
- * is already a member of a room the viewer is in.
+ * `UserAvatar` without a bespoke model.
+ *
+ * The avatar goes through the viewer's lens. This used to be unfiltered on the
+ * same reasoning `rooms.getMembers` used — everyone here is in a room with the
+ * viewer — and that reasoning was wrong in both places: sharing a room is not
+ * consent to show your face, or the setting means nothing in any public room.
  */
-async function typistOf(ctx: any, userId: any) {
+async function typistOf(ctx: any, lens: any, userId: any) {
   const user = await ctx.db.get(userId);
   if (!user) return null;
   return {
     _id: user._id,
     username: user.username ?? "",
     name: user.name ?? user.username ?? "",
-    avatarStorageId: user.avatarStorageId,
+    avatarStorageId: lens.canSee(user, "avatar")
+      ? user.avatarStorageId
+      : undefined,
   };
 }
 
@@ -119,8 +125,9 @@ export const getTypingUsers = query({
         now - t.updatedAt < TYPING_TTL_MS
     );
 
+    const lens = await lensFor(ctx, currentUserId);
     const enriched = await Promise.all(
-      active.map((t) => typistOf(ctx, t.userId))
+      active.map((t) => typistOf(ctx, lens, t.userId))
     );
     return enriched.filter(Boolean);
   },

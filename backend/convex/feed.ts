@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { assertChildPolicy } from "./childGuard";
 import { deleteStored } from "./files";
 import { MAX_GUESSES, SLOTS, answerFor, pegsForSlots, score } from "./puzzle";
+import { lensFor } from "./visibility";
 
 /**
  * The Feed board — "TODAY".
@@ -73,7 +74,22 @@ const MAX_FANOUT = 200;
  */
 function momentView(
   m: any,
-  opts: { reactions: any[]; seen: boolean; mine: boolean; viewerId: any }
+  opts: {
+    reactions: any[];
+    seen: boolean;
+    mine: boolean;
+    viewerId: any;
+    /**
+     * Whether the viewer may see the author's face on this row.
+     *
+     * `authorAvatarStorageId` is denormalized onto the moment at post time, so
+     * it is NOT covered by the author's `feed`/`points` settings — those decide
+     * whether the row appears at all, and the avatar control decides whose face
+     * rides along with it. Resolved once per author by the caller (which
+     * already holds the users row) rather than per row.
+     */
+    authorAvatarVisible: boolean;
+  }
 ) {
   // An ARRAY of {emoji, count}, never an object keyed by the emoji.
   //
@@ -105,7 +121,9 @@ function momentView(
     expiresAt: m.expiresAt,
     authorName: m.authorName,
     authorUsername: m.authorUsername,
-    authorAvatarStorageId: m.authorAvatarStorageId,
+    authorAvatarStorageId: opts.authorAvatarVisible
+      ? m.authorAvatarStorageId
+      : undefined,
     reactionCounts: counts,
     // Who's behind each count. A flat array of (emoji, name) pairs, not an
     // object keyed by emoji — same reason `reactionCounts` is an array above.
@@ -209,6 +227,7 @@ export const board = query({
   handler: async (ctx, { userId, dayKey }) => {
     const now = Date.now();
     const friendIds = await friendIdsOf(ctx, userId);
+    const lens = await lensFor(ctx, userId);
 
     // Blocking: `blockUser` deletes both friendship rows, so a blocked person
     // is already absent from the fan-out above and their content cannot reach
@@ -227,6 +246,7 @@ export const board = query({
       // unrepresentable.
       let allowHighlights = true;
       let allowPoints = true;
+      let authorAvatarVisible = true;
       if (!mine) {
         // One users read per FRIEND (not per moment). This is the one place
         // the board touches a users row, and it is the reason `board` re-fires
@@ -238,6 +258,7 @@ export const board = query({
         const vis = visibilityOf(author);
         allowHighlights = vis.feed;
         allowPoints = vis.points;
+        authorAvatarVisible = lens.canSee(author, "avatar");
         if (!allowHighlights && !allowPoints) continue;
       }
 
@@ -279,6 +300,7 @@ export const board = query({
             seen: mine || seenRow !== null,
             mine,
             viewerId: userId,
+            authorAvatarVisible,
           })
         );
       }
@@ -620,11 +642,14 @@ export const archive = query({
     // that is the difference between one lookup and sixty.
     let allowHighlights = true;
     let allowPoints = true;
+    let authorAvatarVisible = true;
     if (!mine) {
       const author = await ctx.db.get(target);
       const vis = visibilityOf(author);
       allowHighlights = vis.feed;
       allowPoints = vis.points;
+      const lens = await lensFor(ctx, userId);
+      authorAvatarVisible = lens.canSee(author, "avatar");
     }
 
     const take = Math.min(limit ?? 30, 60);
@@ -650,7 +675,13 @@ export const archive = query({
         .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
         .collect();
       items.push(
-        momentView(m, { reactions, seen: true, mine, viewerId: userId })
+        momentView(m, {
+          reactions,
+          seen: true,
+          mine,
+          viewerId: userId,
+          authorAvatarVisible,
+        })
       );
     }
     return { items, hasMore: rows.length > take };

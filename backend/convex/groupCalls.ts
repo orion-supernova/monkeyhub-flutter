@@ -7,6 +7,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
+import { lensFor } from "./visibility";
 
 // ────────────────────────────── constants ──────────────────────────────
 
@@ -305,7 +306,8 @@ export const heartbeat = mutation({
 
 // ────────────────────────── queries ──────────────────────────
 
-async function inflateParticipants(ctx: any, groupCallId: any) {
+async function inflateParticipants(ctx: any, viewerUserId: any, groupCallId: any) {
+  const lens = await lensFor(ctx, viewerUserId);
   const rows = await ctx.db
     .query("groupCallParticipants")
     .withIndex("by_call", (q: any) => q.eq("groupCallId", groupCallId))
@@ -322,7 +324,14 @@ async function inflateParticipants(ctx: any, groupCallId: any) {
       live: isLive(r, now),
       deviceId: r.deviceId ?? null,
       name: u?.name ?? u?.username ?? "Someone",
-      avatarStorageId: u?.avatarStorageId?.toString() ?? null,
+      // Redacted per the participant's setting. Being in the same call is a
+      // stronger tie than sharing a room, but it is still not the consent the
+      // avatar control asks about — someone at "nobody" shows as initials in
+      // the grid, exactly as they do everywhere else.
+      avatarStorageId:
+        u && lens.canSee(u, "avatar")
+          ? u.avatarStorageId?.toString() ?? null
+          : null,
       joinedAt: r.joinedAt ?? null,
     });
   }
@@ -337,7 +346,7 @@ export const activeForRoom = query({
     await requireMember(ctx, roomId, userId);
     const call = await activeCallForRoom(ctx, roomId);
     if (!call) return null;
-    const participants = await inflateParticipants(ctx, call._id);
+    const participants = await inflateParticipants(ctx, userId, call._id);
     // A call whose every participant went silent is dead for UI purposes —
     // hide it now; the reaper cron formalizes the end shortly after.
     if (!participants.some((p) => p.live)) return null;
@@ -360,7 +369,7 @@ export const roster = query({
     const call = await ctx.db.get(groupCallId);
     if (!call) return null;
     await requireMember(ctx, call.roomId, userId);
-    const participants = await inflateParticipants(ctx, groupCallId);
+    const participants = await inflateParticipants(ctx, userId, groupCallId);
     return {
       groupCallId,
       roomId: call.roomId,

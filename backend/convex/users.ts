@@ -1,7 +1,6 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import {
-  effectiveStatus,
   PRESENCE_OFFLINE_MS,
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
@@ -14,9 +13,9 @@ import {
   ERR_NOT_ALLOWED,
   familyOf,
   isChild,
-  isGuardianOf,
 } from "./childGuard";
 import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
+import { lensFor } from "./visibility";
 
 /**
  * Returns a user's profile, with per-field redaction based on the viewer's
@@ -24,10 +23,9 @@ import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
  * the subject's visibility rules. Callers omitting `viewerUserId` get the
  * public-only view (used for self-lookups via login response, etc.).
  *
- * Visibility values per field:
- *   "public"  → anyone sees it
- *   "friends" → only accepted friends see it (and the user themselves)
- *   "nobody"  → only the user themselves sees it
+ * The level check itself lives in visibility.ts and is shared with every other
+ * query that returns someone's avatar or presence — this handler used to own
+ * it, which is precisely why the setting only ever worked here.
  *
  * `friendRequests` doesn't affect the profile payload directly — it's
  * enforced at request-mutation time.
@@ -41,45 +39,16 @@ export const getProfile = query({
     const user = await ctx.db.get(userId);
     if (!user) return null;
 
-    const isSelf =
-      viewerUserId !== undefined && viewerUserId.toString() === userId.toString();
-
+    const lens = await lensFor(ctx, viewerUserId);
+    const isSelf = lens.isSelf(userId);
     // Guardian bypass. This is how "everything enabled for their parents to
     // check" is delivered WITHOUT making the child public to the world: the
     // child's visibility map stays as restrictive as we like, and guardians
     // simply aren't subject to it. Strangers still see a redacted profile.
-    const isGuardian =
-      viewerUserId !== undefined &&
-      !isSelf &&
-      (await isGuardianOf(ctx, viewerUserId, userId));
-
-    // Friends check.
-    let isFriend = false;
-    if (viewerUserId && !isSelf) {
-      const a = await ctx.db
-        .query("friendships")
-        .withIndex("by_pair", (q) =>
-          q.eq("userId", viewerUserId).eq("friendId", userId)
-        )
-        .first();
-      const b = await ctx.db
-        .query("friendships")
-        .withIndex("by_pair", (q) =>
-          q.eq("userId", userId).eq("friendId", viewerUserId)
-        )
-        .first();
-      isFriend = a?.status === "accepted" || b?.status === "accepted";
-    }
-
-    function canSee(level: string | undefined): boolean {
-      if (isSelf || isGuardian) return true;
-      const v = level ?? "public";
-      if (v === "public") return true;
-      if (v === "friends") return isFriend;
-      return false; // "nobody"
-    }
+    const isGuardian = !isSelf && lens.isGuardian(userId);
 
     const vis = user.visibility ?? {};
+    const identity = lens.identity(user);
     return {
       _id: user._id,
       username: user.username,
@@ -113,11 +82,7 @@ export const getProfile = query({
         user.passwordHash !== SOCIAL_ONLY_PASSWORD_SENTINEL
           ? user.recoveryKeyHash !== undefined
           : undefined,
-      avatarStorageId: canSee(vis.avatar) ? user.avatarStorageId : undefined,
-      status: canSee(vis.status)
-        ? effectiveStatus(user.status, user.lastSeen)
-        : undefined,
-      lastSeen: canSee(vis.lastSeen) ? user.lastSeen : undefined,
+      ...identity,
       // Mirror the visibility map back so self-view UI can render it without
       // a separate fetch. Other viewers get an empty map — knowing someone's
       // settings is itself a privacy leak.
@@ -132,9 +97,9 @@ export const getProfile = query({
       // Hint to the viewer that fields were redacted, so the UI can show
       // a "limited view" pill instead of guessing.
       isRedacted: !isSelf && !isGuardian &&
-        (!canSee(vis.avatar) ||
-          !canSee(vis.status) ||
-          !canSee(vis.lastSeen)),
+        (!lens.canSee(user, "avatar") ||
+          !lens.canSee(user, "status") ||
+          !lens.canSee(user, "lastSeen")),
       acceptsFriendRequests: (vis.friendRequests ?? "public") === "public",
     };
   },
@@ -404,6 +369,7 @@ export const searchUsers = query({
       }
     }
 
+    const lens = await lensFor(ctx, currentUserId);
     const needle = q.trim().toLowerCase();
     const users = await ctx.db.query("users").collect();
     const filtered = users
@@ -452,8 +418,11 @@ export const searchUsers = query({
           _id: u._id,
           username: u.username,
           name: u.name ?? u.username,
-          status: effectiveStatus(u.status, u.lastSeen),
-          avatarStorageId: u.avatarStorageId,
+          // Discover is the surface a stranger reaches you through, so it is
+          // the LAST place that may ignore the setting. Someone at "avatar:
+          // friends" is searchable by handle and still faceless until they
+          // accept you.
+          ...lens.identity(u),
           friendshipStatus,
           requestId,
         };
@@ -559,6 +528,7 @@ export const listBlocked = query({
       name: string;
       avatarStorageId?: string;
     }> = [];
+    const lens = await lensFor(ctx, userId);
     for (const r of rows) {
       const u = await ctx.db.get(r.blockedUserId);
       if (!u) continue;
@@ -566,7 +536,11 @@ export const listBlocked = query({
         _id: u._id.toString(),
         username: u.username,
         name: u.name ?? u.username,
-        avatarStorageId: u.avatarStorageId,
+        // Blocking someone does not earn you their face. The handle and name
+        // identify the row well enough to unblock it, and a blocked person is
+        // by definition not a friend — so "friends" and "nobody" both land on
+        // the initials fallback here, which is the correct reading.
+        avatarStorageId: lens.canSee(u, "avatar") ? u.avatarStorageId : undefined,
       });
     }
     return out;

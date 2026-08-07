@@ -8,7 +8,7 @@ import {
   childMayUseRoom,
   isChild,
 } from "./childGuard";
-import { effectiveStatus } from "./presence";
+import { lensFor, publicUserView } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { deleteStored } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
@@ -322,33 +322,41 @@ export const listUserRooms = query({
   },
 });
 
+/**
+ * The room's members, with each one's avatar and presence redacted to what
+ * [viewerUserId] is allowed to see.
+ *
+ * This list is the app's single biggest source of other people's faces — it
+ * backs the member sheet, room info, the chat header, and the avatar beside
+ * every message bubble, because messages carry only a sender name and the
+ * client resolves the face from here. It used to hand out `avatarStorageId`,
+ * `status` and `lastSeen` raw, on the reasoning that everyone in the list is
+ * already in a room with the viewer. Sharing a room is not consent: a public
+ * room anyone can join made "avatar: nobody" mean nothing at all.
+ *
+ * `viewerUserId` is optional so builds already in users' hands keep working —
+ * they just get the public-only view, which is the safe direction to fail.
+ */
 export const getMembers = query({
-  args: { roomId: v.id("rooms") },
-  handler: async (ctx, { roomId }) => {
+  args: {
+    roomId: v.id("rooms"),
+    viewerUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, { roomId, viewerUserId }) => {
     const members = await ctx.db
       .query("roomMembers")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
+    const lens = await lensFor(ctx, viewerUserId);
     const users = await Promise.all(
       members.map(async (m) => {
         const user = await ctx.db.get(m.userId);
         if (!user) return null;
         return {
-          _id: user._id,
-          username: user.username,
-          name: user.name,
           // No `email`. Sharing a room with someone is not consent to hand
           // them your address — a public room would have leaked it to every
           // member. users.getProfile serves it to self only.
-          avatarStorageId: user.avatarStorageId,
-          // Staleness-corrected: a user who stopped heartbeating (closed the
-          // tab / killed the app) reads as offline even if the stored status
-          // is stale. See presence.ts.
-          status: effectiveStatus(user.status, user.lastSeen),
-          // Needed by the client's status dot — the 5-minute "fresh away"
-          // gate in user_avatar.dart reads this and demotes amber → gray
-          // once the user's been idle long enough.
-          lastSeen: user.lastSeen,
+          ...publicUserView(lens, user),
           role: m.role,
         };
       })

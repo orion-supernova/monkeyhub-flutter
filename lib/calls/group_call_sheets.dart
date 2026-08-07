@@ -246,7 +246,7 @@ Future<List<String>?> _pickMembers(
         builder: (sheetCtx, setSheetState) {
           if (members == null) {
             api
-                .getMembers(roomId)
+                .getMembers(roomId, viewerUserId: myUserId)
                 .then((list) {
                   if (!sheetCtx.mounted) return;
                   setSheetState(() {

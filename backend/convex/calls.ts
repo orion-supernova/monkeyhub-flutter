@@ -8,6 +8,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
+import { lensFor } from "./visibility";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -158,10 +159,20 @@ export const initiate = mutation({
     // Caller identity for the callee's ringer UIs. The storage id feeds the
     // in-app screens (RemoteImage); the resolved URL feeds Android's native
     // full-screen ringer, which can only load plain image URLs.
-    const callerAvatarStorageId = caller?.avatarStorageId?.toString() ?? null;
-    const callerAvatarUrl = caller?.avatarStorageId
-      ? await ctx.storage.getUrl(caller.avatarStorageId)
+    //
+    // Both obey the caller's own avatar setting, resolved from the CALLEE's
+    // side — the ringer is the one surface that pushes a face onto a screen
+    // uninvited, so it is the last place to make an exception. The name is
+    // always sent: a ringing phone has to say who it is.
+    const callerLens = await lensFor(ctx, calleeId);
+    const callerAvatarVisible = caller ? callerLens.canSee(caller, "avatar") : false;
+    const callerAvatarStorageId = callerAvatarVisible
+      ? caller?.avatarStorageId?.toString() ?? null
       : null;
+    const callerAvatarUrl =
+      callerAvatarVisible && caller?.avatarStorageId
+        ? await ctx.storage.getUrl(caller.avatarStorageId)
+        : null;
 
     const callId = await ctx.db.insert("calls", {
       callerId,

@@ -12,36 +12,7 @@ import {
   isReleasedToRecipient,
 } from "./childGuard";
 import { effectiveStatus } from "./presence";
-
-/**
- * The fields of a `users` row that another user is allowed to see.
- *
- * Exists because spreading a user document is a data leak, and this file did it
- * twice. A `users` row carries `passwordHash` and `recoveryKeyHash`, the push
- * routing tokens (`voipToken`, `fcmToken`, `deviceTokens`), `birthYear`, and
- * the `visibility` / `childPolicy` blocks that are explicitly self-or-guardian
- * only — none of which any caller here wants and all of which `{ ...user }`
- * handed out. Convex sends whatever the handler returns, so with no `returns:`
- * validator the shape of this object IS the access-control boundary.
- *
- * Add a field here only after asking whether every friend and every stranger
- * who can address a request to you should have it. `status` is passed through
- * `effectiveStatus` so a client that stopped heartbeating reads as offline;
- * `lastSeen` backs the avatar dot's "fresh away" gate on the client.
- */
-function publicUserView(user: any) {
-  return {
-    _id: user._id,
-    username: user.username,
-    name: user.name,
-    // No `email` here. It used to be, and it failed the test the comment above
-    // states: a stranger who can address a friend request to you should not
-    // learn your email address. users.getProfile serves it to self only.
-    avatarStorageId: user.avatarStorageId,
-    status: effectiveStatus(user.status, user.lastSeen),
-    lastSeen: user.lastSeen,
-  };
-}
+import { lensFor, publicUserView } from "./visibility";
 
 /**
  * Pings whoever now holds a request.
@@ -284,7 +255,11 @@ export const listFriends = query({
     const friends = await Promise.all(
       friendships.map((f) => ctx.db.get(f.friendId))
     );
-    return friends.filter(Boolean).map((u) => publicUserView(u!));
+    // Everyone here IS a friend of the viewer, so "friends" passes and only a
+    // "nobody" setting redacts — but the lens is still what decides that, not
+    // an assumption made in this handler.
+    const lens = await lensFor(ctx, userId);
+    return friends.filter(Boolean).map((u) => publicUserView(lens, u!));
   },
 });
 
@@ -307,10 +282,13 @@ export const listPendingRequests = query({
       (f) => f.status === "pending" && isReleasedToRecipient(f.stage),
     );
 
+    const lens = await lensFor(ctx, userId);
     const requesters = await Promise.all(
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
-        return user ? { ...publicUserView(user), friendshipId: f._id } : null;
+        return user
+          ? { ...publicUserView(lens, user), friendshipId: f._id }
+          : null;
       })
     );
     return requesters.filter(Boolean);
@@ -594,6 +572,7 @@ export const listIncomingDirectRequests = query({
       (f) => f.status === "pending" && isReleasedToRecipient(f.stage),
     );
 
+    const lens = await lensFor(ctx, userId);
     const requests = await Promise.all(
       incoming.map(async (request) => {
         const requester = await ctx.db.get(request.userId);
@@ -611,16 +590,11 @@ export const listIncomingDirectRequests = query({
           messageLifetime: request.messageLifetime,
           initialMessage: request.initialMessage ?? "",
           messageCount: messages.length,
-          user: {
-            _id: requester._id,
-            username: requester.username,
-            name: requester.name,
-            // No `email` — same reasoning as publicUserView above. A stranger
-            // who sent you a request must not learn your address, nor you
-            // theirs before you've accepted.
-            avatarStorageId: requester.avatarStorageId,
-            status: effectiveStatus(requester.status, requester.lastSeen),
-          },
+          // A pending request is not a friendship, so a requester at
+          // "avatar: friends" arrives faceless — which is the setting working,
+          // not a bug. Their handle and name still identify them well enough
+          // to decide.
+          user: publicUserView(lens, requester),
         };
       })
     );
@@ -638,6 +612,7 @@ export const listOutgoingDirectRequests = query({
       .collect();
     const outgoing = rows.filter((f) => f.status === "pending");
 
+    const lens = await lensFor(ctx, userId);
     const requests = await Promise.all(
       outgoing.map(async (request) => {
         const receiver = await ctx.db.get(request.friendId);
@@ -658,14 +633,9 @@ export const listOutgoingDirectRequests = query({
           // Lets the sender's UI distinguish "waiting for a grown-up" from
           // "waiting for them" instead of showing a bare "pending".
           stage: request.stage ?? null,
-          user: {
-            _id: receiver._id,
-            username: receiver.username,
-            name: receiver.name,
-            // No `email` — same reasoning as publicUserView above.
-            avatarStorageId: receiver.avatarStorageId,
-            status: effectiveStatus(receiver.status, receiver.lastSeen),
-          },
+          // Same as the incoming list: sending someone a request doesn't
+          // unlock their profile while it's still pending.
+          user: publicUserView(lens, receiver),
         };
       })
     );
@@ -693,6 +663,7 @@ export const removeFriend = mutation({
 export const searchUsers = query({
   args: { query: v.string(), currentUserId: v.id("users") },
   handler: async (ctx, { query, currentUserId }) => {
+    const lens = await lensFor(ctx, currentUserId);
     const users = await ctx.db.query("users").collect();
     return users
       .filter(
@@ -704,7 +675,11 @@ export const searchUsers = query({
       .map((u) => ({
         _id: u._id,
         username: u.username,
-        status: effectiveStatus(u.status, u.lastSeen),
+        // Presence obeys the setting here too — a search result is the
+        // thinnest possible relationship, not a reason to leak "online now".
+        status: lens.canSee(u, "status")
+          ? effectiveStatus(u.status, u.lastSeen)
+          : undefined,
       }));
   },
 });

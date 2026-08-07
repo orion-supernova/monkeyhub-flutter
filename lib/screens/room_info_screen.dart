@@ -165,7 +165,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
       _membersSub?.cancel();
       _membersSub = await widget.repo.cv.subscribe(
         'rooms:getMembers',
-        {'roomId': widget.roomId},
+        {'roomId': widget.roomId, 'viewerUserId': ?widget.repo.userId},
         onData: (data) {
           if (!mounted) return;
           final list = (data as List?) ?? const [];

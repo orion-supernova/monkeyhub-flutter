@@ -477,8 +477,14 @@ class ChatApi {
     return ChatRoom.fromJson((res as Map).cast<String, dynamic>());
   }
 
-  Future<List<ChatUser>> getMembers(String roomId) async {
-    final res = await _cv.query('rooms:getMembers', {'roomId': roomId});
+  /// Pass [viewerUserId] — the server redacts each member's avatar and
+  /// presence to what that viewer is allowed to see, and without it everyone
+  /// comes back at the public-only level.
+  Future<List<ChatUser>> getMembers(String roomId, {String? viewerUserId}) async {
+    final res = await _cv.query('rooms:getMembers', {
+      'roomId': roomId,
+      'viewerUserId': ?viewerUserId,
+    });
     return ((res as List?) ?? const [])
         .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
         .toList();

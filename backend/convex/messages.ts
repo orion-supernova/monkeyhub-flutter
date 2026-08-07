@@ -8,6 +8,7 @@ import {
   childPolicyOf,
 } from "./childGuard";
 import { deleteStored, releaseMessageBlobs } from "./files";
+import { lensFor } from "./visibility";
 
 // ── View-once tuning ────────────────────────────────────────────────────────
 
@@ -1644,41 +1645,24 @@ export const getReadState = query({
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
 
-    const viewerKey = viewerUserId.toString();
+    // One lens for the whole room instead of a friendship pair-lookup per
+    // member, and — more importantly — the same level check every other
+    // surface uses. This handler used to carry its own copy of it, which is
+    // how the app ended up with two subtly different readings of the same
+    // stored value. The privacy-first default for `seen` (missing ⇒ "nobody")
+    // now lives in visibility.ts's DEFAULT_LEVEL table, unchanged.
+    const lens = await lensFor(ctx, viewerUserId);
     const out: Array<{ userId: any; lastReadAt: number }> = [];
     for (const m of members) {
-      const isSelf = m.userId.toString() === viewerKey;
-      if (isSelf) {
+      if (lens.isSelf(m.userId)) {
         out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
         continue;
       }
       const reader = await ctx.db.get(m.userId);
-      const level = reader?.visibility?.seen;
-      // Privacy-first default: missing/unknown ⇒ "nobody".
-      const allowed =
-        level === "public" ||
-        (level === "friends" &&
-          (await _areFriends(ctx, m.userId, viewerUserId)));
-      if (!allowed) continue;
+      if (!reader || !lens.canSee(reader, "seen")) continue;
       out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
     }
     return out;
   },
 });
 
-async function _areFriends(
-  ctx: any,
-  a: any,
-  b: any,
-): Promise<boolean> {
-  const fwd = await ctx.db
-    .query("friendships")
-    .withIndex("by_pair", (q: any) => q.eq("userId", a).eq("friendId", b))
-    .first();
-  if (fwd?.status === "accepted") return true;
-  const rev = await ctx.db
-    .query("friendships")
-    .withIndex("by_pair", (q: any) => q.eq("userId", b).eq("friendId", a))
-    .first();
-  return rev?.status === "accepted";
-}
