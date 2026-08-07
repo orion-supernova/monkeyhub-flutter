@@ -15,7 +15,7 @@ import '../push/push_manager.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import '../widgets/app_brand_mark.dart';
+import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/recovery_banner.dart';
@@ -260,15 +260,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               kFloatingNavClearance,
             ),
             children: [
-              Row(
-                children: [
-                  const AppBrandMark(size: 30),
-                  const SizedBox(width: 10),
-                  Text(
-                    l10n.settingsScreenTitle,
-                    style: theme.label.copyWith(letterSpacing: 3),
-                  ),
-                ],
+              Text(
+                l10n.settingsScreenTitle,
+                style: theme.label.copyWith(letterSpacing: 3),
               ),
               const SizedBox(height: 28),
               Text(l10n.settingsScreenTagline, style: theme.displayLarge),

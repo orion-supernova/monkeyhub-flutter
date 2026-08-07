@@ -13,7 +13,6 @@ import '../models/puzzle.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/app_brand_mark.dart';
 import '../widgets/feed_depth_field.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
@@ -398,24 +397,16 @@ class _MastheadState extends State<_Masthead>
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const AppBrandMark(size: 30),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l10n.feedBoardTitle,
-                      // Settles from wide-set to the board's resting spacing.
-                      // Interpolating letterSpacing rather than scale keeps the
-                      // baseline fixed, so nothing below it moves.
-                      style: theme.label.copyWith(
-                        letterSpacing: 9.0 - (9.0 - 3.0) * t,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+              Text(
+                l10n.feedBoardTitle,
+                // Settles from wide-set to the board's resting spacing.
+                // Interpolating letterSpacing rather than scale keeps the
+                // baseline fixed, so nothing below it moves.
+                style: theme.label.copyWith(
+                  letterSpacing: 9.0 - (9.0 - 3.0) * t,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 14),
               Row(
