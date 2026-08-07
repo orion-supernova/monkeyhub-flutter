@@ -33,7 +33,6 @@ class FullscreenVideoViewer extends StatefulWidget {
     required this.storageId,
     required this.api,
     this.posterStorageId,
-    this.aspectRatio,
   });
 
   final String storageId;
@@ -43,16 +42,11 @@ class FullscreenVideoViewer extends StatefulWidget {
   /// real video resolves and initializes. Null renders black instead.
   final String? posterStorageId;
 
-  /// The sender's recorded width÷height, so the backdrop occupies the box the
-  /// video will — nothing resizes underneath the user mid-open.
-  final double? aspectRatio;
-
   static Future<void> open(
     BuildContext context, {
     required String storageId,
     required ChatApi api,
     String? posterStorageId,
-    double? aspectRatio,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -66,7 +60,6 @@ class FullscreenVideoViewer extends StatefulWidget {
           storageId: storageId,
           api: api,
           posterStorageId: posterStorageId,
-          aspectRatio: aspectRatio,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -282,12 +275,10 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
                     api: widget.api,
                     storageId: widget.storageId,
                     posterStorageId: widget.posterStorageId,
-                    aspectRatio: widget.aspectRatio,
                   )
                 : _HandoffPlate(
                     api: widget.api,
                     posterStorageId: widget.posterStorageId,
-                    aspectRatio: widget.aspectRatio,
                     progress: _progress,
                   ),
           ),
@@ -297,21 +288,21 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
   }
 }
 
-/// What the tap lands on for the moment between opening this route and the OS
-/// player covering it: the poster at the video's own shape, dimmed, with a
-/// spinner. Deliberately identical in geometry to [VideoPlayerSurface]'s own
-/// loading state, so a handoff that falls back doesn't visibly change its mind.
+/// What the tap lands on between opening this route and the OS player covering
+/// it: the poster full-bleed and dimmed, with a progress ring over it.
+/// Deliberately identical in geometry to [VideoPlayerSurface]'s own loading
+/// state, so a handoff that falls back doesn't visibly change its mind — and
+/// full-bleed for the reason spelled out there, that a poster boxed at a
+/// guessed ratio is a stamp floating in the middle of a black screen.
 class _HandoffPlate extends StatelessWidget {
   const _HandoffPlate({
     required this.api,
     required this.posterStorageId,
-    required this.aspectRatio,
     required this.progress,
   });
 
   final ChatApi api;
   final String? posterStorageId;
-  final double? aspectRatio;
 
   /// 0…1 once the download reports a total, null before that. A determinate
   /// ring rather than an endless one wherever the figure exists: this wait is
@@ -322,44 +313,40 @@ class _HandoffPlate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final r = aspectRatio;
     final poster = posterStorageId;
-    return AspectRatio(
-      aspectRatio: (r != null && r.isFinite && r > 0) ? r : 16 / 9,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          poster == null
-              ? const ColoredBox(color: Colors.black)
-              : ColoredBox(
-                  color: Colors.black,
-                  child: RemoteImage(
-                    storageId: poster,
-                    api: api,
-                    fit: BoxFit.contain,
-                  ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        poster == null
+            ? const ColoredBox(color: Colors.black)
+            : ColoredBox(
+                color: Colors.black,
+                child: RemoteImage(
+                  storageId: poster,
+                  api: api,
+                  fit: BoxFit.contain,
                 ),
-          ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
-          // Centred inside the expanded child, not laid out as one: under
-          // `StackFit.expand` a bare SizedBox gets tight stack-sized
-          // constraints and the ring inflates to fill the screen.
-          Center(
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: ValueListenableBuilder<double?>(
-                valueListenable: progress,
-                builder: (context, value, _) => CircularProgressIndicator(
-                  value: value,
-                  strokeWidth: 2.5,
-                  color: theme.accent,
-                  backgroundColor: Colors.white.withValues(alpha: 0.18),
-                ),
+              ),
+        ColoredBox(color: Colors.black.withValues(alpha: 0.25)),
+        // Centred inside the expanded child, not laid out as one: under
+        // `StackFit.expand` a bare SizedBox gets tight stack-sized
+        // constraints and the ring inflates to fill the screen.
+        Center(
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: ValueListenableBuilder<double?>(
+              valueListenable: progress,
+              builder: (context, value, _) => CircularProgressIndicator(
+                value: value,
+                strokeWidth: 2.5,
+                color: theme.accent,
+                backgroundColor: Colors.white.withValues(alpha: 0.18),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

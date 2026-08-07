@@ -201,19 +201,12 @@ class VideoPlayerSurface extends StatefulWidget {
     required this.api,
     required this.storageId,
     this.posterStorageId,
-    this.aspectRatio,
     this.autoplay = true,
   });
 
   final ChatApi api;
   final String? storageId;
   final String? posterStorageId;
-
-  /// The sender's recorded width÷height, when the message carries it. Sizes
-  /// the pre-ready states at the box the video will actually occupy, so the
-  /// picture doesn't jump the moment `initialize()` lands. Null falls back to
-  /// 16∶9 — a guess, but a bounded one.
-  final double? aspectRatio;
 
   /// Starts playback the instant the controller is ready. On, because both
   /// call sites are a direct response to a tap that asked to watch this —
@@ -374,28 +367,35 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
     );
   }
 
-  /// Every pre-ready state: backdrop, scrim, one centred glyph.
+  /// Every pre-ready state: backdrop, scrim, one centred glyph — filling
+  /// whatever box the parent gives it, which at both call sites is the screen.
   ///
-  /// The [AspectRatio] and the [Center] are both load-bearing. Without the
-  /// ratio these states took `constraints.biggest` — the whole screen in the
-  /// fullscreen viewer — and then snapped to the video's real shape the frame
-  /// `initialize()` landed. And `StackFit.expand` hands every non-positioned
-  /// child *tight* constraints equal to the stack, which silently overrode the
-  /// `SizedBox(32, 32)` the spinner used to sit in and inflated it to a
-  /// screen-filling ring; centring it inside the expanded child is what lets a
-  /// fixed size mean anything here.
+  /// The [Center] around the glyph is load-bearing. `StackFit.expand` hands
+  /// every non-positioned child *tight* constraints equal to the stack, which
+  /// silently overrode the `SizedBox(32, 32)` the spinner used to sit in and
+  /// inflated it into a screen-filling ring; centring it inside the expanded
+  /// child is what lets a fixed size mean anything here.
+  ///
+  /// Full-bleed rather than boxed at a declared aspect ratio, which is what
+  /// this did first and got wrong. `mediaAspectRatio` is null for every video
+  /// the sender couldn't measure, so that path guessed 16∶9 — and a portrait
+  /// poster letterboxed inside a landscape guess is a stamp-sized picture
+  /// floating in the middle of a black screen. Filling instead is not a
+  /// compromise: [BoxFit.contain] already sizes the poster by its own true
+  /// shape, so the picture lands in exactly the box the video will occupy,
+  /// with no ratio to know and nothing to guess wrong.
+  ///
+  /// Requires bounded constraints. Both call sites are a `Center` in a
+  /// full-screen body; an unbounded parent (a `Column` child, say) would make
+  /// `constraints.biggest` infinite.
   Widget _plate(Widget glyph, {required double scrim}) {
-    final r = widget.aspectRatio;
-    return AspectRatio(
-      aspectRatio: (r != null && r.isFinite && r > 0) ? r : 16 / 9,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _backdrop(),
-          ColoredBox(color: Colors.black.withValues(alpha: scrim)),
-          Center(child: glyph),
-        ],
-      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _backdrop(),
+        ColoredBox(color: Colors.black.withValues(alpha: scrim)),
+        Center(child: glyph),
+      ],
     );
   }
 
