@@ -4164,6 +4164,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'Ya estás en esta sala';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'LOS DETALLES';
+
+  @override
+  String get roomInfoSheetNoDescription => 'todavía sin descripción';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'CREADA';
+
+  @override
   String get countBadgeCaptureProtectionLabel =>
       'PROTECCIÓN DE CAPTURA DE PANTALLA';
 

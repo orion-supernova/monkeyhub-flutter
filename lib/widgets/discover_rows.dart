@@ -7,6 +7,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import 'approval_gate.dart';
+import 'remote_image.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
@@ -73,16 +74,33 @@ class FriendRow extends StatelessWidget {
 }
 
 /// A public room you may or may not be in yet.
+///
+/// Two tiers, not one line. Everything used to compete for the same horizontal
+/// run — glyph, name, description, up to three pills, and the member count —
+/// which left the two things a stranger actually reads about 120pt on a phone,
+/// so a name of ordinary length and every description ended in an ellipsis.
+/// Name and description now get the row's full width (two lines each), and the
+/// counts and pills drop to a meta line underneath where they can't crowd them.
+///
+/// The pills here don't answer on tap the way they do on a room card: this whole
+/// row is one target, and what it opens — the room's info sheet — says all of it
+/// in full sentences, along with the description in full. See
+/// `_Badge.explainOnTap`.
 class PublicRoomTile extends StatelessWidget {
   const PublicRoomTile({
     super.key,
     required this.room,
     required this.onTap,
+    this.api,
     this.awaiting = false,
     this.joined = false,
   });
   final ChatRoom room;
   final VoidCallback onTap;
+
+  /// Only needed to fetch a room's own avatar; without it the row falls back to
+  /// the glyph, which is also what a room with no avatar set gets.
+  final ChatApi? api;
 
   /// This child has already asked a grown-up about this room.
   final bool awaiting;
@@ -94,6 +112,8 @@ class PublicRoomTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final hasDescription =
+        room.description != null && room.description!.trim().isNotEmpty;
     return FocusableTap(
       onTap: onTap,
       semanticLabel: room.name,
@@ -107,63 +127,144 @@ class PublicRoomTile extends StatelessWidget {
             ephemeral: room.isEphemeral,
             active: false,
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: theme.accentSoft,
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                ),
-                alignment: Alignment.center,
-                child: room.isEphemeral
-                    ? theme.hourglassIcon(size: 14, color: theme.accent)
-                    : Icon(Icons.tag, size: 14, color: theme.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      room.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.displaySmall,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _RoomGlyph(room: room, api: api),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          room.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.displaySmall,
+                        ),
+                        if (hasDescription) ...[
+                          const SizedBox(height: 3),
+                          // Left in the case the owner typed it. The old row
+                          // lowercased it to sit quietly on one line; over two
+                          // lines that reads as a typo, and proper nouns lose.
+                          Text(
+                            room.description!.trim(),
+                            style: theme.bodySoft,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    if (room.description != null &&
-                        room.description!.isNotEmpty)
-                      Text(
-                        room.description!.toLowerCase(),
-                        style: theme.bodySoft,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              // Worth knowing before the tap rather than at the join sheet.
-              if (room.hasPassword) ...[
-                const LockedBadge(dense: true, iconOnly: true),
-                const SizedBox(width: 6),
-              ],
-              if (joined)
-                const JoinedBadge(dense: true)
-              else if (awaiting)
-                WaitingPill(label: l10n.childSetupScreenWaitingPillAskedLabel)
-              else
-                VisibilityBadge(isPublic: room.isPublic, dense: true),
-              const SizedBox(width: 8),
-              Text('${room.memberCount}', style: theme.monoLarge),
-              const SizedBox(width: 4),
-              Text(l10n.childSetupScreenMemberCountUnitLabel,
-                  style: theme.monoTiny),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text('${room.memberCount}', style: theme.monoLarge),
+                  const SizedBox(width: 4),
+                  Text(
+                    l10n.childSetupScreenMemberCountUnitLabel,
+                    style: theme.monoTiny,
+                  ),
+                  const SizedBox(width: 10),
+                  // Wraps rather than ellipses: a second run of pills is worth
+                  // more than a truncated first one, and this line has no name
+                  // to protect.
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (room.isEphemeral && room.messageLifetime != null)
+                          EphemeralBadge(
+                            ttl: room.messageLifetime!,
+                            dense: true,
+                            explainOnTap: false,
+                          ),
+                        // Worth knowing before the tap rather than at the join
+                        // sheet. A padlock alone, unlike the two pills beside
+                        // it: it is the one state here whose glyph everyone
+                        // already reads, and dropping the word is what keeps
+                        // all three pills on one run at 320pt.
+                        if (room.hasPassword)
+                          const LockedBadge(
+                            dense: true,
+                            iconOnly: true,
+                            explainOnTap: false,
+                          ),
+                        if (joined)
+                          const JoinedBadge(dense: true, explainOnTap: false)
+                        else if (awaiting)
+                          WaitingPill(
+                            label: l10n.childSetupScreenWaitingPillAskedLabel,
+                          )
+                        else
+                          VisibilityBadge(
+                            isPublic: room.isPublic,
+                            dense: true,
+                            explainOnTap: false,
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Says which of the two things the tap does before you spend
+                  // it: walk in, or read up first.
+                  Icon(
+                    joined ? Icons.north_east : Icons.info_outline,
+                    size: 14,
+                    color: theme.inkMuted,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The 40pt square that opens a room row: its own avatar when it has one, and
+/// the glyph for its kind when it doesn't.
+class _RoomGlyph extends StatelessWidget {
+  const _RoomGlyph({required this.room, required this.api});
+  final ChatRoom room;
+  final ChatApi? api;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final storageId = room.avatarStorageId;
+    if (storageId != null && storageId.isNotEmpty && api != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+        child: RemoteImage(
+          storageId: storageId,
+          api: api!,
+          width: 40,
+          height: 40,
+        ),
+      );
+    }
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: theme.accentSoft,
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+      ),
+      alignment: Alignment.center,
+      child: room.isEphemeral
+          ? theme.hourglassIcon(size: 16, color: theme.accent)
+          : Icon(Icons.tag, size: 16, color: theme.accent),
     );
   }
 }

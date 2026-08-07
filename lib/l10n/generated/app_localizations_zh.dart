@@ -3935,6 +3935,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomBadgeJoinedTooltip => '你已经在这个房间里了';
 
   @override
+  String get roomInfoSheetDetailsLabel => '详细信息';
+
+  @override
+  String get roomInfoSheetNoDescription => '还没有简介';
+
+  @override
+  String get roomInfoSheetCreatedLabel => '创建于';
+
+  @override
   String get countBadgeCaptureProtectionLabel => '截屏录屏保护';
 
   @override

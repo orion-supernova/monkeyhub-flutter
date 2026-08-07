@@ -4216,6 +4216,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'أنت بالفعل في هذه الغرفة';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'التفاصيل';
+
+  @override
+  String get roomInfoSheetNoDescription => 'لا يوجد وصف بعد';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'تاريخ الإنشاء';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'حماية من التقاط الشاشة';
 
   @override

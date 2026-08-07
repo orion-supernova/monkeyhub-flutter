@@ -4198,6 +4198,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'Tu es déjà dans ce salon';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'LES DÉTAILS';
+
+  @override
+  String get roomInfoSheetNoDescription => 'pas encore de description';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'CRÉÉ LE';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'PROTECTION CAPTURE D\'ÉCRAN';
 
   @override

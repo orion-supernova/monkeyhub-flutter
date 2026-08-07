@@ -4100,6 +4100,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'Bu odada zaten varsın';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'DETAYLAR';
+
+  @override
+  String get roomInfoSheetNoDescription => 'henüz açıklama yok';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'OLUŞTURULDU';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'EKRAN YAKALAMA KORUMASI';
 
   @override

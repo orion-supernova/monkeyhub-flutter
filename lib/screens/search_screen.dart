@@ -10,9 +10,8 @@ import '../models/enums.dart';
 import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
-import '../widgets/approval_gate.dart';
+import '../widgets/discover_rows.dart';
 import '../widgets/user_avatar.dart';
-import '../widgets/visibility_badge.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
 import 'navigation/enter_public_room.dart';
@@ -519,6 +518,11 @@ class _PersonRowState extends State<_PersonRow> {
   }
 }
 
+/// The full public-room list — this screen with an empty query — and Discover's
+/// preview of it are the same rows, so they're the same widget. They were two
+/// near-copies that had already drifted (this one printed the description in
+/// `monoTiny`, showed no ephemeral pill, and had no member-count unit), and a
+/// redesign of one would have left the other squashed.
 class _RoomRow extends StatelessWidget {
   const _RoomRow({
     required this.room,
@@ -539,10 +543,12 @@ class _RoomRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // Same rule Discover tiles use.
-    final joined = repo.isJoined(room);
-    return GestureDetector(
+    return PublicRoomTile(
+      room: room,
+      api: api,
+      awaiting: awaiting,
+      // Same rule Discover tiles use.
+      joined: repo.isJoined(room),
       // Goes through the shared flow rather than straight to the join sheet.
       // This row used to skip the child approval gate entirely: the server
       // still refused the join, but no approval was ever filed, so a child got
@@ -555,64 +561,6 @@ class _RoomRow extends StatelessWidget {
         family: family,
         alreadyAsked: awaiting,
         onAsked: onAsked,
-      ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: theme.roomCardDecoration(
-          ephemeral: room.isEphemeral,
-          active: false,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.accentSoft,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: room.isEphemeral
-                  ? theme.hourglassIcon(size: 14, color: theme.accent)
-                  : Icon(Icons.tag, size: 14, color: theme.accent),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    room.name,
-                    style: theme.displaySmall.copyWith(fontSize: 16),
-                  ),
-                  if (room.description != null && room.description!.isNotEmpty)
-                    Text(
-                      room.description!.toLowerCase(),
-                      style: theme.monoTiny,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            // Worth knowing before the tap rather than at the join sheet.
-            if (room.hasPassword) ...[
-              const LockedBadge(dense: true, iconOnly: true),
-              const SizedBox(width: 6),
-            ],
-            if (joined)
-              const JoinedBadge(dense: true)
-            else if (awaiting)
-              WaitingPill(
-                label: AppLocalizations.of(context).searchScreenAskedLabel,
-              )
-            else
-              VisibilityBadge(isPublic: room.isPublic, dense: true),
-            const SizedBox(width: 8),
-            Text('${room.memberCount}', style: theme.monoLarge),
-          ],
-        ),
       ),
     );
   }

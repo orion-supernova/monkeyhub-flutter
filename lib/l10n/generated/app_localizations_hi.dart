@@ -4138,6 +4138,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'तुम पहले से इस रूम में हो';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'डिटेल्स';
+
+  @override
+  String get roomInfoSheetNoDescription => 'अभी कोई डिस्क्रिप्शन नहीं';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'बनाया गया';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'स्क्रीन कैप्चर सुरक्षा';
 
   @override

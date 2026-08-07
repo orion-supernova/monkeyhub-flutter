@@ -4148,6 +4148,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'Du är redan med i det här rummet';
 
   @override
+  String get roomInfoSheetDetailsLabel => 'DETALJERNA';
+
+  @override
+  String get roomInfoSheetNoDescription => 'ingen beskrivning än';
+
+  @override
+  String get roomInfoSheetCreatedLabel => 'SKAPAD';
+
+  @override
   String get countBadgeCaptureProtectionLabel => 'SKÄRMSKYDD';
 
   @override

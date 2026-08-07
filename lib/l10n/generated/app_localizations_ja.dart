@@ -3983,6 +3983,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomBadgeJoinedTooltip => 'すでにこのルームに参加しています';
 
   @override
+  String get roomInfoSheetDetailsLabel => '詳細';
+
+  @override
+  String get roomInfoSheetNoDescription => 'まだ説明はありません';
+
+  @override
+  String get roomInfoSheetCreatedLabel => '作成日';
+
+  @override
   String get countBadgeCaptureProtectionLabel => '画面キャプチャ保護';
 
   @override
