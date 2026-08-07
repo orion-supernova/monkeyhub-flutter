@@ -52,6 +52,13 @@ class GroupPeer {
 
   PeerMediaState mediaState = const PeerMediaState();
   bool connected = false;
+
+  /// Wall-clock ms of the last applied `state` signal from this peer —
+  /// guards against an out-of-order delivery clobbering a newer state with
+  /// a stale one. See [CallService._onRemoteState] for the identical 1:1
+  /// rationale; the mesh needs its own copy per-peer since each link
+  /// receives its own `state` stream.
+  int? lastStateTs;
 }
 
 /// Mesh group-call manager: one [RTCPeerConnection] per remote participant,
@@ -249,10 +256,10 @@ class GroupCallService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await applyIosCallAudioConfig(kind);
+      speakerOn = kind == CallMediaKind.video;
+      await applyIosCallAudioConfig(kind, speakerOn: speakerOn);
       _videoTier = SettingsStore.instance.videoQualityTier;
       _localStream = await getCallUserMedia(kind, tier: _videoTier);
-      speakerOn = kind == CallMediaKind.video;
       await applyCallAudioRoute(speaker: speakerOn);
     } catch (e, st) {
       debugPrint('GroupCallService: getUserMedia failed: $e\n$st');
@@ -736,6 +743,11 @@ class GroupCallService extends ChangeNotifier {
         }
         break;
       case 'state':
+        final ts = (parsed['ts'] as num?)?.toInt();
+        if (ts != null && peer.lastStateTs != null && ts < peer.lastStateTs!) {
+          break;
+        }
+        if (ts != null) peer.lastStateTs = ts;
         peer.mediaState = PeerMediaState.fromJson(parsed);
         notifyListeners();
         break;
@@ -864,10 +876,12 @@ class GroupCallService extends ChangeNotifier {
   }
 
   Future<void> _broadcastState() async {
+    final ts = DateTime.now().millisecondsSinceEpoch;
     for (final peer in _peers.values) {
       await _sendTo(peer, 'state', {
         'audioMuted': localMuted,
         'videoOff': localVideoOff,
+        'ts': ts,
       });
     }
   }

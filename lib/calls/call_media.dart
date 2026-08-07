@@ -215,9 +215,24 @@ Future<void> preferH264Codec(RTCPeerConnection pc) async {
 
 /// Classify the AVAudioSession for calling BEFORE the callkit plugin's
 /// generic playAndRecord/.default config wins: voiceChat/videoChat modes
-/// enable the right signal processing, and defaultToSpeaker makes video
-/// calls come up on the loudspeaker like every mainstream calling app.
-Future<void> applyIosCallAudioConfig(CallMediaKind kind) async {
+/// enable the right signal processing, and (when [speakerOn]) defaultToSpeaker
+/// makes video calls come up on the loudspeaker like every mainstream calling
+/// app.
+///
+/// [speakerOn] gates `defaultToSpeaker`, not [kind] alone — this function is
+/// re-invoked on every CallKit audio-session (re)activation, not just once at
+/// attach, and `defaultToSpeaker` is written into flutter_webrtc's
+/// PROCESS-WIDE `RTCAudioSessionConfiguration.webRTCConfiguration` singleton.
+/// `Helper.setSpeakerphoneOn` (the actual route toggle) never clears that bit
+/// — it only overrides the CURRENT output port — so a stale `kind ==
+/// video`-only check here re-added `defaultToSpeaker` on every later
+/// reactivation regardless of whether the user had switched to the earpiece,
+/// and the next activation silently routed back to the loudspeaker even
+/// though `speakerOn` (and the UI toggle) still correctly read false.
+Future<void> applyIosCallAudioConfig(
+  CallMediaKind kind, {
+  required bool speakerOn,
+}) async {
   if (kIsWeb || !Platform.isIOS) return;
   try {
     await Helper.setAppleAudioConfiguration(AppleAudioConfiguration(
@@ -225,8 +240,7 @@ Future<void> applyIosCallAudioConfig(CallMediaKind kind) async {
       appleAudioCategoryOptions: {
         AppleAudioCategoryOption.allowBluetooth,
         AppleAudioCategoryOption.allowBluetoothA2DP,
-        if (kind == CallMediaKind.video)
-          AppleAudioCategoryOption.defaultToSpeaker,
+        if (speakerOn) AppleAudioCategoryOption.defaultToSpeaker,
       },
       appleAudioMode: kind == CallMediaKind.video
           ? AppleAudioMode.videoChat

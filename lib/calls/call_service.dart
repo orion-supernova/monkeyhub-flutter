@@ -170,6 +170,18 @@ class CallService extends ChangeNotifier {
   int _restartAttempt = 0;
   DateTime? _outageStart;
 
+  /// Wall-clock ms of the last applied peer `state` signal (mute/video-off).
+  /// Convex delivers `state` signals in server-insert order, not send order —
+  /// a rapid mute→unmute can have its two `sendCallSignal` mutations land out
+  /// of order, so without this a stale "muted" row applied after a newer
+  /// "unmuted" one would freeze the peer's UI on muted forever, even though
+  /// the actual track (applied synchronously, in real call order, on both
+  /// ends) is unmuted. Each device's own clock only moves forward across its
+  /// own successive sends, so comparing a peer's timestamps against each
+  /// other is safe regardless of clock skew between devices. See
+  /// [_onRemoteState].
+  int? _lastPeerStateTs;
+
   /// Pings the backend every 20s while the call is active so
   /// `calls:gcStuckActive` can distinguish a genuinely abandoned call from
   /// one that's just running long. Started once the PC first connects,
@@ -675,13 +687,13 @@ class CallService extends ChangeNotifier {
   Future<void> onNativeAudioSessionActivated() async {
     final s = _session;
     if (s == null || !inCall) return;
-    await _applyIosAudioConfig(s.mediaKind);
+    await _applyIosAudioConfig(s.mediaKind, speakerOn: s.speakerOn);
     await _applyAudioRoute(speaker: s.speakerOn);
     _reprimeLocalAudio();
     Future.delayed(const Duration(milliseconds: 1500), () {
       final s2 = _session;
       if (s2 == null || !inCall) return;
-      unawaited(_applyIosAudioConfig(s2.mediaKind));
+      unawaited(_applyIosAudioConfig(s2.mediaKind, speakerOn: s2.speakerOn));
       unawaited(_applyAudioRoute(speaker: s2.speakerOn));
     });
   }
@@ -700,8 +712,11 @@ class CallService extends ChangeNotifier {
   }
 
   /// See [applyIosCallAudioConfig] — shared with the group-call mesh.
-  Future<void> _applyIosAudioConfig(CallMediaKind kind) =>
-      applyIosCallAudioConfig(kind);
+  Future<void> _applyIosAudioConfig(
+    CallMediaKind kind, {
+    required bool speakerOn,
+  }) =>
+      applyIosCallAudioConfig(kind, speakerOn: speakerOn);
 
   // ───────── inbound signaling ─────────
 
@@ -1358,6 +1373,14 @@ class CallService extends ChangeNotifier {
   void _onRemoteState(String payload) {
     try {
       final parsed = jsonDecode(payload) as Map<String, dynamic>;
+      // Reject an out-of-order delivery: a signal older than the last one we
+      // actually applied. Absent `ts` (shouldn't happen post-rollout, but
+      // cheap to keep) fails open rather than getting stuck never applying.
+      final ts = (parsed['ts'] as num?)?.toInt();
+      if (ts != null && _lastPeerStateTs != null && ts < _lastPeerStateTs!) {
+        return;
+      }
+      if (ts != null) _lastPeerStateTs = ts;
       final next = PeerMediaState.fromJson(parsed);
       final s = _session;
       if (s != null) {
@@ -1581,6 +1604,12 @@ class CallService extends ChangeNotifier {
     if (s != null && s.reconnecting) {
       _session = s.copyWith(reconnecting: false);
       notifyListeners();
+      // Re-assert my current mute/video state. `_sendState()` swallows send
+      // failures with no retry, so a toggle sent right as the outage began
+      // could have been silently dropped — nothing else re-sends it once the
+      // link is back, leaving the peer's icon stuck on whatever it last
+      // successfully received.
+      unawaited(_sendState());
     }
   }
 
@@ -1724,7 +1753,11 @@ class CallService extends ChangeNotifier {
 
   Future<void> _attachLocalMedia(CallMediaKind kind) async {
     // Classify the audio session before getUserMedia starts the mic unit.
-    await _applyIosAudioConfig(kind);
+    // `_session` is already set by the caller (initiate/acceptIncoming/etc)
+    // with the correct per-kind default (loudspeaker for video, earpiece for
+    // voice) — fall back to that same default if it's somehow unset yet.
+    final speakerOn = _session?.speakerOn ?? (kind == CallMediaKind.video);
+    await _applyIosAudioConfig(kind, speakerOn: speakerOn);
     final tier = SettingsStore.instance.videoQualityTier;
     _localStream = await getCallUserMedia(kind, tier: tier);
     final localKinds =
@@ -1744,7 +1777,7 @@ class CallService extends ChangeNotifier {
     // Default output route: loudspeaker for video, earpiece for voice — on
     // both platforms. iOS won't latch this until its audio session is active,
     // so onConnectionState (connected) re-asserts it.
-    await _applyAudioRoute(speaker: kind == CallMediaKind.video);
+    await _applyAudioRoute(speaker: speakerOn);
     // Nothing else notifies between `outgoingRinging`/`connecting` being set
     // and the peer answering, so without this, listeners gating on
     // [localStream] (the call screen's local-camera preview, the caller
@@ -1778,6 +1811,7 @@ class CallService extends ChangeNotifier {
         payload: jsonEncode({
           'audioMuted': s.localMuted,
           'videoOff': s.localVideoOff,
+          'ts': DateTime.now().millisecondsSinceEpoch,
         }),
       );
     } catch (_) {}

@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { lensFor } from "./visibility";
+import { effectiveStatus } from "./presence";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -29,6 +30,26 @@ async function isPairBlocked(
     .withIndex("by_pair", (q: any) => q.eq("userId", b).eq("blockedUserId", a))
     .first();
   return !!ba;
+}
+
+// Whether `targetUserId`'s native CallKit/ConnectionService card needs a
+// VoIP/FCM push to clear — i.e. whether we can NOT already trust the
+// realtime `callSignals` subscription to reach them. When they're verifiably
+// `effectiveStatus(...) === "online"` right now, that subscription is live
+// and will deliver the "bye"/"cancel" signal essentially instantly, making
+// the push redundant. Redundant is not harmless on iOS: the push still
+// arrives, still requires reporting per Apple's PushKit contract, and lands
+// after the card is already gone — producing a brief phantom
+// report-then-immediately-end flash of the system incoming-call UI (see
+// AppDelegate.swift's `reportCallEndedElsewhere` escape hatch). Erring
+// toward "send it" whenever presence is anything other than a confidently
+// fresh "online" — offline/away/unknown all still get the push — so this
+// only trims the flash for the common case (both sides foreground) without
+// reopening the orphaned-CallKit bug the push exists to fix.
+async function nativeClearNeedsPush(ctx: any, targetUserId: any) {
+  const u = await ctx.db.get(targetUserId);
+  if (!u) return true;
+  return effectiveStatus(u.status, u.lastSeen) !== "online";
 }
 
 async function assertCallParticipant(ctx: any, callId: any, userId: any) {
@@ -361,12 +382,15 @@ export const cancel = mutation({
     // woken by the invite VoIP push has a suspended realtime subscription, so
     // the "cancel" signal above never reaches it — only a "taken" VoIP push
     // can clear the lingering ring. Fan to ALL callee devices (no exclude).
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-      callId,
-      targetUserId: call.calleeId,
-      excludeDeviceId: null,
-      reason: "cancelled",
-    });
+    // Skipped when they're confidently online — see `nativeClearNeedsPush`.
+    if (await nativeClearNeedsPush(ctx, call.calleeId)) {
+      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+        callId,
+        targetUserId: call.calleeId,
+        excludeDeviceId: null,
+        reason: "cancelled",
+      });
+    }
   },
 });
 
@@ -398,13 +422,17 @@ export const end = mutation({
     // ended — the realtime `bye` signal above only reaches a live
     // subscription — and their native call UI is orphaned "active"
     // indefinitely. `sendVoipTaken` already dismisses by callId regardless
-    // of `reason` on both platforms, so this reuses it verbatim.
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-      callId,
-      targetUserId: peer,
-      excludeDeviceId: null,
-      reason: "ended",
-    });
+    // of `reason` on both platforms, so this reuses it verbatim. Skipped
+    // when the peer is confidently online (the overwhelmingly common case —
+    // both sides mid-call, foreground) — see `nativeClearNeedsPush`.
+    if (await nativeClearNeedsPush(ctx, peer)) {
+      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+        callId,
+        targetUserId: peer,
+        excludeDeviceId: null,
+        reason: "ended",
+      });
+    }
   },
 });
 

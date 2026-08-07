@@ -500,20 +500,18 @@ class _CallScreenState extends State<CallScreen> {
                   slide: const Offset(0, 0.3),
                   child: SafeArea(
                     top: false,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 14,
-                                ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(30),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 14,
+                              ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.10),
                                   borderRadius: BorderRadius.circular(30),
@@ -620,7 +618,6 @@ class _CallScreenState extends State<CallScreen> {
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -628,6 +625,7 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 }
+
 
 /// Fades (and optionally slides) an overlay region for the call screen's
 /// tap-to-hide-controls gesture. [IgnorePointer] while hidden so faded-out
