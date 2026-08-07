@@ -62,15 +62,15 @@ class RoomCard extends StatelessWidget {
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      VisibilityBadge(isPublic: room.isPublic, dense: true),
+                      // A full row has the width for words, so these keep
+                      // their labels; the tap tooltip is the long form. No
+                      // visibility pill on a DM — it could only ever say
+                      // "private".
+                      if (!room.isDm)
+                        VisibilityBadge(isPublic: room.isPublic, dense: true),
                       if (room.isEphemeral && room.messageLifetime != null)
                         EphemeralBadge(ttl: room.messageLifetime!, dense: true),
-                      if (room.hasPassword)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: theme.chipDecoration(),
-                          child: Text(l10n.roomCardLockedBadge, style: theme.monoTiny),
-                        ),
+                      if (room.hasPassword) const LockedBadge(dense: true),
                     ],
                   ),
                 ),

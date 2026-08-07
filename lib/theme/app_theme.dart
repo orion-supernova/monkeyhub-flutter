@@ -158,3 +158,25 @@ extension BubbleGeometry on AppTheme {
         isMine: true,
       ).tailWidth;
 }
+
+/// The surface a tap-to-explain tooltip paints itself on.
+///
+/// Derived rather than authored per theme, for the same reason [BubbleGeometry]
+/// is an extension: nine themes would each have to implement it. It has to sit
+/// above whatever it covers, so it takes the raised surface and a hard edge —
+/// a translucent chip would let the room card read straight through the
+/// sentence.
+extension TooltipSurface on AppTheme {
+  BoxDecoration tooltipDecoration() => BoxDecoration(
+        color: surfaceRaised,
+        borderRadius: BorderRadius.circular(radiusSm),
+        border: Border.all(color: divider),
+        boxShadow: [
+          BoxShadow(
+            color: background.withValues(alpha: 0.55),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      );
+}

@@ -3930,9 +3930,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Tentar ligar novamente';
 
   @override
-  String get roomGridTileLockedBadge => 'BLOQUEADA';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'sossegado por agora';
 
   @override
@@ -4154,6 +4151,26 @@ class AppLocalizationsPt extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Qualquer pessoa pode encontrar esta sala e entrar';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Apenas por convite — não aparece em Descobre';
+
+  @override
+  String get roomBadgeLockedTooltip =>
+      'Precisas da palavra-passe da sala para entrar';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'As mensagens desaparecem depois de $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Já estás nesta sala';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'PROTEÇÃO DE CAPTURA DE ECRÃ';
@@ -9424,9 +9441,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'Tentar conexão novamente';
 
   @override
-  String get roomGridTileLockedBadge => 'TRANCADA';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'quieto por enquanto';
 
   @override
@@ -9650,6 +9664,26 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Qualquer pessoa pode encontrar esta sala e entrar';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Somente por convite — não aparece em Descobrir';
+
+  @override
+  String get roomBadgeLockedTooltip =>
+      'Você precisa da senha da sala para entrar';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'As mensagens somem depois de $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Você já está nesta sala';
 
   @override
   String get countBadgeCaptureProtectionLabel =>

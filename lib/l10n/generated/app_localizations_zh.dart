@@ -3704,9 +3704,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get attachmentMenuConnectionRetrySemanticLabel => '重试连接';
 
   @override
-  String get roomGridTileLockedBadge => '已锁定';
-
-  @override
   String get roomGridTileEmptyLastMessage => '暂时很安静';
 
   @override
@@ -3919,6 +3916,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '$hours时';
   }
+
+  @override
+  String get roomBadgePublicTooltip => '任何人都能找到并加入这个房间';
+
+  @override
+  String get roomBadgePrivateTooltip => '仅限邀请，不会出现在发现页';
+
+  @override
+  String get roomBadgeLockedTooltip => '加入需要房间密码';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return '消息会在 $duration 后消失';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => '你已经在这个房间里了';
 
   @override
   String get countBadgeCaptureProtectionLabel => '截屏录屏保护';

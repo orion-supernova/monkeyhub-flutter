@@ -3895,9 +3895,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get attachmentMenuConnectionRetrySemanticLabel => 'फिर से कनेक्ट करें';
 
   @override
-  String get roomGridTileLockedBadge => 'लॉक्ड';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'अभी तक शांत है';
 
   @override
@@ -4120,6 +4117,25 @@ class AppLocalizationsHi extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '$hoursघं';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'कोई भी इस रूम को ढूंढकर जॉइन कर सकता है';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'सिर्फ़ न्योते से — यह खोजो में नहीं दिखता';
+
+  @override
+  String get roomBadgeLockedTooltip => 'जॉइन करने के लिए रूम का पासवर्ड चाहिए';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'मैसेज $duration बाद गायब हो जाते हैं';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'तुम पहले से इस रूम में हो';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'स्क्रीन कैप्चर सुरक्षा';

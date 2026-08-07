@@ -3904,9 +3904,6 @@ class AppLocalizationsSv extends AppLocalizations {
       'Försök ansluta igen';
 
   @override
-  String get roomGridTileLockedBadge => 'LÅST';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'tyst hittills';
 
   @override
@@ -4129,6 +4126,26 @@ class AppLocalizationsSv extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Vem som helst kan hitta det här rummet och gå med';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Endast via inbjudan – syns inte i Upptäck';
+
+  @override
+  String get roomBadgeLockedTooltip =>
+      'Du behöver rummets lösenord för att gå med';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'Meddelanden försvinner efter $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Du är redan med i det här rummet';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'SKÄRMSKYDD';

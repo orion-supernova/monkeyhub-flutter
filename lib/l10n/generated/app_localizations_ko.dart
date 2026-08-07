@@ -3764,9 +3764,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get attachmentMenuConnectionRetrySemanticLabel => '연결 재시도';
 
   @override
-  String get roomGridTileLockedBadge => '잠김';
-
-  @override
   String get roomGridTileEmptyLastMessage => '아직 조용해요';
 
   @override
@@ -3980,6 +3977,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '$hours시간';
   }
+
+  @override
+  String get roomBadgePublicTooltip => '누구나 이 방을 찾아서 참여할 수 있어요';
+
+  @override
+  String get roomBadgePrivateTooltip => '초대 전용이라 탐색에 나오지 않아요';
+
+  @override
+  String get roomBadgeLockedTooltip => '참여하려면 방 비밀번호가 필요해요';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return '메시지는 $duration 뒤에 사라져요';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => '이미 이 방에 있어요';
 
   @override
   String get countBadgeCaptureProtectionLabel => '화면 캡처 보호';

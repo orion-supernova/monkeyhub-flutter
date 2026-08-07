@@ -3863,9 +3863,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bağlantıyı yeniden dene';
 
   @override
-  String get roomGridTileLockedBadge => 'KİLİTLİ';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'şimdilik sessiz';
 
   @override
@@ -4082,6 +4079,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}sa';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Bu odayı herkes bulabilir ve katılabilir';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Yalnızca davetle — Keşfet\'te görünmez';
+
+  @override
+  String get roomBadgeLockedTooltip => 'Katılmak için oda şifresi gerekir';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'Mesajlar $duration sonra kaybolur';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Bu odada zaten varsın';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'EKRAN YAKALAMA KORUMASI';

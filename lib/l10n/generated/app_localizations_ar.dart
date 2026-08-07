@@ -3963,9 +3963,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'إعادة محاولة الاتصال';
 
   @override
-  String get roomGridTileLockedBadge => 'مقفل';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'هادئ حتى الآن';
 
   @override
@@ -4199,6 +4196,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '$hoursس';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'يمكن لأي شخص العثور على هذه الغرفة والانضمام إليها';
+
+  @override
+  String get roomBadgePrivateTooltip => 'بالدعوة فقط — لا تظهر في الاستكشاف';
+
+  @override
+  String get roomBadgeLockedTooltip => 'تحتاج إلى كلمة مرور الغرفة للانضمام';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'تختفي الرسائل بعد $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'أنت بالفعل في هذه الغرفة';
 
   @override
   String get countBadgeCaptureProtectionLabel => 'حماية من التقاط الشاشة';

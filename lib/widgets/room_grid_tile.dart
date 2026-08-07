@@ -91,15 +91,25 @@ class RoomGridTile extends StatelessWidget {
                             ],
                           ),
                         ),
-                      VisibilityBadge(isPublic: room.isPublic, dense: true),
-                      if (room.hasPassword)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: theme.chipDecoration(),
-                          child: Text(AppLocalizations.of(context).roomGridTileLockedBadge, style: theme.monoTiny),
+                      // Icons alone up here: the tile has a name, a preview
+                      // line and an unread count to fit as well, and every
+                      // pill explains itself on tap. A DM gets no visibility
+                      // pill at all — "private" is the only thing a
+                      // one-to-one conversation could be.
+                      if (!room.isDm)
+                        VisibilityBadge(
+                          isPublic: room.isPublic,
+                          dense: true,
+                          iconOnly: true,
                         ),
+                      if (room.hasPassword)
+                        const LockedBadge(dense: true, iconOnly: true),
                       if (room.isEphemeral && room.messageLifetime != null)
-                        EphemeralBadge(ttl: room.messageLifetime!, dense: true),
+                        EphemeralBadge(
+                          ttl: room.messageLifetime!,
+                          dense: true,
+                          iconOnly: true,
+                        ),
                     ],
                   ),
                 ),

@@ -144,6 +144,11 @@ class PublicRoomTile extends StatelessWidget {
                   ],
                 ),
               ),
+              // Worth knowing before the tap rather than at the join sheet.
+              if (room.hasPassword) ...[
+                const LockedBadge(dense: true, iconOnly: true),
+                const SizedBox(width: 6),
+              ],
               if (joined)
                 const JoinedBadge(dense: true)
               else if (awaiting)

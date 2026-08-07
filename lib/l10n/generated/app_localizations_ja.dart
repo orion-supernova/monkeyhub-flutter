@@ -3751,9 +3751,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get attachmentMenuConnectionRetrySemanticLabel => '接続を再試行';
 
   @override
-  String get roomGridTileLockedBadge => 'ロック';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'まだ静かです';
 
   @override
@@ -3967,6 +3964,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '$hours時間';
   }
+
+  @override
+  String get roomBadgePublicTooltip => 'だれでもこのルームを見つけて参加できます';
+
+  @override
+  String get roomBadgePrivateTooltip => '招待制です。「さがす」には表示されません';
+
+  @override
+  String get roomBadgeLockedTooltip => '参加するにはルームのパスワードが必要です';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'メッセージは$duration後に消えます';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'すでにこのルームに参加しています';
 
   @override
   String get countBadgeCaptureProtectionLabel => '画面キャプチャ保護';

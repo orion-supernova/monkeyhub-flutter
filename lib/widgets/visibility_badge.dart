@@ -1,30 +1,42 @@
 import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 
-/// One pill: a small icon, a short label, a rounded chip around both.
+/// One pill: a small icon, a short label, a rounded chip around both — and a
+/// sentence, on tap, saying what the pill actually means.
 ///
-/// The label is the first thing to go when the pill is squeezed. A grid tile
-/// can hand the badge slot less than 90px, and a translated label runs well
-/// past that ("HERKESE AÇIK" needs ~104px), so the pill measures its label
-/// against the space it was actually given and falls back to the icon alone
-/// rather than overflowing or ellipsing two words into noise. The words stay
-/// available to screen readers either way.
+/// Two things shrink the label. A caller can ask for [iconOnly], which is what
+/// the grid tiles do: four pills of words on a tile that also has to hold a
+/// name and a preview line is a wall, and the icons carry the meaning once you
+/// can reach the sentence behind them. And the pill measures itself — a grid
+/// slot can be under 90px, and a translated label runs well past that
+/// ("HERKESE AÇIK" needs ~104px), so it drops the words rather than overflow
+/// or ellipse two of them into noise.
+///
+/// Either way the words survive: the tap tooltip spells the state out in full,
+/// and Semantics carries the label so a screen reader never meets a bare icon.
 class _Badge extends StatelessWidget {
   const _Badge({
     required this.icon,
     required this.label,
+    required this.tooltip,
     required this.decoration,
     required this.textStyle,
     required this.dense,
+    required this.iconOnly,
   });
 
   /// Built by the caller at the size the badge asks for.
   final Widget Function(double size) icon;
   final String label;
+
+  /// The sentence behind the pill — what this state means, in full.
+  final String tooltip;
   final BoxDecoration decoration;
   final TextStyle textStyle;
   final bool dense;
+  final bool iconOnly;
 
   /// Themes draw the chip border anywhere from 0.5 to 1.0 wide; assume the
   /// widest so the fit check never claims room the border is using.
@@ -43,53 +55,70 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     final iconSize = dense ? 10.0 : 12.0;
     final gap = dense ? 4.0 : 6.0;
     final padding = EdgeInsets.symmetric(
       horizontal: dense ? 6 : 10,
       vertical: dense ? 3 : 5,
     );
-    final chromeWidth =
-        padding.horizontal + _borderWidth * 2 + iconSize + gap;
+    final chromeWidth = padding.horizontal + _borderWidth * 2 + iconSize + gap;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final showLabel =
-            _labelFits(context, constraints.maxWidth, chromeWidth);
-        return Semantics(
-          label: showLabel ? null : label,
-          container: !showLabel,
-          child: Container(
-            padding: padding,
-            decoration: decoration,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                icon(iconSize),
-                if (showLabel) ...[
-                  SizedBox(width: gap),
-                  Text(label, style: textStyle, maxLines: 1, softWrap: false),
+    return Tooltip(
+      message: tooltip,
+      triggerMode: TooltipTriggerMode.tap,
+      preferBelow: false,
+      showDuration: const Duration(seconds: 3),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: theme.tooltipDecoration(),
+      textStyle: theme.body.copyWith(fontSize: 12, color: theme.ink),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showLabel = !iconOnly &&
+              _labelFits(context, constraints.maxWidth, chromeWidth);
+          return Semantics(
+            label: showLabel ? null : label,
+            container: !showLabel,
+            child: Container(
+              padding: padding,
+              decoration: decoration,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  icon(iconSize),
+                  if (showLabel) ...[
+                    SizedBox(width: gap),
+                    Text(label, style: textStyle, maxLines: 1, softWrap: false),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
+/// Says whether a room is open to everyone or invite-only.
+///
+/// Not meant for DMs: "private" is the only thing a one-to-one conversation
+/// could be, so the pill there is a word that tells you nothing. Callers with
+/// a DM in hand leave it off entirely rather than pass a flag.
 class VisibilityBadge extends StatelessWidget {
   const VisibilityBadge({
     super.key,
     required this.isPublic,
     this.dense = false,
     this.invert = false,
+    this.iconOnly = false,
   });
 
   final bool isPublic;
   final bool dense;
   final bool invert;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -97,13 +126,44 @@ class VisibilityBadge extends StatelessWidget {
     final loc = AppLocalizations.of(context);
     return _Badge(
       dense: dense,
+      iconOnly: iconOnly,
       icon: (size) => theme.visibilityIcon(isPublic: isPublic, size: size),
       label: isPublic
           ? loc.enterPublicRoomVisibilityPublicLabel
           : loc.enterPublicRoomVisibilityPrivateLabel,
+      tooltip: isPublic
+          ? loc.roomBadgePublicTooltip
+          : loc.roomBadgePrivateTooltip,
       decoration: theme.chipDecoration(filled: false),
       textStyle: theme.monoTiny
           .copyWith(color: invert ? theme.background : theme.inkSoft),
+    );
+  }
+}
+
+/// Says a room won't let you in without its password.
+///
+/// Worth knowing before the tap, not after: the join sheet is where a locked
+/// room used to first admit it wanted a password.
+class LockedBadge extends StatelessWidget {
+  const LockedBadge({super.key, this.dense = false, this.iconOnly = false});
+
+  final bool dense;
+  final bool iconOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
+    return _Badge(
+      dense: dense,
+      iconOnly: iconOnly,
+      icon: (size) =>
+          Icon(Icons.lock_outline_rounded, size: size, color: theme.inkSoft),
+      label: loc.roomCardLockedBadge,
+      tooltip: loc.roomBadgeLockedTooltip,
+      decoration: theme.chipDecoration(),
+      textStyle: theme.monoTiny,
     );
   }
 }
@@ -115,17 +175,22 @@ class VisibilityBadge extends StatelessWidget {
 /// that you can just walk in is. Filled rather than outlined so the "already
 /// yours" tiles read as a distinct group at a glance.
 class JoinedBadge extends StatelessWidget {
-  const JoinedBadge({super.key, this.dense = false});
+  const JoinedBadge({super.key, this.dense = false, this.iconOnly = false});
+
   final bool dense;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
     return _Badge(
       dense: dense,
+      iconOnly: iconOnly,
       icon: (size) =>
           Icon(Icons.check_rounded, size: size, color: theme.accent),
-      label: AppLocalizations.of(context).enterPublicRoomJoinedBadgeLabel,
+      label: loc.enterPublicRoomJoinedBadgeLabel,
+      tooltip: loc.roomBadgeJoinedTooltip,
       decoration: BoxDecoration(
         color: theme.accentSoft,
         borderRadius: BorderRadius.circular(999),
@@ -139,10 +204,22 @@ class JoinedBadge extends StatelessWidget {
   }
 }
 
+/// Marks a room whose messages delete themselves, and after how long.
+///
+/// The duration is the whole point of the badge, so when the pill goes
+/// icon-only the tooltip has to keep it — an hourglass alone says "not
+/// forever" without saying when.
 class EphemeralBadge extends StatelessWidget {
-  const EphemeralBadge({super.key, required this.ttl, this.dense = false});
+  const EphemeralBadge({
+    super.key,
+    required this.ttl,
+    this.dense = false,
+    this.iconOnly = false,
+  });
+
   final Duration ttl;
   final bool dense;
+  final bool iconOnly;
 
   String _fmt(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -160,13 +237,17 @@ class EphemeralBadge extends StatelessWidget {
     final loc = AppLocalizations.of(context);
     return _Badge(
       dense: dense,
+      iconOnly: iconOnly,
       icon: (size) => theme.hourglassIcon(size: size, color: theme.accent),
       label: dense
           ? _fmt(context)
           : loc.enterPublicRoomEphemeralBadgeLabel(_fmt(context)),
+      tooltip: loc.roomBadgeEphemeralTooltip(_fmt(context)),
       decoration: theme.chipDecoration(filled: false).copyWith(
-            border:
-                Border.all(color: theme.accent.withValues(alpha: 0.55), width: 1),
+            border: Border.all(
+              color: theme.accent.withValues(alpha: 0.55),
+              width: 1,
+            ),
           ),
       textStyle: theme.monoTiny.copyWith(color: theme.accent),
     );

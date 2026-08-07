@@ -3922,9 +3922,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Reintentar conexión';
 
   @override
-  String get roomGridTileLockedBadge => 'BLOQUEADA';
-
-  @override
   String get roomGridTileEmptyLastMessage => 'tranquilo por ahora';
 
   @override
@@ -4145,6 +4142,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String enterPublicRoomEphemeralHoursShort(Object hours) {
     return '${hours}h';
   }
+
+  @override
+  String get roomBadgePublicTooltip =>
+      'Cualquiera puede encontrar esta sala y unirse';
+
+  @override
+  String get roomBadgePrivateTooltip =>
+      'Solo por invitación: no aparece en Descubre';
+
+  @override
+  String get roomBadgeLockedTooltip =>
+      'Necesitas la contraseña de la sala para entrar';
+
+  @override
+  String roomBadgeEphemeralTooltip(Object duration) {
+    return 'Los mensajes desaparecen después de $duration';
+  }
+
+  @override
+  String get roomBadgeJoinedTooltip => 'Ya estás en esta sala';
 
   @override
   String get countBadgeCaptureProtectionLabel =>
