@@ -15,6 +15,8 @@ import '../push/push_manager.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../update/update_availability.dart';
+import '../update/update_checker.dart';
 import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/count_badge.dart';
 import '../widgets/monkey_collection.dart';
@@ -530,6 +532,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => const LanguageScreen(),
                 ),
               ),
+              const SizedBox(height: 10),
+              _CheckForUpdatesRow(api: widget.api),
 
               const SizedBox(height: 28),
               _SectionHeader(label: l10n.settingsScreenSectionLinks),
@@ -958,6 +962,106 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
                   onChanged: _toggle,
                   activeThumbColor: theme.accent,
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Manual counterpart to `UpdateChecker.ensure`'s launch-time check — every
+/// tap is a real round trip to the backend, unlike `ensure`'s once-per-launch
+/// guard. Reflects `UpdateAvailability` so the row itself stays lit after a
+/// launch check the user dismissed with LATER, not just right after a tap.
+class _CheckForUpdatesRow extends StatefulWidget {
+  const _CheckForUpdatesRow({required this.api});
+  final ChatApi api;
+
+  @override
+  State<_CheckForUpdatesRow> createState() => _CheckForUpdatesRowState();
+}
+
+class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
+  bool _checking = false;
+
+  Future<void> _check() async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    final outcome = await UpdateChecker.instance.checkNow(widget.api);
+    if (!mounted) return;
+    setState(() => _checking = false);
+    final l10n = AppLocalizations.of(context);
+    // `available` already showed the update sheet — nothing left to say here.
+    final message = switch (outcome) {
+      UpdateCheckOutcome.available => null,
+      UpdateCheckOutcome.upToDate => l10n.settingsScreenUpdateUpToDateSnackbar,
+      UpdateCheckOutcome.unsupported =>
+        l10n.settingsScreenUpdateUnsupportedSnackbar,
+      UpdateCheckOutcome.error => l10n.settingsScreenUpdateErrorSnackbar,
+    };
+    if (message != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return AnimatedBuilder(
+      animation: UpdateAvailability.instance,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
+        final available = UpdateAvailability.instance.available;
+        return GestureDetector(
+          onTap: _check,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              border: Border.all(
+                color: available
+                    ? theme.accent.withValues(alpha: 0.4)
+                    : theme.divider,
+              ),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.system_update_alt_rounded,
+                  size: 16,
+                  color: available ? theme.accent : theme.inkSoft,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.settingsScreenCheckForUpdatesLabel,
+                    style: theme.label,
+                  ),
+                ),
+                if (_checking)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.inkMuted,
+                    ),
+                  )
+                else ...[
+                  if (available) ...[
+                    Text(
+                      l10n.settingsScreenUpdateAvailableValue,
+                      style: theme.monoTiny.copyWith(color: theme.accent),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+                ],
               ],
             ),
           ),

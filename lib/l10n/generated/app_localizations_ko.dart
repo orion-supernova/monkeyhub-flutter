@@ -4125,6 +4125,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenSectionGeneral => '일반';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => '업데이트 확인';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => '업데이트 있음';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar => '최신 버전을 사용 중입니다.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      '이 빌드에서는 업데이트를 확인할 수 없습니다.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      '업데이트를 확인할 수 없습니다. 나중에 다시 시도해 주세요.';
+
+  @override
   String get settingsScreenSectionLinks => '링크';
 
   @override

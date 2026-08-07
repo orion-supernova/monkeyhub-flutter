@@ -4329,6 +4329,24 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'GÉNÉRAL';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'VÉRIFIER LES MISES À JOUR';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'MISE À JOUR DISPONIBLE';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'Vous avez la dernière version.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'Impossible de vérifier les mises à jour sur cette version.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'Impossible de vérifier les mises à jour. Réessayez plus tard.';
+
+  @override
   String get settingsScreenSectionLinks => 'LIENS';
 
   @override

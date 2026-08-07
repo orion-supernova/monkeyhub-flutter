@@ -4269,6 +4269,23 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'सामान्य';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'अपडेट के लिए जाँचें';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'अपडेट उपलब्ध है';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar => 'आप नवीनतम वर्शन पर हैं।';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'इस बिल्ड पर अपडेट नहीं जाँचे जा सकते।';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'अपडेट जाँचे नहीं जा सके। बाद में फिर से कोशिश करें।';
+
+  @override
   String get settingsScreenSectionLinks => 'लिंक्स';
 
   @override

@@ -4232,6 +4232,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenSectionGeneral => 'GENEL';
 
   @override
+  String get settingsScreenCheckForUpdatesLabel => 'GÜNCELLEMELERİ KONTROL ET';
+
+  @override
+  String get settingsScreenUpdateAvailableValue => 'GÜNCELLEME MEVCUT';
+
+  @override
+  String get settingsScreenUpdateUpToDateSnackbar =>
+      'En son sürümü kullanıyorsun.';
+
+  @override
+  String get settingsScreenUpdateUnsupportedSnackbar =>
+      'Bu sürümde güncellemeler kontrol edilemiyor.';
+
+  @override
+  String get settingsScreenUpdateErrorSnackbar =>
+      'Güncellemeler kontrol edilemedi. Daha sonra tekrar dene.';
+
+  @override
   String get settingsScreenSectionLinks => 'BAĞLANTILAR';
 
   @override

@@ -16,6 +16,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../update/update_availability.dart';
 import '../widgets/count_badge.dart';
 import '../widgets/radial_floating_menu.dart';
 import 'discover_screen.dart';
@@ -60,6 +61,9 @@ class _HomeShellState extends State<HomeShell> {
     widget.repo.addListener(_onSettings);
     // Same for the Feed tab's unseen-moments badge.
     FeedStore.instance.addListener(_onSettings);
+    // Lights the Settings tab the moment either the launch check or a manual
+    // "Check for Updates" tap finds a newer build.
+    UpdateAvailability.instance.addListener(_onSettings);
   }
 
   @override
@@ -68,6 +72,7 @@ class _HomeShellState extends State<HomeShell> {
     widget.family.removeListener(_onSettings);
     widget.repo.removeListener(_onSettings);
     FeedStore.instance.removeListener(_onSettings);
+    UpdateAvailability.instance.removeListener(_onSettings);
     super.dispose();
   }
 
@@ -89,7 +94,12 @@ class _HomeShellState extends State<HomeShell> {
     // app.dart, not by the Feed screen), so this stays live while the user is
     // on another tab.
     HomeSection.feed: FeedStore.instance.unseenCount,
-    HomeSection.settings: widget.family.pendingCount,
+    // Approvals plus "there's a new version" share the one badge slot
+    // Settings has always had — same rationale as the other three rows: one
+    // number saying the tab has something to show you, not a taxonomy of why.
+    HomeSection.settings:
+        widget.family.pendingCount +
+        (UpdateAvailability.instance.available ? 1 : 0),
   };
 
   Widget _section() {
