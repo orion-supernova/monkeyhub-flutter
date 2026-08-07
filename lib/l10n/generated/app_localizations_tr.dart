@@ -397,10 +397,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'YANLIŞLIKLA DOKUNDUM';
 
   @override
-  String get profileScreenLegalSection => 'YASAL';
+  String get settingsScreenLegalSection => 'YASAL';
 
   @override
-  String get profileScreenLicence => 'LİSANS';
+  String get settingsScreenLicence => 'LİSANS';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'BAĞLI HESAPLAR';
@@ -431,7 +431,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'fotoğraf izni reddedildi.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'GİZLİLİK POLİTİKASI';
+  String get settingsScreenPrivacyPolicy => 'GİZLİLİK POLİTİKASI';
 
   @override
   String get profileScreenPrivacySection => 'GİZLİLİK';
@@ -483,7 +483,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'SİLMEYİ ONAYLAMAK İÇİN TEKRAR DOKUN';
 
   @override
-  String get profileScreenTermsOfService => 'KULLANIM KOŞULLARI';
+  String get settingsScreenTermsOfService => 'KULLANIM KOŞULLARI';
 
   @override
   String get profileScreenThisPhoneSection => 'BU TELEFON';

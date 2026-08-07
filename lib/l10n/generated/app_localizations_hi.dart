@@ -403,10 +403,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenJustTappedAction => 'ग़लती से टैप हुआ';
 
   @override
-  String get profileScreenLegalSection => 'कानूनी';
+  String get settingsScreenLegalSection => 'कानूनी';
 
   @override
-  String get profileScreenLicence => 'लाइसेंस';
+  String get settingsScreenLicence => 'लाइसेंस';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'लिंक किए गए खाते';
@@ -438,7 +438,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'फ़ोटो की परमिशन नहीं मिली।';
 
   @override
-  String get profileScreenPrivacyPolicy => 'गोपनीयता नीति';
+  String get settingsScreenPrivacyPolicy => 'गोपनीयता नीति';
 
   @override
   String get profileScreenPrivacySection => 'गोपनीयता';
@@ -490,7 +490,7 @@ class AppLocalizationsHi extends AppLocalizations {
       'डिलीट पक्का करने के लिए फिर टैप करो';
 
   @override
-  String get profileScreenTermsOfService => 'सेवा की शर्तें';
+  String get settingsScreenTermsOfService => 'सेवा की शर्तें';
 
   @override
   String get profileScreenThisPhoneSection => 'यह फ़ोन';

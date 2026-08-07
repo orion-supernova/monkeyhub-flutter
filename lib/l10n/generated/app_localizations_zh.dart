@@ -376,10 +376,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenJustTappedAction => '手滑了';
 
   @override
-  String get profileScreenLegalSection => '法律';
+  String get settingsScreenLegalSection => '法律';
 
   @override
-  String get profileScreenLicence => '许可证';
+  String get settingsScreenLicence => '许可证';
 
   @override
   String get profileScreenLinkedAccountsLabel => '关联账号';
@@ -409,7 +409,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => '相册权限被拒绝。';
 
   @override
-  String get profileScreenPrivacyPolicy => '隐私政策';
+  String get settingsScreenPrivacyPolicy => '隐私政策';
 
   @override
   String get profileScreenPrivacySection => '隐私';
@@ -457,7 +457,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenTapAgainToConfirmDelete => '再次点击确认删除';
 
   @override
-  String get profileScreenTermsOfService => '服务条款';
+  String get settingsScreenTermsOfService => '服务条款';
 
   @override
   String get profileScreenThisPhoneSection => '这部手机';

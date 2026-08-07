@@ -10,9 +10,11 @@ import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../legal_links.dart';
 import '../models/chat_user.dart';
 import '../push/android_call_reliability.dart';
 import '../push/push_manager.dart';
+import '../services/link_opener.dart';
 import '../theme/bubble_shape.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -20,6 +22,7 @@ import '../update/update_availability.dart';
 import '../update/update_checker.dart';
 import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/count_badge.dart';
+import '../widgets/detail_link_row.dart';
 import '../widgets/monkey_collection.dart';
 import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
@@ -599,6 +602,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Android's two call-delivery settings. Renders nothing at all
               // when there is nothing to fix — see _CallDeliveryRows.
               const _CallDeliveryRows(),
+
+              // Moved here from the bottom of Profile. None of these three
+              // documents says anything about the account you are looking at,
+              // which is what Profile is for — they are facts about the app,
+              // and this is the screen that holds those.
+              //
+              // Unconditional, and it has to stay that way: Guideline 5.1.1(i)
+              // and Google's User Data policy both want a privacy policy
+              // reachable from inside the app for EVERY account, children
+              // included, and Settings is the one screen all of them can open.
+              const SizedBox(height: 28),
+              _SectionHeader(label: l10n.settingsScreenLegalSection),
+              const SizedBox(height: 12),
+              // The same row Profile stacks — these three came from there, and
+              // arriving looking like something else would read as three new
+              // rows rather than three moved ones.
+              DetailLinkRow(
+                label: l10n.settingsScreenPrivacyPolicy,
+                icon: Icons.privacy_tip_outlined,
+                onTap: () => LinkOpener.open(context, kPrivacyPolicyUrl),
+              ),
+              const SizedBox(height: 10),
+              DetailLinkRow(
+                label: l10n.settingsScreenTermsOfService,
+                icon: Icons.gavel_outlined,
+                onTap: () => LinkOpener.open(context, kTermsOfServiceUrl),
+              ),
+              const SizedBox(height: 10),
+              DetailLinkRow(
+                label: l10n.settingsScreenLicence,
+                icon: Icons.description_outlined,
+                onTap: () => LinkOpener.open(context, kEulaUrl),
+              ),
 
               const SizedBox(height: 36),
               _VersionStamp(),

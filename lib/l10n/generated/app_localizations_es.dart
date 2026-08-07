@@ -404,10 +404,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileScreenJustTappedAction => 'TOQUÉ SIN QUERER';
 
   @override
-  String get profileScreenLegalSection => 'LEGAL';
+  String get settingsScreenLegalSection => 'LEGAL';
 
   @override
-  String get profileScreenLicence => 'LICENCIA';
+  String get settingsScreenLicence => 'LICENCIA';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'CUENTAS VINCULADAS';
@@ -438,7 +438,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => 'permiso de fotos denegado.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDAD';
+  String get settingsScreenPrivacyPolicy => 'POLÍTICA DE PRIVACIDAD';
 
   @override
   String get profileScreenPrivacySection => 'PRIVACIDAD';
@@ -491,7 +491,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'TOCA DE NUEVO PARA CONFIRMAR ELIMINACIÓN';
 
   @override
-  String get profileScreenTermsOfService => 'TÉRMINOS DE SERVICIO';
+  String get settingsScreenTermsOfService => 'TÉRMINOS DE SERVICIO';
 
   @override
   String get profileScreenThisPhoneSection => 'ESTE TELÉFONO';

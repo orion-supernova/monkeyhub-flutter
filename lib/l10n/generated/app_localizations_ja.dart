@@ -387,10 +387,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenJustTappedAction => '誤タップ';
 
   @override
-  String get profileScreenLegalSection => '法的情報';
+  String get settingsScreenLegalSection => '法的情報';
 
   @override
-  String get profileScreenLicence => 'ライセンス';
+  String get settingsScreenLicence => 'ライセンス';
 
   @override
   String get profileScreenLinkedAccountsLabel => '連携アカウント';
@@ -420,7 +420,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenPhotoPermissionDenied => '写真へのアクセスが拒否されました。';
 
   @override
-  String get profileScreenPrivacyPolicy => 'プライバシーポリシー';
+  String get settingsScreenPrivacyPolicy => 'プライバシーポリシー';
 
   @override
   String get profileScreenPrivacySection => 'プライバシー';
@@ -468,7 +468,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenTapAgainToConfirmDelete => 'もう一度タップして削除を確定';
 
   @override
-  String get profileScreenTermsOfService => '利用規約';
+  String get settingsScreenTermsOfService => '利用規約';
 
   @override
   String get profileScreenThisPhoneSection => 'このスマホ';

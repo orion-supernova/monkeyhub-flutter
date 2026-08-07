@@ -769,13 +769,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'LEGAL'**
-  String get profileScreenLegalSection;
+  String get settingsScreenLegalSection;
 
   /// All-caps row label linking to the app's open-source licence page.
   ///
   /// In en, this message translates to:
   /// **'LICENCE'**
-  String get profileScreenLicence;
+  String get settingsScreenLicence;
 
   /// All-caps row label linking to the social sign-in providers management screen.
   ///
@@ -835,7 +835,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'PRIVACY POLICY'**
-  String get profileScreenPrivacyPolicy;
+  String get settingsScreenPrivacyPolicy;
 
   /// All-caps section header above visibility/blocked-users rows on one's own profile.
   ///
@@ -931,7 +931,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'TERMS OF SERVICE'**
-  String get profileScreenTermsOfService;
+  String get settingsScreenTermsOfService;
 
   /// All-caps section header above the 'hand this phone back' row on a child's account.
   ///

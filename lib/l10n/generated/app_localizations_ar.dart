@@ -420,10 +420,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'ضغطت بالخطأ';
 
   @override
-  String get profileScreenLegalSection => 'قانوني';
+  String get settingsScreenLegalSection => 'قانوني';
 
   @override
-  String get profileScreenLicence => 'الترخيص';
+  String get settingsScreenLicence => 'الترخيص';
 
   @override
   String get profileScreenLinkedAccountsLabel => 'الحسابات المرتبطة';
@@ -455,7 +455,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم رفض إذن الوصول إلى الصور.';
 
   @override
-  String get profileScreenPrivacyPolicy => 'سياسة الخصوصية';
+  String get settingsScreenPrivacyPolicy => 'سياسة الخصوصية';
 
   @override
   String get profileScreenPrivacySection => 'الخصوصية';
@@ -506,7 +506,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'اضغط مرة أخرى لتأكيد الحذف';
 
   @override
-  String get profileScreenTermsOfService => 'شروط الخدمة';
+  String get settingsScreenTermsOfService => 'شروط الخدمة';
 
   @override
   String get profileScreenThisPhoneSection => 'هذا الهاتف';
