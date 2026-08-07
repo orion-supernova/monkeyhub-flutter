@@ -36,6 +36,7 @@ import type * as rooms from "../rooms.js";
 import type * as socialAuth from "../socialAuth.js";
 import type * as typing from "../typing.js";
 import type * as users from "../users.js";
+import type * as visibility from "../visibility.js";
 import type * as voipPush from "../voipPush.js";
 import type * as voipTokens from "../voipTokens.js";
 
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   socialAuth: typeof socialAuth;
   typing: typeof typing;
   users: typeof users;
+  visibility: typeof visibility;
   voipPush: typeof voipPush;
   voipTokens: typeof voipTokens;
 }>;
