@@ -11,23 +11,26 @@ import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/screens/fullscreen_video_viewer.dart';
 import 'package:monkeyhub/widgets/video_message.dart';
 
-/// What this pins: **the pre-ready states of `VideoPlayerSurface` occupy the
-/// video's box, and the spinner inside them stays 32 points wide.**
+/// What this pins: **the pre-ready states of `VideoPlayerSurface` fill the
+/// screen, and the spinner inside them stays 32 points wide.**
 ///
-/// Both used to be false, from one cause. Those states are a `Stack` with
-/// `StackFit.expand`, and that fit hands every non-positioned child *tight*
-/// constraints equal to the stack — so the `SizedBox(32, 32)` around the
-/// progress ring was silently overridden and the ring drew at whatever size
-/// the stack had. The stack, in turn, had no aspect ratio of its own, so under
-/// the fullscreen viewer's `Center` it took `constraints.biggest`: the entire
-/// screen. Tapping a video therefore produced a screen-sized spinning circle
-/// that then snapped down to a letterboxed video the frame `initialize()`
-/// landed.
+/// Those states are a `Stack` with `StackFit.expand`, and that fit hands every
+/// non-positioned child *tight* constraints equal to the stack — so the
+/// `SizedBox(32, 32)` around the progress ring was silently overridden and the
+/// ring drew at the size of the stack, which under the viewer's `Center` is the
+/// entire screen. Tapping a video produced a screen-filling spinning circle.
+/// The `Center` inside the expanded child is what makes a fixed size mean
+/// anything again.
 ///
-/// The fix is a `Center` inside the expanded child (so a fixed size means
-/// something again) and an `AspectRatio` around the plate (so the box the
-/// spinner sits in is the box the video will fill). Neither is visible in a
-/// screenshot of the finished state, which is why they are pinned here.
+/// The first fix for that also boxed the plate in an `AspectRatio`, to stop it
+/// snapping to the video's real shape once `initialize()` landed. That was
+/// wrong in a way only a portrait video shows: `mediaAspectRatio` is null for
+/// every video the sender couldn't measure, the fallback guessed 16∶9, and a
+/// portrait poster letterboxed inside a landscape guess is a stamp floating in
+/// the middle of a black screen. The plate fills instead, and `BoxFit.contain`
+/// sizes the poster by its own true shape — the right box, with no ratio to
+/// know. Both properties are invisible in a screenshot of the finished state,
+/// which is why they are pinned here.
 class _StalledApi extends Fake implements ChatApi {
   final Completer<String?> gate = Completer<String?>();
 
@@ -36,10 +39,6 @@ class _StalledApi extends Fake implements ChatApi {
 }
 
 void main() {
-  // 2∶1, and deliberately nothing like the 16∶9 fallback or the 400×800
-  // viewport — so a plate that ignored the ratio could not accidentally
-  // measure correct.
-  const ratio = 2.0;
   const viewport = Size(400, 800);
 
   late Directory cacheDir;
@@ -89,11 +88,7 @@ void main() {
     final api = _StalledApi();
     await tester.pumpWidget(
       host(
-        VideoPlayerSurface(
-          api: api,
-          storageId: 'stalled_1',
-          aspectRatio: ratio,
-        ),
+        VideoPlayerSurface(api: api, storageId: 'stalled_1'),
       ),
     );
     await settle(tester);
@@ -105,8 +100,8 @@ void main() {
     );
     expect(
       tester.getSize(find.byType(VideoPlayerSurface)),
-      const Size(400, 200),
-      reason: 'the loading plate holds the box the video will fill',
+      viewport,
+      reason: 'the plate fills its box; the poster shapes itself inside it',
     );
 
     // Let the resolve answer so nothing is left holding the load timeout's
@@ -121,28 +116,31 @@ void main() {
     );
     expect(
       tester.getSize(find.byType(VideoPlayerSurface)),
-      const Size(400, 200),
+      viewport,
       reason: 'and the error plate keeps the same geometry as the loading one',
     );
   });
 
-  testWidgets('without a sender ratio the plate falls back to 16∶9', (
+  testWidgets('the viewer never boxes its plate at a guessed ratio', (
     tester,
   ) async {
+    // The regression this replaces: the plate was boxed at 16∶9 whenever the
+    // sender hadn't recorded a size, so a portrait video opened onto a
+    // 400×225 letterbox — a stamp in the middle of an 800-tall black screen.
     tester.view.physicalSize = viewport;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     final api = _StalledApi();
     await tester.pumpWidget(
-      host(VideoPlayerSurface(api: api, storageId: 'stalled_2')),
+      host(FullscreenVideoViewer(storageId: 'stalled_2', api: api)),
     );
     await settle(tester);
 
     expect(
       tester.getSize(find.byType(VideoPlayerSurface)),
-      const Size(400, 225),
-      reason: 'a bounded guess, never the whole screen',
+      viewport,
+      reason: 'no ratio is guessed, so nothing can be guessed wrong',
     );
 
     api.gate.complete(null);
@@ -163,11 +161,7 @@ void main() {
     final api = _StalledApi();
     await tester.pumpWidget(
       host(
-        FullscreenVideoViewer(
-          storageId: 'stalled_3',
-          api: api,
-          aspectRatio: ratio,
-        ),
+        FullscreenVideoViewer(storageId: 'stalled_3', api: api),
       ),
     );
     await settle(tester);
