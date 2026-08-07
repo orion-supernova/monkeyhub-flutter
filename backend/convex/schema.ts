@@ -743,6 +743,52 @@ export default defineSchema({
     // Account teardown (auth.ts purgeUser).
     .index("by_user", ["userId"]),
 
+  // One row per player per day per daily GAME — Queens, Tango, Zip, Mini
+  // Sudoku. Same model as `puzzleResults` above and for the same reasons: the
+  // board is a pure function of the day key (`convex/games/*.ts`), so there is
+  // nothing to seed and no race between the day's first two players.
+  //
+  // Deliberately NOT folded into `puzzleResults`. That table stores a list of
+  // guesses and is ranked by how many were needed; these are ranked by elapsed
+  // time and store a finished grid. Sharing a row would mean half the columns
+  // being optional and every reader re-deriving which game it is holding.
+  //
+  // One index, three uses: its prefixes serve [userId] for account teardown,
+  // [userId, dayKey] for "everything I played today" (the whole hub in one
+  // read), and the full triple for a single game's row.
+  gameResults: defineTable({
+    userId: v.id("users"),
+    dayKey: v.string(),
+    // "queens" | "tango" | "zip" | "sudoku". A string rather than a union so
+    // adding next month's game is a deploy of one file, not a schema migration
+    // over live rows — `games.ts` owns the list that is actually accepted.
+    game: v.string(),
+    // Server clock at the player's first move. The ceiling on a reported time:
+    // see `submit` in games.ts for why the duration itself is client-reported.
+    startedAt: v.number(),
+    // How long the player says the board was actually in front of them. Absent
+    // until they finish. Solved rows are ranked by this.
+    durationMs: v.optional(v.number()),
+    solved: v.boolean(),
+    // Asked for the answer. Kept apart from `solved: false` because an
+    // unfinished board is private and a surrender is a result — the standings
+    // show it, the way an unsolved daily puzzle shows as X/6.
+    gaveUp: v.boolean(),
+    finishedAt: v.optional(v.number()),
+    // Advisory, shown next to a result and never used for ranking. Sorting on
+    // a number the client reports and the server cannot check would make the
+    // leaderboard a claim rather than a race.
+    hintsUsed: v.number(),
+    mistakes: v.number(),
+    // The board as they left it, so closing the app mid-game does not throw
+    // the work away. Written on leaving the screen, not per move.
+    progress: v.optional(v.array(v.number())),
+    // The stopwatch, saved alongside `progress`. Without it a player who backs
+    // out at four minutes and returns is handed a clock reading zero, which is
+    // a better time than anyone who sat still and finished it.
+    elapsedMs: v.optional(v.number()),
+  }).index("by_user_day_game", ["userId", "dayKey", "game"]),
+
   pushReceipts: defineTable({
     userId: v.id("users"),
     roomId: v.id("rooms"),

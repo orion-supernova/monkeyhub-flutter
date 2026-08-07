@@ -383,10 +383,35 @@ export const board = query({
       return a.userId < b.userId ? -1 : 1;
     });
 
+    // ── The daily games ─────────────────────────────────────────────────────
+    // The viewer's OWN rows only, in one indexed read — no fan-out over
+    // friends. That is the whole reason the games rode into this payload at
+    // all: the board needs to show four tiles reading "solved in 1:42" or
+    // "not played", which is what makes a game people already own discoverable
+    // rather than something they have to remember to go and look for. Friends'
+    // times cost a read each and belong on the hub, where `games.standings`
+    // fetches them one-shot when it opens.
+    const games = (
+      await ctx.db
+        .query("gameResults")
+        .withIndex("by_user_day_game", (q: any) =>
+          q.eq("userId", userId).eq("dayKey", dayKey)
+        )
+        .collect()
+    ).map((row: any) => ({
+      game: row.game,
+      solved: row.solved,
+      gaveUp: row.gaveUp,
+      durationMs: row.durationMs,
+      started: true,
+      finished: row.finishedAt !== undefined,
+    }));
+
     return {
       moments: out,
       serverNow: now,
       puzzle: { slots: SLOTS, maxGuesses: MAX_GUESSES, mine, scores },
+      games,
     };
   },
 });

@@ -4939,4 +4939,193 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'アーカイブ';
+
+  @override
+  String get feedBoardGamesLabel => 'ゲーム';
+
+  @override
+  String get feedBoardGamesOpen => 'すべて';
+
+  @override
+  String get gamesScreenTitle => 'ゲーム。';
+
+  @override
+  String get gamesScreenSubtitle => '毎日4つの盤面、全員が同じもの';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今日は残り$countつ',
+      one: '今日は残り1つ',
+      zero: '今日はすべて完了',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => '今日のゲームを読み込めませんでした';
+
+  @override
+  String get gamesRetry => '再試行';
+
+  @override
+  String get gameQueensName => 'クイーンズ';
+
+  @override
+  String get gameQueensRule => '各行・各列・各色に王冠1つ、隣接は不可';
+
+  @override
+  String get gameTangoName => 'タンゴ';
+
+  @override
+  String get gameTangoRule => '太陽3つ、月3つ、同じものが3つ続かない';
+
+  @override
+  String get gameZipName => 'ジップ';
+
+  @override
+  String get gameZipRule => 'すべてのマスを通る1本の線、数字は順番どおり';
+
+  @override
+  String get gameSudokuName => 'ミニ数独';
+
+  @override
+  String get gameSudokuRule => '各行・各列・各ブロックに1〜6を1回ずつ';
+
+  @override
+  String get gameCodeName => 'コード';
+
+  @override
+  String get gameStatusUnplayed => '未プレイ';
+
+  @override
+  String get gameStatusUnfinished => 'プレイ中';
+
+  @override
+  String get gameStatusGaveUp => 'ギブアップ';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '$rank位';
+  }
+
+  @override
+  String get gamePause => '一時停止';
+
+  @override
+  String get gameResume => '再開';
+
+  @override
+  String get gamePausedTitle => '一時停止中';
+
+  @override
+  String get gamePausedBody => '時計は止まり、盤面は隠れています';
+
+  @override
+  String get gameUndo => '元に戻す';
+
+  @override
+  String get gameClear => 'クリア';
+
+  @override
+  String get gameHint => 'ヒント';
+
+  @override
+  String get gameNotes => 'メモ';
+
+  @override
+  String get gameErase => '消す';
+
+  @override
+  String get gameAutoCross => '自動バツ';
+
+  @override
+  String get gameGiveUp => 'ギブアップ';
+
+  @override
+  String get gameGiveUpTitle => '答えを表示しますか？';
+
+  @override
+  String get gameGiveUpBody => '今日の盤面は終了し、未解決として記録されます。';
+
+  @override
+  String get gameGiveUpCancel => '続ける';
+
+  @override
+  String get gameGiveUpConfirm => '表示する';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return '$time でクリア';
+  }
+
+  @override
+  String get gameGaveUpTitle => '今日の答え';
+
+  @override
+  String get gameFirstInToday => '今日の一番乗り';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '現在 $total 人中 $place 位';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ミス $count 回',
+      one: 'ミス 1 回',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ヒント $count 回',
+      one: 'ヒント 1 回',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => '今日のタイム';
+
+  @override
+  String get gameStandingsEmpty => 'まだ誰も終えていません';
+
+  @override
+  String get gameShare => '結果をコピー';
+
+  @override
+  String get gameShareCopied => 'コピーしました — 友だちに貼り付けて';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'すべて';
+
+  @override
+  String get gameElapsedSemantic => '経過時間';
+
+  @override
+  String get gameErrorNotSolved => 'その盤面はまだ完成していません';
+
+  @override
+  String get gameErrorAlreadyFinished => '今日の分はもう終えています';
+
+  @override
+  String get gameErrorNoHint => 'これにはヒントがありません';
+
+  @override
+  String get gameErrorGeneric => 'ゲームに接続できませんでした — もう一度お試しください';
 }

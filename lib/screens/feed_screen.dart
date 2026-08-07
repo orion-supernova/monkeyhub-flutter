@@ -5,15 +5,18 @@ import '../backend/chat_api.dart';
 import '../backend/feed_api.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
+import '../data/games_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../models/daily_game.dart';
 import '../models/moment.dart';
 import '../models/puzzle.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/feed_depth_field.dart';
+import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
 import '../widgets/points_board.dart';
@@ -25,6 +28,11 @@ import 'feed/moment_viewer.dart';
 import 'feed/point_composer.dart';
 import 'feed/points_explainer.dart';
 import 'feed/puzzle_screen.dart';
+import 'games/games_hub_screen.dart';
+import 'games/queens_screen.dart';
+import 'games/sudoku_screen.dart';
+import 'games/tango_screen.dart';
+import 'games/zip_screen.dart';
 import 'navigation/destinations.dart';
 
 /// TODAY — the friends-activity board.
@@ -72,6 +80,12 @@ class _FeedScreenState extends State<FeedScreen> {
     // Idempotent — arms the day-rollover timer if some earlier mount hasn't.
     FeedStore.instance.start();
     FeedStore.instance.addListener(_onChange);
+    GamesStore.instance.addListener(_onChange);
+    // Boards only — the four thumbnails. `games:daily` reads no table, and the
+    // viewer's own results already ride in on the board payload, so the band
+    // costs one cheap call on the first Feed mount of the day and nothing
+    // after it. The friend leaderboards wait for the hub.
+    GamesStore.instance.loadBoards();
     // The empty state turns on the friend count, so the board has to rebuild
     // when a friend request is accepted while it is on screen.
     widget.repo.addListener(_onChange);
@@ -80,6 +94,7 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void dispose() {
     FeedStore.instance.removeListener(_onChange);
+    GamesStore.instance.removeListener(_onChange);
     widget.repo.removeListener(_onChange);
     _scroll.dispose();
     super.dispose();
@@ -152,6 +167,32 @@ class _FeedScreenState extends State<FeedScreen> {
       MaterialPageRoute(
         builder: (_) =>
             PuzzleScreen(feedApi: widget.feedApi, userId: userId),
+      ),
+    );
+  }
+
+  void _openGamesHub() {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) =>
+            GamesHubScreen(feedApi: widget.feedApi, userId: userId),
+      ),
+    );
+  }
+
+  void _openGame(DailyGame game) {
+    final userId = widget.repo.userId;
+    if (userId == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => switch (game) {
+          DailyGame.queens => QueensScreen(userId: userId),
+          DailyGame.tango => TangoScreen(userId: userId),
+          DailyGame.zip => ZipScreen(userId: userId),
+          DailyGame.sudoku => SudokuScreen(userId: userId),
+        },
       ),
     );
   }
@@ -243,6 +284,26 @@ class _FeedScreenState extends State<FeedScreen> {
         ),
       ),
       (
+        id: 'games',
+        child: _SectionShell(
+          label: l10n.feedBoardGamesLabel,
+          // The band is an entry point as much as a status line, so the header
+          // carries the way in to the rest of them — five boards do not fit a
+          // Feed section, and burying the hub behind a tile would make the two
+          // extra taps the reason nobody plays them.
+          action: _HeaderAction(
+            icon: Icons.grid_view_outlined,
+            label: l10n.feedBoardGamesOpen,
+            onTap: _openGamesHub,
+          ),
+          body: GamesStrip(
+            boards: GamesStore.instance.boards,
+            results: store.games,
+            onOpen: _openGame,
+          ),
+        ),
+      ),
+      (
         id: 'standings',
         child: _SectionShell(
           label: l10n.feedBoardStandingsLabel,
@@ -291,8 +352,11 @@ class _FeedScreenState extends State<FeedScreen> {
             child: ListView(
               controller: _scroll,
               // Versioned so the offset can be deliberately dropped when the
-              // section order changes — bump to _v2 in the phase that reorders.
-              key: const PageStorageKey('feed_board_v1'),
+              // section order changes. Bumped to _v2 when THE GAMES landed
+              // between the puzzle and the standings: a restored offset from
+              // before that band existed lands the board mid-section, which
+              // reads as the Feed having jumped on its own.
+              key: const PageStorageKey('feed_board_v2'),
               padding: const EdgeInsets.fromLTRB(
                 20,
                 28,

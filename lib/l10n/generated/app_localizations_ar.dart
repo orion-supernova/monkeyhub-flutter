@@ -5207,4 +5207,193 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'الأرشيف';
+
+  @override
+  String get feedBoardGamesLabel => 'الألعاب';
+
+  @override
+  String get feedBoardGamesOpen => 'كل الألعاب';
+
+  @override
+  String get gamesScreenTitle => 'الألعاب.';
+
+  @override
+  String get gamesScreenSubtitle => 'أربعة ألواح كل يوم، ونفس الأربعة للجميع';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'بقيت $count اليوم',
+      one: 'بقيت واحدة اليوم',
+      zero: 'انتهت ألعاب اليوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'تعذّر تحميل ألعاب اليوم';
+
+  @override
+  String get gamesRetry => 'أعد المحاولة';
+
+  @override
+  String get gameQueensName => 'الملكات';
+
+  @override
+  String get gameQueensRule => 'تاج واحد في كل صف وعمود ولون — دون تلامس';
+
+  @override
+  String get gameTangoName => 'تانغو';
+
+  @override
+  String get gameTangoRule => 'ثلاث شموس وثلاثة أقمار، ولا ثلاثة متتالية';
+
+  @override
+  String get gameZipName => 'زِب';
+
+  @override
+  String get gameZipRule => 'خط واحد يمرّ بكل مربع، والأرقام بالترتيب';
+
+  @override
+  String get gameSudokuName => 'سودوكو مصغّر';
+
+  @override
+  String get gameSudokuRule => 'من 1 إلى 6 مرة واحدة في كل صف وعمود ومربع';
+
+  @override
+  String get gameCodeName => 'الشيفرة';
+
+  @override
+  String get gameStatusUnplayed => 'لم تُلعب';
+
+  @override
+  String get gameStatusUnfinished => 'قيد اللعب';
+
+  @override
+  String get gameStatusGaveUp => 'استسلم';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'إيقاف مؤقت';
+
+  @override
+  String get gameResume => 'متابعة';
+
+  @override
+  String get gamePausedTitle => 'متوقّف';
+
+  @override
+  String get gamePausedBody => 'الوقت متوقّف واللوح مخفي';
+
+  @override
+  String get gameUndo => 'تراجع';
+
+  @override
+  String get gameClear => 'مسح';
+
+  @override
+  String get gameHint => 'تلميح';
+
+  @override
+  String get gameNotes => 'ملاحظات';
+
+  @override
+  String get gameErase => 'محو';
+
+  @override
+  String get gameAutoCross => 'تعليم تلقائي';
+
+  @override
+  String get gameGiveUp => 'استسلام';
+
+  @override
+  String get gameGiveUpTitle => 'هل تريد عرض الحل؟';
+
+  @override
+  String get gameGiveUpBody => 'سيُغلق لوح اليوم ويُسجّل كغير محلول.';
+
+  @override
+  String get gameGiveUpCancel => 'سأتابع';
+
+  @override
+  String get gameGiveUpConfirm => 'اعرضه';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return 'حُلّت في $time';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'حل اليوم';
+
+  @override
+  String get gameFirstInToday => 'أول من أنهاها اليوم';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '$place من $total حتى الآن';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count أخطاء',
+      one: 'خطأ واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تلميحات',
+      one: 'تلميح واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'أزمنة اليوم';
+
+  @override
+  String get gameStandingsEmpty => 'لم ينهها أحد بعد';
+
+  @override
+  String get gameShare => 'انسخ النتيجة';
+
+  @override
+  String get gameShareCopied => 'تم النسخ — الصقه لصديق';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'كل الألعاب';
+
+  @override
+  String get gameElapsedSemantic => 'الوقت المنقضي';
+
+  @override
+  String get gameErrorNotSolved => 'اللوح لم يكتمل بعد';
+
+  @override
+  String get gameErrorAlreadyFinished => 'لقد أنهيت لعبة اليوم';
+
+  @override
+  String get gameErrorNoHint => 'لا يوجد تلميح لهذه';
+
+  @override
+  String get gameErrorGeneric => 'تعذّر الوصول إلى الألعاب — حاول مجددًا';
 }

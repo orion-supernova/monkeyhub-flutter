@@ -5151,4 +5151,194 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'arkiv';
+
+  @override
+  String get feedBoardGamesLabel => 'SPELEN';
+
+  @override
+  String get feedBoardGamesOpen => 'alla spel';
+
+  @override
+  String get gamesScreenTitle => 'spelen.';
+
+  @override
+  String get gamesScreenSubtitle => 'fyra brickor om dagen, samma för alla';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count kvar idag',
+      one: 'en kvar idag',
+      zero: 'allt klart idag',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'kunde inte ladda dagens spel';
+
+  @override
+  String get gamesRetry => 'FÖRSÖK IGEN';
+
+  @override
+  String get gameQueensName => 'damer';
+
+  @override
+  String get gameQueensRule =>
+      'en krona per rad, kolumn och färg — aldrig intill varandra';
+
+  @override
+  String get gameTangoName => 'tango';
+
+  @override
+  String get gameTangoRule => 'tre solar, tre månar, aldrig tre i rad';
+
+  @override
+  String get gameZipName => 'zip';
+
+  @override
+  String get gameZipRule => 'en linje genom varje ruta, siffrorna i ordning';
+
+  @override
+  String get gameSudokuName => 'minisudoku';
+
+  @override
+  String get gameSudokuRule => '1 till 6 en gång per rad, kolumn och ruta';
+
+  @override
+  String get gameCodeName => 'koden';
+
+  @override
+  String get gameStatusUnplayed => 'ospelad';
+
+  @override
+  String get gameStatusUnfinished => 'pågår';
+
+  @override
+  String get gameStatusGaveUp => 'gav upp';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'pausa';
+
+  @override
+  String get gameResume => 'fortsätt';
+
+  @override
+  String get gamePausedTitle => 'pausat';
+
+  @override
+  String get gamePausedBody => 'klockan är stoppad och brickan dold';
+
+  @override
+  String get gameUndo => 'ångra';
+
+  @override
+  String get gameClear => 'rensa';
+
+  @override
+  String get gameHint => 'ledtråd';
+
+  @override
+  String get gameNotes => 'anteckningar';
+
+  @override
+  String get gameErase => 'sudda';
+
+  @override
+  String get gameAutoCross => 'autokryss';
+
+  @override
+  String get gameGiveUp => 'ge upp';
+
+  @override
+  String get gameGiveUpTitle => 'visa lösningen?';
+
+  @override
+  String get gameGiveUpBody => 'dagens bricka stängs och räknas som olöst.';
+
+  @override
+  String get gameGiveUpCancel => 'FORTSÄTT';
+
+  @override
+  String get gameGiveUpConfirm => 'VISA';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return 'löst på $time';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'dagens lösning';
+
+  @override
+  String get gameFirstInToday => 'först idag';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '$place av $total hittills';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count missar',
+      one: '1 miss',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ledtrådar',
+      one: '1 ledtråd',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'DAGENS TIDER';
+
+  @override
+  String get gameStandingsEmpty => 'ingen har klarat den än';
+
+  @override
+  String get gameShare => 'KOPIERA RESULTAT';
+
+  @override
+  String get gameShareCopied => 'kopierat — klistra in till en vän';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'alla spel';
+
+  @override
+  String get gameElapsedSemantic => 'förfluten tid';
+
+  @override
+  String get gameErrorNotSolved => 'brickan är inte klar än';
+
+  @override
+  String get gameErrorAlreadyFinished => 'du har redan klarat dagens';
+
+  @override
+  String get gameErrorNoHint => 'ingen ledtråd för den här';
+
+  @override
+  String get gameErrorGeneric => 'kunde inte nå spelen — försök igen';
 }

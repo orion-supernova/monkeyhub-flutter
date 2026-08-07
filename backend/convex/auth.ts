@@ -467,6 +467,15 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_user", byUser(userId))
       .collect(),
   );
+  // `by_user_day_game`'s leading field is userId, so its prefix is the
+  // teardown index — no second index exists purely to be deleted through.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("gameResults")
+      .withIndex("by_user_day_game", byUser(userId))
+      .collect(),
+  );
 
   // ── Family ───────────────────────────────────────────────────────────────
   // Both directions: this user may be the child OR the guardian.

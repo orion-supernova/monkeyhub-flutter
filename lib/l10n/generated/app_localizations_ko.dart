@@ -4955,4 +4955,193 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => '보관함';
+
+  @override
+  String get feedBoardGamesLabel => '게임';
+
+  @override
+  String get feedBoardGamesOpen => '전체 게임';
+
+  @override
+  String get gamesScreenTitle => '게임.';
+
+  @override
+  String get gamesScreenSubtitle => '하루 네 판, 모두에게 같은 문제';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '오늘 $count개 남음',
+      one: '오늘 1개 남음',
+      zero: '오늘 다 풀었어',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => '오늘의 게임을 불러오지 못했어';
+
+  @override
+  String get gamesRetry => '다시 시도';
+
+  @override
+  String get gameQueensName => '퀸즈';
+
+  @override
+  String get gameQueensRule => '행·열·색마다 왕관 하나, 서로 붙으면 안 됨';
+
+  @override
+  String get gameTangoName => '탱고';
+
+  @override
+  String get gameTangoRule => '해 셋, 달 셋, 같은 것이 연속 셋은 금지';
+
+  @override
+  String get gameZipName => '집';
+
+  @override
+  String get gameZipRule => '모든 칸을 지나는 한 줄, 숫자는 순서대로';
+
+  @override
+  String get gameSudokuName => '미니 스도쿠';
+
+  @override
+  String get gameSudokuRule => '행·열·박스마다 1부터 6까지 한 번씩';
+
+  @override
+  String get gameCodeName => '코드';
+
+  @override
+  String get gameStatusUnplayed => '안 함';
+
+  @override
+  String get gameStatusUnfinished => '진행 중';
+
+  @override
+  String get gameStatusGaveUp => '포기';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '$rank위';
+  }
+
+  @override
+  String get gamePause => '일시정지';
+
+  @override
+  String get gameResume => '계속';
+
+  @override
+  String get gamePausedTitle => '일시정지됨';
+
+  @override
+  String get gamePausedBody => '시계는 멈췄고 보드는 가려져 있어';
+
+  @override
+  String get gameUndo => '되돌리기';
+
+  @override
+  String get gameClear => '지우기';
+
+  @override
+  String get gameHint => '힌트';
+
+  @override
+  String get gameNotes => '메모';
+
+  @override
+  String get gameErase => '지우개';
+
+  @override
+  String get gameAutoCross => '자동 X 표시';
+
+  @override
+  String get gameGiveUp => '포기';
+
+  @override
+  String get gameGiveUpTitle => '정답을 볼까?';
+
+  @override
+  String get gameGiveUpBody => '오늘 보드는 종료되고 미해결로 기록돼.';
+
+  @override
+  String get gameGiveUpCancel => '계속 풀기';
+
+  @override
+  String get gameGiveUpConfirm => '보여줘';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return '$time 만에 해결';
+  }
+
+  @override
+  String get gameGaveUpTitle => '오늘의 정답';
+
+  @override
+  String get gameFirstInToday => '오늘 첫 번째';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '현재 $total명 중 $place위';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '실수 $count번',
+      one: '실수 1번',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '힌트 $count번',
+      one: '힌트 1번',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => '오늘의 기록';
+
+  @override
+  String get gameStandingsEmpty => '아직 아무도 못 끝냈어';
+
+  @override
+  String get gameShare => '결과 복사';
+
+  @override
+  String get gameShareCopied => '복사됨 — 친구에게 붙여넣어';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => '전체 게임';
+
+  @override
+  String get gameElapsedSemantic => '경과 시간';
+
+  @override
+  String get gameErrorNotSolved => '아직 다 안 끝났어';
+
+  @override
+  String get gameErrorAlreadyFinished => '오늘 건 이미 끝냈어';
+
+  @override
+  String get gameErrorNoHint => '이건 힌트가 없어';
+
+  @override
+  String get gameErrorGeneric => '게임에 연결하지 못했어 — 다시 시도해';
 }

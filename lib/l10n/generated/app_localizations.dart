@@ -8812,6 +8812,318 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'archive'**
   String get feedBoardOpenArchive;
+
+  /// All-caps band label for the Feed section holding today's four logic games (Queens, Tango, Zip, Mini Sudoku) as small board thumbnails.
+  ///
+  /// In en, this message translates to:
+  /// **'THE GAMES'**
+  String get feedBoardGamesLabel;
+
+  /// Label on the control in the THE GAMES section header that opens the games hub, where all of today's boards and everyone's times live.
+  ///
+  /// In en, this message translates to:
+  /// **'all games'**
+  String get feedBoardGamesOpen;
+
+  /// Lowercase page title of the games hub, with a full stop, matching the house style of the other sub-screens ('the puzzle.', 'language.').
+  ///
+  /// In en, this message translates to:
+  /// **'the games.'**
+  String get gamesScreenTitle;
+
+  /// One-line subtitle under the games hub title, next to a short accent rule. States what the daily games are in the fewest possible words; the point being made is that every player worldwide gets the identical boards.
+  ///
+  /// In en, this message translates to:
+  /// **'four boards a day, the same four for everyone'**
+  String get gamesScreenSubtitle;
+
+  /// Muted line under the games hub subtitle. {count} is how many of today's four boards the player has not finished yet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{all done today} =1{one left today} other{{count} left today}}'**
+  String gamesRemaining(num count);
+
+  /// Shown on the games hub when today's boards could not be fetched at all — a network failure, not an empty day.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t load today\'s games'**
+  String get gamesLoadFailed;
+
+  /// All-caps action under the games hub's load-failure message; refetches today's boards.
+  ///
+  /// In en, this message translates to:
+  /// **'TRY AGAIN'**
+  String get gamesRetry;
+
+  /// Name of the Queens daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game is about placing crowns on a coloured grid.
+  ///
+  /// In en, this message translates to:
+  /// **'queens'**
+  String get gameQueensName;
+
+  /// Queens' rules in one line, under its title. Exactly one crown goes in each row, each column and each coloured region, and no two crowns may be adjacent, including diagonally.
+  ///
+  /// In en, this message translates to:
+  /// **'one crown per row, column and colour — never touching'**
+  String get gameQueensRule;
+
+  /// Name of the Tango daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game fills a grid with suns and moons.
+  ///
+  /// In en, this message translates to:
+  /// **'tango'**
+  String get gameTangoName;
+
+  /// Tango's rules in one line, under its title. Each row and column holds three of each symbol, and the same symbol may never appear three times consecutively.
+  ///
+  /// In en, this message translates to:
+  /// **'three suns, three moons, never three in a row'**
+  String get gameTangoRule;
+
+  /// Name of the Zip daily game, shown on its tile and as the title of its board screen. Lowercase, house style. The game draws a single line through every square of a grid.
+  ///
+  /// In en, this message translates to:
+  /// **'zip'**
+  String get gameZipName;
+
+  /// Zip's rules in one line, under its title. One unbroken line must pass through every square exactly once while visiting the numbered dots in ascending order.
+  ///
+  /// In en, this message translates to:
+  /// **'one line through every square, numbers in order'**
+  String get gameZipRule;
+
+  /// Name of the Mini Sudoku daily game, shown on its tile and as the title of its board screen. Lowercase, house style. A 6x6 sudoku rather than the usual 9x9.
+  ///
+  /// In en, this message translates to:
+  /// **'mini sudoku'**
+  String get gameSudokuName;
+
+  /// Mini Sudoku's rules in one line, under its title. The grid is 6x6 and its boxes are two rows tall by three columns wide.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to 6 once per row, column and box'**
+  String get gameSudokuRule;
+
+  /// Name of the symbol-code puzzle on its tile in the games hub, where it sits beside the four newer boards. It is the same game the dedicated puzzle screen calls 'the puzzle.'; here it needs a shorter name that distinguishes it from its four neighbours.
+  ///
+  /// In en, this message translates to:
+  /// **'the code'**
+  String get gameCodeName;
+
+  /// Status on a game tile the viewer has not opened today.
+  ///
+  /// In en, this message translates to:
+  /// **'not played'**
+  String get gameStatusUnplayed;
+
+  /// Status on a game tile the viewer has started but not finished today.
+  ///
+  /// In en, this message translates to:
+  /// **'in progress'**
+  String get gameStatusUnfinished;
+
+  /// Status shown in place of a time, on a tile or a leaderboard row, when the player asked to see the answer instead of solving the board.
+  ///
+  /// In en, this message translates to:
+  /// **'gave up'**
+  String get gameStatusGaveUp;
+
+  /// Small badge next to a solved time on a game tile. {rank} is the viewer's 1-based place among friends who have finished that board today.
+  ///
+  /// In en, this message translates to:
+  /// **'#{rank}'**
+  String gameRankBadge(Object rank);
+
+  /// Tooltip on the pause control in a game board's top bar. Stops the stopwatch and hides the board.
+  ///
+  /// In en, this message translates to:
+  /// **'pause'**
+  String get gamePause;
+
+  /// Tooltip on the same control while a game board is paused. Restarts the stopwatch and uncovers the board.
+  ///
+  /// In en, this message translates to:
+  /// **'resume'**
+  String get gameResume;
+
+  /// Headline on the card that covers a game board while it is paused.
+  ///
+  /// In en, this message translates to:
+  /// **'paused'**
+  String get gamePausedTitle;
+
+  /// Explains the pause card. The board is deliberately covered as well as the clock stopped, so pausing cannot be used as free thinking time.
+  ///
+  /// In en, this message translates to:
+  /// **'the clock is stopped and the board is hidden'**
+  String get gamePausedBody;
+
+  /// Label on the tool that takes back the last move on a game board.
+  ///
+  /// In en, this message translates to:
+  /// **'undo'**
+  String get gameUndo;
+
+  /// Label on the tool that wipes a game board back to empty. Only Zip has one, where it erases the whole drawn line.
+  ///
+  /// In en, this message translates to:
+  /// **'clear'**
+  String get gameClear;
+
+  /// Label on the tool that reveals one correct square. Counted against the player and shown beside their result.
+  ///
+  /// In en, this message translates to:
+  /// **'hint'**
+  String get gameHint;
+
+  /// Label on the Mini Sudoku toggle that makes the keypad write small pencil marks instead of answers.
+  ///
+  /// In en, this message translates to:
+  /// **'notes'**
+  String get gameNotes;
+
+  /// Screen-reader label for the backspace key on the Mini Sudoku keypad, which empties the selected square.
+  ///
+  /// In en, this message translates to:
+  /// **'erase'**
+  String get gameErase;
+
+  /// Label on the Queens toggle that faintly crosses out every square a placed crown rules out, so the player does not have to track it by hand.
+  ///
+  /// In en, this message translates to:
+  /// **'auto-cross'**
+  String get gameAutoCross;
+
+  /// Label on the tool that ends today's board and shows its answer.
+  ///
+  /// In en, this message translates to:
+  /// **'give up'**
+  String get gameGiveUp;
+
+  /// Title of the confirmation asked before a player gives up on a board.
+  ///
+  /// In en, this message translates to:
+  /// **'show the answer?'**
+  String get gameGiveUpTitle;
+
+  /// Body of the give-up confirmation. States both consequences: the board can no longer be played today, and the result is recorded as a failure.
+  ///
+  /// In en, this message translates to:
+  /// **'today\'s board closes and it goes down as unsolved.'**
+  String get gameGiveUpBody;
+
+  /// All-caps dismissal on the give-up confirmation; returns to the board.
+  ///
+  /// In en, this message translates to:
+  /// **'KEEP TRYING'**
+  String get gameGiveUpCancel;
+
+  /// All-caps confirmation on the give-up dialog; ends the board and reveals the answer.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOW IT'**
+  String get gameGiveUpConfirm;
+
+  /// Headline on the result card once a board is solved. {time} is a stopwatch reading such as 2:41, already formatted and never localized — digits and a colon read the same everywhere and the leaderboard compares them side by side.
+  ///
+  /// In en, this message translates to:
+  /// **'solved in {time}'**
+  String gameSolvedTitle(Object time);
+
+  /// Headline on the result card when the player gave up and the board is showing the solution instead of their own work.
+  ///
+  /// In en, this message translates to:
+  /// **'today\'s answer'**
+  String get gameGaveUpTitle;
+
+  /// Shown under a result instead of a rank when nobody else has finished that board yet. Avoids reporting a podium of one.
+  ///
+  /// In en, this message translates to:
+  /// **'first one in today'**
+  String get gameFirstInToday;
+
+  /// Shown under a result. {place} is the viewer's 1-based position and {total} how many friends have finished that board today. 'so far' because more people will finish later and the position can slip. NOTE: parameters are emitted in ALPHABETICAL order (place, total), which here matches reading order.
+  ///
+  /// In en, this message translates to:
+  /// **'{place} of {total} so far'**
+  String gameRankLine(Object place, Object total);
+
+  /// Part of the advisory line under a game result. {count} is how many moves broke a rule. Never used to rank anyone — it is shown, not scored.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 mistake} other{{count} mistakes}}'**
+  String gameMistakeCount(num count);
+
+  /// Part of the advisory line under a game result. {count} is how many squares the player had revealed for them.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 hint} other{{count} hints}}'**
+  String gameHintCount(num count);
+
+  /// All-caps header above the per-game leaderboard of friends who have finished that board today, fastest first.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY\'S TIMES'**
+  String get gameStandingsLabel;
+
+  /// Muted line where a game's leaderboard would be, when no friend — and not the viewer either — has completed that board today.
+  ///
+  /// In en, this message translates to:
+  /// **'nobody\'s finished this one yet'**
+  String get gameStandingsEmpty;
+
+  /// All-caps action on a finished game's result card; copies a one-line result to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'COPY RESULT'**
+  String get gameShare;
+
+  /// Confirmation shown after a game result is copied to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'copied — paste it to a friend'**
+  String get gameShareCopied;
+
+  /// The whole copied game result, one line. {name} is the game's own localized name, {number} the day's edition number, {time} a stopwatch reading or the localized 'gave up'. 'MonkeyHub' is a proper noun — keep it identical across locales. NOTE: parameters are emitted in ALPHABETICAL order (name, number, time), which here matches reading order.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub {name} №{number} — {time}'**
+  String gameShareLine(Object name, Object number, Object time);
+
+  /// Tooltip on the back arrow in a game board's top bar, which returns to the games hub.
+  ///
+  /// In en, this message translates to:
+  /// **'all games'**
+  String get gameBackToHub;
+
+  /// Screen-reader label for the running stopwatch in a game board's top bar.
+  ///
+  /// In en, this message translates to:
+  /// **'elapsed time'**
+  String get gameElapsedSemantic;
+
+  /// Error shown when a submitted game board does not actually satisfy its rules — normally only reachable from a stale screen.
+  ///
+  /// In en, this message translates to:
+  /// **'that board isn\'t finished yet'**
+  String get gameErrorNotSolved;
+
+  /// Error shown when an action arrives for a board the player has already completed or given up on today.
+  ///
+  /// In en, this message translates to:
+  /// **'you already finished today\'s'**
+  String get gameErrorAlreadyFinished;
+
+  /// Error shown when a hint is asked for on a board that has none. Zip is the case: any line covering every square in order wins, so there is no single next-correct move to point at.
+  ///
+  /// In en, this message translates to:
+  /// **'no hint for this one'**
+  String get gameErrorNoHint;
+
+  /// Generic error when a daily-game action fails for an unrecognised reason.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t reach the games — try again'**
+  String get gameErrorGeneric;
 }
 
 class _AppLocalizationsDelegate

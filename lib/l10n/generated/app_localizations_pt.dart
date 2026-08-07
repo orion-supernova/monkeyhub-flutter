@@ -5184,6 +5184,200 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get feedBoardOpenArchive => 'arquivo';
+
+  @override
+  String get feedBoardGamesLabel => 'OS JOGOS';
+
+  @override
+  String get feedBoardGamesOpen => 'todos os jogos';
+
+  @override
+  String get gamesScreenTitle => 'os jogos.';
+
+  @override
+  String get gamesScreenSubtitle =>
+      'quatro tabuleiros por dia, os mesmos para todos';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'faltam $count hoje',
+      one: 'falta um hoje',
+      zero: 'tudo feito hoje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'não foi possível carregar os jogos de hoje';
+
+  @override
+  String get gamesRetry => 'TENTAR DE NOVO';
+
+  @override
+  String get gameQueensName => 'rainhas';
+
+  @override
+  String get gameQueensRule =>
+      'uma coroa por linha, coluna e cor — sem se tocarem';
+
+  @override
+  String get gameTangoName => 'tango';
+
+  @override
+  String get gameTangoRule => 'três sóis, três luas, nunca três seguidos';
+
+  @override
+  String get gameZipName => 'zip';
+
+  @override
+  String get gameZipRule =>
+      'uma linha por todos os quadrados, números por ordem';
+
+  @override
+  String get gameSudokuName => 'mini sudoku';
+
+  @override
+  String get gameSudokuRule => 'de 1 a 6 uma vez por linha, coluna e caixa';
+
+  @override
+  String get gameCodeName => 'o código';
+
+  @override
+  String get gameStatusUnplayed => 'por jogar';
+
+  @override
+  String get gameStatusUnfinished => 'a decorrer';
+
+  @override
+  String get gameStatusGaveUp => 'desistiu';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'pausa';
+
+  @override
+  String get gameResume => 'continuar';
+
+  @override
+  String get gamePausedTitle => 'em pausa';
+
+  @override
+  String get gamePausedBody => 'o relógio está parado e o tabuleiro escondido';
+
+  @override
+  String get gameUndo => 'desfazer';
+
+  @override
+  String get gameClear => 'limpar';
+
+  @override
+  String get gameHint => 'dica';
+
+  @override
+  String get gameNotes => 'notas';
+
+  @override
+  String get gameErase => 'apagar';
+
+  @override
+  String get gameAutoCross => 'cruzes automáticas';
+
+  @override
+  String get gameGiveUp => 'desistir';
+
+  @override
+  String get gameGiveUpTitle => 'mostrar a solução?';
+
+  @override
+  String get gameGiveUpBody =>
+      'o tabuleiro de hoje fecha e fica como não resolvido.';
+
+  @override
+  String get gameGiveUpCancel => 'CONTINUAR';
+
+  @override
+  String get gameGiveUpConfirm => 'MOSTRAR';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return 'resolvido em $time';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'a solução de hoje';
+
+  @override
+  String get gameFirstInToday => 'o primeiro de hoje';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '$place de $total até agora';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count erros',
+      one: '1 erro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dicas',
+      one: '1 dica',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'TEMPOS DE HOJE';
+
+  @override
+  String get gameStandingsEmpty => 'ainda ninguém terminou este';
+
+  @override
+  String get gameShare => 'COPIAR RESULTADO';
+
+  @override
+  String get gameShareCopied => 'copiado — cola para um amigo';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'todos os jogos';
+
+  @override
+  String get gameElapsedSemantic => 'tempo decorrido';
+
+  @override
+  String get gameErrorNotSolved => 'esse tabuleiro ainda não está terminado';
+
+  @override
+  String get gameErrorAlreadyFinished => 'já terminaste o de hoje';
+
+  @override
+  String get gameErrorNoHint => 'este não tem dicas';
+
+  @override
+  String get gameErrorGeneric =>
+      'não foi possível chegar aos jogos — tenta de novo';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -10367,4 +10561,198 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get feedBoardOpenArchive => 'arquivo';
+
+  @override
+  String get feedBoardGamesLabel => 'OS JOGOS';
+
+  @override
+  String get feedBoardGamesOpen => 'todos os jogos';
+
+  @override
+  String get gamesScreenTitle => 'os jogos.';
+
+  @override
+  String get gamesScreenSubtitle =>
+      'quatro tabuleiros por dia, os mesmos para todo mundo';
+
+  @override
+  String gamesRemaining(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'faltam $count hoje',
+      one: 'falta um hoje',
+      zero: 'tudo feito hoje',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gamesLoadFailed => 'não deu para carregar os jogos de hoje';
+
+  @override
+  String get gamesRetry => 'TENTAR DE NOVO';
+
+  @override
+  String get gameQueensName => 'rainhas';
+
+  @override
+  String get gameQueensRule =>
+      'uma coroa por linha, coluna e cor — sem encostar';
+
+  @override
+  String get gameTangoName => 'tango';
+
+  @override
+  String get gameTangoRule => 'três sóis, três luas, nunca três seguidos';
+
+  @override
+  String get gameZipName => 'zip';
+
+  @override
+  String get gameZipRule =>
+      'uma linha por todos os quadrados, números em ordem';
+
+  @override
+  String get gameSudokuName => 'mini sudoku';
+
+  @override
+  String get gameSudokuRule => 'de 1 a 6 uma vez por linha, coluna e bloco';
+
+  @override
+  String get gameCodeName => 'o código';
+
+  @override
+  String get gameStatusUnplayed => 'não jogado';
+
+  @override
+  String get gameStatusUnfinished => 'em andamento';
+
+  @override
+  String get gameStatusGaveUp => 'desistiu';
+
+  @override
+  String gameRankBadge(Object rank) {
+    return '#$rank';
+  }
+
+  @override
+  String get gamePause => 'pausar';
+
+  @override
+  String get gameResume => 'continuar';
+
+  @override
+  String get gamePausedTitle => 'em pausa';
+
+  @override
+  String get gamePausedBody => 'o relógio está parado e o tabuleiro escondido';
+
+  @override
+  String get gameUndo => 'desfazer';
+
+  @override
+  String get gameClear => 'limpar';
+
+  @override
+  String get gameHint => 'dica';
+
+  @override
+  String get gameNotes => 'anotações';
+
+  @override
+  String get gameErase => 'apagar';
+
+  @override
+  String get gameAutoCross => 'cruzes automáticas';
+
+  @override
+  String get gameGiveUp => 'desistir';
+
+  @override
+  String get gameGiveUpTitle => 'mostrar a resposta?';
+
+  @override
+  String get gameGiveUpBody =>
+      'o tabuleiro de hoje fecha e fica como não resolvido.';
+
+  @override
+  String get gameGiveUpCancel => 'CONTINUAR';
+
+  @override
+  String get gameGiveUpConfirm => 'MOSTRAR';
+
+  @override
+  String gameSolvedTitle(Object time) {
+    return 'resolvido em $time';
+  }
+
+  @override
+  String get gameGaveUpTitle => 'a resposta de hoje';
+
+  @override
+  String get gameFirstInToday => 'o primeiro de hoje';
+
+  @override
+  String gameRankLine(Object place, Object total) {
+    return '$place de $total até agora';
+  }
+
+  @override
+  String gameMistakeCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count erros',
+      one: '1 erro',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String gameHintCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dicas',
+      one: '1 dica',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get gameStandingsLabel => 'TEMPOS DE HOJE';
+
+  @override
+  String get gameStandingsEmpty => 'ninguém terminou esse ainda';
+
+  @override
+  String get gameShare => 'COPIAR RESULTADO';
+
+  @override
+  String get gameShareCopied => 'copiado — cola pra um amigo';
+
+  @override
+  String gameShareLine(Object name, Object number, Object time) {
+    return 'MonkeyHub $name №$number — $time';
+  }
+
+  @override
+  String get gameBackToHub => 'todos os jogos';
+
+  @override
+  String get gameElapsedSemantic => 'tempo decorrido';
+
+  @override
+  String get gameErrorNotSolved => 'esse tabuleiro ainda não está completo';
+
+  @override
+  String get gameErrorAlreadyFinished => 'você já terminou o de hoje';
+
+  @override
+  String get gameErrorNoHint => 'esse não tem dica';
+
+  @override
+  String get gameErrorGeneric =>
+      'não deu para conectar aos jogos — tente de novo';
 }
