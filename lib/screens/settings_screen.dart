@@ -547,7 +547,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              _CheckForUpdatesRow(api: widget.api),
+              const _CheckForUpdatesRow(),
 
               const SizedBox(height: 28),
               _SectionHeader(label: l10n.settingsScreenSectionLinks),
@@ -1071,8 +1071,7 @@ class _ShowNetworkStatsToggle extends StatelessWidget {
 /// guard. Reflects `UpdateAvailability` so the row itself stays lit after a
 /// launch check the user dismissed with LATER, not just right after a tap.
 class _CheckForUpdatesRow extends StatefulWidget {
-  const _CheckForUpdatesRow({required this.api});
-  final ChatApi api;
+  const _CheckForUpdatesRow();
 
   @override
   State<_CheckForUpdatesRow> createState() => _CheckForUpdatesRowState();
@@ -1084,7 +1083,7 @@ class _CheckForUpdatesRowState extends State<_CheckForUpdatesRow> {
   Future<void> _check() async {
     if (_checking) return;
     setState(() => _checking = true);
-    final outcome = await UpdateChecker.instance.checkNow(widget.api);
+    final outcome = await UpdateChecker.instance.checkNow();
     if (!mounted) return;
     setState(() => _checking = false);
     final l10n = AppLocalizations.of(context);

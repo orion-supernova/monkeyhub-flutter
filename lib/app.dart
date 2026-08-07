@@ -594,7 +594,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // r=40 AND r=41 for `listFriends`, and so on down the group.
     _consumePendingPushRoom();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      UpdateChecker.instance.ensure(_api);
+      UpdateChecker.instance.ensure();
+      // Keeps the Settings badge honest after launch: an app that is never
+      // force-quit would otherwise never learn about a release published
+      // while it was running.
+      unawaited(UpdateChecker.instance.watch());
       // Puts the primary adaptive icon back on Android for anyone an earlier
       // build left on a theme alias. A no-op on every launch after the first
       // one that repairs it, and on iOS where the selection is honoured.
