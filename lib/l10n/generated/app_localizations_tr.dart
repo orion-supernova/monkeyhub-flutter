@@ -4052,6 +4052,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'bir arkadaş ekle, günü burada görünsün';
 
   @override
+  String get feedBoardLoadFailed => 'pano yüklenemedi — birazdan tekrar dene';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'HERKESE AÇIK';
 
   @override
@@ -4970,9 +4973,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'kaydettiğin puanların arkadaşlarının panosunda görünüp görünmeyeceği';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORİJİNAL';
 
   @override
   String get momentComposerEditPhoto => 'kırpmayı düzenle';

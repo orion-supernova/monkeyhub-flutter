@@ -22,6 +22,7 @@ import 'anchored_scroll.dart';
 import 'chat_composer.dart';
 import 'chat_pane.dart';
 import 'composer_reply_card.dart';
+import 'glass_close_button.dart';
 import 'glass_pill.dart';
 import 'jump_back.dart';
 import 'mention_picker.dart';
@@ -63,6 +64,7 @@ Future<void> showThreadOverlay({
   required String roomId,
   required String rootId,
   required String anchorMessageId,
+
   /// The room's roster, for the @-picker. Handed in rather than subscribed to
   /// here: this overlay is only ever opened from the room screen, which already
   /// holds a live `rooms:getMembers` subscription, and a second one would pay
@@ -197,18 +199,19 @@ class _ThreadSheetState extends State<_ThreadSheet>
       duration: const Duration(milliseconds: 240),
       reverseDuration: const Duration(milliseconds: 160),
     )..forward();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )
-      ..addListener(() {
-        if (_highlightedId != null && mounted) setState(() {});
-      })
-      ..addStatusListener((s) {
-        if (s != AnimationStatus.completed || !mounted) return;
-        setState(() => _highlightedId = null);
-        _pulse.reset();
-      });
+    _pulse =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 1000),
+          )
+          ..addListener(() {
+            if (_highlightedId != null && mounted) setState(() {});
+          })
+          ..addStatusListener((s) {
+            if (s != AnimationStatus.completed || !mounted) return;
+            setState(() => _highlightedId = null);
+            _pulse.reset();
+          });
 
     widget.repo.addListener(_onRepoChange);
     _scroll.addListener(_onScroll);
@@ -297,11 +300,13 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (p.pixels >= p.maxScrollExtent - 220) {
       if (widget.repo.hasMoreThread(widget.rootId) &&
           !widget.repo.isLoadingThread(widget.rootId)) {
-        unawaited(widget.repo.loadOlderThread(
-          roomId: widget.roomId,
-          rootId: widget.rootId,
-          pageSize: kThreadPageSize,
-        ));
+        unawaited(
+          widget.repo.loadOlderThread(
+            roomId: widget.roomId,
+            rootId: widget.rootId,
+            pageSize: kThreadPageSize,
+          ),
+        );
       }
     }
     // Hysteresis lives in BottomProximity; the notifier swallows the
@@ -337,7 +342,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
   /// A reply and its parent always share a `rootId` (see `messages:send`), so
   /// the parent is always somewhere in this thread — it just may be older
   /// than the pages fetched so far.
-  Future<void> _jumpToParent(String parentId, {required ChatMessage from}) async {
+  Future<void> _jumpToParent(
+    String parentId, {
+    required ChatMessage from,
+  }) async {
     if (await _revealInThread(parentId)) {
       _jumpBack.push(from);
       return;
@@ -365,7 +373,10 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   /// Page the thread back until [messageId] is loaded, scroll to it however
   /// far up it turns out to be, and pulse it.
-  Future<bool> _revealInThread(String messageId, {double alignment = 0.5}) async {
+  Future<bool> _revealInThread(
+    String messageId, {
+    double alignment = 0.5,
+  }) async {
     if (!await _pageUntilLoaded(messageId)) return false;
     if (!mounted) return false;
     // Let the newly-prepended page lay out before measuring against it.
@@ -481,11 +492,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
     if (user == null || !mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ProfileScreen(
-          user: user!,
-          repo: widget.repo,
-          api: widget.api,
-        ),
+        builder: (_) =>
+            ProfileScreen(user: user!, repo: widget.repo, api: widget.api),
       ),
     );
   }
@@ -598,7 +606,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
   Future<void> _onLongPressBubble(ChatMessage m, ChatUser? author) async {
     final isMine = m.senderId == widget.repo.userId;
     final isPending = m.id.startsWith('tmp_');
-    final canReply = !isPending &&
+    final canReply =
+        !isPending &&
         m.status == MessageStatus.sent &&
         m.type != MessageType.system;
     final anchor = _keys[m.id];
@@ -628,7 +637,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
       hasParent: false,
       // Unlike View Thread above, pinning from in here is real: it is the same
       // message, and a thread is exactly where a reply worth keeping turns up.
-      canPin: !m.id.startsWith('tmp_') &&
+      canPin:
+          !m.id.startsWith('tmp_') &&
           m.status == MessageStatus.sent &&
           m.type != MessageType.system,
       isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
@@ -692,9 +702,11 @@ class _ThreadSheetState extends State<_ThreadSheet>
         final err = await widget.repo.pinMessage(widget.roomId, m.id);
         if (err == null) break;
         if (!context.mounted) return;
-        _showToast(err == 'PIN_LIMIT_REACHED'
-            ? AppLocalizations.of(context).threadOverlayPinLimitToast
-            : AppLocalizations.of(context).threadOverlayPinFailedToast);
+        _showToast(
+          err == 'PIN_LIMIT_REACHED'
+              ? AppLocalizations.of(context).threadOverlayPinLimitToast
+              : AppLocalizations.of(context).threadOverlayPinFailedToast,
+        );
         break;
       case MessageAction.unpin:
         await widget.repo.unpinMessage(widget.roomId, m.id);
@@ -759,8 +771,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final name = (m.senderId == me || isDm || grouped)
         ? null
         : (author?.displayName.trim().isNotEmpty ?? false
-            ? author!.displayName
-            : (m.senderName.trim().isEmpty ? null : m.senderName));
+              ? author!.displayName
+              : (m.senderName.trim().isEmpty ? null : m.senderName));
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
         bubbleKey: bubbleKey,
@@ -781,8 +793,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
         onMentionTap: _openMentionedProfile,
         // Null hides the branch button — no thread-within-a-thread.
         onViewThread: null,
-        onReplyIndicatorTap:
-            interactive ? (parentId) => _jumpToParent(parentId, from: m) : null,
+        onReplyIndicatorTap: interactive
+            ? (parentId) => _jumpToParent(parentId, from: m)
+            : null,
         onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
         onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
       );
@@ -805,8 +818,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
       replyMarker: replyMarker,
       onMentionTap: _openMentionedProfile,
       onViewThread: null,
-      onReplyIndicatorTap:
-          interactive ? (parentId) => _jumpToParent(parentId, from: m) : null,
+      onReplyIndicatorTap: interactive
+          ? (parentId) => _jumpToParent(parentId, from: m)
+          : null,
       onLongPress: interactive ? () => _onLongPressBubble(m, author) : null,
       onDoubleTap: interactive ? () => _onLongPressBubble(m, author) : null,
     );
@@ -831,10 +845,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     // not reliably zeroed when the keyboard is up — so take the larger of the
     // two rather than adding them, or the home indicator gets counted twice.
     final media = MediaQuery.of(context);
-    final bottomInset =
-        media.viewInsets.bottom > media.padding.bottom
-            ? media.viewInsets.bottom
-            : media.padding.bottom;
+    final bottomInset = media.viewInsets.bottom > media.padding.bottom
+        ? media.viewInsets.bottom
+        : media.padding.bottom;
 
     return Material(
       type: MaterialType.transparency,
@@ -890,103 +903,106 @@ class _ThreadSheetState extends State<_ThreadSheet>
             Positioned.fill(
               child: ChatPane(
                 child: SafeArea(
-                // Bottom handled manually — see bottomInset above.
-                bottom: false,
-                child: AnimatedBuilder(
-                  animation: curved,
-                  builder: (_, child) =>
-                      Opacity(opacity: curved.value, child: child),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        // Deliberately only the populated branch is wrapped.
-                        // An empty thread paints a bare Text/spinner, which
-                        // hit-tests through to the scrim behind — so tapping
-                        // the middle of "thread unavailable" already dismisses,
-                        // and there is no keyboard to put away first (no
-                        // composer without a target).
-                        child: messages.isEmpty
-                            ? Center(
-                                child: hasLoaded
-                                    ? Text(
-                                        AppLocalizations.of(context)
-                                            .threadOverlayUnavailable,
-                                        style: theme.bodySoft
-                                            .copyWith(color: theme.inkMuted),
-                                      )
-                                    : const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
+                  // Bottom handled manually — see bottomInset above.
+                  bottom: false,
+                  child: AnimatedBuilder(
+                    animation: curved,
+                    builder: (_, child) =>
+                        Opacity(opacity: curved.value, child: child),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          // Deliberately only the populated branch is wrapped.
+                          // An empty thread paints a bare Text/spinner, which
+                          // hit-tests through to the scrim behind — so tapping
+                          // the middle of "thread unavailable" already dismisses,
+                          // and there is no keyboard to put away first (no
+                          // composer without a target).
+                          child: messages.isEmpty
+                              ? Center(
+                                  child: hasLoaded
+                                      ? Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          ).threadOverlayUnavailable,
+                                          style: theme.bodySoft.copyWith(
+                                            color: theme.inkMuted,
+                                          ),
+                                        )
+                                      : const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                )
+                              : GestureDetector(
+                                  // Tapping the transcript closes the thread, or
+                                  // puts the keyboard away when it's up — see
+                                  // [_tapTranscript]. Translucent so it wins the
+                                  // arena ahead of the scrim, which the
+                                  // Scrollable's opaque hit-testing keeps these
+                                  // taps away from regardless.
+                                  behavior: HitTestBehavior.translucent,
+                                  onTapUp: (d) => _tapTranscript(
+                                    d.globalPosition,
+                                    keyboardUp: media.viewInsets.bottom > 0,
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: _buildList(messages, loading),
+                                      ),
+                                      Positioned(
+                                        bottom: 12,
+                                        left: 0,
+                                        right: 0,
+                                        child: Center(
+                                          // Back pill above the jump-to-latest
+                                          // one, same order as the room, so the
+                                          // fixture stays in the slot the reader
+                                          // already knows and the transient one
+                                          // floats over it.
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              TransientPillSlot(
+                                                visible: _jumpBack.isNotEmpty,
+                                                child: JumpBackPill(
+                                                  depth: _jumpBack.depth,
+                                                  onTap: _jumpBackOneHop,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              ValueListenableBuilder<bool>(
+                                                valueListenable: _scrolledUp,
+                                                builder:
+                                                    (context, scrolledUp, _) =>
+                                                        ScrollToLatestSlot(
+                                                          visible: scrolledUp,
+                                                          onTap:
+                                                              _scrollToBottom,
+                                                        ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                              )
-                            : GestureDetector(
-                                // Tapping the transcript closes the thread, or
-                                // puts the keyboard away when it's up — see
-                                // [_tapTranscript]. Translucent so it wins the
-                                // arena ahead of the scrim, which the
-                                // Scrollable's opaque hit-testing keeps these
-                                // taps away from regardless.
-                                behavior: HitTestBehavior.translucent,
-                                onTapUp: (d) => _tapTranscript(
-                                  d.globalPosition,
-                                  keyboardUp: media.viewInsets.bottom > 0,
+                                    ],
+                                  ),
                                 ),
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: _buildList(messages, loading),
-                                    ),
-                                    Positioned(
-                                      bottom: 12,
-                                      left: 0,
-                                      right: 0,
-                                      child: Center(
-                                        // Back pill above the jump-to-latest
-                                        // one, same order as the room, so the
-                                        // fixture stays in the slot the reader
-                                        // already knows and the transient one
-                                        // floats over it.
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            TransientPillSlot(
-                                              visible: _jumpBack.isNotEmpty,
-                                              child: JumpBackPill(
-                                                depth: _jumpBack.depth,
-                                                onTap: _jumpBackOneHop,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            ValueListenableBuilder<bool>(
-                                              valueListenable: _scrolledUp,
-                                              builder:
-                                                  (context, scrolledUp, _) =>
-                                                      ScrollToLatestSlot(
-                                                visible: scrolledUp,
-                                                onTap: _scrollToBottom,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                      ),
-                      if (target != null)
-                        AnimatedPadding(
-                          duration: const Duration(milliseconds: 100),
-                          curve: Curves.easeOut,
-                          padding: EdgeInsets.only(bottom: bottomInset),
-                          child: _buildComposer(target, offTail: offTail),
                         ),
-                    ],
+                        if (target != null)
+                          AnimatedPadding(
+                            duration: const Duration(milliseconds: 100),
+                            curve: Curves.easeOut,
+                            padding: EdgeInsets.only(bottom: bottomInset),
+                            child: _buildComposer(target, offTail: offTail),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
                 ),
               ),
             ),
@@ -999,7 +1015,18 @@ class _ThreadSheetState extends State<_ThreadSheet>
                   animation: curved,
                   builder: (_, child) =>
                       Opacity(opacity: curved.value, child: child),
-                  child: _CloseButton(onTap: _dismiss),
+                  // The Padding was inside the button until it moved out to
+                  // `glass_close_button.dart`; position is the caller's
+                  // business, and the other two surfaces place it differently.
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: GlassCloseButton(
+                      onTap: _dismiss,
+                      semanticLabel: AppLocalizations.of(
+                        context,
+                      ).photoChromeCloseSemanticLabel,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1016,91 +1043,90 @@ class _ThreadSheetState extends State<_ThreadSheet>
     );
   }
 
-  Widget _buildList(
-    List<ChatMessage> messages,
-    bool loading,
-  ) {
+  Widget _buildList(List<ChatMessage> messages, bool loading) {
     // Reversed so the newest sits against the composer and so prepending an
     // older page preserves scroll position for free.
     final count = messages.length + 1; // +1 for the top loading//end slot
     return ChatColumn(
       child: ListView.builder(
-      controller: _scroll,
-      reverse: true,
-      // Build well beyond the viewport so `ensureVisible` finds anchor keys
-      // and long-press works on off-screen bubbles.
-      scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
-      itemCount: count,
-      itemBuilder: (context, i) {
-        if (i == count - 1) {
-          // Visually the top of the thread.
-          if (!loading) return const SizedBox(height: 8);
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+        controller: _scroll,
+        reverse: true,
+        // Build well beyond the viewport so `ensureVisible` finds anchor keys
+        // and long-press works on off-screen bubbles.
+        scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(20, 80, 20, 12),
+        itemCount: count,
+        itemBuilder: (context, i) {
+          if (i == count - 1) {
+            // Visually the top of the thread.
+            if (!loading) return const SizedBox(height: 8);
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
+            );
+          }
+          final j = messages.length - 1 - i; // chronological index
+          final m = messages[j];
+          final author =
+              widget.repo.userById(m.senderId) ??
+              ChatUser(
+                id: m.senderId,
+                username: m.senderName,
+                name: m.senderName,
+              );
+
+          // The room list's own rule, so a thread doesn't read as looser than
+          // the conversation it came from. A linear chain is the common shape
+          // here, which means most rows quote the row above them and so get the
+          // compact marker — the name alone is enough to tell a branch from a
+          // straight continuation, and that ambiguity is the whole reason
+          // threads are hard to read.
+          final prev = j == 0 ? null : messages[j - 1];
+          final marker = replyMarkerFor(prev, m);
+
+          // Note this deliberately has no day-boundary clause: a thread draws
+          // no date dividers.
+          final grouped = continuesRun(prev, m);
+
+          // Whether anything below continues this run — the next message must
+          // be evaluated the same way, marker included.
+          final next = j + 1 < messages.length ? messages[j + 1] : null;
+          final lastInRun = next == null || !continuesRun(m, next);
+
+          final canReply =
+              !m.id.startsWith('tmp_') &&
+              m.status == MessageStatus.sent &&
+              m.type != MessageType.system;
+
+          final bubble = SwipeToReply(
+            enabled: canReply,
+            onReplyTriggered: () => _armReply(m, haptic: false),
+            child: _bubbleFor(
+              m,
+              author,
+              replyMarker: marker,
+              interactive: true,
+              grouped: grouped,
+              lastInRun: lastInRun,
+              highlightT: _highlightedId == m.id ? _pulse.value : 0.0,
             ),
           );
-        }
-        final j = messages.length - 1 - i; // chronological index
-        final m = messages[j];
-        final author = widget.repo.userById(m.senderId) ??
-            ChatUser(
-              id: m.senderId,
-              username: m.senderName,
-              name: m.senderName,
-            );
 
-        // The room list's own rule, so a thread doesn't read as looser than
-        // the conversation it came from. A linear chain is the common shape
-        // here, which means most rows quote the row above them and so get the
-        // compact marker — the name alone is enough to tell a branch from a
-        // straight continuation, and that ambiguity is the whole reason
-        // threads are hard to read.
-        final prev = j == 0 ? null : messages[j - 1];
-        final marker = replyMarkerFor(prev, m);
-
-        // Note this deliberately has no day-boundary clause: a thread draws
-        // no date dividers.
-        final grouped = continuesRun(prev, m);
-
-        // Whether anything below continues this run — the next message must
-        // be evaluated the same way, marker included.
-        final next = j + 1 < messages.length ? messages[j + 1] : null;
-        final lastInRun = next == null || !continuesRun(m, next);
-
-        final canReply = !m.id.startsWith('tmp_') &&
-            m.status == MessageStatus.sent &&
-            m.type != MessageType.system;
-
-        final bubble = SwipeToReply(
-          enabled: canReply,
-          onReplyTriggered: () => _armReply(m, haptic: false),
-          child: _bubbleFor(
-            m,
-            author,
-            replyMarker: marker,
-            interactive: true,
-            grouped: grouped,
-            lastInRun: lastInRun,
-            highlightT: _highlightedId == m.id ? _pulse.value : 0.0,
-          ),
-        );
-
-        return KeyedSubtree(
-          key: _keys.putIfAbsent(
-            m.id,
-            () => GlobalKey(debugLabel: 'thread-${m.id}'),
-          ),
-          child: bubble,
-        );
-      },
+          return KeyedSubtree(
+            key: _keys.putIfAbsent(
+              m.id,
+              () => GlobalKey(debugLabel: 'thread-${m.id}'),
+            ),
+            child: bubble,
+          );
+        },
       ),
     );
   }
@@ -1122,58 +1148,58 @@ class _ThreadSheetState extends State<_ThreadSheet>
         curve: theme.motionEntrance,
         alignment: Alignment.bottomCenter,
         child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // No "REPLYING TO" banner in the normal case. In a room it earns its
-        // space — it's the only thing saying you're not just typing into the
-        // channel. In a thread the whole view IS the context, and the default
-        // target is the message sitting directly above the composer, so the
-        // card just restates what's already on screen.
-        //
-        // It comes back when you long-press or swipe an EARLIER message to
-        // branch, because then the send goes somewhere the layout doesn't
-        // imply — that's the one case where silence would be wrong.
-        if (offTail)
-          ComposerReplyCard(
-            // Without the key the card doesn't re-run its entrance animation
-            // when the user retargets, so the switch reads as nothing
-            // happening.
-            key: ValueKey(target.id),
-            parent: target,
-            api: widget.api,
-            // Clearing goes back to the tail, which is the default — there is
-            // no null target inside a thread.
-            onCancel: () => setState(() => _target = null),
-          ),
-        // The @-picker, unlike the attach flow below, is safe here precisely
-        // because it is a sibling in this Column rather than an overlay of its
-        // own — there is nothing for this root entry to fight with.
-        if (_mention.isOpen)
-          MentionPicker(session: _mention, api: widget.api),
-        // Attachments are deliberately absent: the attach flow pushes
-        // full-screen routes (camera, voice recorder) that would fight this
-        // root-overlay entry for layering. Text only in the thread.
-        if (classic)
-          ChatComposerClassic(
-            controller: _composer,
-            focusNode: _composerFocus,
-            ephemeral: ephemeral,
-            onSend: _send,
-            onChanged: (_) => widget.repo.noteTyping(),
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-            mention: _mention,
-          )
-        else
-          ChatComposerLiquid(
-            controller: _composer,
-            focusNode: _composerFocus,
-            ephemeral: ephemeral,
-            onSend: _send,
-            onChanged: (_) => widget.repo.noteTyping(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            mention: _mention,
-          ),
-      ],
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // No "REPLYING TO" banner in the normal case. In a room it earns its
+            // space — it's the only thing saying you're not just typing into the
+            // channel. In a thread the whole view IS the context, and the default
+            // target is the message sitting directly above the composer, so the
+            // card just restates what's already on screen.
+            //
+            // It comes back when you long-press or swipe an EARLIER message to
+            // branch, because then the send goes somewhere the layout doesn't
+            // imply — that's the one case where silence would be wrong.
+            if (offTail)
+              ComposerReplyCard(
+                // Without the key the card doesn't re-run its entrance animation
+                // when the user retargets, so the switch reads as nothing
+                // happening.
+                key: ValueKey(target.id),
+                parent: target,
+                api: widget.api,
+                // Clearing goes back to the tail, which is the default — there is
+                // no null target inside a thread.
+                onCancel: () => setState(() => _target = null),
+              ),
+            // The @-picker, unlike the attach flow below, is safe here precisely
+            // because it is a sibling in this Column rather than an overlay of its
+            // own — there is nothing for this root entry to fight with.
+            if (_mention.isOpen)
+              MentionPicker(session: _mention, api: widget.api),
+            // Attachments are deliberately absent: the attach flow pushes
+            // full-screen routes (camera, voice recorder) that would fight this
+            // root-overlay entry for layering. Text only in the thread.
+            if (classic)
+              ChatComposerClassic(
+                controller: _composer,
+                focusNode: _composerFocus,
+                ephemeral: ephemeral,
+                onSend: _send,
+                onChanged: (_) => widget.repo.noteTyping(),
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                mention: _mention,
+              )
+            else
+              ChatComposerLiquid(
+                controller: _composer,
+                focusNode: _composerFocus,
+                ephemeral: ephemeral,
+                onSend: _send,
+                onChanged: (_) => widget.repo.noteTyping(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                mention: _mention,
+              ),
+          ],
         ),
       ),
     );
@@ -1203,49 +1229,6 @@ class _Toast extends StatelessWidget {
               message,
               style: theme.bodySoft.copyWith(color: theme.ink),
               textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ClipOval(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-            child: Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.surface.withValues(alpha: 0.55),
-                border: Border.all(
-                  color: theme.accent.withValues(alpha: 0.35),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    blurRadius: 14,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Icon(Icons.close, size: 18, color: theme.ink),
             ),
           ),
         ),

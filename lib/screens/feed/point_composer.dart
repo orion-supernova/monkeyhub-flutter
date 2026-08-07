@@ -13,7 +13,7 @@ import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
 import '../../widgets/moment_rail.dart';
-import '../image_crop_screen.dart';
+import '../camera_editor_screen.dart';
 import 'points_explainer.dart';
 
 /// Logs a point: what happened, and which kind of thing it was.
@@ -109,6 +109,7 @@ class _PointComposerState extends State<_PointComposer> {
       (_note.text.trim().isNotEmpty || _image != null);
 
   Future<void> _pickPhoto() async {
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final picked = await ImagePicker().pickImage(
@@ -117,14 +118,18 @@ class _PointComposerState extends State<_PointComposer> {
       );
       final bytes = await picked?.readAsBytes();
       if (bytes == null || !mounted) return;
-      final cropped = await ImageCropScreen.open(
+      // The same editor chat uses: a crop rect dragged by its edges and
+      // corners, rather than a fixed window with the picture panning beneath.
+      final outcome = await CameraEditorScreen.open(
         context,
         source: bytes,
-        shape: CropShape.rect,
-        ratioChoices: const [null, 1.0, 4 / 5, 16 / 9],
+        allowDrawing: false,
+        allowViewOnce: false,
+        confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
+        busyLabel: l10n.imageCropScreenSavingButton,
       );
-      if (!mounted || cropped == null) return;
-      setState(() => _image = cropped);
+      if (!mounted || outcome is! EditorSend) return;
+      setState(() => _image = outcome.image);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -141,10 +146,9 @@ class _PointComposerState extends State<_PointComposer> {
       String? storageId;
       final image = _image;
       if (image != null) {
-        storageId = await UploadService(widget.api).uploadFile(
-          bytes: image.bytes,
-          contentType: image.contentType,
-        );
+        storageId = await UploadService(
+          widget.api,
+        ).uploadFile(bytes: image.bytes, contentType: image.contentType);
       }
       await widget.feedApi.post(
         userId: widget.userId,
@@ -162,8 +166,11 @@ class _PointComposerState extends State<_PointComposer> {
       final s = e.toString();
       setState(() {
         _busy = false;
-        _errorCode = ['DAILY_CAP_REACHED', 'CHILD_NOT_ALLOWED', 'CAPTION_TOO_LONG']
-            .firstWhere(s.contains, orElse: () => 'UNKNOWN');
+        _errorCode = [
+          'DAILY_CAP_REACHED',
+          'CHILD_NOT_ALLOWED',
+          'CAPTION_TOO_LONG',
+        ].firstWhere(s.contains, orElse: () => 'UNKNOWN');
       });
     }
   }
@@ -182,145 +189,163 @@ class _PointComposerState extends State<_PointComposer> {
         20 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       decoration: theme.sheetDecoration(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      // Scrolls, and is bounded — the same fix the highlight composer already
+      // carries. An unscrollable Column in an `isScrollControlled` sheet simply
+      // clips whatever runs past the viewport, and with the keyboard up and a
+      // photo attached what got clipped was ADD POINT itself: the button you
+      // need to finish is the one that disappears.
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.82,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(l10n.pointComposerTitle, style: theme.displaySmall),
-              ),
-              // The concept needs explaining — "kerizlik points" is not a thing
-              // anyone has met before. One tap, right where the question
-              // occurs to you.
-              _WhatIsThis(onTap: () => showPointsExplainer(context)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _TagGrid(
-            selected: _tag,
-            enabled: !_busy,
-            onPick: (t) {
-              setState(() => _tag = t);
-              HapticFeedback.selectionClick();
-            },
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _note,
-            focusNode: _focus,
-            maxLines: 4,
-            minLines: 2,
-            enabled: !_busy,
-            style: theme.body,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: _tag == null
-                  ? l10n.pointComposerNoteHint
-                  : MomentTagChip.exampleFor(l10n, _tag!),
-              hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
-              border: InputBorder.none,
-              isDense: true,
-            ),
-          ),
-          if (_image != null) ...[
-            const SizedBox(height: 12),
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                  child: AspectRatio(
-                    aspectRatio: _image!.width / _image!.height,
-                    child: Image.memory(_image!.bytes, fit: BoxFit.cover),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.pointComposerTitle,
+                      style: theme.displaySmall,
+                    ),
                   ),
+                  // The concept needs explaining — "kerizlik points" is not a thing
+                  // anyone has met before. One tap, right where the question
+                  // occurs to you.
+                  _WhatIsThis(onTap: () => showPointsExplainer(context)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _TagGrid(
+                selected: _tag,
+                enabled: !_busy,
+                onPick: (t) {
+                  setState(() => _tag = t);
+                  HapticFeedback.selectionClick();
+                },
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _note,
+                focusNode: _focus,
+                maxLines: 4,
+                minLines: 2,
+                enabled: !_busy,
+                style: theme.body,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: _tag == null
+                      ? l10n.pointComposerNoteHint
+                      : MomentTagChip.exampleFor(l10n, _tag!),
+                  hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: FocusableTap(
-                    onTap: () => setState(() => _image = null),
-                    semanticLabel: l10n.momentComposerRemovePhoto,
-                    shape: FocusRingShape.circle,
-                    child: GestureDetector(
-                      onTap: () => setState(() => _image = null),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: theme.surface,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: theme.divider),
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          size: 13,
-                          color: theme.inkSoft,
+              ),
+              if (_image != null) ...[
+                const SizedBox(height: 12),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                      // Capped at the same 300 the highlight composer's `_MediaSlot`
+                      // uses. A 9:16 portrait rendered at its true ratio is taller
+                      // than the sheet on its own; keep the two in step.
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 300),
+                        child: AspectRatio(
+                          aspectRatio: _image!.width / _image!.height,
+                          child: Image.memory(_image!.bytes, fit: BoxFit.cover),
                         ),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: FocusableTap(
+                        onTap: () => setState(() => _image = null),
+                        semanticLabel: l10n.momentComposerRemovePhoto,
+                        shape: FocusRingShape.circle,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _image = null),
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: theme.surface,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: theme.divider),
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              size: 13,
+                              color: theme.inkSoft,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ],
-          if (_errorCode != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              switch (_errorCode) {
-                'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
-                'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
-                'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
-                _ => l10n.momentComposerErrorGeneric,
-              },
-              style: theme.bodySoft.copyWith(color: theme.danger),
-            ),
-          ],
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              if (_image == null)
-                FocusableTap(
-                  onTap: _busy ? null : _pickPhoto,
-                  semanticLabel: l10n.pointComposerAddPhoto,
-                  radius: theme.radiusMd,
-                  child: GestureDetector(
-                    onTap: _busy ? null : _pickPhoto,
-                    behavior: HitTestBehavior.opaque,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.add_photo_alternate_outlined,
-                          size: 15,
-                          color: theme.inkSoft,
+              if (_errorCode != null) ...[
+                const SizedBox(height: 12),
+                Text(switch (_errorCode) {
+                  'DAILY_CAP_REACHED' => l10n.momentComposerErrorDailyCap,
+                  'CHILD_NOT_ALLOWED' => l10n.momentComposerErrorNotAllowed,
+                  'CAPTION_TOO_LONG' => l10n.momentComposerErrorTooLong,
+                  _ => l10n.momentComposerErrorGeneric,
+                }, style: theme.bodySoft.copyWith(color: theme.danger)),
+              ],
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (_image == null)
+                    FocusableTap(
+                      onTap: _busy ? null : _pickPhoto,
+                      semanticLabel: l10n.pointComposerAddPhoto,
+                      radius: theme.radiusMd,
+                      child: GestureDetector(
+                        onTap: _busy ? null : _pickPhoto,
+                        behavior: HitTestBehavior.opaque,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate_outlined,
+                              size: 15,
+                              color: theme.inkSoft,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              l10n.pointComposerAddPhoto,
+                              style: theme.monoTiny,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          l10n.pointComposerAddPhoto,
-                          style: theme.monoTiny,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              const Spacer(),
-              if (remaining <= 40)
-                Text(
-                  '$remaining',
-                  style: theme.monoTiny.copyWith(
-                    color: remaining < 0 ? theme.danger : theme.inkMuted,
-                  ),
-                ),
+                  const Spacer(),
+                  if (remaining <= 40)
+                    Text(
+                      '$remaining',
+                      style: theme.monoTiny.copyWith(
+                        color: remaining < 0 ? theme.danger : theme.inkMuted,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _AddButton(
+                enabled: _canPost && remaining >= 0,
+                busy: _busy,
+                onTap: _post,
+              ),
             ],
           ),
-          const SizedBox(height: 14),
-          _AddButton(
-            enabled: _canPost && remaining >= 0,
-            busy: _busy,
-            onTap: _post,
-          ),
-        ],
+        ),
       ),
     );
   }

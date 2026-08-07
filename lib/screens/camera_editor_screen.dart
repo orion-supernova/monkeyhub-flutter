@@ -39,6 +39,10 @@ class CameraEditorScreen extends StatefulWidget {
     required this.source,
     this.canRetake = false,
     this.mirrored = false,
+    this.allowDrawing = true,
+    this.allowViewOnce = true,
+    this.confirmLabel,
+    this.busyLabel,
   });
 
   /// The encoded photo. Bytes rather than a `dart:io` File so this screen works
@@ -61,6 +65,26 @@ class CameraEditorScreen extends StatefulWidget {
   /// re-encode.
   final bool mirrored;
 
+  /// Whether the pen is offered at all.
+  ///
+  /// The feed's composers want a cropper, not a doodle surface: a highlight is
+  /// a photograph, and a scribble on it is a chat gesture that means nothing on
+  /// a board. False also makes every drawing path unreachable rather than
+  /// merely hidden — `_penArmed` can only be set by the button this removes.
+  final bool allowDrawing;
+
+  /// Whether the circled "1" is offered.
+  ///
+  /// A board post is visible to your friends for a day by construction, so
+  /// "view once" has nothing to mean there.
+  final bool allowViewOnce;
+
+  /// Label on the commit pill. Null keeps chat's SEND.
+  final String? confirmLabel;
+
+  /// Label on the commit pill while the export runs. Null keeps chat's SENDING.
+  final String? busyLabel;
+
   /// [overCamera] pushes with no transition, for the camera's in-place review:
   /// the editor takes the preview's place in the frame after the shutter rather
   /// than presenting itself as a second screen. A photo from the library has no
@@ -71,11 +95,19 @@ class CameraEditorScreen extends StatefulWidget {
     bool canRetake = false,
     bool mirrored = false,
     bool overCamera = false,
+    bool allowDrawing = true,
+    bool allowViewOnce = true,
+    String? confirmLabel,
+    String? busyLabel,
   }) {
     final screen = CameraEditorScreen(
       source: source,
       canRetake: canRetake,
       mirrored: mirrored,
+      allowDrawing: allowDrawing,
+      allowViewOnce: allowViewOnce,
+      confirmLabel: confirmLabel,
+      busyLabel: busyLabel,
     );
     return Navigator.of(context).push<EditorOutcome>(
       overCamera
@@ -1108,31 +1140,36 @@ class _CameraEditorScreenState extends State<CameraEditorScreen> {
               ),
               const SizedBox(width: 8),
             ],
-            PhotoGlassButton(
-              icon: CupertinoIcons.scribble,
-              semanticLabel: _penArmed
-                  ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
-                  : l10n.cameraEditorScreenPenDrawSemanticLabel,
-              size: 38,
-              iconSize: 18,
-              tint: _penArmed ? theme.accent : null,
-              iconColor: _penArmed ? theme.accentInk : null,
-              onTap: _saving ? null : _togglePen,
-            ),
-            const SizedBox(width: 8),
-            _ViewOnceToggle(
-              active: _viewOnce,
-              accent: theme.accent,
-              accentInk: theme.accentInk,
-              onTap: _saving
-                  ? null
-                  : () => setState(() => _viewOnce = !_viewOnce),
-            ),
+            if (widget.allowDrawing) ...[
+              PhotoGlassButton(
+                icon: CupertinoIcons.scribble,
+                semanticLabel: _penArmed
+                    ? l10n.cameraEditorScreenPenPutAwaySemanticLabel
+                    : l10n.cameraEditorScreenPenDrawSemanticLabel,
+                size: 38,
+                iconSize: 18,
+                tint: _penArmed ? theme.accent : null,
+                iconColor: _penArmed ? theme.accentInk : null,
+                onTap: _saving ? null : _togglePen,
+              ),
+              const SizedBox(width: 8),
+            ],
+            if (widget.allowViewOnce)
+              _ViewOnceToggle(
+                active: _viewOnce,
+                accent: theme.accent,
+                accentInk: theme.accentInk,
+                onTap: _saving
+                    ? null
+                    : () => setState(() => _viewOnce = !_viewOnce),
+              ),
             const Spacer(),
             PhotoGlassPill(
               label: _saving
-                  ? l10n.cameraEditorScreenSendingButton
-                  : l10n.cameraEditorScreenSendButton,
+                  ? (widget.busyLabel ??
+                        l10n.cameraEditorScreenSendingButton)
+                  : (widget.confirmLabel ??
+                        l10n.cameraEditorScreenSendButton),
               icon: _saving ? null : CupertinoIcons.arrow_up,
               tint: theme.accent,
               onTap: _saving || _display == null ? null : _save,

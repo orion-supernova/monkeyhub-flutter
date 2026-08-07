@@ -4123,6 +4123,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'adiciona um amigo e o dia dele aparece aqui';
 
   @override
+  String get feedBoardLoadFailed =>
+      'não foi possível carregar o quadro — tenta daqui a pouco';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'PÚBLICA';
 
   @override
@@ -5052,9 +5056,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'se os pontos que registas aparecem nos quadros dos teus amigos';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'editar recorte';
@@ -9221,6 +9222,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
       'adicione um amigo e o dia dele aparece aqui';
 
   @override
+  String get feedBoardLoadFailed =>
+      'não foi possível carregar o quadro — tente daqui a pouco';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'PÚBLICA';
 
   @override
@@ -10151,9 +10156,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'se os pontos que você registra aparecem nos quadros dos seus amigos';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'editar recorte';

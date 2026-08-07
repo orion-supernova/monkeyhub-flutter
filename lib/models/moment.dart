@@ -144,13 +144,24 @@ class Moment {
   }
 
   static Moment fromJson(Map<String, dynamic> j) {
+    // The wire shape is a LIST of `{emoji, count}`, not a map keyed by the
+    // emoji — Convex field names must be non-control ASCII, so an emoji-keyed
+    // object serializes fine right up until it doesn't and takes the whole
+    // query with it. Flattened into a map here because that is what every
+    // consumer wants; the wire is the only place the shape matters.
+    //
+    // Pattern-matched rather than cast: a hard `as List` here would turn any
+    // future wire drift into a thrown parse for EVERY moment in the payload,
+    // which is the same "whole board goes blank" failure by another route.
     final counts = <String, int>{};
-    final raw = j['reactionCounts'];
-    if (raw is Map) {
-      raw.forEach((k, v) {
-        final n = (v as num?)?.toInt() ?? 0;
-        if (n > 0) counts['$k'] = n;
-      });
+    final rawCounts = j['reactionCounts'];
+    if (rawCounts is List) {
+      for (final e in rawCounts) {
+        if (e is! Map) continue;
+        final emoji = e['emoji']?.toString();
+        final n = (e['count'] as num?)?.toInt() ?? 0;
+        if (emoji != null && emoji.isNotEmpty && n > 0) counts[emoji] = n;
+      }
     }
     return Moment(
       id: j['_id'].toString(),

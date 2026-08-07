@@ -4114,6 +4114,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'añade a un amigo y su día aparecerá aquí';
 
   @override
+  String get feedBoardLoadFailed =>
+      'no se pudo cargar el tablero — inténtalo en un momento';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'PÚBLICA';
 
   @override
@@ -5043,9 +5047,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'si los puntos que apuntas aparecen en los tableros de tus amigos';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'editar recorte';

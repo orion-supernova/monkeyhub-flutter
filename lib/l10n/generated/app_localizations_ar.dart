@@ -4168,6 +4168,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get feedBoardActivityNoFriends => 'أضف صديقًا وسيظهر يومه هنا';
 
   @override
+  String get feedBoardLoadFailed =>
+      'تعذّر تحميل اللوحة — أعد المحاولة بعد قليل';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'عامة';
 
   @override
@@ -5081,9 +5085,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'ما إذا كانت النقاط التي تسجّلها تظهر على لوحات أصدقائك';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'الأصلي';
 
   @override
   String get momentComposerEditPhoto => 'تعديل القص';

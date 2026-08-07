@@ -17,8 +17,8 @@ import '../../media/video_poster.dart';
 import '../../models/moment.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_sheet.dart';
+import '../camera_editor_screen.dart';
 import '../camera_screen.dart';
-import '../image_crop_screen.dart';
 
 /// Composes a HIGHLIGHT: a picture or a video, and a few words about it.
 ///
@@ -37,11 +37,7 @@ Future<bool> showMomentComposer(
 }) async {
   final posted = await showAdaptiveSheet<bool>(
     context,
-    builder: (_) => _MomentComposer(
-      api: api,
-      feedApi: feedApi,
-      userId: userId,
-    ),
+    builder: (_) => _MomentComposer(api: api, feedApi: feedApi, userId: userId),
   );
   return posted == true;
 }
@@ -109,40 +105,57 @@ class _MomentComposerState extends State<_MomentComposer> {
       (_image != null || _video != null || _caption.text.trim().isNotEmpty);
 
   Future<void> _capture() async {
+    // Resolved before the first await: everything below crosses an async gap,
+    // and `AppLocalizations.of` after one is the lint this repo treats as an
+    // error.
+    final l10n = AppLocalizations.of(context);
     // Raise the scrim BEFORE the picker: `ImagePicker.pickImage` with
     // `imageQuality` re-encodes the asset AFTER the native sheet has already
     // dismissed, which for a 12MP HEIC is seconds of the user staring at an
     // apparently unchanged screen.
     setState(() => _busy = true);
     try {
-      final result = await CameraScreen.open<CroppedImage>(
+      // Captured out of the review closure so re-editing can start from the
+      // ORIGINAL frame rather than the JPEG the editor exported. Cropping an
+      // export re-encodes an already-re-encoded JPEG, and two or three passes
+      // of that is visibly mushy.
+      Uint8List? rawFrame;
+      var rawMirrored = false;
+      final result = await CameraScreen.open<EditorSend>(
         context,
         initialLens: CameraLensDirection.back,
-        review: (context, photo) async => ReviewDone(
-          await ImageCropScreen.open(
+        review: (context, photo) async {
+          rawFrame = photo.bytes;
+          rawMirrored = photo.mirrored;
+          final outcome = await CameraEditorScreen.open(
             context,
             source: photo.bytes,
-            shape: CropShape.rect,
-            // A highlight is a picture, not an avatar — keep the frame the
-            // user actually shot rather than forcing it square.
-            aspectRatio: null,
+            // The camera route is still mounted underneath — that is the whole
+            // contract of `CameraScreen.review` — so RETAKE can restore the
+            // live preview instead of unwinding to this sheet.
+            canRetake: true,
             mirrored: photo.mirrored,
             overCamera: true,
-          ),
-        ),
+            allowDrawing: false,
+            allowViewOnce: false,
+            confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
+            busyLabel: l10n.imageCropScreenSavingButton,
+          );
+          return switch (outcome) {
+            EditorRetake() => const ReviewRetake<EditorSend>(),
+            final EditorSend send => ReviewDone(send),
+            null => const ReviewDone<EditorSend>(null),
+          };
+        },
       );
       if (!mounted) return;
       switch (result) {
         case CameraReviewed(:final value):
           if (value != null) {
             setState(() {
-              _image = value;
-              // The camera path crops INSIDE the camera route, so the raw
-              // frame is not handed back here. Re-edit therefore reworks the
-              // export — acceptable, and the alternative is threading the
-              // original frame back out through CameraResult for one button.
-              _imageSource = value.bytes;
-              _sourceMirrored = false;
+              _image = value.image;
+              _imageSource = rawFrame ?? value.image.bytes;
+              _sourceMirrored = rawFrame != null && rawMirrored;
               _video = null;
             });
           }
@@ -212,21 +225,25 @@ class _MomentComposerState extends State<_MomentComposer> {
     }
   }
 
+  /// Opens the same editor chat uses — a crop rect you drag by its edges and
+  /// corners, not a fixed window with the picture sliding underneath it.
   Future<void> _cropInto(Uint8List? source, {bool mirrored = false}) async {
     if (source == null || !mounted) return;
-    final cropped = await ImageCropScreen.open(
+    final l10n = AppLocalizations.of(context);
+    final outcome = await CameraEditorScreen.open(
       context,
       source: source,
-      shape: CropShape.rect,
       mirrored: mirrored,
-      // A rect crop with no ratio choice cannot crop — the window is the
-      // image's own shape, so only zoom is available. These are the choices
-      // that make it a real cropper.
-      ratioChoices: const [null, 1.0, 4 / 5, 16 / 9],
+      // Nothing underneath to retake — this is a library pick or the system
+      // camera, both of which have already gone away by now.
+      allowDrawing: false,
+      allowViewOnce: false,
+      confirmLabel: l10n.imageCropScreenDefaultConfirmLabel,
+      busyLabel: l10n.imageCropScreenSavingButton,
     );
-    if (!mounted || cropped == null) return;
+    if (!mounted || outcome is! EditorSend) return;
     setState(() {
-      _image = cropped;
+      _image = outcome.image;
       _imageSource = source;
       _sourceMirrored = mirrored;
       _video = null;
@@ -279,7 +296,9 @@ class _MomentComposerState extends State<_MomentComposer> {
               bytes: posterBytes,
               contentType: 'image/jpeg',
             );
-          } catch (_) {/* the glyph is a fine fallback */}
+          } catch (_) {
+            /* the glyph is a fine fallback */
+          }
         }
         storageId = await uploader.uploadFile(
           bytes: video.bytes,
@@ -355,66 +374,66 @@ class _MomentComposerState extends State<_MomentComposer> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-          Text(l10n.momentComposerTitle, style: theme.displaySmall),
-          const SizedBox(height: 16),
-          _MediaSlot(
-            image: _image,
-            video: _video,
-            busy: _busy,
-            onCapture: _capture,
-            onLibrary: _pickFromLibrary,
-            onVideo: _pickVideo,
-            onEdit: _imageSource == null ? null : _editImage,
-            onClear: () => setState(() {
-              _image = null;
-              _imageSource = null;
-              _video = null;
-            }),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _caption,
-            maxLines: 3,
-            minLines: 1,
-            enabled: !_busy,
-            style: theme.body,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              hintText: l10n.momentComposerCaptionHint,
-              hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
-              border: InputBorder.none,
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Spacer(),
-              // Only warn as the limit approaches — a permanent counter on a
-              // 280-character field is noise for the 280th of posts that get
-              // anywhere near it.
-              if (remaining <= 40)
-                Text(
-                  '$remaining',
-                  style: theme.monoTiny.copyWith(
-                    color: remaining < 0 ? theme.danger : theme.inkMuted,
-                  ),
+              Text(l10n.momentComposerTitle, style: theme.displaySmall),
+              const SizedBox(height: 16),
+              _MediaSlot(
+                image: _image,
+                video: _video,
+                busy: _busy,
+                onCapture: _capture,
+                onLibrary: _pickFromLibrary,
+                onVideo: _pickVideo,
+                onEdit: _imageSource == null ? null : _editImage,
+                onClear: () => setState(() {
+                  _image = null;
+                  _imageSource = null;
+                  _video = null;
+                }),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _caption,
+                maxLines: 3,
+                minLines: 1,
+                enabled: !_busy,
+                style: theme.body,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: l10n.momentComposerCaptionHint,
+                  hintStyle: theme.bodySoft.copyWith(color: theme.inkMuted),
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
-            ],
-          ),
-          if (_errorCode != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              _errorText(l10n),
-              style: theme.bodySoft.copyWith(color: theme.danger),
-            ),
-          ],
-          const SizedBox(height: 18),
-          _PostButton(
-            enabled: _canPost && remaining >= 0,
-            busy: _busy,
-            onTap: _post,
-          ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Spacer(),
+                  // Only warn as the limit approaches — a permanent counter on a
+                  // 280-character field is noise for the 280th of posts that get
+                  // anywhere near it.
+                  if (remaining <= 40)
+                    Text(
+                      '$remaining',
+                      style: theme.monoTiny.copyWith(
+                        color: remaining < 0 ? theme.danger : theme.inkMuted,
+                      ),
+                    ),
+                ],
+              ),
+              if (_errorCode != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _errorText(l10n),
+                  style: theme.bodySoft.copyWith(color: theme.danger),
+                ),
+              ],
+              const SizedBox(height: 18),
+              _PostButton(
+                enabled: _canPost && remaining >= 0,
+                busy: _busy,
+                onTap: _post,
+              ),
             ],
           ),
         ),

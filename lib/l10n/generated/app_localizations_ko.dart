@@ -3950,6 +3950,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get feedBoardActivityNoFriends => '친구를 추가하면 친구의 하루가 여기에 나타나요';
 
   @override
+  String get feedBoardLoadFailed => '보드를 불러오지 못했어요 — 잠시 후 다시 시도해 주세요';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => '공개';
 
   @override
@@ -4833,9 +4836,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '기록한 점수가 친구들의 보드에 보일지 여부';
-
-  @override
-  String get imageCropScreenRatioOriginal => '원본';
 
   @override
   String get momentComposerEditPhoto => '자르기 편집';

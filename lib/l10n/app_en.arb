@@ -4532,6 +4532,10 @@
   "@feedBoardActivityNoFriends": {
     "description": "Muted single line shown under the ACTIVITY band when the viewer has no friends yet — explains what would fill the section, rather than only reporting that it is empty."
   },
+  "feedBoardLoadFailed": "couldn't load the board — try again in a moment",
+  "@feedBoardLoadFailed": {
+    "description": "Board-level failure line shown above every section when the feed subscription errored and no payload ever arrived. Deliberately distinct from the per-section empty states, which mean 'nothing happened today' rather than 'this did not load'."
+  },
   "enterPublicRoomVisibilityPublicLabel": "PUBLIC",
   "@enterPublicRoomVisibilityPublicLabel": {
     "description": "All-caps badge label shown on a room card/chip when the room is public (widgets/visibility_badge.dart)."
@@ -5629,10 +5633,6 @@
   "profileVisibilityScreenPointsDesc": "whether the points you log show up on friends' boards",
   "@profileVisibilityScreenPointsDesc": {
     "description": "Explanation under the 'my points' visibility control."
-  },
-  "imageCropScreenRatioOriginal": "ORIGINAL",
-  "@imageCropScreenRatioOriginal": {
-    "description": "All-caps label on the crop screen's shape option that keeps the photo's own proportions. The other options are locale-invariant notation (1:1, 4:5, 16:9) and are not translated."
   },
   "momentComposerEditPhoto": "edit crop",
   "@momentComposerEditPhoto": {

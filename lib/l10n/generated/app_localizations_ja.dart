@@ -3937,6 +3937,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get feedBoardActivityNoFriends => '友だちを追加すると、その一日がここに表示されます';
 
   @override
+  String get feedBoardLoadFailed => 'ボードを読み込めませんでした — 少ししてからもう一度お試しください';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => '公開';
 
   @override
@@ -4818,9 +4821,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '記録したポイントを友だちのボードに表示するかどうか';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'オリジナル';
 
   @override
   String get momentComposerEditPhoto => 'トリミングを編集';

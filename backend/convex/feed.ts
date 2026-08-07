@@ -71,12 +71,27 @@ const MAX_FANOUT = 200;
  * this object IS the access-control boundary, and a `...moment` would ship
  * whatever field someone adds to the table next.
  */
-function momentView(m: any, opts: { reactions: any[]; seen: boolean; mine: boolean }) {
-  const counts: Record<string, number> = {};
-  const own: string[] = [];
+function momentView(
+  m: any,
+  opts: { reactions: any[]; seen: boolean; mine: boolean; viewerId: any }
+) {
+  // An ARRAY of {emoji, count}, never an object keyed by the emoji.
+  //
+  // Convex field names must be non-control ASCII, so `counts["❤️"] = 1` builds
+  // fine, survives the whole handler, and then throws in `convexToJson` on the
+  // way out — taking the entire board with it. One reaction anywhere in the
+  // payload emptied highlights, points, activity and the puzzle at once, and
+  // because the failure is in serialization rather than the query, nothing in
+  // the handler could catch it.
+  //
+  // Emoji as a VALUE is legal; only as a KEY is it rejected. This is also the
+  // house pattern already — see messages.ts, which ships raw `reactions` rows
+  // as an array and has never hit this.
+  const tally = new Map<string, number>();
   for (const r of opts.reactions) {
-    counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+    tally.set(r.emoji, (tally.get(r.emoji) ?? 0) + 1);
   }
+  const counts = Array.from(tally, ([emoji, count]) => ({ emoji, count }));
   return {
     _id: m._id,
     userId: m.userId,
@@ -92,7 +107,12 @@ function momentView(m: any, opts: { reactions: any[]; seen: boolean; mine: boole
     authorUsername: m.authorUsername,
     authorAvatarStorageId: m.authorAvatarStorageId,
     reactionCounts: counts,
-    myReactions: own,
+    // Resolved here rather than patched onto the result by each caller. Both
+    // call sites used to do that themselves, which is one caller away from a
+    // surface that silently reports nobody's own reactions.
+    myReactions: opts.reactions
+      .filter((r: any) => r.userId === opts.viewerId)
+      .map((r: any) => r.emoji),
     seen: opts.seen,
     mine: opts.mine,
   };
@@ -241,15 +261,14 @@ export const board = query({
               )
               .first();
 
-        const view = momentView(m, {
-          reactions,
-          seen: mine || seenRow !== null,
-          mine,
-        });
-        view.myReactions = reactions
-          .filter((r: any) => r.userId === userId)
-          .map((r: any) => r.emoji);
-        out.push(view);
+        out.push(
+          momentView(m, {
+            reactions,
+            seen: mine || seenRow !== null,
+            mine,
+            viewerId: userId,
+          })
+        );
       }
     }
 
@@ -606,11 +625,9 @@ export const archive = query({
         .query("momentReactions")
         .withIndex("by_moment", (q: any) => q.eq("momentId", m._id))
         .collect();
-      const view = momentView(m, { reactions, seen: true, mine });
-      view.myReactions = reactions
-        .filter((r: any) => r.userId === userId)
-        .map((r: any) => r.emoji);
-      items.push(view);
+      items.push(
+        momentView(m, { reactions, seen: true, mine, viewerId: userId })
+      );
     }
     return { items, hasMore: rows.length > take };
   },

@@ -36,12 +36,24 @@ void main() {
     return img.encodePng(bitmap);
   }
 
-  Widget host(Uint8List source, {bool canRetake = false}) => MaterialApp(
+  Widget host(
+    Uint8List source, {
+    bool canRetake = false,
+    bool allowDrawing = true,
+    bool allowViewOnce = true,
+    String? confirmLabel,
+  }) => MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: ThemeScope(
       controller: ThemeController(BasicTheme.midnight()),
-      child: CameraEditorScreen(source: source, canRetake: canRetake),
+      child: CameraEditorScreen(
+        source: source,
+        canRetake: canRetake,
+        allowDrawing: allowDrawing,
+        allowViewOnce: allowViewOnce,
+        confirmLabel: confirmLabel,
+      ),
     ),
   );
 
@@ -88,6 +100,50 @@ void main() {
     await tester.tap(find.byIcon(CupertinoIcons.scribble));
     await tester.pumpAndSettle();
     expect(find.byIcon(CupertinoIcons.trash), findsNothing);
+  });
+
+  // The feed shares this screen so its crop behaves like chat's — a rect you
+  // drag by the edges, not a fixed window with the picture sliding underneath.
+  // What it must NOT inherit is the rest of chat's vocabulary: a scribble on a
+  // board post means nothing, and "view once" is meaningless on something
+  // already public to your friends for a day.
+  testWidgets('feed mode offers crop and rotate and nothing else', (
+    tester,
+  ) async {
+    await settle(
+      tester,
+      host(
+        photo,
+        allowDrawing: false,
+        allowViewOnce: false,
+        confirmLabel: 'USE PHOTO',
+      ),
+    );
+
+    expect(find.byIcon(CupertinoIcons.scribble), findsNothing);
+    expect(find.text('SEND'), findsNothing);
+    expect(find.text('USE PHOTO'), findsOneWidget);
+
+    // Still a cropper, which is the entire reason the feed came here.
+    expect(find.byIcon(CupertinoIcons.crop), findsOneWidget);
+  });
+
+  testWidgets('feed mode unmounts the draw gesture, not just its button', (
+    tester,
+  ) async {
+    await settle(tester, host(photo, allowDrawing: false));
+
+    await tester.drag(
+      find.byType(RawImage),
+      const Offset(50, 40),
+      warnIfMissed: false,
+    );
+    await tester.pumpAndSettle();
+
+    // Undo only appears when there is a stroke to undo. Without the pen button
+    // there is no way to arm the pen, so a swipe must stay inert — a hidden
+    // button over a live gesture would still scribble on the photo.
+    expect(find.byIcon(CupertinoIcons.arrow_uturn_left), findsNothing);
   });
 
   testWidgets('crop is an icon at the top, not a labelled button in the rail', (

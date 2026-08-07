@@ -6941,6 +6941,12 @@ abstract class AppLocalizations {
   /// **'add a friend and their day shows up here'**
   String get feedBoardActivityNoFriends;
 
+  /// Board-level failure line shown above every section when the feed subscription errored and no payload ever arrived. Deliberately distinct from the per-section empty states, which mean 'nothing happened today' rather than 'this did not load'.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t load the board — try again in a moment'**
+  String get feedBoardLoadFailed;
+
   /// All-caps badge label shown on a room card/chip when the room is public (widgets/visibility_badge.dart).
   ///
   /// In en, this message translates to:
@@ -8578,12 +8584,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'whether the points you log show up on friends\' boards'**
   String get profileVisibilityScreenPointsDesc;
-
-  /// All-caps label on the crop screen's shape option that keeps the photo's own proportions. The other options are locale-invariant notation (1:1, 4:5, 16:9) and are not translated.
-  ///
-  /// In en, this message translates to:
-  /// **'ORIGINAL'**
-  String get imageCropScreenRatioOriginal;
 
   /// Screen-reader label for the crop button over the chosen photo in the composer, which re-opens the cropper on the original image.
   ///

@@ -4148,6 +4148,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'ajoute un ami et sa journée apparaîtra ici';
 
   @override
+  String get feedBoardLoadFailed =>
+      'impossible de charger le tableau — réessaie dans un instant';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'PUBLIC';
 
   @override
@@ -5076,9 +5080,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'si les points que tu notes apparaissent sur les tableaux de tes amis';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'modifier le cadrage';

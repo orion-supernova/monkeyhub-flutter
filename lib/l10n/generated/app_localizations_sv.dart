@@ -4098,6 +4098,10 @@ class AppLocalizationsSv extends AppLocalizations {
       'lägg till en vän så dyker deras dag upp här';
 
   @override
+  String get feedBoardLoadFailed =>
+      'kunde inte ladda tavlan — försök igen om en stund';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'OFFENTLIG';
 
   @override
@@ -5020,9 +5024,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'om poängen du noterar syns på vännernas tavlor';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'redigera beskärning';

@@ -4089,6 +4089,10 @@ class AppLocalizationsHi extends AppLocalizations {
       'दोस्त जोड़ें और उनका दिन यहाँ दिखेगा';
 
   @override
+  String get feedBoardLoadFailed =>
+      'बोर्ड लोड नहीं हो सका — थोड़ी देर में फिर कोशिश करें';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'पब्लिक';
 
   @override
@@ -5007,9 +5011,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'आपके दर्ज किए अंक दोस्तों के बोर्ड पर दिखें या नहीं';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'मूल';
 
   @override
   String get momentComposerEditPhoto => 'क्रॉप बदलें';

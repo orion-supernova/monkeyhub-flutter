@@ -3889,6 +3889,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get feedBoardActivityNoFriends => '添加好友后，他们的一天会显示在这里';
 
   @override
+  String get feedBoardLoadFailed => '无法加载看板 — 请稍后再试';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => '公开';
 
   @override
@@ -4756,9 +4759,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileVisibilityScreenPointsDesc => '你记录的积分是否出现在好友的看板上';
-
-  @override
-  String get imageCropScreenRatioOriginal => '原始';
 
   @override
   String get momentComposerEditPhoto => '编辑裁剪';

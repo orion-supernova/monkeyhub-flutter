@@ -185,6 +185,12 @@ class _FeedScreenState extends State<FeedScreen> {
         id: 'masthead',
         child: _Masthead(edition: store.edition, dayKey: store.dayKey),
       ),
+      // A board that never loaded is NOT a quiet day, and every section below
+      // says "quiet day" when handed an empty list. Without this the two are
+      // indistinguishable — which is exactly how a query that had been throwing
+      // on every call for hours read as "nobody posted anything".
+      if (store.error != null && !store.loaded)
+        (id: 'trouble', child: _BoardTrouble(l10n.feedBoardLoadFailed)),
       (
         id: 'highlights',
         child: _SectionShell(
@@ -666,5 +672,37 @@ class _EmptyLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     return Text(text, style: theme.bodySoft.copyWith(color: theme.inkMuted));
+  }
+}
+
+/// The board could not be loaded at all.
+///
+/// Deliberately louder than [_EmptyLine] — muted grey is the vocabulary this
+/// board uses for "nothing happened today", and a broken subscription wearing
+/// that same colour is what made a hard failure invisible for a whole day.
+class _BoardTrouble extends StatelessWidget {
+  const _BoardTrouble(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.error_outline, size: 15, color: theme.danger),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.bodySoft.copyWith(color: theme.danger),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -8,6 +8,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
+import '../../widgets/glass_close_button.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/remote_image.dart';
 
@@ -49,10 +50,8 @@ Future<void> showMomentViewer(
         feedApi: feedApi,
         userId: userId,
       ),
-      transitionsBuilder: (context, anim, _, child) => FadeTransition(
-        opacity: anim,
-        child: child,
-      ),
+      transitionsBuilder: (context, anim, _, child) =>
+          FadeTransition(opacity: anim, child: child),
     ),
   );
 }
@@ -221,7 +220,22 @@ class _MomentViewerState extends State<_MomentViewer> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (m.tag != null) MomentTagChip(tag: m.tag!),
+                            if (m.tag != null) ...[
+                              MomentTagChip(tag: m.tag!),
+                              const SizedBox(width: 8),
+                            ],
+                            // Pinned to the card rather than floating in the
+                            // outer Stack: the card is vertically centred and
+                            // its height follows the photo, so a fixed
+                            // top-right Positioned would sometimes land on the
+                            // image and sometimes in empty space. Tapping the
+                            // scrim still works — this is the third way out,
+                            // and the first visible one.
+                            GlassCloseButton(
+                              onTap: () => Navigator.of(context).maybePop(),
+                              semanticLabel: l10n.photoChromeCloseSemanticLabel,
+                              size: 34,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -331,7 +345,10 @@ class _ReactionRow extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        Text('${counts.values.fold(0, (a, b) => a + b)}', style: theme.monoTiny),
+        Text(
+          '${counts.values.fold(0, (a, b) => a + b)}',
+          style: theme.monoTiny,
+        ),
       ],
     );
   }

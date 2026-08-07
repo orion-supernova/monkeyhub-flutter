@@ -157,11 +157,54 @@ void main() {
         'expiresAt': 2,
         'authorName': 'A',
         'authorUsername': 'a',
-        'reactionCounts': {'👏': 2, '💀': 0},
+        'reactionCounts': [
+          {'emoji': '👏', 'count': 2},
+          {'emoji': '💀', 'count': 0},
+        ],
         'myReactions': ['👏'],
       });
       expect(m.reactionCounts, {'👏': 2});
       expect(m.myReactions, {'👏'});
+    });
+
+    // The wire shape is a LIST, never a map keyed by the emoji: Convex field
+    // names must be non-control ASCII, so an emoji-keyed object serializes
+    // fine until it doesn't and takes the whole query down with it. A map
+    // arriving here means someone reintroduced that shape on the backend, and
+    // silently reading zero reactions would hide it all over again.
+    test('an emoji-keyed map is not mistaken for the wire shape', () {
+      final m = Moment.fromJson({
+        '_id': 'x',
+        'userId': 'u',
+        'dayKey': '2026-08-07',
+        'createdAt': 1,
+        'expiresAt': 2,
+        'authorName': 'A',
+        'authorUsername': 'a',
+        'reactionCounts': {'👏': 2},
+        'myReactions': const <String>[],
+      });
+      expect(m.reactionCounts, isEmpty);
+    });
+
+    test('reaction counts survive multi-codepoint emoji', () {
+      // ❤️ is U+2764 U+FE0F — two codepoints, and the exact value that broke
+      // the board.
+      final m = Moment.fromJson({
+        '_id': 'x',
+        'userId': 'u',
+        'dayKey': '2026-08-07',
+        'createdAt': 1,
+        'expiresAt': 2,
+        'authorName': 'A',
+        'authorUsername': 'a',
+        'reactionCounts': [
+          {'emoji': '❤️', 'count': 3},
+        ],
+        'myReactions': ['❤️'],
+      });
+      expect(m.reactionCounts, {'❤️': 3});
+      expect(m.myReactions, {'❤️'});
     });
   });
 }

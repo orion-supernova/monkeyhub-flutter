@@ -4068,6 +4068,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'add a friend and their day shows up here';
 
   @override
+  String get feedBoardLoadFailed =>
+      'couldn\'t load the board — try again in a moment';
+
+  @override
   String get enterPublicRoomVisibilityPublicLabel => 'PUBLIC';
 
   @override
@@ -4987,9 +4991,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileVisibilityScreenPointsDesc =>
       'whether the points you log show up on friends\' boards';
-
-  @override
-  String get imageCropScreenRatioOriginal => 'ORIGINAL';
 
   @override
   String get momentComposerEditPhoto => 'edit crop';
