@@ -192,12 +192,27 @@ export const sweepStalePresence = internalMutation({
     // growing users table is the opposite trade: it eventually exceeds the
     // read limit or the 1s mutation budget and then the sweep stops working
     // entirely, silently.
-    const stale = await ctx.db
-      .query("users")
-      .withIndex("by_lastSeen", (q) => q.gt("lastSeen", 0).lt("lastSeen", cutoff))
-      .take(200);
-    for (const u of stale) {
-      if (u.status !== "offline") {
+    //
+    // Scanned per status rather than over `lastSeen` alone, and that is what
+    // makes the bound above a page size instead of a permanent ceiling. The
+    // old range took the 200 oldest-`lastSeen` rows in the whole table while
+    // patching only `status`, so every row it demoted kept its ancient
+    // timestamp and stayed in range. Once ~200 dormant accounts sat below the
+    // cutoff the sweep re-read that same dead prefix every five minutes and
+    // never reached anyone who had newly gone stale — it looked healthy and
+    // did nothing. Ranging within a status means a patched row leaves the
+    // range on the spot, so each tick sees only live work.
+    //
+    // The lower bound (> 0) skips rows with no lastSeen at all (never
+    // heartbeated), which would otherwise be swept the instant they appear.
+    for (const status of ["online", "away"] as const) {
+      const stale = await ctx.db
+        .query("users")
+        .withIndex("by_status_lastSeen", (q) =>
+          q.eq("status", status).gt("lastSeen", 0).lt("lastSeen", cutoff),
+        )
+        .take(200);
+      for (const u of stale) {
         await ctx.db.patch(u._id, { status: "offline" });
       }
     }
