@@ -2450,6 +2450,23 @@ class AppLocalizationsFr extends AppLocalizations {
       'un bouton qui s\'ouvre. rien ne gêne la vue tant que tu ne le demandes pas.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'SALONS SILENCIEUX';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'coin vide';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'un salon sans messages reste nu';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'l\'initiale du salon';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'une grande lettre pâle remplit le coin';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'ACTIF';
 
   @override

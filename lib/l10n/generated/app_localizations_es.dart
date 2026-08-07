@@ -2427,6 +2427,23 @@ class AppLocalizationsEs extends AppLocalizations {
       'un botón que se despliega. nada te estorba hasta que tú lo pidas.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'SALAS EN SILENCIO';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'esquina vacía';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'una sala sin mensajes se queda desnuda';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'la inicial de la sala';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'una letra grande y tenue llena la esquina';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'ACTIVO';
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
@@ -37,9 +38,15 @@ class RoomGridTile extends StatelessWidget {
     // two lines at display size instead of one small one. Nothing is padded
     // out — the tile just spends its space on the only thing it knows.
     final quiet = subtitle.kind == RoomSubtitleKind.empty;
-    // A room with a picture already has a face, and a DM borrows the other
-    // person's; the monogram is for the ones wearing the fallback '#'.
-    final unfaced = dmUser == null && (room.avatarStorageId == null || api == null);
+    // Off unless asked for, and even then only where there's actually a hole
+    // to fill: a tile with a preview line is carrying pills, a count and a
+    // sentence already, and a letter behind all that is one more thing in the
+    // way rather than a backdrop. A room with a picture has a face, and a DM
+    // borrows the other person's.
+    final monogrammed = SettingsStore.instance.roomMonogram &&
+        quiet &&
+        dmUser == null &&
+        (room.avatarStorageId == null || api == null);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -50,11 +57,11 @@ class RoomGridTile extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (unfaced)
+              if (monogrammed)
                 Positioned(
                   right: -14,
                   bottom: -34,
-                  child: RoomMonogram(name: room.name, seed: room.id, size: quiet ? 132 : 104),
+                  child: RoomMonogram(name: room.name, seed: room.id, size: 132),
                 ),
               Padding(
                 padding: const EdgeInsets.all(12),

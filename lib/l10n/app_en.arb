@@ -2748,6 +2748,26 @@
   "@roomLayoutScreenDrawerButtonDescription": {
     "description": "Small description text under the DRAWER BUTTON option card"
   },
+  "roomLayoutScreenQuietRoomSectionLabel": "QUIET ROOMS",
+  "@roomLayoutScreenQuietRoomSectionLabel": {
+    "description": "All-caps section label on the room layout screen, above the choice of what a grid tile shows when the room has no messages yet."
+  },
+  "roomLayoutScreenPlainCornerLabel": "plain corner",
+  "@roomLayoutScreenPlainCornerLabel": {
+    "description": "Label for the option that leaves a quiet grid tile's corner empty (room layout screen)."
+  },
+  "roomLayoutScreenPlainCornerDescription": "a room with nothing said yet stays bare",
+  "@roomLayoutScreenPlainCornerDescription": {
+    "description": "One-line description of the plain-corner option for quiet grid tiles."
+  },
+  "roomLayoutScreenMonogramLabel": "the room's initial",
+  "@roomLayoutScreenMonogramLabel": {
+    "description": "Label for the option that fills a quiet grid tile's corner with the room's first letter (room layout screen)."
+  },
+  "roomLayoutScreenMonogramDescription": "a big faded letter fills the empty corner",
+  "@roomLayoutScreenMonogramDescription": {
+    "description": "One-line description of the monogram option for quiet grid tiles."
+  },
   "roomLayoutScreenActiveBadge": "ACTIVE",
   "@roomLayoutScreenActiveBadge": {
     "description": "Small all-caps badge shown on whichever layout/filter option card is currently selected"

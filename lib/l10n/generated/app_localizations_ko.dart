@@ -2318,6 +2318,21 @@ class AppLocalizationsKo extends AppLocalizations {
       '버튼 하나로 열어요. 필요할 때까지는 아무것도 가리지 않아요.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => '조용한 방';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => '빈 모서리';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription => '아직 아무 말도 없는 방은 그대로 둬요';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => '방 이름 첫 글자';
+
+  @override
+  String get roomLayoutScreenMonogramDescription => '크고 옅은 글자가 빈 모서리를 채워요';
+
+  @override
   String get roomLayoutScreenActiveBadge => '사용 중';
 
   @override

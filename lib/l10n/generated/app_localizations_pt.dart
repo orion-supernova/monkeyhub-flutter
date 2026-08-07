@@ -2430,6 +2430,23 @@ class AppLocalizationsPt extends AppLocalizations {
       'um botão que abre. nada no caminho até pedires.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'SALAS EM SILÊNCIO';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'canto vazio';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'uma sala sem mensagens fica nua';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'a inicial da sala';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'uma letra grande e esbatida preenche o canto';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'ATIVO';
 
   @override
@@ -7944,6 +7961,23 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get roomLayoutScreenDrawerButtonDescription =>
       'um botão que abre. nada no caminho até você pedir.';
+
+  @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'SALAS EM SILÊNCIO';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'canto vazio';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'uma sala sem mensagens fica nua';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'a inicial da sala';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'uma letra grande e apagada preenche o canto';
 
   @override
   String get roomLayoutScreenActiveBadge => 'ATIVO';

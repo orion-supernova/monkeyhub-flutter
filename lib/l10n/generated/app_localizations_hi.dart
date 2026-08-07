@@ -2405,6 +2405,23 @@ class AppLocalizationsHi extends AppLocalizations {
       'एक बटन जो खुलता है। जब तक तुम न खोलो, रास्ते में कुछ नहीं।';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'शांत रूम';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'खाली कोना';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'जिस रूम में कुछ कहा नहीं गया, वो सादा रहता है';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'रूम का पहला अक्षर';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'एक बड़ा धुंधला अक्षर खाली कोने को भर देता है';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'चयनित';
 
   @override

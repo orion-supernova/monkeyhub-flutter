@@ -2442,6 +2442,23 @@ class AppLocalizationsAr extends AppLocalizations {
       'زر واحد يُفتح عند الحاجة. لا شيء يعترض طريقك حتى تطلبه.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'الغرف الهادئة';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'زاوية فارغة';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'الغرفة التي لم يُقل فيها شيء تبقى بسيطة';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'الحرف الأول للغرفة';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'حرف كبير باهت يملأ الزاوية الفارغة';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'نشط';
 
   @override

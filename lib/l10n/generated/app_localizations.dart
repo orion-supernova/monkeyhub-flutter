@@ -4239,6 +4239,36 @@ abstract class AppLocalizations {
   /// **'one button that opens. nothing in the way until you ask.'**
   String get roomLayoutScreenDrawerButtonDescription;
 
+  /// All-caps section label on the room layout screen, above the choice of what a grid tile shows when the room has no messages yet.
+  ///
+  /// In en, this message translates to:
+  /// **'QUIET ROOMS'**
+  String get roomLayoutScreenQuietRoomSectionLabel;
+
+  /// Label for the option that leaves a quiet grid tile's corner empty (room layout screen).
+  ///
+  /// In en, this message translates to:
+  /// **'plain corner'**
+  String get roomLayoutScreenPlainCornerLabel;
+
+  /// One-line description of the plain-corner option for quiet grid tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'a room with nothing said yet stays bare'**
+  String get roomLayoutScreenPlainCornerDescription;
+
+  /// Label for the option that fills a quiet grid tile's corner with the room's first letter (room layout screen).
+  ///
+  /// In en, this message translates to:
+  /// **'the room\'s initial'**
+  String get roomLayoutScreenMonogramLabel;
+
+  /// One-line description of the monogram option for quiet grid tiles.
+  ///
+  /// In en, this message translates to:
+  /// **'a big faded letter fills the empty corner'**
+  String get roomLayoutScreenMonogramDescription;
+
   /// Small all-caps badge shown on whichever layout/filter option card is currently selected
   ///
   /// In en, this message translates to:

@@ -2386,6 +2386,23 @@ class AppLocalizationsTr extends AppLocalizations {
       'açılan tek bir düğme. sen istemeden hiçbir şey önüne çıkmaz.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'SESSİZ ODALAR';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'boş köşe';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'henüz konuşulmamış oda sade kalır';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'odanın baş harfi';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'boş köşeyi büyük, soluk bir harf doldurur';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'AKTİF';
 
   @override

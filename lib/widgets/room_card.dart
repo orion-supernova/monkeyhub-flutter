@@ -34,33 +34,17 @@ class RoomCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final decoration = theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
-    // A room with a picture already has a face, and a DM borrows the other
-    // person's; the monogram is for the ones with neither.
-    final unfaced = dmUser == null && (room.avatarStorageId == null || api == null);
+    // No monogram on a row. Even a quiet one carries pills, a name, a stamp,
+    // a member count and an ENTER (or "messages disappear") in the corner the
+    // letter would want — there is no hole here to fill, only things to sit
+    // behind. The grid tile, which has real dead space, offers it instead.
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
-        decoration: decoration,
-        child: ClipRRect(
-          borderRadius: decoration.borderRadius?.resolve(Directionality.of(context))
-              ?? BorderRadius.circular(theme.radiusLg),
-          child: Stack(
-            children: [
-              if (unfaced)
-                Positioned(
-                  right: -10,
-                  bottom: -30,
-                  child: RoomMonogram(name: room.name, seed: room.id, size: 96),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                child: _body(context, theme),
-              ),
-            ],
-          ),
-        ),
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
+        child: _body(context, theme),
       ),
     );
   }

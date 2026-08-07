@@ -2413,6 +2413,23 @@ class AppLocalizationsSv extends AppLocalizations {
       'en knapp som öppnas. inget i vägen förrän du ber om det.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'TYSTA RUM';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'tomt hörn';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'ett rum utan meddelanden lämnas bart';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'rummets initial';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'en stor blek bokstav fyller hörnet';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'AKTIV';
 
   @override

@@ -32,12 +32,14 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
 
   void _set(RoomLayout v) => SettingsStore.instance.setRoomLayout(v);
   void _setFilter(FilterStyle v) => SettingsStore.instance.setFilterStyle(v);
+  void _setMonogram(bool v) => SettingsStore.instance.setRoomMonogram(v);
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final current = SettingsStore.instance.roomLayout;
     final filter = SettingsStore.instance.filterStyle;
+    final monogram = SettingsStore.instance.roomMonogram;
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -137,6 +139,37 @@ class _RoomLayoutScreenState extends State<RoomLayoutScreen> {
                     active: filter == FilterStyle.drawer,
                     preview: const _DrawerPreview(),
                     onTap: () => _setFilter(FilterStyle.drawer),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenQuietRoomSectionLabel,
+                    style: theme.label,
+                  ),
+                  const SizedBox(height: 12),
+                  _LayoutCard(
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenPlainCornerLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenPlainCornerDescription,
+                    active: !monogram,
+                    preview: const _QuietTilePreview(monogram: false),
+                    onTap: () => _setMonogram(false),
+                  ),
+                  const SizedBox(height: 14),
+                  _LayoutCard(
+                    label: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenMonogramLabel,
+                    sub: AppLocalizations.of(
+                      context,
+                    ).roomLayoutScreenMonogramDescription,
+                    active: monogram,
+                    preview: const _QuietTilePreview(monogram: true),
+                    onTap: () => _setMonogram(true),
                   ),
                 ],
               ),
@@ -430,6 +463,84 @@ class _GridPreview extends StatelessWidget {
                 : theme.divider,
           ),
           borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+}
+
+/// One grid tile with nothing in it yet: the pill row, the name, the ghost
+/// line and the member count — and, on one of the two, the letter behind them.
+class _QuietTilePreview extends StatelessWidget {
+  const _QuietTilePreview({required this.monogram});
+  final bool monogram;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            if (monogram)
+              Positioned(
+                right: -10,
+                bottom: -26,
+                child: Text(
+                  'T',
+                  style: theme.displayHero.copyWith(
+                    fontSize: 96,
+                    height: 1,
+                    color: theme.accent.withValues(alpha: 0.16),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: theme.surfaceSunken,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.divider),
+                        ),
+                      ),
+                      const Spacer(),
+                      for (var i = 0; i < 2; i++) ...[
+                        Container(
+                          width: 14,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.divider),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                        if (i == 0) const SizedBox(width: 4),
+                      ],
+                    ],
+                  ),
+                  const Spacer(),
+                  Text('test', style: theme.displaySmall.copyWith(fontSize: 15)),
+                  const SizedBox(height: 3),
+                  Container(width: 46, height: 5, color: theme.divider),
+                  const Spacer(),
+                  Container(width: 30, height: 7, color: theme.divider),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

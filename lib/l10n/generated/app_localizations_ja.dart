@@ -2313,6 +2313,21 @@ class AppLocalizationsJa extends AppLocalizations {
       '開くのはボタンひとつ。呼ぶまでは邪魔にならない。';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => '静かなルーム';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => '空いたまま';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription => 'まだ発言のないルームはそのまま';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'ルームの頭文字';
+
+  @override
+  String get roomLayoutScreenMonogramDescription => '大きな薄い文字が空いた角を埋めます';
+
+  @override
   String get roomLayoutScreenActiveBadge => '使用中';
 
   @override

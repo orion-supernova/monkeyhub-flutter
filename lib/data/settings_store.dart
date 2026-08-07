@@ -21,6 +21,7 @@ class SettingsStore extends ChangeNotifier {
 
   static const _kTheme = 'mh.theme';
   static const _kLayout = 'mh.roomLayout';
+  static const _kMonogram = 'mh.roomMonogram';
   static const _kNav = 'mh.nav';
   static const _kSection = 'mh.section';
   static const _kPushEnabled = 'mh.pushEnabled';
@@ -55,6 +56,10 @@ class SettingsStore extends ChangeNotifier {
 
   String? _themeId;
   RoomLayout _roomLayout = RoomLayout.list;
+  // Off by default: the letter is a backdrop for a room with nothing to
+  // show, and whether it reads as texture or as clutter is a matter of
+  // taste rather than of layout.
+  bool _roomMonogram = false;
   NavStyle _navStyle = NavStyle.pill;
   HomeSection _section = HomeSection.chat;
   bool _pushEnabled = true;
@@ -86,6 +91,7 @@ class SettingsStore extends ChangeNotifier {
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
+  bool get roomMonogram => _roomMonogram;
   NavStyle get navStyle => _navStyle;
   HomeSection get section => _section;
   bool get pushEnabled => _pushEnabled;
@@ -202,6 +208,8 @@ class SettingsStore extends ChangeNotifier {
       _themeId = await _storage.read(key: _kTheme);
       final lay = await _storage.read(key: _kLayout);
       _roomLayout = lay == 'grid' ? RoomLayout.grid : RoomLayout.list;
+      final mono = await _storage.read(key: _kMonogram);
+      _roomMonogram = mono == 'true'; // default false
       final nav = await _storage.read(key: _kNav);
       // First-launch default is pill; honor an explicit 'radial' selection.
       _navStyle = nav == 'radial' ? NavStyle.radial : NavStyle.pill;
@@ -316,6 +324,13 @@ class SettingsStore extends ChangeNotifier {
     _roomLayout = l;
     notifyListeners();
     await _storage.write(key: _kLayout, value: l.name);
+  }
+
+  Future<void> setRoomMonogram(bool on) async {
+    if (_roomMonogram == on) return;
+    _roomMonogram = on;
+    notifyListeners();
+    await _storage.write(key: _kMonogram, value: '$on');
   }
 
   Future<void> setNavStyle(NavStyle s) async {

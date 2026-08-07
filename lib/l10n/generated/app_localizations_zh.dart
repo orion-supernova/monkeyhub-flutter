@@ -2281,6 +2281,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomLayoutScreenDrawerButtonDescription => '一按即开的按钮,不用时不占地方。';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => '安静的房间';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => '留白';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription => '还没人说话的房间保持简洁';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => '房间首字母';
+
+  @override
+  String get roomLayoutScreenMonogramDescription => '一个巨大的淡色字母填满空角';
+
+  @override
   String get roomLayoutScreenActiveBadge => '使用中';
 
   @override

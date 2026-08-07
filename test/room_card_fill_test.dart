@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -18,6 +20,17 @@ import 'package:monkeyhub/widgets/room_identity.dart';
 /// broken next to a full one.
 void main() {
   final epoch = DateTime(2026, 8, 8, 12);
+
+  // SettingsStore persists to the keychain, which no test has. Without a stand
+  // -in the write throws MissingPluginException from inside the setter.
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+          (call) async => null,
+        );
+  });
 
   ChatRoom room({
     String name = 'design',
@@ -83,10 +96,38 @@ void main() {
       );
     });
 
-    testWidgets('a faceless room gets a monogram, a pictured one does not', (tester) async {
+  });
+
+  group('the monogram', () {
+    final store = SettingsStore.instance;
+    tearDown(() => store.setRoomMonogram(false));
+
+    testWidgets('stays off until asked for', (tester) async {
+      await tester.pumpWidget(host(tile(room())));
+      expect(find.byType(RoomMonogram), findsNothing);
+    });
+
+    testWidgets('fills a quiet tile once it is on', (tester) async {
+      await store.setRoomMonogram(true);
       await tester.pumpWidget(host(tile(room())));
       expect(find.byType(RoomMonogram), findsOneWidget);
       expect(find.text('D'), findsOneWidget, reason: 'the room initial');
+    });
+
+    testWidgets('keeps out of a tile that has something to say', (tester) async {
+      await store.setRoomMonogram(true);
+      await tester.pumpWidget(host(tile(room(lastMessage: 'ayşe: pushed the fix'))));
+      expect(
+        find.byType(RoomMonogram),
+        findsNothing,
+        reason: 'a letter behind a full tile is clutter, not a backdrop',
+      );
+    });
+
+    testWidgets('never lands on a row, which has no hole to fill', (tester) async {
+      await store.setRoomMonogram(true);
+      await tester.pumpWidget(host(RoomCard(room: room(), onTap: () {})));
+      expect(find.byType(RoomMonogram), findsNothing);
     });
   });
 

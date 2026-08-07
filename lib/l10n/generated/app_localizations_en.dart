@@ -2393,6 +2393,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'one button that opens. nothing in the way until you ask.';
 
   @override
+  String get roomLayoutScreenQuietRoomSectionLabel => 'QUIET ROOMS';
+
+  @override
+  String get roomLayoutScreenPlainCornerLabel => 'plain corner';
+
+  @override
+  String get roomLayoutScreenPlainCornerDescription =>
+      'a room with nothing said yet stays bare';
+
+  @override
+  String get roomLayoutScreenMonogramLabel => 'the room\'s initial';
+
+  @override
+  String get roomLayoutScreenMonogramDescription =>
+      'a big faded letter fills the empty corner';
+
+  @override
   String get roomLayoutScreenActiveBadge => 'ACTIVE';
 
   @override
