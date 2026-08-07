@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}時間",
   "roomCardTimeAgoDays": "{days}日",
   "roomCardTimeAgoWeeks": "{weeks}週間",
+  "roomCardStartedAgo": "{ago}に作成",
   "roomCardMemberCount": "{count}人が参加中",
   "roomCardMessagesFadeLabel": "消えるメッセージ",
   "roomCardEnterLabel": "↗ 入る",

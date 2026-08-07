@@ -3904,6 +3904,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return 'créé il y a $ago';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count dedans';
   }

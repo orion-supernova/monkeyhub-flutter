@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}sa",
   "roomCardTimeAgoDays": "{days}g",
   "roomCardTimeAgoWeeks": "{weeks}hf",
+  "roomCardStartedAgo": "{ago} kuruldu",
   "roomCardMemberCount": "{count} kişi içeride",
   "roomCardMessagesFadeLabel": "mesajlar kayboluyor",
   "roomCardEnterLabel": "↗ gir",

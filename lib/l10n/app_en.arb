@@ -4260,6 +4260,10 @@
   "@roomCardTimeAgoWeeks": {
     "description": "Terse relative-time label on a room card, e.g. '3w' meaning 3 weeks ago (weeks is an int)."
   },
+  "roomCardStartedAgo": "started {ago}",
+  "@roomCardStartedAgo": {
+    "description": "Timestamp on a room card that has no messages yet, e.g. 'started 3d ago'. {ago} is a pre-formatted relative time from the roomCardTimeAgo* strings."
+  },
   "roomCardMemberCount": "{count} inside",
   "@roomCardMemberCount": {
     "description": "Room card footer showing how many members are currently in a (non-DM) room, e.g. '5 inside' (count is an int)."

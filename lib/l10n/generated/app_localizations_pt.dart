@@ -3881,6 +3881,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return 'criada há $ago';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count dentro';
   }
@@ -9389,6 +9394,11 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String roomCardTimeAgoWeeks(Object weeks) {
     return '${weeks}sem';
+  }
+
+  @override
+  String roomCardStartedAgo(Object ago) {
+    return 'criada há $ago';
   }
 
   @override

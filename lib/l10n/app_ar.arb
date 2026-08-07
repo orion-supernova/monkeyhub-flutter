@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}س",
   "roomCardTimeAgoDays": "{days}ي",
   "roomCardTimeAgoWeeks": "{weeks}أ",
+  "roomCardStartedAgo": "أُنشئت قبل {ago}",
   "roomCardMemberCount": "{count} بالداخل",
   "roomCardMessagesFadeLabel": "الرسائل تتلاشى",
   "roomCardEnterLabel": "↗ دخول",

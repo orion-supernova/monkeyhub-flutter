@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}시간",
   "roomCardTimeAgoDays": "{days}일",
   "roomCardTimeAgoWeeks": "{weeks}주",
+  "roomCardStartedAgo": "{ago} 전에 생성",
   "roomCardMemberCount": "{count}명 참여 중",
   "roomCardMessagesFadeLabel": "메시지 사라짐",
   "roomCardEnterLabel": "↗ 입장",

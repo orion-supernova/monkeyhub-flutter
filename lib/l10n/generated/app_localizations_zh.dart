@@ -3657,6 +3657,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return '$ago前创建';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count 人在线';
   }

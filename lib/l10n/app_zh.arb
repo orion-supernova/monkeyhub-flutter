@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}小时",
   "roomCardTimeAgoDays": "{days}天",
   "roomCardTimeAgoWeeks": "{weeks}周",
+  "roomCardStartedAgo": "{ago}前创建",
   "roomCardMemberCount": "{count} 人在线",
   "roomCardMessagesFadeLabel": "消息渐隐",
   "roomCardEnterLabel": "↗ 进入",

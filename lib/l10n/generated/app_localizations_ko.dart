@@ -3716,6 +3716,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return '$ago 전에 생성';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count명 참여 중';
   }

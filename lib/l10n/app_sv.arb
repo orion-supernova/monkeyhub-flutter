@@ -1075,6 +1075,7 @@
   "roomCardTimeAgoHours": "{hours}h",
   "roomCardTimeAgoDays": "{days}d",
   "roomCardTimeAgoWeeks": "{weeks}v",
+  "roomCardStartedAgo": "skapat för {ago} sedan",
   "roomCardMemberCount": "{count} inne",
   "roomCardMessagesFadeLabel": "meddelanden bleknar",
   "roomCardEnterLabel": "↗ gå in",

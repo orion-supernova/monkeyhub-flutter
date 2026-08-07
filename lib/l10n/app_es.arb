@@ -1075,6 +1075,7 @@
   "roomCardTimeAgoHours": "{hours}h",
   "roomCardTimeAgoDays": "{days}d",
   "roomCardTimeAgoWeeks": "{weeks}sem",
+  "roomCardStartedAgo": "creada hace {ago}",
   "roomCardMemberCount": "{count} dentro",
   "roomCardMessagesFadeLabel": "mensajes se desvanecen",
   "roomCardEnterLabel": "↗ entrar",

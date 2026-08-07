@@ -1065,6 +1065,7 @@
   "roomCardTimeAgoHours": "{hours}घं",
   "roomCardTimeAgoDays": "{days}दि",
   "roomCardTimeAgoWeeks": "{weeks}ह",
+  "roomCardStartedAgo": "{ago} पहले बना",
   "roomCardMemberCount": "{count} अंदर",
   "roomCardMessagesFadeLabel": "मैसेज फीके होते हैं",
   "roomCardEnterLabel": "↗ अंदर जाएं",

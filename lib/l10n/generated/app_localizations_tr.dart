@@ -3814,6 +3814,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return '$ago kuruldu';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count kişi içeride';
   }

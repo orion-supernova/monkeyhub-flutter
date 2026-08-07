@@ -3914,6 +3914,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return 'أُنشئت قبل $ago';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count بالداخل';
   }

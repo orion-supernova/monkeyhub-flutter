@@ -3704,6 +3704,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String roomCardStartedAgo(Object ago) {
+    return '$agoに作成';
+  }
+
+  @override
   String roomCardMemberCount(Object count) {
     return '$count人が参加中';
   }

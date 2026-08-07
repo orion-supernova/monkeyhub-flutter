@@ -3,9 +3,11 @@ import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'remote_image.dart';
+import 'room_identity.dart';
 import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
@@ -29,135 +31,169 @@ class RoomGridTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final decoration = theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
+    final subtitle = roomSubtitle(context, room);
+    // A tile with nothing to preview has room to spare, so the name takes it:
+    // two lines at display size instead of one small one. Nothing is padded
+    // out — the tile just spends its space on the only thing it knows.
+    final quiet = subtitle.kind == RoomSubtitleKind.empty;
+    // A room with a picture already has a face, and a DM borrows the other
+    // person's; the monogram is for the ones wearing the fallback '#'.
+    final unfaced = dmUser == null && (room.avatarStorageId == null || api == null);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
-        child: Column(
+        decoration: decoration,
+        child: ClipRRect(
+          borderRadius: decoration.borderRadius?.resolve(Directionality.of(context))
+              ?? BorderRadius.circular(theme.radiusLg),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (unfaced)
+                Positioned(
+                  right: -14,
+                  bottom: -34,
+                  child: RoomMonogram(name: room.name, seed: room.id, size: quiet ? 132 : 104),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: _body(context, theme, subtitle, quiet),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context, AppTheme theme, RoomSubtitle subtitle, bool quiet) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (dmUser != null)
-                  UserAvatar(user: dmUser!, size: 40, api: api, showStatus: false)
-                else if (room.avatarStorageId != null && api != null)
-                  ClipOval(
-                    child: RemoteImage(
-                      storageId: room.avatarStorageId!,
-                      api: api!,
-                      width: 40,
-                      height: 40,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  )
-                else
-                  Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: theme.surfaceSunken,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: theme.divider),
-                    ),
-                    child: room.isEphemeral
-                        ? theme.hourglassIcon(size: 20, color: theme.accent)
-                        : Icon(Icons.tag, size: 20, color: theme.accent),
-                  ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Wrap(
-                    spacing: 4,
-                    runSpacing: 2,
-                    alignment: WrapAlignment.end,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (room.unreadCount > 0)
-                        CountBadge(
-                          count: room.unreadCount,
-                          mention: room.hasMention,
-                        )
-                      else if (room.hasUnread)
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: theme.accent,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
-                            ],
-                          ),
-                        ),
-                      // Icons alone up here: the tile has a name, a preview
-                      // line and an unread count to fit as well, and every
-                      // pill explains itself on tap. A DM gets no visibility
-                      // pill at all — "private" is the only thing a
-                      // one-to-one conversation could be.
-                      if (!room.isDm)
-                        VisibilityBadge(
-                          isPublic: room.isPublic,
-                          dense: true,
-                          iconOnly: true,
-                        ),
-                      if (room.hasPassword)
-                        const LockedBadge(dense: true, iconOnly: true),
-                      if (room.isEphemeral && room.messageLifetime != null)
-                        EphemeralBadge(
-                          ttl: room.messageLifetime!,
-                          dense: true,
-                          iconOnly: true,
-                        ),
-                    ],
-                  ),
+            if (dmUser != null)
+              UserAvatar(user: dmUser!, size: 40, api: api, showStatus: false)
+            else if (room.avatarStorageId != null && api != null)
+              ClipOval(
+                child: RemoteImage(
+                  storageId: room.avatarStorageId!,
+                  api: api!,
+                  width: 40,
+                  height: 40,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
+              )
+            else
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.surfaceSunken,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.divider),
+                ),
+                child: room.isEphemeral
+                    ? theme.hourglassIcon(size: 20, color: theme.accent)
+                    : Icon(Icons.tag, size: 20, color: theme.accent),
+              ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Wrap(
+                spacing: 4,
+                runSpacing: 2,
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text(
-                    dmUser?.displayName ?? room.name,
-                    style: theme.displaySmall.copyWith(
-                      fontSize: 16,
-                      fontWeight: room.hasUnread ? FontWeight.w700 : null,
+                  if (room.unreadCount > 0)
+                    CountBadge(
+                      count: room.unreadCount,
+                      mention: room.hasMention,
+                    )
+                  else if (room.hasUnread)
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: theme.accent,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
+                        ],
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Flexible(
-                    child: typists.isNotEmpty
-                        ? TypingLine(typists: typists)
-                        : Text(
-                            (room.lastMessage != null && room.lastMessage!.isNotEmpty)
-                                ? room.lastMessage!
-                                : AppLocalizations.of(context).roomGridTileEmptyLastMessage,
-                            style: (room.lastMessage != null && room.lastMessage!.isNotEmpty)
-                                ? theme.body.copyWith(fontSize: 12)
-                                : theme.bodySoft.copyWith(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                  ),
+                  // Icons alone up here: the tile has a name, a preview
+                  // line and an unread count to fit as well, and every
+                  // pill explains itself on tap. A DM gets no visibility
+                  // pill at all — "private" is the only thing a
+                  // one-to-one conversation could be.
+                  if (!room.isDm)
+                    VisibilityBadge(
+                      isPublic: room.isPublic,
+                      dense: true,
+                      iconOnly: true,
+                    ),
+                  if (room.hasPassword)
+                    const LockedBadge(dense: true, iconOnly: true),
+                  if (room.isEphemeral && room.messageLifetime != null)
+                    EphemeralBadge(
+                      ttl: room.messageLifetime!,
+                      dense: true,
+                      iconOnly: true,
+                    ),
                 ],
               ),
             ),
-            // A DM always has exactly two people in it, so the count is noise —
-            // the friend's name and avatar already say who's here.
-            if (!room.isDm)
-              Row(children: [
-                Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
-                const SizedBox(width: 4),
-                Text(AppLocalizations.of(context).roomGridTileMemberCountLabel, style: theme.monoTiny),
-              ]),
           ],
         ),
-      ),
+        const SizedBox(height: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                dmUser?.displayName ?? room.name,
+                style: theme.displaySmall.copyWith(
+                  fontSize: quiet ? 21 : 16,
+                  height: quiet ? 1.15 : null,
+                  fontWeight: room.hasUnread ? FontWeight.w700 : null,
+                ),
+                maxLines: quiet ? 2 : 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Flexible(
+                child: typists.isNotEmpty
+                    ? TypingLine(typists: typists)
+                    : Text(
+                        subtitle.text,
+                        style: switch (subtitle.kind) {
+                          RoomSubtitleKind.message => theme.body.copyWith(fontSize: 12),
+                          // The room's own words, not a placeholder: quieter
+                          // than a message, but not greyed out to nothing.
+                          RoomSubtitleKind.description =>
+                              theme.bodySoft.copyWith(fontSize: 12, height: 1.35),
+                          RoomSubtitleKind.empty => theme.bodySoft.copyWith(fontSize: 12),
+                        },
+                        maxLines: subtitle.kind == RoomSubtitleKind.description ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+              ),
+            ],
+          ),
+        ),
+        // A DM always has exactly two people in it, so the count is noise —
+        // the friend's name and avatar already say who's here.
+        if (!room.isDm)
+          Row(children: [
+            Text('${room.memberCount}', style: theme.monoLarge.copyWith(fontSize: 16)),
+            const SizedBox(width: 4),
+            Text(AppLocalizations.of(context).roomGridTileMemberCountLabel, style: theme.monoTiny),
+          ]),
+      ],
     );
   }
 }

@@ -6533,6 +6533,12 @@ abstract class AppLocalizations {
   /// **'{weeks}w'**
   String roomCardTimeAgoWeeks(Object weeks);
 
+  /// Timestamp on a room card that has no messages yet, e.g. 'started 3d ago'. {ago} is a pre-formatted relative time from the roomCardTimeAgo* strings.
+  ///
+  /// In en, this message translates to:
+  /// **'started {ago}'**
+  String roomCardStartedAgo(Object ago);
+
   /// Room card footer showing how many members are currently in a (non-DM) room, e.g. '5 inside' (count is an int).
   ///
   /// In en, this message translates to:
