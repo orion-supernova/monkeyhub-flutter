@@ -35,7 +35,7 @@ class LauncherIconService {
   /// Apply the current SettingsStore selection. Safe to call repeatedly.
   static Future<void> applyFromSettings(AppTheme activeTheme) async {
     if (!_supportedPlatform) return;
-    final iconName = _resolveIconName(SettingsStore.instance, activeTheme);
+    final iconName = _platformIconName(activeTheme);
     try {
       final supports =
           await _channel.invokeMethod<bool>('supportsAlternateIcons') ?? false;
@@ -58,6 +58,37 @@ class LauncherIconService {
     } catch (e) {
       debugPrint('[launcher_icon] unexpected error: $e');
     }
+  }
+
+  /// The name actually handed to the platform, which is NOT the user's
+  /// selection on Android.
+  ///
+  /// Android always gets `null` — the primary icon — no matter what the user
+  /// picked. Every `<activity-alias>` icon ships as a single flat PNG under
+  /// `res/mipmap-{density}/ic_launcher_{id}.png` with no `mipmap-anydpi-v26`
+  /// XML beside it, so Android 8+ treats all 17 of them as LEGACY icons: the
+  /// launcher supplies its own plate, masks the art, and shrinks it to fit.
+  /// The primary MainActivity icon is the only adaptive one in the project
+  /// (background colour + a foreground inset to the safe zone), so *any* swap
+  /// away from it visibly downgrades the home screen. It lands hardest on OEM
+  /// launchers — One UI plates legacy icons on white and scales them most
+  /// aggressively — which is why this only ever reproduced on "some Android
+  /// devices", and only for users who had picked a theme.
+  ///
+  /// Returning null also REPAIRS installs already stuck on an alias: the
+  /// caller re-enables MainActivity whenever the live name differs from this
+  /// one, so the next reconcile puts the adaptive icon back.
+  ///
+  /// iOS is untouched. `CFBundleAlternateIcons` takes the same flat art with
+  /// no plating or masking, so the swap looks right there.
+  ///
+  /// Re-enable Android by deleting this branch once the alternates are
+  /// generated as real adaptive icons — a background layer, a 108dp foreground
+  /// respecting the 66% safe zone, and a monochrome layer for themed icons —
+  /// with one `mipmap-anydpi-v26/ic_launcher_{id}.xml` per alias.
+  static String? _platformIconName(AppTheme activeTheme) {
+    if (Platform.isAndroid) return null;
+    return _resolveIconName(SettingsStore.instance, activeTheme);
   }
 
   /// Returns the alt-icon name for the current selection. `null` means "use

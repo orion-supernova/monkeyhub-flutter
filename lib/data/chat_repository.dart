@@ -201,8 +201,37 @@ class ChatRepository extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> attach(String userId) async {
+  /// Serialises attach/detach so two of them can never interleave.
+  ///
+  /// [attach] awaits four network round-trips between cancelling the previous
+  /// subscription handles and assigning the new ones. Two concurrent attaches
+  /// therefore both reached the cancel block while every handle was still
+  /// null, cancelled nothing, and both went on to subscribe — the later
+  /// assignment winning and the earlier subscriptions staying live on the wire
+  /// with nothing left holding their handles. Unclosable duplicates, every
+  /// update delivered twice, for the rest of the session.
+  ///
+  /// The double-attach at sign-in is gone (app.dart no longer attaches from
+  /// bootstrap as well as from the auth listener), but this path is reachable
+  /// on its own: [resubscribe] calls [attach] on every reconnect, and a
+  /// reconnect during a cold-start attach is ordinary — the connection log
+  /// shows one within the first second of launch.
+  Future<void> _attachQueue = Future<void>.value();
+
+  Future<void> attach(String userId) {
+    // Published synchronously, before any awaiting: callers guard re-attach on
+    // `repo.userId`, and an id that only appeared after the first await would
+    // wave a second caller straight through while this attach was in flight.
     _userId = userId;
+    final done = _attachQueue.then((_) => _attach(userId));
+    // Swallowed on the queue only — `done` still carries the error to the
+    // caller. Without this a single failed attach would poison the chain and
+    // every later attach would reject without running.
+    _attachQueue = done.catchError((_) {});
+    return done;
+  }
+
+  Future<void> _attach(String userId) async {
     // Re-emit when the local "view read receipts" pref flips so any open
     // chat screen rebuilds and the SEEN indicator appears/disappears live.
     SettingsStore.instance.removeListener(_onSettingsChanged);
@@ -344,7 +373,17 @@ class ChatRepository extends ChangeNotifier {
     // [flushPending], of which the old handler was a strict subset.
   }
 
-  Future<void> detach() async {
+  /// Queued behind any in-flight [attach] for the same reason attaches are
+  /// queued behind each other: a sign-out that overtook a running attach would
+  /// null every handle the attach had not assigned yet, and the attach would
+  /// then finish by subscribing the account that just signed out.
+  Future<void> detach() {
+    final done = _attachQueue.then((_) => _detach());
+    _attachQueue = done.catchError((_) {});
+    return done;
+  }
+
+  Future<void> _detach() async {
     SettingsStore.instance.removeListener(_onSettingsChanged);
     _roomsSub?.cancel();
     _friendsSub?.cancel();

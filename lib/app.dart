@@ -198,6 +198,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   // online after closing". See backend presence.ts / users:heartbeat.
   Timer? _presenceHeartbeat;
 
+  /// Debounce timer for the auxiliary foreground sync scheduled on `resumed`,
+  /// and the floor between two of those syncs actually running.
+  ///
+  /// 30s is far below any interval at which the work matters — it re-checks a
+  /// push token and the family context — and far above the ~1.2s at which a
+  /// self-re-arming notification prompt used to drive it. See the scheduling
+  /// site in [didChangeAppLifecycleState].
+  Timer? _resumeSyncTimer;
+  DateTime? _lastResumeSync;
+  static const _resumeSyncMinInterval = Duration(seconds: 30);
+
   /// Deliberately still 30s, even though each beat used to patch the caller's
   /// `users` row and Convex invalidates every subscription that read that
   /// document — one beat recomputed the room list and friend list of everyone
@@ -490,8 +501,26 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
       // Stagger auxiliary background checks by 500ms so probeConnection gets
       // first access to the waking network socket without request contention.
-      Future.delayed(const Duration(milliseconds: 500), () {
+      //
+      // Cancelled and rescheduled rather than stacked: an app that flips
+      // foreground repeatedly used to leave one live timer per flip, all of
+      // them still due to fire.
+      _resumeSyncTimer?.cancel();
+      _resumeSyncTimer = Timer(const Duration(milliseconds: 500), () {
         if (!mounted) return;
+        // None of this is per-resume work in any real sense — it re-checks a
+        // token the backend may have cleared and re-reads the family context.
+        // Throttling it decouples "how often the OS says we came back" from
+        // "how much traffic we generate", so a focus flicker from ANY source
+        // — a permission activity, a heads-up notification, the call UI —
+        // can't turn into a mutation storm the way it did on Android when the
+        // notification prompt re-armed itself every 1.2 seconds.
+        final now = DateTime.now();
+        final last = _lastResumeSync;
+        if (last != null && now.difference(last) < _resumeSyncMinInterval) {
+          return;
+        }
+        _lastResumeSync = now;
         BadgeManager.instance.sync();
         PushManager.instance.refreshTokens();
         _family.refresh();
@@ -544,15 +573,26 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     // Set _bootstrapped true immediately so the UI mounts in <150ms from local cache.
     if (mounted) setState(() => _bootstrapped = true);
 
-    final s = _auth.session;
-    if (s != null) {
-      // Background attach & service setup — runs asynchronously so screen rendering is instant.
-      _asyncSessionAttach(s);
-    }
-
+    // No attach here on purpose. [AuthService.restore] above notifies
+    // unconditionally, and [_onAuthChange] — subscribed in initState, before
+    // this runs — has already started the attach by the time restore's future
+    // completes. Doing it again from here is what put TWO of every repo
+    // subscription on the wire for a restored session: both callers passed
+    // their re-attach guard (this one never had one), and because
+    // [ChatRepository.attach] awaits between cancelling the old handles and
+    // assigning the new ones, the second attach found every handle still null,
+    // cancelled nothing, and overwrote them — leaving the first attach's
+    // rooms/friends/requests/typing subscriptions live with no handle to close
+    // them. Every update arrived and was parsed twice for the rest of the
+    // session. Captured on a Galaxy S24: r=37 AND r=39 for `listUserRooms`,
+    // r=40 AND r=41 for `listFriends`, and so on down the group.
     _consumePendingPushRoom();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       UpdateChecker.instance.ensure(_api);
+      // Puts the primary adaptive icon back on Android for anyone an earlier
+      // build left on a theme alias. A no-op on every launch after the first
+      // one that repairs it, and on iOS where the selection is honoured.
+      SettingsStore.instance.reconcileLauncherIcon();
       // Covers the cold-start-restore case: an account signed in on a previous
       // launch that still has no recovery phrase. Fire-and-forget, and it
       // queries only after the shell is already on screen.
@@ -560,37 +600,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         unawaited(RecoveryGate.instance.ensure(_auth, _api));
       }
     });
-  }
-
-  void _asyncSessionAttach(Session s) async {
-    try {
-      await _repo.attach(s.userId);
-      _family.attach(s.userId);
-      // Attached here rather than in FeedScreen: the shell disposes that
-      // screen on every tab switch AND every theme change, and the board's
-      // unseen count has to stay live while the user is on another tab or the
-      // nav badge could never light.
-      unawaited(FeedStore.instance.attach(_feedApi, s.userId));
-      await PushManager.instance.login(s.userId);
-      OneSignalWeb.login(s.userId);
-      if (!SettingsStore.instance.pushEnabled) {
-        await PushManager.instance.optOut();
-      }
-      BadgeManager.instance.bind(_repo);
-      MessageAlerts.instance.bind(_repo);
-      _startPresenceHeartbeat(s.userId);
-      final deviceId = await DeviceIdentity.ensure();
-      _callService.attach(
-        userId: s.userId,
-        displayName: s.name,
-        deviceId: deviceId,
-      );
-      _groupCallService.attach(userId: s.userId, deviceId: deviceId);
-      await _signaling.start(s.userId, deviceId: deviceId);
-      await NativeCallHandler.instance.replayColdStartCalls();
-    } catch (e) {
-      debugPrint('_asyncSessionAttach error: $e');
-    }
   }
 
   /// Keeps the persisted session's account type in step with the live family
@@ -615,6 +624,15 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         unawaited(FeedStore.instance.attach(_feedApi, s.userId));
         await PushManager.instance.login(s.userId);
         OneSignalWeb.login(s.userId); // web push external_id; no-op off web
+        // [PushManager.login] registers this device for push unconditionally,
+        // so an account that turned notifications OFF has to be opted back out
+        // straight afterwards or a cold start silently re-enables them. This
+        // used to live only in the second, bootstrap-side copy of this method
+        // — which is exactly the drift that made two copies dangerous rather
+        // than merely wasteful.
+        if (!SettingsStore.instance.pushEnabled) {
+          await PushManager.instance.optOut();
+        }
         // Mark online on first attach. Recorded in _lastSentStatus like every
         // other write: without that the dedupe guard in
         // didChangeAppLifecycleState starts each session holding a stale value
@@ -689,6 +707,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   @override
   void dispose() {
     _stopPresenceHeartbeat();
+    _resumeSyncTimer?.cancel();
     _health.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _auth.removeListener(_onAuthChange);

@@ -193,12 +193,56 @@ class PushManager {
   /// which races the first-time OS prompt and appears even right after the
   /// user tapped Allow. A Settings redirect belongs behind an explicit
   /// re-enable button, never the first ask.
+  ///
+  /// ASKING IS ONE-SHOT, and that is load-bearing rather than tidiness.
+  /// `requestPermission` is not a passive query: OneSignal's Android SDK
+  /// early-returns only when the permission is already granted, and otherwise
+  /// starts `com.onesignal.core.activities.PermissionsActivity`. Starting an
+  /// activity pauses MainActivity, so Flutter reports `inactive`; the activity
+  /// finishes (instantly, once Android has stopped showing the sheet for a
+  /// twice-denied permission) and we get `resumed` — which is the very event
+  /// [App.didChangeAppLifecycleState] answers by scheduling the foreground
+  /// sync that calls [refreshTokens], which called this. That is a closed
+  /// loop: a captured session on a Galaxy S24 shows ~30 resumed/inactive flips
+  /// in 23 seconds, each one firing a `voipTokens:setFcmToken` write and a
+  /// `family:getFamilyContext` read, forever, on battery.
+  ///
+  /// It only ever reproduced on "some Android devices" because the SDK's
+  /// early return means a device that GRANTED notifications never enters the
+  /// loop at all. Denial is what arms it — and denial is ordinary on Android
+  /// 13+, where POST_NOTIFICATIONS is a runtime permission.
+  ///
+  /// So: ask at most once per process, and only when asking can still produce
+  /// a sheet.
+  bool _permissionSettled = false;
+
   Future<void> _maybeRequestNotificationPermission() async {
+    if (_permissionSettled) return;
+    // Not latched: a headless background launch (VoIP push cold start) can't
+    // prompt, and must still be able to ask on a later real foreground.
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     if (lifecycle != null && lifecycle != AppLifecycleState.resumed) return;
+    // Latched here, before the first await rather than next to the request:
+    // every await below yields, and an unlatched window is the whole of what a
+    // re-entrant caller needs to start a second prompt. The prompt itself
+    // pauses and resumes the app, so that caller is not hypothetical.
+    _permissionSettled = true;
     try {
+      // Already granted — nothing to ask for, and the SDK would no-op anyway.
+      if (OneSignal.Notifications.permission) return;
+      // Permanently denied. The OS will not show the sheet again, so a request
+      // buys nothing and costs the pause/resume churn described above.
+      // Re-enabling from here is the Settings redirect that belongs behind an
+      // explicit button, not an implicit resume.
+      if (!await OneSignal.Notifications.canRequest()) return;
       await OneSignal.Notifications.requestPermission(false);
     } catch (e) {
+      // The channel failed rather than the user answering, so nothing was
+      // actually decided. Unlatch so a later foreground can try once more —
+      // being permanently silent after one transient failure is the worse of
+      // the two outcomes, and the resume throttle in [App] now caps a repeated
+      // failure at one attempt per interval instead of a storm.
+      _permissionSettled = false;
       debugPrint('PushManager: requestPermission failed: $e');
     }
   }

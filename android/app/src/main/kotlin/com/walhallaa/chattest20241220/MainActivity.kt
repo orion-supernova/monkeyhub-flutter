@@ -359,9 +359,17 @@ class MainActivity : FlutterActivity() {
         return null
     }
 
-    private fun applyAlternateIcon(target: String?) {
+    private fun applyAlternateIcon(requested: String?) {
         val pm = packageManager
         val mainComponent = ComponentName(packageName, "$packageName.MainActivity")
+
+        // An unknown name would otherwise disable MainActivity AND match no
+        // alias in the loop below, leaving the package with zero enabled
+        // LAUNCHER components — the app vanishes from the home screen and the
+        // drawer, with no way back from inside an app the user can no longer
+        // start. Treat anything we can't honour as "primary" instead; the
+        // canonical icon is always a correct answer.
+        val target = if (requested == null || requested in aliasIds) requested else null
 
         // Enable MainActivity if target is null; otherwise disable it so two
         // launcher entries don't appear.

@@ -609,6 +609,20 @@ class SettingsStore extends ChangeNotifier {
         });
   }
 
+  /// Re-apply the launcher icon from current state, once per launch.
+  ///
+  /// [load] deliberately does NOT do this: it runs before the engine has
+  /// attached its method channels, where `supportsAlternateIcons` resolves to
+  /// null and the whole call silently no-ops. Call this from the app shell,
+  /// after the first frame.
+  ///
+  /// Free when the icon is already correct — the service compares against the
+  /// live name and returns without touching PackageManager. It exists so an
+  /// install left holding an `<activity-alias>` icon by an earlier build gets
+  /// the primary adaptive icon back on the next launch, without the user
+  /// having to visit the logo screen.
+  void reconcileLauncherIcon() => _applyLauncherIcon();
+
   /// Fire-and-forget native launcher-icon swap. Reads the resolved icon name
   /// from the current store state; safe to call from any setter. Awaiting
   /// would block the UI on a non-essential side effect.
