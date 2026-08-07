@@ -186,6 +186,7 @@ class _Page extends StatelessWidget {
           api: api,
           storageId: id,
           posterStorageId: message.posterStorageId,
+          aspectRatio: message.mediaAspectRatio,
         ),
       );
     }

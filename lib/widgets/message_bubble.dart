@@ -1087,6 +1087,7 @@ Widget buildMessageContent({
                             storageId: videoStorageId,
                             api: api,
                             posterStorageId: message.posterStorageId,
+                            aspectRatio: message.mediaAspectRatio,
                           ),
                 ),
         ),

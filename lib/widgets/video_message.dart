@@ -1,8 +1,11 @@
+import 'dart:io' show File;
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 import '../backend/chat_api.dart';
 import '../media/file_url_cache.dart';
+import '../media/video_file_cache.dart';
 import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -198,12 +201,19 @@ class VideoPlayerSurface extends StatefulWidget {
     required this.api,
     required this.storageId,
     this.posterStorageId,
+    this.aspectRatio,
     this.autoplay = true,
   });
 
   final ChatApi api;
   final String? storageId;
   final String? posterStorageId;
+
+  /// The sender's recorded width÷height, when the message carries it. Sizes
+  /// the pre-ready states at the box the video will actually occupy, so the
+  /// picture doesn't jump the moment `initialize()` lands. Null falls back to
+  /// 16∶9 — a guess, but a bounded one.
+  final double? aspectRatio;
 
   /// Starts playback the instant the controller is ready. On, because both
   /// call sites are a direct response to a tap that asked to watch this —
@@ -230,6 +240,13 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
   /// on a recycled row — has already started a newer attempt.
   int _gen = 0;
 
+  /// Last playing state the play/pause overlay was drawn for. The controller
+  /// ticks on every frame of playback; rebuilding on all of them to keep one
+  /// glyph honest would be absurd, so [_onControllerTick] only calls setState
+  /// when this actually flips — which includes the case a tap can't cover:
+  /// playback reaching the end on its own.
+  bool _wasPlaying = false;
+
   @override
   void initState() {
     super.initState();
@@ -240,16 +257,27 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
   void didUpdateWidget(covariant VideoPlayerSurface old) {
     super.didUpdateWidget(old);
     if (old.storageId == widget.storageId) return;
-    _controller?.dispose();
-    _controller = null;
+    _disposeController();
     setState(() => _phase = _SurfacePhase.loading);
     _load();
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _disposeController();
     super.dispose();
+  }
+
+  void _disposeController() {
+    _controller?.removeListener(_onControllerTick);
+    _controller?.dispose();
+    _controller = null;
+  }
+
+  void _onControllerTick() {
+    final playing = _controller?.value.isPlaying ?? false;
+    if (playing == _wasPlaying || !mounted) return;
+    setState(() => _wasPlaying = playing);
   }
 
   Future<void> _load() async {
@@ -260,9 +288,17 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
       return;
     }
     try {
-      final url = await FileUrlCache.instance
-          .resolve(id, () => widget.api.getFileUrl(id))
-          .timeout(_loadTimeout);
+      // A copy the fullscreen viewer already downloaded plays with no network
+      // at all — instant, and it scrubs without rebuffering. Only ever a
+      // lookup, never a download: this surface is the fallback path, and it
+      // should not quietly change what a swipe through the media pager costs.
+      final local = await VideoFileCache.instance.lookup(id);
+      if (!mounted || gen != _gen) return;
+
+      final url = local ??
+          await FileUrlCache.instance
+              .resolve(id, () => widget.api.getFileUrl(id))
+              .timeout(_loadTimeout);
       // The state that started this resolve may already be gone — a pager
       // swipe or a viewer close both tear down synchronously, well before a
       // cold cache miss's round trip settles. Bail before spending a real
@@ -270,7 +306,9 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
       if (!mounted || gen != _gen) return;
       if (url == null) throw const FileUnavailable();
 
-      final c = VideoPlayerController.networkUrl(Uri.parse(url));
+      final c = local != null
+          ? VideoPlayerController.file(File(local))
+          : VideoPlayerController.networkUrl(Uri.parse(url));
       try {
         await c.initialize().timeout(_loadTimeout);
       } catch (e) {
@@ -286,6 +324,8 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
         return;
       }
       if (widget.autoplay) c.play();
+      c.addListener(_onControllerTick);
+      _wasPlaying = widget.autoplay;
       setState(() {
         _controller = c;
         _phase = _SurfacePhase.ready;
@@ -310,16 +350,17 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
     _load();
   }
 
+  /// No `setState` here on purpose — [_onControllerTick] repaints off the
+  /// controller's own value, which is the only version of "is it playing" that
+  /// is also right when playback stops without a tap.
   void _toggle() {
     final c = _controller;
     if (c == null) return;
-    setState(() {
-      if (c.value.isPlaying) {
-        c.pause();
-      } else {
-        c.play();
-      }
-    });
+    if (c.value.isPlaying) {
+      c.pause();
+    } else {
+      c.play();
+    }
   }
 
   /// The poster, letterboxed on black, or plain black when there is none —
@@ -333,50 +374,60 @@ class _VideoPlayerSurfaceState extends State<VideoPlayerSurface> {
     );
   }
 
+  /// Every pre-ready state: backdrop, scrim, one centred glyph.
+  ///
+  /// The [AspectRatio] and the [Center] are both load-bearing. Without the
+  /// ratio these states took `constraints.biggest` — the whole screen in the
+  /// fullscreen viewer — and then snapped to the video's real shape the frame
+  /// `initialize()` landed. And `StackFit.expand` hands every non-positioned
+  /// child *tight* constraints equal to the stack, which silently overrode the
+  /// `SizedBox(32, 32)` the spinner used to sit in and inflated it to a
+  /// screen-filling ring; centring it inside the expanded child is what lets a
+  /// fixed size mean anything here.
+  Widget _plate(Widget glyph, {required double scrim}) {
+    final r = widget.aspectRatio;
+    return AspectRatio(
+      aspectRatio: (r != null && r.isFinite && r > 0) ? r : 16 / 9,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _backdrop(),
+          ColoredBox(color: Colors.black.withValues(alpha: scrim)),
+          Center(child: glyph),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
 
     if (_phase == _SurfacePhase.unavailable) {
-      return Stack(
-        fit: StackFit.expand,
-        alignment: Alignment.center,
-        children: [
-          _backdrop(),
-          Container(color: Colors.black.withValues(alpha: 0.45)),
-          const Icon(Icons.videocam_off_outlined, color: Colors.white, size: 36),
-        ],
+      return _plate(
+        const Icon(Icons.videocam_off_outlined, color: Colors.white, size: 36),
+        scrim: 0.45,
       );
     }
 
     if (_phase == _SurfacePhase.failed) {
-      return Stack(
-        fit: StackFit.expand,
-        alignment: Alignment.center,
-        children: [
-          _backdrop(),
-          Container(color: Colors.black.withValues(alpha: 0.45)),
-          GestureDetector(
-            onTap: _retry,
-            child: const Icon(Icons.refresh, color: Colors.white, size: 36),
-          ),
-        ],
+      return _plate(
+        GestureDetector(
+          onTap: _retry,
+          child: const Icon(Icons.refresh, color: Colors.white, size: 36),
+        ),
+        scrim: 0.45,
       );
     }
 
     if (_phase == _SurfacePhase.loading) {
-      return Stack(
-        fit: StackFit.expand,
-        alignment: Alignment.center,
-        children: [
-          _backdrop(),
-          Container(color: Colors.black.withValues(alpha: 0.25)),
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: CircularProgressIndicator(strokeWidth: 2.5, color: theme.accent),
-          ),
-        ],
+      return _plate(
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: CircularProgressIndicator(strokeWidth: 2.5, color: theme.accent),
+        ),
+        scrim: 0.25,
       );
     }
 

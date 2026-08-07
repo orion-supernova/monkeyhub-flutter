@@ -118,4 +118,23 @@ dependencies {
     // its own bundled FCM transport; this dependency is for OUR service only.
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-messaging")
+
+    // VideoPlayerActivity — the OS video player a tapped video message opens.
+    //
+    // media3-exoplayer already arrives transitively via video_player_android,
+    // but it is declared here anyway: this module compiles against it directly,
+    // and a plugin's transitive graph is not a dependency contract — dropping
+    // or upgrading video_player would break an unrelated Kotlin file with no
+    // hint as to why. media3-ui (PlayerView, the transport controls) does NOT
+    // come from anywhere else; video_player renders to a texture and ships no
+    // UI at all.
+    //
+    // Keep this version in step with video_player_android's `exoplayerVersion`
+    // (its android/build.gradle.kts pins it). Gradle resolves the two to the
+    // highest of the pair, so a drift makes -ui and -exoplayer straddle a
+    // release, which is exactly how you get a NoSuchMethodError at runtime
+    // instead of a compile error here.
+    val media3Version = "1.9.2"
+    implementation("androidx.media3:media3-exoplayer:${media3Version}")
+    implementation("androidx.media3:media3-ui:${media3Version}")
 }

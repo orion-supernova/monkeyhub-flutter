@@ -296,6 +296,43 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // monkeyhub/video — play a video in a full-screen ExoPlayer activity
+        // with the platform's own transport controls, rather than a Dart
+        // re-implementation on top of a bare `video_player` texture. Backs
+        // NativeVideoPlayer.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "monkeyhub/video")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "present" -> {
+                        val url = call.argument<String>("url")
+                        if (url.isNullOrBlank()) {
+                            result.success(false)
+                            return@setMethodCallHandler
+                        }
+                        try {
+                            startActivity(
+                                Intent(this, VideoPlayerActivity::class.java)
+                                    .putExtra(VideoPlayerActivity.EXTRA_URL, url)
+                                    .putExtra(
+                                        VideoPlayerActivity.EXTRA_SECURE,
+                                        call.argument<Boolean>("secure") ?: false
+                                    )
+                            )
+                            // Answered on launch, not on the user closing the
+                            // player: Dart's only remaining job is to pop the
+                            // placeholder route underneath, and this activity
+                            // outlives it.
+                            result.success(true)
+                        } catch (_: Throwable) {
+                            // Dart falls back to its own player rather than
+                            // showing the user a dead tap.
+                            result.success(false)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onRequestPermissionsResult(

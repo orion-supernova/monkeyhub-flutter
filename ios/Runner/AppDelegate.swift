@@ -3,6 +3,8 @@ import UIKit
 import UserNotifications
 import PushKit
 import CallKit
+import AVKit
+import AVFoundation
 import flutter_callkit_incoming
 
 @main
@@ -675,6 +677,87 @@ import flutter_callkit_incoming
         }
       }
     }
+
+    // monkeyhub/video — play a video in AVPlayerViewController, the same
+    // player Photos and Messages use, instead of re-inventing a transport bar
+    // in Dart on top of a bare `video_player` texture. Backs NativeVideoPlayer.
+    if let registrar = engine.registrar(forPlugin: "MonkeyHubVideoPlugin") {
+      let channel = FlutterMethodChannel(
+        name: "monkeyhub/video",
+        binaryMessenger: registrar.messenger()
+      )
+      channel.setMethodCallHandler { [weak self] call, result in
+        guard call.method == "present" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        let args = call.arguments as? [String: Any] ?? [:]
+        guard let raw = args["url"] as? String, let url = URL(string: raw) else {
+          result(false)
+          return
+        }
+        // Presentation is main-thread-only, and the channel handler is already
+        // on it — the hop is for the case where it isn't (a background
+        // isolate's messenger), not ceremony.
+        DispatchQueue.main.async {
+          guard let host = self?.topViewController() else {
+            result(false)
+            return
+          }
+          self?.prepareAudioSessionForPlayback()
+          let controller = _VideoPlayerViewController()
+          controller.player = AVPlayer(url: url)
+          controller.modalPresentationStyle = .fullScreen
+          // The chat is already showing this video's poster; a second entrance
+          // animation on top of the Flutter route's own fade reads as a stutter.
+          host.present(controller, animated: false) {
+            controller.player?.play()
+            // Answered on presentation, not dismissal: Dart's only remaining
+            // job is to pop the placeholder route underneath, and this view
+            // controller outlives it.
+            result(true)
+          }
+        }
+      }
+    }
+  }
+
+  /// The view controller anything modal has to be presented from — the deepest
+  /// one currently on screen. Walks from the key window's root rather than
+  /// `self.window`, which is nil in this app: a UIScene owns the window (see
+  /// SceneDelegate), so UIApplicationDelegate never gets one.
+  private func topViewController() -> UIViewController? {
+    var root = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .filter { $0.activationState == .foregroundActive }
+      .flatMap { $0.windows }
+      .first { $0.isKeyWindow }?
+      .rootViewController
+    if root == nil { root = window?.rootViewController }
+    var top = root
+    while let presented = top?.presentedViewController { top = presented }
+    return top
+  }
+
+  /// Makes video audio audible through the ringer switch, the way Photos plays
+  /// back — but ONLY when nothing is already holding the session for recording.
+  ///
+  /// That guard is the whole point. flutter_webrtc puts the session in
+  /// `.playAndRecord` for the duration of a call, and stamping `.playback` over
+  /// it kills the microphone for a call still in progress. A user who taps a
+  /// video mid-call gets the silent-switch behaviour instead, which is a far
+  /// cheaper thing to be wrong about than a one-way call.
+  private func prepareAudioSessionForPlayback() {
+    let session = AVAudioSession.sharedInstance()
+    guard session.category != .playAndRecord else { return }
+    do {
+      try session.setCategory(.playback, mode: .moviePlayback)
+      try session.setActive(true)
+    } catch {
+      // Non-fatal: the video still plays, just under whatever category the
+      // session already had.
+      NSLog("monkeyhub/video: audio session setup failed: \(error)")
+    }
   }
 
   /// Silent-push entry point for server-driven notification removal.
@@ -736,6 +819,25 @@ import flutter_callkit_incoming
     } else {
       completionHandler(.newData)
     }
+  }
+}
+
+/// AVPlayerViewController that actually lets go of its player.
+///
+/// Presented modally it dismisses itself from its own Done button, and Flutter
+/// has already popped the route that asked for it by then — so nothing else is
+/// left holding a reference. Without this the AVPlayer survives the dismissal
+/// and keeps the audio session (and its decoder) alive, which is audible: back
+/// out of a video and it goes on playing over the transcript.
+private class _VideoPlayerViewController: AVPlayerViewController {
+  override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+    // Only on a real dismissal — a Picture-in-Picture handoff or a pushed
+    // child also fires this, and tearing the player down there would stop the
+    // playback the user just asked to keep.
+    guard isBeingDismissed || isMovingFromParent else { return }
+    player?.pause()
+    player = nil
   }
 }
 

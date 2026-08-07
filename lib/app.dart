@@ -35,6 +35,7 @@ import 'auth/recovery_gate.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'main.dart' show rootNavigatorKey;
 import 'media/audio_file_cache.dart';
+import 'media/video_file_cache.dart';
 import 'media/file_url_cache.dart';
 import 'media/media_aspect_cache.dart';
 import 'audio/alert_sounds.dart';
@@ -731,8 +732,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await MediaAspectCache.instance.clear();
         // Cached voice notes aren't secret either, but unlike the two above
         // they occupy real disk, and a signed-out account shouldn't leave
-        // someone else's audio on the device.
+        // someone else's audio on the device. Watched videos are the same
+        // argument at a hundred times the size.
         await AudioFileCache.instance.clear();
+        await VideoFileCache.instance.clear();
         await _signaling.stop();
         await _callService.endCall();
         _callService.detachWatch();
