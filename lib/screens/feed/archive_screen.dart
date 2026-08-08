@@ -10,6 +10,7 @@ import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/remote_image.dart';
+import '../../widgets/steady_hero.dart';
 import 'moment_viewer.dart';
 
 /// Everything you have kept, by day.
@@ -284,6 +285,12 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
             api: widget.api,
             feedApi: widget.feedApi,
             userId: widget.userId,
+            // The grid tile is showing the picture, so it flies. Same tag as the
+            // feed rail uses; the two are never in the same route, so they can
+            // never collide.
+            heroTag: m.thumbStorageId == null
+                ? null
+                : momentMediaHeroTag(m.id),
           ),
         );
       },
@@ -506,9 +513,7 @@ class _ArchiveTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final motion = MotionScope.of(context);
-    final thumbId = moment.mediaKind == MomentMedia.video
-        ? moment.posterStorageId
-        : moment.mediaStorageId;
+    final thumbId = moment.thumbStorageId;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -527,15 +532,22 @@ class _ArchiveTile extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               if (thumbId != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                  child: RemoteImage(
-                    storageId: thumbId,
-                    api: api,
-                    fit: BoxFit.cover,
-                    // One axis only — passing both squashes the bitmap before
-                    // `fit` runs.
-                    decodeWidth: 240,
+                // The picture flies to the viewer — see [momentMediaHeroTag].
+                SteadyHero(
+                  tag: momentMediaHeroTag(moment.id),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(theme.radiusMd),
+                    child: RemoteImage(
+                      storageId: thumbId,
+                      api: api,
+                      fit: BoxFit.cover,
+                      // One axis only — passing both squashes the bitmap before
+                      // `fit` runs. The shared constant, not a number of its
+                      // own: the viewer reuses this exact decode as the flight's
+                      // backdrop and a different width is a different cache
+                      // entry.
+                      decodeWidth: momentThumbDecodeWidth,
+                    ),
                   ),
                 )
               else

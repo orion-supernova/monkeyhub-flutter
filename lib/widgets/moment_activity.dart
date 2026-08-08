@@ -26,7 +26,10 @@ class MomentActivity extends StatelessWidget {
 
   final List<Moment> moments;
   final String viewerId;
-  final void Function(Moment moment) onOpen;
+
+  /// Opens a moment. The rect is the row's own place on screen — a row shows no
+  /// picture, so the viewer's card grows out of the row instead of flying one.
+  final void Function(Moment moment, Rect? origin) onOpen;
 
   /// How many rows to show before stopping.
   ///
@@ -58,7 +61,7 @@ class MomentActivity extends StatelessWidget {
             moment: shown[i],
             viewerId: viewerId,
             index: i,
-            onTap: () => onOpen(shown[i]),
+            onTap: (origin) => onOpen(shown[i], origin),
           ),
         if (moments.length > shown.length) ...[
           const SizedBox(height: 6),
@@ -86,7 +89,9 @@ class _ActivityRow extends StatelessWidget {
   final Moment moment;
   final String viewerId;
   final int index;
-  final VoidCallback onTap;
+
+  /// Handed this row's own screen rect — see [MomentActivity.onOpen].
+  final void Function(Rect? origin) onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +99,7 @@ class _ActivityRow extends StatelessWidget {
     final motion = MotionScope.of(context);
     final l10n = AppLocalizations.of(context);
     final mine = moment.userId == viewerId;
+    void open() => onTap(tapOriginRect(context));
     final tag = moment.tag;
     // Verb agreement rules this out of a single interpolated template. Turkish
     // conjugates the verb for person, so "{who} paylaştı" with who="sen" reads
@@ -123,11 +129,11 @@ class _ActivityRow extends StatelessWidget {
         child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
       ),
       child: FocusableTap(
-        onTap: onTap,
+        onTap: open,
         semanticLabel: headline,
         radius: theme.radiusSm,
         child: GestureDetector(
-          onTap: onTap,
+          onTap: open,
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 7),

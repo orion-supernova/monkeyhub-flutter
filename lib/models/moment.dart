@@ -147,6 +147,20 @@ class Moment {
   /// rather than shown with a blank name, so this can undercount briefly.
   final List<MomentReactor> reactors;
 
+  /// The picture to show for this moment, or null when there is none to show.
+  ///
+  /// A video's poster frame stands in for it. Poster extraction is mobile-only
+  /// (`video_thumbnail` wraps MediaMetadataRetriever / AVAssetImageGenerator and
+  /// has no web or desktop implementation), so a video composed on the web has
+  /// no poster and correctly reports none here.
+  ///
+  /// One getter because every surface that renders a moment has to agree with
+  /// every other one about whether there is a picture at all — the rail, the
+  /// archive grid and the viewer each decide what to draw from it, and the feed
+  /// decides from it whether a Hero flight has anything to fly.
+  String? get thumbStorageId =>
+      mediaKind == MomentMedia.video ? posterStorageId : mediaStorageId;
+
   /// Whether this still counts toward friends' boards at [now].
   ///
   /// Takes the instant rather than reading the clock so the expiry sweep and

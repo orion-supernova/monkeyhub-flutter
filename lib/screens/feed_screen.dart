@@ -197,7 +197,23 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  void _open(Moment moment) {
+  /// Opens a moment from the highlights rail, where its picture is on screen and
+  /// can fly to the viewer. A caption-only card has no picture to fly, and
+  /// claiming a tag for one would leave the viewer waiting on a flight that
+  /// never departs.
+  void _openFromRail(Moment moment) => _open(
+    moment,
+    heroTag: moment.thumbStorageId == null
+        ? null
+        : momentMediaHeroTag(moment.id),
+  );
+
+  /// Opens a moment from a text row — a point, an activity line. There is no
+  /// picture to fly, so the viewer's card rises out of the row that was tapped.
+  void _openFromRow(Moment moment, Rect? origin) =>
+      _open(moment, origin: origin);
+
+  void _open(Moment moment, {Object? heroTag, Rect? origin}) {
     final userId = widget.repo.userId;
     if (userId == null) return;
     showMomentViewer(
@@ -206,6 +222,8 @@ class _FeedScreenState extends State<FeedScreen> {
       api: widget.api,
       feedApi: widget.feedApi,
       userId: userId,
+      heroTag: heroTag,
+      origin: origin,
     );
   }
 
@@ -252,7 +270,7 @@ class _FeedScreenState extends State<FeedScreen> {
                   serverNow: store.serverNow,
                   canCapture: _canCapture,
                   onCapture: _compose,
-                  onOpen: _open,
+                  onOpen: _openFromRail,
                 ),
         ),
       ),
@@ -319,7 +337,7 @@ class _FeedScreenState extends State<FeedScreen> {
             points: store.points,
             viewerId: widget.repo.userId ?? '',
             onAdd: _addPoint,
-            onOpen: _open,
+            onOpen: _openFromRow,
           ),
         ),
       ),
@@ -334,7 +352,7 @@ class _FeedScreenState extends State<FeedScreen> {
               : MomentActivity(
                   moments: store.moments,
                   viewerId: widget.repo.userId ?? '',
-                  onOpen: _open,
+                  onOpen: _openFromRow,
                 ),
         ),
       ),

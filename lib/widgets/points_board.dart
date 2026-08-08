@@ -32,7 +32,10 @@ class PointsBoard extends StatelessWidget {
   final List<Moment> points;
   final String viewerId;
   final VoidCallback onAdd;
-  final void Function(Moment moment) onOpen;
+
+  /// Opens a point. The rect is the line's own place on screen — a point has no
+  /// picture to fly to the viewer, so the card grows out of the line instead.
+  final void Function(Moment moment, Rect? origin) onOpen;
 
   /// How many lines to show before the board defers to the activity river.
   final int max;
@@ -62,7 +65,7 @@ class PointsBoard extends StatelessWidget {
               moment: points[i],
               viewerId: viewerId,
               index: i,
-              onTap: () => onOpen(points[i]),
+              onTap: (origin) => onOpen(points[i], origin),
             ),
           if (points.length > max) ...[
             const SizedBox(height: 4),
@@ -207,7 +210,9 @@ class _PointLine extends StatelessWidget {
   final Moment moment;
   final String viewerId;
   final int index;
-  final VoidCallback onTap;
+
+  /// Handed this line's own screen rect — see [PointsBoard.onOpen].
+  final void Function(Rect? origin) onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +221,7 @@ class _PointLine extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final tag = moment.tag;
     if (tag == null) return const SizedBox.shrink();
+    void open() => onTap(tapOriginRect(context));
 
     final mine = moment.userId == viewerId;
     // Verb agreement makes a single interpolated template impossible in
@@ -237,11 +243,11 @@ class _PointLine extends StatelessWidget {
         child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
       ),
       child: FocusableTap(
-        onTap: onTap,
+        onTap: open,
         semanticLabel: headline,
         radius: theme.radiusSm,
         child: GestureDetector(
-          onTap: onTap,
+          onTap: open,
           behavior: HitTestBehavior.opaque,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 7),

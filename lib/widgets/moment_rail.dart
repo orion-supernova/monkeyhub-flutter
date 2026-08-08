@@ -7,6 +7,37 @@ import '../models/moment.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'steady_hero.dart';
+
+/// Hero tag for a moment's picture, shared by every surface that renders one.
+///
+/// Lives here beside [MomentTagChip] rather than in the viewer, because the
+/// *sources* of the flight — this rail, the archive grid — are widgets, and
+/// having them reach into a screen for a tag is how an import cycle starts. A
+/// tag is only ever live in one route at a time (the rail carries untagged
+/// highlights, the standings board carries tagged points, and the archive is its
+/// own route), so two heroes can never claim the same one.
+Object momentMediaHeroTag(String momentId) => 'moment_media_$momentId';
+
+/// The decode width, in device pixels, every moment thumbnail in the app asks
+/// for.
+///
+/// One constant because the viewer passes it back as its
+/// `placeholderDecodeWidth`: hand it a different number and that is a different
+/// `ImageCache` entry, which always misses, which lands the flight on a shimmer.
+const int momentThumbDecodeWidth = 248;
+
+/// The on-screen rect of [context]'s own box.
+///
+/// For rows that have no picture to fly — a point, an activity line — the
+/// viewer grows out of this instead, so the card still comes from the thing that
+/// was tapped. Null when there is no laid-out box to measure, which the caller
+/// is expected to treat as "no origin, just fade in".
+Rect? tapOriginRect(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  return box.localToGlobal(Offset.zero) & box.size;
+}
 
 /// The horizontal rail of today's moments, capture tile first.
 ///
@@ -234,30 +265,32 @@ class _Thumb extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final storageId = moment.mediaStorageId;
-    // A video's poster frame, when one exists. Poster extraction is mobile-only
-    // (video_thumbnail wraps MediaMetadataRetriever / AVAssetImageGenerator and
-    // has no web or desktop implementation), so a video composed on the web
-    // keeps the glyph permanently — a designed state, not a placeholder.
-    final thumbId = moment.mediaKind == MomentMedia.video
-        ? moment.posterStorageId
-        : storageId;
+    // Null for a video with no poster frame, which keeps the glyph permanently
+    // — a designed state, not a placeholder. See [Moment.thumbStorageId].
+    final thumbId = moment.thumbStorageId;
 
     return Stack(
       fit: StackFit.expand,
       children: [
         if (thumbId != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            child: RemoteImage(
-              storageId: thumbId,
-              api: api,
-              fit: BoxFit.cover,
-              // One axis only. Passing both width and height here squashes the
-              // bitmap before `fit` runs — ResizeImagePolicy.exact behaves like
-              // BoxFit.fill — which is what stretched every non-square tile in
-              // an earlier build.
-              decodeWidth: 248,
+          // The picture itself flies to the viewer — not the card around it.
+          // Wrapping the card would hand the flight a rect whose contents differ
+          // at the two ends, and the shuttle would have to invent something to
+          // paint in between. The photograph is the one thing both ends agree on.
+          SteadyHero(
+            tag: momentMediaHeroTag(moment.id),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+              child: RemoteImage(
+                storageId: thumbId,
+                api: api,
+                fit: BoxFit.cover,
+                // One axis only. Passing both width and height here squashes the
+                // bitmap before `fit` runs — ResizeImagePolicy.exact behaves like
+                // BoxFit.fill — which is what stretched every non-square tile in
+                // an earlier build.
+                decodeWidth: momentThumbDecodeWidth,
+              ),
             ),
           )
         else
