@@ -132,6 +132,8 @@ class ChatUser {
     this.accountType = AccountType.adult,
     this.childPolicy,
     this.hasRecoveryKey,
+    this.hasPassword,
+    this.usernameChangedAt,
   });
 
   final String id;
@@ -177,6 +179,24 @@ class ChatUser {
   ///           client shipped ahead of the backend deploy never nags.
   bool? hasRecoveryKey;
 
+  /// Whether this account can be asked for a password at all — false for one
+  /// created through Apple or Google that has never set one.
+  ///
+  /// Three states, same shape as [hasRecoveryKey] and load-bearing for the same
+  /// reason: null means "not a self-fetch, or a backend that predates the
+  /// field", and the rename sheet treats it as "assume a password", which is
+  /// the safe way to be wrong — the worst case is a password prompt the user
+  /// cannot satisfy, rather than a rename attempt with no proof at all.
+  bool? hasPassword;
+
+  /// When the handle was last changed, or null for an account still on the one
+  /// it signed up with. Self-only.
+  ///
+  /// Read solely to grey out the rename row during the cooldown, so the refusal
+  /// arrives before the user has thought of a name rather than after they have
+  /// typed it. The backend enforces the window regardless.
+  DateTime? usernameChangedAt;
+
   bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
@@ -213,6 +233,12 @@ class ChatUser {
       // Deliberately NOT defaulted. An absent key means "unknown", which is
       // not the same as "no phrase set" — see the field's doc comment.
       hasRecoveryKey: j['hasRecoveryKey'] as bool?,
+      // Same three-state reading as above.
+      hasPassword: j['hasPassword'] as bool?,
+      usernameChangedAt: switch (j['usernameChangedAt']) {
+        final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
+        _ => null,
+      },
     );
   }
 
@@ -247,5 +273,11 @@ class ChatUser {
         accountType: accountType ?? this.accountType,
         childPolicy: childPolicy ?? this.childPolicy,
         hasRecoveryKey: hasRecoveryKey ?? this.hasRecoveryKey,
+        // Carried through even though nothing overrides them. `copyWith` drops
+        // whatever it does not name, and ProfileScreen calls it on every fresh
+        // fetch to graft friendship state on — so omitting these would erase
+        // the rename row's gate and cooldown the moment the profile reloaded.
+        hasPassword: hasPassword,
+        usernameChangedAt: usernameChangedAt,
       );
 }

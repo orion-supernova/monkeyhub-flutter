@@ -5,11 +5,15 @@ import {
   PRESENCE_WRITE_INTERVAL_MS,
 } from "./presence";
 import { deleteStored } from "./files";
-import { SOCIAL_ONLY_PASSWORD_SENTINEL } from "./socialAuth";
+import {
+  SOCIAL_ONLY_PASSWORD_SENTINEL,
+  normaliseUsername,
+} from "./socialAuth";
 import {
   ACCOUNT_ADULT,
   ACCOUNT_CHILD,
   DEFAULT_CHILD_POLICY,
+  ERR_MUST_PAIR,
   ERR_NOT_ALLOWED,
   familyOf,
   isChild,
@@ -17,6 +21,8 @@ import {
 import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
 import {
   ERR_DISPLAY_NAME_RESERVED,
+  ERR_USERNAME_RESERVED,
+  REPORT_INBOX_USERNAME,
   isReservedName,
   isSystemAccount,
 } from "./systemAccount";
@@ -87,6 +93,20 @@ export const getProfile = query({
         user.passwordHash !== SOCIAL_ONLY_PASSWORD_SENTINEL
           ? user.recoveryKeyHash !== undefined
           : undefined,
+      // Whether this account can be asked for a password at all. Self only, and
+      // for the same reason as `hasRecoveryKey`: it describes a credential.
+      //
+      // The rename sheet is the caller. A password account is gated by typing
+      // its password; an Apple/Google-only account has none to type and is
+      // gated by re-running the provider sheet instead. The client cannot tell
+      // those apart on its own — a linked provider does not imply the absence
+      // of a password — so the answer has to come from here.
+      hasPassword: isSelf
+        ? user.passwordHash !== SOCIAL_ONLY_PASSWORD_SENTINEL
+        : undefined,
+      // Lets the rename row show the date the handle unlocks instead of
+      // accepting a new one and refusing it after the user has typed it.
+      usernameChangedAt: isSelf ? user.usernameChangedAt : undefined,
       ...identity,
       // Mirror the visibility map back so self-view UI can render it without
       // a separate fetch. Other viewers get an empty map — knowing someone's
@@ -325,6 +345,172 @@ export const updateProfile = mutation({
         ? { email: email.trim().length > 0 ? email.trim() : undefined }
         : {}),
     });
+  },
+});
+
+/**
+ * Whether a handle could be claimed right now, for the typeahead under every
+ * pick-a-username field.
+ *
+ * ## This is an account-enumeration oracle, and that was the trade
+ *
+ * `login_screen.dart` used to carry a comment refusing exactly this endpoint,
+ * on the grounds that answering "is this name free?" answers "does this account
+ * exist?" for anyone who cares to ask. That reasoning was correct and has not
+ * stopped being correct. It was overruled deliberately: three of the four
+ * screens that pick a handle previously had no feedback at all until submit,
+ * and USERNAME_TAKEN-after-the-fact is a poor way to name yourself.
+ *
+ * So the mitigations are honest ones rather than a pretence that the hole is
+ * closed. The client debounces, which cuts incidental traffic and does nothing
+ * whatsoever to a script. Nothing here reveals anything the signup form did not
+ * already reveal one attempt at a time — same two outcomes, same two reasons,
+ * just faster. And it stays a QUERY: no writes, no scheduling, nothing an
+ * attacker can make expensive.
+ *
+ * What it must never become is a lookup that returns anything ABOUT the
+ * account. It answers one boolean and a reason for `false`; a caller learning
+ * an id, a display name or an avatar from this would be a different and much
+ * worse leak than the one knowingly accepted here.
+ *
+ * NEVER the authority. `auth.signup`, `family.createChildAccount`,
+ * `socialAuth.createWithIdentity` and `users.applyUsernameChange` all re-check
+ * on the write, in the same transaction, because a name can be claimed between
+ * the answer and the tap.
+ */
+export const isUsernameAvailable = query({
+  args: {
+    username: v.string(),
+    // Set on the rename sheet. Your CURRENT handle is obviously "taken" — by
+    // you — and reporting that would leave the field looking broken the moment
+    // it opens, since it opens prefilled with it.
+    excludeUserId: v.optional(v.id("users")),
+  },
+  returns: v.object({
+    available: v.boolean(),
+    // "invalid" | "reserved" | "taken", absent when available. Mirrors the
+    // three ways a write can refuse, so the label and the eventual error agree.
+    reason: v.optional(v.string()),
+  }),
+  handler: async (ctx, { username, excludeUserId }) => {
+    const next = username.trim();
+    if (next.length === 0 || next.length > 32) {
+      return { available: false, reason: "invalid" };
+    }
+    if (isReservedName(next)) return { available: false, reason: "reserved" };
+
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", next))
+      .first();
+    if (existing && existing._id !== excludeUserId) {
+      return { available: false, reason: "taken" };
+    }
+    return { available: true };
+  },
+});
+
+/** A handle may be changed once every thirty days. */
+export const USERNAME_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Refused when the cooldown above has not elapsed. */
+export const ERR_USERNAME_CHANGED_RECENTLY = "USERNAME_CHANGED_RECENTLY";
+
+/**
+ * Refused when the account being renamed is the one problem reports are
+ * delivered to. See the guard below for why this is its own error.
+ */
+export const ERR_INBOX_HANDLE_LOCKED = "INBOX_HANDLE_LOCKED";
+
+/**
+ * Every rule governing a handle change, in one place.
+ *
+ * INTERNAL on purpose. The handle is a login credential — `auth.login` and
+ * `auth.resetPasswordWithRecoveryKey` both look an account up by it — so
+ * changing one has to be proved, and there are two different proofs depending
+ * on how the account signs in. Rather than teach this function about both, it
+ * takes an already-authorized rename and the two public entry points own the
+ * gate: `auth.changeUsername` (password) and
+ * `socialAuth.changeUsernameWithIdentity` (a fresh provider token). Both call
+ * this, so a rule added here cannot be missed by one of them.
+ *
+ * The order of the checks is deliberate and is described at each step.
+ */
+export const applyUsernameChange = internalMutation({
+  args: {
+    userId: v.id("users"),
+    username: v.string(),
+  },
+  returns: v.object({ username: v.string() }),
+  handler: async (ctx, { userId, username }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    // Belt and braces: both callers refuse a child first, but this is the only
+    // function that writes the field, so it is the one place the rule cannot be
+    // routed around. A supervised account's handle is how a guardian finds them.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+
+    // Shared with the social signup path rather than reimplemented, so a handle
+    // accepted at rename is exactly one that would be accepted at creation.
+    // Trim and a 32-char ceiling, and deliberately NO charset rule: existing
+    // handles may legitimately contain spaces or non-Latin characters, and a
+    // regex introduced here — and nowhere else — would lock those users out of
+    // the name they already answer to.
+    const next = normaliseUsername(username);
+
+    // A no-op costs nothing and, more to the point, must not spend the thirty
+    // days. Someone who opens the sheet, thinks better of it and saves the name
+    // they already had should not be locked out of the real change.
+    if (next === user.username) return { username: next };
+
+    // The report inbox is resolved BY HANDLE (`problemReports.submit`), not by
+    // id, so this account renaming itself would take the delivery address of
+    // every problem report in the app with it — silently, and for everybody.
+    // `isReservedName` does not cover this: the inbox handle is a person's
+    // ordinary name and matches no brand substring, so it is protected only by
+    // being occupied. This is what keeps it occupied.
+    if (user.username === REPORT_INBOX_USERNAME) {
+      throw new Error(ERR_INBOX_HANDLE_LOCKED);
+    }
+
+    // Before the collision test, for the reason `auth.signup` spells out: system
+    // accounts are created lazily, so a reserved handle is simply FREE until the
+    // first report is filed, and answering "taken" or "available" would make the
+    // rule depend on whether that has happened yet.
+    if (isReservedName(next)) throw new Error(ERR_USERNAME_RESERVED);
+
+    const changedAt = user.usernameChangedAt;
+    if (
+      changedAt !== undefined &&
+      Date.now() - changedAt < USERNAME_COOLDOWN_MS
+    ) {
+      throw new Error(ERR_USERNAME_CHANGED_RECENTLY);
+    }
+
+    // Uniqueness is PROCEDURAL — Convex has no unique constraints, so this is
+    // the same read-then-write as `auth.signup`, and safe for the same reason:
+    // a mutation is one serializable transaction, so a racing claim aborts
+    // rather than interleaving.
+    //
+    // Comparing `_id` rather than treating any hit as a collision is what makes
+    // a CASE-ONLY change work. `by_username` is exact and case-sensitive, so
+    // `bob` → `Bob` finds nothing and passes; the check matters for the
+    // narrower case where the index somehow returns this very row.
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", next))
+      .first();
+    if (existing && existing._id !== userId) throw new Error("USERNAME_TAKEN");
+
+    await ctx.db.patch(userId, {
+      username: next,
+      usernameChangedAt: Date.now(),
+    });
+    // Handed back so the caller can put the NORMALISED handle into the session
+    // rather than the raw string the user typed — otherwise a trailing space
+    // would live on in the keychain and in the settings header.
+    return { username: next };
   },
 });
 

@@ -72,8 +72,17 @@ Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   // socialAuth.ERR_LAST_CREDENTIAL. There is no email in this app, so an
   // account with nothing left to sign in with is gone for good.
   'SOCIAL_LAST_CREDENTIAL': l10n.authErrorSocialLastCredential,
-  // socialAuth.normaliseUsername
+  // socialAuth.normaliseUsername — shared with users.applyUsernameChange, so
+  // this now reaches the rename sheet as well as signup.
   'USERNAME_INVALID': l10n.authErrorUsernameInvalid,
+
+  // ── users.applyUsernameChange ──────────────────────────────────────────
+  // The thirty-day cooldown. Names the wait for the same reason
+  // TOO_MANY_ATTEMPTS does — a refusal with no horizon reads as a bug.
+  'USERNAME_CHANGED_RECENTLY': l10n.authErrorUsernameChangedRecently,
+  // Only the maintainer can ever see this: their account is the address
+  // problem reports are delivered to, resolved by handle rather than by id.
+  'INBOX_HANDLE_LOCKED': l10n.authErrorInboxHandleLocked,
 };
 
 /// Maps a thrown backend error onto human copy.

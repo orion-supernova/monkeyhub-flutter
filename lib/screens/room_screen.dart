@@ -561,10 +561,10 @@ class _RoomScreenState extends State<RoomScreen>
     final parts = users
         .map((u) =>
             // `username` is in here because the @-picker filters and inserts on
-            // it. It is immutable server-side today, so this can't actually
-            // change under the subscription — but the signature should describe
-            // everything the map is read for, not everything that happens to
-            // vary.
+            // it. Including it was once described as belt-and-braces, on the
+            // grounds that a handle could never change under the subscription;
+            // `users.applyUsernameChange` has since made it load-bearing, and a
+            // member who renames now correctly re-arms the picker.
             '${u.id}|${u.status ?? ''}|${u.lastSeen?.millisecondsSinceEpoch ?? 0}|${u.name}|${u.username}|${u.avatarStorageId ?? ''}|${u.role ?? ''}')
         .toList()
       ..sort();

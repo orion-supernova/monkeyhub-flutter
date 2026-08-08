@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/social_sign_in.dart';
+import '../data/username_availability_controller.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../platform.dart';
@@ -10,6 +11,7 @@ import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
+import '../widgets/username_status_label.dart';
 
 /// Where a first-time Apple/Google sign-in lands, with two ways out.
 ///
@@ -65,12 +67,21 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
   bool _busy = false;
   String? _error;
 
+  /// Live "is this free?", for [_Mode.create] only.
+  ///
+  /// [_Mode.link] types the handle of an account that already exists, so the
+  /// verdict there would be inverted — "already taken" is precisely what the
+  /// user is hoping for, and saying it in red would read as a rejection.
+  late final _availability =
+      UsernameAvailabilityController(api: widget.auth.api);
+
   /// Set when a create attempt failed specifically because the username exists,
   /// so the error can offer the fix rather than just stating the problem.
   bool _offerLink = false;
 
   @override
   void dispose() {
+    _availability.dispose();
     _username.dispose();
     _password.dispose();
     _name.dispose();
@@ -83,6 +94,10 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
         _mode = mode;
         _error = null;
         _offerLink = false;
+        // Both modes share the username field, and "already taken" means
+        // opposite things in them. Re-feed rather than blank, so switching back
+        // re-checks whatever is still in the box.
+        _availability.onChanged(mode == _Mode.create ? _username.text : '');
       });
 
   Future<void> _submit() async {
@@ -241,9 +256,13 @@ class _SocialUsernameScreenState extends State<SocialUsernameScreen> {
                               enableSuggestions: false,
                               autofocus: isPhysicalKeyboardPlatform,
                               textInputAction: TextInputAction.next,
+                              onChanged:
+                                  creating ? _availability.onChanged : null,
                               onSubmitted: (_) =>
                                   FocusScope.of(context).nextFocus(),
                             ),
+                            if (creating)
+                              UsernameStatusLabel(controller: _availability),
                             const SizedBox(height: 12),
                             if (creating)
                               ThemedInput(

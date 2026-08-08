@@ -16,9 +16,11 @@ import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../data/username_availability_controller.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/social_sign_in_buttons.dart';
+import '../widgets/username_status_label.dart';
 import 'child_pair_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'social_username_screen.dart';
@@ -114,8 +116,18 @@ class _LoginScreenState extends State<LoginScreen> {
   RecoveryPhrase? _pendingPhrase;
   bool _phraseConfirmed = false;
 
+  /// Live "is this free?" for the SIGN-UP mode only.
+  ///
+  /// Fed exclusively from [_AuthMode.signUp]'s field, because the other two
+  /// modes type a handle that is supposed to already exist — telling someone
+  /// signing in that their own username is "already taken" would be true and
+  /// useless, and on the reset form it would be an invitation to go fishing.
+  late final _availability =
+      UsernameAvailabilityController(api: widget.auth.api);
+
   @override
   void dispose() {
+    _availability.dispose();
     _username.dispose();
     _password.dispose();
     _confirmPassword.dispose();
@@ -132,6 +144,14 @@ class _LoginScreenState extends State<LoginScreen> {
         // mint a fresh phrase rather than resurrect an abandoned one.
         _pendingPhrase = null;
         _phraseConfirmed = false;
+        // The three modes share one username field, so a verdict earned in
+        // sign-up would still be sitting there on the way back — describing a
+        // name the user typed under different rules, minutes ago. Re-fed rather
+        // than blanked, so returning to sign-up with text still in the box
+        // re-checks it instead of showing nothing.
+        _availability.onChanged(
+          mode == _AuthMode.signUp ? _username.text : '',
+        );
       });
 
   /// Which provider button is mid-flight, so only one native sheet can be open.
@@ -255,9 +275,6 @@ class _LoginScreenState extends State<LoginScreen> {
   /// `_phraseConfirmed` across the failure, so a retry reuses the same words
   /// and does not show the gate twice.
   ///
-  /// Note there is deliberately no "is this username free?" pre-check. It
-  /// would spare the user a retry, but it would also be a fresh account
-  /// enumeration oracle, and the form already has one in USERNAME_TAKEN.
   Future<bool> _ensurePhraseSaved() async {
     if (_password.text.isEmpty) {
       setState(() {
@@ -384,8 +401,11 @@ class _LoginScreenState extends State<LoginScreen> {
         enableSuggestions: false,
         autofocus: isPhysicalKeyboardPlatform,
         textInputAction: TextInputAction.next,
+        onChanged: _mode == _AuthMode.signUp ? _availability.onChanged : null,
         onSubmitted: (_) => _next(),
       ),
+      if (_mode == _AuthMode.signUp)
+        UsernameStatusLabel(controller: _availability),
       if (_mode != _AuthMode.reset) ...[
         const SizedBox(height: 12),
         PasswordField(

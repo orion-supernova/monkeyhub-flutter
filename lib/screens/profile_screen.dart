@@ -13,6 +13,7 @@ import '../auth/recovery_phrase.dart';
 import '../auth/social_sign_in.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/username_availability_controller.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -30,11 +31,13 @@ import '../widgets/block_choice_sheet.dart';
 import '../widgets/capture_protection_toggle.dart';
 import '../widgets/detail_link_row.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/password_prompt_sheet.dart';
 import '../widgets/recovery_banner.dart';
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/report_sheet.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/username_status_label.dart';
 import 'approvals_screen.dart';
 import 'blocked_users_screen.dart';
 import 'recovery_phrase_screen.dart';
@@ -101,6 +104,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool get _isMe => widget.repo?.userId == widget.user.id;
   ChatUser get _u => _user ?? widget.user;
+
+  /// When the handle comes out of its cooldown, or null when it is free now.
+  ///
+  /// Derived rather than stored so it stays honest across a screen left open
+  /// overnight, and computed from the same thirty days the backend enforces —
+  /// this is a courtesy, not the rule.
+  DateTime? get _usernameUnlocksAt {
+    final changed = _u.usernameChangedAt;
+    if (changed == null) return null;
+    final unlocks = changed.add(const Duration(days: 30));
+    return unlocks.isAfter(DateTime.now()) ? unlocks : null;
+  }
+
+  /// Whether this profile is one whose handle its owner may change — ignoring,
+  /// for the moment, whether the cooldown happens to be running.
+  ///
+  /// A child is excluded here as well as server-side: their handle is how a
+  /// guardian finds them, and an affordance that always throws is worse than
+  /// no affordance.
+  bool get _usernameIsMineToChange =>
+      _isMe &&
+      widget.api != null &&
+      widget.repo != null &&
+      widget.auth != null &&
+      !_u.isChild;
+
+  /// Whether to offer the rename right now.
+  bool get _canRenameUsername =>
+      _usernameIsMineToChange && _usernameUnlocksAt == null;
+
+  /// Whether to explain why it is not being offered.
+  ///
+  /// Gated on [_usernameIsMineToChange] rather than on the date alone: the
+  /// backend only ever sends `usernameChangedAt` on a self-view, but a lock
+  /// notice hanging under a STRANGER'S handle would be nonsense if it ever did
+  /// arrive, and a child would be told to wait for something they are never
+  /// going to be offered.
+  bool get _showsUsernameLock =>
+      _usernameIsMineToChange && _usernameUnlocksAt != null;
 
   @override
   void initState() {
@@ -235,6 +277,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Changes the handle, after proving the account belongs to whoever is
+  /// holding the phone.
+  ///
+  /// The proof is collected BEFORE anything is sent, and which proof depends on
+  /// how this account signs in: a password if it has one, a fresh run of the
+  /// Apple/Google sheet if it does not. `hasPassword == null` means the backend
+  /// did not say — an older deploy, or a fetch that was not a self-view — and
+  /// that is treated as "has one", because a password prompt the user cannot
+  /// satisfy is a far better failure than a rename attempted with no proof.
+  Future<void> _updateUsername(String next) async {
+    // `auth` owns the call and the session write; `api` and `repo` are what
+    // `_refresh` needs afterwards, so all three have to be here before starting.
+    final auth = widget.auth;
+    if (auth == null || widget.api == null || widget.repo == null) return;
+
+    final trimmed = next.trim();
+    // Unchanged is not an error and must not reach the server: the backend
+    // treats it as a no-op precisely so it doesn't spend the thirty days, and
+    // there is nothing to tell the user about either way.
+    if (trimmed.isEmpty || trimmed == _u.username) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    SocialCredential? credential;
+    String? password;
+    if (_u.hasPassword == false) {
+      final provider = await _pickRenameProvider();
+      if (provider == null || !mounted) return;
+      try {
+        // Without this the SDK hands back the last account silently, and the
+        // "proof" becomes a token the user never re-authorised.
+        await SocialSignIn.forgetProviders();
+        credential = await SocialSignIn.forProvider(provider);
+      } on SocialSignInCancelled {
+        // Backing out of the provider sheet is a decision, not a failure.
+        return;
+      } catch (e) {
+        if (!mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              humanizeAuthError(e, l10n,
+                  fallback: l10n.profileScreenUsernameNotSaved),
+            ),
+          ),
+        );
+        return;
+      }
+    } else {
+      password = await askPassword(
+        context,
+        title: l10n.profileScreenUsernamePasswordTitle,
+        actionLabel: l10n.profileScreenUsernamePasswordAction,
+      );
+      if (password == null || !mounted) return;
+    }
+
+    setState(() => _busy = true);
+    try {
+      // The server's normalisation wins — it is what the session and the
+      // keychain now hold, so it is what the confirmation should say.
+      final settled = credential != null
+          ? await auth.changeUsernameWithProvider(
+              credential: credential, username: trimmed)
+          : await auth.changeUsername(password: password!, username: trimmed);
+      await _refresh();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.profileScreenUsernameChanged(settled))),
+      );
+    } catch (e) {
+      // Never swallowed. Every refusal here — taken, reserved, too soon, wrong
+      // password — is something the user can act on, and a silent revert would
+      // read as "your typing didn't register".
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            humanizeAuthError(e, l10n,
+                fallback: l10n.profileScreenUsernameNotSaved),
+          ),
+        ),
+      );
+      await _refresh();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Which provider to re-authorise with.
+  ///
+  /// Skips the sheet entirely at one linked provider, which is the ordinary
+  /// case — asking someone to choose from a list of one is a tap for nothing.
+  /// Falls back to whatever the platform offers if the linked list hasn't
+  /// landed yet; the backend checks the resolved identity against this account
+  /// regardless, so a wrong guess here is refused rather than obeyed.
+  Future<SocialProvider?> _pickRenameProvider() async {
+    final linked = _linkedProviders?.isNotEmpty == true
+        ? _linkedProviders!
+        : SocialSignInButtons.available;
+    if (linked.isEmpty) return null;
+    if (linked.length == 1) return linked.first;
+    return showAdaptiveSheet<SocialProvider>(
+      context,
+      builder: (_) => _RenameProviderSheet(providers: linked),
+    );
+  }
+
   /// Mints a new recovery phrase and, if the user saves it, replaces the one
   /// on the account.
   ///
@@ -353,10 +503,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String hint,
     required Future<void> Function(String) onSave,
     TextInputType keyboardType = TextInputType.text,
+    String? confirmBody,
+    bool checksAvailability = false,
   }) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => _ConfirmEditDialog(title: title),
+      builder: (ctx) => _ConfirmEditDialog(title: title, body: confirmBody),
     );
     if (ok != true || !mounted) return;
     await _editFieldSheet(
@@ -365,6 +517,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       hint: hint,
       onSave: onSave,
       keyboardType: keyboardType,
+      checksAvailability: checksAvailability,
     );
   }
 
@@ -374,7 +527,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String hint,
     required Future<void> Function(String) onSave,
     required TextInputType keyboardType,
+    bool checksAvailability = false,
   }) async {
+    final api = widget.api;
     final next = await showAdaptiveSheet<String>(
       context,
       builder: (ctx) => _EditFieldSheet(
@@ -382,6 +537,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentValue: currentValue,
         hint: hint,
         keyboardType: keyboardType,
+        // Seeded with the handle the field opens with, so the sheet does not
+        // greet the user by calling their own name taken; and excluding their
+        // own row, so typing a case variant of it comes back free.
+        availability: checksAvailability && api != null
+            ? UsernameAvailabilityController(
+                api: api,
+                excludeUserId: widget.repo?.userId,
+                initialValue: currentValue,
+              )
+            : null,
       ),
     );
     if (next == null) return;
@@ -958,7 +1123,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: Text(_u.displayName, style: theme.displayLarge),
                           ),
                           const SizedBox(height: 6),
-                          Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
+                          GestureDetector(
+                            onTap: _canRenameUsername
+                                ? () => _confirmAndEdit(
+                                    title: AppLocalizations.of(context).profileScreenChangeUsernameTitle,
+                                    confirmBody: AppLocalizations.of(context)
+                                        .profileScreenChangeUsernameWarning,
+                                    currentValue: _u.username,
+                                    hint: AppLocalizations.of(context).profileScreenUsernameHint,
+                                    checksAvailability: true,
+                                    onSave: _updateUsername,
+                                  )
+                                : null,
+                            behavior: HitTestBehavior.opaque,
+                            child: Text('@${_u.username}', style: theme.mono.copyWith(color: theme.inkMuted)),
+                          ),
+                          // Only while the handle is actually locked. Saying
+                          // "changeable again on…" to someone who could change
+                          // it right now would read as a restriction, which is
+                          // the opposite of the truth.
+                          if (_showsUsernameLock) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              AppLocalizations.of(context).profileScreenUsernameLockedUntil(
+                                MaterialLocalizations.of(context)
+                                    .formatMediumDate(_usernameUnlocksAt!),
+                              ),
+                              style: theme.monoTiny.copyWith(color: theme.inkMuted),
+                            ),
+                          ],
                           if (_isMe && widget.api != null && widget.repo != null) ...[
                             const SizedBox(height: 6),
                             GestureDetector(
@@ -1385,13 +1578,22 @@ class _RowActionTile extends StatelessWidget {
 /// dialog — pulled out of the inline `builder:` closure to match
 /// [_EditFieldSheet] below.
 class _ConfirmEditDialog extends StatelessWidget {
-  const _ConfirmEditDialog({required this.title});
+  const _ConfirmEditDialog({required this.title, this.body});
 
   final String title;
+
+  /// Optional prose between the title and the buttons.
+  ///
+  /// Only the username uses it. Name and email are reversible in one tap and
+  /// need no explanation; a handle change moves the login credential, releases
+  /// the old name and locks the field for a month, and none of that is
+  /// guessable from a title reading "change username?".
+  final String? body;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final body = this.body;
     return Dialog(
       backgroundColor: theme.surfaceRaised,
       insetPadding: const EdgeInsets.symmetric(horizontal: 32),
@@ -1403,6 +1605,10 @@ class _ConfirmEditDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(title, style: theme.displaySmall),
+            if (body != null) ...[
+              const SizedBox(height: 12),
+              Text(body, style: theme.bodySoft),
+            ],
             const SizedBox(height: 20),
             // IntrinsicHeight + stretch: a longer label on one side (a
             // translation can run much longer than English) wraps to two
@@ -1447,18 +1653,74 @@ class _ConfirmEditDialog extends StatelessWidget {
 /// attached to a `TextField` that's mid-exit-transition. Tying it to `State.
 /// dispose()` instead means Flutter only tears it down once the widget is
 /// actually unmounted.
+/// Asks which sign-in to re-authorise with, for an account that has both linked.
+///
+/// Carries no button copy of its own: the Apple and Google buttons are
+/// vendor-branded down to the hex and supply their own titles — Apple's comes
+/// from AuthenticationServices, never from an ARB key — so this contributes a
+/// heading and nothing else.
+class _RenameProviderSheet extends StatelessWidget {
+  const _RenameProviderSheet({required this.providers});
+
+  final List<SocialProvider> providers;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      decoration: theme.sheetDecoration(),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (context.isCompact)
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: theme.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          Text(
+            AppLocalizations.of(context).profileScreenUsernameProviderTitle,
+            style: theme.displaySmall,
+          ),
+          const SizedBox(height: 18),
+          SocialSignInButtons(
+            only: providers,
+            dividerLabel: null,
+            onProvider: (p) => Navigator.of(context).pop(p),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EditFieldSheet extends StatefulWidget {
   const _EditFieldSheet({
     required this.title,
     required this.currentValue,
     required this.hint,
     required this.keyboardType,
+    this.availability,
   });
 
   final String title;
   final String currentValue;
   final String hint;
   final TextInputType keyboardType;
+
+  /// Set for the username only.
+  ///
+  /// This sheet also edits the display name and the email, and neither has an
+  /// availability question to ask — a live verdict under those would be a line
+  /// of empty space at best. Owned here rather than by the screen because the
+  /// sheet's lifetime is what the controller's should match.
+  final UsernameAvailabilityController? availability;
 
   @override
   State<_EditFieldSheet> createState() => _EditFieldSheetState();
@@ -1469,6 +1731,7 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
 
   @override
   void dispose() {
+    widget.availability?.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -1502,7 +1765,10 @@ class _EditFieldSheetState extends State<_EditFieldSheet> {
               hint: widget.hint,
               keyboardType: widget.keyboardType,
               autofocus: true,
+              onChanged: widget.availability?.onChanged,
             ),
+            if (widget.availability != null)
+              UsernameStatusLabel(controller: widget.availability!),
             const SizedBox(height: 16),
             IntrinsicHeight(
               child: Row(

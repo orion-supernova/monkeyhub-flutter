@@ -397,6 +397,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenNameHint => '这是聊天室里显示的名字';
 
   @override
+  String get profileScreenChangeUsernameTitle => '更改用户名？';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      '你用它登录，所以以后要输入新的用户名。旧的用户名会被释放，其他人可以使用，并且 30 天内不能再次更改。之前提到你的旧消息仍会显示旧的用户名。';
+
+  @override
+  String get profileScreenUsernameHint => '朋友这样找到你';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return '$date 起可再次更改';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => '确认是你本人';
+
+  @override
+  String get profileScreenUsernamePasswordAction => '更改用户名';
+
+  @override
+  String get profileScreenUsernameProviderTitle => '用你的登录方式确认';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return '你现在是 @$username。';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved => '无法更改你的用户名。请重试。';
+
+  @override
+  String get usernameStatusChecking => '检查中…';
+
+  @override
+  String get usernameStatusAvailable => '可以使用';
+
+  @override
+  String get usernameStatusTaken => '已被使用';
+
+  @override
+  String get usernameStatusReserved => '无法使用';
+
+  @override
+  String get usernameStatusInvalid => '1–32 个字符';
+
+  @override
+  String get usernameStatusUnknown => '无法检查';
+
+  @override
   String get profileScreenNobodyLookingAfter => '还没有大人在照看这个账号';
 
   @override
@@ -4438,6 +4488,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid => '用户名长度需在 1 到 32 个字符之间。';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      '你最近更改过用户名。距离上次更改 30 天后才能再次更改。';
+
+  @override
+  String get authErrorInboxHandleLocked => '此账号接收所有人的问题反馈，因此用户名固定。';
 
   @override
   String get glassKnobLabelFrost => '磨砂';

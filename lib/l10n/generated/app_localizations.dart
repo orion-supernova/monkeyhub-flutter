@@ -807,6 +807,96 @@ abstract class AppLocalizations {
   /// **'how the room will read you'**
   String get profileScreenNameHint;
 
+  /// Dialog/sheet title shown when tapping the @handle on your own profile to change it.
+  ///
+  /// In en, this message translates to:
+  /// **'change username?'**
+  String get profileScreenChangeUsernameTitle;
+
+  /// Body text in the confirm dialog before changing your username. States all four consequences: it is the login credential, the old handle is released, there is a 30-day cooldown, and past @-mentions keep the old handle.
+  ///
+  /// In en, this message translates to:
+  /// **'You sign in with this, so the new one is what you\'ll type from now on. Your old username is freed for anyone else to take, and you can\'t change it again for 30 days. Older messages that tagged you keep the old name.'**
+  String get profileScreenChangeUsernameWarning;
+
+  /// Hint text under the username field explaining what it's for.
+  ///
+  /// In en, this message translates to:
+  /// **'how friends find you'**
+  String get profileScreenUsernameHint;
+
+  /// Muted label under the @handle during the 30-day cooldown, replacing the tap-to-change affordance.
+  ///
+  /// In en, this message translates to:
+  /// **'changeable again on {date}'**
+  String profileScreenUsernameLockedUntil(String date);
+
+  /// Title of the password sheet raised before a username change on a password account.
+  ///
+  /// In en, this message translates to:
+  /// **'confirm it\'s you'**
+  String get profileScreenUsernamePasswordTitle;
+
+  /// All-caps confirm button on the password sheet raised before a username change.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE USERNAME'**
+  String get profileScreenUsernamePasswordAction;
+
+  /// Title of the sheet asking an Apple/Google-only account to re-run their provider sign-in to confirm a username change. The provider buttons themselves are vendor-branded and carry their own titles.
+  ///
+  /// In en, this message translates to:
+  /// **'confirm with your sign-in'**
+  String get profileScreenUsernameProviderTitle;
+
+  /// Snackbar confirming a successful username change.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re now @{username}.'**
+  String profileScreenUsernameChanged(String username);
+
+  /// Snackbar shown when changing the username failed for a reason with no specific message, e.g. no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change your username. Please try again.'**
+  String get profileScreenUsernameNotSaved;
+
+  /// Live status line under a username field while the availability check is in flight. Shared by the signup, social sign-up, child-setup and rename fields.
+  ///
+  /// In en, this message translates to:
+  /// **'checking…'**
+  String get usernameStatusChecking;
+
+  /// Live status line under a username field when the typed handle can be claimed.
+  ///
+  /// In en, this message translates to:
+  /// **'available'**
+  String get usernameStatusAvailable;
+
+  /// Live status line under a username field when someone already holds the typed handle.
+  ///
+  /// In en, this message translates to:
+  /// **'already taken'**
+  String get usernameStatusTaken;
+
+  /// Live status line under a username field when the typed handle reads as the app's brand and is reserved. Deliberately vaguer than 'already taken' — it must not invite the user to try variations, which are refused for the same unstated reason.
+  ///
+  /// In en, this message translates to:
+  /// **'not available'**
+  String get usernameStatusReserved;
+
+  /// Live status line under a username field when the typed handle is empty or longer than 32 characters. States the rule rather than the failure.
+  ///
+  /// In en, this message translates to:
+  /// **'1–32 characters'**
+  String get usernameStatusInvalid;
+
+  /// Live status line under a username field when the availability request itself failed, e.g. offline. Must not imply anything about the name — it says the check failed, not that the handle is gone.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn\'t check'**
+  String get usernameStatusUnknown;
+
   /// Guardians-card body text on a child's account when no guardian is set yet.
   ///
   /// In en, this message translates to:
@@ -8002,6 +8092,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a username between 1 and 32 characters.'**
   String get authErrorUsernameInvalid;
+
+  /// Shown when USERNAME_CHANGED_RECENTLY comes back — the 30-day cooldown on handle changes has not elapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve changed your username recently. You can change it again 30 days after the last one.'**
+  String get authErrorUsernameChangedRecently;
+
+  /// Shown when INBOX_HANDLE_LOCKED comes back. Only ever seen by the maintainer, whose account is the one problem reports are delivered to by handle.
+  ///
+  /// In en, this message translates to:
+  /// **'This account receives everyone\'s problem reports, so its username is fixed.'**
+  String get authErrorInboxHandleLocked;
 
   /// All-caps name of the 'frost' dial in the Glass tuning screen. Sourced by GlassKnob.id (a stable persistence key, never itself translated).
   ///

@@ -98,6 +98,73 @@ class ChatApi {
     });
   }
 
+  /// Whether a handle could be claimed right now.
+  ///
+  /// Feeds the typeahead under every pick-a-username field, never a decision —
+  /// the answer is stale the moment it arrives, and all four write paths
+  /// re-check inside their own transaction. See `users.isUsernameAvailable` for
+  /// what accepting this endpoint cost.
+  ///
+  /// [excludeUserId] is the rename case: your own current handle is taken by
+  /// you, and saying so about the value the field opens with is nonsense.
+  Future<UsernameAvailability> isUsernameAvailable({
+    required String username,
+    String? excludeUserId,
+  }) async {
+    final res = await _cv.query('users:isUsernameAvailable', {
+      'username': username,
+      'excludeUserId': ?excludeUserId,
+    });
+    final map = (res as Map).cast<String, dynamic>();
+    return UsernameAvailability(
+      available: (map['available'] as bool?) ?? false,
+      reason: map['reason'] as String?,
+    );
+  }
+
+  /// Changes the handle on a password account.
+  ///
+  /// Password-authenticated for a sharper reason than [setRecoveryKey]: the
+  /// handle IS the login credential, so this call changes what the user types
+  /// to sign in. See `auth.changeUsername`.
+  ///
+  /// Returns the handle as the SERVER normalised it, which is what belongs in
+  /// the session — not the string the user typed, which may carry whitespace
+  /// the backend trimmed off.
+  Future<String> changeUsername({
+    required String userId,
+    required String password,
+    required String username,
+  }) async {
+    final res = await _cv.mutation('auth:changeUsername', {
+      'userId': userId,
+      'passwordHash': sha256Hash(password),
+      'username': username,
+    });
+    return (res as Map<String, dynamic>)['username'] as String;
+  }
+
+  /// The same, for an account that has no password because it signs in with
+  /// Apple or Google.
+  ///
+  /// The proof is a freshly minted provider token rather than a password. The
+  /// caller must have just re-run the native sheet — a stored credential would
+  /// prove only that the user signed in once, which is not the same claim.
+  Future<String> changeUsernameWithIdentity({
+    required String userId,
+    required SocialCredential credential,
+    required String username,
+  }) async {
+    final res = await _cv.action('socialAuth:changeUsernameWithIdentity', {
+      'userId': userId,
+      'provider': credential.provider.wire,
+      'idToken': credential.idToken,
+      if (credential.rawNonce != null) 'rawNonce': credential.rawNonce,
+      'username': username,
+    });
+    return (res as Map<String, dynamic>)['username'] as String;
+  }
+
   Future<void> deleteAccount({required String userId}) async {
     await _cv.mutation('auth:deleteAccount', {'userId': userId});
   }
@@ -1666,6 +1733,20 @@ class SharedRoomsInfo {
   SharedRoomsInfo({required this.groupRooms, required this.hasDm});
   final List<ChatRoom> groupRooms;
   final bool hasDm;
+}
+
+/// One answer from `users:isUsernameAvailable`.
+///
+/// [reason] is `"invalid"`, `"reserved"` or `"taken"` when [available] is false,
+/// and null when it is true. Kept as the server's own strings rather than an
+/// enum parsed here: an older client meeting a reason it does not know should
+/// fall back to a generic "not available", not crash on a name it could have
+/// simply refused.
+class UsernameAvailability {
+  const UsernameAvailability({required this.available, this.reason});
+
+  final bool available;
+  final String? reason;
 }
 
 class AuthResult {

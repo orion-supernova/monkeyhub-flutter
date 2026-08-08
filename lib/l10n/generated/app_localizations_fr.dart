@@ -431,6 +431,60 @@ class AppLocalizationsFr extends AppLocalizations {
   String get profileScreenNameHint => 'comment le salon te verra';
 
   @override
+  String get profileScreenChangeUsernameTitle =>
+      'changer de nom d’utilisateur ?';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'C’est avec ça que tu te connectes, donc tu saisiras le nouveau à partir de maintenant. Ton ancien nom d’utilisateur est libéré et quelqu’un d’autre peut le prendre, et tu ne pourras plus le changer pendant 30 jours. Les anciens messages qui te mentionnaient gardent l’ancien nom.';
+
+  @override
+  String get profileScreenUsernameHint => 'comment tes amis te trouvent';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return 'modifiable à nouveau le $date';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle =>
+      'confirme que c’est bien toi';
+
+  @override
+  String get profileScreenUsernamePasswordAction =>
+      'CHANGER DE NOM D’UTILISATEUR';
+
+  @override
+  String get profileScreenUsernameProviderTitle => 'confirme avec ta connexion';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'Tu es maintenant @$username.';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'Impossible de changer ton nom d’utilisateur. Réessaie.';
+
+  @override
+  String get usernameStatusChecking => 'vérification…';
+
+  @override
+  String get usernameStatusAvailable => 'disponible';
+
+  @override
+  String get usernameStatusTaken => 'déjà pris';
+
+  @override
+  String get usernameStatusReserved => 'indisponible';
+
+  @override
+  String get usernameStatusInvalid => '1–32 caractères';
+
+  @override
+  String get usernameStatusUnknown => 'vérification impossible';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'personne ne s’occupe encore de ce compte';
 
@@ -4751,6 +4805,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       'Choisis un nom d’utilisateur entre 1 et 32 caractères.';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'Tu as changé de nom d’utilisateur récemment. Tu pourras le changer à nouveau 30 jours après le dernier changement.';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'Ce compte reçoit les signalements de problèmes de tout le monde, son nom d’utilisateur est donc fixe.';
 
   @override
   String get glassKnobLabelFrost => 'GIVRE';

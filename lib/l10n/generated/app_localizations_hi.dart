@@ -425,6 +425,59 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenNameHint => 'रूम में तुम ऐसे नज़र आओगे';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'यूज़रनेम बदलें?';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'आप इसी से साइन इन करते हैं, इसलिए अब से नया वाला टाइप करेंगे। आपका पुराना यूज़रनेम किसी और के लेने के लिए खाली हो जाएगा, और आप इसे 30 दिन तक दोबारा नहीं बदल पाएंगे। जिन पुराने मैसेज में आपको टैग किया गया था, उनमें पुराना नाम ही रहेगा।';
+
+  @override
+  String get profileScreenUsernameHint => 'आपके दोस्त आपको ऐसे ढूँढ़ेंगे';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return '$date को दोबारा बदल सकेंगे';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle =>
+      'पुष्टि करें कि यह आप ही हैं';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'यूज़रनेम बदलें';
+
+  @override
+  String get profileScreenUsernameProviderTitle =>
+      'अपने साइन-इन से पुष्टि करें';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'अब आप @$username हैं।';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'आपका यूज़रनेम नहीं बदला जा सका। कृपया दोबारा कोशिश करें।';
+
+  @override
+  String get usernameStatusChecking => 'जाँच हो रही है…';
+
+  @override
+  String get usernameStatusAvailable => 'उपलब्ध';
+
+  @override
+  String get usernameStatusTaken => 'पहले से लिया जा चुका';
+
+  @override
+  String get usernameStatusReserved => 'उपलब्ध नहीं';
+
+  @override
+  String get usernameStatusInvalid => '1–32 अक्षर';
+
+  @override
+  String get usernameStatusUnknown => 'जाँच नहीं हो सकी';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'अभी कोई बड़ा इस अकाउंट का ध्यान नहीं रख रहा';
 
@@ -4683,6 +4736,14 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       '1 से 32 अक्षरों के बीच यूज़रनेम चुनो।';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'आपने हाल ही में अपना यूज़रनेम बदला है। पिछली बार के 30 दिन बाद आप इसे दोबारा बदल सकते हैं।';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'यह अकाउंट सभी की समस्या रिपोर्ट पाता है, इसलिए इसका यूज़रनेम तय है।';
 
   @override
   String get glassKnobLabelFrost => 'धुंधला';

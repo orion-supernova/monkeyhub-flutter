@@ -6,9 +6,13 @@
 /// resolved ids alongside it, rather than substituting markup like `<@id>` the
 /// way Slack does. Two things make that the better trade here:
 ///
-///  * `username` is immutable — `users.updateProfile` patches `name` and
-///    `email` only — so the anchor in the text can never go stale, which is the
-///    one thing markup buys you.
+///  * The anchor in the text cannot go stale, which is the one thing markup
+///    buys you. Not because handles never change — `users.applyUsernameChange`
+///    exists — but because the handle array and the text are written in the
+///    same breath and read against each other, never against the live roster.
+///    A rename moves neither, so an old message keeps highlighting and keeps
+///    routing on its ids; it simply goes on showing the handle that was
+///    actually typed, which is the honest rendering of what was said.
 ///  * `content` is reused verbatim as the push body, as `rooms.lastMessage`,
 ///    and as `replyToPreview.contentPreview`. Markup would leak raw ids into
 ///    all three, and each would need its own resolver to read like a sentence
@@ -19,9 +23,10 @@
 ///
 /// ## Why this scans for known handles instead of matching a pattern
 ///
-/// Usernames are not charset-constrained: signup only trims the string and
-/// checks that it's unique, so one can legitimately contain spaces or
-/// non-Latin characters. A `@[\w]+` pattern would quietly clip those in half.
+/// Usernames are not charset-constrained: signup and rename both only trim the
+/// string, cap it at 32 characters and check that it's unique, so one can
+/// legitimately contain spaces or non-Latin characters. A `@[\w]+` pattern
+/// would quietly clip those in half.
 ///
 /// So [MentionDetector] never guesses at the shape of a handle. It walks to
 /// each `@` and tries the handles this message actually claims, longest first.

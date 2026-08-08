@@ -424,6 +424,58 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenNameHint => 'så här syns du i rummet';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'byta användarnamn?';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'Du loggar in med det här, så du skriver det nya från och med nu. Ditt gamla användarnamn frigörs så att någon annan kan ta det, och du kan inte byta igen på 30 dagar. Äldre meddelanden som taggade dig behåller det gamla namnet.';
+
+  @override
+  String get profileScreenUsernameHint => 'så hittar dina vänner dig';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return 'kan bytas igen den $date';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => 'bekräfta att det är du';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'BYT ANVÄNDARNAMN';
+
+  @override
+  String get profileScreenUsernameProviderTitle =>
+      'bekräfta med din inloggning';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'Du är nu @$username.';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'Kunde inte byta ditt användarnamn. Försök igen.';
+
+  @override
+  String get usernameStatusChecking => 'kontrollerar…';
+
+  @override
+  String get usernameStatusAvailable => 'ledigt';
+
+  @override
+  String get usernameStatusTaken => 'redan taget';
+
+  @override
+  String get usernameStatusReserved => 'inte tillgängligt';
+
+  @override
+  String get usernameStatusInvalid => '1–32 tecken';
+
+  @override
+  String get usernameStatusUnknown => 'kunde inte kontrollera';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'ingen tar hand om det här kontot än';
 
@@ -4698,6 +4750,14 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       'Välj ett användarnamn på mellan 1 och 32 tecken.';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'Du har bytt användarnamn nyligen. Du kan byta igen 30 dagar efter det senaste bytet.';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'Det här kontot tar emot allas problemrapporter, så dess användarnamn är låst.';
 
   @override
   String get glassKnobLabelFrost => 'FROSTNING';

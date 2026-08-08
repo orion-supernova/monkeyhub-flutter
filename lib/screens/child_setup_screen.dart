@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../data/username_availability_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/username_status_label.dart';
 import 'pairing_code_screen.dart';
 
 /// Creates a child account, then goes straight to pairing.
@@ -34,8 +36,15 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
   bool _busy = false;
   String? _error;
 
+  /// Live "is this free?" for the handle being minted for the child.
+  ///
+  /// The guardian is picking a name for someone who does not exist yet, so this
+  /// is the same question the adult signup form asks, asked by a third party.
+  late final _availability = UsernameAvailabilityController(api: widget.api);
+
   @override
   void dispose() {
+    _availability.dispose();
     _name.dispose();
     _username.dispose();
     super.dispose();
@@ -144,7 +153,9 @@ class _ChildSetupScreenState extends State<ChildSetupScreen> {
                           hint: l10n.childSetupScreenUsernameHint,
                           autocorrect: false,
                           enableSuggestions: false,
+                          onChanged: _availability.onChanged,
                         ),
+                        UsernameStatusLabel(controller: _availability),
                         const SizedBox(height: 24),
                         Container(
                           padding: const EdgeInsets.all(16),

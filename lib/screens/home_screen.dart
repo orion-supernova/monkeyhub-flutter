@@ -105,7 +105,16 @@ class _HomeScreenState extends State<HomeScreen>
     // subscription to stay correct is the kind of coupling that breaks quietly;
     // two setState calls in one frame coalesce into a single rebuild.
     SettingsStore.instance.addListener(_onChange);
+    // `_me` is fetched once and drives the header avatar, with the session as
+    // its stand-in until then. A handle change rewrites the session and would
+    // otherwise leave both here showing the old one until this screen is
+    // rebuilt from scratch — which, being the app's home, it rarely is.
+    widget.auth.addListener(_onAuth);
     _loadMe();
+  }
+
+  void _onAuth() {
+    if (mounted) _loadMe();
   }
 
   @override
@@ -113,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen>
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);
+    widget.auth.removeListener(_onAuth);
     _scroll.dispose();
     _searchCtrl.dispose();
     _searchDebounce?.cancel();

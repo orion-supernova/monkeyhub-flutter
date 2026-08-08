@@ -16,6 +16,15 @@ class AuthService extends ChangeNotifier {
   AuthService(this._api);
   final ChatApi _api;
 
+  /// The backend this service talks to.
+  ///
+  /// Exposed for the sign-in screens, which are handed an [AuthService] and
+  /// nothing else, but need the plain API for the username availability check —
+  /// a read that has no business going through the auth layer. Threading a
+  /// second constructor argument down through `app.dart` and the pushed social
+  /// screen to say the same thing would be more wiring for less clarity.
+  ChatApi get api => _api;
+
   Session? _session;
   Session? get session => _session;
   bool get isSignedIn => _session != null;
@@ -428,6 +437,72 @@ class AuthService extends ChangeNotifier {
     if (type != AccountType.child) {
       await SessionStore.instance.clearChildDevice();
     }
+  }
+
+  /// Changes the handle on a password account, and adopts the result locally.
+  ///
+  /// Returns the handle the server settled on, so a caller can show it back.
+  Future<String> changeUsername({
+    required String password,
+    required String username,
+  }) async {
+    final s = _session;
+    if (s == null) throw StateError('not signed in');
+    final next = await _api.changeUsername(
+      userId: s.userId,
+      password: password,
+      username: username,
+    );
+    await _adoptUsername(next);
+    return next;
+  }
+
+  /// The same for an Apple/Google-only account, proved with a credential the
+  /// caller has just obtained from the native sheet.
+  Future<String> changeUsernameWithProvider({
+    required SocialCredential credential,
+    required String username,
+  }) async {
+    final s = _session;
+    if (s == null) throw StateError('not signed in');
+    final next = await _api.changeUsernameWithIdentity(
+      userId: s.userId,
+      credential: credential,
+      username: username,
+    );
+    await _adoptUsername(next);
+    return next;
+  }
+
+  /// Rewrites the handle everywhere this layer keeps one.
+  ///
+  /// The keychain write is the load-bearing half, and the reason is cold start:
+  /// `SessionStore` is what the chat list and settings headers read BEFORE the
+  /// first `getProfile` lands, so skipping it leaves the app greeting the user
+  /// by a name they no longer have every time they relaunch — and, far worse,
+  /// leaves the last handle they signed in with disagreeing with the one that
+  /// now works.
+  ///
+  /// Shaped exactly like [applyAccountType]: rebuild, notify, then persist. The
+  /// notify comes first for the same reason it does there — a stalled keychain
+  /// write (a real thing on first use after install) must not hold up the UI.
+  Future<void> _adoptUsername(String username) async {
+    final s = _session;
+    if (s == null || s.username == username) return;
+    debugPrint('[auth] username ${s.username} → $username');
+    _session = Session(
+      userId: s.userId,
+      username: username,
+      name: s.name,
+      accountType: s.accountType,
+    );
+    notifyListeners();
+    await SessionStore.instance.saveSession(
+      userId: s.userId,
+      username: username,
+      name: s.name,
+      accountType: s.accountType,
+    );
   }
 
   Future<void> deleteAccount() async {

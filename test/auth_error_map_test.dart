@@ -66,11 +66,17 @@ void main() {
       'SOCIAL_LINKED_TO_OTHER_ACCOUNT',
       'SOCIAL_NOT_LINKED',
       'SOCIAL_LAST_CREDENTIAL',
+      // socialAuth.normaliseUsername, shared with users.applyUsernameChange —
+      // so this now reaches the rename sheet as well as the three signup paths.
       'USERNAME_INVALID',
       // idToken.ts
       'SOCIAL_TOKEN_INVALID',
       'SOCIAL_NONCE_MISMATCH',
       'SOCIAL_MISCONFIG',
+      // users.applyUsernameChange — the thirty-day cooldown, and the guard that
+      // keeps the problem-report inbox's handle occupied.
+      'USERNAME_CHANGED_RECENTLY',
+      'INBOX_HANDLE_LOCKED',
     };
 
     test('every mapped key is one the backend throws', () {

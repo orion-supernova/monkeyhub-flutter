@@ -419,6 +419,57 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenNameHint => 'odada nasıl görüneceğin';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'kullanıcı adını değiştir?';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'Girişte bunu kullanıyorsun, yani bundan sonra yenisini yazacaksın. Eski kullanıcı adın başkasının alabilmesi için serbest kalır ve 30 gün boyunca tekrar değiştiremezsin. Seni etiketleyen eski mesajlarda eski adın kalır.';
+
+  @override
+  String get profileScreenUsernameHint => 'arkadaşların seni böyle bulur';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return '$date tarihinde tekrar değiştirilebilir';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => 'senin olduğunu doğrula';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'KULLANICI ADINI DEĞİŞTİR';
+
+  @override
+  String get profileScreenUsernameProviderTitle => 'girişinle doğrula';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'Artık @$username oldun.';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'Kullanıcı adın değiştirilemedi. Lütfen tekrar deneyin.';
+
+  @override
+  String get usernameStatusChecking => 'kontrol ediliyor…';
+
+  @override
+  String get usernameStatusAvailable => 'uygun';
+
+  @override
+  String get usernameStatusTaken => 'zaten alınmış';
+
+  @override
+  String get usernameStatusReserved => 'kullanılamaz';
+
+  @override
+  String get usernameStatusInvalid => '1–32 karakter';
+
+  @override
+  String get usernameStatusUnknown => 'kontrol edilemedi';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'bu hesaba henüz kimse bakmıyor';
 
@@ -4649,6 +4700,14 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       '1 ile 32 karakter arasında bir kullanıcı adı seç.';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'Kullanıcı adını yakın zamanda değiştirdin. Sonuncusundan 30 gün sonra tekrar değiştirebilirsin.';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'Bu hesap herkesin sorun bildirimlerini alıyor, bu yüzden kullanıcı adı sabit.';
 
   @override
   String get glassKnobLabelFrost => 'BUZLANMA';

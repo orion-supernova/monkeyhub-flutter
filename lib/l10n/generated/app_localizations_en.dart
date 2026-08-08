@@ -423,6 +423,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenNameHint => 'how the room will read you';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'change username?';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'You sign in with this, so the new one is what you\'ll type from now on. Your old username is freed for anyone else to take, and you can\'t change it again for 30 days. Older messages that tagged you keep the old name.';
+
+  @override
+  String get profileScreenUsernameHint => 'how friends find you';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return 'changeable again on $date';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => 'confirm it\'s you';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'CHANGE USERNAME';
+
+  @override
+  String get profileScreenUsernameProviderTitle => 'confirm with your sign-in';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'You\'re now @$username.';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'Couldn\'t change your username. Please try again.';
+
+  @override
+  String get usernameStatusChecking => 'checking…';
+
+  @override
+  String get usernameStatusAvailable => 'available';
+
+  @override
+  String get usernameStatusTaken => 'already taken';
+
+  @override
+  String get usernameStatusReserved => 'not available';
+
+  @override
+  String get usernameStatusInvalid => '1–32 characters';
+
+  @override
+  String get usernameStatusUnknown => 'couldn\'t check';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'nobody looking after this account yet';
 
@@ -4664,6 +4715,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       'Pick a username between 1 and 32 characters.';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'You\'ve changed your username recently. You can change it again 30 days after the last one.';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'This account receives everyone\'s problem reports, so its username is fixed.';
 
   @override
   String get glassKnobLabelFrost => 'FROST';

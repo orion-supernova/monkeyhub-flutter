@@ -229,6 +229,63 @@ export const setRecoveryKey = mutation({
 });
 
 /**
+ * Change the handle, proved with the account's password.
+ *
+ * The handle IS the login credential — `login` and
+ * `resetPasswordWithRecoveryKey` both find an account by it — so this is a
+ * credential change, and it is gated like one. Identity in this deployment is a
+ * client-supplied `userId` (there is no `ctx.auth` anywhere; see the note in
+ * feed.ts), which is exactly why the password cannot be skipped here: without
+ * it, anyone who learned an id could rename that account out from under its
+ * owner and take the name it signs in with.
+ *
+ * The rules themselves live in `users.applyUsernameChange`. This function owns
+ * ONLY the proof, so that the Apple/Google path can present a different proof
+ * and still land on identical rules.
+ */
+export const changeUsername = mutation({
+  args: {
+    userId: v.id("users"),
+    passwordHash: v.string(),
+    username: v.string(),
+  },
+  returns: v.object({ username: v.string() }),
+  handler: async (ctx, { userId, passwordHash, username }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("USER_NOT_FOUND");
+
+    // BEFORE the compare, mirroring setRecoveryKey. A child's password is a
+    // sentinel, so comparing first would turn guessing that constant into a
+    // rename primitive on any supervised account.
+    if (user.accountType === ACCOUNT_CHILD) throw new Error(ERR_MUST_PAIR);
+
+    // An Apple/Google-only account has no password to prove anything with, and
+    // its sentinel is a known constant — comparing against it would be a gate
+    // in name only. Sent back so the UI can raise the provider sheet instead.
+    if (user.passwordHash === SOCIAL_ONLY_PASSWORD_SENTINEL) {
+      throw new Error(ERR_USE_SOCIAL);
+    }
+
+    // Shares the LOGIN bucket rather than owning one, so this cannot be used as
+    // a password-guessing oracle that sidesteps the login limiter.
+    const key = loginKey(user._id);
+    await assertNotLocked(ctx, key);
+    if (user.passwordHash !== passwordHash) {
+      await noteFailure(ctx, key);
+      throw new Error("WRONG_PASSWORD");
+    }
+    await clearFailures(ctx, key);
+
+    // Same transaction as the check above — a mutation calling a mutation does
+    // not open a second one — so the proof and the rename commit or fail as one.
+    return await ctx.runMutation(internal.users.applyUsernameChange, {
+      userId,
+      username,
+    });
+  },
+});
+
+/**
  * Self-serve account deletion. A child cannot delete their own account — that
  * would be an escape hatch out of supervision. Guardians remove a child via
  * `family.deleteChildAccount`, which runs the same teardown.

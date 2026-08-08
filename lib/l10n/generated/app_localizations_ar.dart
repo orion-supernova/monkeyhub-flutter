@@ -442,6 +442,57 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileScreenNameHint => 'هكذا سيراك أعضاء الغرفة';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'تغيير اسم المستخدم؟';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'أنت تسجّل الدخول بهذا الاسم، لذا ستكتب الاسم الجديد من الآن فصاعدًا. يصبح اسم المستخدم القديم متاحًا لأي شخص آخر، ولن تتمكّن من تغييره مجددًا لمدة 30 يومًا. الرسائل القديمة التي أشارت إليك تحتفظ بالاسم القديم.';
+
+  @override
+  String get profileScreenUsernameHint => 'هكذا يجدك أصدقاؤك';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return 'يمكن تغييره مجددًا في $date';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => 'أكّد أنك أنت';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'تغيير اسم المستخدم';
+
+  @override
+  String get profileScreenUsernameProviderTitle => 'أكّد بتسجيل دخولك';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return 'أنت الآن @$username.';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved =>
+      'تعذّر تغيير اسم المستخدم. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get usernameStatusChecking => 'جارٍ التحقق…';
+
+  @override
+  String get usernameStatusAvailable => 'متاح';
+
+  @override
+  String get usernameStatusTaken => 'مستخدم بالفعل';
+
+  @override
+  String get usernameStatusReserved => 'غير متاح';
+
+  @override
+  String get usernameStatusInvalid => 'من 1 إلى 32 حرفًا';
+
+  @override
+  String get usernameStatusUnknown => 'تعذّر التحقق';
+
+  @override
   String get profileScreenNobodyLookingAfter =>
       'لا أحد يشرف على هذا الحساب بعد';
 
@@ -4757,6 +4808,14 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get authErrorUsernameInvalid =>
       'اختر اسم مستخدم يتراوح طوله بين 1 و32 حرفًا.';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      'لقد غيّرت اسم المستخدم مؤخرًا. يمكنك تغييره مجددًا بعد 30 يومًا من آخر تغيير.';
+
+  @override
+  String get authErrorInboxHandleLocked =>
+      'هذا الحساب يستقبل بلاغات المشاكل من الجميع، لذا فاسم المستخدم الخاص به ثابت.';
 
   @override
   String get glassKnobLabelFrost => 'ضبابي';

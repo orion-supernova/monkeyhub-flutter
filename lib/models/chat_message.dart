@@ -53,8 +53,12 @@ class ReplyPreview {
 /// The username is stored alongside the id for the same reason [ReplyPreview]
 /// snapshots its parent — so rendering never depends on a live roster. Three
 /// places have none: history containing someone who has since left the room,
-/// the thread overlay, and a cold boot off the disk cache. Unlike a display
-/// name this snapshot cannot drift, because `username` is immutable server-side.
+/// the thread overlay, and a cold boot off the disk cache.
+///
+/// Unlike a display-name snapshot this one cannot drift, and handles being
+/// changeable does not alter that: this pair is frozen in the same write as the
+/// `content` it points into, and [ChatMessage.mentionHandles] matches the two
+/// against each other rather than against anyone's current name.
 class MessageMention {
   const MessageMention({required this.userId, required this.username});
 

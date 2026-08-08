@@ -12,6 +12,15 @@ export default defineSchema({
     lastSeen: v.optional(v.number()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
+    // When the handle was last changed. Absent on every account still using the
+    // name it signed up with, which is why it is optional rather than
+    // backfilled — "never renamed" and "renamed long ago" want the same answer
+    // from the cooldown, and that is what a missing value already gives.
+    //
+    // Read only by `users.applyUsernameChange`, which is the single place the
+    // handle can change at all. Not indexed: it is looked up by `_id`, never
+    // ranged over.
+    usernameChangedAt: v.optional(v.number()),
     // `deviceTokens` used to sit here: raw APNs tokens from before the
     // per-device `userDevices` registry existed. Stripped from every row by
     // `migrations.stripDeviceTokens` and removed 2026-08-08. Convex rejects a
@@ -505,9 +514,18 @@ export default defineSchema({
     // `replyToPreview` above it, so rendering a mention needs no roster at all.
     // That matters in three places a live member list isn't available: history
     // containing someone who has since left the room, the thread overlay, and a
-    // cold boot off the disk cache. `username` is immutable — `users:updateProfile`
-    // patches `name` and `email` only — so unlike a display-name snapshot this
-    // one can never drift from the truth.
+    // cold boot off the disk cache.
+    //
+    // Handles ARE mutable — `users.applyUsernameChange` exists — but this array
+    // still cannot drift, and the reason is subtler than immutability. It is
+    // frozen in the same write as the `content` it anchors to, so the two age
+    // as ONE: the reader matches this snapshot against that text, never against
+    // the live roster (see `MentionDetector` and `ChatMessage.mentionHandles`).
+    // A rename leaves both halves alone and the old message keeps highlighting,
+    // still routing on `userId`. What a rename does cost is that a much older
+    // message shows a handle its owner has since given up — which is the honest
+    // rendering of what was actually typed, and the same thing that already
+    // happens when an account is deleted and its handle re-registered.
     //
     // Rebuilt server-side on every send: the client sends ids, the server says
     // what they are called. `messages:send` keeps only current members of the

@@ -408,6 +408,56 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenNameHint => 'ルームでの見え方です';
 
   @override
+  String get profileScreenChangeUsernameTitle => 'ユーザー名を変更しますか？';
+
+  @override
+  String get profileScreenChangeUsernameWarning =>
+      'サインインに使う名前です。これからは新しい名前を入力します。古いユーザー名は解放され、他の人が取得できるようになります。また、30日間は再変更できません。あなたをメンションした過去のメッセージには古い名前が残ります。';
+
+  @override
+  String get profileScreenUsernameHint => '友だちがあなたを見つける名前';
+
+  @override
+  String profileScreenUsernameLockedUntil(String date) {
+    return '$date に再変更できます';
+  }
+
+  @override
+  String get profileScreenUsernamePasswordTitle => '本人確認';
+
+  @override
+  String get profileScreenUsernamePasswordAction => 'ユーザー名を変更';
+
+  @override
+  String get profileScreenUsernameProviderTitle => 'サインインで確認';
+
+  @override
+  String profileScreenUsernameChanged(String username) {
+    return '@$username になりました。';
+  }
+
+  @override
+  String get profileScreenUsernameNotSaved => 'ユーザー名を変更できませんでした。もう一度お試しください。';
+
+  @override
+  String get usernameStatusChecking => '確認中…';
+
+  @override
+  String get usernameStatusAvailable => '使えます';
+
+  @override
+  String get usernameStatusTaken => '使用済み';
+
+  @override
+  String get usernameStatusReserved => '使用できません';
+
+  @override
+  String get usernameStatusInvalid => '1〜32文字';
+
+  @override
+  String get usernameStatusUnknown => '確認できませんでした';
+
+  @override
   String get profileScreenNobodyLookingAfter => 'まだこのアカウントを見守る保護者がいません';
 
   @override
@@ -4501,6 +4551,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get authErrorUsernameInvalid => 'ユーザー名は1〜32文字で入力してください。';
+
+  @override
+  String get authErrorUsernameChangedRecently =>
+      '最近ユーザー名を変更しています。前回の変更から30日後に再度変更できます。';
+
+  @override
+  String get authErrorInboxHandleLocked => 'このアカウントは全員の問題報告を受け取るため、ユーザー名は固定です。';
 
   @override
   String get glassKnobLabelFrost => 'すりガラス';

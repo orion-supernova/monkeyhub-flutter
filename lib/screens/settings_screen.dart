@@ -76,11 +76,25 @@ class _SettingsScreenState extends State<SettingsScreen>
     if (mounted) setState(() {});
   }
 
+  /// The account card is built from `_me`, which is fetched ONCE in initState,
+  /// and falls back to the session while that is in flight. Both go stale the
+  /// moment the profile screen pushed on top of this one changes something —
+  /// and a handle change is the case where stale is not merely untidy, since
+  /// the card would go on showing a name the account no longer answers to.
+  ///
+  /// Re-fetching rather than just rebuilding: the session carries the handle
+  /// but not the avatar, display name or approvals state, so a rebuild alone
+  /// would fix one field and leave the rest of the card behind.
+  void _onAuth() {
+    if (mounted) _loadMe();
+  }
+
   @override
   void initState() {
     super.initState();
     SettingsStore.instance.addListener(_onSettings);
     widget.family.addListener(_onSettings);
+    widget.auth.addListener(_onAuth);
     // Rebuild when the desktop settings pane's selection changes so the active
     // row highlights.
     UiSelectionStore.instance.addListener(_onSettings);
@@ -93,6 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   void dispose() {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
+    widget.auth.removeListener(_onAuth);
     UiSelectionStore.instance.removeListener(_onSettings);
     _scroll.dispose();
     super.dispose();

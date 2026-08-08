@@ -84,8 +84,19 @@ const signInResultValidator = v.union(
   }),
 );
 
-/** Max 32 chars mirrors the client's own signup validation. */
-function normaliseUsername(raw: string): string {
+/**
+ * Trim, and a 32-char ceiling. The ONE shape rule a handle has to satisfy.
+ *
+ * Exported because `users.applyUsernameChange` shares it: a handle accepted at
+ * rename must be exactly one that would have been accepted at creation, and two
+ * copies of this would drift the first time either moved.
+ *
+ * Note what is deliberately absent — a charset rule. Handles are not
+ * constrained to any alphabet, so one can legitimately contain spaces or
+ * non-Latin characters, and a regex added here would invalidate names people
+ * already answer to.
+ */
+export function normaliseUsername(raw: string): string {
   const username = raw.trim();
   if (username.length === 0 || username.length > 32) {
     throw new Error("USERNAME_INVALID");
@@ -268,6 +279,60 @@ export const link = action({
       appleRefreshToken,
     });
     return null;
+  },
+});
+
+/**
+ * Change the handle on an account that signs in with Apple or Google.
+ *
+ * The counterpart to `auth.changeUsername`, and it exists because that one
+ * cannot serve these accounts: their `passwordHash` is
+ * [SOCIAL_ONLY_PASSWORD_SENTINEL], a known constant, so there is nothing to
+ * type and nothing a comparison would prove. `link` and `unlink` above have the
+ * same hole and simply leave those users unable to use them; a rename must not
+ * inherit that dead end, because unlike linking it is a thing every account
+ * eventually wants.
+ *
+ * The proof is a FRESH provider token rather than a password, and it is
+ * equal-strength: verified against the provider's live JWKS, then required to
+ * resolve — through the same `socialIdentities` row that signs this account in —
+ * back to the very `userId` being renamed. Holding a stray id gets you nowhere
+ * without also holding the Apple or Google account behind it.
+ *
+ * An ACTION, not a mutation, because [verifyIdToken] fetches the JWKS.
+ */
+export const changeUsernameWithIdentity = action({
+  args: {
+    userId: v.id("users"),
+    provider: providerValidator,
+    idToken: v.string(),
+    rawNonce: v.optional(v.string()),
+    username: v.string(),
+  },
+  returns: v.object({ username: v.string() }),
+  handler: async (ctx, args) => {
+    const identity = await verifyIdToken(args.provider, args.idToken, args.rawNonce);
+
+    const existing = await ctx.runQuery(internal.socialAuth.findIdentity, {
+      provider: identity.provider,
+      subject: identity.subject,
+    });
+    if (!existing) throw new Error(ERR_NOT_LINKED);
+    // THE gate. A verified token only proves you hold that Apple/Google
+    // account; this is what proves the account you hold is the one being
+    // renamed. Without the comparison the whole function degrades to "anyone
+    // with any provider account may rename any userId".
+    if (existing.userId !== args.userId) {
+      throw new Error(ERR_LINKED_ELSEWHERE);
+    }
+
+    // Separate transaction from the verification, unavoidably — an action
+    // cannot hold one. That is the same shape as `link`, and harmless here:
+    // the worst a race can do is apply a rename the user asked for twice.
+    return await ctx.runMutation(internal.users.applyUsernameChange, {
+      userId: args.userId,
+      username: args.username,
+    });
   },
 });
 
