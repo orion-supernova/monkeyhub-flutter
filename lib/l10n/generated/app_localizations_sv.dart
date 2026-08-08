@@ -5553,4 +5553,53 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'tryck på symboler för att bygga en gissning och skicka den. brickan visar hur nära du var.';
+
+  @override
+  String get savedMessagesTitle => 'Sparade meddelanden';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'FÄSTA';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'ingen chatt matchar \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'sök chattar…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Dölj sök och arkiverade chattar';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'arkiverade chattar ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'ARKIVERADE CHATTAR';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'ARKIVERADE CHATTAR · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'inget är arkiverat längre';
+
+  @override
+  String get pinnedBadgeLabel => 'FÄST';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'FÄST CHATTEN';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'LOSSA CHATTEN';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARKIVERA CHATTEN';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'AVARKIVERA CHATTEN';
 }

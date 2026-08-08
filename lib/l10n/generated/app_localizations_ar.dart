@@ -5602,4 +5602,53 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت.';
+
+  @override
+  String get savedMessagesTitle => 'الرسائل المحفوظة';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'المثبتة';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'لا توجد محادثات تطابق \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'ابحث عن محادثات…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'إخفاء البحث والمحادثات المؤرشفة';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'محادثات مؤرشفة ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'المحادثات المؤرشفة';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'المحادثات المؤرشفة · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'لم يعد هناك أي شيء مؤرشف';
+
+  @override
+  String get pinnedBadgeLabel => 'مثبت';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'تثبيت المحادثة';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'إلغاء تثبيت المحادثة';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'أرشفة المحادثة';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'إلغاء أرشفة المحادثة';
 }

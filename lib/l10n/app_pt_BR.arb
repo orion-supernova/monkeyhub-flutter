@@ -1556,5 +1556,19 @@
   "gameInfoCodeRule1": "seis tentativas, e o código nunca repete um símbolo.",
   "gameInfoCodeRule2": "verde significa símbolo certo no lugar certo.",
   "gameInfoCodeRule3": "amarelo significa símbolo certo no lugar errado.",
-  "gameInfoCodeControls": "toque nos símbolos para montar um palpite e envie. o tabuleiro mostra o quão perto você chegou."
+  "gameInfoCodeControls": "toque nos símbolos para montar um palpite e envie. o tabuleiro mostra o quão perto você chegou.",
+  "savedMessagesTitle": "Mensagens salvas",
+  "homeScreenPinnedSectionLabel": "FIXADOS",
+  "homeScreenNoSearchResults": "nenhum chat corresponde a \"{query}\"",
+  "pullRevealSearchHint": "buscar chats…",
+  "pullRevealCollapseSemanticLabel": "Ocultar busca e chats arquivados",
+  "archivedChatsFolderLabel": "chats arquivados ({count})",
+  "archivedChatsSheetTitle": "CHATS ARQUIVADOS",
+  "archivedChatsSheetTitleCount": "CHATS ARQUIVADOS · {count}",
+  "archivedChatsSheetEmptyMessage": "nada mais arquivado",
+  "pinnedBadgeLabel": "FIXADA",
+  "chatRowActionMenuPinLabel": "FIXAR CHAT",
+  "chatRowActionMenuUnpinLabel": "DESAFIXAR CHAT",
+  "chatRowActionMenuArchiveLabel": "ARQUIVAR CHAT",
+  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CHAT"
 }

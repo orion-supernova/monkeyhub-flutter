@@ -1556,5 +1556,19 @@
   "gameInfoCodeRule1": "sex försök, och koden upprepar aldrig en symbol.",
   "gameInfoCodeRule2": "grönt betyder rätt symbol på rätt plats.",
   "gameInfoCodeRule3": "gult betyder rätt symbol på fel plats.",
-  "gameInfoCodeControls": "tryck på symboler för att bygga en gissning och skicka den. brickan visar hur nära du var."
+  "gameInfoCodeControls": "tryck på symboler för att bygga en gissning och skicka den. brickan visar hur nära du var.",
+  "savedMessagesTitle": "Sparade meddelanden",
+  "homeScreenPinnedSectionLabel": "FÄSTA",
+  "homeScreenNoSearchResults": "ingen chatt matchar \"{query}\"",
+  "pullRevealSearchHint": "sök chattar…",
+  "pullRevealCollapseSemanticLabel": "Dölj sök och arkiverade chattar",
+  "archivedChatsFolderLabel": "arkiverade chattar ({count})",
+  "archivedChatsSheetTitle": "ARKIVERADE CHATTAR",
+  "archivedChatsSheetTitleCount": "ARKIVERADE CHATTAR · {count}",
+  "archivedChatsSheetEmptyMessage": "inget är arkiverat längre",
+  "pinnedBadgeLabel": "FÄST",
+  "chatRowActionMenuPinLabel": "FÄST CHATTEN",
+  "chatRowActionMenuUnpinLabel": "LOSSA CHATTEN",
+  "chatRowActionMenuArchiveLabel": "ARKIVERA CHATTEN",
+  "chatRowActionMenuUnarchiveLabel": "AVARKIVERA CHATTEN"
 }

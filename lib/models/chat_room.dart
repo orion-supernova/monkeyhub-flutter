@@ -21,6 +21,10 @@ class ChatRoom {
     this.unreadCapped = false,
     this.hasMention = false,
     this.isMember = false,
+    this.isPinned = false,
+    this.pinnedAt,
+    this.isArchived = false,
+    this.archivedAt,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -67,9 +71,21 @@ class ChatRoom {
   /// apart during the cold-start window before the room list has hydrated.
   final bool isMember;
 
+  /// This viewer's own chat-list organization — per-membership state, not a
+  /// property of the room itself (roomMembers.isPinned/isArchived).
+  bool isPinned;
+  DateTime? pinnedAt;
+  bool isArchived;
+  DateTime? archivedAt;
+
   bool get isEphemeral => type == RoomType.secret;
   bool get isPublic => !isPrivate;
   bool get isDm => name.startsWith('dm:');
+
+  /// The always-pinned, single-member Saved Messages room: `dm:self:<userId>`.
+  /// A DM by the [isDm] test above, but every entry in [participantIds] is
+  /// the viewer, so [otherParticipantId] correctly resolves to null for it.
+  bool get isSavedMessages => name.startsWith('dm:self:');
 
   /// True when the room has a message newer than this user's read cursor.
   ///
@@ -114,6 +130,10 @@ class ChatRoom {
         'unreadCapped': unreadCapped,
         if (hasMention) 'hasMention': true,
         'participantIds': participantIds,
+        if (isPinned) 'isPinned': true,
+        if (pinnedAt != null) 'pinnedAt': pinnedAt!.millisecondsSinceEpoch,
+        if (isArchived) 'isArchived': true,
+        if (archivedAt != null) 'archivedAt': archivedAt!.millisecondsSinceEpoch,
       };
 
   factory ChatRoom.fromJson(Map<String, dynamic> j) {
@@ -141,6 +161,14 @@ class ChatRoom {
       unreadCapped: (j['unreadCapped'] ?? false) as bool,
       hasMention: (j['hasMention'] ?? false) as bool,
       isMember: (j['isMember'] ?? false) as bool,
+      isPinned: (j['isPinned'] ?? false) as bool,
+      pinnedAt: j['pinnedAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((j['pinnedAt'] as num).toInt())
+          : null,
+      isArchived: (j['isArchived'] ?? false) as bool,
+      archivedAt: j['archivedAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((j['archivedAt'] as num).toInt())
+          : null,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }

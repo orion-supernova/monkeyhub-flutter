@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
@@ -5,6 +6,7 @@ import 'package:monkeyhub/models/chat_room.dart';
 import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/widgets/pinned_badge.dart';
 import 'package:monkeyhub/widgets/room_card.dart';
 import 'package:monkeyhub/widgets/room_grid_tile.dart';
 import 'package:monkeyhub/widgets/visibility_badge.dart';
@@ -24,6 +26,7 @@ void main() {
     bool isPrivate = false,
     bool hasPassword = false,
     Duration? ttl,
+    bool isPinned = false,
   }) => ChatRoom(
     id: 'r1',
     name: name,
@@ -34,6 +37,7 @@ void main() {
     hasPassword: hasPassword,
     type: ttl == null ? RoomType.regular : RoomType.secret,
     messageLifetime: ttl,
+    isPinned: isPinned,
   );
 
   Widget host(Widget child) => MaterialApp(
@@ -230,6 +234,67 @@ void main() {
         ),
       );
       expect(find.byType(VisibilityBadge), findsNothing);
+    });
+  });
+
+  group('pinned & Saved Messages', () {
+    testWidgets('a pinned room carries the pinned badge', (tester) async {
+      await tester.pumpWidget(
+        host(RoomCard(room: room(isPinned: true), onTap: () {})),
+      );
+      expect(find.byType(PinnedBadge), findsOneWidget);
+    });
+
+    testWidgets('an unpinned room carries no pinned badge', (tester) async {
+      await tester.pumpWidget(host(RoomCard(room: room(), onTap: () {})));
+      expect(find.byType(PinnedBadge), findsNothing);
+    });
+
+    testWidgets(
+      'Saved Messages never shows the pinned badge, even though it is '
+      'always pinned server-side',
+      (tester) async {
+        await tester.pumpWidget(
+          host(
+            RoomCard(
+              room: room(name: 'dm:self:u1', isPinned: true),
+              onTap: () {},
+            ),
+          ),
+        );
+        expect(find.byType(PinnedBadge), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Saved Messages renders its localized title and a bookmark avatar, '
+      'not the raw room name',
+      (tester) async {
+        final loc = await en();
+        await tester.pumpWidget(
+          host(RoomCard(room: room(name: 'dm:self:u1'), onTap: () {})),
+        );
+        expect(find.text(loc.savedMessagesTitle), findsOneWidget);
+        expect(find.text('dm:self:u1'), findsNothing);
+        expect(find.byIcon(CupertinoIcons.bookmark_fill), findsOneWidget);
+      },
+    );
+
+    testWidgets('the grid tile renders the same Saved Messages override', (
+      tester,
+    ) async {
+      final loc = await en();
+      await tester.pumpWidget(
+        host(
+          SizedBox(
+            width: 180,
+            height: 180,
+            child: RoomGridTile(room: room(name: 'dm:self:u1'), onTap: () {}),
+          ),
+        ),
+      );
+      expect(find.text(loc.savedMessagesTitle), findsOneWidget);
+      expect(find.byIcon(CupertinoIcons.bookmark_fill), findsOneWidget);
     });
   });
 }

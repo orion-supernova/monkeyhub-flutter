@@ -5521,4 +5521,53 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'tap symbols to build a guess, then send it. the board tells you how close you were.';
+
+  @override
+  String get savedMessagesTitle => 'Saved Messages';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'PINNED';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'no chats match \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'search chats…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Hide search and archived chats';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'archived chats ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'ARCHIVED CHATS';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'ARCHIVED CHATS · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'nothing archived anymore';
+
+  @override
+  String get pinnedBadgeLabel => 'PINNED';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'PIN CHAT';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'UNPIN CHAT';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARCHIVE CHAT';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'UNARCHIVE CHAT';
 }

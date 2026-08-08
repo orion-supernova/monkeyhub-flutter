@@ -14,6 +14,8 @@ ChatRoom room({
   RoomType type = RoomType.regular,
   int unreadCount = 0,
   bool hasMention = false,
+  bool isPinned = false,
+  bool isArchived = false,
 }) => ChatRoom(
   id: id,
   name: name,
@@ -25,17 +27,29 @@ ChatRoom room({
   type: type,
   unreadCount: unreadCount,
   hasMention: hasMention,
+  isPinned: isPinned,
+  isArchived: isArchived,
 );
 
 /// A DM is `name.startsWith('dm:')` and nothing else — not a type, not a member
 /// count, since a group can have two members.
-ChatRoom dm({String id = 'd1', int unreadCount = 0, bool hasMention = false}) =>
-    room(
-      id: id,
-      name: 'dm:u0:u1',
-      unreadCount: unreadCount,
-      hasMention: hasMention,
-    );
+ChatRoom dm({
+  String id = 'd1',
+  int unreadCount = 0,
+  bool hasMention = false,
+  bool isPinned = false,
+  bool isArchived = false,
+}) => room(
+  id: id,
+  name: 'dm:u0:u1',
+  unreadCount: unreadCount,
+  hasMention: hasMention,
+  isPinned: isPinned,
+  isArchived: isArchived,
+);
+
+/// The always-pinned self-chat every account has — `name.startsWith('dm:self:')`.
+ChatRoom savedMessages({String id = 's1'}) => room(id: id, name: 'dm:self:u0');
 
 void main() {
   group('facet predicates', () {
@@ -305,6 +319,58 @@ void main() {
       expect(RoomFilter(gen()), RoomFilter({RoomFacet.dms, RoomFacet.unread}));
       expect(RoomFilter(gen()).matches(dm(unreadCount: 1)), isTrue);
       expect(RoomFilter(gen()).matches(dm()), isFalse);
+    });
+  });
+
+  group('partitionPinned', () {
+    test('Saved Messages leads the pinned bucket even with other pins present', () {
+      final rooms = [
+        room(id: 'a'),
+        room(id: 'b', isPinned: true),
+        savedMessages(),
+      ];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned.map((r) => r.id), ['s1', 'b']);
+      expect(parts.regular.map((r) => r.id), ['a']);
+    });
+
+    test('recency order is preserved within each bucket, not re-sorted', () {
+      final rooms = [
+        room(id: 'a', isPinned: true),
+        room(id: 'b'),
+        room(id: 'c', isPinned: true),
+        room(id: 'd'),
+      ];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned.map((r) => r.id), ['a', 'c']);
+      expect(parts.regular.map((r) => r.id), ['b', 'd']);
+    });
+
+    test('no pins at all: everything lands in regular, pinned is empty', () {
+      final rooms = [room(id: 'a'), dm(id: 'b')];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned, isEmpty);
+      expect(parts.regular.map((r) => r.id), ['a', 'b']);
+    });
+
+    test('Saved Messages alone still populates the pinned bucket', () {
+      final rooms = [room(id: 'a'), savedMessages()];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned.map((r) => r.id), ['s1']);
+      expect(parts.regular.map((r) => r.id), ['a']);
+    });
+
+    test('isArchived does not affect which bucket a room lands in', () {
+      // Archived rooms are excluded upstream by ChatRepository.activeRooms —
+      // partitionPinned only ever sees rooms that already cleared that filter,
+      // and shouldn't itself special-case the flag.
+      final rooms = [
+        room(id: 'a', isPinned: true, isArchived: true),
+        room(id: 'b', isArchived: true),
+      ];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned.map((r) => r.id), ['a']);
+      expect(parts.regular.map((r) => r.id), ['b']);
     });
   });
 }

@@ -19,8 +19,9 @@ import '../theme/theme_scope.dart';
 ///
 /// A caller whose surface already answers the question can turn the tooltip off
 /// with [explainOnTap] — see the flag's own note.
-class _Badge extends StatelessWidget {
-  const _Badge({
+class RoomBadge extends StatelessWidget {
+  const RoomBadge({
+    super.key,
     required this.icon,
     required this.label,
     required this.tooltip,
@@ -152,7 +153,7 @@ class VisibilityBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return _Badge(
+    return RoomBadge(
       dense: dense,
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
@@ -190,7 +191,7 @@ class LockedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return _Badge(
+    return RoomBadge(
       dense: dense,
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
@@ -226,7 +227,7 @@ class JoinedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
-    return _Badge(
+    return RoomBadge(
       dense: dense,
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,
@@ -284,7 +285,7 @@ class EphemeralBadge extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final loc = AppLocalizations.of(context);
     final ttlLabel = ephemeralShort(loc, ttl);
-    return _Badge(
+    return RoomBadge(
       dense: dense,
       iconOnly: iconOnly,
       explainOnTap: explainOnTap,

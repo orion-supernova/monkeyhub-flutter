@@ -5318,4 +5318,52 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gameInfoCodeControls => '記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。';
+
+  @override
+  String get savedMessagesTitle => '保存済みメッセージ';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'ピン留め';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return '「$query」に一致するチャットはありません';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'チャットを検索…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel => '検索とアーカイブ済みチャットを非表示';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'アーカイブ済みチャット ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'アーカイブ済みチャット';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'アーカイブ済みチャット・$count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'もうアーカイブされたものはありません';
+
+  @override
+  String get pinnedBadgeLabel => 'ピン留め';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'チャットをピン留め';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'チャットのピン留めを解除';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'チャットをアーカイブ';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'チャットのアーカイブを解除';
 }

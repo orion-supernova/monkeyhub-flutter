@@ -1556,5 +1556,19 @@
   "gameInfoCodeRule1": "छह कोशिशें, और कोड में कोई चिह्न दोहराया नहीं जाता।",
   "gameInfoCodeRule2": "हरा मतलब सही चिह्न, सही जगह।",
   "gameInfoCodeRule3": "पीला मतलब सही चिह्न, गलत जगह।",
-  "gameInfoCodeControls": "अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।"
+  "gameInfoCodeControls": "अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।",
+  "savedMessagesTitle": "सेव किए गए मैसेज",
+  "homeScreenPinnedSectionLabel": "पिन किए गए",
+  "homeScreenNoSearchResults": "\"{query}\" से कोई चैट मेल नहीं खाती",
+  "pullRevealSearchHint": "चैट खोजो…",
+  "pullRevealCollapseSemanticLabel": "सर्च और आर्काइव की गई चैट छिपाएं",
+  "archivedChatsFolderLabel": "आर्काइव की गई चैट ({count})",
+  "archivedChatsSheetTitle": "आर्काइव की गई चैट",
+  "archivedChatsSheetTitleCount": "आर्काइव की गई चैट · {count}",
+  "archivedChatsSheetEmptyMessage": "अब कुछ भी आर्काइव नहीं है",
+  "pinnedBadgeLabel": "पिन",
+  "chatRowActionMenuPinLabel": "चैट पिन करें",
+  "chatRowActionMenuUnpinLabel": "चैट अनपिन करें",
+  "chatRowActionMenuArchiveLabel": "चैट आर्काइव करें",
+  "chatRowActionMenuUnarchiveLabel": "चैट अनआर्काइव करें"
 }

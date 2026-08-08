@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,9 +14,13 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
+import '../widgets/archived_chats_sheet.dart';
+import '../widgets/chat_row_action_menu.dart';
+import '../widgets/pull_reveal_panel.dart';
 import '../widgets/room_card.dart';
 import '../widgets/room_filter_bar.dart';
 import '../widgets/room_filter_drawer.dart';
@@ -66,6 +72,20 @@ class _HomeScreenState extends State<HomeScreen>
 
   final _scroll = ScrollController();
 
+  // ───────── in-place search ─────────
+
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+  Timer? _searchDebounce;
+
+  // ───────── pull-down-at-top reveal (search field + Archived Chats) ─────────
+
+  /// Live drag distance while pulling at the top of the list, 0 when idle.
+  double _pullDrag = 0;
+  bool _pullPanelOpen = false;
+  static const _pullOpenThreshold = 64.0;
+  static const _pullMaxDrag = 96.0;
+
   @override
   HomeSection get reselectSection => HomeSection.chat;
   @override
@@ -90,7 +110,46 @@ class _HomeScreenState extends State<HomeScreen>
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);
     _scroll.dispose();
+    _searchCtrl.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged(String v) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _searchQuery = v);
+    });
+  }
+
+  /// Matches on the resolved, on-screen label (a friend's display name, or
+  /// the localized "Saved Messages" string) rather than the raw room `name` —
+  /// a DM's name is `dm:regular:<id>:<id>`, which contains nothing a user
+  /// would ever type.
+  bool _matchesSearch(ChatRoom r, String query) {
+    final needle = query.toLowerCase();
+    final label = r.isSavedMessages
+        ? AppLocalizations.of(context).savedMessagesTitle
+        : (widget.repo.otherUserFor(r)?.displayName ?? r.name);
+    return label.toLowerCase().contains(needle);
+  }
+
+  /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot].
+  /// Once the panel is open it is ordinary list content and this stops
+  /// intervening — see the panel's own collapse chevron for how it closes.
+  bool _onScrollNotification(ScrollNotification n) {
+    if (_pullPanelOpen) return false;
+    if (n is OverscrollNotification &&
+        n.overscroll < 0 &&
+        n.metrics.pixels <= n.metrics.minScrollExtent) {
+      setState(() => _pullDrag = (_pullDrag - n.overscroll).clamp(0.0, _pullMaxDrag));
+    } else if (n is ScrollEndNotification && _pullDrag > 0) {
+      setState(() {
+        _pullPanelOpen = _pullDrag >= _pullOpenThreshold;
+        _pullDrag = 0;
+      });
+    }
+    return false;
   }
 
   void _onChange() {
@@ -140,14 +199,21 @@ class _HomeScreenState extends State<HomeScreen>
 
     final settings = SettingsStore.instance;
     final filter = settings.roomFilter;
-    // Resolved once per build and threaded down. `repo.rooms` allocates an
-    // unmodifiable view on every call and the repository notifies on every
+    // Resolved once per build and threaded down. `repo.activeRooms` allocates
+    // an unmodifiable view on every call and the repository notifies on every
     // typing keystroke in any room, so the cue and the list must not each go
-    // and filter it themselves.
-    final allRooms = widget.repo.rooms;
-    final visibleRooms = filter.apply(allRooms);
+    // and filter it themselves. Archived rooms never enter this pipeline —
+    // they're reachable only through the Archived Chats sheet.
+    final allRooms = widget.repo.activeRooms;
+    final searching = _searchQuery.trim().isNotEmpty;
+    final matched = searching
+        ? allRooms.where((r) => _matchesSearch(r, _searchQuery)).toList()
+        : allRooms;
+    final visibleRooms = filter.apply(matched);
     // Projected, not the repository's raw totals: every number on a filter
-    // control is what tapping it would actually show.
+    // control is what tapping it would actually show. Deliberately against
+    // `allRooms`, not `matched` — the facet chips describe the chat list as a
+    // whole, not the in-progress search.
     final counts = RoomFacetCounts.projected(allRooms, filter);
     final me =
         _me ??
@@ -209,16 +275,54 @@ class _HomeScreenState extends State<HomeScreen>
                   // No horizontal padding here — the chip row has to reach the
                   // screen edge to scroll off it, so the page margin lives on
                   // each child instead of on the viewport.
-                  child: ListView(
-                    key: const PageStorageKey('home_main_list'),
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(
-                      0,
-                      14,
-                      0,
-                      kFloatingNavClearance,
-                    ),
-                    children: [
+                  //
+                  // The two NotificationListeners implement the pull-down-at-
+                  // the-top reveal for the search field / Archived Chats row:
+                  // the outer one silences Android's default overscroll glow
+                  // (Flutter's own documented pattern for a custom overscroll
+                  // affordance), the inner one tracks the drag itself. Neither
+                  // requires bouncing physics — Flutter dispatches
+                  // OverscrollNotification on a drag past either edge under
+                  // any ScrollPhysics, which is what already powers that glow.
+                  child: NotificationListener<OverscrollIndicatorNotification>(
+                    onNotification: (n) {
+                      n.disallowIndicator();
+                      return true;
+                    },
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _onScrollNotification,
+                      child: ListView(
+                        key: const PageStorageKey('home_main_list'),
+                        controller: _scroll,
+                        // Required, not cosmetic: a list shorter than its
+                        // viewport (a new account with one or two chats) is
+                        // otherwise judged "not scrollable" and never emits
+                        // overscroll at all — silently breaking the pull
+                        // gesture for exactly the accounts that most need an
+                        // easy path to Archived Chats.
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(
+                          0,
+                          14,
+                          0,
+                          kFloatingNavClearance,
+                        ),
+                        children: [
+                          PullRevealSlot(
+                            dragExtent: _pullDrag,
+                            dragThreshold: _pullOpenThreshold,
+                            open: _pullPanelOpen,
+                            searchCtrl: _searchCtrl,
+                            onSearchChanged: _onSearchChanged,
+                            archivedCount: widget.repo.archivedRooms.length,
+                            onOpenArchived: () => showArchivedChatsSheet(
+                              context,
+                              repo: widget.repo,
+                              api: widget.api,
+                            ),
+                            onCollapse: () =>
+                                setState(() => _pullPanelOpen = false),
+                          ),
                       // The filter control rides inside the scroll view rather
                       // than sitting above it: as a fixed band it ate a strip of
                       // an already short viewport on every screen, and it reads
@@ -269,10 +373,13 @@ class _HomeScreenState extends State<HomeScreen>
                           filter: filter,
                           allRooms: allRooms,
                           rooms: visibleRooms,
+                          searchQuery: _searchQuery,
                           onClearFilter: _clearFilter,
                         ),
                       ),
-                    ],
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -394,13 +501,14 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _RoomsPanel extends StatelessWidget {
+class _RoomsPanel extends StatefulWidget {
   const _RoomsPanel({
     required this.repo,
     required this.api,
     required this.filter,
     required this.allRooms,
     required this.rooms,
+    required this.searchQuery,
     required this.onClearFilter,
   });
   final ChatRepository repo;
@@ -411,13 +519,55 @@ class _RoomsPanel extends StatelessWidget {
   /// "your filter hid them all", and to size the escape hatch.
   final List<ChatRoom> allRooms;
 
-  /// What actually renders. Already filtered by the caller.
+  /// What actually renders. Already filtered (facets + search) by the caller.
   final List<ChatRoom> rooms;
+
+  /// Raw text from the pull-reveal search field. Empty when not searching.
+  final String searchQuery;
   final VoidCallback onClearFilter;
+
+  @override
+  State<_RoomsPanel> createState() => _RoomsPanelState();
+}
+
+class _RoomsPanelState extends State<_RoomsPanel> {
+  /// One stable [GlobalKey] per room, so the long-press menu can anchor to
+  /// the exact row that was pressed regardless of where it sits in the list.
+  final Map<String, GlobalKey> _rowKeys = {};
+  GlobalKey _keyFor(String id) => _rowKeys.putIfAbsent(id, GlobalKey.new);
+
+  Future<void> _showRowMenu(ChatRoom room) async {
+    final action = await showChatRowActionMenu(
+      context: context,
+      anchorKey: _keyFor(room.id),
+      isPinned: room.isPinned,
+      isArchived: room.isArchived,
+    );
+    switch (action) {
+      case ChatRowAction.pin:
+        await widget.repo.pinRoom(room.id);
+        break;
+      case ChatRowAction.unpin:
+        await widget.repo.unpinRoom(room.id);
+        break;
+      case ChatRowAction.archive:
+        await widget.repo.archiveRoom(room.id);
+        break;
+      case ChatRowAction.unarchive:
+        await widget.repo.unarchiveRoom(room.id);
+        break;
+      case null:
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final allRooms = widget.allRooms;
+    final rooms = widget.rooms;
+    final filter = widget.filter;
+    final searching = widget.searchQuery.trim().isNotEmpty;
 
     // Genuinely empty account — distinct from "filtered down to nothing".
     if (allRooms.isEmpty) {
@@ -433,10 +583,24 @@ class _RoomsPanel extends StatelessWidget {
     }
 
     if (rooms.isEmpty) {
+      if (searching) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Text(
+              AppLocalizations.of(
+                context,
+              ).homeScreenNoSearchResults(widget.searchQuery.trim()),
+              style: theme.bodySoft,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        );
+      }
       return FilteredEmptyState(
         filter: filter,
         total: allRooms.length,
-        onClear: onClearFilter,
+        onClear: widget.onClearFilter,
       );
     }
 
@@ -445,72 +609,180 @@ class _RoomsPanel extends StatelessWidget {
     if (layout == RoomLayout.grid) {
       // Medium/expanded windows get a third column; phones stay at two.
       final cols = context.isCompact ? 2 : 3;
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: cols,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: rooms.length,
-        itemBuilder: (context, i) {
-          return TweenAnimationBuilder<double>(
-            // Identity key, not position. Rooms are ordered by recency, so any
-            // incoming message reorders this list — and toggling a filter
-            // reorders it far more violently. Without a key Flutter re-matches
-            // elements by index, handing the tile at position i a DIFFERENT
-            // room; its avatar then reloads (and briefly shows the wrong face).
-            // See the same fix on the list layout.
-            key: ValueKey(rooms[i].id),
-            tween: Tween(begin: 0, end: 1),
-            duration: theme.motionMed + Duration(milliseconds: i * 40),
-            curve: theme.motionEntrance,
-            builder: (context, v, child) => Transform.translate(
-              offset: Offset(0, (1 - v) * 12),
-              child: Opacity(opacity: v.clamp(0, 1), child: child),
+      final gridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: cols,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 1.1,
+      );
+
+      // Flat while searching, same reasoning as the list layout below.
+      if (searching) {
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: gridDelegate,
+          itemCount: rooms.length,
+          itemBuilder: (context, i) => _gridTile(context, theme, rooms[i], i),
+        );
+      }
+
+      final parts = partitionPinned(rooms);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (parts.pinned.isNotEmpty) ...[
+            _SectionLabel(
+              AppLocalizations.of(context).homeScreenPinnedSectionLabel,
             ),
-            child: RoomGridTile(
-              room: rooms[i],
-              api: api,
-              dmUser: repo.otherUserFor(rooms[i]),
-              typists: repo.typingIn(rooms[i].id),
-              onTap: () =>
-                  openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: gridDelegate,
+              itemCount: parts.pinned.length,
+              itemBuilder: (context, i) =>
+                  _gridTile(context, theme, parts.pinned[i], i),
             ),
-          );
-        },
+            const SizedBox(height: 14),
+          ],
+          if (parts.regular.isNotEmpty)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: gridDelegate,
+              itemCount: parts.regular.length,
+              itemBuilder: (context, i) => _gridTile(
+                context,
+                theme,
+                parts.regular[i],
+                parts.pinned.length + i,
+              ),
+            ),
+        ],
       );
     }
 
+    if (searching) {
+      // Flat: a text search is about finding one specific chat, not
+      // browsing — section headers are noise there, and nothing gets
+      // promoted just because it happens to be pinned.
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < rooms.length; i++)
+            _row(context, theme, rooms[i], i),
+        ],
+      );
+    }
+
+    final parts = partitionPinned(rooms);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var i = 0; i < rooms.length; i++)
-          TweenAnimationBuilder<double>(
-            // See the grid layout above: keyed by room id so a recency reorder
-            // or a filter change moves the element rather than repurposing it,
-            // which is what made avatars reload and momentarily swap between
-            // rows.
-            key: ValueKey(rooms[i].id),
-            tween: Tween(begin: 0, end: 1),
-            duration: theme.motionMed + Duration(milliseconds: i * 60),
-            curve: theme.motionEntrance,
-            builder: (context, v, child) => Transform.translate(
-              offset: Offset(0, (1 - v) * 16),
-              child: Opacity(opacity: v.clamp(0, 1), child: child),
-            ),
-            child: RoomCard(
-              room: rooms[i],
-              api: api,
-              dmUser: repo.otherUserFor(rooms[i]),
-              typists: repo.typingIn(rooms[i].id),
-              onTap: () =>
-                  openRoom(context, roomId: rooms[i].id, repo: repo, api: api),
-            ),
+        if (parts.pinned.isNotEmpty) ...[
+          _SectionLabel(
+            AppLocalizations.of(context).homeScreenPinnedSectionLabel,
           ),
+          for (var i = 0; i < parts.pinned.length; i++)
+            _row(context, theme, parts.pinned[i], i),
+          const SizedBox(height: 14),
+        ],
+        for (var i = 0; i < parts.regular.length; i++)
+          _row(context, theme, parts.regular[i], parts.pinned.length + i),
       ],
+    );
+  }
+
+  Widget _row(BuildContext context, AppTheme theme, ChatRoom room, int index) {
+    final repo = widget.repo;
+    final api = widget.api;
+    Widget content = RoomCard(
+      room: room,
+      api: api,
+      dmUser: repo.otherUserFor(room),
+      typists: repo.typingIn(room.id),
+      onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+    );
+    // Saved Messages is always pinned and permanent by design — no context
+    // menu, since there is nothing on it a user can do (rooms.ts
+    // ensureSavedMessagesRoom).
+    if (!room.isSavedMessages) {
+      content = GestureDetector(
+        key: _keyFor(room.id),
+        onLongPress: () => _showRowMenu(room),
+        child: content,
+      );
+    }
+    return TweenAnimationBuilder<double>(
+      // See the grid layout above: keyed by room id so a recency reorder
+      // or a filter change moves the element rather than repurposing it,
+      // which is what made avatars reload and momentarily swap between
+      // rows.
+      key: ValueKey(room.id),
+      tween: Tween(begin: 0, end: 1),
+      duration: theme.motionMed + Duration(milliseconds: index * 60),
+      curve: theme.motionEntrance,
+      builder: (context, v, child) => Transform.translate(
+        offset: Offset(0, (1 - v) * 16),
+        child: Opacity(opacity: v.clamp(0, 1), child: child),
+      ),
+      child: content,
+    );
+  }
+
+  Widget _gridTile(
+    BuildContext context,
+    AppTheme theme,
+    ChatRoom room,
+    int index,
+  ) {
+    final repo = widget.repo;
+    final api = widget.api;
+    Widget content = RoomGridTile(
+      room: room,
+      api: api,
+      dmUser: repo.otherUserFor(room),
+      typists: repo.typingIn(room.id),
+      onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+    );
+    if (!room.isSavedMessages) {
+      content = GestureDetector(
+        key: _keyFor(room.id),
+        onLongPress: () => _showRowMenu(room),
+        child: content,
+      );
+    }
+    return TweenAnimationBuilder<double>(
+      // Identity key, not position. Rooms are ordered by recency, so any
+      // incoming message reorders this list — and toggling a filter
+      // reorders it far more violently. Without a key Flutter re-matches
+      // elements by index, handing the tile at position i a DIFFERENT
+      // room; its avatar then reloads (and briefly shows the wrong face).
+      key: ValueKey(room.id),
+      tween: Tween(begin: 0, end: 1),
+      duration: theme.motionMed + Duration(milliseconds: index * 40),
+      curve: theme.motionEntrance,
+      builder: (context, v, child) => Transform.translate(
+        offset: Offset(0, (1 - v) * 12),
+        child: Opacity(opacity: v.clamp(0, 1), child: child),
+      ),
+      child: content,
+    );
+  }
+}
+
+/// Uppercase-ish section label above the pinned group, matching the
+/// dimension-label typography already used by [RoomFilterPanel].
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(label, style: theme.monoTiny.copyWith(color: theme.inkMuted)),
     );
   }
 }

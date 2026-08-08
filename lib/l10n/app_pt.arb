@@ -1556,5 +1556,19 @@
   "gameInfoCodeRule1": "seis tentativas, e o código nunca repete um símbolo.",
   "gameInfoCodeRule2": "verde significa símbolo certo no lugar certo.",
   "gameInfoCodeRule3": "amarelo significa símbolo certo no lugar errado.",
-  "gameInfoCodeControls": "toca em símbolos para formar uma tentativa e envia-a. o tabuleiro diz-te quão perto estiveste."
+  "gameInfoCodeControls": "toca em símbolos para formar uma tentativa e envia-a. o tabuleiro diz-te quão perto estiveste.",
+  "savedMessagesTitle": "Mensagens guardadas",
+  "homeScreenPinnedSectionLabel": "FIXADAS",
+  "homeScreenNoSearchResults": "nenhuma conversa corresponde a \"{query}\"",
+  "pullRevealSearchHint": "pesquisar conversas…",
+  "pullRevealCollapseSemanticLabel": "Ocultar pesquisa e conversas arquivadas",
+  "archivedChatsFolderLabel": "conversas arquivadas ({count})",
+  "archivedChatsSheetTitle": "CONVERSAS ARQUIVADAS",
+  "archivedChatsSheetTitleCount": "CONVERSAS ARQUIVADAS · {count}",
+  "archivedChatsSheetEmptyMessage": "já não há nada arquivado",
+  "pinnedBadgeLabel": "FIXADA",
+  "chatRowActionMenuPinLabel": "FIXAR CONVERSA",
+  "chatRowActionMenuUnpinLabel": "DESAFIXAR CONVERSA",
+  "chatRowActionMenuArchiveLabel": "ARQUIVAR CONVERSA",
+  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CONVERSA"
 }

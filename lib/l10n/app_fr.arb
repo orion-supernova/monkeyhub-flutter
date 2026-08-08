@@ -1556,5 +1556,19 @@
   "gameInfoCodeRule1": "six essais, et le code ne répète jamais un symbole.",
   "gameInfoCodeRule2": "vert veut dire bon symbole, bonne place.",
   "gameInfoCodeRule3": "jaune veut dire bon symbole, mauvaise place.",
-  "gameInfoCodeControls": "touche des symboles pour composer un essai, puis envoie-le. la grille te dit à quel point tu étais proche."
+  "gameInfoCodeControls": "touche des symboles pour composer un essai, puis envoie-le. la grille te dit à quel point tu étais proche.",
+  "savedMessagesTitle": "Messages enregistrés",
+  "homeScreenPinnedSectionLabel": "ÉPINGLÉS",
+  "homeScreenNoSearchResults": "aucune discussion ne correspond à « {query} »",
+  "pullRevealSearchHint": "rechercher des discussions…",
+  "pullRevealCollapseSemanticLabel": "Masquer la recherche et les discussions archivées",
+  "archivedChatsFolderLabel": "discussions archivées ({count})",
+  "archivedChatsSheetTitle": "CHATS ARCHIVÉS",
+  "archivedChatsSheetTitleCount": "CHATS ARCHIVÉS · {count}",
+  "archivedChatsSheetEmptyMessage": "plus rien d'archivé",
+  "pinnedBadgeLabel": "ÉPINGLÉ",
+  "chatRowActionMenuPinLabel": "ÉPINGLER LE CHAT",
+  "chatRowActionMenuUnpinLabel": "DÉSÉPINGLER LE CHAT",
+  "chatRowActionMenuArchiveLabel": "ARCHIVER LE CHAT",
+  "chatRowActionMenuUnarchiveLabel": "DÉSARCHIVER LE CHAT"
 }

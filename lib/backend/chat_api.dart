@@ -566,6 +566,30 @@ class ChatApi {
     return res.toString();
   }
 
+  Future<void> pinRoom({required String roomId, required String userId}) async {
+    await _cv.mutation('rooms:pinRoom', {'roomId': roomId, 'userId': userId});
+  }
+
+  Future<void> unpinRoom({required String roomId, required String userId}) async {
+    await _cv.mutation('rooms:unpinRoom', {'roomId': roomId, 'userId': userId});
+  }
+
+  Future<void> archiveRoom({required String roomId, required String userId}) async {
+    await _cv.mutation('rooms:archiveRoom', {'roomId': roomId, 'userId': userId});
+  }
+
+  Future<void> unarchiveRoom({required String roomId, required String userId}) async {
+    await _cv.mutation('rooms:unarchiveRoom', {'roomId': roomId, 'userId': userId});
+  }
+
+  /// Idempotent — safe to call on every launch. Returns the self-chat's room
+  /// id; the room itself surfaces to the UI via the `rooms:listUserRooms`
+  /// subscription, not through this return value.
+  Future<String> ensureSavedMessagesRoom({required String userId}) async {
+    final res = await _cv.mutation('rooms:ensureSavedMessagesRoom', {'userId': userId});
+    return res.toString();
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // Messages
   // ─────────────────────────────────────────────────────────────────────────
