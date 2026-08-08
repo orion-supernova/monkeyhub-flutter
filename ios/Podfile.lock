@@ -88,48 +88,6 @@ PODS:
   - mobile_scanner (7.0.0):
     - Flutter
     - FlutterMacOS
-  - onesignal_flutter (5.6.6):
-    - Flutter
-    - OneSignalXCFramework/OneSignal (= 5.5.5)
-    - OneSignalXCFramework/OneSignalInAppMessages (= 5.5.5)
-  - OneSignalXCFramework/OneSignal (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalExtension
-    - OneSignalXCFramework/OneSignalLiveActivities
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalCore (5.5.5)
-  - OneSignalXCFramework/OneSignalExtension (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalInAppMessages (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalLiveActivities (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalUser
-  - OneSignalXCFramework/OneSignalNotifications (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalExtension
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
-  - OneSignalXCFramework/OneSignalOSCore (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-  - OneSignalXCFramework/OneSignalOutcomes (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalOSCore
-  - OneSignalXCFramework/OneSignalUser (5.5.5):
-    - OneSignalXCFramework/OneSignalCore
-    - OneSignalXCFramework/OneSignalNotifications
-    - OneSignalXCFramework/OneSignalOSCore
-    - OneSignalXCFramework/OneSignalOutcomes
   - package_info_plus (0.4.5):
     - Flutter
   - PromisesObjC (2.4.1)
@@ -179,7 +137,6 @@ DEPENDENCIES:
   - image_picker_ios (from `.symlinks/plugins/image_picker_ios/ios`)
   - just_audio (from `.symlinks/plugins/just_audio/darwin`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
-  - onesignal_flutter (from `.symlinks/plugins/onesignal_flutter/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - record_ios (from `.symlinks/plugins/record_ios/ios`)
   - sensors_plus (from `.symlinks/plugins/sensors_plus/ios`)
@@ -201,7 +158,6 @@ SPEC REPOS:
     - GTMAppAuth
     - GTMSessionFetcher
     - libwebp
-    - OneSignalXCFramework
     - PromisesObjC
     - PromisesSwift
     - RecaptchaInterop
@@ -242,8 +198,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/just_audio/darwin"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
-  onesignal_flutter:
-    :path: ".symlinks/plugins/onesignal_flutter/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   record_ios:
@@ -291,8 +245,6 @@ SPEC CHECKSUMS:
   just_audio: 4e391f57b79cad2b0674030a00453ca5ce817eed
   libwebp: af5937a13536ef73f3784d69cc342b98961acf33
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
-  onesignal_flutter: 549b144b6aa1dd226f54fa920c3e73f32499d4eb
-  OneSignalXCFramework: 48e5b7c5b51d4e67bab3405229f963efde1a3894
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   PromisesObjC: 752c3227f599e3467650e47ea36f433eeb10c273
   PromisesSwift: 217dea0fd5d2ad65222a109c48698add13cc1c5b
@@ -308,6 +260,6 @@ SPEC CHECKSUMS:
   video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
-PODFILE CHECKSUM: 47f33ecc22a6e3dd177df5ed3f2435d887a29982
+PODFILE CHECKSUM: aceb8b8125d359643edd62ff0a86815d3f16966c
 
 COCOAPODS: 1.16.2

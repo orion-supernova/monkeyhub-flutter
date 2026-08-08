@@ -8,8 +8,11 @@ import AVFoundation
 import flutter_callkit_incoming
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate,
-                         UNUserNotificationCenterDelegate {
+// UNUserNotificationCenterDelegate is NOT listed here: FlutterAppDelegate
+// already conforms to it via FlutterAppLifeCycleProvider, and it implements
+// both delegate methods — which is why the two below are `override`s rather
+// than fresh declarations.
+@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate {
   // Pre-warmed Flutter engine, created and run at process launch —
   // INCLUDING cold background launches triggered by a VoIP push, where no
   // UI scene ever connects. The previous implicit-engine setup only
@@ -133,9 +136,12 @@ import flutter_callkit_incoming
 
   // MARK: - APNs (alert) registration
 
+  // `Foundation.Data`, spelled out: flutter_callkit_incoming exports a class
+  // called `Data` (the call-payload type used all over this file), so the bare
+  // name is ambiguous here.
   override func application(
     _ application: UIApplication,
-    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Foundation.Data
   ) {
     let token = deviceToken.map { String(format: "%02x", $0) }.joined()
     cachedApnsToken = token
@@ -164,7 +170,14 @@ import flutter_callkit_incoming
   // MARK: - UNUserNotificationCenterDelegate
 
   /// Whether to show a notification that arrived while the app is frontmost.
-  func userNotificationCenter(
+  ///
+  /// Deliberately does NOT call super. The completion handler may be invoked
+  /// exactly once — calling it here and letting the superclass's plugin chain
+  /// call it again crashes — and nothing in this app's plugin set presents a
+  /// foreground notification. (flutter_callkit_incoming ships a willPresent
+  /// helper, but it is a manual one the host chooses to call, not a registered
+  /// lifecycle delegate; its answer is the same "show it" we default to.)
+  override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
@@ -188,7 +201,12 @@ import flutter_callkit_incoming
   /// A notification was tapped. Routes to the same two destinations the
   /// in-app handler uses; `app.dart` stashes the roomId if the navigator
   /// isn't mounted yet (cold start from a lock-screen tap).
-  func userNotificationCenter(
+  ///
+  /// Anything that isn't ours goes to super — flutter_callkit_incoming's
+  /// missed-call notification carries a "Call back" action, and swallowing the
+  /// response here would make that button do nothing. Exactly one branch may
+  /// resolve the completion handler, so ours returns before reaching super.
+  override func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
@@ -196,10 +214,19 @@ import flutter_callkit_incoming
     let info = response.notification.request.content.userInfo
     if let roomId = info["roomId"] as? String, !roomId.isEmpty {
       invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId])
-    } else if (info["kind"] as? String) == "approval" {
-      invokeNotifOrQueue("onOpenRequests", args: [:])
+      completionHandler()
+      return
     }
-    completionHandler()
+    if (info["kind"] as? String) == "approval" {
+      invokeNotifOrQueue("onOpenRequests", args: [:])
+      completionHandler()
+      return
+    }
+    super.userNotificationCenter(
+      center,
+      didReceive: response,
+      withCompletionHandler: completionHandler
+    )
   }
 
   // MARK: - PKPushRegistryDelegate
