@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "搜索聊天…",
   "pullRevealCollapseSemanticLabel": "隐藏搜索和已归档的聊天",
   "archivedChatsFolderLabel": "已归档聊天（{count}）",
+  "archivedChatsFolderTitle": "已归档聊天",
+  "pullRevealClearSearchSemanticLabel": "清除搜索",
   "archivedChatsSheetTitle": "已归档聊天",
   "archivedChatsSheetTitleCount": "已归档聊天 · {count}",
   "archivedChatsSheetEmptyMessage": "没有已归档的内容了",

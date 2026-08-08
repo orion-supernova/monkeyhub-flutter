@@ -5627,6 +5627,12 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'محادثات مؤرشفة';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'مسح البحث';
+
+  @override
   String get archivedChatsSheetTitle => 'المحادثات المؤرشفة';
 
   @override

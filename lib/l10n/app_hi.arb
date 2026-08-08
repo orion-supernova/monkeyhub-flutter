@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "चैट खोजो…",
   "pullRevealCollapseSemanticLabel": "सर्च और आर्काइव की गई चैट छिपाएं",
   "archivedChatsFolderLabel": "आर्काइव की गई चैट ({count})",
+  "archivedChatsFolderTitle": "आर्काइव की गई चैट",
+  "pullRevealClearSearchSemanticLabel": "सर्च साफ़ करें",
   "archivedChatsSheetTitle": "आर्काइव की गई चैट",
   "archivedChatsSheetTitleCount": "आर्काइव की गई चैट · {count}",
   "archivedChatsSheetEmptyMessage": "अब कुछ भी आर्काइव नहीं है",

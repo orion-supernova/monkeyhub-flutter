@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "sohbet ara…",
   "pullRevealCollapseSemanticLabel": "Aramayı ve arşivlenmiş sohbetleri gizle",
   "archivedChatsFolderLabel": "arşivlenen sohbetler ({count})",
+  "archivedChatsFolderTitle": "arşivlenen sohbetler",
+  "pullRevealClearSearchSemanticLabel": "Aramayı temizle",
   "archivedChatsSheetTitle": "ARŞİVLENEN SOHBETLER",
   "archivedChatsSheetTitleCount": "ARŞİVLENEN SOHBETLER · {count}",
   "archivedChatsSheetEmptyMessage": "artık arşivlenen yok",

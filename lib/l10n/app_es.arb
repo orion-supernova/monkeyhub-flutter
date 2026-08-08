@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "buscar chats…",
   "pullRevealCollapseSemanticLabel": "Ocultar búsqueda y chats archivados",
   "archivedChatsFolderLabel": "chats archivados ({count})",
+  "archivedChatsFolderTitle": "chats archivados",
+  "pullRevealClearSearchSemanticLabel": "Borrar búsqueda",
   "archivedChatsSheetTitle": "CHATS ARCHIVADOS",
   "archivedChatsSheetTitleCount": "CHATS ARCHIVADOS · {count}",
   "archivedChatsSheetEmptyMessage": "ya no hay nada archivado",

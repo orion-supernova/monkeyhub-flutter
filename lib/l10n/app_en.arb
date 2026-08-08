@@ -6256,7 +6256,15 @@
   },
   "archivedChatsFolderLabel": "archived chats ({count})",
   "@archivedChatsFolderLabel": {
-    "description": "Label and accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0."
+    "description": "Accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet, spoken with the count. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0."
+  },
+  "archivedChatsFolderTitle": "archived chats",
+  "@archivedChatsFolderTitle": {
+    "description": "Visible text label on the same row as archivedChatsFolderLabel — the count itself is shown separately as a CountBadge, so this string omits it."
+  },
+  "pullRevealClearSearchSemanticLabel": "Clear search",
+  "@pullRevealClearSearchSemanticLabel": {
+    "description": "Accessibility label for the 'x' button that clears the pull-reveal search field's text."
   },
   "archivedChatsSheetTitle": "ARCHIVED CHATS",
   "@archivedChatsSheetTitle": {

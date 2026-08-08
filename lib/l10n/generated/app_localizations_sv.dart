@@ -5578,6 +5578,12 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'arkiverade chattar';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'Rensa sökning';
+
+  @override
   String get archivedChatsSheetTitle => 'ARKIVERADE CHATTAR';
 
   @override

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -12,11 +13,20 @@ enum ChatRowAction { pin, unpin, archive, unarchive }
 /// Long-press context menu for a chat-list row.
 ///
 /// Modeled on `message_action_menu.dart`'s `showMessageActionMenu` — same
-/// anchor-then-root-overlay technique — but deliberately smaller: no lifted-
-/// bubble animation, no reaction pill, just a scrim and a 1-2 row menu
+/// anchor-then-root-overlay technique, same blurred scrim + lifted, in-focus
+/// copy of the pressed item that a message bubble's long-press gets — but
+/// deliberately smaller otherwise: no reaction pill, just a 1-2 row menu
 /// anchored below (or above, near the bottom edge) the tapped row. Kept
 /// self-contained rather than sharing that file's private row widgets, since
 /// this menu's action set and positioning are both much simpler.
+///
+/// [rowBuilder] rebuilds the room's own row widget (`RoomCard`/
+/// `RoomGridTile`) for the lifted copy — the same reason
+/// `showMessageActionMenu` takes a `bubbleBuilder` rather than a snapshot: the
+/// root overlay sits outside the list, so there is nothing already on screen
+/// at this rect it could borrow, and rebuilding at the anchor's exact size is
+/// what makes the lift look like it grew out of the real row rather than
+/// spawning a second one.
 ///
 /// [isArchived] alone decides the row set: an archived room only offers
 /// Unarchive — pinning something that's simultaneously archived-and-hidden
@@ -25,6 +35,7 @@ enum ChatRowAction { pin, unpin, archive, unarchive }
 Future<ChatRowAction?> showChatRowActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
+  required WidgetBuilder rowBuilder,
   required bool isPinned,
   required bool isArchived,
 }) async {
@@ -44,6 +55,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
   entry = OverlayEntry(
     builder: (_) => _ChatRowActionMenuOverlay(
       anchorRect: anchorRect,
+      rowBuilder: rowBuilder,
       screenSize: screenSize,
       safeInsets: safeInsets,
       isPinned: isPinned,
@@ -63,6 +75,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
 class _ChatRowActionMenuOverlay extends StatefulWidget {
   const _ChatRowActionMenuOverlay({
     required this.anchorRect,
+    required this.rowBuilder,
     required this.screenSize,
     required this.safeInsets,
     required this.isPinned,
@@ -71,6 +84,7 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   });
 
   final Rect anchorRect;
+  final WidgetBuilder rowBuilder;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final bool isPinned;
@@ -147,19 +161,21 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
     }
     left = left.clamp(12.0, widget.screenSize.width - _menuWidth - 12);
 
-    return AnimatedBuilder(
+    // Material(type: transparency) supplies the DefaultTextStyle that the
+    // root overlay otherwise lacks — without it, every Text inside paints
+    // Flutter's debug "missing ancestor" yellow underlines.
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
         return Stack(
           children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _resolve(null),
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.08 * _ctrl.value),
-                ),
-              ),
+            _Scrim(t: _ctrl, onTap: () => _resolve(null)),
+            _LiftedRow(
+              t: _ctrl,
+              rect: widget.anchorRect,
+              child: Builder(builder: widget.rowBuilder),
             ),
             Positioned(
               left: left,
@@ -195,6 +211,99 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
             for (final action in actions)
               _ChatRowActionRow(action: action, onTap: () => _resolve(action)),
           ],
+        ),
+      ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── scrim ─────────────────────────
+
+/// Blurs and dims everything behind the menu — the same treatment
+/// `message_action_menu.dart`'s `_Scrim` gives a long-pressed message bubble,
+/// so a long-pressed chat row reads as the same gesture with the same weight.
+class _Scrim extends StatelessWidget {
+  const _Scrim({required this.t, required this.onTap});
+  final Animation<double> t;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedBuilder(
+          animation: t,
+          builder: (_, _) {
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 22 * t.value, sigmaY: 22 * t.value),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.32 * t.value),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────── lifted row ─────────────────────────
+
+/// A fresh copy of the pressed row, redrawn at its exact on-screen rect and
+/// lifted with a scale + shadow — the chat-row counterpart of
+/// `message_action_menu.dart`'s `_LiftedBubble`. Sits above [_Scrim] in the
+/// stack, so it alone stays in sharp focus while everything else blurs.
+/// `IgnorePointer`-wrapped: it's a stand-in for the real row, not a second
+/// interactive one — tapping it does nothing, same as the lifted bubble.
+class _LiftedRow extends StatelessWidget {
+  const _LiftedRow({required this.t, required this.rect, required this.child});
+  final Animation<double> t;
+  final Rect rect;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: t,
+          builder: (_, c) {
+            final scale = 1 + 0.03 * t.value;
+            return Transform.scale(
+              scale: scale,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18 * t.value),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: c,
+              ),
+            );
+          },
+          child: child,
         ),
       ),
     );

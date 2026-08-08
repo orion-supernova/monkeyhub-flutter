@@ -74,6 +74,7 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
   }
 
   String _titleOf(ChatRoom room) {
+    if (room.isSavedMessages) return AppLocalizations.of(context).savedMessagesTitle;
     if (!room.isDm) return room.name;
     // A DM's stored name is the internal `dm:<a>:<b>` key, never something to
     // render. The peer's profile is the title; falling back to "direct

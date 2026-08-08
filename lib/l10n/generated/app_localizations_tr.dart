@@ -5530,6 +5530,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'arşivlenen sohbetler';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'Aramayı temizle';
+
+  @override
   String get archivedChatsSheetTitle => 'ARŞİVLENEN SOHBETLER';
 
   @override

@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "채팅 검색…",
   "pullRevealCollapseSemanticLabel": "검색과 보관된 채팅 숨기기",
   "archivedChatsFolderLabel": "보관된 채팅 ({count})",
+  "archivedChatsFolderTitle": "보관된 채팅",
+  "pullRevealClearSearchSemanticLabel": "검색 지우기",
   "archivedChatsSheetTitle": "보관된 채팅",
   "archivedChatsSheetTitleCount": "보관된 채팅 · {count}",
   "archivedChatsSheetEmptyMessage": "더 이상 보관된 채팅이 없어요",

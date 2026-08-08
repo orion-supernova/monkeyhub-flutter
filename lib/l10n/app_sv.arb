@@ -1563,6 +1563,8 @@
   "pullRevealSearchHint": "sök chattar…",
   "pullRevealCollapseSemanticLabel": "Dölj sök och arkiverade chattar",
   "archivedChatsFolderLabel": "arkiverade chattar ({count})",
+  "archivedChatsFolderTitle": "arkiverade chattar",
+  "pullRevealClearSearchSemanticLabel": "Rensa sökning",
   "archivedChatsSheetTitle": "ARKIVERADE CHATTAR",
   "archivedChatsSheetTitleCount": "ARKIVERADE CHATTAR · {count}",
   "archivedChatsSheetEmptyMessage": "inget är arkiverat längre",
