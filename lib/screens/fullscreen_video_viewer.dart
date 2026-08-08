@@ -112,7 +112,18 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
     // a spinner for one frame in front of a player that could have been
     // rendering already.
     _fallback = !NativeVideoPlayer.supported || _shieldNeedsFlutterPlayer;
-    if (!_fallback) _handoff();
+    if (_fallback) {
+      // Every route to the Flutter player says so, because from the outside
+      // they are one indistinguishable symptom: "the OS player didn't open".
+      // Naming which gate closed is the difference between a setting to turn
+      // off and a build to redo.
+      debugPrint(
+        'FullscreenVideoViewer: Flutter player — '
+        '${!NativeVideoPlayer.supported ? "platform has no OS player" : "capture protection is active on iOS"}',
+      );
+      return;
+    }
+    _handoff();
   }
 
   /// Android can hand the OS player FLAG_SECURE and be done. iOS has no such
@@ -149,6 +160,10 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
       return;
     }
     if (!mounted) return;
+    debugPrint(
+      'FullscreenVideoViewer: Flutter player — '
+      '${source == null ? "no playable URL resolved" : "the OS player declined to present"}',
+    );
     setState(() => _fallback = true);
   }
 

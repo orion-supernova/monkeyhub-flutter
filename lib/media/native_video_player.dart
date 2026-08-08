@@ -46,6 +46,16 @@ class NativeVideoPlayer {
       });
       return ok == true;
     } on MissingPluginException {
+      // Worth a line rather than a silent false: this is the one failure that
+      // looks exactly like a design decision from the outside. The Dart half
+      // shipped, the native half didn't, and the fallback player that appears
+      // is indistinguishable from the fallback we choose on purpose. Nine
+      // times in ten it means the running binary predates the channel — a hot
+      // restart, or a build that didn't recompile the platform side.
+      debugPrint(
+        'NativeVideoPlayer: no monkeyhub/video channel in this build — '
+        'falling back to the Flutter player. Rebuild the native app.',
+      );
       return false;
     } catch (e) {
       debugPrint('NativeVideoPlayer.present failed: $e');
