@@ -7,6 +7,7 @@ import 'package:gal/gal.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
+import '../auth/auth_errors.dart';
 import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/social_sign_in.dart';
@@ -200,6 +201,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (api == null || repo == null) return;
     final id = repo.userId;
     if (id == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       await api.updateProfile(
@@ -212,7 +215,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // An absent email leaves the stored one untouched.
       );
       await _refresh();
-    } catch (_) {
+    } catch (e) {
+      // This used to swallow everything, which was survivable while the only
+      // failure was a dropped connection: _refresh() puts the old name back and
+      // the user retries. It stopped being survivable when the name could be
+      // REFUSED — a reserved brand term now returns DISPLAY_NAME_RESERVED, and
+      // silently reverting the field tells the user their typing did not
+      // register rather than that the name is not allowed.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            humanizeAuthError(e, l10n, fallback: l10n.profileScreenNameNotSaved),
+          ),
+        ),
+      );
+      await _refresh();
     } finally {
       if (mounted) setState(() => _busy = false);
     }

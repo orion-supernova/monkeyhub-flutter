@@ -12,6 +12,7 @@ import {
   isReleasedToRecipient,
 } from "./childGuard";
 import { effectiveStatus } from "./presence";
+import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
 
 /**
@@ -150,6 +151,11 @@ export const sendRequest = mutation({
       .first();
     if (!friend) throw new Error("USER_NOT_FOUND");
     if (friend._id === userId) throw new Error("CANNOT_ADD_SELF");
+    // Nobody befriends a system account. This path resolves its target from a
+    // typed USERNAME, so unlike everywhere else it is reachable without the
+    // search filter ever being consulted — someone who learned the handle could
+    // otherwise queue a request that nothing will ever accept or decline.
+    if (isSystemAccount(friend)) throw new Error(ERR_SYSTEM_ACCOUNT);
 
     // Block check.
     //
@@ -308,6 +314,10 @@ export const createDirectRequest = mutation({
 
     const target = await ctx.db.get(friendId);
     if (!target) throw new Error("USER_NOT_FOUND");
+    // See `sendRequest`. Redundant with `SYSTEM_VISIBILITY.friendRequests`, which
+    // the check further down already honours — kept because that one is a data
+    // value on one row and this one is the rule.
+    if (isSystemAccount(target)) throw new Error(ERR_SYSTEM_ACCOUNT);
 
     // Block check — asymmetric (see sendRequest for the rationale).
     const iBlockedThem = await ctx.db
@@ -669,6 +679,10 @@ export const searchUsers = query({
       .filter(
         (u) =>
           u._id !== currentUserId &&
+          // Same filter as `users.searchUsers`, and it has to be in both: this
+          // is a second, near-identical search over the same table, and a system
+          // account hidden from one of them is not hidden. See systemAccount.ts.
+          !isSystemAccount(u) &&
           u.username.toLowerCase().includes(query.toLowerCase())
       )
       .slice(0, 10)

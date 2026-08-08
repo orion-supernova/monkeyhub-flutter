@@ -365,6 +365,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenErrorUserNotFound => 'det går inte just nu.';
 
   @override
+  String get profileScreenNameNotSaved =>
+      'Ditt namn kunde inte sparas. Försök igen.';
+
+  @override
   String get profileScreenFamilyAddChild => 'lägg till ett barn';
 
   @override
@@ -4582,6 +4586,14 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get authErrorUsernameTaken => 'Det användarnamnet är redan taget.';
+
+  @override
+  String get authErrorUsernameReserved =>
+      'Det användarnamnet är inte tillgängligt. Välj ett annat.';
+
+  @override
+  String get authErrorDisplayNameReserved =>
+      'Det namnet är inte tillgängligt. Välj ett annat.';
 
   @override
   String get authErrorUserNotFound => 'Inget konto med det användarnamnet.';

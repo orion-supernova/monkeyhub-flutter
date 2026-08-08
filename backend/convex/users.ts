@@ -14,8 +14,12 @@ import {
   familyOf,
   isChild,
 } from "./childGuard";
-import { LOG_USERNAME } from "./problemReports";
 import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
+import {
+  ERR_DISPLAY_NAME_RESERVED,
+  isReservedName,
+  isSystemAccount,
+} from "./systemAccount";
 import { lensFor } from "./visibility";
 
 /**
@@ -299,6 +303,15 @@ export const updateProfile = mutation({
   handler: async (ctx, { userId, name, email }) => {
     const user = await ctx.db.get(userId);
     if (!user) throw new Error("USER_NOT_FOUND");
+    // The display name is what renders on every chat bubble, friend request and
+    // room list row, so this is the check that actually stops somebody passing
+    // themselves off as an official account — and it has to be HERE, not only at
+    // signup, or the rule is one profile edit away from meaningless.
+    //
+    // Not applied to a system account's own row: `problemReports` writes that
+    // name with `ctx.db.insert`, and no session exists that could reach this
+    // mutation as one anyway.
+    if (isReservedName(name)) throw new Error(ERR_DISPLAY_NAME_RESERVED);
     // An ABSENT email leaves the stored one alone; only an explicitly empty
     // string clears it. The old code treated both as "delete", which was
     // harmless only because the client always echoed the currently-loaded
@@ -392,14 +405,18 @@ export const searchUsers = query({
       .filter((u) => {
         if (u._id === currentUserId) return false;
         if (hidden.has(u._id.toString())) return false;
-        // The account problem reports are posted by. It has no client, so a
-        // message to it is a message into nothing — and this is an app children
-        // use, where a findable, plausible-looking "MonkeyHub" account is worse
-        // than a dead end. Filtered here rather than given a visibility setting
-        // because search is the ONLY way it could ever be reached: it sends no
-        // friend requests, joins no public rooms, and appears in no roster
-        // except the one DM it posts into.
-        if (u.username === LOG_USERNAME) return false;
+        // System accounts are not people and cannot be addressed — see
+        // `systemAccount.ts`. Search is the main way one could be found at all,
+        // so this filter is most of what "private" means for that row: it sends
+        // no friend requests, joins no public rooms, and appears in no roster
+        // except the single DM it writes to.
+        //
+        // Matched on the row's marker rather than its username so a second system
+        // account added later is covered without touching this line. `friends.ts`
+        // has its own `searchUsers`, filtered the same way — this is exactly the
+        // kind of duplicated read path where one copy gets fixed and the other
+        // quietly does not.
+        if (isSystemAccount(u)) return false;
         const handle = u.username.toLowerCase();
         const fuzzy =
           handle.includes(needle) ||

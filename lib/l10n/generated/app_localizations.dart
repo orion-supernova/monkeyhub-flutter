@@ -711,6 +711,12 @@ abstract class AppLocalizations {
   /// **'this isn’t possible right now.'**
   String get profileScreenErrorUserNotFound;
 
+  /// Snackbar shown when saving the profile display name failed for a reason with no specific message, e.g. no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your name. Please try again.'**
+  String get profileScreenNameNotSaved;
+
   /// FAMILY row value shown when the guardian has no children added yet.
   ///
   /// In en, this message translates to:
@@ -7816,6 +7822,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That username is already taken.'**
   String get authErrorUsernameTaken;
+
+  /// Shown at signup when the requested username contains a reserved brand term and cannot be registered. Deliberately does not name the blocked term.
+  ///
+  /// In en, this message translates to:
+  /// **'That username isn\'t available. Please pick a different one.'**
+  String get authErrorUsernameReserved;
+
+  /// Shown when the requested display name contains a reserved brand term, at signup or when editing a profile. Refers to the name field, not the username, and deliberately does not name the blocked term.
+  ///
+  /// In en, this message translates to:
+  /// **'That name isn\'t available. Please pick a different one.'**
+  String get authErrorDisplayNameReserved;
 
   /// Shown on login when USER_NOT_FOUND comes back from the backend. Some screens override this with more specific copy (e.g. the child pairing screen).
   ///

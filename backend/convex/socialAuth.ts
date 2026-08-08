@@ -40,6 +40,11 @@ import {
   refreshTokenStillValid,
 } from "./appleTokens";
 import { assertNotLocked, clearFailures, loginKey, noteFailure } from "./rateLimit";
+import {
+  ERR_DISPLAY_NAME_RESERVED,
+  ERR_USERNAME_RESERVED,
+  isReservedName,
+} from "./systemAccount";
 
 /**
  * Parked in `users.passwordHash`, which is non-optional, for accounts that have
@@ -542,6 +547,20 @@ export const createWithIdentity = internalMutation({
     // mutations are serializable, so a concurrent signup that would collide is
     // detected and retried by OCC — which is what makes a check-then-insert
     // actually safe here despite there being no unique constraint.
+    // Reserved handles. See the note in `family.createChildAccount`: this is the
+    // third of three paths that can claim a username, and a name reserved in only
+    // some of them is not reserved.
+    if (isReservedName(username)) {
+      throw new Error(ERR_USERNAME_RESERVED);
+    }
+    // The display name too. Checked here against the CLIENT-SUPPLIED `args.name`
+    // from the sign-up form, which is where it is chosen — the provider's own
+    // name is only ever used as a prefill the user can edit, so refusing this is
+    // refusing a choice, not refusing an Apple ID.
+    if (args.name !== undefined && isReservedName(args.name)) {
+      throw new Error(ERR_DISPLAY_NAME_RESERVED);
+    }
+
     const taken = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))

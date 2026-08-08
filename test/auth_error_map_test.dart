@@ -42,10 +42,17 @@ void main() {
 
   group('coverage of what the backend actually throws', () {
     // Mirrors backend/convex/auth.ts, rateLimit.ts, childGuard.ts:37-50,
-    // socialAuth.ts and idToken.ts. Update BOTH sides together — there is no
-    // shared Dart↔TS constants mechanism in this repo.
+    // socialAuth.ts, idToken.ts and systemAccount.ts. Update BOTH sides
+    // together — there is no shared Dart↔TS constants mechanism in this repo.
     const backendCodes = <String>{
       'USERNAME_TAKEN',
+      // systemAccount.ERR_USERNAME_RESERVED, thrown by all three signup paths
+      // (auth.signup, socialAuth.completeSocialSignUp,
+      // family.createChildAccount) for a handle that reads as the brand.
+      'USERNAME_RESERVED',
+      // systemAccount.ERR_DISPLAY_NAME_RESERVED — same rule on `name`, thrown by
+      // those three AND by users.updateProfile.
+      'DISPLAY_NAME_RESERVED',
       'USER_NOT_FOUND',
       'WRONG_PASSWORD',
       'INVALID_RECOVERY_KEY',

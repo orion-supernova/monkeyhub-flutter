@@ -361,6 +361,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenErrorUserNotFound => 'şu anda bu mümkün değil.';
 
   @override
+  String get profileScreenNameNotSaved =>
+      'Adınız kaydedilemedi. Lütfen tekrar deneyin.';
+
+  @override
   String get profileScreenFamilyAddChild => 'bir çocuk ekle';
 
   @override
@@ -4535,6 +4539,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get authErrorUsernameTaken => 'Bu kullanıcı adı zaten alınmış.';
+
+  @override
+  String get authErrorUsernameReserved =>
+      'Bu kullanıcı adı kullanılamıyor. Lütfen başka bir tane seçin.';
+
+  @override
+  String get authErrorDisplayNameReserved =>
+      'Bu ad kullanılamıyor. Lütfen başka bir ad seçin.';
 
   @override
   String get authErrorUserNotFound => 'Bu kullanıcı adında bir hesap yok.';

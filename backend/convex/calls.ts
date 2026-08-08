@@ -8,6 +8,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
+import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
 import { effectiveStatus } from "./presence";
 
@@ -102,6 +103,11 @@ export const initiate = mutation({
       throw new Error("CANNOT_CALL_SELF");
     }
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
+
+    // A system account has no device to ring. The membership check below would
+    // pass for the report DM — both parties really are in it — and the call would
+    // sit ringing until `expireRingingCall` swept it, having reached nothing.
+    await assertNoSystemAccount(ctx, callerId, calleeId);
 
     // Honor block list — generic error so we don't reveal who blocked whom.
     if (await isPairBlocked(ctx, callerId, calleeId)) {

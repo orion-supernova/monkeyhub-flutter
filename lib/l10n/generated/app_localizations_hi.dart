@@ -366,6 +366,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenErrorUserNotFound => 'यह अभी संभव नहीं है।';
 
   @override
+  String get profileScreenNameNotSaved =>
+      'आपका नाम सहेजा नहीं जा सका। दोबारा कोशिश करें।';
+
+  @override
   String get profileScreenFamilyAddChild => 'बच्चा जोड़ें';
 
   @override
@@ -4569,6 +4573,14 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get authErrorUsernameTaken => 'यह यूज़रनेम पहले से मौजूद है।';
+
+  @override
+  String get authErrorUsernameReserved =>
+      'यह उपयोगकर्ता नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
+
+  @override
+  String get authErrorDisplayNameReserved =>
+      'यह नाम उपलब्ध नहीं है। कोई दूसरा चुनें।';
 
   @override
   String get authErrorUserNotFound => 'इस यूज़रनेम से कोई अकाउंट नहीं मिला।';

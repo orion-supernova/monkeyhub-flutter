@@ -8,6 +8,7 @@ import {
   childMayUseRoom,
   isChild,
 } from "./childGuard";
+import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { deleteStored } from "./files";
@@ -403,6 +404,14 @@ export const getOrCreateDM = mutation({
   },
   handler: async (ctx, { userId, friendId, roomType, messageLifetime }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_DM_SELF");
+
+    // Neither side may be a system account. The friendship check below would
+    // already stop a stranger, but NOT the maintainer: the report room's
+    // friendship is accepted in both directions, so without this the one person
+    // who can see the account could open a DM with it and type into a room
+    // nothing reads. The report room itself is built by
+    // `problemReports.ensureReportRoom`, which does not come through here.
+    await assertNoSystemAccount(ctx, userId, friendId);
 
     // Either party being a child gates the DM: family is always fine, anyone
     // else has to have cleared the guardian relay into an accepted contact.

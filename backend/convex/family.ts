@@ -1,5 +1,10 @@
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import {
+  ERR_DISPLAY_NAME_RESERVED,
+  ERR_USERNAME_RESERVED,
+  isReservedName,
+} from "./systemAccount";
 import { lensFor } from "./visibility";
 import { v } from "convex/values";
 import {
@@ -102,6 +107,19 @@ export const createChildAccount = mutation({
 
     const handle = username.trim();
     if (!handle) throw new Error("USERNAME_REQUIRED");
+    // Reserved handles. Third of the three paths that can claim a username —
+    // `auth.signup` and `socialAuth.completeSocialSignUp` are the others, and all
+    // three need this, because reserving a name in two of them reserves nothing.
+    if (isReservedName(handle)) {
+      throw new Error(ERR_USERNAME_RESERVED);
+    }
+    // The child's display name too — a guardian naming a child account
+    // "MonkeyHub Support" would be handing it the same disguise, and this is the
+    // one creation path where the person choosing the name is not the person the
+    // account belongs to.
+    if (isReservedName(name)) {
+      throw new Error(ERR_DISPLAY_NAME_RESERVED);
+    }
     const existing = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", handle))

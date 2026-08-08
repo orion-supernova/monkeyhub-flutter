@@ -25,6 +25,16 @@ import '../l10n/generated/app_localizations.dart';
 Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   // auth.signup
   'USERNAME_TAKEN': l10n.authErrorUsernameTaken,
+  // systemAccount.ERR_USERNAME_RESERVED — thrown by all three signup paths for a
+  // handle containing the brand. Distinct from USERNAME_TAKEN on purpose: "try
+  // another name" is the same advice, but "already taken" invites the user to try
+  // monkeyhub2, monkeyhub_official, monkeyhub__ … every one of which is refused
+  // for the same reason they cannot see.
+  'USERNAME_RESERVED': l10n.authErrorUsernameReserved,
+  // systemAccount.ERR_DISPLAY_NAME_RESERVED — the same rule on the `name` field,
+  // thrown by the three signup paths AND by users.updateProfile. A separate code
+  // because it points at a different box on the screen.
+  'DISPLAY_NAME_RESERVED': l10n.authErrorDisplayNameReserved,
   // auth.login
   'USER_NOT_FOUND': l10n.authErrorUserNotFound,
   'WRONG_PASSWORD': l10n.authErrorWrongPassword,

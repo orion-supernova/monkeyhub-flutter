@@ -396,6 +396,10 @@
   "@profileScreenErrorUserNotFound": {
     "description": "Deliberately vague SnackBar error shown for USER_NOT_FOUND, which also covers being blocked by the other user — must stay non-specific."
   },
+  "profileScreenNameNotSaved": "Couldn't save your name. Please try again.",
+  "@profileScreenNameNotSaved": {
+    "description": "Snackbar shown when saving the profile display name failed for a reason with no specific message, e.g. no connection."
+  },
   "profileScreenFamilyAddChild": "add a child",
   "@profileScreenFamilyAddChild": {
     "description": "FAMILY row value shown when the guardian has no children added yet."
@@ -5115,6 +5119,14 @@
   "authErrorUsernameTaken": "That username is already taken.",
   "@authErrorUsernameTaken": {
     "description": "Shown on signup when USERNAME_TAKEN comes back from the backend."
+  },
+  "authErrorUsernameReserved": "That username isn't available. Please pick a different one.",
+  "@authErrorUsernameReserved": {
+    "description": "Shown at signup when the requested username contains a reserved brand term and cannot be registered. Deliberately does not name the blocked term."
+  },
+  "authErrorDisplayNameReserved": "That name isn't available. Please pick a different one.",
+  "@authErrorDisplayNameReserved": {
+    "description": "Shown when the requested display name contains a reserved brand term, at signup or when editing a profile. Refers to the name field, not the username, and deliberately does not name the blocked term."
   },
   "authErrorUserNotFound": "No account with that username.",
   "@authErrorUserNotFound": {

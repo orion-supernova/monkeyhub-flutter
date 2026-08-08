@@ -372,6 +372,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileScreenErrorUserNotFound => 'isto não é possível agora.';
 
   @override
+  String get profileScreenNameNotSaved =>
+      'Não foi possível guardar o seu nome. Tente novamente.';
+
+  @override
   String get profileScreenFamilyAddChild => 'adicionar uma criança';
 
   @override
@@ -4613,6 +4617,14 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esse nome de utilizador já está em uso.';
 
   @override
+  String get authErrorUsernameReserved =>
+      'Esse nome de utilizador não está disponível. Escolha outro.';
+
+  @override
+  String get authErrorDisplayNameReserved =>
+      'Esse nome não está disponível. Escolha outro.';
+
+  @override
   String get authErrorUserNotFound =>
       'Não existe nenhuma conta com esse nome de utilizador.';
 
@@ -5920,6 +5932,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get profileScreenErrorUserNotFound =>
       'isso não é possível no momento.';
+
+  @override
+  String get profileScreenNameNotSaved =>
+      'Não foi possível salvar seu nome. Tente de novo.';
 
   @override
   String get profileScreenFamilyAddChild => 'adicionar uma criança';
@@ -10162,6 +10178,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get authErrorUsernameTaken => 'Esse nome de usuário já está em uso.';
+
+  @override
+  String get authErrorUsernameReserved =>
+      'Esse nome de usuário não está disponível. Escolha outro.';
+
+  @override
+  String get authErrorDisplayNameReserved =>
+      'Esse nome não está disponível. Escolha outro.';
 
   @override
   String get authErrorUserNotFound =>

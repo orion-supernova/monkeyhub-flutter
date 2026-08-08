@@ -4,6 +4,11 @@ import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
+import {
+  ERR_DISPLAY_NAME_RESERVED,
+  ERR_USERNAME_RESERVED,
+  isReservedName,
+} from "./systemAccount";
 import { deleteStored, releaseMessageBlobs } from "./files";
 import {
   assertNotLocked,
@@ -23,6 +28,20 @@ export const signup = mutation({
     email: v.optional(v.string()),
   },
   handler: async (ctx, { username, name, passwordHash, recoveryKeyHash, email }) => {
+    // Reserved handles — anything reading as the brand, not just the exact
+    // system names. Checked before the collision test so the answer does not
+    // depend on whether a system account happens to exist yet: they are created
+    // lazily, so until the first problem report the handle is simply free, and
+    // whoever took it would own the name every report is posted from.
+    if (isReservedName(username)) {
+      throw new Error(ERR_USERNAME_RESERVED);
+    }
+    // And the display name, which is the field that actually renders next to
+    // every message this account would ever send.
+    if (isReservedName(name)) {
+      throw new Error(ERR_DISPLAY_NAME_RESERVED);
+    }
+
     const existing = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))

@@ -347,6 +347,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenErrorUserNotFound => '此操作目前无法进行。';
 
   @override
+  String get profileScreenNameNotSaved => '无法保存你的名称，请重试。';
+
+  @override
   String get profileScreenFamilyAddChild => '添加孩子';
 
   @override
@@ -4340,6 +4343,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authErrorUsernameTaken => '该用户名已被占用。';
+
+  @override
+  String get authErrorUsernameReserved => '该用户名不可用，请换一个。';
+
+  @override
+  String get authErrorDisplayNameReserved => '该名称不可用，请换一个。';
 
   @override
   String get authErrorUserNotFound => '没有使用该用户名的账号。';

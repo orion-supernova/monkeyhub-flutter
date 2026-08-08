@@ -7,6 +7,7 @@ import {
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
+import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
 
 // ────────────────────────────── constants ──────────────────────────────
@@ -110,6 +111,20 @@ export const start = mutation({
   handler: async (ctx, { roomId, userId, deviceId, type, inviteeIds }) => {
     if (type !== "audio" && type !== "video") throw new Error("BAD_CALL_TYPE");
     await requireMember(ctx, roomId, userId);
+
+    // Scoped by ROOM rather than by callee, so unlike `calls.initiate` there is
+    // no target id to check — the guard is that the room must contain no system
+    // account. That is exactly the report DM, where a group call would invite an
+    // account with no device and then wait for it.
+    await assertNoSystemAccount(
+      ctx,
+      ...(
+        await ctx.db
+          .query("roomMembers")
+          .withIndex("by_room", (q) => q.eq("roomId", roomId))
+          .collect()
+      ).map((m) => m.userId),
+    );
 
     const existing = await activeCallForRoom(ctx, roomId);
     if (existing) {

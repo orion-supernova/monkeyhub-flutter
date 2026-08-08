@@ -352,6 +352,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenErrorUserNotFound => '지금은 할 수 없어요.';
 
   @override
+  String get profileScreenNameNotSaved => '이름을 저장하지 못했어요. 다시 시도해 주세요.';
+
+  @override
   String get profileScreenFamilyAddChild => '자녀 추가하기';
 
   @override
@@ -4412,6 +4415,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrorUsernameTaken => '이미 사용 중인 사용자 이름이에요.';
+
+  @override
+  String get authErrorUsernameReserved => '사용할 수 없는 사용자 이름이에요. 다른 이름을 선택해 주세요.';
+
+  @override
+  String get authErrorDisplayNameReserved => '사용할 수 없는 이름이에요. 다른 이름을 선택해 주세요.';
 
   @override
   String get authErrorUserNotFound => '해당 사용자 이름으로 된 계정이 없어요.';

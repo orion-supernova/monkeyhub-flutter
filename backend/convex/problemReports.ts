@@ -2,6 +2,14 @@ import { internalMutation, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { galleryBucketFor } from "./messages";
+import {
+  LOG_DISPLAY_NAME,
+  LOG_USERNAME,
+  REPORT_INBOX_USERNAME,
+  SYSTEM_PASSWORD_PREFIX,
+  SYSTEM_VISIBILITY,
+  isSystemAccount,
+} from "./systemAccount";
 
 /**
  * Delivery for the "Report a problem" screen.
@@ -23,36 +31,10 @@ import { galleryBucketFor } from "./messages";
  * something a bug reporter should have to hold an opinion about.
  */
 
-/** The account reports are posted BY. Created on first use, never signed into. */
-export const LOG_USERNAME = "monkeyhub_logs";
-export const LOG_DISPLAY_NAME = "MonkeyHub Logs";
-
-/**
- * The account reports are posted TO, by handle.
- *
- * A username rather than an id so it survives a rebuild of the deployment, and
- * so pointing reports at a different maintainer is a one-line change here.
- */
-export const REPORT_INBOX_USERNAME = "muratcankoc";
-
-/**
- * Marks the log account's unusable password.
- *
- * `users.passwordHash` is non-optional, and the same trick is already used by
- * child accounts (`family.CHILD_PASSWORD_SENTINEL`) and social-only ones
- * (`socialAuth.SOCIAL_ONLY_PASSWORD_SENTINEL`). This one differs from both in
- * one way that matters: those two are FIXED strings, and each needed an explicit
- * refusal wired into `auth.login` ahead of the hash compare, because a caller
- * who knows the sentinel can simply send it as `passwordHash` and be let in.
- *
- * Rather than add a third such refusal to every compare site that exists now and
- * every one added later, the stored value here is this prefix plus 32 random hex
- * characters minted at creation. Nothing has to special-case it: no password can
- * hash to it, and nobody can guess it, so every credential path already refuses
- * it by failing its ordinary compare. The prefix exists only so this module can
- * recognise its own account.
- */
-const LOG_PASSWORD_PREFIX = "__SYSTEM_NO_LOGIN__";
+// The account's identity, the handle it writes to, and the marker that makes it
+// recognisable all live in `systemAccount.ts`, which imports nothing — so the
+// guards that keep this account unreachable can sit in `friends.ts`, `calls.ts`,
+// `rooms.ts` and `auth.ts` without any of them importing the report path.
 
 /** Reports one device may file before it has to wait. */
 const MAX_REPORTS_PER_WINDOW = 6;
@@ -82,21 +64,19 @@ function randomHex(bytes: number): string {
   return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** True for the account this module posts as. */
-function isLogAccount(user: { passwordHash: string }): boolean {
-  return user.passwordHash.startsWith(LOG_PASSWORD_PREFIX);
-}
-
 /**
  * The log account, created on first report.
  *
  * Created lazily rather than seeded by a migration so a fresh deployment needs
  * no setup step to make the report screen work.
  *
- * Throws if the handle is already held by a REAL account. Quietly posting as
- * somebody else's account would put messages the user never wrote into their
- * sent history, and would show the maintainer a report apparently from a
- * stranger — so a name collision has to stop the report, not reroute it.
+ * Throws if the handle is already held by a REAL account. `isReservedUsername`
+ * refuses anything containing the brand at all three signup paths, so this cannot
+ * happen going forward — but a deployment that predates the reservation could
+ * already have one, and quietly posting as somebody else's account would
+ * put messages the user never wrote into their sent history and show the
+ * maintainer a report apparently from a stranger. A collision has to stop the
+ * report, not reroute it.
  */
 async function ensureLogAccount(ctx: any) {
   const existing = await ctx.db
@@ -104,14 +84,21 @@ async function ensureLogAccount(ctx: any) {
     .withIndex("by_username", (q: any) => q.eq("username", LOG_USERNAME))
     .first();
   if (existing) {
-    if (!isLogAccount(existing)) throw new Error("LOG_USERNAME_TAKEN");
+    if (!isSystemAccount(existing)) throw new Error("LOG_USERNAME_TAKEN");
+    // Repair a row created before `SYSTEM_VISIBILITY` existed, which would
+    // otherwise keep the server's "public" defaults for avatar and presence.
+    // Idempotent: patched only when it differs, so this is not a write per
+    // report.
+    if (existing.visibility?.avatar !== SYSTEM_VISIBILITY.avatar) {
+      await ctx.db.patch(existing._id, { visibility: SYSTEM_VISIBILITY });
+    }
     return existing._id;
   }
 
   return await ctx.db.insert("users", {
     username: LOG_USERNAME,
     name: LOG_DISPLAY_NAME,
-    passwordHash: LOG_PASSWORD_PREFIX + randomHex(16),
+    passwordHash: SYSTEM_PASSWORD_PREFIX + randomHex(16),
     createdAt: Date.now(),
     // Never "online": this account has no client and no heartbeat, and letting
     // it read as online would put a green dot on a thing that cannot answer.
@@ -123,17 +110,11 @@ async function ensureLogAccount(ctx: any) {
     // time this account was seen, and inventing one would be a lie the
     // presence UI would happily render.
     //
-    // No `visibility` block, which is NOT the same as hiding everything: the
-    // server's defaults in `visibility.DEFAULT_LEVEL` are "public" for avatar,
-    // status and lastSeen (only read receipts default to "nobody"). That is the
-    // wanted outcome here — the account's face has to reach the one person it
-    // writes to — and it is worth stating because the client defaults a user's
-    // OWN unset keys to "nobody" in the settings UI, so the two halves disagree
-    // and the wrong half is the easier one to remember.
-    //
-    // Nothing sensitive rides on those defaults for this row anyway: there is no
-    // real `lastSeen`, the status is a constant, and the avatar is a logo.
-    //
+    // The visibility block is what makes the account private, and leaving it
+    // absent would have done the OPPOSITE of that: the server's defaults in
+    // `visibility.DEFAULT_LEVEL` are "public" for avatar, status and lastSeen.
+    // See the note on `SYSTEM_VISIBILITY`.
+    visibility: SYSTEM_VISIBILITY,
     // `avatarStorageId` is deliberately absent. A mutation cannot create a blob
     // (`ctx.storage.store` is action-only), so the avatar is deployment data —
     // see `tools/monkeyhub-logs-avatar.md` for the file and the three commands
