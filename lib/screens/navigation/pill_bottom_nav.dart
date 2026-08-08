@@ -35,24 +35,39 @@ const Duration _kHoldToGrab = Duration(milliseconds: 220);
 /// hypothetical rival.
 const double _kGrabSlop = 8;
 
-/// Scale the pill takes on while held. Uniform, and about its own centre, on
-/// every segment — a selection that grew off-centre because of where it
-/// happened to sit in the row read as a bug, which is exactly what it was.
+/// How far the held pill swells past its resting edge, in logical pixels, on
+/// **every** side. About its own centre on every segment — a selection that grew
+/// off-centre because of where it happened to sit in the row read as a bug,
+/// which is exactly what it was.
+///
+/// In points, not as a scale factor, and that is the whole point of this
+/// constant. A uniform *factor* on a pill that is ~80x50 is not a uniform swell:
+/// 1.32 put 12.8pt on each end and only 8pt on the top and bottom, so the thing
+/// visibly ballooned sideways while barely lifting — the axes disagreed by 60%
+/// and the eye reads that as a stretch, not as a lift. Equal points on every
+/// side is what actually looks like one object being picked up. The per-axis
+/// factors are derived from the pill's measured size in [_indicator].
 ///
 /// Big enough to overflow the bar. That is deliberate and it is why the
 /// indicator is painted outside the glass's clip (see [build]): a swell bounded
 /// by the capsule is bounded by ~6pt, which is not a swell. Leaking is also the
 /// honest depiction — the thing is being lifted towards you, so it should not
 /// stay politely inside the plate it was lying on.
-/// Sized against the two things that actually bound it: at 1.32 the pill stands
-/// ~2pt proud of the capsule top and bottom, which is the leak, and its ends
-/// stop just short of the neighbouring segments' labels, which is the point
-/// past which it would start hiding the destinations either side of it.
-const double _kGrabScale = 0.32;
+///
+/// **This is the dial to turn for a bigger or smaller lift.** The two things
+/// that bound it, at standard geometry: vertically, [kShellPadV] (6) is all the
+/// room inside the bar, so at 16 the pill stands ~10pt proud top and bottom —
+/// that leak is the effect. Horizontally, a segment's content starts
+/// [kIndicatorInset] + (kIndicatorInset + 6) = 14pt past the pill's edge, so
+/// much past ~16 and the swell starts covering the neighbouring destinations'
+/// labels rather than merely crowding them.
+const double _kGrabSwell = 16;
 
 /// The pill's answer to a press that has not become a grab yet: a shallow
 /// squish, the sign every iOS control gives that it felt the finger. Negative
-/// because it shares the grab's 0..1 axis, so one spring drives both.
+/// because it shares the grab's 0..1 axis, so one spring drives both — which
+/// also means it inherits the equal-points treatment, and so squishes in by the
+/// same ~5pt on every side rather than pinching in from the ends.
 const double _kPressScale = -0.34;
 
 /// How much the icon+label under the pill grow with it. Well under the pill's
@@ -603,56 +618,85 @@ class _PillBottomNavState extends State<PillBottomNav>
   /// [IgnorePointer] because the bar's own [Listener] handles every pointer
   /// now; the pill is paint.
   Widget _indicator(GlassConfig geo) {
+    final inset = geo.of(kIndicatorInset);
+    // Outside the AnimatedBuilder: this measures the pill's *resting* box, which
+    // does not change per frame, and a LayoutBuilder inside the builder would
+    // put a layout callback on every frame of the swell to learn the same two
+    // numbers. The constraints here are the row's, tight, courtesy of the
+    // Positioned.fill in [build].
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _frame,
-        builder: (context, _) {
-          final grab = _grab.value;
-          final stretch = (_position.velocity.abs() * _kStretchPerVelocity)
-              .clamp(0.0, _kMaxStretch);
-          final over = (_excess.abs() / _kFullSquash).clamp(0.0, 1.0);
-          final squash = _kSquashAtWall * over;
-          return Align(
-            // AlignmentDirectional, not Alignment: the Row below mirrors under
-            // RTL — destination 0 renders on the right — but an absolute
-            // alignment does not, so the indicator used to land on the mirrored
-            // segment. Directional on both sides keeps them in step, and reads
-            // the same in LTR.
-            alignment: AlignmentDirectional(
-              segmentAlignmentAt(_clampedPosition, _count),
-              0,
-            ),
-            child: FractionallySizedBox(
-              widthFactor: 1 / _count,
-              heightFactor: 1,
-              // The slot stays a full segment wide — that is what
-              // segmentAlignmentAt positions, and what the tests measure
-              // against — and only the painted pill is inset within it.
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: geo.of(kIndicatorInset),
-                ),
-                child: Transform(
-                  alignment: Alignment.center,
-                  // The grab term is the same on both axes and about the
-                  // centre, so the pill swells evenly wherever it is sitting.
-                  // The other two terms are the asymmetric ones: stretch along
-                  // travel with a squash across it, and the wall compression
-                  // with a bulge across it — volume, in both cases, is what
-                  // sells this as a body of liquid rather than a growing
-                  // rectangle.
-                  transform: Matrix4.diagonal3Values(
-                    (1 + _kGrabScale * grab + stretch) * (1 - squash),
-                    (1 + _kGrabScale * grab - stretch * 0.55) *
-                        (1 + squash * 0.4),
-                    1,
-                  ),
-                  child: _Indicator(grab: grab.clamp(0.0, 1.0)),
-                ),
-              ),
-            ),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final pillW = box.maxWidth / _count - inset * 2;
+          final pillH = box.maxHeight;
+          return AnimatedBuilder(
+            animation: _frame,
+            builder: (context, _) {
+              final grab = _grab.value;
+              final stretch = (_position.velocity.abs() * _kStretchPerVelocity)
+                  .clamp(0.0, _kMaxStretch);
+              final over = (_excess.abs() / _kFullSquash).clamp(0.0, 1.0);
+              final squash = _kSquashAtWall * over;
+              // Points first, factors second. Guarded because a zero-width slot
+              // (a bar laid out at 0 during a transition) would otherwise divide
+              // by zero and hand the Matrix4 a NaN, which paints nothing at all.
+              final swell = _kGrabSwell * grab;
+              final gx = pillW > 0 ? 1 + swell * 2 / pillW : 1.0;
+              final gy = pillH > 0 ? 1 + swell * 2 / pillH : 1.0;
+              return _placed(grab, gx, gy, stretch, squash, inset);
+            },
           );
         },
+      ),
+    );
+  }
+
+  /// The positioned, transformed pill for one frame. Split out only to keep
+  /// [_indicator]'s two nested builders readable.
+  Widget _placed(
+    double grab,
+    double gx,
+    double gy,
+    double stretch,
+    double squash,
+    double inset,
+  ) {
+    return Align(
+      // AlignmentDirectional, not Alignment: the Row below mirrors under
+      // RTL — destination 0 renders on the right — but an absolute
+      // alignment does not, so the indicator used to land on the mirrored
+      // segment. Directional on both sides keeps them in step, and reads
+      // the same in LTR.
+      alignment: AlignmentDirectional(
+        segmentAlignmentAt(_clampedPosition, _count),
+        0,
+      ),
+      child: FractionallySizedBox(
+        widthFactor: 1 / _count,
+        heightFactor: 1,
+        // The slot stays a full segment wide — that is what
+        // segmentAlignmentAt positions, and what the tests measure
+        // against — and only the painted pill is inset within it.
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: inset),
+          child: Transform(
+            alignment: Alignment.center,
+            // The grab term differs per axis *so that the swell does not*:
+            // gx and gy are the factors that add the same [_kGrabSwell] points
+            // to a box that is wider than it is tall, about its centre, so the
+            // pill lifts evenly wherever it is sitting. The other two terms are
+            // the deliberately asymmetric ones: stretch along travel with a
+            // squash across it, and the wall compression with a bulge across
+            // it — volume, in both cases, is what sells this as a body of
+            // liquid rather than a growing rectangle.
+            transform: Matrix4.diagonal3Values(
+              (gx + stretch) * (1 - squash),
+              (gy - stretch * 0.55) * (1 + squash * 0.4),
+              1,
+            ),
+            child: _Indicator(grab: grab.clamp(0.0, 1.0)),
+          ),
+        ),
       ),
     );
   }

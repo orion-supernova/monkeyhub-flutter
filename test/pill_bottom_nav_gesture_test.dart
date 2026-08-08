@@ -267,11 +267,14 @@ void main() {
           'drag it',
     );
     expect(
-      held.width / rest.width,
-      closeTo(held.height / rest.height, 0.01),
+      held.width - rest.width,
+      closeTo(held.height - rest.height, 0.5),
       reason:
           'evenly, in every direction — a selection that grows more one way '
-          'than another reads as a glitch rather than as a lift',
+          'than another reads as a glitch rather than as a lift. Points, not '
+          'ratio: the pill is ~80x50, so the uniform 1.32 factor this replaced '
+          'put half again as much swell on the ends as on the top and bottom, '
+          'which is the ballooning it looked like',
     );
     expect(
       held.center.dy,
@@ -311,8 +314,8 @@ void main() {
         reason: 'segment $i grew off-centre',
       );
       expect(
-        held.width / rest.width,
-        closeTo(held.height / rest.height, 0.01),
+        held.width - rest.width,
+        closeTo(held.height - rest.height, 0.5),
         reason: 'segment $i grew unevenly',
       );
 
