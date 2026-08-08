@@ -1,5 +1,10 @@
-// Regenerates `lib/data/emoji_set_full.dart` — the emoji list the reaction
-// picker renders.
+// Regenerates the reaction picker's emoji data:
+//
+//   * `lib/data/emoji_set_full.dart` — the glyph list the grid renders, with
+//     English names and keywords baked into `Emoji.name`.
+//   * `assets/emoji/keywords_<lang>.txt` — one compact keyword overlay per
+//     non-English app locale, merged over the English set at runtime by
+//     `lib/data/emoji_search_index.dart`.
 //
 //   dart run tool/generate_emoji_set.dart
 //
@@ -10,10 +15,16 @@
 // than fork the package we generate a complete set here and hand it to
 // `Config.emojiSet`.
 //
+// Why the overlays are assets and not Dart: twelve `CategoryEmoji` lists, or
+// even twelve `const Map<String, String>`s, all land in the binary and all get
+// their const pool materialised whether or not the user ever switches away
+// from English. As assets only the active locale is ever read into memory, and
+// the other eleven cost compressed bytes in the app bundle and nothing else.
+//
 // Sources (downloaded once, then cached under .dart_tool/):
 //   * Unicode emoji-test.txt — the authoritative glyph list, RGI ordering, and
 //     the group/subgroup split the category tabs are built from.
-//   * CLDR annotations — display names and search keywords.
+//   * CLDR annotations — display names and search keywords, per locale.
 //
 // The output is checked in; the app never touches the network for this.
 
@@ -25,13 +36,42 @@ const _emojiVersion = '16.0';
 
 const _emojiTestUrl =
     'https://unicode.org/Public/emoji/$_emojiVersion/emoji-test.txt';
-const _cldrAnnotationsUrl =
-    'https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/en.xml';
-const _cldrDerivedAnnotationsUrl =
-    'https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotationsDerived/en.xml';
+
+String _cldrAnnotationsUrl(String lang) =>
+    'https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/$lang.xml';
+String _cldrDerivedAnnotationsUrl(String lang) =>
+    'https://raw.githubusercontent.com/unicode-org/cldr/main/common/annotationsDerived/$lang.xml';
 
 const _outputPath = 'lib/data/emoji_set_full.dart';
+const _overlayDir = 'assets/emoji';
 const _cacheDir = '.dart_tool/emoji_set_source';
+
+/// CLDR language codes to emit a keyword overlay for.
+///
+/// Every locale under `lib/l10n/` except `en` (which is the base set itself)
+/// and `pt_BR` — CLDR's `pt.xml` *is* Brazilian Portuguese, European
+/// Portuguese being the one that gets a `pt_PT.xml` override, so both app
+/// locales read the same file. `emoji_search_index.dart` does that fallback.
+const _overlayLanguages = <String>[
+  'ar',
+  'es',
+  'fr',
+  'hi',
+  'ja',
+  'ko',
+  'pt',
+  'sv',
+  'tr',
+  'zh',
+];
+
+/// Field and record separators for the overlay files.
+///
+/// Deliberately not JSON: a tab-and-newline record costs ~6 bytes less per
+/// emoji than `"😀":"…",` and parses with two `split`s. `|` is safe as the
+/// keyword delimiter because it is CLDR's own — no annotation contains one.
+const _fieldSeparator = '\t';
+const _keywordSeparator = '|';
 
 /// Unicode group name -> the `Category` value the picker tabs use.
 ///
@@ -75,20 +115,20 @@ class _ParsedEmoji {
   bool hasSkinTone = false;
 }
 
-Future<void> main(List<String> args) async {
-  final emojiTest = await _source('emoji-test.txt', _emojiTestUrl);
-  final annotations = await _source('cldr-en.xml', _cldrAnnotationsUrl);
-  final derived = await _source('cldr-en-derived.xml', _cldrDerivedAnnotationsUrl);
-
-  final entries = _parseEmojiTest(emojiTest);
+/// A locale's CLDR annotations: display names plus search keywords.
+class _Annotations {
   final names = <String, String>{};
   final keywords = <String, List<String>>{};
-  for (final xml in [annotations, derived]) {
-    _parseAnnotations(xml, names: names, keywords: keywords);
-  }
+}
 
-  final buffer = _render(entries, names: names, keywords: keywords);
-  File(_outputPath).writeAsStringSync(buffer);
+Future<void> main(List<String> args) async {
+  final emojiTest = (await _source('emoji-test.txt', _emojiTestUrl))!;
+  final entries = _parseEmojiTest(emojiTest);
+
+  final english = await _annotations('en');
+  File(_outputPath).writeAsStringSync(
+    _render(entries, names: english.names, keywords: english.keywords),
+  );
 
   final toned = entries.where((e) => e.hasSkinTone).length;
   stdout.writeln('Wrote $_outputPath');
@@ -97,10 +137,52 @@ Future<void> main(List<String> args) async {
     final n = entries.where((e) => e.category == category).length;
     stdout.writeln('  $category: $n');
   }
+
+  Directory(_overlayDir).createSync(recursive: true);
+  for (final lang in _overlayLanguages) {
+    final annotations = await _annotations(lang);
+    final path = '$_overlayDir/keywords_$lang.txt';
+    final overlay = _renderOverlay(entries, lang, annotations);
+    File(path).writeAsStringSync(overlay.text);
+    stdout.writeln(
+      'Wrote $path — ${overlay.covered}/${entries.length} emoji, '
+      '${(utf8.encode(overlay.text).length / 1024).round()} KB',
+    );
+  }
+}
+
+/// Loads one locale's CLDR annotations, base plus derived.
+///
+/// `annotationsDerived` carries the composed sequences — flags, families,
+/// professions — that the base file leaves out, so both are needed for full
+/// coverage. A locale that has no derived file is not an error; those emoji
+/// simply fall back to English at search time.
+Future<_Annotations> _annotations(String lang) async {
+  final out = _Annotations();
+  final sources = <String, String>{
+    'cldr-$lang.xml': _cldrAnnotationsUrl(lang),
+    'cldr-$lang-derived.xml': _cldrDerivedAnnotationsUrl(lang),
+  };
+  for (final entry in sources.entries) {
+    final xml = await _source(entry.key, entry.value, optional: true);
+    if (xml == null) {
+      stderr.writeln('  no ${entry.value} — skipping');
+      continue;
+    }
+    _parseAnnotations(xml, names: out.names, keywords: out.keywords);
+  }
+  if (out.names.isEmpty && out.keywords.isEmpty) {
+    throw StateError('No CLDR annotations at all for "$lang"');
+  }
+  return out;
 }
 
 /// Reads a source file from the cache, downloading it the first time.
-Future<String> _source(String filename, String url) async {
+///
+/// Returns null for a missing [optional] source (HTTP 404), which is how a
+/// locale with no `annotationsDerived` file is handled.
+Future<String?> _source(String filename, String url,
+    {bool optional = false}) async {
   final file = File('$_cacheDir/$filename');
   if (file.existsSync()) return file.readAsStringSync();
 
@@ -109,6 +191,10 @@ Future<String> _source(String filename, String url) async {
   try {
     final request = await client.getUrl(Uri.parse(url));
     final response = await request.close();
+    if (response.statusCode == 404 && optional) {
+      await response.drain<void>();
+      return null;
+    }
     if (response.statusCode != 200) {
       throw StateError('GET $url failed: HTTP ${response.statusCode}');
     }
@@ -306,6 +392,81 @@ String _render(
   out.writeln('];');
   return out.toString();
 }
+
+class _Overlay {
+  _Overlay(this.text, this.covered);
+
+  final String text;
+  final int covered;
+}
+
+/// Renders one locale's keyword overlay.
+///
+/// Only the search terms go in — no category structure, no skin-tone flags, no
+/// glyph list. Everything the grid needs is already in `fullEmojiSet` and does
+/// not change with the language; the *only* thing a locale changes is what a
+/// user can type to find a glyph. Keeping the overlay to `<emoji>\t<terms>`
+/// makes it about a sixth of what a second `CategoryEmoji` list would cost,
+/// and it merges by a map lookup rather than a structural rebuild.
+///
+/// Emoji CLDR has no annotation for in this locale are simply absent; the
+/// runtime index leaves those on their English terms alone.
+///
+/// No ASCII-folded twins here either (the English set bakes them in). Folding
+/// is a runtime concern now — `EmojiSearchIndex` folds both the terms and the
+/// query, which is the only way "kirmizi" can reach "kırmızı" *and* stay
+/// correct when the two sides disagree about case.
+_Overlay _renderOverlay(
+  List<_ParsedEmoji> entries,
+  String lang,
+  _Annotations annotations,
+) {
+  final out = StringBuffer()
+    ..writeln('# GENERATED FILE — DO NOT EDIT BY HAND.')
+    ..writeln('# Regenerate with: dart run tool/generate_emoji_set.dart')
+    ..writeln('# CLDR annotations ($lang). Format: <emoji>TAB<term|term|…>');
+
+  var covered = 0;
+  for (final entry in entries) {
+    final key = _annotationKey(entry.emoji);
+    final name = annotations.names[key];
+    final keywords = annotations.keywords[key];
+    if (name == null && keywords == null) continue;
+
+    // No `_qualifiers` split here, unlike the English set: the runtime index
+    // tokenises every term on whitespace and punctuation anyway, so "Bayrak:
+    // Türkiye" already yields "bayrak" and "türkiye" without paying for a
+    // second copy of the suffix in the file.
+    final terms = <String>[?name, ...?keywords];
+
+    final seen = <String>{};
+    final deduped = <String>[];
+    for (final term in terms) {
+      final clean = _sanitiseTerm(term);
+      if (clean.isEmpty || !seen.add(clean.toLowerCase())) continue;
+      deduped.add(clean);
+    }
+    if (deduped.isEmpty) continue;
+
+    covered++;
+    out
+      ..write(entry.emoji)
+      ..write(_fieldSeparator)
+      ..writeln(deduped.join(_keywordSeparator));
+  }
+  return _Overlay(out.toString(), covered);
+}
+
+/// Strips the three characters the record format reserves.
+///
+/// CLDR uses `|` as its own keyword delimiter so no annotation contains one,
+/// and none contain tabs or newlines either — this is a guard against a future
+/// CLDR drop silently corrupting every record after the offending line, not a
+/// transformation anything currently needs.
+String _sanitiseTerm(String value) => value
+    .replaceAll(RegExp('[$_fieldSeparator\n\r]'), ' ')
+    .replaceAll(_keywordSeparator, ' ')
+    .trim();
 
 /// Extra keywords hiding behind a CLDR name's colon.
 ///

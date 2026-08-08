@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/emoji_search_index.dart';
 import '../data/emoji_set_full.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -31,6 +33,15 @@ const double _chromeHeight = 90;
 /// rebuilds on every frame of the keyboard animation. Nothing visibly breaks
 /// (the reload runs synchronously once recents are cached), it is simply a lot
 /// of work to redo sixty times a second for a list that never changes.
+///
+/// The `locale` is ignored, and that is not the localization bug it looks
+/// like. Two reasons. The package hands this the locale off `Config.locale`,
+/// which defaults to `en` and is not the app's — it is a picker setting, not a
+/// binding to `Localizations`. And an `Emoji`'s `name` is never drawn or read
+/// out: grep the package and the only consumer is `Emoji.keywords`, i.e.
+/// search. So there is nothing here for a translation to change. What search
+/// matches on comes from [EmojiSearchIndex] instead, which follows the *app*
+/// locale — see [_ReactionSearchViewState].
 List<CategoryEmoji> _emojiSet(Locale locale) => fullEmojiSet;
 
 /// Reached via the `+` on the floating reaction pill. WhatsApp-style:
@@ -255,10 +266,57 @@ class _ReactionSearchViewState extends SearchViewState<_ReactionSearchView> {
   /// who has simply never reacted before.
   String _query = '';
 
+  Locale? _locale;
+  Future<EmojiSearchIndex>? _index;
+
+  /// Guards against an older query's index load landing after a newer one's.
+  int _generation = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // maybeLocaleOf, not localeOf: the picker is also built in tests and tools
+    // that never wrap it in Localizations, and an English index is a much
+    // better answer there than a throw.
+    final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    if (locale == _locale) return;
+    _locale = locale;
+    _index = EmojiSearchIndex.forLocale(locale);
+    // Language changed under an open query — re-run it so the results follow.
+    if (_query.isNotEmpty) onTextInputChanged(_query);
+  }
+
+  /// Deliberately does not call `super`.
+  ///
+  /// The package's [SearchViewState] would run `EmojiPickerUtils.searchEmoji`,
+  /// which only ever matches English here: it reads its terms out of
+  /// `Emoji.name`, and `fullEmojiSet` is generated from the English CLDR
+  /// annotations. Worse, it flattens that set into a **singleton** cache the
+  /// first time it is called and never invalidates it, so a per-locale emoji
+  /// set would not have fixed this either — the first language to search would
+  /// have been frozen in for the rest of the process.
+  ///
+  /// [EmojiSearchIndex] is the replacement. Everything else `super` did is
+  /// reproduced below; `links` is repopulated lazily by `buildEmoji` via
+  /// `addSkinToneTargetIfAvailable`, so clearing it here is enough.
   @override
   void onTextInputChanged(String text) {
     _query = text;
-    super.onTextInputChanged(text);
+    final generation = ++_generation;
+    links.clear();
+    results.clear();
+
+    final index = _index;
+    if (index == null) return;
+    index.then((index) {
+      if (!mounted || generation != _generation) return;
+      final matches = index.search(text);
+      setState(() {
+        results
+          ..clear()
+          ..addAll(matches);
+      });
+    });
   }
 
   @override
@@ -383,6 +441,13 @@ class _ReactionSearchViewState extends SearchViewState<_ReactionSearchView> {
 
 /// Helper: show the picker and return the chosen emoji (or null on dismiss).
 Future<String?> showReactionPicker(BuildContext context) {
+  // Warm the search index while the sheet animates in. Building it means
+  // reading a 75-250 KB asset and tokenising ~1,900 entries, which is fast but
+  // not free, and the alternative is paying for it on the user's first
+  // keystroke. Memoised, so a second open costs nothing.
+  final locale = Localizations.maybeLocaleOf(context);
+  if (locale != null) unawaited(EmojiSearchIndex.forLocale(locale));
+
   return showAdaptiveSheet<String>(
     context,
     builder: (_) => const ReactionPickerSheet(),

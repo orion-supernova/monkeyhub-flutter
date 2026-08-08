@@ -354,6 +354,17 @@ flutter:
     - assets/audio/ringtone.mp3
     - assets/audio/ping.mp3
 
+    # Emoji search keywords, one file per non-English app locale, so the
+    # reaction picker's search matches what the user actually types. GENERATED
+    # by tool/generate_emoji_set.dart from CLDR — do not hand-edit.
+    #
+    # Assets rather than Dart on purpose: as twelve `const Map`s all of them
+    # would sit in the binary AND have their const pools materialised, whereas
+    # only the running locale's file is ever read here. English needs no file —
+    # its terms are already in lib/data/emoji_set_full.dart, and every locale
+    # matches those too so "fire" finds 🔥 in any language.
+    - assets/emoji/
+
   # The only hand-declared font in the app, and the only one no theme uses.
   #
   # Google Sans Medium is the typeface the Sign in with Google branding
