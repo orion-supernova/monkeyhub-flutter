@@ -95,17 +95,13 @@ Future<MessageActionResult?> showMessageActionMenu({
 
   final topLeft = rb.localToGlobal(Offset.zero);
   final bubbleRect = topLeft & rb.size;
-  final screenSize = MediaQuery.sizeOf(context);
-  final safeInsets = MediaQuery.paddingOf(context);
-  // From the VIEW, not from `MediaQuery.viewInsetsOf`. Every call site is
-  // inside a Scaffold body, and a Scaffold with `resizeToAvoidBottomInset`
-  // (the default) strips the bottom inset out of the MediaQuery it hands its
-  // body — it has already resized the body, so from in there the keyboard has
-  // been dealt with. This menu is not in there: it is a full-screen root
-  // overlay laid over everything, and for it the keyboard is still very much
-  // covering the bottom of the screen. Asking the MediaQuery gets a confident
-  // zero and a menu with its last rows underneath the keys.
-  final viewInsets = MediaQueryData.fromView(View.of(context)).viewInsets;
+
+  // Deliberately NOT captured here: screen size, safe area, keyboard inset.
+  // They are read inside the overlay entry instead — see
+  // [_MessageActionMenuOverlayState.build], which explains why the caller's
+  // MediaQuery is the wrong one to ask and why a snapshot is the wrong shape.
+  // Only `bubbleRect` is a snapshot, because it has to be: it is where the
+  // bubble was at the moment of the press, in window coordinates.
 
   // The entry lands on the ROOT overlay, so `bubbleBuilder` runs outside the
   // room's ChatPane and would see no chat metrics at all. Today that is
@@ -130,9 +126,6 @@ Future<MessageActionResult?> showMessageActionMenu({
       canForward: canForward,
       canSelect: canSelect,
       fileName: fileName,
-      screenSize: screenSize,
-      safeInsets: safeInsets,
-      viewInsets: viewInsets,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         try {
@@ -161,9 +154,6 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.canForward,
     required this.canSelect,
     required this.fileName,
-    required this.screenSize,
-    required this.safeInsets,
-    required this.viewInsets,
     required this.onResolve,
   });
 
@@ -184,11 +174,6 @@ class _MessageActionMenuOverlay extends StatefulWidget {
 
   /// Non-null only for a document bubble — see [showMessageActionMenu].
   final String? fileName;
-  final Size screenSize;
-  final EdgeInsets safeInsets;
-
-  /// Keyboard occlusion at the moment of the press — see [showMessageActionMenu].
-  final EdgeInsets viewInsets;
   final ValueChanged<MessageActionResult?> onResolve;
 
   @override
@@ -263,30 +248,67 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     return painter.height + _FileNameHeader.padding.vertical + 1; // + divider
   }
 
+  /// Lays the pill and the list out against the band between the WINDOW's top
+  /// safe area and whatever is covering the bottom of it.
+  ///
+  /// Every number below comes from `MediaQuery.of(context)` read *here*, inside
+  /// the root overlay entry, and pointedly not from the context that called
+  /// [showMessageActionMenu]. That caller is a bubble in the transcript, and by
+  /// the time a MediaQuery reaches it two ancestors have already spent it:
+  ///
+  /// * a `SafeArea` (the classic chat style wraps the whole room in one) —
+  ///   which CONSUMES the top padding. `MediaQuery.paddingOf` under it reports
+  ///   `top: 0`, and so does `viewPaddingOf`, because
+  ///   `MediaQueryData.removePadding` decrements both. A menu laid out against
+  ///   that thinks the band starts at y=0 and puts its reaction pill under the
+  ///   Dynamic Island. Adding a `SafeArea` *inside* the menu cannot fix it
+  ///   either: down there the padding is already zero, so the widget is a
+  ///   no-op.
+  /// * a `Scaffold`, which with the default `resizeToAvoidBottomInset` strips
+  ///   `viewInsets.bottom` out of the MediaQuery it hands its body — it has
+  ///   already resized the body around the keyboard. This overlay is not in
+  ///   there, and for it the keyboard is still very much covering the screen.
+  ///
+  /// The root overlay sits above both, directly under the app's own
+  /// `MediaQuery`, so nothing has edited what it reads. Taking it as an
+  /// inherited dependency rather than snapshotting it at press time (which is
+  /// what this used to do) also means the menu re-fits itself when the keyboard
+  /// opens or closes underneath it, and when the device rotates.
+  ///
+  /// When the band is too short for everything, the ACTION LIST scrolls inside
+  /// a clamped height rather than the menu shrinking its rows or spilling past
+  /// the edge: rows that shrink stop being tappable long before they stop being
+  /// readable, and a menu that ends early looks like a menu with fewer actions
+  /// in it. See [_ScrollableMenuBody].
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final curved = CurvedAnimation(parent: _ctrl, curve: theme.motionEntrance);
+    final media = MediaQuery.of(context);
+    final screen = media.size;
 
     final bubble = widget.bubbleRect;
     const gap = 8.0;
     const pillH = 50.0;
     const rowH = 48.0;
     const sidePadding = 16.0;
-    final topSafe = widget.safeInsets.top + 12;
-    // The keyboard is screen the menu does not have. A long-press in the room
-    // unfocuses the composer first, but the hide is animated and this rect is
-    // measured on the frame the press lands — and the thread overlay never
-    // unfocuses at all. Counted here, the menu is laid out against the band it
-    // can actually occupy rather than against a screen half of which is covered.
+
+    // `viewPadding`, not `padding`: `padding` is the safe area minus whatever
+    // the keyboard has already eaten of it, so iOS reports `padding.bottom: 0`
+    // while the keyboard is up. The island is physical and never goes anywhere,
+    // so the top of the band is `viewPadding.top` in both states.
+    final topSafe = media.viewPadding.top + 12;
+    // At the bottom the keyboard and the home indicator OVERLAP rather than
+    // stack — the keys are drawn over the indicator — so the bottom of the band
+    // is the larger of the two, never their sum.
     final bottomSafe =
-        widget.safeInsets.bottom + widget.viewInsets.bottom + 12;
+        math.max(media.viewInsets.bottom, media.viewPadding.bottom) + 12;
 
     // The band the menu is allowed to live in, and the ceiling that follows
     // from it: pill, menu, and the gaps between them all have to come out of
     // the same height.
     final bandTop = topSafe;
-    final bandBottom = widget.screenSize.height - bottomSafe;
+    final bandBottom = math.max(topSafe, screen.height - bottomSafe);
     final maxMenuH = math.max(0.0, (bandBottom - bandTop) - pillH - gap * 2);
 
     // What the list WANTS. It gets [menuH], which is that clamped to the band —
@@ -297,14 +319,23 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     final menuH = math.min(wantedMenuH, maxMenuH);
     final menuScrolls = menuH < wantedMenuH;
 
-    final spaceAbove = bubble.top - bandTop;
-    final spaceBelow = bandBottom - bubble.bottom;
+    // The bubble is where it is — it can be half under the island, or half
+    // under the keyboard, and the transcript is free to leave it there. The
+    // menu is not. Everything below anchors to the bubble CLAMPED INTO THE
+    // BAND, so a bubble hanging outside it pulls the menu only as far as the
+    // edge and no further; measuring against the raw rect is how a menu ends up
+    // arguing with the safe area and losing.
+    final anchorTop = bubble.top.clamp(bandTop, bandBottom);
+    final anchorBottom = bubble.bottom.clamp(bandTop, bandBottom);
+
+    final spaceAbove = anchorTop - bandTop;
+    final spaceBelow = bandBottom - anchorBottom;
 
     // Preferred: the bubble sits BETWEEN them — reactions above it, actions
     // below — which is what makes the lifted bubble read as the thing both are
     // acting on. Taken only when both land inside the band untouched.
-    final splitPillTop = bubble.top - gap - pillH;
-    final splitMenuTop = bubble.bottom + gap;
+    final splitPillTop = anchorTop - gap - pillH;
+    final splitMenuTop = anchorBottom + gap;
     final split = splitPillTop >= bandTop && splitMenuTop + menuH <= bandBottom;
 
     final double pillTop;
@@ -323,8 +354,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
       // for without reading.
       final groupH = pillH + gap + menuH;
       final double wanted = spaceBelow >= spaceAbove
-          ? bubble.bottom + gap
-          : bubble.top - gap - groupH;
+          ? anchorBottom + gap
+          : anchorTop - gap - groupH;
       final groupTop = wanted
           .clamp(bandTop, math.max(bandTop, bandBottom - groupH))
           .toDouble();
@@ -338,10 +369,23 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     final pillBelowBubble = pillTop >= bubble.top;
     final menuBelowBubble = menuTop >= bubble.top;
 
-    // Pill / menu align to the bubble's leading edge.
+    // Pill / menu align to the bubble's leading edge, held off the SIDE safe
+    // area the same way they are held off the top one — in landscape on a
+    // notched phone that is a real 44pt of screen the menu does not have, and
+    // the sensor housing is on the leading edge exactly half the time.
+    final leftSafe = media.viewPadding.left + sidePadding;
+    final rightSafe = media.viewPadding.right + sidePadding;
     final (double? edgeLeft, double? edgeRight) = widget.isMine
-        ? (null, (widget.screenSize.width - bubble.right).clamp(sidePadding, widget.screenSize.width))
-        : (bubble.left.clamp(sidePadding, widget.screenSize.width), null);
+        ? (
+            null,
+            (screen.width - bubble.right)
+                .clamp(rightSafe, math.max(rightSafe, screen.width - rightSafe))
+          )
+        : (
+            bubble.left
+                .clamp(leftSafe, math.max(leftSafe, screen.width - leftSafe)),
+            null
+          );
 
     // Material(type: transparency) supplies the DefaultTextStyle that the
     // root overlay otherwise lacks — without it, every Text inside paints
