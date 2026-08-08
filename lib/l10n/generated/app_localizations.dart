@@ -4431,13 +4431,13 @@ abstract class AppLocalizations {
   /// **'All pinned messages'**
   String get pinnedBannerAllPinnedSemanticLabel;
 
-  /// Small title line shown above the pinned-message preview in the banner strip when there is exactly one pin in the room.
+  /// Accessibility-only: the semanticLabel on the accent pin glyph in the banner strip when there is exactly one pin in the room. Not drawn on screen — the glyph replaced the title line it used to head — so length is free, but it must still read as a spoken sentence fragment.
   ///
   /// In en, this message translates to:
   /// **'Pinned message'**
   String get pinnedBannerTitleSingle;
 
-  /// Small title line shown above the pinned-message preview in the banner strip when there are multiple pins; {index} is the 1-based position of the currently shown pin and {count} is the total number of pins in the room.
+  /// Accessibility-only: the semanticLabel on the accent pin glyph in the banner strip when the room has more than one pin. Not drawn on screen; it is how a screen-reader user learns which pin the strip is currently describing. {index} is the 1-based position of the currently shown pin and {count} is the total number of pins in the room.
   ///
   /// In en, this message translates to:
   /// **'Pinned message  {index}/{count}'**
