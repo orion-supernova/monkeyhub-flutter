@@ -1746,6 +1746,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'hoş geldin.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'merhaba\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'hoş geldin.';
+
+  @override
   String get loginScreenSignInCta => 'GİRİŞ YAP';
 
   @override
@@ -3597,13 +3603,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'TEK SEFERLİK';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'veya';
+  String get socialButtonDividerOr => 'veya';
 
   @override
-  String get viewOnceViewerAppleContinueButton => 'Apple ile Devam Et';
-
-  @override
-  String get viewOnceViewerGoogleContinueButton => 'Google ile Devam Et';
+  String get socialButtonGoogleContinue => 'Google ile Devam Et';
 
   @override
   String get discoverListsPeopleTitle => 'arkadaşların.';

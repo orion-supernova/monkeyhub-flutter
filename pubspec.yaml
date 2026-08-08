@@ -143,6 +143,13 @@ dependencies:
   sign_in_with_apple: ^8.1.0
   google_sign_in: ^7.2.0
 
+  # Solely to render Google's official "G" inside the Google sign-in button.
+  # Their branding guidelines forbid recolouring, rescaling or redrawing the
+  # mark, so it ships as Google's own vector (branding/google_g.svg) rather
+  # than as one of this app's hand-painted CustomPainter icons. Nothing else
+  # in the app uses SVG.
+  flutter_svg: ^2.2.1
+
   # Child-device pairing. The parent's phone renders a short-lived code as a
   # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
   # six digits get typed in by hand.
@@ -305,6 +312,9 @@ flutter:
     # env.local is gitignored. Copy env.example → env.local before running.
     - env.local
     - branding/logo.png
+    # Google's official "G", for the Google sign-in button. Their artwork,
+    # unmodified — see the file's own header before touching it.
+    - branding/google_g.svg
     # Monkey Collection — curated alternate-icon set. See
     # lib/widgets/monkey_collection.dart.
     - branding/monkey/monkey-hmm.png
@@ -327,12 +337,42 @@ flutter:
     # themes ask for. All are subset to Latin + Latin Extended — Turkish
     # (ı İ ş ğ ç ö ü) is verified present in all 37 files. Re-cutting them means
     # instancing from google/fonts and subsetting again; do not hand-edit.
+    #
+    # Note what is NOT here: Google Sans, which is declared under `fonts:`
+    # below rather than resolved by the package. See the comment there.
     - assets/google_fonts/
 
     # Alert sounds — incoming-call ringtone (looped) + new-message ping. Used
     # on web/desktop where there is no native OS ringer. See lib/audio/.
     - assets/audio/ringtone.mp3
     - assets/audio/ping.mp3
+
+  # The only hand-declared font in the app, and the only one no theme uses.
+  #
+  # Google Sans Medium is the typeface the Sign in with Google branding
+  # guidelines specify for that button, at 14/20. It is declared here rather
+  # than dropped into assets/google_fonts/ for two reasons: the google_fonts
+  # package resolves families from its own bundled manifest and Google Sans was
+  # only added to Google Fonts recently, so a lookup would miss and fall back to
+  # the system font SILENTLY — the exact failure this button must not have; and
+  # a `fonts:` declaration registers the family with the engine outright, which
+  # is checkable in a test.
+  #
+  # OFL, despite the name — the shipped binary carries
+  # "Copyright 2025 The Google Sans Project Authors
+  # (github.com/googlefonts/googlesans)" and openfontlicense.org.
+  #
+  # Cut from the fonts.gstatic.com wght@500 static with fontTools, subset to
+  # Latin + Latin Extended (as with the assets/google_fonts/ set) plus every
+  # character the button's twelve localized labels use. That covers eight of
+  # the twelve outright, including Devanagari; ar/ja/ko/zh fall through to the
+  # platform font for their scripts, which is what Google's own Android button
+  # does. Re-cut it if a locale is added — see the widget's doc comment.
+  fonts:
+    - family: Google Sans
+      fonts:
+        - asset: assets/fonts/GoogleSans-Medium.ttf
+          weight: 500
 
   # To add assets to your application, add an assets section, like this:
   # assets:

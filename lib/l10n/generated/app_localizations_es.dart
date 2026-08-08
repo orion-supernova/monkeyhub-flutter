@@ -1778,6 +1778,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'de nuevo.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'hola\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'qué tal.';
+
+  @override
   String get loginScreenSignInCta => 'INICIAR SESIÓN';
 
   @override
@@ -3653,13 +3659,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VER UNA VEZ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'o';
+  String get socialButtonDividerOr => 'o';
 
   @override
-  String get viewOnceViewerAppleContinueButton => 'Continuar con Apple';
-
-  @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuar con Google';
+  String get socialButtonGoogleContinue => 'Continuar con Google';
 
   @override
   String get discoverListsPeopleTitle => 'tu gente.';

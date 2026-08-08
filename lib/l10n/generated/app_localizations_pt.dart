@@ -1779,6 +1779,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'de volta.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'olá\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'tudo bem.';
+
+  @override
   String get loginScreenSignInCta => 'ENTRAR';
 
   @override
@@ -3661,13 +3667,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VER UMA VEZ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'ou';
+  String get socialButtonDividerOr => 'ou';
 
   @override
-  String get viewOnceViewerAppleContinueButton => 'Continuar com a Apple';
-
-  @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
+  String get socialButtonGoogleContinue => 'Continuar com o Google';
 
   @override
   String get discoverListsPeopleTitle => 'as tuas pessoas.';
@@ -7318,6 +7321,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get loginScreenSignInHeroInk => 'de volta.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'olá\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'tudo bem.';
+
+  @override
   String get loginScreenSignInCta => 'ENTRAR';
 
   @override
@@ -9200,13 +9209,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get viewOnceViewerBadgeLabel => 'VER UMA VEZ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'ou';
+  String get socialButtonDividerOr => 'ou';
 
   @override
-  String get viewOnceViewerAppleContinueButton => 'Continuar com a Apple';
-
-  @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
+  String get socialButtonGoogleContinue => 'Continuar com o Google';
 
   @override
   String get discoverListsPeopleTitle => 'seu pessoal.';

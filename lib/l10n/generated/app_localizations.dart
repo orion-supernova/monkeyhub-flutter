@@ -3135,6 +3135,18 @@ abstract class AppLocalizations {
   /// **'back.'**
   String get loginScreenSignInHeroInk;
 
+  /// First half of the two-tone sign-in hero, in the muted colour, shown ONLY on a device that has never completed a sign-in. Pairs with loginScreenSignInFirstHeroInk, rendered immediately after it in the ink colour. Keep the trailing newline — it puts the two halves on separate lines. Lowercase is the app's house style. A returning device gets loginScreenSignInHeroMuted/Ink ("welcome back.") instead, so this variant must NOT imply the person has been here before. Prefer a fixed greeting in your language that splits across the two halves over a literal rendering of "hello there".
+  ///
+  /// In en, this message translates to:
+  /// **'hello\n'**
+  String get loginScreenSignInFirstHeroMuted;
+
+  /// Second half of the first-run sign-in hero, in the ink colour, shown ONLY on a device that has never completed a sign-in. Follows loginScreenSignInFirstHeroMuted on its own line and ends the sentence, so it carries the full stop.
+  ///
+  /// In en, this message translates to:
+  /// **'there.'**
+  String get loginScreenSignInFirstHeroInk;
+
   /// All-caps submit button label shown while the login screen is in sign-in mode.
   ///
   /// In en, this message translates to:
@@ -6192,19 +6204,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'or'**
-  String get viewOnceViewerSocialDividerOr;
-
-  /// Text on Apple's official Sign in with Apple button widget. Used for both sign-in and sign-up flows (the flow doesn't know which until the backend responds), matching Apple's permitted 'Continue with Apple' wording.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue with Apple'**
-  String get viewOnceViewerAppleContinueButton;
+  String get socialButtonDividerOr;
 
   /// Visible label and screen-reader semanticLabel on the app's own themed 'Continue with Google' button.
   ///
   /// In en, this message translates to:
   /// **'Continue with Google'**
-  String get viewOnceViewerGoogleContinueButton;
+  String get socialButtonGoogleContinue;
 
   /// Lowercase fragment-style heading at the top of the full people list screen (opened from Discover's "see all" row).
   ///

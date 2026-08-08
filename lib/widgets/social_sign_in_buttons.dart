@@ -1,32 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
+import '../auth/apple_button_titles.dart';
 import '../auth/social_sign_in.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 
-/// "Continue with Apple / Google", plus the two rules about the pair.
+/// "Continue with Apple / Google", plus the three rules about the pair.
 ///
-/// RULE 1 — THE APPLE BUTTON IS NOT OURS TO DESIGN. Apple publishes strict
-/// Human Interface Guidelines for it: the mark, the wording, the minimum size
-/// and the permitted colour treatments are all fixed, and a restyled one is a
-/// real review rejection. So it is rendered by [SignInWithAppleButton] from the
-/// SDK — Apple's own compliant widget — and NOT by the themed button below.
-/// Resist the urge to make it match the rest of the app; that urge is the bug.
-/// (It uses CupertinoButton internally, so it brings no ink or ripple with it.)
+/// RULE 1 — NEITHER BUTTON IS OURS TO DESIGN. Both vendors publish binding
+/// guidelines covering the mark, the wording, the colours, the typeface and the
+/// minimum size, and a restyled button is a real review rejection rather than a
+/// nitpick. Everything below that looks like a hardcoded magic number is a
+/// value from one of those two documents. Resist the urge to make either button
+/// match the rest of the app; that urge is the bug.
 ///
-/// The permitted wording is "Sign in with Apple", "Sign up with Apple" or
-/// "Continue with Apple". This flow can be either a sign-in or a sign-up and
-/// does not know which until the backend answers, so "Continue" is the only one
-/// that is honest in both cases.
+/// The one thing both vendors explicitly leave to us is the corner radius —
+/// Apple's HIG permits matching "the other buttons in your UI", and Google
+/// ships both a rectangular and a pill variant. So both take the theme's
+/// `radiusMd` and stay a matched pair with the CTA above them on every theme.
 ///
-/// RULE 2 — APPLE AND GOOGLE ARE NOT INDEPENDENT ON iOS. Guideline 4.8 lets an
+/// Apple's permitted wording is "Sign in with Apple", "Sign up with Apple" or
+/// "Continue with Apple", and Google's is the same three verbs. This flow can be
+/// either a sign-in or a sign-up and does not know which until the backend
+/// answers, so "Continue" is the only one that is honest in both cases.
+///
+/// RULE 2 — THE TWO BUTTONS LOCALIZE DIFFERENTLY, AND THAT IS NOT AN
+/// INCONSISTENCY TO TIDY UP. Apple's title is Apple's copy: it comes from the
+/// const table in [appleContinueTitle] and deliberately has no ARB key, because
+/// a translation pass is not entitled to rewrite it (it did, and three locales
+/// drifted). Google, by contrast, states that localizing their button text is
+/// "permitted and encouraged", so their label is a normal ARB string.
+///
+/// RULE 3 — APPLE AND GOOGLE ARE NOT INDEPENDENT ON iOS. Guideline 4.8 lets an
 /// app that uses only its own account system skip third-party login entirely,
 /// which is where this app has been. Adding Google alone forfeits that exemption
 /// and requires an equivalent service offering a private-email option — and Sign
 /// in with Apple is the only mainstream one that qualifies. On Apple platforms
-/// it is both buttons or neither, never Google on its own.
+/// it is both buttons or neither, never Google on its own. The Apple button also
+/// has to be no smaller than the Google one, which is why they share
+/// [_buttonHeight] rather than each taking its own vendor minimum.
 ///
 /// Android is outside guideline 4.8 and gets Google alone, because Sign in with
 /// Apple there would need the web redirect flow (a Services ID and an HTTPS
@@ -60,14 +75,15 @@ class SocialSignInButtons extends StatelessWidget {
 
   /// Narrows the set to specific providers. Null renders every [available] one,
   /// which is what sign-in wants. Linked Accounts renders them one per card and
-  /// passes a single provider — the button still has to be Apple's own widget
+  /// passes a single provider — the button still has to be the compliant one
   /// there, so it asks for a subset rather than hand-rolling the mark.
   ///
   /// Still intersected with [available]: a provider this platform can't do is
   /// dropped however loudly it was asked for.
   final List<SocialProvider>? only;
 
-  /// Apple's minimum. The Google button matches it so the pair lines up.
+  /// Apple's minimum, and above Google's 40. Both buttons take it — see RULE 3
+  /// on why the Apple one may never end up the smaller of the two.
   static const double _buttonHeight = 44;
 
   static List<SocialProvider> get available => [
@@ -86,7 +102,7 @@ class SocialSignInButtons extends StatelessWidget {
     // One at a time — a second tap while a native sheet is up would stack two.
     final live = enabled && busyProvider == null;
     final resolvedDividerLabel = dividerLabel == _autoDividerLabel
-        ? AppLocalizations.of(context).viewOnceViewerSocialDividerOr
+        ? AppLocalizations.of(context).socialButtonDividerOr
         : dividerLabel;
 
     return Column(
@@ -126,6 +142,14 @@ class SocialSignInButtons extends StatelessWidget {
   }
 }
 
+/// Whether this theme's background is dark enough to want each vendor's dark
+/// button variant. Both vendors define exactly two treatments — one for light
+/// backgrounds, one for dark — and both buttons must answer this the same way
+/// or the pair ends up in opposite polarities on the same screen.
+bool _onDarkBackground(BuildContext context) =>
+    ThemeData.estimateBrightnessForColor(ThemeScope.of(context).background) ==
+    Brightness.dark;
+
 /// Apple's own widget, deliberately unstyled by us. See RULE 1 above.
 class _AppleButton extends StatelessWidget {
   const _AppleButton({required this.enabled, required this.onTap});
@@ -136,32 +160,32 @@ class _AppleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // Apple's rule is black on light backgrounds, white on dark. Derived from
-    // the theme's own background rather than a hardcoded choice, because this
-    // app ships many themes and several are dark.
-    final onDark =
-        ThemeData.estimateBrightnessForColor(theme.background) ==
-        Brightness.dark;
 
     return SignInWithAppleButton(
       // Null rather than a no-op closure: the underlying CupertinoButton then
       // renders a real disabled state. A button that visibly accepts a tap and
       // does nothing reads as broken.
       onPressed: enabled ? onTap : null,
-      text: AppLocalizations.of(context).viewOnceViewerAppleContinueButton,
-      style: onDark
+      // Apple's copy, not ours, and not an ARB key. See apple_button_titles.dart.
+      text: appleContinueTitle(Localizations.localeOf(context)),
+      style: _onDarkBackground(context)
           ? SignInWithAppleButtonStyle.white
           : SignInWithAppleButtonStyle.black,
-      // Height and border radius left at Apple's defaults (44 / 8) on purpose.
-      // Both are constrained by the HIG and there is nothing to gain by nudging
-      // them toward the app's own radius scale.
+      // Radius is the one dimension the HIG hands back to us; height stays at
+      // Apple's default 44, which is also SocialSignInButtons._buttonHeight.
+      borderRadius: BorderRadius.circular(theme.radiusMd),
     );
   }
 }
 
-/// Google has branding guidance too, but it is far less prescriptive than
-/// Apple's — and this button carries no Google mark, only the wording — so it
-/// is free to wear the app's own styling.
+/// Google's button, built to the Sign in with Google branding guidelines.
+///
+/// Every colour here is fixed by Google and none of them are theme tokens —
+/// that is the whole point, and an earlier version of this button that wore the
+/// theme's `surfaceRaised` and carried no "G" at all was out of compliance.
+/// Google publishes three treatments (light, dark, neutral); this uses light
+/// and dark, chosen by [_onDarkBackground] so the pair with Apple stays in the
+/// same polarity.
 class _GoogleButton extends StatelessWidget {
   const _GoogleButton({
     required this.busy,
@@ -175,44 +199,99 @@ class _GoogleButton extends StatelessWidget {
   final double height;
   final VoidCallback onTap;
 
+  // Google's published values. Do not nudge them toward the theme.
+  static const Color _lightFill = Color(0xFFFFFFFF);
+  static const Color _lightStroke = Color(0xFF747775);
+  static const Color _lightText = Color(0xFF1F1F1F);
+  static const Color _darkFill = Color(0xFF131314);
+  static const Color _darkStroke = Color(0xFF8E918F);
+  static const Color _darkText = Color(0xFFE3E3E3);
+
+  /// Google's iOS spec: 16 before the logo, 12 between logo and text, 16 after.
+  static const double _endPadding = 16;
+  static const double _logoGap = 12;
+  static const double _logoSize = 18;
+
+  /// Must match the `family:` declared in pubspec's `fonts:` section — Flutter
+  /// resolves this by string and silently falls back to the platform face if
+  /// the two ever drift apart.
+  static const String _fontFamily = 'Google Sans';
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final label = AppLocalizations.of(
-      context,
-    ).viewOnceViewerGoogleContinueButton;
-    return FocusableTap(
-      onTap: enabled ? onTap : null,
-      enabled: enabled,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      // Never InkWell anywhere in this app — no ink, no ripple.
-      child: GestureDetector(
+    final onDark = _onDarkBackground(context);
+    final label = AppLocalizations.of(context).socialButtonGoogleContinue;
+
+    // Google Sans Medium 14/20, the face and metrics the guidelines name.
+    // Declared in pubspec's `fonts:` rather than resolved through the
+    // google_fonts package — see the comment there — and subset to the scripts
+    // the twelve labels actually use, so a locale added later may need the
+    // subset re-cut (ar/ja/ko/zh already fall through to the platform font,
+    // which is fine and is what Google's own Android button does).
+    final textStyle = TextStyle(
+      fontFamily: _fontFamily,
+      fontWeight: FontWeight.w500,
+      fontSize: 14,
+      height: 20 / 14,
+      color: onDark ? _darkText : _lightText,
+    );
+
+    // Disabled is a flat opacity over the whole lockup rather than a per-part
+    // recolour: Google forbids recolouring the mark, and dimming the label
+    // alone would leave a full-strength "G" on a dead button.
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: FocusableTap(
         onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          height: height,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: theme.surfaceRaised,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-            border: Border.all(color: theme.divider),
+        enabled: enabled,
+        semanticLabel: label,
+        radius: theme.radiusMd,
+        // Never InkWell anywhere in this app — no ink, no ripple.
+        child: GestureDetector(
+          onTap: enabled ? onTap : null,
+          child: AnimatedContainer(
+            duration: theme.motionFast,
+            height: height,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: _endPadding),
+            decoration: BoxDecoration(
+              color: onDark ? _darkFill : _lightFill,
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+              border: Border.all(
+                color: onDark ? _darkStroke : _lightStroke,
+                width: 1,
+              ),
+            ),
+            child: busy
+                ? SizedBox(
+                    width: _logoSize,
+                    height: _logoSize,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: onDark ? _darkText : _lightText,
+                    ),
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'branding/google_g.svg',
+                        width: _logoSize,
+                        height: _logoSize,
+                      ),
+                      const SizedBox(width: _logoGap),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: textStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
-          child: busy
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: theme.inkSoft,
-                  ),
-                )
-              : Text(
-                  label,
-                  style: theme.bodyEmph.copyWith(
-                    color: enabled ? theme.ink : theme.inkMuted,
-                  ),
-                ),
         ),
       ),
     );

@@ -1778,6 +1778,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'بعودتك.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'أهلاً\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'وسهلاً.';
+
+  @override
   String get loginScreenSignInCta => 'تسجيل الدخول';
 
   @override
@@ -3690,13 +3696,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'مشاهدة واحدة';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'أو';
+  String get socialButtonDividerOr => 'أو';
 
   @override
-  String get viewOnceViewerAppleContinueButton => 'المتابعة باستخدام Apple';
-
-  @override
-  String get viewOnceViewerGoogleContinueButton => 'المتابعة باستخدام Google';
+  String get socialButtonGoogleContinue => 'المتابعة باستخدام Google';
 
   @override
   String get discoverListsPeopleTitle => 'أشخاصك.';

@@ -2012,6 +2012,14 @@
   "@loginScreenSignInHeroInk": {
     "description": "Sign-in screen headline, emphasized (second-line, ink-colored) fragment, paired with loginScreenSignInHeroMuted."
   },
+  "loginScreenSignInFirstHeroMuted": "hello\n",
+  "@loginScreenSignInFirstHeroMuted": {
+    "description": "First half of the two-tone sign-in hero, in the muted colour, shown ONLY on a device that has never completed a sign-in. Pairs with loginScreenSignInFirstHeroInk, rendered immediately after it in the ink colour. Keep the trailing newline — it puts the two halves on separate lines. Lowercase is the app's house style. A returning device gets loginScreenSignInHeroMuted/Ink (\"welcome back.\") instead, so this variant must NOT imply the person has been here before. Prefer a fixed greeting in your language that splits across the two halves over a literal rendering of \"hello there\"."
+  },
+  "loginScreenSignInFirstHeroInk": "there.",
+  "@loginScreenSignInFirstHeroInk": {
+    "description": "Second half of the first-run sign-in hero, in the ink colour, shown ONLY on a device that has never completed a sign-in. Follows loginScreenSignInFirstHeroMuted on its own line and ends the sentence, so it carries the full stop."
+  },
   "loginScreenSignInCta": "SIGN IN",
   "@loginScreenSignInCta": {
     "description": "All-caps submit button label shown while the login screen is in sign-in mode."
@@ -4032,16 +4040,12 @@
   "@viewOnceViewerBadgeLabel": {
     "description": "All-caps badge label in the fullscreen view-once photo viewer, shown beside a '1' marker, telling the user this photo can only be viewed once and will not be shown again."
   },
-  "viewOnceViewerSocialDividerOr": "or",
-  "@viewOnceViewerSocialDividerOr": {
+  "socialButtonDividerOr": "or",
+  "@socialButtonDividerOr": {
     "description": "Divider word between the Apple and Google 'continue with' buttons on sign-in/login screens (default value of SocialSignInButtons.dividerLabel when the caller doesn't override it)."
   },
-  "viewOnceViewerAppleContinueButton": "Continue with Apple",
-  "@viewOnceViewerAppleContinueButton": {
-    "description": "Text on Apple's official Sign in with Apple button widget. Used for both sign-in and sign-up flows (the flow doesn't know which until the backend responds), matching Apple's permitted 'Continue with Apple' wording."
-  },
-  "viewOnceViewerGoogleContinueButton": "Continue with Google",
-  "@viewOnceViewerGoogleContinueButton": {
+  "socialButtonGoogleContinue": "Continue with Google",
+  "@socialButtonGoogleContinue": {
     "description": "Visible label and screen-reader semanticLabel on the app's own themed 'Continue with Google' button."
   },
   "discoverListsPeopleTitle": "your people.",

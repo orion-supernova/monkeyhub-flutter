@@ -38,11 +38,18 @@ enum _AuthMode {
   signUp,
   reset;
 
-  String heroMuted(BuildContext context) {
+  /// [returning] is whether this handset has ever completed a sign-in. Only
+  /// [signIn] cares: greeting a device that has never been signed into with
+  /// "welcome back" is a claim we have no basis for. Sign-up and reset read the
+  /// same either way — one is addressed to a new account by definition, the
+  /// other to someone who already has one.
+  String heroMuted(BuildContext context, {required bool returning}) {
     final l10n = AppLocalizations.of(context);
     switch (this) {
       case _AuthMode.signIn:
-        return l10n.loginScreenSignInHeroMuted;
+        return returning
+            ? l10n.loginScreenSignInHeroMuted
+            : l10n.loginScreenSignInFirstHeroMuted;
       case _AuthMode.signUp:
         return l10n.loginScreenSignUpHeroMuted;
       case _AuthMode.reset:
@@ -50,11 +57,13 @@ enum _AuthMode {
     }
   }
 
-  String heroInk(BuildContext context) {
+  String heroInk(BuildContext context, {required bool returning}) {
     final l10n = AppLocalizations.of(context);
     switch (this) {
       case _AuthMode.signIn:
-        return l10n.loginScreenSignInHeroInk;
+        return returning
+            ? l10n.loginScreenSignInHeroInk
+            : l10n.loginScreenSignInFirstHeroInk;
       case _AuthMode.signUp:
         return l10n.loginScreenSignUpHeroInk;
       case _AuthMode.reset:
@@ -539,15 +548,20 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // Read straight off the in-memory marker rather than awaiting the keychain:
+    // it was populated by `loadSession()` during boot, which is the same
+    // guarantee `_pairing` relies on, and a future here would flash the wrong
+    // greeting for a frame.
+    final returning = SessionStore.instance.hasSignedInBefore;
     return RichText(
       text: TextSpan(
         style: theme.displayHero,
         children: [
           TextSpan(
-            text: mode.heroMuted(context),
+            text: mode.heroMuted(context, returning: returning),
             style: theme.displayHero.copyWith(color: theme.inkMuted),
           ),
-          TextSpan(text: mode.heroInk(context)),
+          TextSpan(text: mode.heroInk(context, returning: returning)),
         ],
       ),
     );
