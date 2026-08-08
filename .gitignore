@@ -66,6 +66,12 @@ app.*.map.json
 /.env.local
 /backend/.env.local
 /backend/.env*.local
+# VAPID signing key for Web Push. Lives in Convex deployment env; this is the
+# local copy kept so the pair can be restored. Rotating it re-mints every
+# browser's push subscription, so it is worth not losing — and worth not
+# committing.
+/vapid_pkcs8.pem
+/vapid.pem
 
 android/.kotlin/sessions/
 
