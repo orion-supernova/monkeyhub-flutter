@@ -5238,4 +5238,52 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gameInfoCodeControls => '点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。';
+
+  @override
+  String get savedMessagesTitle => '保存的消息';
+
+  @override
+  String get homeScreenPinnedSectionLabel => '置顶';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return '没有与\"$query\"匹配的聊天';
+  }
+
+  @override
+  String get pullRevealSearchHint => '搜索聊天…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel => '隐藏搜索和已归档的聊天';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return '已归档聊天（$count）';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => '已归档聊天';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return '已归档聊天 · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => '没有已归档的内容了';
+
+  @override
+  String get pinnedBadgeLabel => '已置顶';
+
+  @override
+  String get chatRowActionMenuPinLabel => '置顶聊天';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => '取消置顶聊天';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => '归档聊天';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => '取消归档聊天';
 }

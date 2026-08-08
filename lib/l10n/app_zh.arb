@@ -1553,5 +1553,19 @@
   "gameInfoCodeRule1": "六次机会，密码中不会出现重复符号。",
   "gameInfoCodeRule2": "绿色表示符号对、位置也对。",
   "gameInfoCodeRule3": "黄色表示符号对但位置不对。",
-  "gameInfoCodeControls": "点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。"
+  "gameInfoCodeControls": "点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。",
+  "savedMessagesTitle": "保存的消息",
+  "homeScreenPinnedSectionLabel": "置顶",
+  "homeScreenNoSearchResults": "没有与\"{query}\"匹配的聊天",
+  "pullRevealSearchHint": "搜索聊天…",
+  "pullRevealCollapseSemanticLabel": "隐藏搜索和已归档的聊天",
+  "archivedChatsFolderLabel": "已归档聊天（{count}）",
+  "archivedChatsSheetTitle": "已归档聊天",
+  "archivedChatsSheetTitleCount": "已归档聊天 · {count}",
+  "archivedChatsSheetEmptyMessage": "没有已归档的内容了",
+  "pinnedBadgeLabel": "已置顶",
+  "chatRowActionMenuPinLabel": "置顶聊天",
+  "chatRowActionMenuUnpinLabel": "取消置顶聊天",
+  "chatRowActionMenuArchiveLabel": "归档聊天",
+  "chatRowActionMenuUnarchiveLabel": "取消归档聊天"
 }

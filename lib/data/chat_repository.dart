@@ -51,6 +51,16 @@ class ChatRepository extends ChangeNotifier {
 
   List<ChatRoom> get rooms => List.unmodifiable(_rooms);
 
+  /// The chat list's main feed: everything in [rooms] except what's archived.
+  /// [rooms] itself stays unfiltered — push alerts and the forward-target
+  /// picker both need archived rooms still reachable.
+  List<ChatRoom> get activeRooms =>
+      List.unmodifiable(_rooms.where((r) => !r.isArchived));
+
+  /// Only the archived ones — feeds the Archived Chats sheet.
+  List<ChatRoom> get archivedRooms =>
+      List.unmodifiable(_rooms.where((r) => r.isArchived));
+
   RoomFacetCounts? _facetCounts;
 
   /// How many rooms match each filter facet, plus the unread aggregates —
@@ -273,6 +283,10 @@ class ChatRepository extends ChangeNotifier {
         api.listFriends(userId).catchError((_) => <ChatUser>[]),
         api.listIncomingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
         api.listOutgoingDirectRequests(userId).catchError((_) => <FriendRequest>[]),
+        // Idempotent — self-heals the Saved Messages room on every launch for
+        // new and pre-existing accounts alike. Result unused: the room itself
+        // arrives through the rooms:listUserRooms subscription below.
+        api.ensureSavedMessagesRoom(userId: userId).catchError((_) => ''),
       ]);
       final roomsResult = results[0] as List<ChatRoom>;
       if (roomsResult.isNotEmpty) {
@@ -521,6 +535,30 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.leaveRoom(roomId: roomId, userId: id);
+  }
+
+  Future<void> pinRoom(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.pinRoom(roomId: roomId, userId: id);
+  }
+
+  Future<void> unpinRoom(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.unpinRoom(roomId: roomId, userId: id);
+  }
+
+  Future<void> archiveRoom(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.archiveRoom(roomId: roomId, userId: id);
+  }
+
+  Future<void> unarchiveRoom(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.unarchiveRoom(roomId: roomId, userId: id);
   }
 
   // ───────────── messages ─────────────

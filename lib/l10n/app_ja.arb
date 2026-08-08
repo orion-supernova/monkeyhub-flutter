@@ -1553,5 +1553,19 @@
   "gameInfoCodeRule1": "6回まで。コードに同じ記号は現れません。",
   "gameInfoCodeRule2": "緑は記号も位置も正解です。",
   "gameInfoCodeRule3": "黄色は記号は合っているが位置が違います。",
-  "gameInfoCodeControls": "記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。"
+  "gameInfoCodeControls": "記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。",
+  "savedMessagesTitle": "保存済みメッセージ",
+  "homeScreenPinnedSectionLabel": "ピン留め",
+  "homeScreenNoSearchResults": "「{query}」に一致するチャットはありません",
+  "pullRevealSearchHint": "チャットを検索…",
+  "pullRevealCollapseSemanticLabel": "検索とアーカイブ済みチャットを非表示",
+  "archivedChatsFolderLabel": "アーカイブ済みチャット ({count})",
+  "archivedChatsSheetTitle": "アーカイブ済みチャット",
+  "archivedChatsSheetTitleCount": "アーカイブ済みチャット・{count}",
+  "archivedChatsSheetEmptyMessage": "もうアーカイブされたものはありません",
+  "pinnedBadgeLabel": "ピン留め",
+  "chatRowActionMenuPinLabel": "チャットをピン留め",
+  "chatRowActionMenuUnpinLabel": "チャットのピン留めを解除",
+  "chatRowActionMenuArchiveLabel": "チャットをアーカイブ",
+  "chatRowActionMenuUnarchiveLabel": "チャットのアーカイブを解除"
 }

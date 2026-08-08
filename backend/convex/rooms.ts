@@ -326,6 +326,10 @@ export const listUserRooms = query({
           unreadCapped: unread.capped,
           // Computed from the rows `unreadForRoom` already read — see badges.ts.
           hasMention: unread.hasMention,
+          isPinned: m.isPinned ?? false,
+          pinnedAt: m.pinnedAt ?? null,
+          isArchived: m.isArchived ?? false,
+          archivedAt: m.archivedAt ?? null,
         };
       })
     );
@@ -333,6 +337,62 @@ export const listUserRooms = query({
     return rooms
       .filter(Boolean)
       .sort((a, b) => (b!.lastMessageTime ?? b!.createdAt) - (a!.lastMessageTime ?? a!.createdAt));
+  },
+});
+
+/**
+ * Per-viewer chat-list organization: pin/unpin and archive/unarchive a room
+ * for the calling user only. Same lookup-then-patch shape as `markRoomRead`
+ * (messages.ts) — patched on the caller's own `roomMembers` row, so it never
+ * touches how the room looks to anyone else in it.
+ */
+async function patchOwnMembership(
+  ctx: any,
+  roomId: any,
+  userId: any,
+  patch: Record<string, unknown>
+) {
+  const membership = await ctx.db
+    .query("roomMembers")
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId).eq("userId", userId))
+    .first();
+  if (!membership) return; // not a member, silently no-op — same as markRoomRead
+  await ctx.db.patch(membership._id, patch);
+}
+
+export const pinRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId }) => {
+    await patchOwnMembership(ctx, roomId, userId, { isPinned: true, pinnedAt: Date.now() });
+    return null;
+  },
+});
+
+export const unpinRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId }) => {
+    await patchOwnMembership(ctx, roomId, userId, { isPinned: false, pinnedAt: undefined });
+    return null;
+  },
+});
+
+export const archiveRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId }) => {
+    await patchOwnMembership(ctx, roomId, userId, { isArchived: true, archivedAt: Date.now() });
+    return null;
+  },
+});
+
+export const unarchiveRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId }) => {
+    await patchOwnMembership(ctx, roomId, userId, { isArchived: false, archivedAt: undefined });
+    return null;
   },
 });
 
@@ -485,6 +545,59 @@ export const getOrCreateDM = mutation({
     await ctx.db.insert("roomMembers", { roomId, userId, joinedAt: Date.now(), role: "owner" });
     await ctx.db.insert("roomMembers", { roomId, userId: friendId, joinedAt: Date.now(), role: "member" });
 
+    return roomId;
+  },
+});
+
+/**
+ * The self-chat every account has: a one-member DM-shaped room named
+ * `dm:self:<userId>`, always pinned. Idempotent — called on every launch from
+ * ChatRepository._attach so pre-existing accounts self-heal it too, not just
+ * new signups.
+ *
+ * Built the same way `problemReports.ts`'s `ensureReportRoom` builds the
+ * system-account report room, and for the same reason: `getOrCreateDM`
+ * throws CANNOT_DM_SELF and assumes two distinct members, neither of which
+ * fits a room with exactly one. This function is a deliberate bypass of
+ * `getOrCreateDM`, not a variant of it — it must never call
+ * `assertChildMayReach`, since that check tests reachability of *someone
+ * else* and a child account has no family/friendship row pointing at itself,
+ * so calling it here would incorrectly throw CHILD_APPROVAL_REQUIRED on a
+ * child's own notes-to-self room.
+ */
+export const ensureSavedMessagesRoom = mutation({
+  args: { userId: v.id("users") },
+  returns: v.id("rooms"),
+  handler: async (ctx, { userId }) => {
+    const name = `dm:self:${userId.toString()}`;
+
+    const existing = await ctx.db
+      .query("rooms")
+      .withIndex("by_name", (q) => q.eq("name", name))
+      .first();
+    if (existing) return existing._id;
+
+    const roomId = await ctx.db.insert("rooms", {
+      name,
+      createdBy: userId,
+      createdAt: Date.now(),
+      isPrivate: true,
+      memberCount: 1,
+      type: "Regular Room",
+      // No messageLifetime — a self-notes chat that erases itself on a timer
+      // is the one thing this room must not do (same reasoning as the report
+      // room, problemReports.ts).
+    });
+    await ctx.db.insert("roomMembers", {
+      roomId,
+      userId,
+      joinedAt: Date.now(),
+      role: "owner",
+      // Always-pinned by construction, not by a client-side special case —
+      // see room_filter.dart's partitionPinned, which relies on this.
+      isPinned: true,
+      pinnedAt: Date.now(),
+    });
     return roomId;
   },
 });

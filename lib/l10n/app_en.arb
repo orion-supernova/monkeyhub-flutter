@@ -6221,5 +6221,61 @@
   "gameInfoCodeControls": "tap symbols to build a guess, then send it. the board tells you how close you were.",
   "@gameInfoCodeControls": {
     "description": "Explains the symbol-code puzzle's controls: symbols are tapped onto the current row and the row is then submitted for feedback."
+  },
+  "savedMessagesTitle": "Saved Messages",
+  "@savedMessagesTitle": {
+    "description": "Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile."
+  },
+  "homeScreenPinnedSectionLabel": "PINNED",
+  "@homeScreenPinnedSectionLabel": {
+    "description": "All-caps mono section label above the pinned group in the chat list (Saved Messages plus any user-pinned rooms), matching the TYPE/NATURE/STATUS dimension-label style in RoomFilterPanel."
+  },
+  "homeScreenNoSearchResults": "no chats match \"{query}\"",
+  "@homeScreenNoSearchResults": {
+    "description": "Lowercase empty-state shown in the chat list when the pull-reveal search field's query matches no chats. {query} is the raw text the user typed."
+  },
+  "pullRevealSearchHint": "search chats…",
+  "@pullRevealSearchHint": {
+    "description": "Hint text in the search field revealed by pulling down at the top of the chat list."
+  },
+  "pullRevealCollapseSemanticLabel": "Hide search and archived chats",
+  "@pullRevealCollapseSemanticLabel": {
+    "description": "Accessibility label for the chevron that collapses the pull-reveal panel (search field + Archived Chats row) back to hidden."
+  },
+  "archivedChatsFolderLabel": "archived chats ({count})",
+  "@archivedChatsFolderLabel": {
+    "description": "Label and accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0."
+  },
+  "archivedChatsSheetTitle": "ARCHIVED CHATS",
+  "@archivedChatsSheetTitle": {
+    "description": "All-caps header of the Archived Chats sheet when there are currently zero archived rooms (only reachable if the last one is unarchived while the sheet is open)."
+  },
+  "archivedChatsSheetTitleCount": "ARCHIVED CHATS · {count}",
+  "@archivedChatsSheetTitleCount": {
+    "description": "All-caps header of the Archived Chats sheet showing how many rooms are archived, e.g. 'ARCHIVED CHATS · 3'."
+  },
+  "archivedChatsSheetEmptyMessage": "nothing archived anymore",
+  "@archivedChatsSheetEmptyMessage": {
+    "description": "Lowercase empty-state sentence shown inside the Archived Chats sheet if the last archived room is unarchived while the sheet is still open."
+  },
+  "pinnedBadgeLabel": "PINNED",
+  "@pinnedBadgeLabel": {
+    "description": "All-caps pill badge label (and tooltip) shown on a chat-list row the viewer has pinned, matching the VisibilityBadge/LockedBadge style. Per-viewer state, so it never appears for anyone but the person who pinned it."
+  },
+  "chatRowActionMenuPinLabel": "PIN CHAT",
+  "@chatRowActionMenuPinLabel": {
+    "description": "All-caps row label in the chat-list long-press action menu that pins the chat, matching messageActionMenuPinLabel's style."
+  },
+  "chatRowActionMenuUnpinLabel": "UNPIN CHAT",
+  "@chatRowActionMenuUnpinLabel": {
+    "description": "All-caps row label in the chat-list long-press action menu that unpins an already-pinned chat."
+  },
+  "chatRowActionMenuArchiveLabel": "ARCHIVE CHAT",
+  "@chatRowActionMenuArchiveLabel": {
+    "description": "All-caps row label in the chat-list long-press action menu that archives the chat, removing it from the main list."
+  },
+  "chatRowActionMenuUnarchiveLabel": "UNARCHIVE CHAT",
+  "@chatRowActionMenuUnarchiveLabel": {
+    "description": "All-caps row label in the chat-list long-press action menu (and inside the Archived Chats sheet) that restores an archived chat to the main list."
   }
 }

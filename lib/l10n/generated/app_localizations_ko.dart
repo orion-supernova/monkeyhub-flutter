@@ -5322,4 +5322,52 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gameInfoCodeControls => '기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘.';
+
+  @override
+  String get savedMessagesTitle => '저장한 메시지';
+
+  @override
+  String get homeScreenPinnedSectionLabel => '고정됨';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return '\"$query\"와(과) 일치하는 채팅이 없어요';
+  }
+
+  @override
+  String get pullRevealSearchHint => '채팅 검색…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel => '검색과 보관된 채팅 숨기기';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return '보관된 채팅 ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => '보관된 채팅';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return '보관된 채팅 · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => '더 이상 보관된 채팅이 없어요';
+
+  @override
+  String get pinnedBadgeLabel => '고정됨';
+
+  @override
+  String get chatRowActionMenuPinLabel => '채팅 고정';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => '채팅 고정 해제';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => '채팅 보관';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => '채팅 보관 해제';
 }

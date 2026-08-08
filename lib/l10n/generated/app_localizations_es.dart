@@ -5578,4 +5578,53 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'toca símbolos para formar un intento y envíalo. el tablero te dice cuánto te acercaste.';
+
+  @override
+  String get savedMessagesTitle => 'Mensajes guardados';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'FIJADOS';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'ningún chat coincide con \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'buscar chats…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Ocultar búsqueda y chats archivados';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'chats archivados ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'CHATS ARCHIVADOS';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'CHATS ARCHIVADOS · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'ya no hay nada archivado';
+
+  @override
+  String get pinnedBadgeLabel => 'FIJADA';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'FIJAR CHAT';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'DESFIJAR CHAT';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARCHIVAR CHAT';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'DESARCHIVAR CHAT';
 }

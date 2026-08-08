@@ -1553,5 +1553,19 @@
   "gameInfoCodeRule1": "ست محاولات، والشيفرة لا تكرّر أي رمز.",
   "gameInfoCodeRule2": "الأخضر يعني الرمز الصحيح في المكان الصحيح.",
   "gameInfoCodeRule3": "الأصفر يعني الرمز الصحيح في المكان الخطأ.",
-  "gameInfoCodeControls": "اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت."
+  "gameInfoCodeControls": "اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت.",
+  "savedMessagesTitle": "الرسائل المحفوظة",
+  "homeScreenPinnedSectionLabel": "المثبتة",
+  "homeScreenNoSearchResults": "لا توجد محادثات تطابق \"{query}\"",
+  "pullRevealSearchHint": "ابحث عن محادثات…",
+  "pullRevealCollapseSemanticLabel": "إخفاء البحث والمحادثات المؤرشفة",
+  "archivedChatsFolderLabel": "محادثات مؤرشفة ({count})",
+  "archivedChatsSheetTitle": "المحادثات المؤرشفة",
+  "archivedChatsSheetTitleCount": "المحادثات المؤرشفة · {count}",
+  "archivedChatsSheetEmptyMessage": "لم يعد هناك أي شيء مؤرشف",
+  "pinnedBadgeLabel": "مثبت",
+  "chatRowActionMenuPinLabel": "تثبيت المحادثة",
+  "chatRowActionMenuUnpinLabel": "إلغاء تثبيت المحادثة",
+  "chatRowActionMenuArchiveLabel": "أرشفة المحادثة",
+  "chatRowActionMenuUnarchiveLabel": "إلغاء أرشفة المحادثة"
 }

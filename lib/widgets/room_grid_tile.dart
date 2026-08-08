@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import '../backend/chat_api.dart';
@@ -7,6 +8,7 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'pinned_badge.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -78,7 +80,15 @@ class RoomGridTile extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (dmUser != null)
+            if (room.isSavedMessages)
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+                child: Icon(CupertinoIcons.bookmark_fill, size: 18, color: theme.accent),
+              )
+            else if (dmUser != null)
               UserAvatar(user: dmUser!, size: 40, api: api, showStatus: false)
             else if (room.avatarStorageId != null && api != null)
               ClipOval(
@@ -148,6 +158,8 @@ class RoomGridTile extends StatelessWidget {
                       dense: true,
                       iconOnly: true,
                     ),
+                  if (room.isPinned && !room.isSavedMessages)
+                    const PinnedBadge(dense: true, iconOnly: true),
                 ],
               ),
             ),
@@ -159,7 +171,9 @@ class RoomGridTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                dmUser?.displayName ?? room.name,
+                room.isSavedMessages
+                    ? AppLocalizations.of(context).savedMessagesTitle
+                    : (dmUser?.displayName ?? room.name),
                 style: theme.displaySmall.copyWith(
                   fontSize: 16,
                   fontWeight: room.hasUnread ? FontWeight.w700 : null,

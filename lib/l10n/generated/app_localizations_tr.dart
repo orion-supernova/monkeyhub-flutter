@@ -5493,4 +5493,53 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'sembollere dokunarak bir tahmin kur ve gönder. tahta ne kadar yaklaştığını söyler.';
+
+  @override
+  String get savedMessagesTitle => 'Kaydedilmiş Mesajlar';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'SABİTLENENLER';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return '\"$query\" ile eşleşen sohbet yok';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'sohbet ara…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Aramayı ve arşivlenmiş sohbetleri gizle';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'arşivlenen sohbetler ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'ARŞİVLENEN SOHBETLER';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'ARŞİVLENEN SOHBETLER · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'artık arşivlenen yok';
+
+  @override
+  String get pinnedBadgeLabel => 'SABİTLİ';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'SOHBETİ SABİTLE';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'SABİTLEMEYİ KALDIR';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'SOHBETİ ARŞİVLE';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'ARŞİVDEN ÇIKAR';
 }

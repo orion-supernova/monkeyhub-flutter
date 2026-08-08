@@ -5586,6 +5586,55 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'toca em símbolos para formar uma tentativa e envia-a. o tabuleiro diz-te quão perto estiveste.';
+
+  @override
+  String get savedMessagesTitle => 'Mensagens guardadas';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'FIXADAS';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'nenhuma conversa corresponde a \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'pesquisar conversas…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Ocultar pesquisa e conversas arquivadas';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'conversas arquivadas ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'CONVERSAS ARQUIVADAS';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'CONVERSAS ARQUIVADAS · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'já não há nada arquivado';
+
+  @override
+  String get pinnedBadgeLabel => 'FIXADA';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'FIXAR CONVERSA';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'DESAFIXAR CONVERSA';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARQUIVAR CONVERSA';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CONVERSA';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -11171,4 +11220,53 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get gameInfoCodeControls =>
       'toque nos símbolos para montar um palpite e envie. o tabuleiro mostra o quão perto você chegou.';
+
+  @override
+  String get savedMessagesTitle => 'Mensagens salvas';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'FIXADOS';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'nenhum chat corresponde a \"$query\"';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'buscar chats…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Ocultar busca e chats arquivados';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'chats arquivados ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'CHATS ARQUIVADOS';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'CHATS ARQUIVADOS · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'nada mais arquivado';
+
+  @override
+  String get pinnedBadgeLabel => 'FIXADA';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'FIXAR CHAT';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'DESAFIXAR CHAT';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARQUIVAR CHAT';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CHAT';
 }

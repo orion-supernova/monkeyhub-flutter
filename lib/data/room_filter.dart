@@ -29,9 +29,12 @@ const List<FacetDimension> facetDimensionOrder = [
 /// [ChatRoom], so a full pass over the room list stays cheap enough to run on
 /// each repository push (see [RoomFacetCounts]).
 ///
-/// Deliberately absent: archived, muted and pinned. None of them have backing
-/// data — `roomMembers` carries only `roomId, userId, joinedAt, role,
-/// lastReadAt` — so they'd need a schema column and a mutation first.
+/// `archived` and `pinned` now have backing data (`roomMembers.isArchived` /
+/// `.isPinned`) but stay OUT of this enum on purpose: they aren't things a
+/// user toggles to narrow a view, they're structural. Archived rooms are
+/// hidden from the list outright ([ChatRepository.activeRooms]), and pinned
+/// rooms float to a fixed section instead ([partitionPinned]) rather than
+/// filtering anything in or out. `muted` still has no backing data at all.
 enum RoomFacet {
   dms(FacetDimension.type),
   groups(FacetDimension.type),
@@ -306,4 +309,26 @@ class RoomFacetCounts {
       unreadMessages,
     );
   }
+}
+
+/// Splits [rooms] into a pinned-first group (Saved Messages always leads it,
+/// see [ChatRoom.isSavedMessages]) and everything else — a single stable
+/// pass, not a re-sort, preserving [rooms]'s existing recency order in both
+/// buckets for the same reason [RoomFilter.apply] doesn't re-sort.
+({List<ChatRoom> pinned, List<ChatRoom> regular}) partitionPinned(
+  List<ChatRoom> rooms,
+) {
+  ChatRoom? saved;
+  final pinned = <ChatRoom>[];
+  final regular = <ChatRoom>[];
+  for (final r in rooms) {
+    if (r.isSavedMessages) {
+      saved = r;
+    } else if (r.isPinned) {
+      pinned.add(r);
+    } else {
+      regular.add(r);
+    }
+  }
+  return (pinned: [?saved, ...pinned], regular: regular);
 }

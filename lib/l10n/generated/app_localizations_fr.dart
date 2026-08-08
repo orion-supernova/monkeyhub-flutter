@@ -5613,4 +5613,53 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'touche des symboles pour composer un essai, puis envoie-le. la grille te dit à quel point tu étais proche.';
+
+  @override
+  String get savedMessagesTitle => 'Messages enregistrés';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'ÉPINGLÉS';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return 'aucune discussion ne correspond à « $query »';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'rechercher des discussions…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'Masquer la recherche et les discussions archivées';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'discussions archivées ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'CHATS ARCHIVÉS';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'CHATS ARCHIVÉS · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'plus rien d\'archivé';
+
+  @override
+  String get pinnedBadgeLabel => 'ÉPINGLÉ';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'ÉPINGLER LE CHAT';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'DÉSÉPINGLER LE CHAT';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'ARCHIVER LE CHAT';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'DÉSARCHIVER LE CHAT';
 }

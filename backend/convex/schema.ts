@@ -217,6 +217,13 @@ export default defineSchema({
     // ms since epoch — last time this user "read" the room. Used to compute
     // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
     lastReadAt: v.optional(v.number()),
+    // Per-viewer chat-list organization. Lives here, not on `rooms`, because
+    // pinning/archiving a chat is inherently per-member — the same room can
+    // be pinned for one member and untouched for everyone else in it.
+    isPinned: v.optional(v.boolean()),
+    pinnedAt: v.optional(v.number()),
+    isArchived: v.optional(v.boolean()),
+    archivedAt: v.optional(v.number()),
   })
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])

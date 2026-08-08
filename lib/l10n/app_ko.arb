@@ -1553,5 +1553,19 @@
   "gameInfoCodeRule1": "여섯 번의 기회, 코드에 같은 기호는 반복되지 않아.",
   "gameInfoCodeRule2": "초록은 기호도 자리도 맞다는 뜻.",
   "gameInfoCodeRule3": "노랑은 기호는 맞지만 자리가 틀렸다는 뜻.",
-  "gameInfoCodeControls": "기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘."
+  "gameInfoCodeControls": "기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘.",
+  "savedMessagesTitle": "저장한 메시지",
+  "homeScreenPinnedSectionLabel": "고정됨",
+  "homeScreenNoSearchResults": "\"{query}\"와(과) 일치하는 채팅이 없어요",
+  "pullRevealSearchHint": "채팅 검색…",
+  "pullRevealCollapseSemanticLabel": "검색과 보관된 채팅 숨기기",
+  "archivedChatsFolderLabel": "보관된 채팅 ({count})",
+  "archivedChatsSheetTitle": "보관된 채팅",
+  "archivedChatsSheetTitleCount": "보관된 채팅 · {count}",
+  "archivedChatsSheetEmptyMessage": "더 이상 보관된 채팅이 없어요",
+  "pinnedBadgeLabel": "고정됨",
+  "chatRowActionMenuPinLabel": "채팅 고정",
+  "chatRowActionMenuUnpinLabel": "채팅 고정 해제",
+  "chatRowActionMenuArchiveLabel": "채팅 보관",
+  "chatRowActionMenuUnarchiveLabel": "채팅 보관 해제"
 }

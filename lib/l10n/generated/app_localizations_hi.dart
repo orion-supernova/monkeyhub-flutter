@@ -5524,4 +5524,53 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get gameInfoCodeControls =>
       'अनुमान बनाने के लिए चिह्नों पर टैप करें, फिर भेजें। बोर्ड बताएगा कि आप कितने करीब थे।';
+
+  @override
+  String get savedMessagesTitle => 'सेव किए गए मैसेज';
+
+  @override
+  String get homeScreenPinnedSectionLabel => 'पिन किए गए';
+
+  @override
+  String homeScreenNoSearchResults(Object query) {
+    return '\"$query\" से कोई चैट मेल नहीं खाती';
+  }
+
+  @override
+  String get pullRevealSearchHint => 'चैट खोजो…';
+
+  @override
+  String get pullRevealCollapseSemanticLabel =>
+      'सर्च और आर्काइव की गई चैट छिपाएं';
+
+  @override
+  String archivedChatsFolderLabel(Object count) {
+    return 'आर्काइव की गई चैट ($count)';
+  }
+
+  @override
+  String get archivedChatsSheetTitle => 'आर्काइव की गई चैट';
+
+  @override
+  String archivedChatsSheetTitleCount(Object count) {
+    return 'आर्काइव की गई चैट · $count';
+  }
+
+  @override
+  String get archivedChatsSheetEmptyMessage => 'अब कुछ भी आर्काइव नहीं है';
+
+  @override
+  String get pinnedBadgeLabel => 'पिन';
+
+  @override
+  String get chatRowActionMenuPinLabel => 'चैट पिन करें';
+
+  @override
+  String get chatRowActionMenuUnpinLabel => 'चैट अनपिन करें';
+
+  @override
+  String get chatRowActionMenuArchiveLabel => 'चैट आर्काइव करें';
+
+  @override
+  String get chatRowActionMenuUnarchiveLabel => 'चैट अनआर्काइव करें';
 }

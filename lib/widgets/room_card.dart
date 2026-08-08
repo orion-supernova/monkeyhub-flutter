@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -6,6 +7,7 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'pinned_badge.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
 import 'typing_indicator.dart';
@@ -72,6 +74,8 @@ class RoomCard extends StatelessWidget {
                   if (room.isEphemeral && room.messageLifetime != null)
                     EphemeralBadge(ttl: room.messageLifetime!, dense: true),
                   if (room.hasPassword) const LockedBadge(dense: true),
+                  if (room.isPinned && !room.isSavedMessages)
+                    const PinnedBadge(dense: true),
                 ],
               ),
             ),
@@ -90,7 +94,16 @@ class RoomCard extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (dmUser != null) ...[
+            if (room.isSavedMessages) ...[
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+                child: Icon(CupertinoIcons.bookmark_fill, size: 16, color: theme.accent),
+              ),
+              const SizedBox(width: 10),
+            ] else if (dmUser != null) ...[
               UserAvatar(user: dmUser!, size: 32, api: api),
               const SizedBox(width: 10),
             ] else if (room.avatarStorageId != null && api != null) ...[
@@ -121,7 +134,9 @@ class RoomCard extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                dmUser?.displayName ?? room.name,
+                room.isSavedMessages
+                    ? l10n.savedMessagesTitle
+                    : (dmUser?.displayName ?? room.name),
                 style: room.hasUnread
                     ? theme.displaySmall.copyWith(fontWeight: FontWeight.w700)
                     : theme.displaySmall,

@@ -1553,5 +1553,19 @@
   "gameInfoCodeRule1": "altı deneme, ve şifrede hiçbir sembol tekrarlanmaz.",
   "gameInfoCodeRule2": "yeşil, doğru sembol doğru yerde demek.",
   "gameInfoCodeRule3": "sarı, doğru sembol yanlış yerde demek.",
-  "gameInfoCodeControls": "sembollere dokunarak bir tahmin kur ve gönder. tahta ne kadar yaklaştığını söyler."
+  "gameInfoCodeControls": "sembollere dokunarak bir tahmin kur ve gönder. tahta ne kadar yaklaştığını söyler.",
+  "savedMessagesTitle": "Kaydedilmiş Mesajlar",
+  "homeScreenPinnedSectionLabel": "SABİTLENENLER",
+  "homeScreenNoSearchResults": "\"{query}\" ile eşleşen sohbet yok",
+  "pullRevealSearchHint": "sohbet ara…",
+  "pullRevealCollapseSemanticLabel": "Aramayı ve arşivlenmiş sohbetleri gizle",
+  "archivedChatsFolderLabel": "arşivlenen sohbetler ({count})",
+  "archivedChatsSheetTitle": "ARŞİVLENEN SOHBETLER",
+  "archivedChatsSheetTitleCount": "ARŞİVLENEN SOHBETLER · {count}",
+  "archivedChatsSheetEmptyMessage": "artık arşivlenen yok",
+  "pinnedBadgeLabel": "SABİTLİ",
+  "chatRowActionMenuPinLabel": "SOHBETİ SABİTLE",
+  "chatRowActionMenuUnpinLabel": "SABİTLEMEYİ KALDIR",
+  "chatRowActionMenuArchiveLabel": "SOHBETİ ARŞİVLE",
+  "chatRowActionMenuUnarchiveLabel": "ARŞİVDEN ÇIKAR"
 }

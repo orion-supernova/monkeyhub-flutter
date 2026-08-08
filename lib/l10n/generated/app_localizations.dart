@@ -9466,6 +9466,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'tap symbols to build a guess, then send it. the board tells you how close you were.'**
   String get gameInfoCodeControls;
+
+  /// Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Messages'**
+  String get savedMessagesTitle;
+
+  /// All-caps mono section label above the pinned group in the chat list (Saved Messages plus any user-pinned rooms), matching the TYPE/NATURE/STATUS dimension-label style in RoomFilterPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'PINNED'**
+  String get homeScreenPinnedSectionLabel;
+
+  /// Lowercase empty-state shown in the chat list when the pull-reveal search field's query matches no chats. {query} is the raw text the user typed.
+  ///
+  /// In en, this message translates to:
+  /// **'no chats match \"{query}\"'**
+  String homeScreenNoSearchResults(Object query);
+
+  /// Hint text in the search field revealed by pulling down at the top of the chat list.
+  ///
+  /// In en, this message translates to:
+  /// **'search chats…'**
+  String get pullRevealSearchHint;
+
+  /// Accessibility label for the chevron that collapses the pull-reveal panel (search field + Archived Chats row) back to hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide search and archived chats'**
+  String get pullRevealCollapseSemanticLabel;
+
+  /// Label and accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0.
+  ///
+  /// In en, this message translates to:
+  /// **'archived chats ({count})'**
+  String archivedChatsFolderLabel(Object count);
+
+  /// All-caps header of the Archived Chats sheet when there are currently zero archived rooms (only reachable if the last one is unarchived while the sheet is open).
+  ///
+  /// In en, this message translates to:
+  /// **'ARCHIVED CHATS'**
+  String get archivedChatsSheetTitle;
+
+  /// All-caps header of the Archived Chats sheet showing how many rooms are archived, e.g. 'ARCHIVED CHATS · 3'.
+  ///
+  /// In en, this message translates to:
+  /// **'ARCHIVED CHATS · {count}'**
+  String archivedChatsSheetTitleCount(Object count);
+
+  /// Lowercase empty-state sentence shown inside the Archived Chats sheet if the last archived room is unarchived while the sheet is still open.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing archived anymore'**
+  String get archivedChatsSheetEmptyMessage;
+
+  /// All-caps pill badge label (and tooltip) shown on a chat-list row the viewer has pinned, matching the VisibilityBadge/LockedBadge style. Per-viewer state, so it never appears for anyone but the person who pinned it.
+  ///
+  /// In en, this message translates to:
+  /// **'PINNED'**
+  String get pinnedBadgeLabel;
+
+  /// All-caps row label in the chat-list long-press action menu that pins the chat, matching messageActionMenuPinLabel's style.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN CHAT'**
+  String get chatRowActionMenuPinLabel;
+
+  /// All-caps row label in the chat-list long-press action menu that unpins an already-pinned chat.
+  ///
+  /// In en, this message translates to:
+  /// **'UNPIN CHAT'**
+  String get chatRowActionMenuUnpinLabel;
+
+  /// All-caps row label in the chat-list long-press action menu that archives the chat, removing it from the main list.
+  ///
+  /// In en, this message translates to:
+  /// **'ARCHIVE CHAT'**
+  String get chatRowActionMenuArchiveLabel;
+
+  /// All-caps row label in the chat-list long-press action menu (and inside the Archived Chats sheet) that restores an archived chat to the main list.
+  ///
+  /// In en, this message translates to:
+  /// **'UNARCHIVE CHAT'**
+  String get chatRowActionMenuUnarchiveLabel;
 }
 
 class _AppLocalizationsDelegate
