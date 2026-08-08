@@ -312,7 +312,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenChangeEmailTitle => 'e-postanı değiştir mi?';
 
   @override
-  String get profileScreenChangeNameTitle => 'ismini değiştir mi?';
+  String get profileScreenChangeNameTitle => 'isim değiştir?';
 
   @override
   String get profileScreenChangeProfilePictureSemantic =>
@@ -2044,10 +2044,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'kopyalandı — güvenli bir yere yapıştır';
 
   @override
-  String get recoveryPhraseScreenConfirmHeroMuted => 'onayla\n';
+  String get recoveryPhraseScreenConfirmHeroMuted => 'doğrula\n';
 
   @override
-  String get recoveryPhraseScreenConfirmHeroInk => 'sensin.';
+  String get recoveryPhraseScreenConfirmHeroInk => 'kimliğini.';
 
   @override
   String get recoveryPhraseScreenPasswordBody =>

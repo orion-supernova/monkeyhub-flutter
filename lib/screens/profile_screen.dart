@@ -356,44 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) {
-        final theme = ThemeScope.of(ctx);
-        return Dialog(
-          backgroundColor: theme.surfaceRaised,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusLg)),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(title, style: theme.displaySmall),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Action(
-                        label: AppLocalizations.of(ctx).profileScreenJustTappedAction,
-                        filled: false,
-                        onTap: () => Navigator.of(ctx).pop(false),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _Action(
-                        label: AppLocalizations.of(ctx).profileScreenChangeAction,
-                        filled: true,
-                        onTap: () => Navigator.of(ctx).pop(true),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (ctx) => _ConfirmEditDialog(title: title),
     );
     if (ok != true || !mounted) return;
     await _editFieldSheet(
@@ -412,66 +375,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required Future<void> Function(String) onSave,
     required TextInputType keyboardType,
   }) async {
-    final controller = TextEditingController(text: currentValue);
     final next = await showAdaptiveSheet<String>(
       context,
-      builder: (ctx) {
-        final theme = ThemeScope.of(ctx);
-        final bottom = MediaQuery.of(ctx).viewInsets.bottom;
-        return Padding(
-          padding: EdgeInsets.only(bottom: bottom),
-          child: Container(
-            decoration: theme.sheetDecoration(),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Meaningless once dismiss-by-drag isn't a thing — the
-                // desktop popover closes via barrier tap / Esc, not a drag
-                // gesture.
-                if (ctx.isCompact)
-                  Container(
-                    width: 36,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
-                  ),
-                Text(title, style: theme.displaySmall),
-                const SizedBox(height: 14),
-                ThemedInput(
-                  controller: controller,
-                  hint: hint,
-                  keyboardType: keyboardType,
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _Action(
-                        label: AppLocalizations.of(ctx).profileScreenCancelAction,
-                        filled: false,
-                        onTap: () => Navigator.of(ctx).pop(),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _Action(
-                        label: AppLocalizations.of(ctx).profileScreenSaveAction,
-                        filled: true,
-                        onTap: () => Navigator.of(ctx).pop(controller.text),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      builder: (ctx) => _EditFieldSheet(
+        title: title,
+        currentValue: currentValue,
+        hint: hint,
+        keyboardType: keyboardType,
+      ),
     );
-    controller.dispose();
     if (next == null) return;
     await onSave(next);
   }
@@ -1469,6 +1381,158 @@ class _RowActionTile extends StatelessWidget {
   }
 }
 
+/// The body of [_ProfileScreenState._confirmAndEdit]'s "are you sure"
+/// dialog — pulled out of the inline `builder:` closure to match
+/// [_EditFieldSheet] below.
+class _ConfirmEditDialog extends StatelessWidget {
+  const _ConfirmEditDialog({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Dialog(
+      backgroundColor: theme.surfaceRaised,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(theme.radiusLg)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(title, style: theme.displaySmall),
+            const SizedBox(height: 20),
+            // IntrinsicHeight + stretch: a longer label on one side (a
+            // translation can run much longer than English) wraps to two
+            // lines while its sibling stays on one, and Expanded only
+            // equalizes width — without this the two buttons end up visibly
+            // different heights.
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _Action(
+                      label: AppLocalizations.of(context).profileScreenJustTappedAction,
+                      filled: false,
+                      onTap: () => Navigator.of(context).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _Action(
+                      label: AppLocalizations.of(context).profileScreenChangeAction,
+                      filled: true,
+                      onTap: () => Navigator.of(context).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The body of [_ProfileScreenState._editFieldSheet].
+///
+/// Owns its [TextEditingController] as `State`, not as a local in the
+/// function that pushes the sheet — `showAdaptiveSheet`'s future resolves the
+/// instant `Navigator.pop()` is called, before the sheet's close animation
+/// finishes, so a controller disposed right after that await would still be
+/// attached to a `TextField` that's mid-exit-transition. Tying it to `State.
+/// dispose()` instead means Flutter only tears it down once the widget is
+/// actually unmounted.
+class _EditFieldSheet extends StatefulWidget {
+  const _EditFieldSheet({
+    required this.title,
+    required this.currentValue,
+    required this.hint,
+    required this.keyboardType,
+  });
+
+  final String title;
+  final String currentValue;
+  final String hint;
+  final TextInputType keyboardType;
+
+  @override
+  State<_EditFieldSheet> createState() => _EditFieldSheetState();
+}
+
+class _EditFieldSheetState extends State<_EditFieldSheet> {
+  late final _controller = TextEditingController(text: widget.currentValue);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Container(
+        decoration: theme.sheetDecoration(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Meaningless once dismiss-by-drag isn't a thing — the desktop
+            // popover closes via barrier tap / Esc, not a drag gesture.
+            if (context.isCompact)
+              Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(color: theme.divider, borderRadius: BorderRadius.circular(2)),
+              ),
+            Text(widget.title, style: theme.displaySmall),
+            const SizedBox(height: 14),
+            ThemedInput(
+              controller: _controller,
+              hint: widget.hint,
+              keyboardType: widget.keyboardType,
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _Action(
+                      label: AppLocalizations.of(context).profileScreenCancelAction,
+                      filled: false,
+                      onTap: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _Action(
+                      label: AppLocalizations.of(context).profileScreenSaveAction,
+                      filled: true,
+                      onTap: () => Navigator.of(context).pop(_controller.text),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Action extends StatelessWidget {
   const _Action({required this.label, required this.filled, required this.onTap, this.danger = false});
   final String label;
@@ -1479,6 +1543,12 @@ class _Action extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final accent = danger ? theme.danger : theme.accent;
+    // `theme.label` carries letterSpacing on every theme, and Flutter tacks
+    // that spacing on AFTER the last glyph too, not just between glyphs — so
+    // centering the raw text box leaves a one-sided trailing gap and the
+    // glyphs read as shifted left. Nudging right by half the tracking cancels
+    // it out. https://github.com/flutter/flutter/issues/53092
+    final tracking = theme.label.letterSpacing ?? 0;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1492,10 +1562,14 @@ class _Action extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(theme.radiusMd),
         ),
-        child: Text(
-          label,
-          style: theme.label.copyWith(
-            color: filled ? (danger ? Colors.white : theme.accentInk) : (danger ? accent : theme.ink),
+        child: Transform.translate(
+          offset: Offset(tracking / 2, 0),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.label.copyWith(
+              color: filled ? (danger ? Colors.white : theme.accentInk) : (danger ? accent : theme.ink),
+            ),
           ),
         ),
       ),

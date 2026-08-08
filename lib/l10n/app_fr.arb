@@ -605,7 +605,7 @@
   "logoScreenThemesHeader": "THÈMES",
   "recoveryPhraseScreenCopiedSnackbar": "copié — colle-le dans un endroit sûr",
   "recoveryPhraseScreenConfirmHeroMuted": "confirme\n",
-  "recoveryPhraseScreenConfirmHeroInk": "c'est toi.",
+  "recoveryPhraseScreenConfirmHeroInk": "que c'est toi.",
   "recoveryPhraseScreenPasswordBody": "Ton mot de passe, pour que personne d'autre ne puisse ajouter une phrase de récupération à ton compte.",
   "recoveryPhraseScreenPasswordHint": "mot de passe",
   "recoveryPhraseScreenContinueButton": "CONTINUER",

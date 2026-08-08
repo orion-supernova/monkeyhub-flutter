@@ -605,7 +605,7 @@
   "logoScreenThemesHeader": "TEMAN",
   "recoveryPhraseScreenCopiedSnackbar": "kopierad — klistra in den på ett säkert ställe",
   "recoveryPhraseScreenConfirmHeroMuted": "bekräfta\n",
-  "recoveryPhraseScreenConfirmHeroInk": "det är du.",
+  "recoveryPhraseScreenConfirmHeroInk": "att det är du.",
   "recoveryPhraseScreenPasswordBody": "Ditt lösenord, så att ingen annan kan lägga till en återställningsfras på ditt konto.",
   "recoveryPhraseScreenPasswordHint": "lösenord",
   "recoveryPhraseScreenContinueButton": "FORTSÄTT",

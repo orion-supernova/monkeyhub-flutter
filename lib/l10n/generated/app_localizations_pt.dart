@@ -2084,7 +2084,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get recoveryPhraseScreenConfirmHeroMuted => 'confirma\n';
 
   @override
-  String get recoveryPhraseScreenConfirmHeroInk => 'és tu.';
+  String get recoveryPhraseScreenConfirmHeroInk => 'que és tu.';
 
   @override
   String get recoveryPhraseScreenPasswordBody =>

@@ -2068,7 +2068,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get recoveryPhraseScreenConfirmHeroMuted => 'bekräfta\n';
 
   @override
-  String get recoveryPhraseScreenConfirmHeroInk => 'det är du.';
+  String get recoveryPhraseScreenConfirmHeroInk => 'att det är du.';
 
   @override
   String get recoveryPhraseScreenPasswordBody =>

@@ -2103,7 +2103,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get recoveryPhraseScreenConfirmHeroMuted => 'confirme\n';
 
   @override
-  String get recoveryPhraseScreenConfirmHeroInk => 'c\'est toi.';
+  String get recoveryPhraseScreenConfirmHeroInk => 'que c\'est toi.';
 
   @override
   String get recoveryPhraseScreenPasswordBody =>
