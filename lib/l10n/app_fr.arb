@@ -1566,6 +1566,8 @@
   "pullRevealSearchHint": "rechercher des discussions…",
   "pullRevealCollapseSemanticLabel": "Masquer la recherche et les discussions archivées",
   "archivedChatsFolderLabel": "discussions archivées ({count})",
+  "archivedChatsFolderTitle": "discussions archivées",
+  "pullRevealClearSearchSemanticLabel": "Effacer la recherche",
   "archivedChatsSheetTitle": "CHATS ARCHIVÉS",
   "archivedChatsSheetTitleCount": "CHATS ARCHIVÉS · {count}",
   "archivedChatsSheetEmptyMessage": "plus rien d'archivé",

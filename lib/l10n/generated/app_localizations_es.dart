@@ -5624,6 +5624,12 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'chats archivados';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'Borrar búsqueda';
+
+  @override
   String get archivedChatsSheetTitle => 'CHATS ARCHIVADOS';
 
   @override

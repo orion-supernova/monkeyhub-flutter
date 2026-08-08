@@ -82,6 +82,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Live drag distance while pulling at the top of the list, 0 when idle.
   double _pullDrag = 0;
+
+  /// True only between the first live drag sample and release — see
+  /// [PullRevealSlot] for what this changes about the reveal's timing.
+  bool _dragging = false;
   bool _pullPanelOpen = false;
   static const _pullOpenThreshold = 64.0;
   static const _pullMaxDrag = 96.0;
@@ -122,6 +126,15 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  /// The field's own clear button — instant, not debounced. A user tapping
+  /// "clear" wants the list back immediately, not after the same 250ms a
+  /// typed keystroke waits out.
+  void _clearSearch() {
+    _searchDebounce?.cancel();
+    _searchCtrl.clear();
+    setState(() => _searchQuery = '');
+  }
+
   /// Matches on the resolved, on-screen label (a friend's display name, or
   /// the localized "Saved Messages" string) rather than the raw room `name` —
   /// a DM's name is `dm:regular:<id>:<id>`, which contains nothing a user
@@ -137,15 +150,44 @@ class _HomeScreenState extends State<HomeScreen>
   /// Tracks the overscroll-at-the-top gesture that reveals [PullRevealSlot].
   /// Once the panel is open it is ordinary list content and this stops
   /// intervening — see the panel's own collapse chevron for how it closes.
+  ///
+  /// Two physics families report a pull-past-the-top completely differently,
+  /// and both need handling — relying on only one silently broke the gesture
+  /// on whichever platform uses the other:
+  ///   - Clamping (Android default): `pixels` stays pinned at the boundary,
+  ///     and each denied delta is reported separately via
+  ///     `OverscrollNotification.overscroll`.
+  ///   - Bouncing (iOS default): nothing is ever "denied" —
+  ///     `BouncingScrollPhysics.applyBoundaryConditions` always returns 0, so
+  ///     `OverscrollNotification` never fires at all. `pixels` genuinely goes
+  ///     negative instead, delivered as an ordinary `ScrollUpdateNotification`
+  ///     whose `metrics.pixels` IS the absolute overscroll amount.
+  /// Both branches also require `dragDetails != null` — non-null only while a
+  /// real finger drag is in progress, null during the ballistic spring-back
+  /// Flutter runs after release, which would otherwise be misread as a second
+  /// pull while the position animates back to zero.
   bool _onScrollNotification(ScrollNotification n) {
     if (_pullPanelOpen) return false;
-    if (n is OverscrollNotification &&
+    if (n is ScrollUpdateNotification &&
+        n.dragDetails != null &&
+        n.metrics.pixels < 0) {
+      setState(() {
+        _dragging = true;
+        _pullDrag = (-n.metrics.pixels).clamp(0.0, _pullMaxDrag);
+      });
+    } else if (n is OverscrollNotification &&
+        n.dragDetails != null &&
         n.overscroll < 0 &&
         n.metrics.pixels <= n.metrics.minScrollExtent) {
-      setState(() => _pullDrag = (_pullDrag - n.overscroll).clamp(0.0, _pullMaxDrag));
-    } else if (n is ScrollEndNotification && _pullDrag > 0) {
       setState(() {
-        _pullPanelOpen = _pullDrag >= _pullOpenThreshold;
+        _dragging = true;
+        _pullDrag = (_pullDrag - n.overscroll).clamp(0.0, _pullMaxDrag);
+      });
+    } else if (n is ScrollEndNotification && _dragging) {
+      final openNow = _pullDrag >= _pullOpenThreshold;
+      setState(() {
+        _dragging = false;
+        _pullPanelOpen = openNow;
         _pullDrag = 0;
       });
     }
@@ -311,9 +353,11 @@ class _HomeScreenState extends State<HomeScreen>
                           PullRevealSlot(
                             dragExtent: _pullDrag,
                             dragThreshold: _pullOpenThreshold,
+                            dragging: _dragging,
                             open: _pullPanelOpen,
                             searchCtrl: _searchCtrl,
                             onSearchChanged: _onSearchChanged,
+                            onClearSearch: _clearSearch,
                             archivedCount: widget.repo.archivedRooms.length,
                             onOpenArchived: () => showArchivedChatsSheet(
                               context,
@@ -536,10 +580,11 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   final Map<String, GlobalKey> _rowKeys = {};
   GlobalKey _keyFor(String id) => _rowKeys.putIfAbsent(id, GlobalKey.new);
 
-  Future<void> _showRowMenu(ChatRoom room) async {
+  Future<void> _showRowMenu(ChatRoom room, WidgetBuilder rowBuilder) async {
     final action = await showChatRowActionMenu(
       context: context,
       anchorKey: _keyFor(room.id),
+      rowBuilder: rowBuilder,
       isPinned: room.isPinned,
       isArchived: room.isArchived,
     );
@@ -709,7 +754,16 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     if (!room.isSavedMessages) {
       content = GestureDetector(
         key: _keyFor(room.id),
-        onLongPress: () => _showRowMenu(room),
+        onLongPress: () => _showRowMenu(
+          room,
+          (context) => RoomCard(
+            room: room,
+            api: api,
+            dmUser: repo.otherUserFor(room),
+            typists: repo.typingIn(room.id),
+            onTap: () {},
+          ),
+        ),
         child: content,
       );
     }
@@ -748,7 +802,16 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     if (!room.isSavedMessages) {
       content = GestureDetector(
         key: _keyFor(room.id),
-        onLongPress: () => _showRowMenu(room),
+        onLongPress: () => _showRowMenu(
+          room,
+          (context) => RoomGridTile(
+            room: room,
+            api: api,
+            dmUser: repo.otherUserFor(room),
+            typists: repo.typingIn(room.id),
+            onTap: () {},
+          ),
+        ),
         child: content,
       );
     }

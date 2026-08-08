@@ -9533,11 +9533,23 @@ abstract class AppLocalizations {
   /// **'Hide search and archived chats'**
   String get pullRevealCollapseSemanticLabel;
 
-  /// Label and accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0.
+  /// Accessibility label for the row inside the pull-reveal panel that opens the Archived Chats sheet, spoken with the count. {count} is how many rooms are currently archived; the row is hidden entirely when count is 0.
   ///
   /// In en, this message translates to:
   /// **'archived chats ({count})'**
   String archivedChatsFolderLabel(Object count);
+
+  /// Visible text label on the same row as archivedChatsFolderLabel — the count itself is shown separately as a CountBadge, so this string omits it.
+  ///
+  /// In en, this message translates to:
+  /// **'archived chats'**
+  String get archivedChatsFolderTitle;
+
+  /// Accessibility label for the 'x' button that clears the pull-reveal search field's text.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get pullRevealClearSearchSemanticLabel;
 
   /// All-caps header of the Archived Chats sheet when there are currently zero archived rooms (only reachable if the last one is unarchived while the sheet is open).
   ///

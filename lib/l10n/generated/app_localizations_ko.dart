@@ -5367,6 +5367,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => '보관된 채팅';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => '검색 지우기';
+
+  @override
   String get archivedChatsSheetTitle => '보관된 채팅';
 
   @override

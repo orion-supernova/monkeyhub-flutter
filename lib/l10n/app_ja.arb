@@ -1566,6 +1566,8 @@
   "pullRevealSearchHint": "チャットを検索…",
   "pullRevealCollapseSemanticLabel": "検索とアーカイブ済みチャットを非表示",
   "archivedChatsFolderLabel": "アーカイブ済みチャット ({count})",
+  "archivedChatsFolderTitle": "アーカイブ済みチャット",
+  "pullRevealClearSearchSemanticLabel": "検索をクリア",
   "archivedChatsSheetTitle": "アーカイブ済みチャット",
   "archivedChatsSheetTitleCount": "アーカイブ済みチャット・{count}",
   "archivedChatsSheetEmptyMessage": "もうアーカイブされたものはありません",

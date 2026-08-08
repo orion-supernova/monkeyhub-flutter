@@ -5570,6 +5570,12 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'आर्काइव की गई चैट';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'सर्च साफ़ करें';
+
+  @override
   String get archivedChatsSheetTitle => 'आर्काइव की गई चैट';
 
   @override

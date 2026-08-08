@@ -119,6 +119,12 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
     final action = await showChatRowActionMenu(
       context: context,
       anchorKey: _anchorKey,
+      rowBuilder: (context) => RoomCard(
+        room: widget.room,
+        api: widget.api,
+        dmUser: widget.repo.otherUserFor(widget.room),
+        onTap: () {},
+      ),
       isPinned: widget.room.isPinned,
       // Always true here — this sheet only shows archived rooms — but passed
       // explicitly so the menu's own "archived rooms only offer Unarchive"

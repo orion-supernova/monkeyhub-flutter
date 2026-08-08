@@ -492,9 +492,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
     // A DM has no name/visibility/password of its own — it's just the two
     // people. Resolve the other person so we show their name and avatar
-    // instead of the internal "dm:regular:<id>:<id>" key.
+    // instead of the internal "dm:regular:<id>:<id>" key. Saved Messages is a
+    // DM with no other person at all (_dmPeer() is null by construction), so
+    // it needs its own substitution instead of the "dm:self:<id>" key.
     final peer = r.isDm ? _dmPeer() : null;
-    final title = peer?.displayName ?? r.name;
+    final title = r.isSavedMessages ? AppLocalizations.of(context).savedMessagesTitle : (peer?.displayName ?? r.name);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -524,11 +526,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ),
                           const SizedBox(height: 18),
                         ],
-                        LabeledField(
-                          label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
-                          controller: _desc,
-                          hint: AppLocalizations.of(context).roomInfoScreenDescriptionHint,
-                        ),
+                        // Nothing to describe about a chat with only
+                        // yourself in it.
+                        if (!r.isSavedMessages) ...[
+                          LabeledField(
+                            label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
+                            controller: _desc,
+                            hint: AppLocalizations.of(context).roomInfoScreenDescriptionHint,
+                          ),
+                        ],
                         if (!r.isDm) ...[
                           const SizedBox(height: 22),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenVisibilityLabel),
@@ -649,23 +655,34 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
                         _sharedContent(theme),
-                        const SizedBox(height: 28),
-                        FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
-                        const SizedBox(height: 6),
-                        _membersList(theme, r),
+                        // "Members (1): you" is not information — a chat
+                        // with only yourself in it has nothing to list here.
+                        if (!r.isSavedMessages) ...[
+                          const SizedBox(height: 28),
+                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
+                          const SizedBox(height: 6),
+                          _membersList(theme, r),
+                        ],
                         const SizedBox(height: 28),
                         if (_error != null) ...[
                           Text(_error!, style: theme.body.copyWith(color: theme.danger)),
                           const SizedBox(height: 14),
                         ],
-                        _saveButton(theme, busy),
-                        const SizedBox(height: 14),
+                        // Nothing above is editable for Saved Messages (name,
+                        // description and visibility are all hidden for it),
+                        // so there is nothing for this button to save.
+                        if (!r.isSavedMessages) ...[
+                          _saveButton(theme, busy),
+                          const SizedBox(height: 14),
+                        ],
                         // A DM has no "leave" that makes sense — it's just the
                         // two people, and leaving alone silently strands you
                         // (you'd stop being a member but the room lives on,
                         // and re-opening the DM wouldn't re-add you). The only
                         // real action for a DM is ending it outright, which is
-                        // available to either side, not just whoever created it.
+                        // available to either side, not just whoever created
+                        // it — except Saved Messages, which is a permanent
+                        // fixture with nothing to end or delete.
                         Row(children: [
                           if (!r.isDm) ...[
                             Expanded(
@@ -678,7 +695,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                               ),
                             ),
                           ],
-                          if (_isOwner || r.isDm) ...[
+                          if ((_isOwner || r.isDm) && !r.isSavedMessages) ...[
                             if (!r.isDm) const SizedBox(width: 10),
                             Expanded(
                               child: _dangerButton(
@@ -776,6 +793,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   Widget _avatarBlock(AppTheme theme, ChatRoom r, ChatUser? peer) {
     const size = _avatarSize;
+    if (r.isSavedMessages) {
+      return Center(
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+          child: Icon(CupertinoIcons.bookmark_fill, size: size * 0.43, color: theme.accent),
+        ),
+      );
+    }
     // A DM shows the other person's avatar, and it isn't editable — you can't
     // rename or re-skin someone else.
     if (r.isDm) {

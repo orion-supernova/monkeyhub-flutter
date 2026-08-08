@@ -1566,6 +1566,8 @@
   "pullRevealSearchHint": "ابحث عن محادثات…",
   "pullRevealCollapseSemanticLabel": "إخفاء البحث والمحادثات المؤرشفة",
   "archivedChatsFolderLabel": "محادثات مؤرشفة ({count})",
+  "archivedChatsFolderTitle": "محادثات مؤرشفة",
+  "pullRevealClearSearchSemanticLabel": "مسح البحث",
   "archivedChatsSheetTitle": "المحادثات المؤرشفة",
   "archivedChatsSheetTitleCount": "المحادثات المؤرشفة · {count}",
   "archivedChatsSheetEmptyMessage": "لم يعد هناك أي شيء مؤرشف",

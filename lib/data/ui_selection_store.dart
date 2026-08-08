@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Holds the "what is selected in a two-pane layout" UI state — the room shown
 /// in the chat detail pane, and (from Phase 4) the settings sub-screen shown in
@@ -25,7 +26,7 @@ class UiSelectionStore extends ChangeNotifier {
   void selectRoom(String? id) {
     if (id == _roomId) return;
     _roomId = id;
-    notifyListeners();
+    _notify();
   }
 
   /// Identity of the settings sub-screen currently shown in the desktop
@@ -38,7 +39,7 @@ class UiSelectionStore extends ChangeNotifier {
   void setSettingsDetailKey(String? key) {
     if (key == _settingsDetailKey) return;
     _settingsDetailKey = key;
-    notifyListeners();
+    _notify();
   }
 
   /// A one-shot request to show the friend-requests list, used when something
@@ -58,7 +59,7 @@ class UiSelectionStore extends ChangeNotifier {
 
   void requestRequestsView() {
     _requestsViewPending = true;
-    notifyListeners();
+    _notify();
   }
 
   /// Returns whether a request was pending, clearing it either way.
@@ -71,5 +72,32 @@ class UiSelectionStore extends ChangeNotifier {
     final pending = _requestsViewPending;
     _requestsViewPending = false;
     return pending;
+  }
+
+  /// [notifyListeners], deferred to the end of the frame when we are inside
+  /// one.
+  ///
+  /// Selection changes legitimately originate from `State.dispose` —
+  /// `_RoomScreenState` clears its own room on a compact dismissal so a stale
+  /// id can't resurrect a closed room on a later resize. But Flutter unmounts
+  /// disposed elements from `BuildOwner.finalizeTree`, under `lockState`: any
+  /// `setState` reached from there throws *"setState() or markNeedsBuild()
+  /// called when widget tree was locked"*. [SettingsScreen] listens here to
+  /// highlight the active pane row, so backing out of a room while Settings
+  /// was mounted crashed mid-frame.
+  ///
+  /// Only the fan-out waits — the fields are already written, so anything
+  /// reading the store directly (rather than rebuilding on it) still sees the
+  /// new value in the same tick. Deferral kicks in solely during
+  /// build/layout/paint, where a synchronous rebuild request would be illegal
+  /// anyway; taps, timers and post-frame callbacks notify immediately as
+  /// before.
+  void _notify() {
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((_) => notifyListeners());
+      return;
+    }
+    notifyListeners();
   }
 }

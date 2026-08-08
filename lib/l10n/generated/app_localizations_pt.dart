@@ -5632,6 +5632,12 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'conversas arquivadas';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'Limpar pesquisa';
+
+  @override
   String get archivedChatsSheetTitle => 'CONVERSAS ARQUIVADAS';
 
   @override
@@ -11285,6 +11291,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String archivedChatsFolderLabel(Object count) {
     return 'chats arquivados ($count)';
   }
+
+  @override
+  String get archivedChatsFolderTitle => 'chats arquivados';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => 'Limpar busca';
 
   @override
   String get archivedChatsSheetTitle => 'CHATS ARQUIVADOS';

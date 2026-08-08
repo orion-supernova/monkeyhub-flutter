@@ -2601,7 +2601,16 @@ class _Header extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
           const SizedBox(width: 4),
-          if (dmUser != null) ...[
+          if (room.isSavedMessages) ...[
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: theme.accentSoft, shape: BoxShape.circle),
+              child: Icon(CupertinoIcons.bookmark_fill, size: 16, color: theme.accent),
+            ),
+            const SizedBox(width: 10),
+          ] else if (dmUser != null) ...[
             GestureDetector(
               onTap: onTapDmUser,
               child: UserAvatar(user: dmUser!, size: 32, api: api),
@@ -2618,25 +2627,35 @@ class _Header extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(dmUser?.displayName ?? room.name, style: theme.displayMedium, overflow: TextOverflow.ellipsis),
+                  Text(
+                    room.isSavedMessages
+                        ? AppLocalizations.of(context).savedMessagesTitle
+                        : (dmUser?.displayName ?? room.name),
+                    style: theme.displayMedium,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      if (dmUser != null)
-                        Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
-                      else ...[
-                        VisibilityBadge(isPublic: room.isPublic, dense: true),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: theme.chipDecoration(),
-                          child: Text(
-                            AppLocalizations.of(context)
-                                .roomScreenMemberCountBadge(room.memberCount),
-                            style: theme.monoTiny,
+                      // No username, no meaningful member count — a chat with
+                      // only yourself has nothing useful to say here.
+                      if (!room.isSavedMessages) ...[
+                        if (dmUser != null)
+                          Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
+                        else ...[
+                          VisibilityBadge(isPublic: room.isPublic, dense: true),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: theme.chipDecoration(),
+                            child: Text(
+                              AppLocalizations.of(context)
+                                  .roomScreenMemberCountBadge(room.memberCount),
+                              style: theme.monoTiny,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                       if (room.isEphemeral && room.messageLifetime != null)
                         EphemeralBadge(ttl: room.messageLifetime!, dense: true),
@@ -2662,7 +2681,10 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          if (room.isDm && dmUser != null)
+          // A chat with only yourself has no one to call.
+          if (room.isSavedMessages)
+            const SizedBox.shrink()
+          else if (room.isDm && dmUser != null)
             CallButton(
               peerUserId: dmUser!.id,
               peerName: dmUser!.displayName,
@@ -3211,7 +3233,22 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
   /// GestureDetector. With no picture nothing is mounted, and the tap falls
   /// through to [_handleTitleTap] — a placeholder shouldn't swallow the chip.
   Widget _buildAvatar() {
-    final Widget avatar = widget.dmUser != null
+    final Widget avatar = widget.room.isSavedMessages
+        ? Container(
+            width: _avatarSize,
+            height: _avatarSize,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: ThemeScope.of(context).accentSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              CupertinoIcons.bookmark_fill,
+              size: _avatarSize * 0.45,
+              color: ThemeScope.of(context).accent,
+            ),
+          )
+        : widget.dmUser != null
         ? UserAvatar(user: widget.dmUser!, size: _avatarSize, api: widget.api)
         : _RoomAvatar(room: widget.room, api: widget.api, size: _avatarSize);
     if (_avatarStorageId == null) return avatar;
@@ -3253,7 +3290,9 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final title = widget.dmUser?.displayName ?? widget.room.name;
+    final title = widget.room.isSavedMessages
+        ? AppLocalizations.of(context).savedMessagesTitle
+        : (widget.dmUser?.displayName ?? widget.room.name);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -3318,7 +3357,10 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
             ),
           ),
           const SizedBox(width: 12),
-          if (widget.room.isDm && widget.dmUser != null) ...[
+          // A chat with only yourself has no one to call.
+          if (widget.room.isSavedMessages) ...[
+            const SizedBox.shrink(),
+          ] else if (widget.room.isDm && widget.dmUser != null) ...[
             CallButton(
               peerUserId: widget.dmUser!.id,
               peerName: widget.dmUser!.displayName,

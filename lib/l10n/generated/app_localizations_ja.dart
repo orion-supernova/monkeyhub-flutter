@@ -5351,6 +5351,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => 'アーカイブ済みチャット';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => '検索をクリア';
+
+  @override
   String get archivedChatsSheetTitle => 'アーカイブ済みチャット';
 
   @override

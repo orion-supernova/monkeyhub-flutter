@@ -5282,6 +5282,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get archivedChatsFolderTitle => '已归档聊天';
+
+  @override
+  String get pullRevealClearSearchSemanticLabel => '清除搜索';
+
+  @override
   String get archivedChatsSheetTitle => '已归档聊天';
 
   @override
