@@ -6,6 +6,7 @@ import '../backend/feed_api.dart';
 import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
+import '../data/settings_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -34,6 +35,7 @@ import 'games/sudoku_screen.dart';
 import 'games/tango_screen.dart';
 import 'games/zip_screen.dart';
 import 'navigation/destinations.dart';
+import 'navigation/tab_reselect.dart';
 
 /// TODAY — the friends-activity board.
 ///
@@ -71,8 +73,14 @@ class FeedScreen extends StatefulWidget {
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> {
+class _FeedScreenState extends State<FeedScreen>
+    with TabReselectScroll<FeedScreen> {
   final _scroll = ScrollController();
+
+  @override
+  HomeSection get reselectSection => HomeSection.feed;
+  @override
+  ScrollController get reselectScroll => _scroll;
 
   @override
   void initState() {

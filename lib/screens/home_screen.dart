@@ -22,6 +22,7 @@ import '../widgets/room_grid_tile.dart';
 import '../widgets/user_avatar.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
+import 'navigation/tab_reselect.dart';
 import 'create_room_sheet.dart';
 import 'profile_screen.dart';
 
@@ -55,12 +56,20 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with TabReselectScroll<HomeScreen> {
   ChatUser? _me;
 
   /// Whether the drawer-style filter panel is open. Purely presentational, so
   /// unlike the filter itself it isn't persisted.
   bool _filterExpanded = false;
+
+  final _scroll = ScrollController();
+
+  @override
+  HomeSection get reselectSection => HomeSection.chat;
+  @override
+  ScrollController get reselectScroll => _scroll;
 
   @override
   void initState() {
@@ -80,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -201,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // each child instead of on the viewport.
                   child: ListView(
                     key: const PageStorageKey('home_main_list'),
+                    controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(
                       0,
                       14,

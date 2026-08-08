@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -17,6 +18,7 @@ import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
+import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 
 /// How many friends and public rooms Discover shows before handing off to a
@@ -64,7 +66,15 @@ class DiscoverScreen extends StatefulWidget {
 /// Which half of the requests section is showing.
 enum _RequestsTab { incoming, outgoing }
 
-class _DiscoverScreenState extends State<DiscoverScreen> {
+class _DiscoverScreenState extends State<DiscoverScreen>
+    with TabReselectScroll<DiscoverScreen> {
+  final _scroll = ScrollController();
+
+  @override
+  HomeSection get reselectSection => HomeSection.discover;
+  @override
+  ScrollController get reselectScroll => _scroll;
+
   /// The last public-room list Discover drew, and whose it was.
   ///
   /// Switching sections destroys this screen's [State] outright, so a return to
@@ -151,6 +161,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   void dispose() {
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -315,6 +326,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 // Bumped whenever the section order changes; the old key would
                 // restore a scroll offset measured against a different page.
                 key: const PageStorageKey('discover_main_list_v3'),
+                controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(
                   20,
                   14,
