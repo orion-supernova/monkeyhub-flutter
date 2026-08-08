@@ -405,14 +405,6 @@ export const getOrCreateDM = mutation({
   handler: async (ctx, { userId, friendId, roomType, messageLifetime }) => {
     if (userId.toString() === friendId.toString()) throw new Error("CANNOT_DM_SELF");
 
-    // Neither side may be a system account. The friendship check below would
-    // already stop a stranger, but NOT the maintainer: the report room's
-    // friendship is accepted in both directions, so without this the one person
-    // who can see the account could open a DM with it and type into a room
-    // nothing reads. The report room itself is built by
-    // `problemReports.ensureReportRoom`, which does not come through here.
-    await assertNoSystemAccount(ctx, userId, friendId);
-
     // Either party being a child gates the DM: family is always fine, anyone
     // else has to have cleared the guardian relay into an accepted contact.
     await assertChildMayReach(ctx, userId, friendId);
@@ -450,6 +442,22 @@ export const getOrCreateDM = mutation({
         .first();
       if (legacyRoom) return legacyRoom._id;
     }
+
+    // No NEW DM with a system account — deliberately here, below every lookup
+    // above, so this is a "create" guard and not an "open" one.
+    //
+    // Placing it at the top of the handler is the obvious move and it is wrong.
+    // The report room's name is exactly the one this function derives, so every
+    // return above hands back the room that already exists; refusing early would
+    // mean the maintainer tapping MonkeyHub Logs in their friends list got an
+    // error instead of the thread they were looking at yesterday.
+    //
+    // Nothing is lost by allowing that: `ensureReportRoom` builds the room, and
+    // this cannot produce a second one for the same pair even without the guard.
+    // What the guard stops is a room for a pair that has none — a second system
+    // account, or a Chamber of Secrets variant of the report DM, whose
+    // `messageLifetime` would delete bug reports on a timer.
+    await assertNoSystemAccount(ctx, userId, friendId);
 
     const roomId = await ctx.db.insert("rooms", {
       name,
