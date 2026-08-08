@@ -216,6 +216,14 @@ class _Strip extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final active = activeIndex.clamp(0, pins.length - 1);
     final pin = pins[active];
+    final l10n = AppLocalizations.of(context);
+
+    // Used to head the strip as its own line of accent text. It says nothing
+    // the glyph beside it and the message next to that don't already say, so it
+    // now lives only in the semantics tree — see [_Label] and the icon below.
+    final title = pins.length > 1
+        ? l10n.pinnedBannerTitleWithIndex(pins.length, active + 1)
+        : l10n.pinnedBannerTitleSingle;
 
     final row = SizedBox(
       height: kPinnedBannerHeight,
@@ -232,18 +240,30 @@ class _Strip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
+          // What the words "Pinned message" used to do, in 14pt. Deliberately
+          // OUTSIDE the tap target beside it: it identifies the whole strip
+          // rather than the row's text, and as a sibling of the button its
+          // semantics node stands on its own instead of competing with the
+          // button's label for the screen reader's attention.
+          Icon(
+            CupertinoIcons.pin_fill,
+            size: 14,
+            color: theme.accent,
+            semanticLabel: title,
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: _TapTarget(
               onTap: onTap,
-              semanticLabel: AppLocalizations.of(context).pinnedBannerJumpToPinnedSemanticLabel,
+              semanticLabel: l10n.pinnedBannerJumpToPinnedSemanticLabel,
               radius: theme.radiusSm,
-              child: _Label(pin: pin, count: pins.length, index: active),
+              child: _Label(pin: pin),
             ),
           ),
           const SizedBox(width: 8),
           _TapTarget(
             onTap: onOpenList,
-            semanticLabel: AppLocalizations.of(context).pinnedBannerAllPinnedSemanticLabel,
+            semanticLabel: l10n.pinnedBannerAllPinnedSemanticLabel,
             radius: theme.radiusSm,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -284,13 +304,33 @@ class _Strip extends StatelessWidget {
   }
 }
 
-/// The two-line label, swapped with a slide when the cursor moves.
+/// The pinned message itself — sender and preview on one line, swapped with a
+/// slide when the cursor moves.
+///
+/// There is no "Pinned message" heading above it. The strip sits directly under
+/// the room header with the transcript below, wears an accent pin glyph a few
+/// points to its left, and the only thing it ever shows is a pinned message —
+/// so the words were naming a thing already named three ways over. They are not
+/// lost: the same localized string is the glyph's [Icon.semanticLabel], which
+/// is where a screen reader picks up both the word "pinned" and, with more than
+/// one pin, which of them this row is describing.
+///
+/// Dropping the heading turns a cramped two-line block into a single line
+/// centred in the strip's 44pt, which is the proportion the header capsule and
+/// the composer field already use — so the space the title vacated reads as
+/// breathing room rather than as a gap. The line is promoted to the theme's
+/// primary ink for the same reason: left soft, it would go on reading as a
+/// subtitle to a heading that is no longer there.
+///
+/// Sized to fill rather than shrink-wrapped, for two reasons that both bite:
+/// [AnimatedSwitcher] lays its children out in a centre-aligned [Stack], so a
+/// short pin would drift to the middle of the strip, and the caller's opaque
+/// [GestureDetector] only covers what this returns — shrink-wrapped, the tap
+/// target would be the height of one line of text inside a 44pt strip.
 class _Label extends StatelessWidget {
-  const _Label({required this.pin, required this.count, required this.index});
+  const _Label({required this.pin});
 
   final RoomPin pin;
-  final int count;
-  final int index;
 
   @override
   Widget build(BuildContext context) {
@@ -298,10 +338,6 @@ class _Label extends StatelessWidget {
     final m = pin.message;
     // No thumbnail in this strip, so an uncaptioned photo needs the word.
     final preview = messagePreviewLine(m, hasThumbnail: false);
-    final l10n = AppLocalizations.of(context);
-    final title = count > 1
-        ? l10n.pinnedBannerTitleWithIndex(count, index + 1)
-        : l10n.pinnedBannerTitleSingle;
 
     return AnimatedSwitcher(
       duration: theme.motionFast,
@@ -316,28 +352,22 @@ class _Label extends StatelessWidget {
           child: child,
         ),
       ),
-      child: Column(
+      child: SizedBox(
         // Keyed on the message, not the index: two pins removed at once can
         // leave the index pointing at a different message without changing, and
         // the strip would then swap text with no transition.
         key: ValueKey(m.id),
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.label.copyWith(color: theme.accent),
-          ),
-          const SizedBox(height: 1),
-          Text(
+        width: double.infinity,
+        height: kPinnedBannerHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
             preview.isEmpty ? m.senderName : '${m.senderName}  $preview',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: theme.bodySoft.copyWith(color: theme.inkSoft),
+            style: theme.bodySoft.copyWith(color: theme.ink),
           ),
-        ],
+        ),
       ),
     );
   }
