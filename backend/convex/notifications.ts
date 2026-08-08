@@ -77,11 +77,58 @@ export const sendMessagePush = internalAction({
       return;
     }
 
-    const members: Array<{ userId: string }> = await ctx.runQuery(
-      internal.rooms.getMemberIds,
-      { roomId, excludeUserId: senderId },
+    const allMembers: Array<{
+      userId: string;
+      mutesNotifications: boolean;
+      mutesBadges: boolean;
+    }> = await ctx.runQuery(internal.rooms.getMemberIds, {
+      roomId,
+      excludeUserId: senderId,
+    });
+    if (allMembers.length === 0) return;
+
+    // The room's mute sorts recipients into three buckets, and this is the
+    // only place all three exist at once.
+    //
+    //  * Nothing muted → the ordinary alert, unchanged.
+    //  * Notifications muted, counts NOT → no banner, but their app icon still
+    //    has to move, and on a locked phone a push is the ONLY thing that can
+    //    move it. `dismissAndSync` with an empty id list and no roomId is
+    //    exactly that push and nothing else: `buildApnsBody` gives the dismiss
+    //    kind `content-available` plus an absolute `aps.badge` and no alert or
+    //    sound key, so iOS applies the count and displays nothing. Empty ids
+    //    and no room mean it sweeps no existing notification on the way past —
+    //    which is why this reuses the existing kind rather than inventing a
+    //    "badge only" one that every client platform would have to learn.
+    //  * Both muted → nothing at all. `badges.badgeTotalFor` has already
+    //    dropped the room, so there is no number to correct either.
+    //
+    // A mention does NOT break through. That is a deliberate third switch this
+    // feature doesn't ship rather than a hidden exception: a mute whose small
+    // print is "unless someone types your name" is a mute the user cannot
+    // trust, and the room they muted is usually the one where they get named.
+    const members = allMembers.filter((m) => !m.mutesNotifications);
+    const badgeOnly = allMembers.filter(
+      (m) => m.mutesNotifications && !m.mutesBadges,
     );
-    if (members.length === 0) return;
+    if (members.length === 0 && badgeOnly.length === 0) return;
+
+    // The silent badge push is dispatched at the END of this handler, after
+    // the real alert has gone out. Sending it first would put an extra round
+    // trip in front of every notification in a room where one person has
+    // muted, and the people who asked to be interrupted should not wait on the
+    // people who asked not to be.
+    const syncBadgeOnly = async () => {
+      if (badgeOnly.length === 0) return;
+      await ctx.runAction(internal.notifications.dismissAndSync, {
+        userIds: badgeOnly.map((m) => m.userId) as any,
+        dismissIds: [],
+      });
+    };
+    if (members.length === 0) {
+      await syncBadgeOnly();
+      return;
+    }
 
     const body =
       type === "text"
@@ -147,6 +194,8 @@ export const sendMessagePush = internalAction({
       sentAt: Date.now(),
       perUser,
     });
+
+    await syncBadgeOnly();
   },
 });
 

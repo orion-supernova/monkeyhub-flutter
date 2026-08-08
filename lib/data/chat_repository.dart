@@ -14,6 +14,7 @@ import '../models/friend_request.dart';
 import '../models/message_bookmark.dart';
 import '../models/pending_upload.dart';
 import '../models/room_capabilities.dart';
+import '../models/room_mute.dart';
 import '../models/room_pin.dart';
 import '../push/push_manager.dart';
 import 'cache_store.dart';
@@ -521,6 +522,14 @@ class ChatRepository extends ChangeNotifier {
   /// itself on the next message, and there is no user-visible action to offer.
   ///
   /// Rooms above [kDeliveryMemberLimit] are skipped and stay on one tick.
+  ///
+  /// Muting a room does NOT stop this, and the raw [ChatRoom.unreadCount]
+  /// below is deliberate rather than an oversight to be tidied into
+  /// `visibleUnreadCount`. The two ticks are a fact reported to the SENDER
+  /// about their own message; whether this device chose to draw a badge for it
+  /// is none of their business. Silencing delivery along with the badge would
+  /// mean muting a chat quietly downgraded the other person's receipts, with a
+  /// symptom pointing nowhere near notification settings.
   void _reportDelivery(String userId) {
     for (final room in _rooms) {
       final newest = room.lastMessageTime;
@@ -702,6 +711,36 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.unarchiveRoom(roomId: roomId, userId: id);
+  }
+
+  /// Silence [roomId] for this user — see `lib/models/room_mute.dart`.
+  ///
+  /// No optimistic local patch, unlike some of the writes above. The mute the
+  /// user picked is a duration, and the thing every surface renders is the
+  /// DEADLINE the server computes from it; guessing that deadline here with
+  /// this device's clock would show the user a time that then quietly changed
+  /// under them when the subscription caught up a beat later.
+  Future<void> muteRoom(
+    String roomId, {
+    required bool notifications,
+    required bool badges,
+    required MuteDuration duration,
+  }) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.muteRoom(
+      roomId: roomId,
+      userId: id,
+      notifications: notifications,
+      badges: badges,
+      durationMs: duration.wireMs,
+    );
+  }
+
+  Future<void> unmuteRoom(String roomId) async {
+    final id = _userId;
+    if (id == null) return;
+    await api.unmuteRoom(roomId: roomId, userId: id);
   }
 
   // ───────────── messages ─────────────

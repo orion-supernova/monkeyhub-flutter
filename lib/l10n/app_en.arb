@@ -6437,5 +6437,125 @@
   "roomInfoScreenSavedMessageUnsaveSemantic": "Unsave message from {name}",
   "@roomInfoScreenSavedMessageUnsaveSemantic": {
     "description": "Accessibility semanticLabel on the small bookmark icon button at the end of each row in room info's saved-messages list; tapping removes this reader's bookmark. {name} is the sender's display name."
+  },
+  "muteSheetTitle": "MUTE CHAT",
+  "@muteSheetTitle": {
+    "description": "All-caps headline of the bottom sheet that silences one chat."
+  },
+  "muteSheetSubtitle": "Pick what goes quiet, and for how long.",
+  "@muteSheetSubtitle": {
+    "description": "One line under the mute sheet's headline explaining that the user picks both what is silenced and for how long."
+  },
+  "muteSheetNotificationsTitle": "Notifications",
+  "@muteSheetNotificationsTitle": {
+    "description": "Title of the first switch in the mute sheet: silence this chat's push notifications."
+  },
+  "muteSheetNotificationsSub": "No banner, no sound",
+  "@muteSheetNotificationsSub": {
+    "description": "Sub-line under the notifications switch, spelling out what stops: the banner and the sound."
+  },
+  "muteSheetBadgesTitle": "Unread counts",
+  "@muteSheetBadgesTitle": {
+    "description": "Title of the second switch in the mute sheet: hide this chat's unread counts."
+  },
+  "muteSheetBadgesSub": "No number on the chat, nothing added to the app icon",
+  "@muteSheetBadgesSub": {
+    "description": "Sub-line under the unread-counts switch: no number beside the chat and nothing added to the OS app-icon badge."
+  },
+  "muteSheetDurationLabel": "FOR HOW LONG",
+  "@muteSheetDurationLabel": {
+    "description": "All-caps field label above the row of mute-duration choices."
+  },
+  "muteDurationHour": "1 hour",
+  "@muteDurationHour": {
+    "description": "Mute duration choice: sixty minutes."
+  },
+  "muteDurationEightHours": "8 hours",
+  "@muteDurationEightHours": {
+    "description": "Mute duration choice: eight hours, roughly a working day or a night's sleep."
+  },
+  "muteDurationWeek": "1 week",
+  "@muteDurationWeek": {
+    "description": "Mute duration choice: seven days."
+  },
+  "muteDurationAlways": "Always",
+  "@muteDurationAlways": {
+    "description": "Mute duration choice with no end — stays muted until the user turns it off themselves."
+  },
+  "muteSheetConfirmButton": "MUTE",
+  "@muteSheetConfirmButton": {
+    "description": "All-caps button that applies a new mute to the chat."
+  },
+  "muteSheetSaveButton": "SAVE",
+  "@muteSheetSaveButton": {
+    "description": "All-caps button that applies changes to a chat that is ALREADY muted, shown instead of the mute button."
+  },
+  "muteSheetUnmuteButton": "UNMUTE",
+  "@muteSheetUnmuteButton": {
+    "description": "All-caps button that ends a mute early and restores notifications and counts."
+  },
+  "muteSummaryAll": "Nothing from this chat reaches you — no notifications, no unread count.",
+  "@muteSummaryAll": {
+    "description": "Sentence in the mute sheet when BOTH switches are on, stating that neither notifications nor unread counts will reach the user."
+  },
+  "muteSummaryNotificationsOnly": "No notifications. The unread count keeps climbing.",
+  "@muteSummaryNotificationsOnly": {
+    "description": "Sentence in the mute sheet when only the notifications switch is on: no banners, but the unread count still rises."
+  },
+  "muteSummaryBadgesOnly": "No unread count. Notifications still come through.",
+  "@muteSummaryBadgesOnly": {
+    "description": "Sentence in the mute sheet when only the unread-counts switch is on: no number shown, but notifications still arrive."
+  },
+  "muteSummaryNothingPicked": "Pick at least one thing to silence.",
+  "@muteSummaryNothingPicked": {
+    "description": "Sentence in the mute sheet when neither switch is on, prompting the user to choose something to silence."
+  },
+  "muteUntilSentence": "Until {when}.",
+  "@muteUntilSentence": {
+    "description": "Second sentence in the mute sheet naming when the mute ends. {when} is an already-formatted, already-localized time or date-and-time, never a raw number.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "description": "The formatted end time, e.g. \"8:00 PM\" or \"Aug 16, 8:00 PM\"."
+      }
+    }
+  },
+  "muteUntilAlwaysSentence": "Until you turn it back on.",
+  "@muteUntilAlwaysSentence": {
+    "description": "Second sentence in the mute sheet when the duration is 'Always' — the mute has no end and only the user can lift it."
+  },
+  "muteUntilDateAndTime": "{date}, {time}",
+  "@muteUntilDateAndTime": {
+    "description": "Joins a date and a clock time into one string for a mute deadline that is not today. {date} and {time} are both already formatted by the platform in the user's locale; translate only the separator.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "description": "The platform-formatted date."
+      },
+      "time": {
+        "type": "String",
+        "description": "The platform-formatted clock time."
+      }
+    }
+  },
+  "mutedBadgeLabel": "MUTED",
+  "@mutedBadgeLabel": {
+    "description": "All-caps text of the small pill on a chat row marking it as muted by this viewer."
+  },
+  "chatRowActionMenuMuteLabel": "MUTE CHAT",
+  "@chatRowActionMenuMuteLabel": {
+    "description": "All-caps row in the chat-list long-press menu that opens the mute sheet."
+  },
+  "chatRowActionMenuUnmuteLabel": "UNMUTE CHAT",
+  "@chatRowActionMenuUnmuteLabel": {
+    "description": "All-caps row in the chat-list long-press menu that lifts an existing mute immediately."
+  },
+  "roomInfoScreenMuteLabel": "MUTE",
+  "@roomInfoScreenMuteLabel": {
+    "description": "All-caps field label above the mute row in the room info screen."
+  },
+  "roomInfoScreenNotMutedRow": "Not muted",
+  "@roomInfoScreenNotMutedRow": {
+    "description": "Text of the room info screen's mute row when nothing about the chat is silenced."
   }
 }

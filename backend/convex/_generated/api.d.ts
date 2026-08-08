@@ -11,6 +11,7 @@
 import type * as appleTokens from "../appleTokens.js";
 import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
+import type * as bookmarks from "../bookmarks.js";
 import type * as calls from "../calls.js";
 import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
@@ -29,6 +30,7 @@ import type * as http from "../http.js";
 import type * as idToken from "../idToken.js";
 import type * as messages from "../messages.js";
 import type * as migrations from "../migrations.js";
+import type * as mute from "../mute.js";
 import type * as notifications from "../notifications.js";
 import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
@@ -62,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   appleTokens: typeof appleTokens;
   auth: typeof auth;
   badges: typeof badges;
+  bookmarks: typeof bookmarks;
   calls: typeof calls;
   childGuard: typeof childGuard;
   crons: typeof crons;
@@ -80,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   idToken: typeof idToken;
   messages: typeof messages;
   migrations: typeof migrations;
+  mute: typeof mute;
   notifications: typeof notifications;
   pins: typeof pins;
   presence: typeof presence;

@@ -5705,4 +5705,91 @@ class AppLocalizationsHi extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return '$name के मैसेज से सेव हटाना';
   }
+
+  @override
+  String get muteSheetTitle => 'चैट म्यूट करें';
+
+  @override
+  String get muteSheetSubtitle => 'चुनें कि क्या शांत रहेगा और कितनी देर तक।';
+
+  @override
+  String get muteSheetNotificationsTitle => 'सूचनाएँ';
+
+  @override
+  String get muteSheetNotificationsSub => 'कोई बैनर नहीं, कोई आवाज़ नहीं';
+
+  @override
+  String get muteSheetBadgesTitle => 'बिना पढ़े संदेशों की गिनती';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'चैट पर कोई संख्या नहीं, ऐप आइकॉन में कुछ नहीं जुड़ेगा';
+
+  @override
+  String get muteSheetDurationLabel => 'कितनी देर के लिए';
+
+  @override
+  String get muteDurationHour => '1 घंटा';
+
+  @override
+  String get muteDurationEightHours => '8 घंटे';
+
+  @override
+  String get muteDurationWeek => '1 सप्ताह';
+
+  @override
+  String get muteDurationAlways => 'हमेशा';
+
+  @override
+  String get muteSheetConfirmButton => 'म्यूट करें';
+
+  @override
+  String get muteSheetSaveButton => 'सहेजें';
+
+  @override
+  String get muteSheetUnmuteButton => 'अनम्यूट करें';
+
+  @override
+  String get muteSummaryAll =>
+      'इस चैट से आप तक कुछ नहीं पहुँचेगा — न सूचनाएँ, न बिना पढ़े संदेशों की गिनती।';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'कोई सूचना नहीं। बिना पढ़े संदेशों की गिनती बढ़ती रहेगी।';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'बिना पढ़े संदेशों की गिनती नहीं। सूचनाएँ आती रहेंगी।';
+
+  @override
+  String get muteSummaryNothingPicked =>
+      'शांत करने के लिए कम से कम एक चीज़ चुनें।';
+
+  @override
+  String muteUntilSentence(String when) {
+    return '$when तक।';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'जब तक आप इसे फिर से चालू न करें।';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'म्यूट';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'चैट म्यूट करें';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'चैट अनम्यूट करें';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'म्यूट';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'म्यूट नहीं है';
 }

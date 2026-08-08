@@ -5769,4 +5769,90 @@ class AppLocalizationsAr extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return 'إلغاء حفظ الرسالة من $name';
   }
+
+  @override
+  String get muteSheetTitle => 'كتم المحادثة';
+
+  @override
+  String get muteSheetSubtitle => 'اختر ما الذي يهدأ، ولكم من الوقت.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'الإشعارات';
+
+  @override
+  String get muteSheetNotificationsSub => 'بلا إشعار، بلا صوت';
+
+  @override
+  String get muteSheetBadgesTitle => 'عدّاد غير المقروء';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'بلا رقم على المحادثة، ولا شيء يُضاف إلى أيقونة التطبيق';
+
+  @override
+  String get muteSheetDurationLabel => 'لكم من الوقت';
+
+  @override
+  String get muteDurationHour => 'ساعة واحدة';
+
+  @override
+  String get muteDurationEightHours => '8 ساعات';
+
+  @override
+  String get muteDurationWeek => 'أسبوع واحد';
+
+  @override
+  String get muteDurationAlways => 'دائمًا';
+
+  @override
+  String get muteSheetConfirmButton => 'كتم';
+
+  @override
+  String get muteSheetSaveButton => 'حفظ';
+
+  @override
+  String get muteSheetUnmuteButton => 'إلغاء الكتم';
+
+  @override
+  String get muteSummaryAll =>
+      'لن يصلك شيء من هذه المحادثة — لا إشعارات ولا عدّاد غير مقروء.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'بلا إشعارات. عدّاد غير المقروء يستمر في الارتفاع.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'بلا عدّاد غير مقروء. الإشعارات ما زالت تصل.';
+
+  @override
+  String get muteSummaryNothingPicked => 'اختر شيئًا واحدًا على الأقل لكتمه.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'حتى $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'حتى تعيد تشغيله بنفسك.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date، $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'مكتومة';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'كتم المحادثة';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'إلغاء كتم المحادثة';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'الكتم';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'غير مكتومة';
 }

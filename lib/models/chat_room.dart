@@ -1,4 +1,5 @@
 import 'enums.dart';
+import 'room_mute.dart';
 
 class ChatRoom {
   ChatRoom({
@@ -26,6 +27,7 @@ class ChatRoom {
     this.pinnedAt,
     this.isArchived = false,
     this.archivedAt,
+    this.mute = RoomMute.none,
     this.systemRole,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
@@ -91,6 +93,16 @@ class ChatRoom {
   bool isArchived;
   DateTime? archivedAt;
 
+  /// What this viewer has silenced about the room, and until when
+  /// (roomMembers.muteNotifications / .muteBadges / .mutedUntil).
+  ///
+  /// Per-membership like the four fields above it, and carried RAW rather than
+  /// pre-resolved — see [RoomMute] for why a boolean off the wire would have a
+  /// shelf life and a deadline doesn't. Everything that draws a count goes
+  /// through [visibleUnreadCount] / [hasUnread] rather than reading this
+  /// directly, so the "is it still muted?" comparison happens in one place.
+  RoomMute mute;
+
   /// Set only on rooms the APP owns rather than people — the maintainer's
   /// `MonkeyHub Logs` feed today, a support or announcements channel later.
   /// The value names WHICH fixture (`rooms.system` server-side, see
@@ -114,20 +126,55 @@ class ChatRoom {
   /// conversation. See [systemRole].
   bool get isSystemRoom => systemRole != null && systemRole!.isNotEmpty;
 
+  // ───────────── mute, resolved against the wall clock ─────────────
+  //
+  // Four getters rather than four `room.mute.silences...(DateTime.now())` call
+  // sites, so the app can never end up with two widgets that disagree about
+  // whether the same room is muted because one of them wrote the comparison
+  // itself. [RoomMute] is where the arithmetic lives and where it is tested;
+  // this is just the app's `now`.
+
+  /// Whether anything about this room is currently silenced.
+  bool get isMuted => mute.isLiveAt(DateTime.now());
+
+  /// Whether pushes from this room are currently silenced.
+  bool get notificationsMuted => mute.silencesNotificationsAt(DateTime.now());
+
+  /// Whether this room is currently kept out of every count.
+  bool get badgesMuted => mute.silencesBadgesAt(DateTime.now());
+
+  /// The unread count as far as anything on screen is concerned.
+  ///
+  /// Zero for a badge-muted room even though [unreadCount] is the true figure
+  /// the server computed. Both are wanted: the room info screen can still say
+  /// how much is waiting in a room you've silenced, while every pill, dot and
+  /// aggregate reads this one and goes quiet.
+  int get visibleUnreadCount => badgesMuted ? 0 : unreadCount;
+
   /// True when the room has a message newer than this user's read cursor.
   ///
   /// Prefers the server-computed [unreadCount], which — unlike the timestamp
   /// comparison — doesn't count the user's own sends. The timestamp fallback
   /// is kept for the deploy window where a client is talking to a backend that
   /// doesn't send `unreadCount` yet.
+  ///
+  /// Answers "does this room look unread", not "does it hold unread messages",
+  /// which is why muting badges makes it false: hiding the pill but keeping
+  /// the glowing dot and the bold name would silence the number and none of
+  /// the noise around it.
   bool get hasUnread =>
-      unreadCount > 0 ||
-      (unreadCount == 0 &&
-          lastMessageTime != null &&
-          (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!)));
+      !badgesMuted &&
+      (unreadCount > 0 ||
+          (unreadCount == 0 &&
+              lastMessageTime != null &&
+              (lastReadAt == null || lastMessageTime!.isAfter(lastReadAt!))));
+
+  /// [hasMention], with the same badge-mute suppression as [hasUnread]. An `@`
+  /// marker is a louder unread count, so it cannot outlive one.
+  bool get hasVisibleMention => hasMention && !badgesMuted;
 
   /// Badge text for the room list — "99+" once the server-side cap is hit.
-  String get unreadLabel => unreadCapped ? '99+' : '$unreadCount';
+  String get unreadLabel => unreadCapped ? '99+' : '$visibleUnreadCount';
 
   /// For DM rooms, returns the "other" participant id (the one that's not me).
   String? otherParticipantId(String myId) {
@@ -163,6 +210,7 @@ class ChatRoom {
         if (pinnedAt != null) 'pinnedAt': pinnedAt!.millisecondsSinceEpoch,
         if (isArchived) 'isArchived': true,
         if (archivedAt != null) 'archivedAt': archivedAt!.millisecondsSinceEpoch,
+        ...mute.toJson(),
         if (systemRole != null) 'system': systemRole,
       };
 
@@ -203,6 +251,7 @@ class ChatRoom {
       archivedAt: j['archivedAt'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['archivedAt'] as num).toInt())
           : null,
+      mute: RoomMute.fromJson(j),
       // Absent on every ordinary room and on any backend that predates the
       // field, which both mean the same thing: not a system room.
       systemRole: j['system'] as String?,

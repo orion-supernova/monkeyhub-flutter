@@ -5497,4 +5497,86 @@ class AppLocalizationsKo extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return '$name님의 메시지 저장 해제';
   }
+
+  @override
+  String get muteSheetTitle => '채팅 음소거';
+
+  @override
+  String get muteSheetSubtitle => '무엇을 조용히 할지, 얼마 동안 할지 고르세요.';
+
+  @override
+  String get muteSheetNotificationsTitle => '알림';
+
+  @override
+  String get muteSheetNotificationsSub => '배너 없음, 소리 없음';
+
+  @override
+  String get muteSheetBadgesTitle => '읽지 않은 수';
+
+  @override
+  String get muteSheetBadgesSub => '채팅에 숫자를 표시하지 않고 앱 아이콘에도 더하지 않습니다';
+
+  @override
+  String get muteSheetDurationLabel => '얼마 동안';
+
+  @override
+  String get muteDurationHour => '1시간';
+
+  @override
+  String get muteDurationEightHours => '8시간';
+
+  @override
+  String get muteDurationWeek => '1주';
+
+  @override
+  String get muteDurationAlways => '항상';
+
+  @override
+  String get muteSheetConfirmButton => '음소거';
+
+  @override
+  String get muteSheetSaveButton => '저장';
+
+  @override
+  String get muteSheetUnmuteButton => '음소거 해제';
+
+  @override
+  String get muteSummaryAll => '이 채팅에서는 아무것도 오지 않습니다. 알림도 읽지 않은 수도 없습니다.';
+
+  @override
+  String get muteSummaryNotificationsOnly => '알림이 없습니다. 읽지 않은 수는 계속 늘어납니다.';
+
+  @override
+  String get muteSummaryBadgesOnly => '읽지 않은 수가 표시되지 않습니다. 알림은 계속 옵니다.';
+
+  @override
+  String get muteSummaryNothingPicked => '조용히 할 항목을 하나 이상 고르세요.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return '$when까지.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => '직접 해제할 때까지.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => '음소거됨';
+
+  @override
+  String get chatRowActionMenuMuteLabel => '채팅 음소거';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => '채팅 음소거 해제';
+
+  @override
+  String get roomInfoScreenMuteLabel => '음소거';
+
+  @override
+  String get roomInfoScreenNotMutedRow => '음소거 안 함';
 }

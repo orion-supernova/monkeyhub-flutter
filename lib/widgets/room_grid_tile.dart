@@ -8,6 +8,7 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'muted_badge.dart';
 import 'pinned_badge.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
@@ -122,10 +123,12 @@ class RoomGridTile extends StatelessWidget {
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (room.unreadCount > 0)
+                  // Mute-resolved, same as room_card.dart: a badge-muted
+                  // room shows neither the pill nor the dot it falls back to.
+                  if (room.visibleUnreadCount > 0)
                     CountBadge(
-                      count: room.unreadCount,
-                      mention: room.hasMention,
+                      count: room.visibleUnreadCount,
+                      mention: room.hasVisibleMention,
                     )
                   else if (room.hasUnread)
                     Container(
@@ -162,6 +165,16 @@ class RoomGridTile extends StatelessWidget {
                   // room_card.dart: pinning it is now a choice, not a given.
                   if (room.isPinned)
                     const PinnedBadge(dense: true, iconOnly: true),
+                  // Icon-only here: a tile this narrow has no room for the
+                  // word, and the pill's tap tooltip still spells out which of
+                  // the two switches is on.
+                  if (room.isMuted)
+                    MutedBadge(
+                      dense: true,
+                      iconOnly: true,
+                      silencesNotifications: room.notificationsMuted,
+                      silencesCounts: room.badgesMuted,
+                    ),
                 ],
               ),
             ),

@@ -5410,4 +5410,86 @@ class AppLocalizationsZh extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return '取消保存$name的消息';
   }
+
+  @override
+  String get muteSheetTitle => '静音聊天';
+
+  @override
+  String get muteSheetSubtitle => '选择要静音的内容和时长。';
+
+  @override
+  String get muteSheetNotificationsTitle => '通知';
+
+  @override
+  String get muteSheetNotificationsSub => '没有横幅，没有声音';
+
+  @override
+  String get muteSheetBadgesTitle => '未读计数';
+
+  @override
+  String get muteSheetBadgesSub => '聊天上不显示数字，也不计入应用图标';
+
+  @override
+  String get muteSheetDurationLabel => '静音多久';
+
+  @override
+  String get muteDurationHour => '1 小时';
+
+  @override
+  String get muteDurationEightHours => '8 小时';
+
+  @override
+  String get muteDurationWeek => '1 周';
+
+  @override
+  String get muteDurationAlways => '一直';
+
+  @override
+  String get muteSheetConfirmButton => '静音';
+
+  @override
+  String get muteSheetSaveButton => '保存';
+
+  @override
+  String get muteSheetUnmuteButton => '取消静音';
+
+  @override
+  String get muteSummaryAll => '这个聊天不会打扰你：没有通知，也没有未读计数。';
+
+  @override
+  String get muteSummaryNotificationsOnly => '没有通知。未读计数仍会继续增加。';
+
+  @override
+  String get muteSummaryBadgesOnly => '没有未读计数。通知仍会送达。';
+
+  @override
+  String get muteSummaryNothingPicked => '至少选择一项要静音的内容。';
+
+  @override
+  String muteUntilSentence(String when) {
+    return '直到 $when。';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => '直到你重新打开。';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => '已静音';
+
+  @override
+  String get chatRowActionMenuMuteLabel => '静音聊天';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => '取消静音';
+
+  @override
+  String get roomInfoScreenMuteLabel => '静音';
+
+  @override
+  String get roomInfoScreenNotMutedRow => '未静音';
 }

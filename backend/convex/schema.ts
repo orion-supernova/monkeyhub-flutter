@@ -261,6 +261,42 @@ export default defineSchema({
     pinnedAt: v.optional(v.number()),
     isArchived: v.optional(v.boolean()),
     archivedAt: v.optional(v.number()),
+    // ── Per-viewer mute ─────────────────────────────────────────────────
+    //
+    // Same per-membership reasoning as `isPinned`/`isArchived` above: muting
+    // a chat is one person's decision about their own attention, and the same
+    // room stays loud for everyone else in it.
+    //
+    // TWO switches, not one, because "stop buzzing me about this" and "hide
+    // this from my counts entirely" are different requests. The first is the
+    // everyday one; the second is the stronger "I don't want to see this at
+    // all". They are read independently everywhere — a room muted for
+    // notifications only still climbs its unread count and still bolds in the
+    // chat list, which is exactly what someone who picked only that switch
+    // asked for.
+    //
+    //   muteNotifications — suppresses the push before it is sent. The check
+    //     lives server-side, at `push.sendAlert`, because a notification
+    //     suppressed on the device has already buzzed. Only `kind: "message"`
+    //     is gated: an incoming call carries a roomId too, and silencing a
+    //     ringing phone is not what anyone means by muting a chat.
+    //   muteBadges — drops the room out of `badges.badgeTotalFor`, so it stops
+    //     contributing to the OS app-icon count, and tells the client to hide
+    //     its unread pill, its dot and its bold name.
+    //
+    // `mutedUntil` is the clock both switches hang on: an absolute instant in
+    // ms since epoch, computed server-side from a duration the client asks for
+    // so a phone with a skewed clock cannot mute for the wrong length of time.
+    // Absent means no mute; a value in the past means one lapsed and is read
+    // as nothing, with no sweep and nothing to clean up. "Always" is the
+    // sentinel `mute.MUTE_ALWAYS` rather than a null — see that file for why
+    // the sentinel is the safe direction to forget about.
+    //
+    // Absent on every row written before these fields existed, which reads as
+    // "not muted". No backfill.
+    muteNotifications: v.optional(v.boolean()),
+    muteBadges: v.optional(v.boolean()),
+    mutedUntil: v.optional(v.number()),
   })
     .index("by_room", ["roomId"])
     .index("by_user", ["userId"])

@@ -5721,4 +5721,90 @@ class AppLocalizationsSv extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return 'Ta bort sparat meddelande från $name';
   }
+
+  @override
+  String get muteSheetTitle => 'TYSTA CHATTEN';
+
+  @override
+  String get muteSheetSubtitle => 'Välj vad som ska tystna, och hur länge.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Aviseringar';
+
+  @override
+  String get muteSheetNotificationsSub => 'Ingen avisering, inget ljud';
+
+  @override
+  String get muteSheetBadgesTitle => 'Antal olästa';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Ingen siffra på chatten, inget som läggs till appikonen';
+
+  @override
+  String get muteSheetDurationLabel => 'HUR LÄNGE';
+
+  @override
+  String get muteDurationHour => '1 timme';
+
+  @override
+  String get muteDurationEightHours => '8 timmar';
+
+  @override
+  String get muteDurationWeek => '1 vecka';
+
+  @override
+  String get muteDurationAlways => 'Alltid';
+
+  @override
+  String get muteSheetConfirmButton => 'TYSTA';
+
+  @override
+  String get muteSheetSaveButton => 'SPARA';
+
+  @override
+  String get muteSheetUnmuteButton => 'SLÅ PÅ LJUD';
+
+  @override
+  String get muteSummaryAll =>
+      'Ingenting från den här chatten når dig – varken aviseringar eller antal olästa.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Inga aviseringar. Antalet olästa fortsätter att öka.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Inget antal olästa. Aviseringar kommer fortfarande fram.';
+
+  @override
+  String get muteSummaryNothingPicked => 'Välj minst en sak att tysta.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Till $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Tills du slår på det igen.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'TYSTAD';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'TYSTA CHATTEN';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'SLÅ PÅ LJUD FÖR CHATTEN';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'TYSTA';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Inte tystad';
 }

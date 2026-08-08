@@ -9,6 +9,7 @@ import {
   type ApnsEnv,
 } from "./pushTransport";
 import { badgeTotalFor } from "./badges";
+import { resolveMute } from "./mute";
 
 // Deliberately NOT imported from ./webPush: that module runs in the Node
 // runtime (Convex's V8 isolate has no ECDH), and importing it here would drag
@@ -208,6 +209,8 @@ type AlertTarget = {
   devices: AlertDevice[];
   badge: number;
   lastReadAt: number;
+  /** Room mute, resolved at query time. False whenever there is no room. */
+  mutesNotifications: boolean;
 };
 
 /**
@@ -262,6 +265,7 @@ export const _loadAlertTargets = internalQuery({
       }
       const { total } = await badgeTotalFor(ctx, userId);
       let lastReadAt = 0;
+      let mutesNotifications = false;
       if (roomId) {
         const m = await ctx.db
           .query("roomMembers")
@@ -270,8 +274,11 @@ export const _loadAlertTargets = internalQuery({
           )
           .first();
         lastReadAt = m?.lastReadAt ?? 0;
+        // Free: the row we already fetched for the read cursor carries the
+        // mute columns too, so the gate below costs no extra read.
+        mutesNotifications = resolveMute(m, Date.now()).notifications;
       }
-      out.push({ userId, devices, badge: total, lastReadAt });
+      out.push({ userId, devices, badge: total, lastReadAt, mutesNotifications });
     }
     return out;
   },
@@ -315,6 +322,20 @@ export const sendAlert = internalAction({
         if (a.sentAt !== undefined && t.lastReadAt >= a.sentAt) {
           return;
         }
+        // The mute, enforced at the last possible moment before bytes leave
+        // the building. `notifications.sendMessagePush` has already dropped
+        // these recipients from its own list; this is the choke point that
+        // makes that impossible to get wrong from a future caller, and it
+        // costs one boolean because `_loadAlertTargets` had the row anyway.
+        //
+        // `kind === "message"` and nothing else, on purpose. `call_invite` and
+        // `group_call_invite` both carry a roomId (see calls.ts / groupCalls.ts),
+        // so a looser test would stop a muted room's phone from ringing — which
+        // is not what anybody means by muting a chat, and is the kind of bug
+        // that gets noticed as "the app doesn't ring any more". `dismiss` is
+        // exempt for the opposite reason: it is silent by construction and its
+        // entire job is correcting a badge, including for the muted.
+        if (a.kind === "message" && t.mutesNotifications) return;
         if (t.devices.length === 0) return;
         const over = (a.perUser ?? {})[t.userId.toString()] ?? {};
         const spec: AlertSpec = {

@@ -5672,4 +5672,91 @@ class AppLocalizationsTr extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return '$name tarafından gönderilen mesajın kaydını kaldır';
   }
+
+  @override
+  String get muteSheetTitle => 'SOHBETİ SESSİZE AL';
+
+  @override
+  String get muteSheetSubtitle =>
+      'Neyin susacağını ve ne kadar süreyle susacağını seç.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Bildirimler';
+
+  @override
+  String get muteSheetNotificationsSub => 'Bildirim yok, ses yok';
+
+  @override
+  String get muteSheetBadgesTitle => 'Okunmamış sayıları';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Sohbette sayı yok, uygulama simgesine hiçbir şey eklenmez';
+
+  @override
+  String get muteSheetDurationLabel => 'NE KADAR SÜREYLE';
+
+  @override
+  String get muteDurationHour => '1 saat';
+
+  @override
+  String get muteDurationEightHours => '8 saat';
+
+  @override
+  String get muteDurationWeek => '1 hafta';
+
+  @override
+  String get muteDurationAlways => 'Her zaman';
+
+  @override
+  String get muteSheetConfirmButton => 'SESSİZE AL';
+
+  @override
+  String get muteSheetSaveButton => 'KAYDET';
+
+  @override
+  String get muteSheetUnmuteButton => 'SESİ AÇ';
+
+  @override
+  String get muteSummaryAll =>
+      'Bu sohbetten sana hiçbir şey ulaşmaz — ne bildirim ne de okunmamış sayısı.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Bildirim yok. Okunmamış sayısı artmaya devam eder.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Okunmamış sayısı yok. Bildirimler gelmeye devam eder.';
+
+  @override
+  String get muteSummaryNothingPicked => 'Susturulacak en az bir şey seç.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Bitiş: $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Sen tekrar açana kadar.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'SESSİZ';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'SOHBETİ SESSİZE AL';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'SOHBETİN SESİNİ AÇ';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'SESSİZE ALMA';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Sessize alınmadı';
 }

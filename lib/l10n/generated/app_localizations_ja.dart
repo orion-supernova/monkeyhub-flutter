@@ -5480,4 +5480,86 @@ class AppLocalizationsJa extends AppLocalizations {
   String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
     return '$nameのメッセージの保存を解除';
   }
+
+  @override
+  String get muteSheetTitle => 'チャットをミュート';
+
+  @override
+  String get muteSheetSubtitle => '何を静かにするか、どのくらいの間かを選びます。';
+
+  @override
+  String get muteSheetNotificationsTitle => '通知';
+
+  @override
+  String get muteSheetNotificationsSub => 'バナーなし、音なし';
+
+  @override
+  String get muteSheetBadgesTitle => '未読件数';
+
+  @override
+  String get muteSheetBadgesSub => 'チャットに数字を出さず、アプリアイコンにも足しません';
+
+  @override
+  String get muteSheetDurationLabel => 'ミュートする期間';
+
+  @override
+  String get muteDurationHour => '1時間';
+
+  @override
+  String get muteDurationEightHours => '8時間';
+
+  @override
+  String get muteDurationWeek => '1週間';
+
+  @override
+  String get muteDurationAlways => 'ずっと';
+
+  @override
+  String get muteSheetConfirmButton => 'ミュート';
+
+  @override
+  String get muteSheetSaveButton => '保存';
+
+  @override
+  String get muteSheetUnmuteButton => 'ミュート解除';
+
+  @override
+  String get muteSummaryAll => 'このチャットからは何も届きません。通知も未読件数もありません。';
+
+  @override
+  String get muteSummaryNotificationsOnly => '通知はありません。未読件数は増え続けます。';
+
+  @override
+  String get muteSummaryBadgesOnly => '未読件数は表示されません。通知は届きます。';
+
+  @override
+  String get muteSummaryNothingPicked => '静かにするものを少なくとも1つ選んでください。';
+
+  @override
+  String muteUntilSentence(String when) {
+    return '$when まで。';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => '自分で解除するまでずっと。';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'ミュート中';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'チャットをミュート';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'ミュートを解除';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'ミュート';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'ミュートしていません';
 }
