@@ -257,6 +257,56 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('the row holds its place while the chat list scrolls past it', (
+      tester,
+    ) async {
+      // The row rides inside the chat list's scroll view, so scrolling far
+      // enough down unmounts it. A scroll position only survives that if it has
+      // somewhere to persist to, and one with no PageStorageKey of its own
+      // persists nowhere — the row silently rewound to the first chip every
+      // time it left the viewport.
+      await tester.pumpWidget(
+        host(
+          ListView(
+            key: const PageStorageKey('home_main_list'),
+            children: [
+              RoomFilterBar(
+                filter: RoomFilter.empty,
+                counts: counts,
+                onChanged: (_) {},
+              ),
+              // Tall enough to carry the row well past the viewport's cache
+              // band, so it really is disposed and rebuilt.
+              const SizedBox(height: 4000),
+            ],
+          ),
+        ),
+      );
+
+      ScrollableState row() => tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .firstWhere((s) => s.position.axis == Axis.horizontal);
+
+      // Hunt down a later facet, the way you would to reach the far chips.
+      await tester.drag(find.byType(Scrollable).last, const Offset(-200, 0));
+      await tester.pumpAndSettle();
+      final landedOn = row().position.pixels;
+      expect(landedOn, greaterThan(0));
+
+      final list = find.byType(Scrollable).first;
+      await tester.drag(list, const Offset(0, -2500));
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(RoomFilterBar),
+        findsNothing,
+        reason: 'the row must actually unmount for this to prove anything',
+      );
+
+      await tester.drag(list, const Offset(0, 2500));
+      await tester.pumpAndSettle();
+      expect(row().position.pixels, landedOn);
+    });
   });
 
   group('drawer panel', () {

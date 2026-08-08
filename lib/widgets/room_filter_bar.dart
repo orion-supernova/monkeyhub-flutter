@@ -49,6 +49,13 @@ class RoomFilterBar extends StatelessWidget {
     return SizedBox(
       height: scaled,
       child: ListView(
+        // The row lives inside the chat list's scroll view, so scrolling far
+        // enough down unmounts it. A scroll position only survives that if it
+        // has somewhere to persist to, and one without a PageStorageKey of its
+        // own persists nowhere: scroll the row to a later facet, scroll the
+        // chats past it, come back, and the row had silently rewound to the
+        // start.
+        key: const PageStorageKey('room_filter_bar'),
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: gutter),
         physics: const BouncingScrollPhysics(),
