@@ -1012,6 +1012,40 @@ class ChatApi {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Saved messages (per-reader bookmarks)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Marks [messageId] as saved for [userId], where it is.
+  ///
+  /// Nothing to do with the `dm:self:` Saved Messages ROOM, which is reached by
+  /// forwarding — see `bookmarks.ts`. Takes no `roomId` for the same reason the
+  /// pins above don't: the server derives it from the message, so a bookmark
+  /// naming a room its message doesn't live in cannot be expressed.
+  ///
+  /// There is no matching read method here on purpose. The list is a live
+  /// subscription, and every live subscription in this app is registered by
+  /// `ChatRepository` so the reconnect rebinding covers it.
+  Future<void> saveMessage({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('bookmarks:save', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  Future<void> unsaveMessage({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('bookmarks:unsave', {
+      'messageId': messageId,
+      'userId': userId,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Shared content
   // ─────────────────────────────────────────────────────────────────────────
 

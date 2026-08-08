@@ -5372,4 +5372,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => '取消归档聊天';
+
+  @override
+  String get messageActionMenuSaveLabel => '保存';
+
+  @override
+  String get messageActionMenuUnsaveLabel => '取消保存';
+
+  @override
+  String get roomScreenSaveLimitSnack => '这里保存的太多了，先取消一条';
+
+  @override
+  String get roomScreenSaveFailedSnack => '无法保存这条消息';
+
+  @override
+  String get threadOverlaySaveLimitToast => '这里保存的太多了，先取消一条';
+
+  @override
+  String get threadOverlaySaveFailedToast => '无法保存这条消息';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => '保存的消息';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      '只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty => '还没有保存任何内容。长按消息并选择“保存”。';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '跳转到$name保存的消息';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '取消保存$name的消息';
+  }
 }

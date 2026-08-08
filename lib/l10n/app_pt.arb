@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "FIXAR CONVERSA",
   "chatRowActionMenuUnpinLabel": "DESAFIXAR CONVERSA",
   "chatRowActionMenuArchiveLabel": "ARQUIVAR CONVERSA",
-  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CONVERSA"
+  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CONVERSA",
+  "messageActionMenuSaveLabel": "GUARDAR",
+  "messageActionMenuUnsaveLabel": "REMOVER",
+  "roomScreenSaveLimitSnack": "demasiadas mensagens guardadas aqui — remove uma primeiro",
+  "roomScreenSaveFailedSnack": "não foi possível guardar essa mensagem",
+  "threadOverlaySaveLimitToast": "demasiadas mensagens guardadas aqui — remove uma primeiro",
+  "threadOverlaySaveFailedToast": "não foi possível guardar essa mensagem",
+  "roomInfoScreenSavedMessagesLabel": "MENSAGENS GUARDADAS",
+  "roomInfoScreenSavedMessagesCaption": "só tu as vês, e só a partir desta sala. a tua conversa Mensagens guardadas é à parte.",
+  "roomInfoScreenSavedMessagesEmpty": "ainda não há nada guardado. mantém uma mensagem premida e escolhe GUARDAR.",
+  "roomInfoScreenSavedMessageJumpSemantic": "Ir para a mensagem guardada de {name}",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "Remover dos guardados a mensagem de {name}"
 }

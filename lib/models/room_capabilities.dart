@@ -60,6 +60,7 @@ class RoomCapabilities {
     required this.canEditSettings,
     required this.canOpenPeerProfile,
     required this.canReceiveForwards,
+    required this.canSaveMessages,
   });
 
   /// Whether the header offers to start a call — the 1:1 button in a DM, the
@@ -99,6 +100,19 @@ class RoomCapabilities {
   /// the prime target; a write-only bot feed is not a place to put things.
   final bool canReceiveForwards;
 
+  /// Whether a message here can be SAVED — the per-reader bookmark behind the
+  /// bubble menu's SAVE row and room info's "Saved messages" section.
+  ///
+  /// Note this is the opposite polarity to [canReceiveForwards] on exactly the
+  /// room where the two are easiest to confuse. Saved Messages is the best place
+  /// in the app to forward something TO, and the worst place to bookmark
+  /// anything IN: the room already is the pile of things you kept, so marking
+  /// one of them "kept" sorts nothing from nothing. That is a fact about the
+  /// KIND of room, which is why it belongs here rather than as an
+  /// `if (room.isSavedMessages)` at the two menu call sites — which is the exact
+  /// nine-site sprawl this table was built to end.
+  final bool canSaveMessages;
+
   /// An ordinary room: everything on. [canDelete] still narrows to the owner at
   /// the call site.
   static const group = RoomCapabilities(
@@ -110,6 +124,7 @@ class RoomCapabilities {
     canEditSettings: true,
     canOpenPeerProfile: false, // no single peer to open
     canReceiveForwards: true,
+    canSaveMessages: true,
   );
 
   /// A two-person conversation. No leaving and no settings — the room is the
@@ -124,11 +139,16 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: true,
     canReceiveForwards: true,
+    canSaveMessages: true,
   );
 
   /// Notes to self. Nobody to call, nothing to describe, no list worth drawing,
   /// and a permanent fixture with nothing to end — but the single most useful
   /// place in the app to forward something to.
+  ///
+  /// [canSaveMessages] is false for the reason that field spells out: this room
+  /// is already the pile of things you kept, so a bookmark inside it marks
+  /// nothing apart from anything.
   static const savedMessages = RoomCapabilities(
     canCall: false,
     canLeave: false,
@@ -138,6 +158,7 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: true,
+    canSaveMessages: false,
   );
 
   /// The floor every system room stands on, and what an unrecognised
@@ -156,6 +177,7 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: false,
+    canSaveMessages: false,
   );
 
   RoomCapabilities copyWith({
@@ -167,6 +189,7 @@ class RoomCapabilities {
     bool? canEditSettings,
     bool? canOpenPeerProfile,
     bool? canReceiveForwards,
+    bool? canSaveMessages,
   }) =>
       RoomCapabilities(
         canCall: canCall ?? this.canCall,
@@ -177,6 +200,7 @@ class RoomCapabilities {
         canEditSettings: canEditSettings ?? this.canEditSettings,
         canOpenPeerProfile: canOpenPeerProfile ?? this.canOpenPeerProfile,
         canReceiveForwards: canReceiveForwards ?? this.canReceiveForwards,
+        canSaveMessages: canSaveMessages ?? this.canSaveMessages,
       );
 }
 

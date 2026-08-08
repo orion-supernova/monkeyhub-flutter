@@ -5631,4 +5631,45 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'ARŞİVDEN ÇIKAR';
+
+  @override
+  String get messageActionMenuSaveLabel => 'KAYDET';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'KAYDI KALDIR';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'burada çok fazla kayıt var — önce birini kaldır';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'kaydedilemedi';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'burada çok fazla kayıt var — önce birini kaldır';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'kaydedilemedi';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'KAYDEDİLEN MESAJLAR';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'bunları yalnızca sen görürsün ve yalnızca bu odadan. Kaydedilmiş Mesajlar sohbetin ayrıdır.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'henüz bir şey kaydedilmedi. bir mesaja basılı tutup KAYDET’i seç.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$name tarafından gönderilen kaydedilen mesaja git';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$name tarafından gönderilen mesajın kaydını kaldır';
+  }
 }

@@ -75,6 +75,7 @@ void main() {
       expect(caps.canEditSettings, isFalse);
       expect(caps.canOpenPeerProfile, isFalse);
       expect(caps.canReceiveForwards, isFalse);
+      expect(caps.canSaveMessages, isFalse);
     });
 
     test('an unknown slug falls back to the most restricted set', () {
@@ -115,6 +116,11 @@ void main() {
       expect(caps.hasMembers, isFalse);
       expect(caps.hasDescription, isFalse);
       expect(caps.canReceiveForwards, isTrue);
+      // The one place the two "saved" features touch, and the polarity is
+      // opposite on purpose: this room is the best target to forward INTO and
+      // a meaningless place to bookmark, because it already is the pile of
+      // things you kept.
+      expect(caps.canSaveMessages, isFalse);
     });
   });
 

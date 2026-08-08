@@ -440,6 +440,17 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   // ───────────── composing ─────────────
 
+  /// Whether this overlay's room affords saving a message at all.
+  ///
+  /// A helper rather than an inline expression because the room has to be
+  /// resolved first and may not be: this overlay only ever holds a `roomId`.
+  /// An unresolvable room answers false, which drops the SAVE row rather than
+  /// offering one that would throw.
+  bool _canSaveHere() {
+    final room = widget.repo.roomById(widget.roomId);
+    return room != null && widget.repo.capabilitiesFor(room).canSaveMessages;
+  }
+
   void _showToast(String message) {
     _toastTimer?.cancel();
     setState(() => _toast = message);
@@ -642,6 +653,15 @@ class _ThreadSheetState extends State<_ThreadSheet>
           m.status == MessageStatus.sent &&
           m.type != MessageType.system,
       isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
+      // Same reasoning as pinning from in here, and the same gates — a thread
+      // is exactly where a reply worth keeping turns up. The capability lookup
+      // matches `RoomScreen`'s; a room this overlay cannot resolve gets no SAVE
+      // row, which is the safe direction.
+      canSave: !m.id.startsWith('tmp_') &&
+          m.status == MessageStatus.sent &&
+          m.type != MessageType.system &&
+          _canSaveHere(),
+      isSaved: widget.repo.isMessageSaved(widget.roomId, m.id),
       // Same reason as in the room: a document's row can only afford one line
       // of its name, and this is where the whole thing is legible.
       fileName: m.type == MessageType.file ? m.fileName : null,
@@ -710,6 +730,19 @@ class _ThreadSheetState extends State<_ThreadSheet>
         break;
       case MessageAction.unpin:
         await widget.repo.unpinMessage(widget.roomId, m.id);
+        break;
+      case MessageAction.save:
+        final saveErr = await widget.repo.saveMessage(widget.roomId, m.id);
+        if (saveErr == null) break;
+        if (!context.mounted) return;
+        _showToast(
+          saveErr == 'SAVE_LIMIT_REACHED'
+              ? AppLocalizations.of(context).threadOverlaySaveLimitToast
+              : AppLocalizations.of(context).threadOverlaySaveFailedToast,
+        );
+        break;
+      case MessageAction.unsave:
+        await widget.repo.unsaveMessage(widget.roomId, m.id);
         break;
       case MessageAction.delete:
         await widget.repo.deleteMessage(m.id);

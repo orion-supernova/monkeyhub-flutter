@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "FÄST CHATTEN",
   "chatRowActionMenuUnpinLabel": "LOSSA CHATTEN",
   "chatRowActionMenuArchiveLabel": "ARKIVERA CHATTEN",
-  "chatRowActionMenuUnarchiveLabel": "AVARKIVERA CHATTEN"
+  "chatRowActionMenuUnarchiveLabel": "AVARKIVERA CHATTEN",
+  "messageActionMenuSaveLabel": "SPARA",
+  "messageActionMenuUnsaveLabel": "TA BORT",
+  "roomScreenSaveLimitSnack": "för många sparade här — ta bort en först",
+  "roomScreenSaveFailedSnack": "kunde inte spara det",
+  "threadOverlaySaveLimitToast": "för många sparade här — ta bort en först",
+  "threadOverlaySaveFailedToast": "kunde inte spara det",
+  "roomInfoScreenSavedMessagesLabel": "SPARADE MEDDELANDEN",
+  "roomInfoScreenSavedMessagesCaption": "bara du ser dessa, och bara från det här rummet. din chatt Sparade meddelanden är separat.",
+  "roomInfoScreenSavedMessagesEmpty": "inget sparat än. håll in ett meddelande och välj SPARA.",
+  "roomInfoScreenSavedMessageJumpSemantic": "Hoppa till sparat meddelande från {name}",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "Ta bort sparat meddelande från {name}"
 }

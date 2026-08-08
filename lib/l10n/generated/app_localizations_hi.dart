@@ -5664,4 +5664,45 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'चैट अनआर्काइव करें';
+
+  @override
+  String get messageActionMenuSaveLabel => 'सेव करें';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'सेव हटाएँ';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'उसे सेव नहीं किया जा सका';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'यहाँ बहुत सारे सेव हैं — पहले एक हटाओ';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'उसे सेव नहीं किया जा सका';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'सेव किए गए मैसेज';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'इन्हें सिर्फ तुम देख सकते हो, और सिर्फ इसी रूम से। तुम्हारी सेव किए गए मैसेज चैट अलग है।';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'अभी कुछ सेव नहीं हुआ। किसी मैसेज को दबाए रखो और सेव करें चुनो।';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$name के सेव किए गए मैसेज पर जाना';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$name के मैसेज से सेव हटाना';
+  }
 }

@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "تثبيت المحادثة",
   "chatRowActionMenuUnpinLabel": "إلغاء تثبيت المحادثة",
   "chatRowActionMenuArchiveLabel": "أرشفة المحادثة",
-  "chatRowActionMenuUnarchiveLabel": "إلغاء أرشفة المحادثة"
+  "chatRowActionMenuUnarchiveLabel": "إلغاء أرشفة المحادثة",
+  "messageActionMenuSaveLabel": "حفظ",
+  "messageActionMenuUnsaveLabel": "إلغاء الحفظ",
+  "roomScreenSaveLimitSnack": "المحفوظات هنا كثيرة — ألغِ حفظ واحدة أولاً",
+  "roomScreenSaveFailedSnack": "تعذّر حفظ ذلك",
+  "threadOverlaySaveLimitToast": "المحفوظات هنا كثيرة — ألغِ حفظ واحدة أولاً",
+  "threadOverlaySaveFailedToast": "تعذّر حفظ ذلك",
+  "roomInfoScreenSavedMessagesLabel": "الرسائل المحفوظة",
+  "roomInfoScreenSavedMessagesCaption": "أنت وحدك تراها، ومن هذه الغرفة فقط. محادثة الرسائل المحفوظة منفصلة.",
+  "roomInfoScreenSavedMessagesEmpty": "لا شيء محفوظ بعد. اضغط مطولاً على رسالة واختر حفظ.",
+  "roomInfoScreenSavedMessageJumpSemantic": "الانتقال إلى الرسالة المحفوظة من {name}",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "إلغاء حفظ الرسالة من {name}"
 }

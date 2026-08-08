@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "FIXAR CHAT",
   "chatRowActionMenuUnpinLabel": "DESAFIXAR CHAT",
   "chatRowActionMenuArchiveLabel": "ARQUIVAR CHAT",
-  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CHAT"
+  "chatRowActionMenuUnarchiveLabel": "DESARQUIVAR CHAT",
+  "messageActionMenuSaveLabel": "SALVAR",
+  "messageActionMenuUnsaveLabel": "REMOVER",
+  "roomScreenSaveLimitSnack": "muitas mensagens salvas aqui — remova uma primeiro",
+  "roomScreenSaveFailedSnack": "não deu pra salvar isso",
+  "threadOverlaySaveLimitToast": "muitas mensagens salvas aqui — remova uma primeiro",
+  "threadOverlaySaveFailedToast": "não deu pra salvar isso",
+  "roomInfoScreenSavedMessagesLabel": "MENSAGENS SALVAS",
+  "roomInfoScreenSavedMessagesCaption": "só você vê essas, e só desta sala. seu chat Mensagens salvas é separado.",
+  "roomInfoScreenSavedMessagesEmpty": "nada salvo ainda. segure uma mensagem e escolha SALVAR.",
+  "roomInfoScreenSavedMessageJumpSemantic": "Ir para a mensagem salva de {name}",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "Remover das salvas a mensagem de {name}"
 }

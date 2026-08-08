@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "チャットをピン留め",
   "chatRowActionMenuUnpinLabel": "チャットのピン留めを解除",
   "chatRowActionMenuArchiveLabel": "チャットをアーカイブ",
-  "chatRowActionMenuUnarchiveLabel": "チャットのアーカイブを解除"
+  "chatRowActionMenuUnarchiveLabel": "チャットのアーカイブを解除",
+  "messageActionMenuSaveLabel": "保存",
+  "messageActionMenuUnsaveLabel": "保存を解除",
+  "roomScreenSaveLimitSnack": "ここの保存が多すぎます。先に1件解除してください",
+  "roomScreenSaveFailedSnack": "保存できませんでした",
+  "threadOverlaySaveLimitToast": "ここの保存が多すぎます。先に1件解除してください",
+  "threadOverlaySaveFailedToast": "保存できませんでした",
+  "roomInfoScreenSavedMessagesLabel": "保存したメッセージ",
+  "roomInfoScreenSavedMessagesCaption": "これらはあなたにしか見えず、このルームのものだけです。保存済みメッセージのチャットとは別です。",
+  "roomInfoScreenSavedMessagesEmpty": "まだ何も保存されていません。メッセージを長押しして「保存」を選んでください。",
+  "roomInfoScreenSavedMessageJumpSemantic": "{name}の保存したメッセージにジャンプ",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "{name}のメッセージの保存を解除"
 }

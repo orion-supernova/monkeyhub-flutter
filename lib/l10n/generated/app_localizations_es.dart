@@ -5717,4 +5717,45 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARCHIVAR CHAT';
+
+  @override
+  String get messageActionMenuSaveLabel => 'GUARDAR';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'QUITAR';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'demasiados mensajes guardados aquí — quita uno primero';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'no se pudo guardar ese mensaje';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'demasiados mensajes guardados aquí — quita uno primero';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'no se pudo guardar ese mensaje';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'MENSAJES GUARDADOS';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'solo tú puedes verlos, y solo desde esta sala. tu chat Mensajes guardados es aparte.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'todavía no hay nada guardado. mantén pulsado un mensaje y elige GUARDAR.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Ir al mensaje guardado de $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Quitar de guardados el mensaje de $name';
+  }
 }

@@ -58,6 +58,15 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
     .withIndex("by_room_message", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const p of pins) await ctx.db.delete(p._id);
+  // Bookmarks, every member's. Swept by room for the same reason the pins above
+  // are — `messageBookmarks` denormalizes roomId, and `by_room_user_message` is
+  // prefix-scannable on roomId alone, so this is one index range rather than a
+  // probe per message.
+  const bookmarks = await ctx.db
+    .query("messageBookmarks")
+    .withIndex("by_room_user_message", (q: any) => q.eq("roomId", roomId))
+    .collect();
+  for (const b of bookmarks) await ctx.db.delete(b._id);
   // Typing indicators
   const typing = await ctx.db
     .query("typingIndicators")

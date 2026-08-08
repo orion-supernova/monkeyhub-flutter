@@ -5441,4 +5441,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'チャットのアーカイブを解除';
+
+  @override
+  String get messageActionMenuSaveLabel => '保存';
+
+  @override
+  String get messageActionMenuUnsaveLabel => '保存を解除';
+
+  @override
+  String get roomScreenSaveLimitSnack => 'ここの保存が多すぎます。先に1件解除してください';
+
+  @override
+  String get roomScreenSaveFailedSnack => '保存できませんでした';
+
+  @override
+  String get threadOverlaySaveLimitToast => 'ここの保存が多すぎます。先に1件解除してください';
+
+  @override
+  String get threadOverlaySaveFailedToast => '保存できませんでした';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => '保存したメッセージ';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'これらはあなたにしか見えず、このルームのものだけです。保存済みメッセージのチャットとは別です。';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'まだ何も保存されていません。メッセージを長押しして「保存」を選んでください。';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$nameの保存したメッセージにジャンプ';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$nameのメッセージの保存を解除';
+  }
 }

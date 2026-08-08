@@ -9706,6 +9706,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNARCHIVE CHAT'**
   String get chatRowActionMenuUnarchiveLabel;
+
+  /// All-caps row label in the long-press message action menu; bookmarks the message for this reader alone, where it is. Shown only when the message is not already saved. Distinct from forwarding a copy into the personal Saved Messages chat (savedMessagesTitle) — this copies nothing and is visible to nobody else.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get messageActionMenuSaveLabel;
+
+  /// All-caps row label in the long-press message action menu that removes this reader's own bookmark from an already-saved message. Counterpart to messageActionMenuSaveLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'UNSAVE'**
+  String get messageActionMenuUnsaveLabel;
+
+  /// SnackBar shown when saving a message fails because this reader has already saved the maximum number of messages in this room (backend returns SAVE_LIMIT_REACHED). Lowercase, matching roomScreenPinLimitSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'too many saved here — unsave one first'**
+  String get roomScreenSaveLimitSnack;
+
+  /// SnackBar shown for any other (non-limit) failure to save a message. Lowercase, matching roomScreenPinFailedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t save that'**
+  String get roomScreenSaveFailedSnack;
+
+  /// Toast shown in the thread overlay when saving a message fails because this reader has hit the per-room save limit (backend returns SAVE_LIMIT_REACHED).
+  ///
+  /// In en, this message translates to:
+  /// **'too many saved here — unsave one first'**
+  String get threadOverlaySaveLimitToast;
+
+  /// Generic toast shown in the thread overlay when saving a message fails for any reason other than the save limit.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t save that'**
+  String get threadOverlaySaveFailedToast;
+
+  /// All-caps section label in room info, above this reader's saved messages from this room. Matches the style of roomInfoScreenSharedContentLabel directly above it.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVED MESSAGES'**
+  String get roomInfoScreenSavedMessagesLabel;
+
+  /// Explanatory caption under the SAVED MESSAGES heading in room info. States the two things a reader would otherwise have to guess: these are private to them, and scoped to this room. The final clause names the separate personal self-chat room — translate that name IDENTICALLY to savedMessagesTitle in this locale, or the two features will read as the same one.
+  ///
+  /// In en, this message translates to:
+  /// **'only you can see these, and only from this room. your Saved Messages chat is separate.'**
+  String get roomInfoScreenSavedMessagesCaption;
+
+  /// Empty state inside the SAVED MESSAGES group in room info, shown when this reader has saved nothing from this room. Names the gesture, because 'nothing here' alone does not say how to change that. 'SAVE' refers to messageActionMenuSaveLabel — keep the two identical.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing saved yet. hold a message and choose SAVE.'**
+  String get roomInfoScreenSavedMessagesEmpty;
+
+  /// Accessibility semanticLabel on a tappable row in room info's saved-messages list; tapping closes room info and scrolls the chat transcript to that message. {name} is the sender's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to saved message from {name}'**
+  String roomInfoScreenSavedMessageJumpSemantic(Object name);
+
+  /// Accessibility semanticLabel on the small bookmark icon button at the end of each row in room info's saved-messages list; tapping removes this reader's bookmark. {name} is the sender's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave message from {name}'**
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name);
 }
 
 class _AppLocalizationsDelegate

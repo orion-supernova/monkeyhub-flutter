@@ -113,6 +113,23 @@ export const leave = mutation({
     if (!member) return;
 
     await ctx.db.delete(member._id);
+
+    // This member's bookmarks in this room go with their membership, and
+    // pointedly unlike their pins, which stay. A pin is room state — it belongs
+    // to the room the way its name does, and survives whoever left. A bookmark
+    // is one person's private mark on a conversation they can no longer read,
+    // so keeping it would leave `bookmarks:listForRoom` — which deliberately
+    // does not re-check membership, see there — able to hand a departed member
+    // their old room's message content back. Sweeping here is what lets that
+    // query stay cheap.
+    const bookmarks = await ctx.db
+      .query("messageBookmarks")
+      .withIndex("by_room_user_message", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId)
+      )
+      .collect();
+    for (const b of bookmarks) await ctx.db.delete(b._id);
+
     const room = await ctx.db.get(roomId);
     if (room && room.memberCount > 0) {
       await ctx.db.patch(roomId, { memberCount: room.memberCount - 1 });
