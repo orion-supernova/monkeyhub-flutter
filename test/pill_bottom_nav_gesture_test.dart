@@ -127,9 +127,15 @@ void main() {
       (tester) async {
     // The bar used to speak two languages: hold it and the selection was
     // visibly picked up, tap it and the selection merely relocated. A tap now
-    // plays the hold's swell on the hold's own spring — half the response,
-    // turned around after a fixed dwell — so the two gestures read as one
-    // motion at two speeds rather than as two similar-but-different ones.
+    // plays the hold's swell on the hold's own spring — three quarters of the
+    // response, turned around after a fixed dwell — so the two gestures read as
+    // one motion at two speeds rather than as two similar-but-different ones.
+    //
+    // The bar for "visible" here is a human one, and this test previously had
+    // it wrong: it asserted the pop was *spent* eight frames in, which passed
+    // while the animation was, in the hand, too fast to see at all. What is
+    // pinned now is that the pop is still going while the pill travels, since
+    // being seen during the move is the point of it.
     final picked = <HomeSection>[];
     await pumpNav(tester, onSelect: picked.add);
     final rest = pillOf(tester);
@@ -166,16 +172,23 @@ void main() {
       reason: 'and popping *while* it travels, not before it sets off',
     );
 
-    // And out of the way well before the slide lands. "Quickly" is the whole
-    // brief: a pop still inflating when the pill arrives would read as the bar
-    // being busy rather than as the tab being snappy.
+    // Still swollen well into the journey. This is the assertion the old
+    // timing failed in the hand: at a 60ms dwell the pill was back to its
+    // resting height by here, so the only thing left to watch was the slide —
+    // the pop had happened entirely inside the moment the finger lifted.
     await frames(tester, 5);
-    final settling = pillOf(tester);
-    expect(settling.height, lessThan(rest.height + 2));
+    final travelling = pillOf(tester);
     expect(
-      settling.center.dx,
+      travelling.height,
+      greaterThan(rest.height + 4),
+      reason:
+          'eight frames (~133ms) in, the pop should still be on show — it is '
+          'meant to be seen during the move, not squeezed in before it',
+    );
+    expect(
+      travelling.center.dx,
       lessThan(target.center.dx - 20),
-      reason: 'the pop is spent and the pill is still on its way',
+      reason: 'and the pill genuinely still in transit while it is swollen',
     );
 
     await tester.pumpAndSettle();

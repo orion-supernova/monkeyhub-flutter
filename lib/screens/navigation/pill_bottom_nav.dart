@@ -132,24 +132,30 @@ const double _kGrabRatio = 0.62;
 /// [_kGrabSwell] points on every side, at the same [_kGrabRatio] damping and so
 /// with the same soft overshoot on the way back. Only the clock differs.
 ///
-/// [_kPopResponse] is literally half the hold's, expressed that way rather than
-/// as `0.15` so the relationship survives someone retuning the hold. Measured
-/// at 60Hz: the pop tops out ~50ms in against the hold's ~180ms, and is back
-/// through its resting size by ~120ms — spent well before the
-/// [_kSettleResponse] slide it rides on top of has landed, which is what keeps
-/// "the same animation, quickly" reading as snappy rather than as a bar that is
-/// still busy when you get there.
+/// [_kPopResponse] is three quarters of the hold's, expressed as a fraction
+/// rather than as `0.225` so the relationship survives someone retuning the
+/// hold. Quicker than a hold, but only just — the first cut at this was half
+/// the hold's response on a 60ms dwell, and the whole pop came and went inside
+/// ~120ms, about seven frames. That measured fine and was invisible in the
+/// hand: a tap reads as a single event, so an animation shorter than the eye's
+/// settling time after the finger lands is one nobody sees. Being "spent before
+/// the slide arrives" turned out to be the wrong target — the pop is *meant* to
+/// be seen during the move, not squeezed in ahead of it.
 ///
 /// [_kPopDwell] is the part a hold gets for free and a tap cannot: a held pill
 /// is turned around by the finger lifting, and a tap has no finger left to wait
 /// for. So the return leg is scheduled instead, and this dwell is the amplitude
 /// dial — it decides how far up the arc the spring gets before it is pulled
-/// back. At 60ms that is ~0.81, so ~13 of [_kGrabSwell]'s 16 points on every
-/// side: unmistakably the same gesture as the hold, stopping just short of the
-/// full lift because a tap is not picking the pill up, only knocking on it.
-/// Turn this down for a smaller pop, not [_kGrabSwell] — that one is shared.
-const double _kPopResponse = _kGrabResponse / 2;
-const Duration _kPopDwell = Duration(milliseconds: 60);
+/// back, because it turns around well before the spring would top out on its
+/// own. At 60ms it reached ~0.81; at 120ms it gets most of the way to the
+/// hold's full [_kGrabSwell] lift and holds there long enough to register,
+/// putting the round trip near the [_kSettleResponse] slide's own length so the
+/// two read as one gesture.
+///
+/// Turn this down for a smaller pop, not [_kGrabSwell] — that one is shared
+/// with the hold, and moving it changes both.
+const double _kPopResponse = _kGrabResponse * 3 / 4;
+const Duration _kPopDwell = Duration(milliseconds: 120);
 
 /// The floating bottom nav, stacked icon-over-label.
 ///
