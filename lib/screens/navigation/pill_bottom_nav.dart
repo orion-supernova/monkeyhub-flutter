@@ -65,9 +65,10 @@ const double _kGrabSwell = 16;
 
 /// The pill's answer to a press that has not become a grab yet: a shallow
 /// squish, the sign every iOS control gives that it felt the finger. Negative
-/// because it shares the grab's 0..1 axis, so one spring drives both — which
-/// also means it inherits the equal-points treatment, and so squishes in by the
-/// same ~5pt on every side rather than pinching in from the ends.
+/// because it shares the grab's 0..1 axis, so one spring drives the press, the
+/// hold and the tap's pop alike — which also means it inherits the equal-points
+/// treatment, and so squishes in by the same ~5pt on every side rather than
+/// pinching in from the ends.
 const double _kPressScale = -0.34;
 
 /// How much the icon+label under the pill grow with it. Well under the pill's
@@ -120,6 +121,35 @@ const double _kFollowResponse = 0.16;
 const double _kFollowRatio = 0.92;
 const double _kGrabResponse = 0.30;
 const double _kGrabRatio = 0.62;
+
+/// The tap's pop: the hold's swell, played fast.
+///
+/// A tap used to slide the indicator and nothing else, so the bar had two
+/// vocabularies — hold it and it lifts, tap it and it merely relocates. These
+/// two numbers are the whole of the fix, and what they deliberately do *not*
+/// contain is a second amplitude or a second curve. The pop rides the same
+/// [_grab] spring on the same 0..1 axis as the hold, so it reaches for the same
+/// [_kGrabSwell] points on every side, at the same [_kGrabRatio] damping and so
+/// with the same soft overshoot on the way back. Only the clock differs.
+///
+/// [_kPopResponse] is literally half the hold's, expressed that way rather than
+/// as `0.15` so the relationship survives someone retuning the hold. Measured
+/// at 60Hz: the pop tops out ~50ms in against the hold's ~180ms, and is back
+/// through its resting size by ~120ms — spent well before the
+/// [_kSettleResponse] slide it rides on top of has landed, which is what keeps
+/// "the same animation, quickly" reading as snappy rather than as a bar that is
+/// still busy when you get there.
+///
+/// [_kPopDwell] is the part a hold gets for free and a tap cannot: a held pill
+/// is turned around by the finger lifting, and a tap has no finger left to wait
+/// for. So the return leg is scheduled instead, and this dwell is the amplitude
+/// dial — it decides how far up the arc the spring gets before it is pulled
+/// back. At 60ms that is ~0.81, so ~13 of [_kGrabSwell]'s 16 points on every
+/// side: unmistakably the same gesture as the hold, stopping just short of the
+/// full lift because a tap is not picking the pill up, only knocking on it.
+/// Turn this down for a smaller pop, not [_kGrabSwell] — that one is shared.
+const double _kPopResponse = _kGrabResponse / 2;
+const Duration _kPopDwell = Duration(milliseconds: 60);
 
 /// The floating bottom nav, stacked icon-over-label.
 ///
@@ -234,6 +264,10 @@ class _PillBottomNavState extends State<PillBottomNav>
   int _nearest = 0;
   Timer? _holdTimer;
 
+  /// The return leg of a tap's pop, scheduled because a tap has no finger left
+  /// to lift. See [_pop].
+  Timer? _popTimer;
+
   /// Read in `build`, used by the pointer handlers, which run between builds.
   List<NavDest> _destinations = const [];
   bool _rtl = false;
@@ -274,6 +308,7 @@ class _PillBottomNavState extends State<PillBottomNav>
   @override
   void dispose() {
     _holdTimer?.cancel();
+    _popTimer?.cancel();
     _ticker
       ..stop()
       ..dispose();
@@ -382,6 +417,13 @@ class _PillBottomNavState extends State<PillBottomNav>
     _moved = false;
     _holdTimer?.cancel();
     _holdTimer = Timer(_kHoldToGrab, _beginGrab);
+    // A new gesture owns the grab spring from here, so the previous tap's
+    // return leg must not fire into the middle of it and deflate a squish or an
+    // inflate that this press has since asked for. Cancelling is safe without
+    // also retargeting: every pointer-down is followed by [_endPointer], which
+    // always aims the spring back at 0.
+    _popTimer?.cancel();
+    _popTimer = null;
     if (_calm) return;
     // Only the segment already wearing the pill can squish, because it is the
     // only one with anything drawn to squish.
@@ -444,17 +486,23 @@ class _PillBottomNavState extends State<PillBottomNav>
   void _onPointerUp(PointerUpEvent e) {
     if (e.pointer != _pointer) return;
     final dragged = _moved;
+    // Read before [_endPointer] clears it. A pill that was actually picked up
+    // is already at the top of its arc and already on its way back down; popping
+    // it again after the finger has gone reads as the release not taking.
+    final held = _grabbed;
     final landing = _positionAt(e.localPosition.dx);
     _endPointer();
     if (dragged) {
-      // Silent: the drag already clicked as it crossed onto this segment, and
-      // clicking again on release turns one selection into two ticks.
-      _commit(landing.round().clamp(0, _count - 1), haptic: false);
+      // Silent, and no pop: the drag already clicked as it crossed onto this
+      // segment — clicking again on release turns one selection into two ticks
+      // — and the pill it was carrying is mid-shrink, which is the motion the
+      // release is supposed to end on.
+      _commit(landing.round().clamp(0, _count - 1), haptic: false, pop: false);
     } else if (_withinBar(e.localPosition)) {
       // A press that never travelled — a tap, or a hold released in place —
       // selects what is under the finger, exactly as a tap always has. Holding
       // still is not a way to select nothing.
-      _commit(_pressIndex);
+      _commit(_pressIndex, pop: !held);
     } else {
       // Slid off without ever taking the pill: the ordinary button-cancel.
       _settleToActive();
@@ -510,14 +558,62 @@ class _PillBottomNavState extends State<PillBottomNav>
   /// Always calls back, even for the segment that is already active — a nav bar
   /// re-tapping its own tab is a meaningful event to the shell, and swallowing
   /// it here would decide that for it.
-  void _commit(int i, {bool haptic = true}) {
+  ///
+  /// Order matters and is deliberate: the pop and the slide are both aimed
+  /// *before* [PillBottomNav.onSelect] fires, and onSelect fires synchronously
+  /// rather than from the end of an animation. So the section switches in the
+  /// same frame the finger lifts, with the pop playing over the top of it — the
+  /// scale is decoration on an instant switch, never a gate in front of one.
+  void _commit(int i, {bool haptic = true, bool pop = true}) {
     if (i < 0 || i >= _count) return;
+    if (pop) _pop();
     _moveTo(i.toDouble());
     final section = _destinations[i].section;
     if (haptic && section != widget.active && !_calm) {
       HapticFeedback.selectionClick();
     }
     widget.onSelect(section);
+  }
+
+  /// The tap's version of the hold's swell: same spring, same amplitude, over
+  /// and done in about the time the hold takes just to leave the ground.
+  ///
+  /// Deliberately not its own [AnimationController]. A second driver would have
+  /// to be composed into the very transform [_grab] already writes, and the two
+  /// would then disagree about the pill's scale every time a tap landed on a
+  /// press, a hold or another tap — which is most of the interesting cases. One
+  /// spring, retargeted, has no such seam: [Spring.retarget] moves the target
+  /// without touching value or velocity, so a tap arriving mid-pop, mid-squish
+  /// or mid-deflate bends the curve the pill is already on instead of snapping
+  /// to a stale start value and replaying from there. It also costs nothing
+  /// when idle — the shared ticker stops itself the frame both springs are at
+  /// rest (see [_onTick]) and no pop ever keeps it alive on its own.
+  ///
+  /// Nothing here touches [_position], so the pop cannot fight the slide: they
+  /// are different quantities on different springs, composed once per frame in
+  /// [_placed].
+  void _pop() {
+    // Calm motion means "stop decorating". The switch itself is untouched — see
+    // [MotionScope] — and this is purely decoration on top of it.
+    if (_calm) return;
+    // A live gesture owns the grab spring, exactly as it owns the pill's
+    // position in [didUpdateWidget]. Nothing on the pointer path reaches here
+    // with a finger still down — [_onPointerUp] commits after [_endPointer] has
+    // released it — but a keyboard or VoiceOver activation arriving mid-drag
+    // would, and it has no business inflating something a finger is holding.
+    if (_pointer != null) return;
+    _popTimer?.cancel();
+    _grab.retarget(1, response: _kPopResponse, ratio: _kGrabRatio);
+    // The return leg a hold gets from the finger lifting. Rescheduled from
+    // scratch on every pop, so a burst of rapid taps ends on exactly one
+    // pending turnaround and the pill cannot be left stranded at the top of an
+    // arc that nobody is coming back for.
+    _popTimer = Timer(_kPopDwell, () {
+      _popTimer = null;
+      _grab.retarget(0, response: _kPopResponse, ratio: _kGrabRatio);
+      _wake();
+    });
+    _wake();
   }
 
   // ------------------------------------------------------------------ build
