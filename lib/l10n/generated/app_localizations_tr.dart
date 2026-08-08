@@ -810,6 +810,21 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => 'SİL';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle =>
+      'bu sohbeti sonlandır?';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerName da bu sohbeti kaybeder — her iki tarafta da tüm mesajlar silinir. bu geri alınamaz.';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => 'SONLANDIR';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => 'diğer kişi';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'VAZGEÇ';
 
   @override
@@ -913,6 +928,12 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => 'SİL';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => 'SONLANDIRILIYOR…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => 'SOHBETİ SONLANDIR';
 
   @override
   String get roomInfoScreenHeaderConversation => 'SOHBET';

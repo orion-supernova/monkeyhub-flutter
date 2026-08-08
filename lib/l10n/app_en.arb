@@ -932,6 +932,28 @@
   "@roomInfoScreenDeleteConfirmButton": {
     "description": "All-caps confirm button label in the delete-room confirmation dialog."
   },
+  "roomInfoScreenEndConversationConfirmTitle": "end this conversation?",
+  "@roomInfoScreenEndConversationConfirmTitle": {
+    "description": "Title of the confirmation dialog before either participant ends (deletes) a 1:1 DM."
+  },
+  "roomInfoScreenEndConversationConfirmBody": "{peerName} loses this conversation too — every message disappears for both of you. this is permanent.",
+  "@roomInfoScreenEndConversationConfirmBody": {
+    "description": "Body text of the end-conversation confirmation dialog for a DM, warning that deleting it removes it for the other participant as well.",
+    "placeholders": {
+      "peerName": {
+        "type": "String",
+        "example": "Alex"
+      }
+    }
+  },
+  "roomInfoScreenEndConversationConfirmButton": "END",
+  "@roomInfoScreenEndConversationConfirmButton": {
+    "description": "All-caps confirm button label in the end-conversation (DM delete) confirmation dialog."
+  },
+  "roomInfoScreenEndConversationPeerFallback": "the other person",
+  "@roomInfoScreenEndConversationPeerFallback": {
+    "description": "Fallback used in place of the peer's name in the end-conversation dialog body when the DM peer hasn't loaded yet."
+  },
   "roomInfoScreenConfirmCancelButton": "CANCEL",
   "@roomInfoScreenConfirmCancelButton": {
     "description": "All-caps cancel button label shared by the leave/delete confirmation dialogs on this screen."
@@ -1059,6 +1081,14 @@
   "roomInfoScreenDeleteButtonLabel": "DELETE",
   "@roomInfoScreenDeleteButtonLabel": {
     "description": "All-caps danger button label to permanently delete the room (owner only)."
+  },
+  "roomInfoScreenEndingConversationButton": "ENDING…",
+  "@roomInfoScreenEndingConversationButton": {
+    "description": "All-caps button label shown in place of END CONVERSATION while the action is in progress."
+  },
+  "roomInfoScreenEndConversationButton": "END CONVERSATION",
+  "@roomInfoScreenEndConversationButton": {
+    "description": "All-caps danger button label to end (delete) a 1:1 DM. Shown to either participant, unlike room delete which is owner-only."
   },
   "roomInfoScreenHeaderConversation": "CONVERSATION",
   "@roomInfoScreenHeaderConversation": {

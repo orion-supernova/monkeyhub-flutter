@@ -141,7 +141,20 @@ export const deleteRoom = mutation({
   handler: async (ctx, { roomId, userId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
-    if (room.createdBy.toString() !== userId.toString()) throw new Error("NOT_OWNER");
+
+    // A DM has no real "owner" — createdBy is just whichever of the two
+    // people happened to open it first. Gating deletion on that would leave
+    // the other participant unable to ever end the conversation, so either
+    // side of a DM may delete it. Group rooms keep the owner-only rule.
+    if (room.name.startsWith("dm:")) {
+      const membership = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
+        .first();
+      if (!membership) throw new Error("NOT_AUTHORIZED");
+    } else if (room.createdBy.toString() !== userId.toString()) {
+      throw new Error("NOT_OWNER");
+    }
 
     await wipeRoomCompletely(ctx, roomId);
   },

@@ -833,6 +833,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => 'حذف';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle => 'إنهاء هذه المحادثة؟';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return 'سيفقد $peerName هذه المحادثة أيضاً — تختفي كل رسالة لديكما. هذا إجراء نهائي.';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => 'إنهاء';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => 'الشخص الآخر';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'إلغاء';
 
   @override
@@ -936,6 +950,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => 'حذف';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => 'جارٍ الإنهاء…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => 'إنهاء المحادثة';
 
   @override
   String get roomInfoScreenHeaderConversation => 'المحادثة';
