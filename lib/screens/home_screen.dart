@@ -189,26 +189,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                 ),
-                // The filter control stays out of the scroll view: with a
-                // persisted filter, the reason the list is short must not be
-                // something you have to scroll up to rediscover.
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                Expanded(
+                  child: ListView(
+                    key: const PageStorageKey('home_main_list'),
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      14,
+                      20,
+                      kFloatingNavClearance,
+                    ),
                     children: [
+                      // The filter control rides inside the scroll view rather
+                      // than sitting above it: as a fixed band it ate a strip of
+                      // an already short viewport on every screen, and it reads
+                      // as part of the list's own header, not as chrome. Only
+                      // the header above stays pinned.
                       if (chipsStyle) ...[
                         RoomFilterBar(
                           filter: filter,
                           counts: counts,
                           onChanged: _setFilter,
                         ),
-                        // The list below is a sibling, not an underlay, so its
-                        // top edge is where scrolled content gets clipped. Flush
-                        // against the chips that clip read as the chip row
-                        // shearing rows in half; a few points of air moves the
-                        // cut away from the control and makes it look like
-                        // scrolling instead of damage.
                         const SizedBox(height: 6),
                       ],
                       // Shown under BOTH styles. The chip row scrolls and holds
@@ -230,19 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onChanged: _setFilter,
                           onDone: () => setState(() => _filterExpanded = false),
                         ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    key: const PageStorageKey('home_main_list'),
-                    padding: const EdgeInsets.fromLTRB(
-                      20,
-                      14,
-                      20,
-                      kFloatingNavClearance,
-                    ),
-                    children: [
+                      const SizedBox(height: 14),
                       _RoomsPanel(
                         repo: widget.repo,
                         api: widget.api,
