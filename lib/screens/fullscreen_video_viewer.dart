@@ -9,6 +9,8 @@ import '../media/video_file_cache.dart';
 import '../privacy/capture_protection.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/route_landing.dart';
+import '../widgets/steady_hero.dart';
 import '../widgets/video_message.dart' show VideoPlayerSurface;
 
 /// Fullscreen player for a single video stored in Convex — the route a tap on
@@ -31,13 +33,23 @@ import '../widgets/video_message.dart' show VideoPlayerSurface;
 /// from scratch. The native player now carries its own shield instead, off the
 /// same `UIScreen.isCaptured` signal the Dart one uses.
 ///
-/// On the fallback path: no pinch-zoom (a video has no reason to support one)
-/// and no Hero flight. A `VideoPlayer` texture cannot be flown between routes —
-/// it arrives as a black rectangle where the poster was — and the way around
-/// that is to fly the *poster* and hand over to the player on touchdown, which
-/// is what `MediaPagerScreen`'s video page does. It isn't worth it here: this
-/// route's whole job is to get out of the way of the OS player within a frame
-/// or two of opening, so there is nothing for a flight to land on.
+/// Opened from a video bubble in the transcript, and from `MediaPagerScreen` —
+/// the shared-content gallery keeps its poster on screen and pushes this over
+/// it, so a handoff that succeeds pops straight back to the gallery, ready to
+/// swipe on. Everything a second call site would otherwise have had to
+/// reimplement lives here: the cached-file lookup, the download and its
+/// progress ring, the capture shield's translated copy, and the Flutter player
+/// that covers web, desktop, and any build where the handoff declines.
+///
+/// With a [heroTag] the poster flies in from whatever was tapped, the same way
+/// a photo does — and then the OS player rises over it. What flies is the
+/// poster and never the player: a `VideoPlayer` texture cannot be carried
+/// between routes, it arrives as a black rectangle where the picture was. So
+/// the route shows the flying still on its way in and swaps to the real thing
+/// on touchdown, which is invisible, because the real thing draws that same
+/// poster letterboxed into the same box.
+///
+/// No pinch-zoom on the fallback path — a video has no reason to support one.
 /// Swipe down or tap the X to dismiss, the same gesture vocabulary
 /// [FullscreenImageViewer] uses.
 class FullscreenVideoViewer extends StatefulWidget {
@@ -46,6 +58,7 @@ class FullscreenVideoViewer extends StatefulWidget {
     required this.storageId,
     required this.api,
     this.posterStorageId,
+    this.heroTag,
   });
 
   final String storageId;
@@ -55,11 +68,16 @@ class FullscreenVideoViewer extends StatefulWidget {
   /// real video resolves and initializes. Null renders black instead.
   final String? posterStorageId;
 
+  /// Tag of the [SteadyHero] around the poster this was opened from. Null
+  /// leaves the route's own fade to carry the arrival.
+  final Object? heroTag;
+
   static Future<void> open(
     BuildContext context, {
     required String storageId,
     required ChatApi api,
     String? posterStorageId,
+    Object? heroTag,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -73,6 +91,7 @@ class FullscreenVideoViewer extends StatefulWidget {
           storageId: storageId,
           api: api,
           posterStorageId: posterStorageId,
+          heroTag: heroTag,
         ),
         transitionsBuilder: (_, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
@@ -84,7 +103,8 @@ class FullscreenVideoViewer extends StatefulWidget {
   State<FullscreenVideoViewer> createState() => _FullscreenVideoViewerState();
 }
 
-class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
+class _FullscreenVideoViewerState extends State<FullscreenVideoViewer>
+    with RouteLanding {
   /// Fraction of screen height that commits a drag to a dismiss. Same figure
   /// as [FullscreenImageViewer] — one gesture vocabulary across the app's
   /// fullscreen overlays rather than a subtly different feel per media type.
@@ -301,22 +321,48 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
           behavior: HitTestBehavior.opaque,
           onVerticalDragUpdate: _onDragUpdate,
           onVerticalDragEnd: _onDragEnd,
-          child: Center(
-            child: _fallback
-                ? VideoPlayerSurface(
-                    api: widget.api,
-                    storageId: widget.storageId,
-                    posterStorageId: widget.posterStorageId,
-                  )
-                : _HandoffPlate(
-                    api: widget.api,
-                    posterStorageId: widget.posterStorageId,
-                    progress: _progress,
-                  ),
-          ),
+          child: Center(child: _body()),
         ),
       ),
     );
+  }
+
+  /// The still while the route is arriving, the real thing once it has.
+  ///
+  /// [SteadyHero] rather than [Hero]: a plain one tears its child out of the
+  /// tree at both ends of a flight, so the picture arrives as a hole and fills
+  /// in a frame later. The swap on touchdown moves nothing — both this poster
+  /// and the plate's are the same file drawn [BoxFit.contain] into the same
+  /// screen, so they land on the same rectangle.
+  ///
+  /// The resolve does not wait for any of this: [_handoff] starts in
+  /// `initState`, so the download is already in flight while the picture is.
+  Widget _body() {
+    final tag = widget.heroTag;
+    if (tag != null && !landed) {
+      final poster = widget.posterStorageId;
+      return SteadyHero(
+        tag: tag,
+        child: poster == null
+            ? const SizedBox.expand()
+            : RemoteImage(
+                storageId: poster,
+                api: widget.api,
+                fit: BoxFit.contain,
+              ),
+      );
+    }
+    return _fallback
+        ? VideoPlayerSurface(
+            api: widget.api,
+            storageId: widget.storageId,
+            posterStorageId: widget.posterStorageId,
+          )
+        : _HandoffPlate(
+            api: widget.api,
+            posterStorageId: widget.posterStorageId,
+            progress: _progress,
+          );
   }
 }
 

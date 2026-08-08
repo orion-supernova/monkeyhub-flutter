@@ -11,7 +11,7 @@ import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/remote_image.dart';
 import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
-import '../widgets/video_message.dart' show VideoPlayerSurface;
+import 'fullscreen_video_viewer.dart';
 
 /// Fullscreen media, swipeable across everything in the MEDIA tab.
 ///
@@ -20,19 +20,24 @@ import '../widgets/video_message.dart' show VideoPlayerSurface;
 /// the set is on screen, and a viewer that made you back out and tap again to
 /// see the next one would be the only gallery that works that way.
 ///
-/// Only the current page mounts a [VideoPlayerSurface]. `PageView` keeps
-/// neighbours alive, and each of those would otherwise build and
-/// `initialize()` its own `VideoPlayerController` — three concurrent
-/// pipelines while swiping, and three `<video>` elements on web.
+/// **No page here ever owns a video player.** A video is a poster with a play
+/// disc on it, and playing hands off to [FullscreenVideoViewer] — which is to
+/// say, to `AVPlayerViewController` or ExoPlayer, exactly as a tap on a video
+/// in the transcript does. That is not a shortcut. The OS player is where
+/// scrubbing, skip, speed, AirPlay/Cast, Picture-in-Picture, the lock-screen
+/// transport controls and the system volume HUD already live, in the user's own
+/// language; a Flutter texture with a progress bar drawn under it is a worse
+/// copy of a player everyone already knows from Photos. The gallery used to
+/// mount that copy inline, so the one place in the app that shows nothing but
+/// media was the one place a video played worst.
 ///
-/// Only the current page takes part in a hero flight either, for a related
-/// reason. `Hero` collects every hero in both routes' trees, visible or not,
-/// and a `PageView`'s neighbours are built (they sit inside the viewport's
-/// cache extent) with the same tags their grid tiles carry — so opening one
-/// photo used to launch three flights, two of them dragging thumbnails off the
-/// side of the screen to pages nobody had asked to see. [HeroMode] on the
-/// inactive pages is what limits the flight to the one picture that was
-/// actually tapped.
+/// Only the current page takes part in a hero flight. `Hero` collects every
+/// hero in both routes' trees, visible or not, and a `PageView`'s neighbours
+/// are built (they sit inside the viewport's cache extent) with the same tags
+/// their grid tiles carry — so opening one photo used to launch three flights,
+/// two of them dragging thumbnails off the side of the screen to pages nobody
+/// had asked to see. [HeroMode] on the inactive pages is what limits the
+/// flight to the one picture that was actually tapped.
 class MediaPagerScreen extends StatefulWidget {
   const MediaPagerScreen({
     super.key,
@@ -124,15 +129,10 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
                 itemCount: widget.items.length,
                 onPageChanged: (i) => setState(() => _index = i),
                 itemBuilder: (_, i) => HeroMode(
-                  // Neighbours stay built; only the visible one may own a
-                  // player, and only the visible one may fly. See the class
-                  // comment for both.
+                  // Neighbours stay built; only the visible one may fly. See
+                  // the class comment.
                   enabled: i == _index,
-                  child: _Page(
-                    message: widget.items[i],
-                    api: widget.api,
-                    active: i == _index,
-                  ),
+                  child: _Page(message: widget.items[i], api: widget.api),
                 ),
               ),
             ),
@@ -155,15 +155,10 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
 }
 
 class _Page extends StatelessWidget {
-  const _Page({
-    required this.message,
-    required this.api,
-    required this.active,
-  });
+  const _Page({required this.message, required this.api});
 
   final ChatMessage message;
   final ChatApi api;
-  final bool active;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +174,7 @@ class _Page extends StatelessWidget {
     }
 
     if (message.type == MessageType.video) {
-      return _VideoPage(message: message, api: api, active: active);
+      return _VideoPage(message: message, api: api);
     }
 
     return InteractiveViewer(
@@ -203,73 +198,149 @@ class _Page extends StatelessWidget {
 Widget mediaFlight(ChatMessage message, Widget child) =>
     SteadyHero(tag: roomMediaHeroTag(message.id), child: child);
 
-/// A video page: the poster while the route is moving, the real player once it
-/// has stopped.
+/// A video page: a poster with a play disc on it, and nothing else.
 ///
-/// A video used to be the one thing in this grid that opened with no flight at
-/// all — you tapped a tile and the pager cross-faded in over it, while every
-/// photo beside it flew. The cause was the obvious fix for a real problem: a
-/// `VideoPlayer` texture cannot be flown between routes (it arrives as a black
-/// rectangle where the poster was), so the active page carried no hero, and
-/// the active page is precisely the one a flight needs a destination on. The
-/// poster left on the *inactive* pages could never stand in for it, because
-/// the page being opened is by definition the active one.
+/// Reached by *swiping* — a video tapped in the grid goes straight to the
+/// player and never comes through here, so nothing on this page plays by
+/// itself. That is deliberate twice over: a fullscreen OS player shoved up
+/// every time a video scrolled past would make the gallery unswipeable, and
+/// the page you actually asked for should not cost a second tap.
 ///
-/// So the player is not what flies — it is not even mounted yet. The poster is,
-/// and it hands over to [VideoPlayerSurface] the moment the route settles,
-/// which is invisible: the surface draws that same poster as its own backdrop,
-/// letterboxed by the same [BoxFit.contain] into the same box, so the picture
-/// does not move on the swap.
+/// Playing means [FullscreenVideoViewer], which resolves the file (from the
+/// cache when it is already there), hands it to the OS player and steps out of
+/// the way — leaving this pager underneath, so closing the player puts the
+/// gallery back exactly where it was. The reason it goes through a route
+/// rather than calling the platform channel from here is that the viewer
+/// already owns the parts nobody should write twice: the download with its
+/// progress ring, the capture shield's translated copy, and the Flutter player
+/// that covers web, desktop, and any build where the handoff declines.
 ///
-/// [RouteLanding.unlandsOnExit] is what gives the pop a hero to fly home: the
-/// player is torn down and the poster is back in the tree a frame before
-/// Flutter goes looking for flight candidates. Tearing the player down is
-/// wanted anyway — a video that keeps playing over a closing route is a video
-/// you can still hear.
+/// A video was also the one thing in this gallery that arrived with no flight
+/// at all: you tapped a tile and the pager cross-faded in over it while every
+/// photo beside it flew. The cause was the obvious fix for a real problem — a
+/// `VideoPlayer` texture cannot be flown between routes, it arrives as a black
+/// rectangle where the poster was, so the active page carried no hero. But the
+/// active page is precisely the one a flight needs a destination on. With no
+/// player in the tree at all there is nothing left to work around: the poster
+/// is simply always there, and it flies both ways.
 class _VideoPage extends StatefulWidget {
-  const _VideoPage({
-    required this.message,
-    required this.api,
-    required this.active,
-  });
+  const _VideoPage({required this.message, required this.api});
 
   final ChatMessage message;
   final ChatApi api;
-  final bool active;
 
   @override
   State<_VideoPage> createState() => _VideoPageState();
 }
 
 class _VideoPageState extends State<_VideoPage> with RouteLanding {
-  /// A closing route has to get its poster back before the flight is measured.
+  /// So the play disc gets out of the way on the way out, rather than hanging
+  /// over the hole the poster just flew out of.
   @override
   bool get unlandsOnExit => true;
 
+  void _play() {
+    final id = widget.message.mediaStorageId;
+    if (id == null || !mounted) return;
+    // No hero tag: this poster and the viewer's are the same picture at the
+    // same size, so a flight between them would animate nothing.
+    FullscreenVideoViewer.open(
+      context,
+      storageId: id,
+      api: widget.api,
+      posterStorageId: widget.message.posterStorageId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.active && landed) {
-      return Center(
-        child: VideoPlayerSurface(
-          api: widget.api,
-          storageId: widget.message.mediaStorageId,
-          posterStorageId: widget.message.posterStorageId,
-        ),
-      );
-    }
-
-    // Poster if there is one, film glyph if not. Never a player — that is the
-    // whole point of this branch, and of the grid tile's identical rule.
-    //
-    // The glyph flies too, so a posterless video still travels rather than
-    // snapping into place; the tile it leaves behind draws the same one.
+    final l10n = AppLocalizations.of(context);
+    // Poster if there is one, film glyph if not. The glyph flies too, so a
+    // posterless video still travels rather than snapping into place — the tile
+    // it left behind draws the same one.
     final poster = widget.message.posterStorageId;
-    return Center(
-      child: mediaFlight(
-        widget.message,
-        poster == null
-            ? const Icon(CupertinoIcons.film, size: 34, color: Colors.white24)
-            : RemoteImage(storageId: poster, api: widget.api, fit: BoxFit.contain),
+    final playable = widget.message.mediaStorageId != null;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: playable ? _play : null,
+            behavior: HitTestBehavior.opaque,
+            // The disc below carries the label and the focus ring; this is the
+            // same action with a bigger target, and announcing it twice would
+            // put two identical buttons on one screen.
+            excludeFromSemantics: true,
+            child: Center(
+              child: mediaFlight(
+                widget.message,
+                poster == null
+                    ? const Icon(
+                        CupertinoIcons.film,
+                        size: 34,
+                        color: Colors.white24,
+                      )
+                    : RemoteImage(
+                        storageId: poster,
+                        api: widget.api,
+                        fit: BoxFit.contain,
+                      ),
+              ),
+            ),
+          ),
+        ),
+        if (playable)
+          // Held back until the picture has arrived. A disc fading in over a
+          // photograph that has come to rest reads as the page finishing; the
+          // same disc riding the flight in reads as a second thing moving.
+          IgnorePointer(
+            ignoring: !landed,
+            child: AnimatedOpacity(
+              opacity: landed ? 1 : 0,
+              duration: const Duration(milliseconds: 140),
+              child: _PlayDisc(
+                onTap: _play,
+                semanticLabel: l10n.bubbleStyleScreenMediaTileVideoSemanticLabel,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The play affordance, at the same weight `VideoMessage` gives a video bubble
+/// and `VideoPlayerSurface` gives a paused one — one glyph for "this is a video
+/// and it is not playing" wherever the app draws it.
+class _PlayDisc extends StatelessWidget {
+  const _PlayDisc({required this.onTap, required this.semanticLabel});
+
+  final VoidCallback onTap;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    // `FocusableTap` registers no gesture recognizer of its own, so the bare
+    // `GestureDetector` inside is what actually receives the pointer. Both
+    // carry the handler. Never an InkWell — this app draws no ink anywhere.
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      shape: FocusRingShape.circle,
+      radius: 999,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.55),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.play_arrow, color: Colors.white, size: 36),
+        ),
       ),
     );
   }

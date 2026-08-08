@@ -25,6 +25,7 @@ import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_grid_tile.dart';
 import '../widgets/pill_nav.dart';
+import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
 import 'room_items.dart' show humanDay;
@@ -142,8 +143,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     }
     switch (m.type) {
       case MessageType.image:
-      case MessageType.video:
         _openPager(m);
+      case MessageType.video:
+        _openVideo(m);
       case MessageType.file:
         _saveOne(m);
       case MessageType.audio:
@@ -157,6 +159,27 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.system:
         _showInChat(m);
     }
+  }
+
+  /// Straight to the player, the same as a tap on a video in the transcript.
+  ///
+  /// Deliberately not through the pager. A video tapped in this grid used to
+  /// open the gallery, which then handed off to the OS player over the top of
+  /// itself — so closing the player left you looking at a fullscreen still of
+  /// the video you had just watched, and closing was two gestures instead of
+  /// one. The gallery is still there for swiping between things; it is just no
+  /// longer in the way of watching one. The poster flies out of the tile
+  /// either way.
+  void _openVideo(ChatMessage m) {
+    final id = m.mediaStorageId;
+    if (id == null) return;
+    FullscreenVideoViewer.open(
+      context,
+      storageId: id,
+      api: widget.api,
+      posterStorageId: m.posterStorageId,
+      heroTag: roomMediaHeroTag(m.id),
+    );
   }
 
   Future<void> _openPager(ChatMessage m) async {

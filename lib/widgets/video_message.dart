@@ -10,6 +10,7 @@ import '../screens/room_items.dart' show formatClockDuration;
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'remote_image.dart';
+import 'steady_hero.dart';
 
 /// The chat-bubble tile for a video message: a static poster with a play
 /// glyph, never the video itself. Tapping hands off to [onOpen], which
@@ -39,6 +40,7 @@ class VideoMessage extends StatelessWidget {
     this.durationMs,
     this.maxWidth,
     this.onOpen,
+    this.heroTag,
   });
 
   final ChatApi api;
@@ -66,6 +68,14 @@ class VideoMessage extends StatelessWidget {
   /// Opens the real player. Null disables the tap — defensive only; every
   /// live call site wires this.
   final VoidCallback? onOpen;
+
+  /// Flies the poster into the viewer this tile opens, the same way a photo
+  /// bubble flies its picture. Only the poster travels: the play glyph and the
+  /// running-time badge belong to the *tile*, not to the video, and dragging
+  /// them across the screen would say the fullscreen player is about to have
+  /// them too. Null for any copy of this tile that is not the one on screen —
+  /// a long-press menu's preview, say — since two heroes cannot share a tag.
+  final Object? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -101,17 +111,19 @@ class VideoMessage extends StatelessWidget {
       );
     } else {
       final poster = posterStorageId;
+      Widget still = poster == null
+          ? Container(
+              color: theme.surfaceSunken,
+              alignment: Alignment.center,
+              child: Icon(Icons.movie_creation_outlined,
+                  size: 28, color: theme.inkMuted),
+            )
+          : RemoteImage(storageId: poster, api: api, fit: BoxFit.cover);
+      if (heroTag != null) still = SteadyHero(tag: heroTag!, child: still);
       backdrop = Stack(
         fit: StackFit.expand,
         children: [
-          poster == null
-              ? Container(
-                  color: theme.surfaceSunken,
-                  alignment: Alignment.center,
-                  child: Icon(Icons.movie_creation_outlined,
-                      size: 28, color: theme.inkMuted),
-                )
-              : RemoteImage(storageId: poster, api: api, fit: BoxFit.cover),
+          still,
           // So the white play glyph still reads over a bright poster.
           Container(color: Colors.black.withValues(alpha: 0.18)),
         ],

@@ -1055,6 +1055,12 @@ Widget buildMessageContent({
     case MessageType.video:
       final videoUpload = message.upload;
       final videoStorageId = message.mediaStorageId;
+      // Matches the photo bubble's `msg-image-<id>`, and deliberately a
+      // different string: a video and a photo are never the same message, but
+      // the shared-content grid also flies these ids under its own prefix and
+      // two heroes sharing a tag across routes that both join a flight is an
+      // assertion rather than a graceful degrade.
+      final videoHeroTag = useHero ? 'msg-video-${message.id}' : null;
       final videoTile = StampedMedia(
         tile: ClipRRect(
           borderRadius: mediaRadius,
@@ -1080,6 +1086,7 @@ Widget buildMessageContent({
                   mediaAspectRatio: message.mediaAspectRatio,
                   durationMs: message.mediaDurationMs,
                   maxWidth: metrics?.videoMaxWidth,
+                  heroTag: videoHeroTag,
                   onOpen: videoStorageId == null
                       ? null
                       : () => FullscreenVideoViewer.open(
@@ -1087,6 +1094,7 @@ Widget buildMessageContent({
                             storageId: videoStorageId,
                             api: api,
                             posterStorageId: message.posterStorageId,
+                            heroTag: videoHeroTag,
                           ),
                 ),
         ),
