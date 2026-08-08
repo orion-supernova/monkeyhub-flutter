@@ -119,10 +119,10 @@ import flutter_callkit_incoming
     registry.desiredPushTypes = [.voIP]
     voipRegistry = registry
 
-    // Ordinary APNs. Taking the delegate is safe: FlutterAppDelegate doesn't
-    // claim it (it routes remote notifications through its plugin lifecycle
-    // delegate instead), and flutter_callkit_incoming only *offers* a
-    // willPresent helper — it never assigns itself.
+    // Ordinary APNs. FlutterAppDelegate *conforms* to
+    // UNUserNotificationCenterDelegate (which is why the two handlers below
+    // are overrides) but never assigns itself here — so without this line no
+    // banner tap and no foreground presentation would ever reach us.
     UNUserNotificationCenter.current().delegate = self
     // Does NOT prompt. Since iOS 8 a device token is issued regardless of
     // notification authorization, because silent/background pushes need one —
