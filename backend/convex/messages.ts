@@ -10,6 +10,23 @@ import {
 import { deleteStored, releaseMessageBlobs } from "./files";
 import { lensFor } from "./visibility";
 
+// ── Delivery-receipt tuning ─────────────────────────────────────────────────
+
+/**
+ * Largest room that still reports delivery — the second tick's fan-out cap.
+ *
+ * Sized to cover real group chats and nothing beyond them. Past this, a
+ * `roomMembers` patch re-runs `getReadState` for every member, so the write
+ * gets steadily more expensive while the thing it claims ("at least one other
+ * device has this") gets steadily less informative, until in a public room of
+ * hundreds it is true the instant a message is sent and worth nothing.
+ *
+ * Rooms above the line simply stay on one tick; nothing else about them
+ * changes. Mirrored client-side in `ChatRepository.kDeliveryMemberLimit` so the
+ * call is skipped before the round trip — keep the two in step.
+ */
+const DELIVERY_MEMBER_LIMIT = 50;
+
 // ── View-once tuning ────────────────────────────────────────────────────────
 
 /** Burn an armed photo this long after it was sent, opened or not. */
@@ -1648,6 +1665,17 @@ export const markRoomDelivered = mutation({
     if (!membership) return; // not a member, silently no-op
 
     const room = await ctx.db.get(roomId);
+
+    // Above this many members the receipt stops being worth its fan-out: one
+    // patch re-runs `getReadState` for every member, so the cost climbs with
+    // room size exactly as the signal loses meaning ("someone's device has it"
+    // is trivially true the moment a large room is posted to). The client
+    // carries the same threshold and skips the call — this copy is what makes
+    // it hold for an old or misbehaving one, and it is free because the room
+    // is already loaded. One knob, two places, deliberately: see
+    // `ChatRepository.kDeliveryMemberLimit`.
+    if ((room?.memberCount ?? 0) > DELIVERY_MEMBER_LIMIT) return;
+
     const newest = room?.lastMessageTime ?? 0;
     const cursor = membership.lastDeliveredAt ?? 0;
     // Everything this room has is already behind the cursor — there is nothing
@@ -1669,30 +1697,31 @@ export const markRoomDelivered = mutation({
  *   reader.visibility.seen = "friends" → visible only to the reader's friends
  *   reader.visibility.seen = "nobody"  → hidden (the default for missing/unset)
  *
- * `lastDeliveredAt` — gated on `lastSeen` instead, and deliberately so. A read
- * receipt is a claim about someone's behaviour; a delivery cursor is a claim
- * about their *device* having been reachable, which is strictly less than the
- * "last online" timestamp `lastSeen` already governs (it only ever moves inside
- * rooms you share, and only forward). Gating it on `seen` would have hidden the
- * second tick behind an opt-in that defaults to "nobody" — every message in the
- * app stuck on one tick out of the box, for a signal that leaks nothing
- * `lastSeen` does not already publish. Gating it on nothing at all would route
- * around the one control a user who has hidden their last-seen chose precisely
- * to stop senders reading their presence off a chat.
+ * `lastDeliveredAt` — gated on `seen` as well, by product decision. Both ticks
+ * past the first are therefore one opt-in: a user who has not turned on SEND
+ * READ RECEIPTS reports neither delivery nor reads, and senders see a single
+ * tick for them forever.
+ *
+ * This is the strict reading, chosen over gating delivery on `lastSeen`. The
+ * `lastSeen` variant would have lit the second tick by default (that control
+ * defaults to visible) at the cost of making a second, weaker promise about the
+ * same underlying fact — and of putting delivery inside visibility.ts's
+ * GUARDIAN_BYPASS, where a guardian would read a child's delivery cursor
+ * whatever the child had set. Under `seen`, which is deliberately NOT in that
+ * set, both cursors stay the child's to withhold.
+ *
+ * The cost is real and worth stating plainly: `seen` defaults to "nobody", so
+ * out of the box every message in the app sits on one tick until the recipient
+ * opts in. That is the intended default, not an oversight — do not "fix" it by
+ * loosening the gate here.
  *
  * Either cursor comes back `null` when the viewer may not have it, rather than
- * 0: a member who shares delivery but not reads still needs a row. A row with
- * neither is omitted entirely, so the client can fold over what it is given
- * without a second filter.
+ * 0: the shape still distinguishes "withheld" from "behind everything", which
+ * matters if the two gates ever diverge again. A row with neither is omitted
+ * entirely, so the client can fold over what it is given without a second
+ * filter.
  *
  * The viewer's own row is always returned in full.
- *
- * One consequence worth naming: `lastSeen` is in visibility.ts's
- * GUARDIAN_BYPASS, so a guardian sees their child's delivery cursor whatever
- * the child has set. That is the same bypass, and the same promise, the child
- * was already shown — "they can always see when you were last around" — and
- * delivery says strictly less than that. `seen` is deliberately NOT in that
- * set, so the read receipt stays the child's to withhold.
  */
 export const getReadState = query({
   args: {
@@ -1728,10 +1757,11 @@ export const getReadState = query({
       }
       const reader = await ctx.db.get(m.userId);
       if (!reader) continue;
-      const read = lens.canSee(reader, "seen") ? (m.lastReadAt ?? 0) : null;
-      const delivered = lens.canSee(reader, "lastSeen")
-        ? (m.lastDeliveredAt ?? 0)
-        : null;
+      // One gate for both cursors: see the header. Read through the same
+      // `canSee` call rather than two, so the two can never drift apart.
+      const shares = lens.canSee(reader, "seen");
+      const read = shares ? (m.lastReadAt ?? 0) : null;
+      const delivered = shares ? (m.lastDeliveredAt ?? 0) : null;
       if (read === null && delivered === null) continue;
       out.push({
         userId: m.userId,

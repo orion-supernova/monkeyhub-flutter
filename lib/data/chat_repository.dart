@@ -472,6 +472,18 @@ class ChatRepository extends ChangeNotifier {
   /// invisible next to the round trip it is already waiting on.
   static const _kDeliveryDebounce = Duration(milliseconds: 1200);
 
+  /// Largest room that still reports delivery — the second tick's fan-out cap.
+  ///
+  /// Skipping the call here saves the round trip; the server holds the same
+  /// line in `messages.ts`'s `DELIVERY_MEMBER_LIMIT`, which is what makes the
+  /// cap true for an old client as well. Keep the two in step.
+  ///
+  /// Past this, one delivery patch re-runs `getReadState` for every member of
+  /// the room, so the write grows more expensive exactly as what it claims
+  /// grows emptier — in a room of hundreds, "someone's device has it" is true
+  /// the moment the message is sent. Those rooms stay on one tick.
+  static const kDeliveryMemberLimit = 50;
+
   void _scheduleDeliveryReport(String userId) {
     _deliveryDebounce?.cancel();
     _deliveryDebounce = Timer(_kDeliveryDebounce, () => _reportDelivery(userId));
@@ -497,16 +509,13 @@ class ChatRepository extends ChangeNotifier {
   /// Failures are swallowed. A delivery cursor that misses a beat corrects
   /// itself on the next message, and there is no user-visible action to offer.
   ///
-  /// No cap on room size, deliberately — but that is the knob if the fan-out
-  /// ever bites. In a room of hundreds, "at least one other member's device has
-  /// it" is true the instant it is sent and says nothing worth a write, while
-  /// the write is at its most expensive. A `room.memberCount` guard here is the
-  /// whole mitigation.
+  /// Rooms above [kDeliveryMemberLimit] are skipped and stay on one tick.
   void _reportDelivery(String userId) {
     for (final room in _rooms) {
       final newest = room.lastMessageTime;
       if (newest == null) continue;
       if (room.unreadCount <= 0) continue;
+      if (room.memberCount > kDeliveryMemberLimit) continue;
       final onServer = room.lastDeliveredAt;
       if (onServer != null && !newest.isAfter(onServer)) continue;
       final inFlight = _deliveryReported[room.id];
