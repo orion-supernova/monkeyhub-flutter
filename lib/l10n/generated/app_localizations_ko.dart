@@ -5412,9 +5412,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get savedMessagesTitle => '저장한 메시지';
 
   @override
-  String get homeScreenPinnedSectionLabel => '고정됨';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return '\"$query\"와(과) 일치하는 채팅이 없어요';
   }

@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "amarelo significa símbolo certo no lugar errado.",
   "gameInfoCodeControls": "toca em símbolos para formar uma tentativa e envia-a. o tabuleiro diz-te quão perto estiveste.",
   "savedMessagesTitle": "Mensagens guardadas",
-  "homeScreenPinnedSectionLabel": "FIXADAS",
   "homeScreenNoSearchResults": "nenhuma conversa corresponde a \"{query}\"",
   "pullRevealSearchHint": "pesquisar conversas…",
   "pullRevealCollapseSemanticLabel": "Ocultar pesquisa e conversas arquivadas",

@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "الأصفر يعني الرمز الصحيح في المكان الخطأ.",
   "gameInfoCodeControls": "اضغط الرموز لبناء تخمين ثم أرسله. سيخبرك اللوح كم اقتربت.",
   "savedMessagesTitle": "الرسائل المحفوظة",
-  "homeScreenPinnedSectionLabel": "المثبتة",
   "homeScreenNoSearchResults": "لا توجد محادثات تطابق \"{query}\"",
   "pullRevealSearchHint": "ابحث عن محادثات…",
   "pullRevealCollapseSemanticLabel": "إخفاء البحث والمحادثات المؤرشفة",

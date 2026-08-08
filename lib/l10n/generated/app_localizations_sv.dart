@@ -5633,9 +5633,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get savedMessagesTitle => 'Sparade meddelanden';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'FÄSTA';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return 'ingen chatt matchar \"$query\"';
   }

@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "amarillo significa símbolo correcto en el lugar equivocado.",
   "gameInfoCodeControls": "toca símbolos para formar un intento y envíalo. el tablero te dice cuánto te acercaste.",
   "savedMessagesTitle": "Mensajes guardados",
-  "homeScreenPinnedSectionLabel": "FIJADOS",
   "homeScreenNoSearchResults": "ningún chat coincide con \"{query}\"",
   "pullRevealSearchHint": "buscar chats…",
   "pullRevealCollapseSemanticLabel": "Ocultar búsqueda y chats archivados",

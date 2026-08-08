@@ -5584,9 +5584,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get savedMessagesTitle => 'Kaydedilmiş Mesajlar';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'SABİTLENENLER';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return '\"$query\" ile eşleşen sohbet yok';
   }

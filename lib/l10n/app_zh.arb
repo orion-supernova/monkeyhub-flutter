@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "黄色表示符号对但位置不对。",
   "gameInfoCodeControls": "点击符号组成一次猜测，然后提交。棋盘会告诉你差多少。",
   "savedMessagesTitle": "保存的消息",
-  "homeScreenPinnedSectionLabel": "置顶",
   "homeScreenNoSearchResults": "没有与\"{query}\"匹配的聊天",
   "pullRevealSearchHint": "搜索聊天…",
   "pullRevealCollapseSemanticLabel": "隐藏搜索和已归档的聊天",

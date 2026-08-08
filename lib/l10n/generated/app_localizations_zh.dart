@@ -5326,9 +5326,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get savedMessagesTitle => '保存的消息';
 
   @override
-  String get homeScreenPinnedSectionLabel => '置顶';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return '没有与\"$query\"匹配的聊天';
   }

@@ -5707,9 +5707,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get savedMessagesTitle => 'Messages enregistrés';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'ÉPINGLÉS';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return 'aucune discussion ne correspond à « $query »';
   }

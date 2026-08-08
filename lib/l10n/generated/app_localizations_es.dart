@@ -5670,9 +5670,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get savedMessagesTitle => 'Mensajes guardados';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'FIJADOS';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return 'ningún chat coincide con \"$query\"';
   }

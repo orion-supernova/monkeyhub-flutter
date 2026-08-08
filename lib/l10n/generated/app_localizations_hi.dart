@@ -5617,9 +5617,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get savedMessagesTitle => 'सेव किए गए मैसेज';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'पिन किए गए';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return '\"$query\" से कोई चैट मेल नहीं खाती';
   }

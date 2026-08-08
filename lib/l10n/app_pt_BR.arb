@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "amarelo significa símbolo certo no lugar errado.",
   "gameInfoCodeControls": "toque nos símbolos para montar um palpite e envie. o tabuleiro mostra o quão perto você chegou.",
   "savedMessagesTitle": "Mensagens salvas",
-  "homeScreenPinnedSectionLabel": "FIXADOS",
   "homeScreenNoSearchResults": "nenhum chat corresponde a \"{query}\"",
   "pullRevealSearchHint": "buscar chats…",
   "pullRevealCollapseSemanticLabel": "Ocultar busca e chats arquivados",

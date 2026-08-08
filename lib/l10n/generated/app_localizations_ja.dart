@@ -5395,9 +5395,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get savedMessagesTitle => '保存済みメッセージ';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'ピン留め';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return '「$query」に一致するチャットはありません';
   }

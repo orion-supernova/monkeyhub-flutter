@@ -5681,9 +5681,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get savedMessagesTitle => 'الرسائل المحفوظة';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'المثبتة';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return 'لا توجد محادثات تطابق \"$query\"';
   }

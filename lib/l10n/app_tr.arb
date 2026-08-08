@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "sarı, doğru sembol yanlış yerde demek.",
   "gameInfoCodeControls": "sembollere dokunarak bir tahmin kur ve gönder. tahta ne kadar yaklaştığını söyler.",
   "savedMessagesTitle": "Kaydedilmiş Mesajlar",
-  "homeScreenPinnedSectionLabel": "SABİTLENENLER",
   "homeScreenNoSearchResults": "\"{query}\" ile eşleşen sohbet yok",
   "pullRevealSearchHint": "sohbet ara…",
   "pullRevealCollapseSemanticLabel": "Aramayı ve arşivlenmiş sohbetleri gizle",

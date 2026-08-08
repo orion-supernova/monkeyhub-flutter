@@ -9623,12 +9623,6 @@ abstract class AppLocalizations {
   /// **'Saved Messages'**
   String get savedMessagesTitle;
 
-  /// All-caps mono section label above the pinned group in the chat list (Saved Messages plus any user-pinned rooms), matching the TYPE/NATURE/STATUS dimension-label style in RoomFilterPanel.
-  ///
-  /// In en, this message translates to:
-  /// **'PINNED'**
-  String get homeScreenPinnedSectionLabel;
-
   /// Lowercase empty-state shown in the chat list when the pull-reveal search field's query matches no chats. {query} is the raw text the user typed.
   ///
   /// In en, this message translates to:

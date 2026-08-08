@@ -687,9 +687,6 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (parts.pinned.isNotEmpty) ...[
-            _SectionLabel(
-              AppLocalizations.of(context).homeScreenPinnedSectionLabel,
-            ),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -698,9 +695,11 @@ class _RoomsPanelState extends State<_RoomsPanel> {
               itemBuilder: (context, i) =>
                   _gridTile(context, theme, parts.pinned[i], i),
             ),
-            // No extra gap under the group: the label alone already reads as
-            // a break, and a second one made the pinned tiles look detached
-            // from the list rather than at the head of it.
+            // Now the only break between the groups, since the "PINNED" label
+            // above this grid is gone — every pinned tile carries its own pin
+            // badge, so the heading was naming what each tile already showed.
+            // Doubling the row gap is what a reader has left to see the seam
+            // by, so it has to stay: without it the two grids fuse into one.
             SizedBox(height: gridDelegate.mainAxisSpacing),
           ],
           if (parts.regular.isNotEmpty)
@@ -738,15 +737,15 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (parts.pinned.isNotEmpty) ...[
-          _SectionLabel(
-            AppLocalizations.of(context).homeScreenPinnedSectionLabel,
-          ),
-          // No extra gap under the group — every RoomCard already carries its
-          // own 10px bottom margin, so the last pinned row sits exactly as
-          // far from the first regular one as any two rows do. The section
-          // label is the break; a second one just left a hole.
           for (var i = 0; i < parts.pinned.length; i++)
             _row(context, theme, parts.pinned[i], i),
+          // The break the "PINNED" heading used to be. A RoomCard already
+          // carries a 10px bottom margin, so this second 10 doubles the gap at
+          // the seam and leaves every other gap alone — the same 10-then-20
+          // rhythm the grid above uses. Dropping it entirely would run the
+          // pinned rows straight into the rest with nothing but each row's own
+          // badge to tell them apart.
+          const SizedBox(height: 10),
         ],
         for (var i = 0; i < parts.regular.length; i++)
           _row(context, theme, parts.regular[i], parts.pinned.length + i),
@@ -849,16 +848,3 @@ class _RoomsPanelState extends State<_RoomsPanel> {
 
 /// Uppercase-ish section label above the pinned group, matching the
 /// dimension-label typography already used by [RoomFilterPanel].
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(label, style: theme.monoTiny.copyWith(color: theme.inkMuted)),
-    );
-  }
-}

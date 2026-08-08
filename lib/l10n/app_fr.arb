@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "jaune veut dire bon symbole, mauvaise place.",
   "gameInfoCodeControls": "touche des symboles pour composer un essai, puis envoie-le. la grille te dit à quel point tu étais proche.",
   "savedMessagesTitle": "Messages enregistrés",
-  "homeScreenPinnedSectionLabel": "ÉPINGLÉS",
   "homeScreenNoSearchResults": "aucune discussion ne correspond à « {query} »",
   "pullRevealSearchHint": "rechercher des discussions…",
   "pullRevealCollapseSemanticLabel": "Masquer la recherche et les discussions archivées",

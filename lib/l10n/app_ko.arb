@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "노랑은 기호는 맞지만 자리가 틀렸다는 뜻.",
   "gameInfoCodeControls": "기호를 눌러 추측을 만든 다음 보내. 얼마나 가까웠는지 보드가 알려줘.",
   "savedMessagesTitle": "저장한 메시지",
-  "homeScreenPinnedSectionLabel": "고정됨",
   "homeScreenNoSearchResults": "\"{query}\"와(과) 일치하는 채팅이 없어요",
   "pullRevealSearchHint": "채팅 검색…",
   "pullRevealCollapseSemanticLabel": "검색과 보관된 채팅 숨기기",

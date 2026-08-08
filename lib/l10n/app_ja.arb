@@ -1580,7 +1580,6 @@
   "gameInfoCodeRule3": "黄色は記号は合っているが位置が違います。",
   "gameInfoCodeControls": "記号をタップして予想を作り、送信します。どれだけ近いか盤面が教えてくれます。",
   "savedMessagesTitle": "保存済みメッセージ",
-  "homeScreenPinnedSectionLabel": "ピン留め",
   "homeScreenNoSearchResults": "「{query}」に一致するチャットはありません",
   "pullRevealSearchHint": "チャットを検索…",
   "pullRevealCollapseSemanticLabel": "検索とアーカイブ済みチャットを非表示",

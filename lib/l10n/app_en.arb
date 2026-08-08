@@ -6338,10 +6338,6 @@
   "@savedMessagesTitle": {
     "description": "Room-list display name for the self-chat room every account has (name starting with 'dm:self:'), shown in place of a friend's display name in RoomCard/RoomGridTile."
   },
-  "homeScreenPinnedSectionLabel": "PINNED",
-  "@homeScreenPinnedSectionLabel": {
-    "description": "All-caps mono section label above the pinned group in the chat list (Saved Messages plus any user-pinned rooms), matching the TYPE/NATURE/STATUS dimension-label style in RoomFilterPanel."
-  },
   "homeScreenNoSearchResults": "no chats match \"{query}\"",
   "@homeScreenNoSearchResults": {
     "description": "Lowercase empty-state shown in the chat list when the pull-reveal search field's query matches no chats. {query} is the raw text the user typed."

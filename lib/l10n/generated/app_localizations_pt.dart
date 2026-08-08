@@ -5679,9 +5679,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get savedMessagesTitle => 'Mensagens guardadas';
 
   @override
-  String get homeScreenPinnedSectionLabel => 'FIXADAS';
-
-  @override
   String homeScreenNoSearchResults(Object query) {
     return 'nenhuma conversa corresponde a \"$query\"';
   }
@@ -11403,9 +11400,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get savedMessagesTitle => 'Mensagens salvas';
-
-  @override
-  String get homeScreenPinnedSectionLabel => 'FIXADOS';
 
   @override
   String homeScreenNoSearchResults(Object query) {
