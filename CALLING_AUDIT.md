@@ -10,8 +10,18 @@
 > `USE_FULL_SCREEN_INTENT` is missing is also stale — it arrives via manifest
 > merge from `flutter_callkit_incoming`, along with `MANAGE_OWN_CALLS`,
 > `FOREGROUND_SERVICE_PHONE_CALL` and `FOREGROUND_SERVICE_CAMERA`. Two mechanisms
-> not described here are now live: the OneSignal rescue in `voipPush.sendVoip`
-> and the one-shot prompts in `AndroidCallReliability`.
+> not described here are now live: the alert-banner rescue in
+> `voipPush.sendVoip` and the one-shot prompts in `AndroidCallReliability`.
+>
+> **Superseded, 2026-08-08:** every mention of OneSignal below is history. The
+> push vendor is gone; the backend now speaks APNs, FCM and Web Push directly
+> (`backend/convex/push.ts`, `pushTransport.ts`, `webPush.ts`). Read
+> "OneSignal banner" as "alert push" throughout — the *shape* of every failure
+> branch described here is unchanged, because the fallback still fires exactly
+> when no device received a native ring. What did change: the fallback is now a
+> real APNs/FCM alert to the same device registry, so a callee with no push
+> credential at all now gets nothing rather than a vendor-delivered banner.
+> See NOTIFICATION_SETUP.md for the current architecture.
 >
 > **New invariant this document predates**, and the one that matters most on
 > Android: *nothing may let `CallkitNotificationService` start without

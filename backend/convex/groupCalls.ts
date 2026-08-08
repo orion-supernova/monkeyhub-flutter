@@ -26,8 +26,6 @@ const INVITE_RING_WINDOW_MS = 60 * 1000;
 // killed app never leaves a lingering "ongoing call" banner.
 const HEARTBEAT_STALE_MS = 45 * 1000;
 
-const ONESIGNAL_APP_ID = "c191a9f0-15cf-402a-8a04-dcc16108f4b0";
-const ONESIGNAL_BASE = "https://api.onesignal.com";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
@@ -501,9 +499,10 @@ export const consumeSignals = mutation({
 
 // ────────────────────────── push ──────────────────────────
 
-// One OneSignal call for the whole invitee list (external_id aliases fan
-// out server-side). Banner push, not VoIP — group invites ring in-app via
-// pendingInviteForUser; the banner is the killed/backgrounded-app path.
+// Banner push, not VoIP — group invites ring in-app via pendingInviteForUser;
+// the banner is the killed/backgrounded-app path. The invitee list goes in as
+// one call and fans out per recipient inside `sendAlert`, which is what lets
+// each person's banner carry their own badge total.
 export const sendGroupInvitePush = internalAction({
   args: {
     groupCallId: v.id("groupCalls"),
@@ -514,47 +513,27 @@ export const sendGroupInvitePush = internalAction({
     type: v.string(),
   },
   handler: async (
-    _ctx,
+    ctx,
     { groupCallId, roomId, inviteeIds, starterName, roomName, type },
   ) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-    if (!apiKey) {
-      console.error("sendGroupInvitePush: ONESIGNAL_API_KEY is not set");
-      return;
-    }
+    if (inviteeIds.length === 0) return;
     const verb = type === "video" ? "video call" : "voice call";
-    const payload = {
-      app_id: ONESIGNAL_APP_ID,
-      target_channel: "push",
-      include_aliases: {
-        external_id: inviteeIds.map((i) => i.toString()),
-      },
-      headings: { en: roomName },
-      contents: { en: `${starterName} started a ${verb} — tap to join` },
-      priority: 10,
-      ios_interruption_level: "time_sensitive",
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: inviteeIds,
+      kind: "group_call_invite",
+      title: roomName,
+      body: `${starterName} started a ${verb} — tap to join`,
       data: {
-        type: "group_call_invite",
+        kind: "group_call_invite",
         groupCallId: groupCallId.toString(),
         roomId: roomId.toString(),
         callType: type,
         starterName,
         roomName,
       },
-    };
-    const response = await fetch(`${ONESIGNAL_BASE}/notifications`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Key ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
+      roomId,
+      collapseId: groupCallId.toString(),
     });
-    if (!response.ok) {
-      console.error(
-        `sendGroupInvitePush: OneSignal HTTP ${response.status} ${await response.text()}`,
-      );
-    }
   },
 });
 

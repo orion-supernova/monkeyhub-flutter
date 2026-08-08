@@ -365,8 +365,8 @@ export const getMembers = query({
   },
 });
 
-// Internal query: fetch member user IDs for push notifications via OneSignal.
-// OneSignal targets users by external user ID — no device tokens needed here.
+// Internal query: who, other than [excludeUserId], is in this room. Feeds the
+// notification fan-out, which resolves each user's devices itself.
 export const getMemberIds = internalQuery({
   args: { roomId: v.id("rooms"), excludeUserId: v.id("users") },
   handler: async (ctx, { roomId, excludeUserId }) => {

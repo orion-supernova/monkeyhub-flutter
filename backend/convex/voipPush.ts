@@ -1,125 +1,25 @@
-import {
-  internalAction,
-  internalMutation,
-  internalQuery,
-} from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-
-// ─────────────── push-provider auth token caching ───────────────
-//
-// APNs REQUIRES the same provider JWT be reused for 20-60 minutes. Signing
-// a fresh one per push trips Apple's TooManyProviderTokenUpdates 429 rate
-// limit, after which EVERY push for the key fails until the window cools —
-// observed as "calling randomly dies completely under rapid testing, then
-// recovers after a quiet period". Tokens are cached in module scope (fast
-// path, per warm isolate) and in the pushAuthTokens table (survives cold
-// starts and is shared across isolates). Google's FCM OAuth tokens get the
-// same treatment (valid 60 min; per-push minting is needless latency).
-
-const TOKEN_REUSE_MS = 50 * 60 * 1000;
-
-type ProviderTokenEntry = { token: string; keyRef: string; issuedAt: number };
-
-const providerTokenCache: Record<string, ProviderTokenEntry> = {};
-
-export const _getPushAuthToken = internalQuery({
-  args: { provider: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      token: v.string(),
-      keyRef: v.string(),
-      issuedAt: v.number(),
-    }),
-  ),
-  handler: async (ctx, { provider }) => {
-    const row = await ctx.db
-      .query("pushAuthTokens")
-      .withIndex("by_provider", (q) => q.eq("provider", provider))
-      .first();
-    if (!row) return null;
-    return { token: row.token, keyRef: row.keyRef, issuedAt: row.issuedAt };
-  },
-});
-
-export const _setPushAuthToken = internalMutation({
-  args: {
-    provider: v.string(),
-    token: v.string(),
-    keyRef: v.string(),
-    issuedAt: v.number(),
-  },
-  returns: v.null(),
-  handler: async (ctx, { provider, token, keyRef, issuedAt }) => {
-    const row = await ctx.db
-      .query("pushAuthTokens")
-      .withIndex("by_provider", (q) => q.eq("provider", provider))
-      .first();
-    if (row) {
-      await ctx.db.patch(row._id, { token, keyRef, issuedAt });
-    } else {
-      await ctx.db.insert("pushAuthTokens", {
-        provider,
-        token,
-        keyRef,
-        issuedAt,
-      });
-    }
-    return null;
-  },
-});
-
-// Returns a provider auth token, minting a fresh one only when the cached
-// one is missing, older than TOKEN_REUSE_MS, or signed with a different
-// key (keyRef mismatch — key rotation). Concurrent refreshes across
-// isolates are harmless: they happen at most once per ~50 min, far below
-// any provider's update limit.
-async function cachedProviderToken(
-  ctx: any,
-  provider: "apns" | "fcm",
-  keyRef: string,
-  mint: () => Promise<string>,
-): Promise<string> {
-  const now = Date.now();
-  const mem = providerTokenCache[provider];
-  if (mem && mem.keyRef === keyRef && now - mem.issuedAt < TOKEN_REUSE_MS) {
-    return mem.token;
-  }
-  const stored = (await ctx.runQuery(internal.voipPush._getPushAuthToken, {
-    provider,
-  })) as ProviderTokenEntry | null;
-  if (
-    stored &&
-    stored.keyRef === keyRef &&
-    now - stored.issuedAt < TOKEN_REUSE_MS
-  ) {
-    providerTokenCache[provider] = stored;
-    return stored.token;
-  }
-  const token = await mint();
-  const entry: ProviderTokenEntry = { token, keyRef, issuedAt: now };
-  providerTokenCache[provider] = entry;
-  await ctx.runMutation(internal.voipPush._setPushAuthToken, {
-    provider,
-    ...entry,
-  });
-  return token;
-}
+import {
+  apnsPost,
+  fcmPost,
+  stringifyValues,
+  type ApnsEnv,
+} from "./pushTransport";
 
 // Direct VoIP push delivery — wakes a *killed* app for CallKit (iOS) or
-// ConnectionService (Android). Runs alongside the OneSignal push in
-// `calls.sendCallPush` for now; OneSignal stays as a soft fallback.
+// ConnectionService (Android).
 //
-// iOS: APNs HTTP/2 with PushKit topic `<bundle>.voip`, signed with an ES256
-//      JWT from the developer-account `.p8` key.
-// Android: FCM HTTP v1, data-only `priority: high` message. Authenticated
-//      with an OAuth2 access token minted from the service-account JSON.
+// iOS: APNs HTTP/2 with the PushKit topic `<bundle>.voip`, which is a
+//      DIFFERENT topic and a DIFFERENT token from the alert pushes in
+//      `push.ts`. Both are signed with the same developer-account `.p8`.
+// Android: FCM HTTP v1, data-only `priority: high` message, handled by
+//      CallFcmService.
 //
-// Required Convex env vars (set in dashboard):
-//   APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID, APNS_KEY_P8, APNS_SANDBOX
-//   FCM_SERVICE_ACCOUNT_JSON
+// The HTTP mechanics, provider-JWT caching and error classification all live
+// in `pushTransport.ts`; this file is only about what a call needs.
 //
 // Any missing piece on a given platform → that platform's branch logs and
 // skips (the other can still deliver). Never throws back to the caller.
@@ -181,7 +81,7 @@ export const sendVoip = internalAction({
       userId: args.calleeId,
     });
     if (devices.length === 0) {
-      console.log("sendVoip: no devices for callee — OneSignal-only path");
+      console.log("sendVoip: no devices registered for callee");
       return;
     }
     const payload = {
@@ -202,17 +102,18 @@ export const sendVoip = internalAction({
     const results = await Promise.allSettled(
       devices.map((d) => pushToDevice(ctx, args.calleeId, d, payload)),
     );
-    // OneSignal rescue: calls.initiate skips the OneSignal banner when
-    // every phone has a native token — but if the native push then fails
-    // for ALL devices (e.g. an APNs outage or rate limit), the callee
-    // would get complete silence. A time-sensitive banner naming the
-    // caller is strictly better than nothing.
+    // Alert-banner rescue: if the VoIP push failed for EVERY device the
+    // callee would otherwise get complete silence. The usual cause is a
+    // voipToken cleared by the dead-token sweep on a device whose ordinary
+    // APNs alert token is still perfectly good — so a time-sensitive banner
+    // naming the caller has a real chance of landing where the ring didn't,
+    // and is strictly better than nothing either way.
     const anyDelivered = results.some(
       (r) => r.status === "fulfilled" && r.value === true,
     );
     if (!anyDelivered) {
       console.warn(
-        `sendVoip: no native push delivered for callee=${args.calleeId} — OneSignal rescue`,
+        `sendVoip: no native push delivered for callee=${args.calleeId} — alert rescue`,
       );
       await ctx.scheduler.runAfter(0, internal.calls.sendCallPush, {
         callId: args.callId,
@@ -282,8 +183,6 @@ export const sendVoipTaken = internalAction({
   },
 });
 
-type ApnsEnv = "sandbox" | "production";
-
 type DeviceRow =
   | {
       deviceRowId: Id<"userDevices">;
@@ -324,8 +223,8 @@ export const retryPushToDevice = internalAction({
 const TRANSIENT_RETRY_DELAY_MS = 2000;
 
 // Returns true when at least one channel (APNs / FCM) accepted the push
-// for this device — sendVoip uses this to trigger the OneSignal rescue
-// when NO device could be reached natively.
+// for this device — sendVoip uses this to trigger the alert rescue when NO
+// device could be reached natively.
 async function pushToDevice(
   ctx: any,
   userId: Id<"users">,
@@ -357,10 +256,10 @@ async function pushToDevice(
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error(`sendVoip: APNs failed device=${d.deviceId}: ${msg}`);
-      // Apple replies 410 (Unregistered) or 400 (BadDeviceToken) when
-      // the token has been revoked — usually after we miss the iOS 13+
-      // 5-second `reportNewIncomingCall` deadline once too often.
-      // Clear just this device's token; siblings keep theirs.
+      // Apple replies 410 (Unregistered) or 400 BadDeviceToken when the token
+      // has been revoked — usually after we miss the iOS 13+ 5-second
+      // `reportNewIncomingCall` deadline once too often. Clear just this
+      // device's token; siblings keep theirs.
       if (msg.startsWith("APNS_BAD_TOKEN")) {
         if (!d.legacy) {
           await ctx.runMutation(
@@ -430,7 +329,7 @@ async function pushToDevice(
   return delivered;
 }
 
-// ────────────────────────── APNs (iOS PushKit) ──────────────────────────
+// ────────────────────────── transport adapters ──────────────────────────
 
 async function sendApnsVoip(
   ctx: any,
@@ -438,245 +337,30 @@ async function sendApnsVoip(
   payload: Record<string, unknown>,
   apnsEnv?: ApnsEnv,
 ): Promise<void> {
-  const keyId = process.env.APNS_KEY_ID;
-  const teamId = process.env.APNS_TEAM_ID;
-  const bundleId = process.env.APNS_BUNDLE_ID;
-  const keyP8 = process.env.APNS_KEY_P8;
-  // Per-token environment wins (a sandbox token only works against the
-  // sandbox host and vice-versa). Falls back to the APNS_SANDBOX env for
-  // legacy rows registered before apnsEnv existed — defaulting to PRODUCTION
-  // when the env var is absent, since that's where real users' tokens live
-  // (a sandbox default would silently 400 every production token and get it
-  // cleared by the dead-token sweep).
-  const sandbox =
-    apnsEnv === "production"
-      ? false
-      : apnsEnv === "sandbox"
-        ? true
-        : (process.env.APNS_SANDBOX ?? "false") === "true";
-  if (!keyId || !teamId || !bundleId || !keyP8) {
-    throw new Error(
-      "APNS_MISCONFIG: missing APNS_KEY_ID / APNS_TEAM_ID / APNS_BUNDLE_ID / APNS_KEY_P8",
-    );
-  }
-  // Cached provider JWT — reused for ~50 min per Apple's requirement.
-  // NEVER mint per-push: that trips TooManyProviderTokenUpdates and takes
-  // down every push for the key.
-  let jwt: string;
-  try {
-    jwt = await cachedProviderToken(ctx, "apns", keyId, () =>
-      signJwt(
-        { alg: "ES256", typ: "JWT", kid: keyId },
-        { iss: teamId, iat: Math.floor(Date.now() / 1000) },
-        keyP8,
-        "ES256",
-      ),
-    );
-  } catch (e) {
-    // A malformed/expired .p8 key fails here. This is a deployment
-    // misconfiguration, not a bad device token — never clear the token.
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`APNS_MISCONFIG: JWT signing failed (${msg})`);
-  }
-  const host = sandbox ? "api.sandbox.push.apple.com" : "api.push.apple.com";
-  const url = `https://${host}/3/device/${voipToken}`;
-  // APNs holds the push for a briefly-unreachable device instead of
-  // discarding it (expiration 0 = deliver-now-or-drop). An invite is only
-  // meaningful inside the 30s ring window; a "taken" dismissal must chase a
-  // reconnecting device longer, or its CallKit ringer lingers as a ghost.
+  // An invite is only meaningful inside the 30s ring window; a "taken"
+  // dismissal must chase a reconnecting device longer, or its CallKit ringer
+  // lingers as a ghost.
   const expirationSeconds = payload.kind === "taken" ? 60 : 30;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      authorization: `bearer ${jwt}`,
-      "apns-topic": `${bundleId}.voip`,
-      "apns-push-type": "voip",
-      "apns-priority": "10",
-      "apns-expiration": String(
-        Math.floor(Date.now() / 1000) + expirationSeconds,
-      ),
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(payload),
+  await apnsPost(ctx, {
+    token: voipToken,
+    env: apnsEnv,
+    topicSuffix: ".voip",
+    pushType: "voip",
+    priority: "10",
+    expiration: Math.floor(Date.now() / 1000) + expirationSeconds,
+    // A PushKit payload has no `aps` — the whole body is ours.
+    body: payload,
   });
-  if (!res.ok) {
-    const body = await res.text();
-    // Sentinel prefixes let the catch site branch without parsing the
-    // status line. Three classes, three behaviours:
-    //   *_BAD_TOKEN  (410/400) → device token revoked; clear it.
-    //   *_MISCONFIG  (401/403) → bad APNs auth key/team; never clear.
-    //   *_TRANSIENT  (429/5xx) → APNs blip; keep token, retry next call.
-    if (res.status === 410 || res.status === 400) {
-      throw new Error(`APNS_BAD_TOKEN:${res.status}:${body}`);
-    }
-    if (res.status === 401 || res.status === 403) {
-      throw new Error(`APNS_MISCONFIG: HTTP ${res.status}: ${body}`);
-    }
-    if (res.status === 429 || res.status >= 500) {
-      throw new Error(`APNS_TRANSIENT: HTTP ${res.status}: ${body}`);
-    }
-    throw new Error(`APNs HTTP ${res.status}: ${body}`);
-  }
 }
-
-// ────────────────────────── FCM (Android) ──────────────────────────
 
 async function sendFcmData(
   ctx: any,
   fcmToken: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const saJson = process.env.FCM_SERVICE_ACCOUNT_JSON;
-  if (!saJson) throw new Error("FCM_MISCONFIG: missing FCM_SERVICE_ACCOUNT_JSON");
-  let sa: {
-    client_email: string;
-    private_key: string;
-    project_id: string;
-  };
-  try {
-    sa = JSON.parse(saJson);
-  } catch (e) {
-    // Malformed service-account JSON is a deployment misconfiguration, not
-    // a bad device token.
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`FCM_MISCONFIG: invalid FCM_SERVICE_ACCOUNT_JSON (${msg})`);
-  }
-  const accessToken = await fcmAccessToken(ctx, sa);
-  // FCM v1 data values must all be strings.
-  const data: Record<string, string> = {};
-  for (const k of Object.keys(payload)) data[k] = String(payload[k]);
-  const body = {
-    message: {
-      token: fcmToken,
-      data,
-      android: { priority: "high", ttl: "60s" },
-    },
-  };
-  const res = await fetch(
-    `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
-    {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${accessToken}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    },
-  );
-  if (!res.ok) {
-    const respBody = await res.text();
-    // Same three-class split as APNs:
-    //   FCM_BAD_TOKEN  (404 / 400 / UNREGISTERED) → clear the token.
-    //   FCM_MISCONFIG  (401/403) → bad service-account / perms; never clear.
-    //   FCM_TRANSIENT  (429/5xx) → FCM blip; keep token, retry next call.
-    if (
-      res.status === 404 ||
-      res.status === 400 ||
-      respBody.includes("UNREGISTERED")
-    ) {
-      throw new Error(`FCM_BAD_TOKEN:${res.status}:${respBody}`);
-    }
-    if (res.status === 401 || res.status === 403) {
-      throw new Error(`FCM_MISCONFIG: HTTP ${res.status}: ${respBody}`);
-    }
-    if (res.status === 429 || res.status >= 500) {
-      throw new Error(`FCM_TRANSIENT: HTTP ${res.status}: ${respBody}`);
-    }
-    throw new Error(`FCM HTTP ${res.status}: ${respBody}`);
-  }
-}
-
-async function fcmAccessToken(
-  ctx: any,
-  sa: {
-    client_email: string;
-    private_key: string;
-  },
-): Promise<string> {
-  // Google access tokens are valid for 60 min — cache and reuse like the
-  // APNs JWT instead of a sign + OAuth round-trip per push.
-  return cachedProviderToken(ctx, "fcm", sa.client_email, async () => {
-    const iat = Math.floor(Date.now() / 1000);
-    const jwt = await signJwt(
-      { alg: "RS256", typ: "JWT" },
-      {
-        iss: sa.client_email,
-        scope: "https://www.googleapis.com/auth/firebase.messaging",
-        aud: "https://oauth2.googleapis.com/token",
-        iat,
-        exp: iat + 3600,
-      },
-      sa.private_key,
-      "RS256",
-    );
-    const params = new URLSearchParams();
-    params.set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
-    params.set("assertion", jwt);
-    const res = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    });
-    if (!res.ok) {
-      throw new Error(`FCM OAuth HTTP ${res.status}: ${await res.text()}`);
-    }
-    const j = (await res.json()) as { access_token: string };
-    return j.access_token;
+  await fcmPost(ctx, {
+    token: fcmToken,
+    data: stringifyValues(payload),
+    android: { priority: "high", ttl: "60s" },
   });
-}
-
-// ────────────────────────── JWT signing helpers ──────────────────────────
-
-async function signJwt(
-  header: Record<string, unknown>,
-  claims: Record<string, unknown>,
-  privateKeyPem: string,
-  alg: "ES256" | "RS256",
-): Promise<string> {
-  const enc = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claims))}`;
-  const der = pemToDer(privateKeyPem);
-  const importAlg: AlgorithmIdentifier | EcKeyImportParams | RsaHashedImportParams =
-    alg === "ES256"
-      ? { name: "ECDSA", namedCurve: "P-256" }
-      : { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
-  const signAlg: AlgorithmIdentifier | EcdsaParams =
-    alg === "ES256"
-      ? { name: "ECDSA", hash: "SHA-256" }
-      : { name: "RSASSA-PKCS1-v1_5" };
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    der,
-    importAlg,
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    signAlg,
-    key,
-    new TextEncoder().encode(enc),
-  );
-  return `${enc}.${b64url(new Uint8Array(sig))}`;
-}
-
-function b64url(input: string | Uint8Array): string {
-  let bytes: Uint8Array;
-  if (typeof input === "string") {
-    bytes = new TextEncoder().encode(input);
-  } else {
-    bytes = input;
-  }
-  let s = "";
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function pemToDer(pem: string): Uint8Array {
-  const b64 = pem
-    .replace(/-----BEGIN [A-Z ]+-----/g, "")
-    .replace(/-----END [A-Z ]+-----/g, "")
-    .replace(/\s+/g, "");
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
 }

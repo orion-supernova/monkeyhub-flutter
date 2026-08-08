@@ -33,49 +33,114 @@
   <link rel="manifest" href="manifest.json">
 
   <!--
-    OneSignal Web Push. Delivers incoming-message (and web-only-callee call)
-    notifications to a backgrounded/frozen/closed tab — the only channel that
-    reaches a tab whose WebSocket the browser has frozen. The web subscription
-    is tagged with external_id = userId (via OneSignal.login in the app), which
-    is exactly what the Convex backend already targets, so no backend change is
-    needed. Service worker lives at web/OneSignalSDKWorker.js (served at root).
-  -->
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function (OneSignal) {
-      await OneSignal.init({
-        appId: "c191a9f0-15cf-402a-8a04-dcc16108f4b0",
-        // Web Push only works on the deployed HTTPS origin, never localhost.
-        allowLocalhostAsSecureOrigin: false,
-      });
-    });
+    Web Push (RFC 8030), spoken directly to the browser's own push service.
+    Delivers message and call notifications to a backgrounded, frozen or closed
+    tab — the only channel that reaches a tab whose WebSocket the browser has
+    suspended. No SDK: the backend encrypts each payload itself
+    (backend/convex/webPush.ts) and web/mh-push-sw.js renders it.
 
-    // Thin bridge the Flutter app calls via JS-interop (lib/push/onesignal_web_web.dart).
-    // Everything defers through OneSignalDeferred so it's safe to call before the SDK loads.
-    window.mhOneSignalLogin = function (userId) {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.login(userId); });
-    };
-    window.mhOneSignalLogout = function () {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.logout(); });
-    };
-    window.mhOneSignalPrompt = function () {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(function (OneSignal) { OneSignal.Notifications.requestPermission(); });
-    };
-    window.mhOneSignalOnClick = function (cb) {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(function (OneSignal) {
-        OneSignal.Notifications.addEventListener('click', function (event) {
+    Web Push requires a secure origin, so none of this works on plain localhost.
+  -->
+  <script>
+    // Thin bridge the Flutter app calls via JS-interop (lib/push/web_push_web.dart).
+    (function () {
+      var SW_URL = '/web/mh-push-sw.js';
+      // Narrower than the worker's own directory on purpose: a worker may claim
+      // any scope at or below /web/, and taking a sub-path means we can never
+      // collide with a service worker `flutter build web` ships at /web/.
+      // Push delivery does not care that no page lives here.
+      var SW_SCOPE = '/web/push/';
+      var _registration = null;
+
+      function ready() {
+        if (_registration) return Promise.resolve(_registration);
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          return Promise.resolve(null);
+        }
+        return navigator.serviceWorker
+          .register(SW_URL, { scope: SW_SCOPE })
+          .then(function (reg) {
+            _registration = reg;
+            return reg;
+          })
+          .catch(function () { return null; });
+      }
+
+      // The VAPID public key travels as base64url but subscribe() wants raw
+      // bytes.
+      function urlBase64ToUint8Array(base64) {
+        var padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        var raw = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+        var out = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
+      }
+
+      function b64(buf) {
+        var bytes = new Uint8Array(buf);
+        var s = '';
+        for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+        return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+      }
+
+      // Returns {endpoint, p256dh, auth} or null. Idempotent — subscribe()
+      // hands back the existing subscription when the key matches.
+      window.mhPushSubscribe = function (vapidPublicKey) {
+        // Subscribing before permission is granted throws; asking here would
+        // be ignored anyway, because a prompt needs a user gesture (see
+        // mhPushPermission, called from App._primeAlerts).
+        if (typeof Notification === 'undefined') return Promise.resolve(null);
+        if (Notification.permission !== 'granted') return Promise.resolve(null);
+        return ready().then(function (reg) {
+          if (!reg) return null;
+          return reg.pushManager
+            .subscribe({
+              // Chrome requires this, and it is the reason the backend never
+              // sends a silent push to web.
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            })
+            .then(function (sub) {
+              if (!sub) return null;
+              return {
+                endpoint: sub.endpoint,
+                p256dh: b64(sub.getKey('p256dh')),
+                auth: b64(sub.getKey('auth')),
+              };
+            })
+            .catch(function () { return null; });
+        });
+      };
+
+      window.mhPushPermission = function () {
+        if (typeof Notification === 'undefined') return;
+        try { Notification.requestPermission(); } catch (e) {}
+      };
+
+      window.mhPushOnOpenRoom = function (cb) {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.addEventListener('message', function (event) {
           try {
-            var d = (event && event.notification && event.notification.additionalData) || {};
-            cb(d.roomId ? String(d.roomId) : '', d.type ? String(d.type) : '');
+            var d = event.data || {};
+            if (d.mh === 'openRoom') cb(d.roomId ? String(d.roomId) : '');
           } catch (e) {}
         });
-      });
-    };
+      };
+
+      // The previous vendor's service worker outlives its script tag, and it
+      // keeps a live push subscription. Left alone it could still deliver, or
+      // double up with ours.
+      window.mhPushUnregisterLegacy = function () {
+        if (!('serviceWorker' in navigator)) return;
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) {
+            var w = r.active || r.installing || r.waiting;
+            var url = (w && w.scriptURL) || '';
+            if (url.indexOf('OneSignalSDKWorker') !== -1) r.unregister();
+          });
+        }).catch(function () {});
+      };
+    })();
   </script>
 
   <!--

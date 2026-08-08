@@ -1,56 +1,18 @@
-import { internalAction, internalMutation } from "./_generated/server";
+import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
-// Required Convex environment variables (set in Convex dashboard → Settings → Environment Variables):
-//   ONESIGNAL_API_KEY  — REST API key from OneSignal dashboard → Settings → Keys & IDs
+// What each kind of event says on a lock screen.
 //
-// The App ID is hardcoded (same as PushNotificationManager.swift — not a secret).
-
-const ONESIGNAL_APP_ID = "c191a9f0-15cf-402a-8a04-dcc16108f4b0";
-const ONESIGNAL_BASE = "https://api.onesignal.com";
-
-/**
- * POST one notification and return the OneSignal notification id, or null if
- * the request failed.
- *
- * That id is the whole basis for revocation — it's what `DELETE
- * /notifications/{id}` takes. It used to be logged and thrown away.
- *
- * Every caller sends ONE request per recipient rather than a single
- * `include_aliases` fan-out. Two reasons, both hard requirements:
- *   1. `ios_badgeType: "SetTo"` needs each recipient's own unread total.
- *   2. A shared notification id can't be cancelled for one reader without
- *      cancelling it for everyone else in the room.
- * Rooms here hold a handful of people and OneSignal allows 150 req/s, so the
- * cost is a non-issue when the calls are issued concurrently.
- */
-async function oneSignalPost(
-  apiKey: string,
-  payload: Record<string, any>,
-  tag: string,
-): Promise<string | null> {
-  const response = await fetch(`${ONESIGNAL_BASE}/notifications`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Key ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const responseText = await response.text();
-  if (!response.ok) {
-    console.error(`${tag}: OneSignal API error (HTTP ${response.status}): ${responseText}`);
-    return null;
-  }
-  try {
-    return (JSON.parse(responseText)?.id as string) ?? null;
-  } catch {
-    console.error(`${tag}: could not parse OneSignal response: ${responseText}`);
-    return null;
-  }
-}
+// This file decides WHO gets told and WHAT it reads; `push.ts` decides how the
+// bytes reach the device. The split matters because the "who" is full of
+// product rules — a deleted message must not be announced, a supervised
+// request must not leak before a guardian releases it, a sender never notifies
+// themselves — and none of those belong next to an APNs header.
+//
+// The four exports here are the entire notification surface of the backend.
+// Their names and signatures are load-bearing: messages.ts, friends.ts and
+// family.ts schedule them by name from ten call sites.
 
 /**
  * Push for anything sitting in a guardian's approval queue, and for a request
@@ -66,44 +28,14 @@ export const sendApprovalPush = internalAction({
     body: v.string(),
   },
   handler: async (ctx, { userIds, title, body }) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-    if (!apiKey) {
-      console.error(
-        "sendApprovalPush: ONESIGNAL_API_KEY env var is not set — push skipped."
-      );
-      return;
-    }
     if (userIds.length === 0) return;
-
-    console.log(
-      `sendApprovalPush: targeting ${userIds.length} user(s) by external_id: ${userIds.join(", ")}`
-    );
-
-    // Per-recipient for the same reason as sendMessagePush: the absolute
-    // badge value differs per user.
-    const badges: Record<string, number> = await ctx.runQuery(
-      internal.badges.badgeSnapshot,
-      { userIds: userIds as any }
-    );
-
-    await Promise.allSettled(
-      userIds.map((uid) =>
-        oneSignalPost(
-          apiKey,
-          {
-            app_id: ONESIGNAL_APP_ID,
-            target_channel: "push",
-            include_aliases: { external_id: [uid] },
-            headings: { en: title },
-            contents: { en: body },
-            data: { kind: "approval" },
-            ios_badgeType: "SetTo",
-            ios_badgeCount: badges[uid] ?? 1,
-          },
-          "sendApprovalPush"
-        )
-      )
-    );
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: userIds as any,
+      kind: "approval",
+      title,
+      body,
+      data: { kind: "approval" },
+    });
   },
 });
 
@@ -120,65 +52,53 @@ export const sendMessagePush = internalAction({
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, messageId, senderId, senderName, content, type, mentionedUserIds, mentionsEveryone }) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-
-    if (!apiKey) {
-      console.error(
-        "sendMessagePush: ONESIGNAL_API_KEY env var is not set — push skipped."
-      );
-      return;
-    }
-
+  handler: async (
+    ctx,
+    {
+      roomId,
+      messageId,
+      senderId,
+      senderName,
+      content,
+      type,
+      mentionedUserIds,
+      mentionsEveryone,
+    },
+  ) => {
     // Cheapest possible guard against the "typed it, sent it, deleted it"
     // race: `send` schedules us with runAfter(0), but under load this action
     // can start after the message is already gone. One read saves a push that
-    // would immediately need revoking.
-    const stillThere = await ctx.runQuery(internal.messages.stillExists, { messageId });
+    // would immediately need taking back.
+    const stillThere = await ctx.runQuery(internal.messages.stillExists, {
+      messageId,
+    });
     if (!stillThere) {
       console.log("sendMessagePush: message deleted before send — skipped.");
       return;
     }
 
-    // Fetch all room members except the sender
     const members: Array<{ userId: string }> = await ctx.runQuery(
       internal.rooms.getMemberIds,
-      { roomId, excludeUserId: senderId }
+      { roomId, excludeUserId: senderId },
     );
-
     if (members.length === 0) return;
-
-    const externalIds = members.map((m) => m.userId.toString());
-
-    // Absolute badge value per recipient. `SetTo` is computed here rather than
-    // `Increase`d on-device: `Increase` is applied by the iOS Notification
-    // Service Extension out of App-Group state, and this app ships neither, so
-    // an incrementing badge silently never worked.
-    const badges: Record<string, number> = await ctx.runQuery(
-      internal.badges.badgeSnapshot,
-      { userIds: members.map((m) => m.userId) }
-    );
 
     const body =
       type === "text"
         ? content
         : type === "image"
-        ? "📷 Image"
-        : type === "video"
-        ? "🎥 Video"
-        : type === "audio"
-        ? "🎵 Audio"
-        : type === "file"
-        // `content` here is the room preview `send` already computed, which for
-        // a document is its filename (see `roomPreviewFor`). Naming it beats
-        // "📎 File" for the same reason it does on the room card: one document
-        // is not interchangeable with another.
-        ? `📎 ${content}`
-        : "New message";
-
-    console.log(
-      `sendMessagePush: targeting ${externalIds.length} user(s) by external_id`
-    );
+          ? "📷 Image"
+          : type === "video"
+            ? "🎥 Video"
+            : type === "audio"
+              ? "🎵 Audio"
+              : type === "file"
+                ? // `content` here is the room preview `send` already computed,
+                  // which for a document is its filename (see `roomPreviewFor`).
+                  // Naming it beats "📎 File" for the same reason it does on the
+                  // room card: one document is not interchangeable with another.
+                  `📎 ${content}`
+                : "New message";
 
     // Who, of this room, was named. `@everyone` makes that everybody, which is
     // the whole point of it — every recipient below is already the roster minus
@@ -186,236 +106,91 @@ export const sendMessagePush = internalAction({
     const mentioned = new Set((mentionedUserIds ?? []).map(String));
     const mentionsAll = mentionsEveryone === true;
 
-    const sentAt = Date.now();
-
-    // Use the OneSignal v5 User Model API: target users by external_id via
-    // include_aliases + target_channel. This lets OneSignal resolve the correct
-    // subscription server-side — no client-side subscription ID fetch needed.
-    // This is the only approach that is race-condition free when a device switches
-    // between APNs environments (Xcode dev ↔ TestFlight prod).
-    const results = await Promise.allSettled(
-      members.map(async (m) => {
-        const uid = m.userId.toString();
-        // A mention is the one message in a busy room that is genuinely
-        // addressed to you, so it says so on the lock screen. Costs nothing
-        // extra: this loop already builds a payload per recipient in order to
-        // stamp a per-user badge count.
-        const isMention = mentionsAll || mentioned.has(uid);
-        const payload = {
-          app_id: ONESIGNAL_APP_ID,
-          target_channel: "push",
-          include_aliases: { external_id: [uid] },
-          headings: { en: isMention ? `${senderName} mentioned you` : senderName },
-          contents: { en: body },
-          data: {
-            roomId: roomId.toString(),
-            messageId: messageId.toString(),
-            senderId: senderId.toString(),
-            senderName,
-            content: body,
-            type,
-            // Read by nothing today — tap routing goes through `roomId`, which
-            // a mention carries like any other message. Carried so a future
-            // in-app treatment doesn't need a server change to find out.
-            mention: isMention,
-          },
-          // The delivered notification's identifier. Deleting the message
-          // later sends a silent push carrying this same string, which the
-          // client hands to removeDeliveredNotifications — the only way to
-          // pull an already-shown notification off a device.
-          collapse_id: messageId.toString(),
-          // Groups a room's notifications together, and gives the client a
-          // handle for "dismiss everything from this room" on read.
-          thread_id: roomId.toString(),
-          android_group: roomId.toString(),
-          web_push_topic: roomId.toString(),
-          ios_badgeType: "SetTo",
-          ios_badgeCount: badges[uid] ?? 1,
-          ios_category: "CHAT_MESSAGE",
-          // A day-old chat notification is noise, and this also bounds how
-          // long a pushReceipts row can still matter. Default is 3 days.
-          ttl: 86400,
+    // A mention is the one message in a busy room that is genuinely addressed
+    // to you, so it says so on the lock screen. Only the differing fields go
+    // in the override map; everyone else shares one payload.
+    const perUser: Record<string, { title: string; data: Record<string, string> }> =
+      {};
+    for (const m of members) {
+      const uid = m.userId.toString();
+      if (mentionsAll || mentioned.has(uid)) {
+        perUser[uid] = {
+          title: `${senderName} mentioned you`,
+          data: { mention: "true" },
         };
-        const onesignalId = await oneSignalPost(apiKey, payload, "sendMessagePush");
-        return onesignalId
-          ? { userId: m.userId, roomId, onesignalId }
-          : null;
-      })
-    );
-
-    // A recipient whose POST failed simply gets no receipt row: we lose the
-    // ability to cancel that one push, which is the correct degradation.
-    const receipts = results
-      .filter((r) => r.status === "fulfilled" && r.value)
-      .map((r) => (r as PromiseFulfilledResult<any>).value);
-
-    if (receipts.length > 0) {
-      await ctx.runMutation(internal.notifications.recordPushReceipts, {
-        messageId,
-        sentAt,
-        receipts,
-      });
-    }
-  },
-});
-
-// ─────────────────────── Revocation & badge correction ───────────────────────
-
-/**
- * Persist the ids OneSignal handed back, and arbitrate the two races the
- * sending action can't see because it isn't transactional:
- *
- *   - the message was deleted while the HTTP request was in flight
- *   - the recipient read the room while the HTTP request was in flight
- *
- * In either case we don't store a row; we cancel immediately instead. The
- * mirror-image half lives in `messages.markRoomRead`, which revokes rows that
- * already exist — so whichever transaction commits second sees the other's
- * effect and does the right thing.
- */
-export const recordPushReceipts = internalMutation({
-  args: {
-    messageId: v.id("messages"),
-    sentAt: v.number(),
-    receipts: v.array(
-      v.object({
-        userId: v.id("users"),
-        roomId: v.id("rooms"),
-        onesignalId: v.string(),
-      })
-    ),
-  },
-  handler: async (ctx, { messageId, sentAt, receipts }) => {
-    const stillThere = await ctx.db.get(messageId);
-    const doomed: string[] = [];
-
-    for (const r of receipts) {
-      if (!stillThere) {
-        doomed.push(r.onesignalId);
-        continue;
       }
-      const membership = await ctx.db
-        .query("roomMembers")
-        .withIndex("by_room_user", (q) =>
-          q.eq("roomId", r.roomId).eq("userId", r.userId)
-        )
-        .first();
-      if ((membership?.lastReadAt ?? 0) >= sentAt) {
-        // They read the room after we started sending — the notification is
-        // already stale on arrival.
-        doomed.push(r.onesignalId);
-        continue;
-      }
-      await ctx.db.insert("pushReceipts", {
-        userId: r.userId,
-        roomId: r.roomId,
-        messageId,
-        onesignalId: r.onesignalId,
-        sentAt,
-      });
     }
 
-    if (doomed.length > 0) {
-      await ctx.scheduler.runAfter(0, internal.notifications.cancelByIds, {
-        onesignalIds: doomed,
-      });
-    }
-  },
-});
-
-/**
- * Ask OneSignal to cancel notifications that haven't gone out yet.
- *
- * A 404 (or "not found") means it already shipped or was already cancelled —
- * both are success from our point of view, so they're swallowed rather than
- * logged as errors.
- */
-export const cancelByIds = internalAction({
-  args: { onesignalIds: v.array(v.string()) },
-  handler: async (_ctx, { onesignalIds }) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-    if (!apiKey || onesignalIds.length === 0) return;
-    await Promise.allSettled(
-      onesignalIds.map(async (id) => {
-        const res = await fetch(
-          `${ONESIGNAL_BASE}/notifications/${id}?app_id=${ONESIGNAL_APP_ID}`,
-          { method: "DELETE", headers: { Authorization: `Key ${apiKey}` } }
-        );
-        if (!res.ok && res.status !== 404) {
-          console.error(`cancelByIds: HTTP ${res.status} for ${id}: ${await res.text()}`);
-        }
-      })
-    );
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: members.map((m) => m.userId) as any,
+      kind: "message",
+      title: senderName,
+      body,
+      data: {
+        kind: "message",
+        roomId: roomId.toString(),
+        messageId: messageId.toString(),
+        senderId: senderId.toString(),
+        senderName,
+        content: body,
+        type,
+        mention: "false",
+      },
+      roomId,
+      // Deleting this message later sends a silent push carrying the same
+      // string, which the client hands to removeDeliveredNotifications — the
+      // only way to pull an already-shown notification off a device.
+      collapseId: messageId.toString(),
+      // Anyone whose read cursor passes this instant while we're sending has
+      // already seen the message; they get nothing rather than a notification
+      // that was stale before it landed.
+      sentAt: Date.now(),
+      perUser,
+    });
   },
 });
 
 /**
  * Take back the pushes for one removed message.
  *
- * Two mechanisms, because neither is sufficient alone:
- *   1. DELETE /notifications/{id} — kills it if it's still queued (recipient
- *      offline, throttled, or simply fast enough).
- *   2. A silent dismiss push — the only thing that can remove a notification
- *      that already landed. Caveat: on iOS a force-quit app never receives
- *      it, so a notification can outlive its message until next launch. No
- *      API on any platform fixes that.
+ * A delivered notification cannot be recalled on any platform, by any API. The
+ * silent dismiss push is the only mechanism there has ever been, and it does
+ * not reach a force-quit iOS app or a force-stopped Android one — so a banner
+ * can outlive its message until next launch. Nothing about talking to APNs
+ * directly changes that; it was equally true through OneSignal.
+ *
+ * Excludes the sender: they never got a push for their own message, so there
+ * is nothing on their devices to remove.
  */
 export const revokeMessagePushes = internalAction({
-  args: { messageId: v.id("messages"), roomId: v.id("rooms") },
-  handler: async (ctx, { messageId, roomId }) => {
-    const rows: Array<{ userId: any; onesignalId: string }> =
-      await ctx.runMutation(internal.notifications.takeReceiptsForMessage, {
-        messageId,
-      });
-    if (rows.length === 0) return;
-
-    await ctx.runAction(internal.notifications.cancelByIds, {
-      onesignalIds: rows.map((r) => r.onesignalId),
-    });
+  args: {
+    messageId: v.id("messages"),
+    roomId: v.id("rooms"),
+    senderId: v.id("users"),
+  },
+  handler: async (ctx, { messageId, roomId, senderId }) => {
+    const members: Array<{ userId: string }> = await ctx.runQuery(
+      internal.rooms.getMemberIds,
+      { roomId, excludeUserId: senderId },
+    );
+    if (members.length === 0) return;
     await ctx.runAction(internal.notifications.dismissAndSync, {
-      userIds: rows.map((r) => r.userId),
+      userIds: members.map((m) => m.userId) as any,
       dismissIds: [messageId.toString()],
       roomId,
     });
   },
 });
 
-/** Read-and-delete the receipts for a message, so a retry can't double-cancel. */
-export const takeReceiptsForMessage = internalMutation({
-  args: { messageId: v.id("messages") },
-  handler: async (ctx, { messageId }) => {
-    const rows = await ctx.db
-      .query("pushReceipts")
-      .withIndex("by_message", (q) => q.eq("messageId", messageId))
-      .collect();
-    for (const r of rows) await ctx.db.delete(r._id);
-    return rows.map((r) => ({ userId: r.userId, onesignalId: r.onesignalId }));
-  },
-});
-
-/** Same, for "this user has now read this room". */
-export const takeReceiptsForUserRoom = internalMutation({
-  args: { userId: v.id("users"), roomId: v.id("rooms") },
-  handler: async (ctx, { userId, roomId }) => {
-    const rows = await ctx.db
-      .query("pushReceipts")
-      .withIndex("by_user_room", (q) =>
-        q.eq("userId", userId).eq("roomId", roomId)
-      )
-      .collect();
-    for (const r of rows) await ctx.db.delete(r._id);
-    return {
-      onesignalIds: rows.map((r) => r.onesignalId),
-      messageIds: rows.map((r) => r.messageId.toString()),
-    };
-  },
-});
-
 /**
- * The invisible push: no `contents`, so it never displays. Carries the
- * notification identifiers to remove (the messageIds we sent as collapse_id)
- * and an absolute badge value, so the icon self-corrects even if the client
- * can't act on the dismissal.
+ * The invisible push: no alert body, so it never displays.
+ *
+ * Carries the notification identifiers to remove (the messageIds we sent as
+ * the collapse id) and an absolute badge value, so the icon self-corrects even
+ * on a device that can't act on the dismissal itself.
+ *
+ * [dismissIds] may be empty — for "this user has read the room" the client
+ * sweeps by thread/group id instead, and never needed the list.
  */
 export const dismissAndSync = internalAction({
   args: {
@@ -424,58 +199,20 @@ export const dismissAndSync = internalAction({
     roomId: v.optional(v.id("rooms")),
   },
   handler: async (ctx, { userIds, dismissIds, roomId }) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-    if (!apiKey || userIds.length === 0) return;
-
-    const badges: Record<string, number> = await ctx.runQuery(
-      internal.badges.badgeSnapshot,
-      { userIds }
-    );
-
-    await Promise.allSettled(
-      userIds.map((u) => {
-        const uid = u.toString();
-        return oneSignalPost(
-          apiKey,
-          {
-            app_id: ONESIGNAL_APP_ID,
-            target_channel: "push",
-            include_aliases: { external_id: [uid] },
-            content_available: true,
-            data: {
-              kind: "dismiss",
-              dismissIds: dismissIds ?? [],
-              roomId: roomId ? roomId.toString() : null,
-              total: badges[uid] ?? 0,
-            },
-            ios_badgeType: "SetTo",
-            ios_badgeCount: badges[uid] ?? 0,
-            priority: 5,
-            ttl: 3600,
-          },
-          "dismissAndSync"
-        );
-      })
-    );
-  },
-});
-
-/**
- * Sweep receipts past the push TTL (24h) plus slack. Beyond that OneSignal has
- * given up on the notification and the stored id is worthless.
- *
- * The table is bounded by |roomMembers| in the steady state — rows are removed
- * on delete and on read — so this is staleness management, not growth control.
- * Batched so one run can't exceed a mutation's budget.
- */
-export const gcPushReceipts = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    const cutoff = Date.now() - 26 * 60 * 60 * 1000;
-    const stale = await ctx.db
-      .query("pushReceipts")
-      .withIndex("by_sent", (q) => q.lt("sentAt", cutoff))
-      .take(500);
-    for (const r of stale) await ctx.db.delete(r._id);
+    if (userIds.length === 0) return;
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds,
+      kind: "dismiss",
+      data: {
+        kind: "dismiss",
+        // A JSON string, not an array: FCM v1 requires every data value to be
+        // a string, and a naive stringify would flatten ["a","b"] to "a,b".
+        // iOS and the service worker parse the same encoding, so there is one
+        // wire format rather than two.
+        dismissIds: JSON.stringify(dismissIds ?? []),
+        roomId: roomId ? roomId.toString() : "",
+      },
+      roomId,
+    });
   },
 });

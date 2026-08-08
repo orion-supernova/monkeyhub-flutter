@@ -226,20 +226,19 @@ export const initiate = mutation({
       consumed: false,
     });
 
-    // OneSignal alert-push fallback is NOT scheduled here anymore. It was
-    // user-targeted (include_aliases.external_id → EVERY device of the callee)
-    // but gated on a per-device "all phones native" check, so any tokenless
-    // sibling userDevices row (stale reinstall, Android without fcmToken, a
-    // not-yet-uploaded token) opened the gate and banner-notified the very
-    // iPhone that was already ringing via VoIP/CallKit — a double alert.
-    // The delivery-accurate rescue in voipPush.sendVoip below sends the same
-    // OneSignal banner ONLY when no device actually received a native push, so
-    // it covers the all-tokenless callee without ever duplicating CallKit.
+    // The alert banner (`sendCallPush`) is deliberately NOT scheduled here.
+    // It used to be, gated on a per-device "do all phones have native tokens"
+    // check — and any tokenless sibling row (stale reinstall, Android without
+    // an fcmToken, a token not yet uploaded) opened that gate and
+    // banner-notified the very iPhone that was already ringing through
+    // CallKit. A double alert for one call.
+    //
+    // `voipPush.sendVoip` schedules it instead, and only once it knows no
+    // device actually received the ring — which covers the all-tokenless
+    // callee without ever duplicating CallKit.
 
     // Direct VoIP push (APNs PushKit + FCM data-only). This is what wakes a
-    // *killed* app into the native CallKit / ConnectionService UI. Runs in
-    // parallel with the OneSignal push; either path can carry the wake-up,
-    // and the OneSignal path is a fallback if tokens are missing.
+    // *killed* app into the native CallKit / ConnectionService UI.
     await ctx.scheduler.runAfter(0, internal.voipPush.sendVoip, {
       callId,
       calleeId,
@@ -797,9 +796,16 @@ async function hmacSha1Base64(secret: string, message: string): Promise<string> 
 
 // ────────────────────────── push (wakes the callee) ──────────────────────────
 
-const ONESIGNAL_APP_ID = "c191a9f0-15cf-402a-8a04-dcc16108f4b0";
-const ONESIGNAL_BASE = "https://api.onesignal.com";
-
+/**
+ * A plain banner naming the caller — the rescue path, not the normal one.
+ *
+ * A 1:1 call rings through CallKit/ConnectionService via `voipPush.sendVoip`.
+ * This is only scheduled when that failed for every one of the callee's
+ * devices, which in practice means a device whose PushKit token was revoked
+ * while its ordinary alert token is still good. `calls.initiate` deliberately
+ * does NOT send it alongside the ring: an iPhone that is already ringing does
+ * not also want a notification about it.
+ */
 export const sendCallPush = internalAction({
   args: {
     callId: v.id("calls"),
@@ -810,47 +816,28 @@ export const sendCallPush = internalAction({
     roomId: v.id("rooms"),
   },
   handler: async (
-    _ctx,
+    ctx,
     { callId, calleeId, callerId, callerName, type, roomId },
   ) => {
-    const apiKey = process.env.ONESIGNAL_API_KEY;
-    if (!apiKey) {
-      console.error("sendCallPush: ONESIGNAL_API_KEY env var is not set");
-      return;
-    }
     const verb = type === "video" ? "Video call" : "Voice call";
-    const payload = {
-      app_id: ONESIGNAL_APP_ID,
-      target_channel: "push",
-      include_aliases: { external_id: [calleeId.toString()] },
-      headings: { en: callerName },
-      contents: { en: `${verb} from ${callerName}` },
-      priority: 10,
-      ios_interruption_level: "time_sensitive",
+    await ctx.runAction(internal.push.sendAlert, {
+      userIds: [calleeId],
+      kind: "call_invite",
+      title: callerName,
+      body: `${verb} from ${callerName}`,
       data: {
-        type: "call_invite",
+        kind: "call_invite",
         callId: callId.toString(),
         callerId: callerId.toString(),
         callerName,
         callType: type,
         roomId: roomId.toString(),
       },
-      ios_category: "CALL_INVITE",
-    };
-    const response = await fetch(`${ONESIGNAL_BASE}/notifications`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Key ${apiKey}`,
-      },
-      body: JSON.stringify(payload),
+      roomId,
+      // A second invite for the same call replaces the first rather than
+      // stacking a second banner on the lock screen.
+      collapseId: callId.toString(),
     });
-    const text = await response.text();
-    if (!response.ok) {
-      console.error(`sendCallPush: OneSignal HTTP ${response.status} ${text}`);
-    } else {
-      console.log(`sendCallPush: dispatched — ${text}`);
-    }
   },
 });
 

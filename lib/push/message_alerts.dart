@@ -10,14 +10,15 @@ import 'web_notifier.dart';
 /// Plays a sound (and, on web, shows a browser banner) when a new inbound
 /// message arrives in a room the user isn't currently viewing.
 ///
-/// Why this exists: on mobile, OneSignal delivers push banners with the OS
-/// notification sound. Web and desktop have no push, so new messages arrived
-/// silently. This observes the rooms-list subscription — which refires with an
-/// advanced `lastMessageTime` on every new message — and fires an alert when a
-/// room's newest message moves forward while the room `hasUnread` (i.e. it
-/// isn't the user's own send) and isn't the room on screen.
+/// Why this exists: on mobile, APNs/FCM deliver a banner with the OS
+/// notification sound. Desktop has no push at all, and a FOREGROUND web tab
+/// gets no Web Push banner either, so new messages arrived silently. This
+/// observes the rooms-list subscription — which refires with an advanced
+/// `lastMessageTime` on every new message — and fires an alert when a room's
+/// newest message moves forward while the room `hasUnread` (i.e. it isn't the
+/// user's own send) and isn't the room on screen.
 ///
-/// Scope: web + desktop only. Mobile keeps its native OneSignal behaviour.
+/// Scope: web + desktop only. Mobile is served by the OS notification.
 class MessageAlerts {
   MessageAlerts._();
   static final MessageAlerts instance = MessageAlerts._();

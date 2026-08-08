@@ -4,6 +4,13 @@
 <dict>
 	<key>aps-environment</key>
 	<string>production</string>
+	<!-- Lets a call-invite banner break through Focus. Without this the
+	     payload's `interruption-level: time-sensitive` is silently ignored —
+	     no error, no log, the banner just gets swallowed. REQUIRES "Time
+	     Sensitive Notifications" enabled on the App ID in the developer
+	     portal; if it isn't, signing fails. -->
+	<key>com.apple.developer.usernotifications.time-sensitive</key>
+	<true/>
 	<key>com.apple.developer.applesignin</key>
 	<array>
 		<string>Default</string>

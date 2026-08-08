@@ -1,6 +1,6 @@
 /// Non-web no-op. On native platforms message alerts are delivered by the OS
-/// (OneSignal push banners on mobile); this stub exists only so the conditional
-/// export in `web_notifier.dart` resolves off-web.
+/// (an APNs/FCM notification on mobile); this stub exists only so the
+/// conditional export in `web_notifier.dart` resolves off-web.
 class WebNotifier {
   const WebNotifier._();
 

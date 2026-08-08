@@ -87,8 +87,11 @@ dependencies:
   # is what actually stops the in-session thrashing.
   cached_network_image: ^3.4.1
 
-  # Push notifications (OneSignal v5 SDK).
-  onesignal_flutter: ^5.2.9
+  # No push-notification SDK. The app registers with APNs and FCM itself
+  # (ios/Runner/AppDelegate.swift, android/.../CallFcmService.kt) and the Convex
+  # backend talks to Apple, Google and the browsers' push services directly —
+  # see backend/convex/push.ts. Unlimited volume, no vendor, and the payloads
+  # are ours to shape.
 
   # Native call UI: iOS CallKit + Android Telecom/ConnectionService. Lets the
   # OS ring a full-screen incoming-call experience even when the app is
@@ -277,18 +280,19 @@ flutter:
   generate: true
 
   # Swift Package Manager stays off for this project. Flutter 3.44 turns it on
-  # by default and tries to migrate ios/Runner.xcodeproj on every build, which
-  # breaks us two ways:
-  #   1. onesignal_flutter's Package.swift pins OneSignal-XCFramework by exact
-  #      version, so a stale SwiftPM mirror in ~/Library/Caches/org.swift.swiftpm
-  #      fails the whole build with "no versions match <x>" even though the tag
-  #      exists upstream.
-  #   2. ios/Podfile already pins OneSignalXCFramework with explicit subspecs to
-  #      keep OneSignalLocation (and Apple's location-permission requirement) out
-  #      of the binary. SPM would link OneSignal a second time and drag
-  #      OneSignalLocation back in.
-  # Re-enable only as a deliberate migration: drop the Podfile pin and set
-  # ONESIGNAL_DISABLE_LOCATION=true, which onesignal_flutter's Package.swift reads.
+  # by default and tries to migrate ios/Runner.xcodeproj on every build.
+  #
+  # The two reasons this used to be impossible were both about the OneSignal
+  # SDK — an exact-version Package.swift pin that failed on a stale SwiftPM
+  # mirror, and a double link that dragged OneSignalLocation back into the
+  # binary. Both are gone with the SDK.
+  #
+  # What still blocks it: ios/Podfile's post_install loads
+  # tool/setup_ios_alternate_icons.rb, which is what registers every
+  # ios/Runner/AlternateIcons/*.png as a Runner resource — the entire
+  # alternate-launcher-icon feature depends on that hook, and SwiftPM has no
+  # equivalent. flutter_webrtc and GoogleMLKit keep CocoaPods in the build
+  # regardless, so there is nothing to gain by migrating today.
   config:
     enable-swift-package-manager: false
 

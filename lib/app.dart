@@ -44,7 +44,7 @@ import 'privacy/capture_protection.dart';
 import 'push/badge_manager.dart';
 import 'push/device_identity.dart';
 import 'push/message_alerts.dart';
-import 'push/onesignal_web.dart';
+import 'push/web_push.dart';
 import 'push/push_manager.dart';
 import 'push/web_notifier.dart';
 import 'push/web_presence.dart';
@@ -215,7 +215,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   bool _alertsPrimed = false;
 
   /// Whether web/desktop alert sounds + web banners apply on this platform.
-  /// Mobile is served by OneSignal, so we don't prime anything there.
+  /// Mobile gets OS notifications from APNs/FCM and needs none of this.
   static bool get _alertsEnabled => isWebOrDesktop;
 
   void _primeAlerts() {
@@ -223,9 +223,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _alertsPrimed = true;
     AlertSounds.instance.unlock();
     WebNotifier.requestPermission();
-    // Subscribe to OneSignal Web Push (asks permission from this gesture) so a
-    // backgrounded/closed tab still gets message/call banners. No-op off web.
-    OneSignalWeb.promptPermission();
+    // Ask for notification permission from THIS gesture — browsers ignore the
+    // request otherwise — then claim a Web Push subscription so a
+    // backgrounded/closed tab still gets banners. No-op off web.
+    WebPush.promptPermission();
+    unawaited(PushManager.instance.registerWebPushAfterPermission());
   }
 
   // Presence keepalive. Stamps `lastSeen` every 30s while signed in so the
@@ -356,8 +358,9 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     PushManager.instance.setActiveRoomIdProvider(() => _repo.activeRoomId);
     // Web message-banner clicks open the room, same as a push tap.
     MessageAlerts.instance.setOnOpenRoom(_openRoomFromPush);
-    // OneSignal Web Push banner clicks (background/closed tab) open the room too.
-    OneSignalWeb.setOnOpenRoom(_openRoomFromPush);
+    // Web Push banner clicks (background/closed tab) open the room too — the
+    // service worker posts the roomId to whichever tab it focuses.
+    WebPush.setOnOpenRoom(_openRoomFromPush);
     // Web only: a closing tab flips us offline immediately (best-effort; the
     // server staleness sweep is the backstop). No-op off web.
     WebPresence.registerOffline(() {
@@ -391,7 +394,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
   }
 
   void _openRoomFromPush(String roomId) {
-    // On a cold start from a notification tap, OneSignal's click handler can
+    // On a cold start from a notification tap, the platform's tap event can
     // fire before _bootstrap finishes restoring auth and before the root
     // navigator's state is mounted. Stash the roomId and let
     // [_consumePendingPushRoom] flush it once both are ready.
@@ -792,7 +795,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             DiagLog.error('push login failed', e, stack: st);
           }
         }());
-        OneSignalWeb.login(s.userId); // web push external_id; no-op off web
         // Report presence on first attach — from the ACTUAL lifecycle state,
         // never a hardcoded 'online'. This method also runs on the headless
         // background launch an incoming VoIP push triggers, where assuming
@@ -842,8 +844,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         await FeedStore.instance.detach();
         // Same rule for the daily games: the standings carry friends' names.
         GamesStore.instance.clear();
+        // Deletes this device's row, which takes every push credential with it
+        // — including the browser's Web Push subscription. Nothing addressed to
+        // the account that just signed out can reach this device again.
         await PushManager.instance.logout();
-        OneSignalWeb.logout(); // drop web push external_id; no-op off web
         // Storage URLs aren't secret, but the next account shouldn't inherit
         // the previous one's working set — and a stale entry pointing at a file
         // that got GC'd would just render a broken tile.
