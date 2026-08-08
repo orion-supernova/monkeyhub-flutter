@@ -190,13 +190,20 @@ void main() {
     );
   });
 
-  testWidgets('the position counter only appears with more than one pin', (
+  testWidgets('the title is a pin glyph on screen and words in semantics', (
     tester,
   ) async {
+    // The strip used to head itself "Pinned message" in accent text above the
+    // message. It sits under the room header, shows nothing but pins, and now
+    // carries an accent pin glyph — so the words were the fourth telling. They
+    // moved to that glyph's semanticLabel rather than being deleted: a screen
+    // reader still hears the word, and with several pins still hears which one.
+    final handle = tester.ensureSemantics();
+
     await tester.pumpWidget(
       host(
         PinnedMessageBanner(
-          pins: [pin('m1', 'a')],
+          pins: [pin('m1', 'deploy at 4pm')],
           activeIndex: 0,
           onTap: () {},
           onOpenList: () {},
@@ -204,7 +211,19 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Pinned message'), findsOneWidget);
+
+    expect(find.text('Pinned message'), findsNothing);
+    expect(find.byIcon(CupertinoIcons.pin_fill), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Pinned message'),
+      findsOneWidget,
+      reason: 'dropping the words must not drop the meaning',
+    );
+    expect(
+      find.text('alice  deploy at 4pm'),
+      findsOneWidget,
+      reason: 'the content the title used to sit above is what remains',
+    );
 
     await tester.pumpWidget(
       host(
@@ -217,6 +236,42 @@ void main() {
       ),
     );
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Pinned message  2/3'), findsOneWidget);
+
+    expect(find.text('Pinned message  2/3'), findsNothing);
+    expect(
+      find.bySemanticsLabel('Pinned message  2/3'),
+      findsOneWidget,
+      reason: 'the tick marker shows the position; only speech needs the count',
+    );
+
+    handle.dispose();
+  });
+
+  testWidgets('the row stays tappable across the strip\'s full height', (
+    tester,
+  ) async {
+    // The single line is centred in 44pt of strip. Shrink-wrapping it would
+    // leave the top and bottom ~12pt of the banner dead to touch — the hole
+    // where the title used to be, in hit-test form.
+    var taps = 0;
+    await tester.pumpWidget(
+      host(
+        PinnedMessageBanner(
+          pins: [pin('m1', 'deploy at 4pm')],
+          activeIndex: 0,
+          onTap: () => taps++,
+          onOpenList: () {},
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final strip = tester.getRect(find.byType(PinnedMessageBanner));
+    // Just inside the top edge, horizontally clear of the leading glyph and the
+    // trailing list button.
+    await tester.tapAt(Offset(strip.center.dx, strip.top + 3));
+    await tester.pump();
+
+    expect(taps, 1);
   });
 }
