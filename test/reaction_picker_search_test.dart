@@ -21,9 +21,10 @@ void main() {
   // ThemeScope wraps MaterialApp rather than sitting inside `home`, matching
   // app.dart — sheets build in the Navigator's overlay, above any scope nested
   // under it.
-  Widget host(Widget child) => ThemeScope(
+  Widget host(Widget child, {Locale? locale}) => ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
         child: MaterialApp(
+          locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -56,6 +57,72 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('🐦‍🔥'), findsOneWidget);
+  });
+
+  testWidgets('search matches the language the app is running in',
+      (tester) async {
+    // The sheet is translated into twelve languages but its search only ever
+    // matched English keywords, because `fullEmojiSet` is generated from the
+    // English CLDR annotations and the package matches on those. A Turkish
+    // user typing "kalp" got an empty grid under a Turkish "emoji ara" hint.
+    //
+    // Through the UI rather than against `EmojiSearchIndex` directly (which
+    // test/emoji_search_index_test.dart covers): the wiring between the app
+    // locale and the search view is the half that silently rots.
+    await tester.pumpWidget(
+      host(const ReactionPickerSheet(), locale: const Locale('tr')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('emoji ara'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'kalp');
+    await tester.pumpAndSettle();
+    expect(find.text('❤️'), findsOneWidget);
+
+    // English has to keep working in a Turkish app — people type the emoji
+    // names they know, and most of those names are English.
+    await tester.enterText(find.byType(TextField), 'phoenix');
+    await tester.pumpAndSettle();
+    expect(find.text('🐦‍🔥'), findsOneWidget);
+  });
+
+  testWidgets('results follow a language change under an open query',
+      (tester) async {
+    // `EmojiPickerUtils.searchEmoji` caches its flattened emoji list in a
+    // singleton it never invalidates, so anything built on top of it would be
+    // stuck on whichever language searched first. This is the test that would
+    // catch a regression back onto that code path.
+    late StateSetter setLocale;
+    var locale = const Locale('es');
+
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          setLocale = setState;
+          return host(const ReactionPickerSheet(), locale: locale);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('buscar emoji'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'fuego');
+    await tester.pumpAndSettle();
+    expect(find.text('🔥'), findsOneWidget);
+
+    setLocale(() => locale = const Locale('tr'));
+    await tester.pumpAndSettle();
+
+    // "fuego" is Spanish only, so under Turkish the same query must go empty
+    // rather than keep answering out of a stale index.
+    expect(find.text('🔥'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'ateş');
+    await tester.pumpAndSettle();
+    expect(find.text('🔥'), findsOneWidget);
   });
 
   testWidgets('the picker lays out without overflowing its sheet',
