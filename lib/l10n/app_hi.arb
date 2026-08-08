@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "अपलोड हो रहा है",
   "messageStampSendingLabel": "भेजा जा रहा है",
   "messageStampFailedToSendLabel": "भेजने में विफल",
+  "messageStampSentLabel": "भेजा गया",
+  "messageStampDeliveredLabel": "डिलीवर हो गया",
   "messageStampSeenLabel": "देखा गया",
   "messageStampCountdownSeconds": "{count}से",
   "messageStampCountdownMinutes": "{count}मि",

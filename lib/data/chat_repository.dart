@@ -215,7 +215,19 @@ class ChatRepository extends ChangeNotifier {
   bool _typingActive = false;
 
   /// Read state for the currently-open room: userId → lastReadAt.
+  ///
+  /// Only members who share their reads have an entry — a member who hides
+  /// `seen` is absent here even when they are present in [_activeDeliveredState].
   final Map<String, DateTime> _activeReadState = {};
+
+  /// Delivery state for the currently-open room: userId → lastDeliveredAt.
+  ///
+  /// Kept apart from [_activeReadState] rather than folded into one record per
+  /// member because the two are gated by DIFFERENT visibility levels server-side
+  /// (`seen` for reads, `lastSeen` for deliveries), so a member can legitimately
+  /// appear in one map and not the other. A single map of nullable pairs would
+  /// have let a missing read silently read as "delivered at epoch".
+  final Map<String, DateTime> _activeDeliveredState = {};
 
   /// The latest `lastReadAt` of any user other than me in the current room.
   /// Used to render the "SEEN" indicator on my own messages. Returns null
@@ -223,9 +235,25 @@ class ChatRepository extends ChangeNotifier {
   /// indicator regardless of what the server delivers.
   DateTime? get latestOthersReadAt {
     if (!SettingsStore.instance.viewReadReceipts) return null;
+    return _latestOthers(_activeReadState);
+  }
+
+  /// The latest `lastDeliveredAt` of any user other than me in the current
+  /// room — the second tick.
+  ///
+  /// Deliberately NOT gated on `viewReadReceipts`. That preference is spelled
+  /// "show read receipts", and it exists so a reader can decline to be told
+  /// when their message was *looked at*; a message reaching the other person's
+  /// phone is a fact about the network, not about them, and hiding it would
+  /// leave every outgoing message looking half-sent. The reader's own
+  /// `lastSeen` level is the control that governs this one, and it is applied
+  /// server-side in `messages:getReadState`.
+  DateTime? get latestOthersDeliveredAt => _latestOthers(_activeDeliveredState);
+
+  DateTime? _latestOthers(Map<String, DateTime> cursors) {
     final me = _userId;
     DateTime? best;
-    for (final entry in _activeReadState.entries) {
+    for (final entry in cursors.entries) {
       if (entry.key == me) continue;
       if (best == null || entry.value.isAfter(best)) best = entry.value;
     }
@@ -337,6 +365,9 @@ class ChatRepository extends ChangeNotifier {
             .map((e) => ChatRoom.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
         CacheStore.instance.scheduleSaveRooms(userId, _rooms);
+        // This stream landing IS the delivery: the traffic it describes is on
+        // this device now, whichever screen the user happens to be looking at.
+        _scheduleDeliveryReport(userId);
         notifyListeners();
       },
       onError: (err) => debugPrint('rooms sub error: $err'),
@@ -417,6 +448,76 @@ class ChatRepository extends ChangeNotifier {
     // [flushPending], of which the old handler was a strict subset.
   }
 
+  /// The newest `lastMessageTime` we have already reported delivered, per room.
+  ///
+  /// Purely an in-flight guard. `markRoomDelivered` patches our own membership
+  /// row, which re-fires `rooms:listUserRooms` — so without this the echo of
+  /// our own write would arrive before the new cursor did and we would report
+  /// the same room again, and again. The durable version of this guard is the
+  /// server's own `lastDeliveredAt`, which [_reportDelivery] reads off the room
+  /// and which survives a relaunch; this map only covers the window between
+  /// firing the mutation and seeing it come back.
+  final Map<String, DateTime> _deliveryReported = {};
+
+  Timer? _deliveryDebounce;
+
+  /// How long a burst of incoming traffic is allowed to settle before we report
+  /// it delivered.
+  ///
+  /// Every message moves its room's `lastMessageTime`, so ten messages in three
+  /// seconds is ten distinct things to report — and each report patches a
+  /// roomMembers row, which re-fires `getReadState` for everyone in the room
+  /// and `listUserRooms` for us. Coalescing turns the burst into one write. The
+  /// cost is that the sender's second tick can lag by up to this long, which is
+  /// invisible next to the round trip it is already waiting on.
+  static const _kDeliveryDebounce = Duration(milliseconds: 1200);
+
+  void _scheduleDeliveryReport(String userId) {
+    _deliveryDebounce?.cancel();
+    _deliveryDebounce = Timer(_kDeliveryDebounce, () => _reportDelivery(userId));
+  }
+
+  /// Tells the server which rooms this device now holds the traffic for.
+  ///
+  /// The second tick, and the whole of the client's half of it. Called from the
+  /// chat-list subscription rather than from the transcript because the case
+  /// that matters is the one where the recipient is NOT in the room: a message
+  /// they are looking at is already covered by `markRoomRead`, which advances
+  /// both cursors.
+  ///
+  /// At most one mutation per room per burst of new traffic, and none at all on
+  /// a launch that brings no news:
+  ///
+  ///  * `unreadCount == 0` means nothing of anyone else's is outstanding — our
+  ///    own sends do not need reporting to ourselves;
+  ///  * a `lastDeliveredAt` already at or past the room's newest message means
+  ///    the server knows, from this device or another of ours;
+  ///  * [_deliveryReported] covers the round trip in between.
+  ///
+  /// Failures are swallowed. A delivery cursor that misses a beat corrects
+  /// itself on the next message, and there is no user-visible action to offer.
+  ///
+  /// No cap on room size, deliberately — but that is the knob if the fan-out
+  /// ever bites. In a room of hundreds, "at least one other member's device has
+  /// it" is true the instant it is sent and says nothing worth a write, while
+  /// the write is at its most expensive. A `room.memberCount` guard here is the
+  /// whole mitigation.
+  void _reportDelivery(String userId) {
+    for (final room in _rooms) {
+      final newest = room.lastMessageTime;
+      if (newest == null) continue;
+      if (room.unreadCount <= 0) continue;
+      final onServer = room.lastDeliveredAt;
+      if (onServer != null && !newest.isAfter(onServer)) continue;
+      final inFlight = _deliveryReported[room.id];
+      if (inFlight != null && !newest.isAfter(inFlight)) continue;
+      _deliveryReported[room.id] = newest;
+      api
+          .markRoomDelivered(roomId: room.id, userId: userId)
+          .catchError((_) {});
+    }
+  }
+
   /// Queued behind any in-flight [attach] for the same reason attaches are
   /// queued behind each other: a sign-out that overtook a running attach would
   /// null every handle the attach had not assigned yet, and the attach would
@@ -465,6 +566,12 @@ class ChatRepository extends ChangeNotifier {
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.
     _pins.clear();
+    // Room ids are per-account, so a stale entry could only ever suppress a
+    // delivery report the next account genuinely owed. The pending timer has to
+    // go with it: it closes over the departing user's id.
+    _deliveryDebounce?.cancel();
+    _deliveryDebounce = null;
+    _deliveryReported.clear();
     // Abort and release anything still going up. Signing out has to take the
     // bytes with it: they are one user's unsent photos, and the next account to
     // sign in on this device has no business holding them in memory — quite
@@ -629,6 +736,7 @@ class ChatRepository extends ChangeNotifier {
     _openTypingRoomId = null;
     _openTypingUsers = const [];
     _activeReadState.clear();
+    _activeDeliveredState.clear();
     _initialLoaded.remove(roomId);
     final me = _userId;
     // Hydrate from disk first for an instant render.
@@ -743,11 +851,24 @@ class ChatRepository extends ChangeNotifier {
         onData: (data) {
           final list = (data as List?) ?? const [];
           _activeReadState.clear();
+          _activeDeliveredState.clear();
           for (final e in list) {
             final m = (e as Map).cast<String, dynamic>();
             final uid = m['userId'].toString();
-            final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
-            _activeReadState[uid] = DateTime.fromMillisecondsSinceEpoch(ts);
+            // Each cursor is absent — not zero — when this member has not
+            // shared it, so an `?? 0` here would invent an epoch receipt for
+            // someone who shared nothing. Skipped instead, which is what the
+            // "latest other" fold already expects.
+            final read = m['lastReadAt'] as num?;
+            if (read != null) {
+              _activeReadState[uid] =
+                  DateTime.fromMillisecondsSinceEpoch(read.toInt());
+            }
+            final delivered = m['lastDeliveredAt'] as num?;
+            if (delivered != null) {
+              _activeDeliveredState[uid] =
+                  DateTime.fromMillisecondsSinceEpoch(delivered.toInt());
+            }
           }
           notifyListeners();
         },
@@ -834,6 +955,7 @@ class ChatRepository extends ChangeNotifier {
     _openTypingRoomId = null;
     _openTypingUsers = const [];
     _activeReadState.clear();
+    _activeDeliveredState.clear();
     _loadingOlder.clear();
     _exhausted.clear();
     _olderPrefix.clear();

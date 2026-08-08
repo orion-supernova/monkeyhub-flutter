@@ -5413,6 +5413,18 @@ abstract class AppLocalizations {
   /// **'failed to send'**
   String get messageStampFailedToSendLabel;
 
+  /// Screen-reader semanticLabel on the single-check icon shown in a message's timestamp stamp once the server has the message but no recipient's device is known to hold it yet.
+  ///
+  /// In en, this message translates to:
+  /// **'sent'**
+  String get messageStampSentLabel;
+
+  /// Screen-reader semanticLabel on the double-check icon shown in a message's timestamp stamp once another member's device holds the message, but before anyone has read it.
+  ///
+  /// In en, this message translates to:
+  /// **'delivered'**
+  String get messageStampDeliveredLabel;
+
   /// Screen-reader semanticLabel on the double-check icon shown in a message's timestamp stamp once it has been seen by others.
   ///
   /// In en, this message translates to:

@@ -892,6 +892,8 @@
   "messageStampUploadingLabel": "laddar upp",
   "messageStampSendingLabel": "skickar",
   "messageStampFailedToSendLabel": "kunde inte skickas",
+  "messageStampSentLabel": "skickat",
+  "messageStampDeliveredLabel": "levererat",
   "messageStampSeenLabel": "läst",
   "messageStampCountdownSeconds": "{count}s",
   "messageStampCountdownMinutes": "{count}min",

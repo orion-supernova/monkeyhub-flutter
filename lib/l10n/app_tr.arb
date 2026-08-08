@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "yükleniyor",
   "messageStampSendingLabel": "gönderiliyor",
   "messageStampFailedToSendLabel": "gönderilemedi",
+  "messageStampSentLabel": "gönderildi",
+  "messageStampDeliveredLabel": "iletildi",
   "messageStampSeenLabel": "görüldü",
   "messageStampCountdownSeconds": "{count}sn",
   "messageStampCountdownMinutes": "{count}dk",

@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "正在上传",
   "messageStampSendingLabel": "正在发送",
   "messageStampFailedToSendLabel": "发送失败",
+  "messageStampSentLabel": "已发送",
+  "messageStampDeliveredLabel": "已送达",
   "messageStampSeenLabel": "已读",
   "messageStampCountdownSeconds": "{count}秒",
   "messageStampCountdownMinutes": "{count}分",

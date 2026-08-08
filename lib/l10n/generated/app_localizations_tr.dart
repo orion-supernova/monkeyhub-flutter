@@ -3102,6 +3102,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'gönderilemedi';
 
   @override
+  String get messageStampSentLabel => 'gönderildi';
+
+  @override
+  String get messageStampDeliveredLabel => 'iletildi';
+
+  @override
   String get messageStampSeenLabel => 'görüldü';
 
   @override

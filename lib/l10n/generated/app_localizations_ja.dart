@@ -3008,6 +3008,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get messageStampFailedToSendLabel => '送信に失敗しました';
 
   @override
+  String get messageStampSentLabel => '送信済み';
+
+  @override
+  String get messageStampDeliveredLabel => '配信済み';
+
+  @override
   String get messageStampSeenLabel => '既読';
 
   @override

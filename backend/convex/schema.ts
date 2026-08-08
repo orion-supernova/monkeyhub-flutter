@@ -231,6 +231,29 @@ export default defineSchema({
     // ms since epoch — last time this user "read" the room. Used to compute
     // read receipts: a message is "seen by X" when roomMembers[room,X].lastReadAt >= message.createdAt.
     lastReadAt: v.optional(v.number()),
+    // ms since epoch — last time this user's device HAD the room's traffic,
+    // whether or not they looked at it. The second tick.
+    //
+    // A cursor on the membership row, exactly like `lastReadAt` and for exactly
+    // the same reason: "delivered" as a per-message × per-recipient fact is
+    // O(messages × members) rows and a write per message per recipient, which
+    // is the fan-out this whole schema is built to avoid (see the
+    // `viewOnceViews` and `pins` comments). One row per membership answers the
+    // only question the UI asks — "is this message past the recipient's
+    // cursor?" — at O(rooms × members), and it is the same shape the read
+    // receipt has already proven at this scale.
+    //
+    // Written by `markRoomDelivered` when the recipient's client sees the room
+    // move, and by `markRoomRead`, which advances it too: reading a room is
+    // proof of delivery, and folding it into the same patch means the two
+    // cursors can never cross. That also means a recipient on a build too old
+    // to call `markRoomDelivered` still advances this the moment they open the
+    // room, so senders are not stuck on one tick waiting for a rollout.
+    //
+    // Absent on every row written before this field existed. It reads as 0,
+    // which is behind every message, so those simply show one tick until the
+    // recipient's client writes the cursor once. No backfill.
+    lastDeliveredAt: v.optional(v.number()),
     // Per-viewer chat-list organization. Lives here, not on `rooms`, because
     // pinning/archiving a chat is inherently per-member — the same room can
     // be pinned for one member and untouched for everyone else in it.

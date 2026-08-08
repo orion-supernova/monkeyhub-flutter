@@ -836,10 +836,35 @@ class ChatApi {
     await _cv.mutation('messages:markRoomRead', {'roomId': roomId, 'userId': userId});
   }
 
-  /// Returns `[{userId, lastReadAt(ms)}]` for every member of the room whose
-  /// `seen` visibility allows the viewer to see it. The viewer's own row is
-  /// always present. Subscribe via the repo for live read receipts.
-  Future<List<({String userId, DateTime lastReadAt})>> getReadState({
+  /// Reports that this device now HAS the room's traffic, without claiming
+  /// anyone looked at it — the second tick on the sender's message.
+  ///
+  /// Deliberately not per message: the server keeps one cursor per membership
+  /// row, so this is safe to call once per room per burst of new traffic and
+  /// pointless to call more often than that. See `messages:markRoomDelivered`,
+  /// which drops the write entirely when the cursor is already current.
+  Future<void> markRoomDelivered({
+    required String roomId,
+    required String userId,
+  }) async {
+    await _cv.mutation(
+      'messages:markRoomDelivered',
+      {'roomId': roomId, 'userId': userId},
+    );
+  }
+
+  /// Returns `[{userId, lastReadAt(ms), lastDeliveredAt(ms)}]` for every member
+  /// of the room who shares at least one of the two with this viewer — reads
+  /// behind their `seen` level, deliveries behind their `lastSeen` level. The
+  /// viewer's own row is always present, in full.
+  ///
+  /// Either timestamp is null where the viewer may not have it, which is NOT
+  /// the same as epoch: a member who shares delivery but hides reads is a real
+  /// row with a real second tick and no third one.
+  ///
+  /// Subscribe via the repo for live receipts.
+  Future<List<({String userId, DateTime? lastReadAt, DateTime? lastDeliveredAt})>>
+      getReadState({
     required String roomId,
     required String viewerUserId,
   }) async {
@@ -849,12 +874,19 @@ class ChatApi {
     );
     return ((res as List?) ?? const []).map((e) {
       final m = (e as Map).cast<String, dynamic>();
-      final ts = (m['lastReadAt'] as num?)?.toInt() ?? 0;
       return (
         userId: (m['userId']).toString(),
-        lastReadAt: DateTime.fromMillisecondsSinceEpoch(ts),
+        lastReadAt: _msOrNull(m['lastReadAt']),
+        lastDeliveredAt: _msOrNull(m['lastDeliveredAt']),
       );
     }).toList();
+  }
+
+  /// A wire timestamp that is allowed to be absent. Absent means "you may not
+  /// have this", which the receipt ladder has to tell apart from "1970".
+  static DateTime? _msOrNull(Object? raw) {
+    final n = raw as num?;
+    return n == null ? null : DateTime.fromMillisecondsSinceEpoch(n.toInt());
   }
 
   Future<List<ChatMessage>> listBefore({

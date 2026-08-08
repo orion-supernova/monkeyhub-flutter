@@ -1573,14 +1573,21 @@ export const recountViewOnceRecipients = internalMutation({
   },
 });
 
-// ─────────────────────────────── Read receipts ───────────────────────────────
+// ──────────────────────── Delivery + read receipts ───────────────────────────
 
 /**
  * Mark a room as "read up to now" for the given user. Persisted on the
  * roomMembers row so the relationship is O(rooms × members) rather than
  * O(messages × members).
  *
- * Idempotent — calling repeatedly only updates the timestamp.
+ * Advances `lastDeliveredAt` in the same patch: you cannot read a message your
+ * device does not have, so a read cursor ahead of the delivery cursor would be
+ * a state the UI has no honest tick for. Doing it here rather than leaving it
+ * to `markRoomDelivered` also means a recipient running a build too old to know
+ * that mutation exists still moves the sender from one tick to two the moment
+ * they open the room.
+ *
+ * Idempotent — calling repeatedly only updates the timestamps.
  */
 export const markRoomRead = mutation({
   args: { roomId: v.id("rooms"), userId: v.id("users") },
@@ -1592,7 +1599,11 @@ export const markRoomRead = mutation({
       )
       .first();
     if (!membership) return; // not a member, silently no-op
-    await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
+    const now = Date.now();
+    await ctx.db.patch(membership._id, {
+      lastReadAt: now,
+      lastDeliveredAt: Math.max(membership.lastDeliveredAt ?? 0, now),
+    });
 
     // Reading the room retires its outstanding notifications. The device that
     // did the reading also clears them locally (it doesn't need a round trip);
@@ -1611,21 +1622,77 @@ export const markRoomRead = mutation({
 });
 
 /**
- * Returns each member's lastReadAt timestamp for a room, filtered by each
- * reader's `seen` visibility relative to the requesting viewer:
+ * Mark a room as "delivered up to now" for the given user — the second tick.
  *
- *   reader.visibility.seen = "public"  → row visible to anyone
- *   reader.visibility.seen = "friends" → row visible only to the reader's friends
- *   reader.visibility.seen = "nobody"  → row hidden (default for missing/unset)
+ * Called by a recipient's client when it learns the room has moved but the
+ * user has not opened it: the message is on the device, and that is all this
+ * claims. Not called per message. The client fires it at most once per room
+ * per burst of new traffic, and the guard below drops even that when the
+ * cursor is already past the room's newest message, so a chatty or looping
+ * client cannot turn this into a write per message.
  *
- * The viewer's own row is always returned. Rows whose reader has hidden their
- * `seen` are simply omitted (rather than returned as 0) so the client can
- * compute "latest other read" without a separate filter.
+ * That guard matters beyond write volume: patching a roomMembers row re-fires
+ * `getReadState` for every member of the room and `listUserRooms` for this
+ * one, so a no-op patch is not free — it is a rebuild of the sender's receipt
+ * stream that says nothing new.
+ */
+export const markRoomDelivered = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  handler: async (ctx, { roomId, userId }) => {
+    const membership = await ctx.db
+      .query("roomMembers")
+      .withIndex("by_room_user", (q) =>
+        q.eq("roomId", roomId).eq("userId", userId)
+      )
+      .first();
+    if (!membership) return; // not a member, silently no-op
+
+    const room = await ctx.db.get(roomId);
+    const newest = room?.lastMessageTime ?? 0;
+    const cursor = membership.lastDeliveredAt ?? 0;
+    // Everything this room has is already behind the cursor — there is nothing
+    // to tell anyone.
+    if (cursor >= newest) return;
+
+    await ctx.db.patch(membership._id, { lastDeliveredAt: Date.now() });
+  },
+});
+
+/**
+ * Returns each member's delivery and read cursors for a room, each filtered by
+ * the visibility control that actually describes it.
  *
- * The client uses this stream to render the "SEEN" indicator on its own
- * messages. A reader who hasn't opted in to send-read-receipts contributes
- * nothing here — so message senders see no SEEN unless the reader explicitly
- * shares.
+ * `lastReadAt` — gated on the reader's `seen` level, which is what the
+ * visibility screen calls SEND READ RECEIPTS:
+ *
+ *   reader.visibility.seen = "public"  → visible to anyone
+ *   reader.visibility.seen = "friends" → visible only to the reader's friends
+ *   reader.visibility.seen = "nobody"  → hidden (the default for missing/unset)
+ *
+ * `lastDeliveredAt` — gated on `lastSeen` instead, and deliberately so. A read
+ * receipt is a claim about someone's behaviour; a delivery cursor is a claim
+ * about their *device* having been reachable, which is strictly less than the
+ * "last online" timestamp `lastSeen` already governs (it only ever moves inside
+ * rooms you share, and only forward). Gating it on `seen` would have hidden the
+ * second tick behind an opt-in that defaults to "nobody" — every message in the
+ * app stuck on one tick out of the box, for a signal that leaks nothing
+ * `lastSeen` does not already publish. Gating it on nothing at all would route
+ * around the one control a user who has hidden their last-seen chose precisely
+ * to stop senders reading their presence off a chat.
+ *
+ * Either cursor comes back `null` when the viewer may not have it, rather than
+ * 0: a member who shares delivery but not reads still needs a row. A row with
+ * neither is omitted entirely, so the client can fold over what it is given
+ * without a second filter.
+ *
+ * The viewer's own row is always returned in full.
+ *
+ * One consequence worth naming: `lastSeen` is in visibility.ts's
+ * GUARDIAN_BYPASS, so a guardian sees their child's delivery cursor whatever
+ * the child has set. That is the same bypass, and the same promise, the child
+ * was already shown — "they can always see when you were last around" — and
+ * delivery says strictly less than that. `seen` is deliberately NOT in that
+ * set, so the read receipt stays the child's to withhold.
  */
 export const getReadState = query({
   args: {
@@ -1645,15 +1712,32 @@ export const getReadState = query({
     // stored value. The privacy-first default for `seen` (missing ⇒ "nobody")
     // now lives in visibility.ts's DEFAULT_LEVEL table, unchanged.
     const lens = await lensFor(ctx, viewerUserId);
-    const out: Array<{ userId: any; lastReadAt: number }> = [];
+    const out: Array<{
+      userId: any;
+      lastReadAt: number | null;
+      lastDeliveredAt: number | null;
+    }> = [];
     for (const m of members) {
       if (lens.isSelf(m.userId)) {
-        out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
+        out.push({
+          userId: m.userId,
+          lastReadAt: m.lastReadAt ?? 0,
+          lastDeliveredAt: m.lastDeliveredAt ?? 0,
+        });
         continue;
       }
       const reader = await ctx.db.get(m.userId);
-      if (!reader || !lens.canSee(reader, "seen")) continue;
-      out.push({ userId: m.userId, lastReadAt: m.lastReadAt ?? 0 });
+      if (!reader) continue;
+      const read = lens.canSee(reader, "seen") ? (m.lastReadAt ?? 0) : null;
+      const delivered = lens.canSee(reader, "lastSeen")
+        ? (m.lastDeliveredAt ?? 0)
+        : null;
+      if (read === null && delivered === null) continue;
+      out.push({
+        userId: m.userId,
+        lastReadAt: read,
+        lastDeliveredAt: delivered,
+      });
     }
     return out;
   },

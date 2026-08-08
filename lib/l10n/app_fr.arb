@@ -892,6 +892,8 @@
   "messageStampUploadingLabel": "téléversement",
   "messageStampSendingLabel": "envoi",
   "messageStampFailedToSendLabel": "échec de l'envoi",
+  "messageStampSentLabel": "envoyé",
+  "messageStampDeliveredLabel": "distribué",
   "messageStampSeenLabel": "vu",
   "messageStampCountdownSeconds": "{count}s",
   "messageStampCountdownMinutes": "{count}min",

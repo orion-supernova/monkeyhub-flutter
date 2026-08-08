@@ -892,6 +892,8 @@
   "messageStampUploadingLabel": "enviando anexo",
   "messageStampSendingLabel": "enviando",
   "messageStampFailedToSendLabel": "falha ao enviar",
+  "messageStampSentLabel": "enviado",
+  "messageStampDeliveredLabel": "entregue",
   "messageStampSeenLabel": "visto",
   "messageStampCountdownSeconds": "{count}s",
   "messageStampCountdownMinutes": "{count}min",

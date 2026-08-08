@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "업로드 중",
   "messageStampSendingLabel": "전송 중",
   "messageStampFailedToSendLabel": "전송 실패",
+  "messageStampSentLabel": "전송됨",
+  "messageStampDeliveredLabel": "전달됨",
   "messageStampSeenLabel": "읽음",
   "messageStampCountdownSeconds": "{count}초",
   "messageStampCountdownMinutes": "{count}분",

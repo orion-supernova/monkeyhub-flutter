@@ -3546,6 +3546,14 @@
   "@messageStampFailedToSendLabel": {
     "description": "Screen-reader semanticLabel on the error icon shown in a message's timestamp stamp when sending failed."
   },
+  "messageStampSentLabel": "sent",
+  "@messageStampSentLabel": {
+    "description": "Screen-reader semanticLabel on the single-check icon shown in a message's timestamp stamp once the server has the message but no recipient's device is known to hold it yet."
+  },
+  "messageStampDeliveredLabel": "delivered",
+  "@messageStampDeliveredLabel": {
+    "description": "Screen-reader semanticLabel on the double-check icon shown in a message's timestamp stamp once another member's device holds the message, but before anyone has read it."
+  },
   "messageStampSeenLabel": "seen",
   "@messageStampSeenLabel": {
     "description": "Screen-reader semanticLabel on the double-check icon shown in a message's timestamp stamp once it has been seen by others."

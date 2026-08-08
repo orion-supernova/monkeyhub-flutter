@@ -3157,6 +3157,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'falha ao enviar';
 
   @override
+  String get messageStampSentLabel => 'enviado';
+
+  @override
+  String get messageStampDeliveredLabel => 'entregue';
+
+  @override
   String get messageStampSeenLabel => 'visto';
 
   @override
@@ -8870,6 +8876,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get messageStampFailedToSendLabel => 'falha ao enviar';
+
+  @override
+  String get messageStampSentLabel => 'enviado';
+
+  @override
+  String get messageStampDeliveredLabel => 'entregue';
 
   @override
   String get messageStampSeenLabel => 'visto';

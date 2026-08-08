@@ -36,6 +36,55 @@ enum StampTone {
   onSurface,
 }
 
+/// How far an OUTGOING message has actually got, once the outbox is done with
+/// it — the tick ladder.
+///
+/// Separate from [MessageStatus] on purpose, and the separation is load-bearing
+/// rather than tidy. `MessageStatus` is the local outbox's state machine
+/// (uploading → pending → sent, or error), and half the app tests
+/// `status == MessageStatus.sent` to mean "this is a real message on the
+/// server" — the gate on forwarding, replying, pinning, selecting. Adding
+/// `delivered` to that enum would have quietly failed every one of those checks
+/// the moment a message reached the other phone. Delivery is not a further
+/// state of *our* send; it is news about someone else's device, and it arrives
+/// on a different stream.
+///
+/// Null, rather than a fourth case, is how an incoming message says "no ticks
+/// here": receipts are something you read about your own messages.
+enum MessageReceipt {
+  /// The server has it and nobody else's device is known to. One tick.
+  sent,
+
+  /// At least one other member's device holds it. Two ticks, still quiet — the
+  /// claim is about a phone, not a person.
+  delivered,
+
+  /// At least one other member has read past it. Two ticks, loud. Gated at both
+  /// ends: the reader opts in with `visibility.seen`, the viewer opts in with
+  /// the local `viewReadReceipts` preference.
+  seen,
+}
+
+/// Which rung an outgoing message has reached, from the two cursors the
+/// repository publishes for the open room.
+///
+/// A helper rather than a line inlined at each stamp because there are two of
+/// them — the in-bubble stamp and the external `_MetaRow` — and they must never
+/// disagree about a message. The precedence is the ladder's: read implies
+/// delivered, so `seen` wins even on the rare occasion the delivery cursor lags
+/// behind the read one (an old row that predates `lastDeliveredAt`, or a
+/// recipient who shares reads but has hidden their last-seen).
+MessageReceipt? messageReceipt({
+  required bool isMine,
+  required bool deliveredToOthers,
+  required bool seenByOthers,
+}) {
+  if (!isMine) return null;
+  if (seenByOthers) return MessageReceipt.seen;
+  if (deliveredToOthers) return MessageReceipt.delivered;
+  return MessageReceipt.sent;
+}
+
 /// Everything a message says about itself once it has been sent: the time, how
 /// far its delivery got, and — for an ephemeral message — how long it has left.
 ///
@@ -55,7 +104,7 @@ class MessageStamp extends StatelessWidget {
     required this.createdAt,
     required this.status,
     required this.tone,
-    this.showSeen = false,
+    this.receipt,
     this.countdown,
   });
 
@@ -63,8 +112,9 @@ class MessageStamp extends StatelessWidget {
   final MessageStatus status;
   final StampTone tone;
 
-  /// Whether to draw the read receipt. Callers pass `isMine && seenByOthers`.
-  final bool showSeen;
+  /// How far this message got, for the tick ladder. Null on anything that isn't
+  /// mine — see [MessageReceipt].
+  final MessageReceipt? receipt;
 
   /// Remaining life of an ephemeral message; null on every other message.
   final Duration? countdown;
@@ -116,12 +166,16 @@ class MessageStamp extends StatelessWidget {
           const SizedBox(width: 6),
         ],
         Text(formatClockTime(createdAt), style: style),
-        // Ahead of `pending`, and — more importantly — inside the same chain as
-        // `showSeen`, which it must pre-empt. `seenByOthers` is computed from
-        // another member's read cursor against this message's timestamp, and a
-        // cursor already ahead of "now" makes that true for a message created a
-        // moment ago. Left to fall through, an attachment still going up would
-        // draw `done_all` — "seen" — on a photo nobody has received.
+        // One chain, in this order, and the order is the point. The outbox's
+        // own states come FIRST because a [receipt] is computed from another
+        // member's cursor measured against this message's timestamp, and a
+        // cursor already ahead of "now" makes that comparison true for a
+        // message created a moment ago. Left to fall through, an attachment
+        // still going up would draw ticks on a photo nobody has received.
+        //
+        // Below that, the ladder runs downward — seen, then delivered, then
+        // sent — so a message that is both delivered and read draws one glyph,
+        // the furthest one it has earned.
         if (status == MessageStatus.uploading) ...[
           const SizedBox(width: 5),
           Icon(Icons.arrow_upward,
@@ -138,10 +192,27 @@ class MessageStamp extends StatelessWidget {
               size: 12,
               color: bad,
               semanticLabel: l10n.messageStampFailedToSendLabel),
-        ] else if (showSeen) ...[
+        ] else if (receipt == MessageReceipt.seen) ...[
           const SizedBox(width: 5),
           Icon(Icons.done_all,
               size: 12, color: loud, semanticLabel: l10n.messageStampSeenLabel),
+        ] else if (receipt == MessageReceipt.delivered) ...[
+          const SizedBox(width: 5),
+          // The same glyph as `seen`, in the same size, differing only in ink.
+          // That is deliberate: read is *more* of delivered, not a different
+          // event, and the eye should read the promotion as the mark lighting
+          // up rather than as one symbol being swapped for another.
+          Icon(Icons.done_all,
+              size: 12,
+              color: quiet,
+              semanticLabel: l10n.messageStampDeliveredLabel),
+        ] else if (receipt == MessageReceipt.sent) ...[
+          const SizedBox(width: 5),
+          // `done` rather than `check`: it is the glyph `done_all` is drawn as
+          // one half of, so the tick keeps its shape and weight when a second
+          // one joins it.
+          Icon(Icons.done,
+              size: 12, color: quiet, semanticLabel: l10n.messageStampSentLabel),
         ],
       ],
     );

@@ -55,6 +55,7 @@ class Redactor {
     'typing:list': ArgPolicy.full,
     // Room/message ids and counts. Ids are opaque and the shape is the signal.
     'messages:markRoomRead': ArgPolicy.full,
+    'messages:markRoomDelivered': ArgPolicy.full,
     'rooms:listRooms': ArgPolicy.keysOnly,
 
     // ---- Credential-equivalent. The server COMPARES these hashes, so logging
