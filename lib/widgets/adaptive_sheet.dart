@@ -21,6 +21,9 @@ import 'glass_surface.dart';
 /// undismissable by tap-outside or drag in both forms — for the rare modal that
 /// has to be answered, like a mandatory update. Pair it with a
 /// `PopScope(canPop: false)` in the content to also block Android back and Esc.
+///
+/// `useSafeArea: true` for any sheet tall enough to reach the top of the
+/// screen — see the parameter.
 Future<T?> showAdaptiveSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
@@ -30,6 +33,22 @@ Future<T?> showAdaptiveSheet<T>(
   double maxWidth = 460,
   bool isDismissible = true,
   bool enableDrag = true,
+
+  /// Bounds the bottom sheet by the window's top safe area instead of by the
+  /// raw screen height.
+  ///
+  /// Off by default because most sheets in this app are short enough that it
+  /// never bites, and a sheet that cannot possibly reach the status bar reads
+  /// the same either way. Turn it on for anything that can grow tall.
+  ///
+  /// Worth knowing before reaching for anything else: `ModalBottomSheetRoute`
+  /// wraps its content in `MediaQuery.removePadding(removeTop: true)`, which
+  /// zeroes `padding.top` AND `viewPadding.top` for everything inside the
+  /// sheet. So a sheet cannot read the top inset itself, and a `SafeArea` added
+  /// inside the content widget is a silent no-op. This flag is the hook that
+  /// applies it from OUTSIDE, at the route level, where the padding is still
+  /// intact.
+  bool useSafeArea = false,
 }) {
   if (context.isCompact) {
     return showModalBottomSheet<T>(
@@ -39,6 +58,7 @@ Future<T?> showAdaptiveSheet<T>(
       useRootNavigator: useRootNavigator,
       isDismissible: isDismissible,
       enableDrag: enableDrag,
+      useSafeArea: useSafeArea,
       builder: builder,
     );
   }

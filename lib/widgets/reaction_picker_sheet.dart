@@ -16,10 +16,12 @@ import 'adaptive_sheet.dart';
 const double _searchBarHeight = 44;
 
 /// Everything the sheet draws above the picker — top padding, drag handle,
-/// title, and the gap under it — plus a little clearance from the status bar.
+/// title, and the gap under it — plus a little slack.
 /// A constant rather than a measurement: [Config.height] has to agree with the
-/// [SizedBox] wrapping the picker, and a LayoutBuilder would only know the
-/// answer after the picker had already been asked how tall it is.
+/// [SizedBox] wrapping the picker, and a LayoutBuilder around the picker alone
+/// would only know the answer after the picker had already been asked how tall
+/// it is. It buys clearance from nothing device-specific: the safe area is
+/// handled structurally, by the box this sheet is handed.
 const double _chromeHeight = 90;
 
 /// A top-level tear-off, not an inline `(_) => fullEmojiSet` closure.
@@ -40,8 +42,39 @@ List<CategoryEmoji> _emojiSet(Locale locale) => fullEmojiSet;
 class ReactionPickerSheet extends StatelessWidget {
   const ReactionPickerSheet({super.key});
 
+  /// Sizes the grid to the box this sheet is actually handed, and lets the
+  /// picker's own category list scroll inside it — the grid never shrinks its
+  /// cells and never spills past the sheet.
+  ///
+  /// The height comes from `LayoutBuilder`, not from arithmetic on
+  /// `MediaQuery.sizeOf(context).height`, because inside a bottom-sheet route
+  /// the MediaQuery is not the window's. `ModalBottomSheetRoute.buildPage`
+  /// wraps its content in `MediaQuery.removePadding(removeTop: true)`, and
+  /// `MediaQueryData.removePadding` zeroes `viewPadding.top` along with
+  /// `padding.top`. From in here BOTH read 0 on a Dynamic Island phone, so
+  /// `screenH - padding.top - keyboard` handed the grid 59pt more than existed
+  /// — and since the sheet is bottom-anchored and the keyboard had already
+  /// pushed it up, those 59pt came off the TOP and the picker's title and tab
+  /// bar ended up under the island. A `SafeArea` in here would have done
+  /// nothing for the same reason: the padding it wants to apply is already
+  /// gone.
+  ///
+  /// The fix is applied one level up instead, where the real inset still
+  /// exists: `showReactionPicker` passes `useSafeArea: true`, so the ROUTE
+  /// insets the sheet's box by the window's `MediaQuery.padding.top`, and the
+  /// `constraints.maxHeight` read here is already island-aware. `viewInsets`
+  /// survives the route untouched, so the keyboard is still subtracted here —
+  /// and because both are read during layout, the grid re-fits itself on every
+  /// frame of the keyboard sliding in or out under an open sheet, and on
+  /// rotation.
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _build(context, constraints),
+    );
+  }
+
+  Widget _build(BuildContext context, BoxConstraints constraints) {
     final theme = ThemeScope.of(context);
     final screenH = MediaQuery.sizeOf(context).height;
     // viewInsets.bottom = soft keyboard (pushes the WHOLE sheet up).
@@ -53,6 +86,15 @@ class ReactionPickerSheet extends StatelessWidget {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final safeArea = MediaQuery.paddingOf(context);
     final bottomSafe = safeArea.bottom;
+
+    // The box, when there is one. The desktop popover puts this sheet inside a
+    // `SingleChildScrollView`, which offers unbounded height and means nothing
+    // about the screen — there, fall back to the window, minus a top inset the
+    // popover path has not spent (`viewPadding` rather than `padding`, so a
+    // keyboard overlapping the top inset in landscape cannot zero it).
+    final available = constraints.hasBoundedHeight
+        ? constraints.maxHeight
+        : screenH - MediaQuery.viewPaddingOf(context).top;
 
     final desiredH = (screenH * 0.5).clamp(320.0, 460.0).toDouble() +
         bottomSafe +
@@ -67,7 +109,7 @@ class ReactionPickerSheet extends StatelessWidget {
     // viewport — landscape, a small phone, a split view — honouring it is
     // exactly what overflows the sheet, because the sheet sits above the
     // keyboard and cannot grow into it. A cramped grid beats a broken one.
-    final ceiling = screenH - bottomInset - safeArea.top - _chromeHeight;
+    final ceiling = available - bottomInset - _chromeHeight;
     final totalPickerH = math.max(0.0, math.min(desiredH, ceiling));
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -382,9 +424,14 @@ class _ReactionSearchViewState extends SearchViewState<_ReactionSearchView> {
 }
 
 /// Helper: show the picker and return the chosen emoji (or null on dismiss).
+///
+/// `useSafeArea: true` is load-bearing, not decoration — it is the only place
+/// in this path where the window's real top inset is still readable. See
+/// [ReactionPickerSheet.build].
 Future<String?> showReactionPicker(BuildContext context) {
   return showAdaptiveSheet<String>(
     context,
+    useSafeArea: true,
     builder: (_) => const ReactionPickerSheet(),
   );
 }
