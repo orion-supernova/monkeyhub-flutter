@@ -3633,10 +3633,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'एक बार देखो';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'या';
+  String get socialButtonDividerOr => 'या';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Google से जारी रखें';
+  String get socialButtonGoogleContinue => 'Google से जारी रखें';
 
   @override
   String get discoverListsPeopleTitle => 'तुम्हारे लोग.';

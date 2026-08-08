@@ -3603,10 +3603,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'TEK SEFERLİK';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'veya';
+  String get socialButtonDividerOr => 'veya';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Google ile Devam Et';
+  String get socialButtonGoogleContinue => 'Google ile Devam Et';
 
   @override
   String get discoverListsPeopleTitle => 'arkadaşların.';

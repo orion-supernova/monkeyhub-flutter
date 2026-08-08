@@ -3511,10 +3511,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => '한 번만 보기';
 
   @override
-  String get viewOnceViewerSocialDividerOr => '또는';
+  String get socialButtonDividerOr => '또는';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Google로 계속하기';
+  String get socialButtonGoogleContinue => 'Google로 계속하기';
 
   @override
   String get discoverListsPeopleTitle => '내 사람들.';

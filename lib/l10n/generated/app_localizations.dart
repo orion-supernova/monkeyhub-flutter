@@ -6204,13 +6204,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'or'**
-  String get viewOnceViewerSocialDividerOr;
+  String get socialButtonDividerOr;
 
   /// Visible label and screen-reader semanticLabel on the app's own themed 'Continue with Google' button.
   ///
   /// In en, this message translates to:
   /// **'Continue with Google'**
-  String get viewOnceViewerGoogleContinueButton;
+  String get socialButtonGoogleContinue;
 
   /// Lowercase fragment-style heading at the top of the full people list screen (opened from Discover's "see all" row).
   ///

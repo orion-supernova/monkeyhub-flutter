@@ -3640,10 +3640,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VISAS EN GÅNG';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'eller';
+  String get socialButtonDividerOr => 'eller';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Fortsätt med Google';
+  String get socialButtonGoogleContinue => 'Fortsätt med Google';
 
   @override
   String get discoverListsPeopleTitle => 'dina vänner.';

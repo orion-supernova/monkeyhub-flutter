@@ -3688,10 +3688,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VUE UNIQUE';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'ou';
+  String get socialButtonDividerOr => 'ou';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuer avec Google';
+  String get socialButtonGoogleContinue => 'Continuer avec Google';
 
   @override
   String get discoverListsPeopleTitle => 'tes proches.';

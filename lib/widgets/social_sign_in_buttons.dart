@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../auth/apple_button_titles.dart';
@@ -103,7 +102,7 @@ class SocialSignInButtons extends StatelessWidget {
     // One at a time — a second tap while a native sheet is up would stack two.
     final live = enabled && busyProvider == null;
     final resolvedDividerLabel = dividerLabel == _autoDividerLabel
-        ? AppLocalizations.of(context).viewOnceViewerSocialDividerOr
+        ? AppLocalizations.of(context).socialButtonDividerOr
         : dividerLabel;
 
     return Column(
@@ -213,20 +212,25 @@ class _GoogleButton extends StatelessWidget {
   static const double _logoGap = 12;
   static const double _logoSize = 18;
 
+  /// Must match the `family:` declared in pubspec's `fonts:` section — Flutter
+  /// resolves this by string and silently falls back to the platform face if
+  /// the two ever drift apart.
+  static const String _fontFamily = 'Google Sans';
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final onDark = _onDarkBackground(context);
-    final label = AppLocalizations.of(
-      context,
-    ).viewOnceViewerGoogleContinueButton;
+    final label = AppLocalizations.of(context).socialButtonGoogleContinue;
 
-    // Google Sans Medium is the current spec face and Google does not
-    // distribute it through Google Fonts; Roboto Medium is their own typeface
-    // and was the spec face until the 2024 refresh, so it is the closest thing
-    // that can actually ship. Dropping GoogleSans-Medium.ttf into
-    // assets/google_fonts/ and swapping this call is all a change would take.
-    final textStyle = GoogleFonts.roboto(
+    // Google Sans Medium 14/20, the face and metrics the guidelines name.
+    // Declared in pubspec's `fonts:` rather than resolved through the
+    // google_fonts package — see the comment there — and subset to the scripts
+    // the twelve labels actually use, so a locale added later may need the
+    // subset re-cut (ar/ja/ko/zh already fall through to the platform font,
+    // which is fine and is what Google's own Android button does).
+    final textStyle = TextStyle(
+      fontFamily: _fontFamily,
       fontWeight: FontWeight.w500,
       fontSize: 14,
       height: 20 / 14,

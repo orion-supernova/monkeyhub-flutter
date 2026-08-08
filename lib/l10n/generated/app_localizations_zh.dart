@@ -3455,10 +3455,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => '阅后即焚';
 
   @override
-  String get viewOnceViewerSocialDividerOr => '或';
+  String get socialButtonDividerOr => '或';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => '通过 Google 继续';
+  String get socialButtonGoogleContinue => '通过 Google 继续';
 
   @override
   String get discoverListsPeopleTitle => '你的好友。';

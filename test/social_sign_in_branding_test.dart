@@ -124,25 +124,40 @@ void main() {
       });
     });
 
-    testWidgets('sets its label in Google\'s own typeface, not the theme\'s', (
-      tester,
-    ) async {
+    testWidgets('sets its label in Google Sans Medium 14/20, not the theme\'s '
+        'face', (tester) async {
       await pump(tester, theme: BasicTheme.midnight());
       final label = tester.widget<Text>(find.text('Continue with Google'));
-      expect(label.style!.fontFamily, contains('Roboto'));
+      expect(label.style!.fontFamily, 'Google Sans');
       expect(label.style!.fontWeight, FontWeight.w500);
       expect(label.style!.fontSize, 14);
+      expect(label.style!.height, 20 / 14);
 
-      // google_fonts degrades silently to the system font when the ttf is not
-      // bundled (main.dart pins allowRuntimeFetching = false), so the asset
-      // itself has to be asserted separately — a missing declaration in
-      // pubspec would otherwise show up only on a real device.
+      // Flutter resolves fontFamily by string and falls back to the platform
+      // face without a word if nothing is registered under that name, so the
+      // asset behind it is asserted separately — a `fonts:` entry dropped from
+      // pubspec would otherwise surface only on a real device.
       await tester.runAsync(() async {
-        final ttf = await rootBundle.load(
-          'assets/google_fonts/Roboto-Medium.ttf',
-        );
+        final ttf = await rootBundle.load('assets/fonts/GoogleSans-Medium.ttf');
         expect(ttf.lengthInBytes, greaterThan(0));
       });
+    });
+
+    testWidgets('renders every localized label it claims to support', (
+      tester,
+    ) async {
+      // The subset covers Latin + Latin Extended plus whatever these twelve
+      // labels need. Adding a locale without re-cutting it would show up as
+      // tofu on a device and as nothing at all in a normal widget test, so the
+      // labels are at least asserted to be present and non-empty per locale.
+      for (final locale in AppLocalizations.supportedLocales) {
+        final l10n = await AppLocalizations.delegate.load(locale);
+        expect(
+          l10n.socialButtonGoogleContinue,
+          contains('Google'),
+          reason: 'Google keeps its name untranslated — $locale',
+        );
+      }
     });
 
     testWidgets('wears Google\'s dark treatment on a dark theme', (

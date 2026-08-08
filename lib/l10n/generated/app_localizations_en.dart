@@ -3615,10 +3615,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VIEW ONCE';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'or';
+  String get socialButtonDividerOr => 'or';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Continue with Google';
+  String get socialButtonGoogleContinue => 'Continue with Google';
 
   @override
   String get discoverListsPeopleTitle => 'your people.';

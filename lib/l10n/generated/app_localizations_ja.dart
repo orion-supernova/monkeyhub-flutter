@@ -3500,10 +3500,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => '一度だけ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'または';
+  String get socialButtonDividerOr => 'または';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Googleで続ける';
+  String get socialButtonGoogleContinue => 'Googleで続ける';
 
   @override
   String get discoverListsPeopleTitle => 'あなたの友だち。';

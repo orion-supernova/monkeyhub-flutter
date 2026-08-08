@@ -3667,10 +3667,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get viewOnceViewerBadgeLabel => 'VER UMA VEZ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'ou';
+  String get socialButtonDividerOr => 'ou';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
+  String get socialButtonGoogleContinue => 'Continuar com o Google';
 
   @override
   String get discoverListsPeopleTitle => 'as tuas pessoas.';
@@ -9212,10 +9212,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get viewOnceViewerBadgeLabel => 'VER UMA VEZ';
 
   @override
-  String get viewOnceViewerSocialDividerOr => 'ou';
+  String get socialButtonDividerOr => 'ou';
 
   @override
-  String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
+  String get socialButtonGoogleContinue => 'Continuar com o Google';
 
   @override
   String get discoverListsPeopleTitle => 'seu pessoal.';

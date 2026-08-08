@@ -4040,12 +4040,12 @@
   "@viewOnceViewerBadgeLabel": {
     "description": "All-caps badge label in the fullscreen view-once photo viewer, shown beside a '1' marker, telling the user this photo can only be viewed once and will not be shown again."
   },
-  "viewOnceViewerSocialDividerOr": "or",
-  "@viewOnceViewerSocialDividerOr": {
+  "socialButtonDividerOr": "or",
+  "@socialButtonDividerOr": {
     "description": "Divider word between the Apple and Google 'continue with' buttons on sign-in/login screens (default value of SocialSignInButtons.dividerLabel when the caller doesn't override it)."
   },
-  "viewOnceViewerGoogleContinueButton": "Continue with Google",
-  "@viewOnceViewerGoogleContinueButton": {
+  "socialButtonGoogleContinue": "Continue with Google",
+  "@socialButtonGoogleContinue": {
     "description": "Visible label and screen-reader semanticLabel on the app's own themed 'Continue with Google' button."
   },
   "discoverListsPeopleTitle": "your people.",
