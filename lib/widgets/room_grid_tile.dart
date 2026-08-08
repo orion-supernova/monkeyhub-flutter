@@ -34,9 +34,6 @@ class RoomGridTile extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final decoration = theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
     final subtitle = roomSubtitle(context, room);
-    // A tile with nothing to preview has room to spare, so the name takes it:
-    // two lines at display size instead of one small one. Nothing is padded
-    // out — the tile just spends its space on the only thing it knows.
     final quiet = subtitle.kind == RoomSubtitleKind.empty;
     // Off unless asked for, and even then only where there's actually a hole
     // to fill: a tile with a preview line is carrying pills, a count and a
@@ -65,7 +62,7 @@ class RoomGridTile extends StatelessWidget {
                 ),
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: _body(context, theme, subtitle, quiet),
+                child: _body(context, theme, subtitle),
               ),
             ],
           ),
@@ -74,7 +71,7 @@ class RoomGridTile extends StatelessWidget {
     );
   }
 
-  Widget _body(BuildContext context, AppTheme theme, RoomSubtitle subtitle, bool quiet) {
+  Widget _body(BuildContext context, AppTheme theme, RoomSubtitle subtitle) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -164,11 +161,10 @@ class RoomGridTile extends StatelessWidget {
               Text(
                 dmUser?.displayName ?? room.name,
                 style: theme.displaySmall.copyWith(
-                  fontSize: quiet ? 21 : 16,
-                  height: quiet ? 1.15 : null,
+                  fontSize: 16,
                   fontWeight: room.hasUnread ? FontWeight.w700 : null,
                 ),
-                maxLines: quiet ? 2 : 1,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
