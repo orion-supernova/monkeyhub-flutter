@@ -784,6 +784,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => '削除';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle => 'この会話を終了しますか?';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerNameもこの会話を失います — お互いのメッセージがすべて消えます。元に戻せません。';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => '終了';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => '相手';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'キャンセル';
 
   @override
@@ -887,6 +901,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => '削除';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => '終了中…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => '会話を終了';
 
   @override
   String get roomInfoScreenHeaderConversation => '会話';

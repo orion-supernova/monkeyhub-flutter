@@ -821,6 +821,21 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => 'डिलीट करें';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle =>
+      'यह बातचीत खत्म करें?';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerName भी यह बातचीत खो देगा — तुम दोनों के लिए हर मैसेज गायब हो जाएगा। यह हमेशा के लिए है।';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => 'खत्म करें';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => 'दूसरा व्यक्ति';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'रद्द करें';
 
   @override
@@ -925,6 +940,12 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => 'डिलीट करें';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => 'खत्म हो रहा है…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => 'बातचीत खत्म करें';
 
   @override
   String get roomInfoScreenHeaderConversation => 'बातचीत';

@@ -37,6 +37,7 @@ import 'motion_screen.dart';
 import 'navigation_screen.dart';
 import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
+import 'navigation/tab_reselect.dart';
 import 'profile_screen.dart';
 import 'report_problem_screen.dart';
 import 'room_layout_screen.dart';
@@ -60,8 +61,16 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with TabReselectScroll<SettingsScreen> {
   ChatUser? _me;
+
+  final _scroll = ScrollController();
+
+  @override
+  HomeSection get reselectSection => HomeSection.settings;
+  @override
+  ScrollController get reselectScroll => _scroll;
 
   void _onSettings() {
     if (mounted) setState(() {});
@@ -85,6 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     UiSelectionStore.instance.removeListener(_onSettings);
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -272,6 +282,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         theme.backgroundLayer(context),
         SafeArea(
           child: ListView(
+            controller: _scroll,
             padding: const EdgeInsets.fromLTRB(
               20,
               28,

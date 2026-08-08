@@ -26,6 +26,7 @@ import 'navigation/destinations.dart';
 import 'navigation/open_room.dart';
 import 'navigation/pill_bottom_nav.dart';
 import 'navigation/section_switcher.dart';
+import 'navigation/tab_reselect.dart';
 import 'room_screen.dart';
 import 'settings_screen.dart';
 
@@ -81,7 +82,20 @@ class _HomeShellState extends State<HomeShell> {
     if (mounted) setState(() {});
   }
 
-  void _select(HomeSection s) => SettingsStore.instance.setSection(s);
+  /// All three nav chromes report every tap here, including one on the
+  /// destination that is already active. That used to reach
+  /// [SettingsStore.setSection], which returns early on a same-section change —
+  /// so tapping Chat while reading a scrolled-down chat list did nothing at
+  /// all. Re-tapping the active tab is the standard way back to the top of it,
+  /// so the shell announces it and the section on screen answers (see
+  /// [TabReselectScroll]).
+  void _select(HomeSection s) {
+    if (s == SettingsStore.instance.section) {
+      TabReselect.instance.fire(s);
+      return;
+    }
+    SettingsStore.instance.setSection(s);
+  }
 
   /// Badge counts per destination, built once and shared by all three nav
   /// chromes so they can't drift apart. Destinations with nothing to report are

@@ -14,10 +14,9 @@ import 'package:monkeyhub/widgets/room_identity.dart';
 ///
 /// The box is a fixed size whether or not there's anything in it, so the rules
 /// here are about what fills it: the description nobody was showing, a stamp
-/// for how long it's been quiet, a name that takes the space it's given, and
-/// a monogram for the rooms that have none of the above. And the card must not
-/// shrink — a card that collapses for want of a preview is the one that looks
-/// broken next to a full one.
+/// for how long it's been quiet, and a monogram for the rooms that have none
+/// of the above. And the card must not shrink — a card that collapses for
+/// want of a preview is the one that looks broken next to a full one.
 void main() {
   final epoch = DateTime(2026, 8, 8, 12);
 
@@ -82,18 +81,15 @@ void main() {
       expect(find.text('the description'), findsNothing);
     });
 
-    testWidgets('with neither, the name takes the room', (tester) async {
+    testWidgets('the name stays the same size whether or not there is a preview',
+        (tester) async {
       await tester.pumpWidget(host(tile(room())));
       final quiet = tester.widget<Text>(find.text('design')).style!.fontSize;
 
       await tester.pumpWidget(host(tile(room(lastMessage: 'something'))));
       final busy = tester.widget<Text>(find.text('design')).style!.fontSize;
 
-      expect(
-        quiet,
-        greaterThan(busy!),
-        reason: 'an empty tile spends its space on the one thing it knows',
-      );
+      expect(quiet, busy);
     });
 
   });

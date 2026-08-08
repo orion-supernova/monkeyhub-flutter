@@ -770,6 +770,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => '删除';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle => '结束这段对话？';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerName 也会失去这段对话 — 你们双方的所有消息都会消失，且无法恢复。';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => '结束';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => '对方';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => '取消';
 
   @override
@@ -873,6 +887,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => '删除';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => '结束中…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => '结束对话';
 
   @override
   String get roomInfoScreenHeaderConversation => '对话';
