@@ -9,6 +9,7 @@ import 'package:monkeyhub/models/enums.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
+import 'package:monkeyhub/keyboard/focusable_tap.dart';
 import 'package:monkeyhub/widgets/file_message.dart';
 import 'package:monkeyhub/widgets/message_action_menu.dart';
 import 'package:monkeyhub/widgets/message_bubble.dart';
@@ -400,13 +401,13 @@ void main() {
     expect(find.text('monkeyhub-report-2026-03-01T12-04-00.txt'), findsOneWidget);
   });
 
-  testWidgets('a plain-text attachment offers to view, not just save',
+  // The eye is decorative and the arrow is a real, separately tappable
+  // button — see the next test for the tap-target count that backs this up.
+  testWidgets('a plain-text attachment shows both a view indicator and a download button',
       (tester) async {
     await tester.pumpWidget(host(bubble(reportLogDoc(), isMine: false)));
     expect(tester.takeException(), isNull);
 
-    // The chip promises what the tap will do — an arrow here on a file that
-    // opens a viewer, not a download, would be the wrong affordance.
     expect(
       find.descendant(of: find.byType(FileMessage), matching: find.byIcon(CupertinoIcons.eye)),
       findsOneWidget,
@@ -416,28 +417,69 @@ void main() {
         of: find.byType(FileMessage),
         matching: find.byIcon(CupertinoIcons.arrow_down),
       ),
-      findsNothing,
+      findsOneWidget,
+      reason: 'download must stay reachable without opening the viewer first',
     );
 
     final l10n = AppLocalizations.of(tester.element(find.byType(FileMessage)));
-    final semantics = tester.widget<Semantics>(
+    const name = 'monkeyhub-report-2026-03-01T12-04-00.txt';
+    final labels = tester
+        .widgetList<Semantics>(
+          find.descendant(
+            of: find.byType(FileMessage),
+            matching: find.byWidgetPredicate(
+              (w) => w is Semantics && w.properties.label != null,
+            ),
+          ),
+        )
+        .map((s) => s.properties.label)
+        .toSet();
+    expect(
+      labels,
+      {l10n.fileMessageViewSemanticLabel(name), l10n.fileMessageSaveSemanticLabel(name)},
+      reason: 'the row and the download button must announce two different actions',
+    );
+  });
+
+  // Pins the tap-target split itself, not just the icons: a viewable
+  // attachment must have its OWN download button as a distinct tap target
+  // from the row (`FocusableTap` count 1 → 2), or "only download should
+  // download" degrades back into one overloaded tap. Doesn't actually tap the
+  // button — that would run `DocumentSaver.save`'s real network fetch, which
+  // has no place hanging off a widget test.
+  testWidgets('the download button is its own tap target, not the row\'s',
+      (tester) async {
+    await tester.pumpWidget(host(bubble(doc(), isMine: false)));
+    expect(
+      find.descendant(of: find.byType(FileMessage), matching: find.byType(FocusableTap)),
+      findsOneWidget,
+      reason: 'a non-text attachment has exactly one tap target: the row',
+    );
+
+    await tester.pumpWidget(host(bubble(reportLogDoc(), isMine: false)));
+    final tapTargets = find.descendant(
+      of: find.byType(FileMessage),
+      matching: find.byType(FocusableTap),
+    );
+    expect(tapTargets, findsNWidgets(2),
+        reason: 'the row (view) and the download button, independently tappable');
+
+    // The download button sits fully inside the row it is nested in — this is
+    // what makes Flutter's arena resolve a tap on it to the inner recognizer
+    // rather than the outer row's.
+    final buttonRect = tester.getRect(
       find.descendant(
         of: find.byType(FileMessage),
-        matching: find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label != null,
-        ),
+        matching: find.byIcon(CupertinoIcons.arrow_down),
       ),
     );
-    expect(
-      semantics.properties.label,
-      l10n.fileMessageViewSemanticLabel('monkeyhub-report-2026-03-01T12-04-00.txt'),
-    );
+    expect(rowRect(tester).contains(buttonRect.center), isTrue);
   });
 
   // An ordinary document (an .epub, same as every other test in this file)
   // must keep tapping straight to a download — the viewer is scoped to plain
   // text only, not every attachment.
-  testWidgets('a non-text attachment keeps its download affordance', (tester) async {
+  testWidgets('a non-text attachment keeps its single download affordance', (tester) async {
     await tester.pumpWidget(host(bubble(doc(), isMine: false)));
     expect(tester.takeException(), isNull);
     expect(

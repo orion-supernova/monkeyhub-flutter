@@ -27,8 +27,11 @@ import 'photo_chrome.dart';
 /// Plain text is the one exception — see [isPlainTextFile]. There is nothing
 /// for a `.txt` to mis-render, and the receiving end of a bug report is
 /// exactly the case where "download it, then open it" is friction for no
-/// reason. That tap opens [TextFileViewerScreen] instead, with the download
-/// still one tap away from there.
+/// reason. The row's own tap opens [TextFileViewerScreen] instead; a second,
+/// separately tappable disc next to the type badge — the one carrying an
+/// arrow, not an eye — still downloads. That split is deliberate: this is the
+/// one attachment shape with two genuinely different things a tap could mean,
+/// so it is the one shape with two tap targets instead of an overloaded one.
 class FileMessage extends StatefulWidget {
   const FileMessage({
     super.key,
@@ -77,13 +80,17 @@ class _FileMessageState extends State<FileMessage> {
   bool get _viewable =>
       isPlainTextFile(mimeType: widget.mimeType, fileName: widget.fileName ?? '');
 
+  /// The row's own tap. Opens the in-app viewer for a viewable attachment,
+  /// downloads for everything else — for a viewable one, downloading is
+  /// [_download]'s job alone, reached through its own button rather than the
+  /// row.
   Future<void> _open() async {
     final id = widget.storageId;
     if (id == null || _busy) return;
-    final l10n = AppLocalizations.of(context);
-    final name = widget.fileName ?? l10n.fileMessageDefaultName;
 
     if (_viewable) {
+      final l10n = AppLocalizations.of(context);
+      final name = widget.fileName ?? l10n.fileMessageDefaultName;
       await TextFileViewerScreen.open(
         context,
         api: widget.api,
@@ -93,6 +100,14 @@ class _FileMessageState extends State<FileMessage> {
       return;
     }
 
+    await _download();
+  }
+
+  Future<void> _download() async {
+    final id = widget.storageId;
+    if (id == null || _busy) return;
+    final l10n = AppLocalizations.of(context);
+    final name = widget.fileName ?? l10n.fileMessageDefaultName;
     final messenger = ScaffoldMessenger.of(context);
     final origin = _globalRect();
 
@@ -162,13 +177,26 @@ class _FileMessageState extends State<FileMessage> {
           ),
         ),
         const SizedBox(width: 10),
-        _SaveChip(
-          theme: theme,
-          ink: ink,
-          enabled: enabled,
-          busy: _busy,
-          viewable: _viewable,
-        ),
+        if (_viewable) ...[
+          // Decorative — part of the row's own tap target below, not its own
+          // button. It says what the row does, nothing more.
+          _SaveChip(theme: theme, ink: ink, enabled: enabled, busy: false, viewable: true),
+          const SizedBox(width: 8),
+          // The one thing that actually downloads. Its own `FocusableTap`
+          // nested inside the row's wins the tap for a press landing on it —
+          // Flutter resolves a tap in favour of the innermost recognizer when
+          // more than one shares the same pointer — so this and the row below
+          // can disagree about what a tap on THIS 28pt circle does.
+          _SaveChip(
+            theme: theme,
+            ink: ink,
+            enabled: enabled,
+            busy: _busy,
+            onTap: _download,
+            semanticLabel: l10n.fileMessageSaveSemanticLabel(name),
+          ),
+        ] else
+          _SaveChip(theme: theme, ink: ink, enabled: enabled, busy: _busy),
       ],
     );
 
@@ -245,14 +273,19 @@ class _TypeBadge extends StatelessWidget {
   }
 }
 
-/// The trailing save affordance.
+/// The trailing save (or, on a viewable attachment, view) affordance.
 ///
 /// A bare 19pt glyph floating beside a 40pt badge read as decoration rather
 /// than a control, and swapped to an ellipsis of a different width while
 /// saving, which moved the name column under the user's thumb. A fixed 28pt
 /// circle fixes both: the footprint never changes, and the disc reads as
-/// something you can press. It carries no gesture of its own — the whole row is
-/// the tap target, as it has always been.
+/// something you can press.
+///
+/// [onTap] null (the default) leaves it decorative — it carries no gesture of
+/// its own, because the whole row is the tap target, as it has always been.
+/// Non-null makes the disc its OWN tap target instead: the download button
+/// that sits beside the eye indicator on a viewable attachment, where the
+/// row's tap opens the viewer and only this button downloads.
 class _SaveChip extends StatelessWidget {
   const _SaveChip({
     required this.theme,
@@ -260,6 +293,8 @@ class _SaveChip extends StatelessWidget {
     required this.enabled,
     required this.busy,
     this.viewable = false,
+    this.onTap,
+    this.semanticLabel,
   });
 
   final AppTheme theme;
@@ -270,16 +305,19 @@ class _SaveChip extends StatelessWidget {
   final bool enabled;
   final bool busy;
 
-  /// Whether the tap opens the in-app text viewer instead of downloading —
-  /// swaps the glyph so the disc doesn't promise a download it won't do.
+  /// Whether the glyph reads as "view" rather than "save" — a decorative-only
+  /// distinction; [onTap] is what actually decides whether this downloads.
   final bool viewable;
+
+  final VoidCallback? onTap;
+  final String? semanticLabel;
 
   static const double _size = 28;
 
   @override
   Widget build(BuildContext context) {
     final strength = enabled || busy ? 1.0 : 0.4;
-    return Container(
+    final disc = Container(
       width: _size,
       height: _size,
       alignment: Alignment.center,
@@ -298,6 +336,22 @@ class _SaveChip extends StatelessWidget {
               size: 15,
               color: ink.withValues(alpha: 0.72 * strength),
             ),
+    );
+
+    final tap = onTap;
+    if (tap == null) return disc;
+
+    return FocusableTap(
+      onTap: enabled ? tap : null,
+      enabled: enabled,
+      semanticLabel: semanticLabel,
+      shape: FocusRingShape.circle,
+      radius: _size / 2,
+      child: GestureDetector(
+        onTap: enabled ? tap : null,
+        behavior: HitTestBehavior.opaque,
+        child: disc,
+      ),
     );
   }
 }
