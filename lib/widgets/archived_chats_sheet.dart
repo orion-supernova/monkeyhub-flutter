@@ -9,6 +9,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'chat_row_action_menu.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
+import 'mute_room_sheet.dart';
 import 'room_card.dart';
 import '../screens/navigation/open_room.dart';
 
@@ -130,9 +131,29 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
       // explicitly so the menu's own "archived rooms only offer Unarchive"
       // rule stays the single source of truth.
       isArchived: true,
+      isMuted: widget.room.isMuted,
+      canMute: widget.repo.capabilitiesFor(widget.room).canMute,
     );
-    if (action == ChatRowAction.unarchive) {
-      await widget.repo.unarchiveRoom(widget.room.id);
+    if (!context.mounted) return;
+    switch (action) {
+      case ChatRowAction.unarchive:
+        await widget.repo.unarchiveRoom(widget.room.id);
+      case ChatRowAction.mute:
+        await showMuteRoomSheet(
+          context,
+          repo: widget.repo,
+          room: widget.room,
+        );
+      case ChatRowAction.unmute:
+        await widget.repo.unmuteRoom(widget.room.id);
+      // The menu never offers these on an archived room; listed so adding a
+      // future action to the enum fails here rather than silently doing
+      // nothing on this surface.
+      case ChatRowAction.pin:
+      case ChatRowAction.unpin:
+      case ChatRowAction.archive:
+      case null:
+        break;
     }
   }
 

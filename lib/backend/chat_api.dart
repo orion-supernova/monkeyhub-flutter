@@ -649,6 +649,35 @@ class ChatApi {
     await _cv.mutation('rooms:unarchiveRoom', {'roomId': roomId, 'userId': userId});
   }
 
+  /// Silence a room for this user. See `lib/models/room_mute.dart`.
+  ///
+  /// [durationMs] is a LENGTH, and null means "always". The server turns it
+  /// into an absolute deadline with its own clock, deliberately — sending our
+  /// own instant would mute for the wrong stretch of time on any device whose
+  /// clock has drifted.
+  ///
+  /// Re-muting an already-muted room is the same call: the backend overwrites
+  /// all three columns, so there is no previous deadline to reconcile.
+  Future<void> muteRoom({
+    required String roomId,
+    required String userId,
+    required bool notifications,
+    required bool badges,
+    int? durationMs,
+  }) async {
+    await _cv.mutation('rooms:muteRoom', {
+      'roomId': roomId,
+      'userId': userId,
+      'notifications': notifications,
+      'badges': badges,
+      'durationMs': ?durationMs,
+    });
+  }
+
+  Future<void> unmuteRoom({required String roomId, required String userId}) async {
+    await _cv.mutation('rooms:unmuteRoom', {'roomId': roomId, 'userId': userId});
+  }
+
   /// Idempotent — safe to call on every launch. Returns the self-chat's room
   /// id; the room itself surfaces to the UI via the `rooms:listUserRooms`
   /// subscription, not through this return value.

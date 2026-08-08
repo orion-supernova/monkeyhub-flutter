@@ -94,6 +94,12 @@ void main() {
                   rowBuilder: row,
                   isPinned: false,
                   isArchived: false,
+                  // This file is about the HOLD, not the menu's contents —
+                  // an unmuted, mutable room is simply the case that offers
+                  // the most rows, and the finder below keys off PIN CHAT
+                  // either way.
+                  isMuted: false,
+                  canMute: true,
                 ),
                 child: Builder(builder: row),
               ),

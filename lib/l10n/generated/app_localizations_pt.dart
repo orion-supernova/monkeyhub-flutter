@@ -5726,6 +5726,94 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CONVERSA';
+
+  @override
+  String get muteSheetTitle => 'SILENCIAR CONVERSA';
+
+  @override
+  String get muteSheetSubtitle =>
+      'Escolhe o que fica em silêncio e durante quanto tempo.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Notificações';
+
+  @override
+  String get muteSheetNotificationsSub => 'Sem aviso, sem som';
+
+  @override
+  String get muteSheetBadgesTitle => 'Contagem de não lidas';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Sem número na conversa, nada no ícone da app';
+
+  @override
+  String get muteSheetDurationLabel => 'DURANTE QUANTO TEMPO';
+
+  @override
+  String get muteDurationHour => '1 hora';
+
+  @override
+  String get muteDurationEightHours => '8 horas';
+
+  @override
+  String get muteDurationWeek => '1 semana';
+
+  @override
+  String get muteDurationAlways => 'Sempre';
+
+  @override
+  String get muteSheetConfirmButton => 'SILENCIAR';
+
+  @override
+  String get muteSheetSaveButton => 'GUARDAR';
+
+  @override
+  String get muteSheetUnmuteButton => 'REATIVAR';
+
+  @override
+  String get muteSummaryAll =>
+      'Nada desta conversa chega até ti: nem notificações, nem contagem de não lidas.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Sem notificações. A contagem de não lidas continua a subir.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Sem contagem de não lidas. As notificações continuam a chegar.';
+
+  @override
+  String get muteSummaryNothingPicked =>
+      'Escolhe pelo menos uma coisa para silenciar.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Até $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Até voltares a ligar.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'SILENCIADA';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'SILENCIAR CONVERSA';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'REATIVAR CONVERSA';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'SILÊNCIO';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Não silenciada';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -11449,4 +11537,92 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CHAT';
+
+  @override
+  String get muteSheetTitle => 'SILENCIAR CONVERSA';
+
+  @override
+  String get muteSheetSubtitle =>
+      'Escolha o que fica em silêncio e por quanto tempo.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Notificações';
+
+  @override
+  String get muteSheetNotificationsSub => 'Sem aviso, sem som';
+
+  @override
+  String get muteSheetBadgesTitle => 'Contagem de não lidas';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Sem número na conversa, nada no ícone do app';
+
+  @override
+  String get muteSheetDurationLabel => 'POR QUANTO TEMPO';
+
+  @override
+  String get muteDurationHour => '1 hora';
+
+  @override
+  String get muteDurationEightHours => '8 horas';
+
+  @override
+  String get muteDurationWeek => '1 semana';
+
+  @override
+  String get muteDurationAlways => 'Sempre';
+
+  @override
+  String get muteSheetConfirmButton => 'SILENCIAR';
+
+  @override
+  String get muteSheetSaveButton => 'SALVAR';
+
+  @override
+  String get muteSheetUnmuteButton => 'REATIVAR';
+
+  @override
+  String get muteSummaryAll =>
+      'Nada desta conversa chega até você: nem notificações, nem contagem de não lidas.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Sem notificações. A contagem de não lidas continua subindo.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Sem contagem de não lidas. As notificações continuam chegando.';
+
+  @override
+  String get muteSummaryNothingPicked =>
+      'Escolha pelo menos uma coisa para silenciar.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Até $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Até você ligar de novo.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'SILENCIADA';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'SILENCIAR CONVERSA';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'REATIVAR CONVERSA';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'SILÊNCIO';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Não silenciada';
 }

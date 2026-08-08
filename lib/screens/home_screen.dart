@@ -20,6 +20,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_sheet.dart';
 import '../widgets/archived_chats_sheet.dart';
 import '../widgets/chat_row_action_menu.dart';
+import '../widgets/mute_room_sheet.dart';
 import '../widgets/pull_reveal_panel.dart';
 import '../widgets/room_card.dart';
 import '../widgets/room_filter_bar.dart';
@@ -597,7 +598,10 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       rowBuilder: rowBuilder,
       isPinned: room.isPinned,
       isArchived: room.isArchived,
+      isMuted: room.isMuted,
+      canMute: widget.repo.capabilitiesFor(room).canMute,
     );
+    if (!mounted) return;
     switch (action) {
       case ChatRowAction.pin:
         await widget.repo.pinRoom(room.id);
@@ -610,6 +614,15 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         break;
       case ChatRowAction.unarchive:
         await widget.repo.unarchiveRoom(room.id);
+        break;
+      case ChatRowAction.mute:
+        // Straight into the sheet rather than muting on the spot with a
+        // default: the whole point of two switches and four durations is that
+        // there is no single sensible default to apply silently.
+        await showMuteRoomSheet(context, repo: widget.repo, room: room);
+        break;
+      case ChatRowAction.unmute:
+        await widget.repo.unmuteRoom(room.id);
         break;
       case null:
         break;

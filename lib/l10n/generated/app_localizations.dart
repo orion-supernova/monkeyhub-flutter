@@ -9706,6 +9706,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNARCHIVE CHAT'**
   String get chatRowActionMenuUnarchiveLabel;
+
+  /// All-caps headline of the bottom sheet that silences one chat.
+  ///
+  /// In en, this message translates to:
+  /// **'MUTE CHAT'**
+  String get muteSheetTitle;
+
+  /// One line under the mute sheet's headline explaining that the user picks both what is silenced and for how long.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick what goes quiet, and for how long.'**
+  String get muteSheetSubtitle;
+
+  /// Title of the first switch in the mute sheet: silence this chat's push notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get muteSheetNotificationsTitle;
+
+  /// Sub-line under the notifications switch, spelling out what stops: the banner and the sound.
+  ///
+  /// In en, this message translates to:
+  /// **'No banner, no sound'**
+  String get muteSheetNotificationsSub;
+
+  /// Title of the second switch in the mute sheet: hide this chat's unread counts.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread counts'**
+  String get muteSheetBadgesTitle;
+
+  /// Sub-line under the unread-counts switch: no number beside the chat and nothing added to the OS app-icon badge.
+  ///
+  /// In en, this message translates to:
+  /// **'No number on the chat, nothing added to the app icon'**
+  String get muteSheetBadgesSub;
+
+  /// All-caps field label above the row of mute-duration choices.
+  ///
+  /// In en, this message translates to:
+  /// **'FOR HOW LONG'**
+  String get muteSheetDurationLabel;
+
+  /// Mute duration choice: sixty minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get muteDurationHour;
+
+  /// Mute duration choice: eight hours, roughly a working day or a night's sleep.
+  ///
+  /// In en, this message translates to:
+  /// **'8 hours'**
+  String get muteDurationEightHours;
+
+  /// Mute duration choice: seven days.
+  ///
+  /// In en, this message translates to:
+  /// **'1 week'**
+  String get muteDurationWeek;
+
+  /// Mute duration choice with no end — stays muted until the user turns it off themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'Always'**
+  String get muteDurationAlways;
+
+  /// All-caps button that applies a new mute to the chat.
+  ///
+  /// In en, this message translates to:
+  /// **'MUTE'**
+  String get muteSheetConfirmButton;
+
+  /// All-caps button that applies changes to a chat that is ALREADY muted, shown instead of the mute button.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get muteSheetSaveButton;
+
+  /// All-caps button that ends a mute early and restores notifications and counts.
+  ///
+  /// In en, this message translates to:
+  /// **'UNMUTE'**
+  String get muteSheetUnmuteButton;
+
+  /// Sentence in the mute sheet when BOTH switches are on, stating that neither notifications nor unread counts will reach the user.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing from this chat reaches you — no notifications, no unread count.'**
+  String get muteSummaryAll;
+
+  /// Sentence in the mute sheet when only the notifications switch is on: no banners, but the unread count still rises.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications. The unread count keeps climbing.'**
+  String get muteSummaryNotificationsOnly;
+
+  /// Sentence in the mute sheet when only the unread-counts switch is on: no number shown, but notifications still arrive.
+  ///
+  /// In en, this message translates to:
+  /// **'No unread count. Notifications still come through.'**
+  String get muteSummaryBadgesOnly;
+
+  /// Sentence in the mute sheet when neither switch is on, prompting the user to choose something to silence.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least one thing to silence.'**
+  String get muteSummaryNothingPicked;
+
+  /// Second sentence in the mute sheet naming when the mute ends. {when} is an already-formatted, already-localized time or date-and-time, never a raw number.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {when}.'**
+  String muteUntilSentence(String when);
+
+  /// Second sentence in the mute sheet when the duration is 'Always' — the mute has no end and only the user can lift it.
+  ///
+  /// In en, this message translates to:
+  /// **'Until you turn it back on.'**
+  String get muteUntilAlwaysSentence;
+
+  /// Joins a date and a clock time into one string for a mute deadline that is not today. {date} and {time} are both already formatted by the platform in the user's locale; translate only the separator.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}, {time}'**
+  String muteUntilDateAndTime(String date, String time);
+
+  /// All-caps text of the small pill on a chat row marking it as muted by this viewer.
+  ///
+  /// In en, this message translates to:
+  /// **'MUTED'**
+  String get mutedBadgeLabel;
+
+  /// All-caps row in the chat-list long-press menu that opens the mute sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'MUTE CHAT'**
+  String get chatRowActionMenuMuteLabel;
+
+  /// All-caps row in the chat-list long-press menu that lifts an existing mute immediately.
+  ///
+  /// In en, this message translates to:
+  /// **'UNMUTE CHAT'**
+  String get chatRowActionMenuUnmuteLabel;
+
+  /// All-caps field label above the mute row in the room info screen.
+  ///
+  /// In en, this message translates to:
+  /// **'MUTE'**
+  String get roomInfoScreenMuteLabel;
+
+  /// Text of the room info screen's mute row when nothing about the chat is silenced.
+  ///
+  /// In en, this message translates to:
+  /// **'Not muted'**
+  String get roomInfoScreenNotMutedRow;
 }
 
 class _AppLocalizationsDelegate

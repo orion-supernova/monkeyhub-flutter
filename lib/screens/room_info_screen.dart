@@ -19,6 +19,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
+import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
@@ -660,6 +661,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ),
                           ],
                         ],
+                        // Above SHARED CONTENT and below the room's own
+                        // settings, because it is neither: everything higher
+                        // up changes the room for everyone in it, and this
+                        // changes only how the room reaches THIS person.
+                        if (caps.canMute) ...[
+                          const SizedBox(height: 28),
+                          FieldLabel(AppLocalizations.of(context).roomInfoScreenMuteLabel),
+                          const SizedBox(height: 6),
+                          _muteRow(theme, r),
+                        ],
                         const SizedBox(height: 28),
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
@@ -1105,6 +1116,83 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   /// arrived shows nothing at all — never a placeholder dash, which reads as
   /// "broken" rather than "pending" and is indistinguishable from genuinely
   /// empty. Once the count IS known, an empty tab says so in words.
+  /// What is silenced about this room, and until when — in words, in the
+  /// viewer's language, on the screen that exists to explain the room.
+  ///
+  /// States the current mute rather than offering its own controls. The two
+  /// switches and the four durations live in one sheet
+  /// (`widgets/mute_room_sheet.dart`) shared with the chat-list long-press, so
+  /// there is one place that knows how to compose a mute and one set of
+  /// sentences describing the result. A second, subtly different set of
+  /// controls here is exactly how the two would end up disagreeing about what
+  /// "muted" means.
+  ///
+  /// Reads [ChatRoom.isMuted] and its siblings, which resolve `mutedUntil`
+  /// against the wall clock on every build — so a mute that lapses while this
+  /// screen is open corrects itself on the next frame, with nothing having run
+  /// at the deadline on either side of the wire.
+  Widget _muteRow(AppTheme theme, ChatRoom r) {
+    final l10n = AppLocalizations.of(context);
+    final muted = r.isMuted;
+    final summary = !muted
+        ? l10n.roomInfoScreenNotMutedRow
+        : (r.notificationsMuted && r.badgesMuted)
+            ? l10n.muteSummaryAll
+            : r.badgesMuted
+                ? l10n.muteSummaryBadgesOnly
+                : l10n.muteSummaryNotificationsOnly;
+    void open() => showMuteRoomSheet(context, repo: widget.repo, room: r);
+    return FocusableTap(
+      onTap: open,
+      semanticLabel: summary,
+      radius: theme.radiusMd,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: open,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+          decoration: BoxDecoration(
+            color: theme.surfaceSunken,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+            border: Border.all(color: theme.divider, width: 1.4),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                muted ? CupertinoIcons.bell_slash_fill : CupertinoIcons.bell,
+                size: 18,
+                color: muted ? theme.accent : theme.inkMuted,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(summary, style: theme.body),
+                    if (muted) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        // `r.mute.until` is null for "always" as well as for
+                        // no mute at all, and this branch has already ruled the
+                        // second one out — so the sentence helper lands on
+                        // "until you turn it back on" without this screen ever
+                        // having to know what the sentinel is.
+                        muteDeadlineSentence(context, until: r.mute.until),
+                        style: theme.monoTiny.copyWith(color: theme.accent),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(Icons.chevron_right, size: 18, color: theme.inkMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _sharedContent(AppTheme theme) {
     const rows = <(RoomContentTab, IconData)>[
       (RoomContentTab.media, CupertinoIcons.photo),

@@ -1,4 +1,5 @@
 import { isReleasedToRecipient } from "./childGuard";
+import { resolveMute } from "./mute";
 
 /**
  * Per-room unread counts and the single "needs attention" number that drives
@@ -71,6 +72,20 @@ export async function unreadForRoom(
  * including the `isReleasedToRecipient` gate, so a supervised request a
  * guardian hasn't released yet stays invisible in the badge too. Leaking its
  * existence via a badge increment would defeat the whole hold.
+ *
+ * A room whose `muteBadges` is live is skipped entirely — not counted with a
+ * zero, not listed in `perRoom`. That is what the second mute switch DOES:
+ * this function is the app-icon number, so dropping the room here is the whole
+ * mechanism. Note the asymmetry with `muteNotifications`, which is enforced in
+ * `push.sendAlert` and has no effect at all on this arithmetic: someone who
+ * silenced the banner but kept their counts still gets every one of those
+ * unread messages added up here, and `notifications.sendMessagePush` sends
+ * them a silent push carrying the new total so their icon moves without their
+ * phone making a sound.
+ *
+ * Resolved lazily against `Date.now()`, so a mute that lapsed a minute ago
+ * puts its room straight back into the count with no sweep having run — see
+ * `mute.ts`.
  */
 export async function badgeTotalFor(
   ctx: any,
@@ -84,9 +99,11 @@ export async function badgeTotalFor(
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .collect();
 
+  const now = Date.now();
   const perRoom: Array<{ roomId: any; count: number }> = [];
   let unread = 0;
   for (const m of memberships) {
+    if (resolveMute(m, now).badges) continue;
     const { count } = await unreadForRoom(ctx, m.roomId, userId, m.lastReadAt);
     if (count > 0) {
       perRoom.push({ roomId: m.roomId, count });

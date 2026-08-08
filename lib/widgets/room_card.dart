@@ -7,6 +7,7 @@ import '../models/chat_user.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'muted_badge.dart';
 import 'pinned_badge.dart';
 import 'remote_image.dart';
 import 'room_identity.dart';
@@ -80,6 +81,16 @@ class RoomCard extends StatelessWidget {
                   // be unpinned, the badge is the only thing that says which
                   // way it currently sits.
                   if (room.isPinned) const PinnedBadge(dense: true),
+                  // Last in the row, and the only pill here drawn in muted ink
+                  // rather than the accent — a row that has been told to stop
+                  // asking for attention should not gain a glowing chip for
+                  // saying so. See [MutedBadge].
+                  if (room.isMuted)
+                    MutedBadge(
+                      dense: true,
+                      silencesNotifications: room.notificationsMuted,
+                      silencesCounts: room.badgesMuted,
+                    ),
                 ],
               ),
             ),
@@ -148,9 +159,17 @@ class RoomCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (room.unreadCount > 0) ...[
+            // [visibleUnreadCount] and not [unreadCount]: a room muted down to
+            // its counts still HAS unread messages, it just isn't allowed to
+            // say so here. [hasUnread] above goes quiet by the same rule, so
+            // the dot and the bold name go with the pill rather than leaving a
+            // half-silenced row.
+            if (room.visibleUnreadCount > 0) ...[
               const SizedBox(width: 8),
-              CountBadge(count: room.unreadCount, mention: room.hasMention),
+              CountBadge(
+                count: room.visibleUnreadCount,
+                mention: room.hasVisibleMention,
+              ),
             ],
           ],
         ),

@@ -5717,4 +5717,91 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARCHIVAR CHAT';
+
+  @override
+  String get muteSheetTitle => 'SILENCIAR CHAT';
+
+  @override
+  String get muteSheetSubtitle => 'Elige qué se calla y durante cuánto tiempo.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Notificaciones';
+
+  @override
+  String get muteSheetNotificationsSub => 'Sin aviso, sin sonido';
+
+  @override
+  String get muteSheetBadgesTitle => 'Contador de no leídos';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Sin número en el chat, nada en el icono de la app';
+
+  @override
+  String get muteSheetDurationLabel => 'DURANTE CUÁNTO TIEMPO';
+
+  @override
+  String get muteDurationHour => '1 hora';
+
+  @override
+  String get muteDurationEightHours => '8 horas';
+
+  @override
+  String get muteDurationWeek => '1 semana';
+
+  @override
+  String get muteDurationAlways => 'Siempre';
+
+  @override
+  String get muteSheetConfirmButton => 'SILENCIAR';
+
+  @override
+  String get muteSheetSaveButton => 'GUARDAR';
+
+  @override
+  String get muteSheetUnmuteButton => 'REACTIVAR';
+
+  @override
+  String get muteSummaryAll =>
+      'Nada de este chat te llega: ni notificaciones ni contador de no leídos.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Sin notificaciones. El contador de no leídos sigue subiendo.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Sin contador de no leídos. Las notificaciones siguen llegando.';
+
+  @override
+  String get muteSummaryNothingPicked =>
+      'Elige al menos una cosa que silenciar.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Hasta $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Hasta que vuelvas a activarlo.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'SILENCIADO';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'SILENCIAR CHAT';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'REACTIVAR CHAT';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'SILENCIO';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Sin silenciar';
 }

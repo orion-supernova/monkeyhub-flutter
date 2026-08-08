@@ -11,6 +11,7 @@ import {
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
 import { unreadForRoom } from "./badges";
+import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { deleteStored } from "./files";
 import { wipeRoomCompletely } from "./roomCleanup";
 
@@ -348,6 +349,27 @@ export const listUserRooms = query({
           pinnedAt: m.pinnedAt ?? null,
           isArchived: m.isArchived ?? false,
           archivedAt: m.archivedAt ?? null,
+          // The caller's own mute, RAW rather than resolved against the clock.
+          //
+          // Sending a resolved `isMuted: true` would be a lie with a shelf
+          // life: this is a reactive subscription, and `mutedUntil` passing is
+          // not a database change, so nothing re-fires the query when a mute
+          // lapses under an open client. It would sit there claiming the room
+          // is muted until the next unrelated write to it.
+          //
+          // The deadline itself has no shelf life, so the client re-resolves
+          // it at render time (`lib/models/room_mute.dart`) and gets the same
+          // answer this backend would. It needs the instant anyway to say
+          // "until 8:00 PM" in the viewer's own timezone.
+          //
+          // `unreadCount` above is deliberately the TRUE count even when
+          // `muteBadges` is set: the room info screen can then say "muted, 12
+          // unread", and hiding the pill stays a presentation decision in one
+          // place rather than a hole in the data. `badges.badgeTotalFor` is
+          // where a badge-muted room actually stops counting.
+          muteNotifications: m.muteNotifications ?? false,
+          muteBadges: m.muteBadges ?? false,
+          mutedUntil: m.mutedUntil ?? null,
         };
       })
     );
@@ -415,6 +437,87 @@ export const unarchiveRoom = mutation({
 });
 
 /**
+ * Silence a room for the caller — either or both of its two noises, for a
+ * bounded stretch or until they say otherwise. See `mute.ts`.
+ *
+ * [durationMs] is a LENGTH, not a deadline, and the deadline is computed here.
+ * A client sending its own absolute instant would mute for the wrong length of
+ * time on any device whose clock has drifted, and "muted until 8pm" would mean
+ * 7:50 on a phone ten minutes fast. What lands in the row is still an absolute
+ * epoch — the client needs one to say "until 8:00 PM" in the user's own
+ * timezone — it is just this server's arithmetic rather than the caller's.
+ * Omitting it means "always", stored as the `MUTE_ALWAYS` sentinel.
+ *
+ * A plain overwrite of all three columns, which is what makes re-muting an
+ * already-muted room a non-case: there is no previous deadline to extend or
+ * reconcile, only the one the user just picked.
+ *
+ * Deliberately permissive about WHICH rooms may be muted. Saved Messages
+ * cannot usefully be muted — every push and every unread count already
+ * excludes the sender, and you are the only sender there — but that is a fact
+ * about the room's shape, and the client's capability table
+ * (`lib/models/room_capabilities.dart`) is where this app decides what a kind
+ * of room affords. Re-deriving that here in a second language would give the
+ * two a chance to disagree, in exchange for stopping a mutation that provably
+ * does nothing.
+ */
+export const muteRoom = mutation({
+  args: {
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    notifications: v.boolean(),
+    badges: v.boolean(),
+    /** How long from now. Absent = always. */
+    durationMs: v.optional(v.number()),
+  },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId, notifications, badges, durationMs }) => {
+    // Neither switch on is not a mute, it's an unmute — and letting it write a
+    // live `mutedUntil` with nothing behind it would show a "Muted" pill on a
+    // room that is anything but.
+    if (!notifications && !badges) {
+      await patchOwnMembership(ctx, roomId, userId, {
+        muteNotifications: undefined,
+        muteBadges: undefined,
+        mutedUntil: undefined,
+      });
+      return null;
+    }
+    const until =
+      durationMs === undefined || durationMs === null
+        ? MUTE_ALWAYS
+        // Clamped forward: a zero or negative duration would write a deadline
+        // already in the past, i.e. a mute that was over before the mutation
+        // returned, and the user would watch their own tap do nothing.
+        : Date.now() + Math.max(1000, durationMs);
+    await patchOwnMembership(ctx, roomId, userId, {
+      muteNotifications: notifications,
+      muteBadges: badges,
+      mutedUntil: until,
+    });
+    return null;
+  },
+});
+
+/**
+ * End a mute early. Clears all three columns rather than winding `mutedUntil`
+ * back, so an unmuted row is byte-identical to one that was never muted and
+ * there is no half-state for a reader to misinterpret.
+ */
+export const unmuteRoom = mutation({
+  args: { roomId: v.id("rooms"), userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, { roomId, userId }) => {
+    await patchOwnMembership(ctx, roomId, userId, {
+      muteNotifications: undefined,
+      muteBadges: undefined,
+      mutedUntil: undefined,
+    });
+    return null;
+  },
+});
+
+/**
  * The room's members, with each one's avatar and presence redacted to what
  * [viewerUserId] is allowed to see.
  *
@@ -459,6 +562,17 @@ export const getMembers = query({
 
 // Internal query: who, other than [excludeUserId], is in this room. Feeds the
 // notification fan-out, which resolves each user's devices itself.
+//
+// Carries each member's resolved mute (see `mute.ts`) because the rows are
+// already in hand and the fan-out has to sort recipients into three buckets:
+// people who get the message, people who muted the alert but still want their
+// app-icon count moved, and people who muted both and get nothing. Resolved
+// here against a single `Date.now()` so every recipient of one message is
+// judged against the same instant.
+//
+// Callers that only want the roster (`revokeMessagePushes`) can ignore the two
+// flags — a dismiss push must reach a muted member anyway, since it is silent
+// and its whole job is correcting a badge.
 export const getMemberIds = internalQuery({
   args: { roomId: v.id("rooms"), excludeUserId: v.id("users") },
   handler: async (ctx, { roomId, excludeUserId }) => {
@@ -466,9 +580,17 @@ export const getMemberIds = internalQuery({
       .query("roomMembers")
       .withIndex("by_room", (q) => q.eq("roomId", roomId))
       .collect();
+    const now = Date.now();
     return members
       .filter((m) => m.userId.toString() !== excludeUserId.toString())
-      .map((m) => ({ userId: m.userId }));
+      .map((m) => {
+        const mute = resolveMute(m, now);
+        return {
+          userId: m.userId,
+          mutesNotifications: mute.notifications,
+          mutesBadges: mute.badges,
+        };
+      });
   },
 });
 

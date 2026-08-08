@@ -92,6 +92,16 @@ class MessageAlerts {
       //    aren't the one sending, so the new message is the peer's. (Can't
       //    use hasUnread here — an open room is auto-marked-read.)
       //  - Any other room: alert when it has unread (a genuine inbound msg).
+      //
+      // A room whose notifications are muted never reaches either rule. This
+      // ping is a notification — it is the in-app half of the same
+      // interruption the backend is already suppressing at `push.sendAlert` —
+      // and silencing the lock screen while the app keeps chiming would be the
+      // most confusing possible half-measure. Note it is checked separately
+      // from `hasUnread` below, which only knows about the OTHER switch: a
+      // room muted down to its counts is silent here as a side effect, and a
+      // room muted only for notifications would otherwise still ping.
+      if (r.notificationsMuted) continue;
       final isActive = r.id == active;
       final shouldAlert = isActive ? !focused : r.hasUnread;
       if (!shouldAlert) continue;

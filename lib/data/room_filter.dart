@@ -34,7 +34,12 @@ const List<FacetDimension> facetDimensionOrder = [
 /// user toggles to narrow a view, they're structural. Archived rooms are
 /// hidden from the list outright ([ChatRepository.activeRooms]), and pinned
 /// rooms float to a fixed section instead ([partitionPinned]) rather than
-/// filtering anything in or out. `muted` still has no backing data at all.
+/// filtering anything in or out. `muted` now has backing data
+/// (`roomMembers.muteNotifications` / `.muteBadges`) but stays out for the
+/// same reason: a mute already changes how its room reads — [unread] and
+/// [mentions] stop matching a badge-muted room, because [ChatRoom.hasUnread]
+/// does — so a `muted` chip would mostly be a way to ask for the rooms you
+/// have already told the app you don't want to look at.
 enum RoomFacet {
   dms(FacetDimension.type),
   groups(FacetDimension.type),
@@ -80,8 +85,11 @@ enum RoomFacet {
     RoomFacet.private => r.isPrivate,
     RoomFacet.secret => r.isEphemeral,
     RoomFacet.locked => r.hasPassword,
+    // Both go through the mute-resolved getters rather than the raw fields:
+    // a room silenced down to its counts must not be findable by asking for
+    // the rooms with counts.
     RoomFacet.unread => r.hasUnread,
-    RoomFacet.mentions => r.hasMention,
+    RoomFacet.mentions => r.hasVisibleMention,
   };
 
   static final Map<String, RoomFacet> _byName = {
@@ -244,6 +252,13 @@ class RoomFacetCounts {
 
   /// Sum of per-room unread counts. Was `ChatRepository.unreadMessageTotal`,
   /// and drives the OS icon badge.
+  ///
+  /// Sums [ChatRoom.visibleUnreadCount], so a badge-muted room contributes
+  /// nothing. That is not a cosmetic choice: this number is what
+  /// [BadgeManager] writes to the app icon, and the backend's own
+  /// `badges.badgeTotalFor` skips the same rooms when it stamps an absolute
+  /// count into a push. The two are independent computations of one number and
+  /// have to apply the same rule or the icon and the list visibly disagree.
   final int unreadMessages;
 
   int operator [](RoomFacet f) => _byFacet[f.index];
@@ -300,7 +315,7 @@ class RoomFacetCounts {
         if (f.matches(r)) counts[f.index]++;
       }
       if (r.hasUnread) unreadRooms++;
-      unreadMessages += r.unreadCount;
+      unreadMessages += r.visibleUnreadCount;
     }
     return RoomFacetCounts._(
       List.unmodifiable(counts),

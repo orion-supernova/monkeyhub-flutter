@@ -60,6 +60,7 @@ class RoomCapabilities {
     required this.canEditSettings,
     required this.canOpenPeerProfile,
     required this.canReceiveForwards,
+    required this.canMute,
   });
 
   /// Whether the header offers to start a call — the 1:1 button in a DM, the
@@ -99,6 +100,28 @@ class RoomCapabilities {
   /// the prime target; a write-only bot feed is not a place to put things.
   final bool canReceiveForwards;
 
+  /// Whether this room can be silenced — notifications, unread counts, or
+  /// both. See `lib/models/room_mute.dart`.
+  ///
+  /// The one flag in this table whose safe default runs the OTHER way, and the
+  /// reason is worth stating because it looks like an inconsistency. Every
+  /// other affordance here fails safe when it's off: a missing call button is
+  /// a button that can't ring nothing, a missing "leave" is a room that can't
+  /// be quietly broken. Mute inverts that. Off means the app keeps buzzing
+  /// about a room the user has already decided they don't want to hear from,
+  /// and there is no way for muting to break a room at all — it patches one
+  /// column on the viewer's own membership and touches nothing anyone else can
+  /// see. So this defaults ON, including for a system room this build has
+  /// never heard of, where the ability to shut a talkative bot up is the first
+  /// thing anybody would reach for.
+  ///
+  /// False for Saved Messages alone, and not as a policy: a mute there is a
+  /// control that provably does nothing. Every push and every unread count
+  /// already excludes the sender, and in a room whose only member is you,
+  /// that's every message. A switch that can't change anything is worse than
+  /// no switch, because the user has to find out the hard way.
+  final bool canMute;
+
   /// An ordinary room: everything on. [canDelete] still narrows to the owner at
   /// the call site.
   static const group = RoomCapabilities(
@@ -110,6 +133,7 @@ class RoomCapabilities {
     canEditSettings: true,
     canOpenPeerProfile: false, // no single peer to open
     canReceiveForwards: true,
+    canMute: true,
   );
 
   /// A two-person conversation. No leaving and no settings — the room is the
@@ -124,6 +148,7 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: true,
     canReceiveForwards: true,
+    canMute: true,
   );
 
   /// Notes to self. Nobody to call, nothing to describe, no list worth drawing,
@@ -138,15 +163,18 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: true,
+    canMute: false,
   );
 
   /// The floor every system room stands on, and what an unrecognised
   /// [ChatRoom.systemRole] resolves to.
   ///
-  /// Nothing is afforded. Each affordance a specific bot room wants back is an
-  /// explicit opt-in in [_systemRoomOverrides], so the failure mode of a slug
-  /// this build predates is a room with too little chrome — never a call button
-  /// that rings nothing or a "leave" that quietly breaks the room.
+  /// Nothing is afforded, [canMute] excepted. Each affordance a specific bot
+  /// room wants back is an explicit opt-in in [_systemRoomOverrides], so the
+  /// failure mode of a slug this build predates is a room with too little
+  /// chrome — never a call button that rings nothing or a "leave" that quietly
+  /// breaks the room. Mute is on because for that one flag "too little chrome"
+  /// means a bot you cannot shut up; see its own note.
   static const system = RoomCapabilities(
     canCall: false,
     canLeave: false,
@@ -156,6 +184,8 @@ class RoomCapabilities {
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: false,
+    // The exception to "nothing is afforded" — see [canMute].
+    canMute: true,
   );
 
   RoomCapabilities copyWith({
@@ -167,6 +197,7 @@ class RoomCapabilities {
     bool? canEditSettings,
     bool? canOpenPeerProfile,
     bool? canReceiveForwards,
+    bool? canMute,
   }) =>
       RoomCapabilities(
         canCall: canCall ?? this.canCall,
@@ -177,6 +208,7 @@ class RoomCapabilities {
         canEditSettings: canEditSettings ?? this.canEditSettings,
         canOpenPeerProfile: canOpenPeerProfile ?? this.canOpenPeerProfile,
         canReceiveForwards: canReceiveForwards ?? this.canReceiveForwards,
+        canMute: canMute ?? this.canMute,
       );
 }
 

@@ -5754,4 +5754,92 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DÉSARCHIVER LE CHAT';
+
+  @override
+  String get muteSheetTitle => 'METTRE EN SOURDINE';
+
+  @override
+  String get muteSheetSubtitle =>
+      'Choisissez ce qui doit se taire, et pour combien de temps.';
+
+  @override
+  String get muteSheetNotificationsTitle => 'Notifications';
+
+  @override
+  String get muteSheetNotificationsSub => 'Aucune bannière, aucun son';
+
+  @override
+  String get muteSheetBadgesTitle => 'Compteur de non-lus';
+
+  @override
+  String get muteSheetBadgesSub =>
+      'Aucun nombre sur la conversation, rien sur l\'icône de l\'app';
+
+  @override
+  String get muteSheetDurationLabel => 'PENDANT COMBIEN DE TEMPS';
+
+  @override
+  String get muteDurationHour => '1 heure';
+
+  @override
+  String get muteDurationEightHours => '8 heures';
+
+  @override
+  String get muteDurationWeek => '1 semaine';
+
+  @override
+  String get muteDurationAlways => 'Toujours';
+
+  @override
+  String get muteSheetConfirmButton => 'METTRE EN SOURDINE';
+
+  @override
+  String get muteSheetSaveButton => 'ENREGISTRER';
+
+  @override
+  String get muteSheetUnmuteButton => 'RÉACTIVER';
+
+  @override
+  String get muteSummaryAll =>
+      'Rien de cette conversation ne vous parvient : ni notification, ni compteur de non-lus.';
+
+  @override
+  String get muteSummaryNotificationsOnly =>
+      'Aucune notification. Le compteur de non-lus continue de monter.';
+
+  @override
+  String get muteSummaryBadgesOnly =>
+      'Aucun compteur de non-lus. Les notifications arrivent toujours.';
+
+  @override
+  String get muteSummaryNothingPicked =>
+      'Choisissez au moins une chose à faire taire.';
+
+  @override
+  String muteUntilSentence(String when) {
+    return 'Jusqu\'à $when.';
+  }
+
+  @override
+  String get muteUntilAlwaysSentence => 'Jusqu\'à ce que vous la réactiviez.';
+
+  @override
+  String muteUntilDateAndTime(String date, String time) {
+    return '$date, $time';
+  }
+
+  @override
+  String get mutedBadgeLabel => 'EN SOURDINE';
+
+  @override
+  String get chatRowActionMenuMuteLabel => 'METTRE EN SOURDINE';
+
+  @override
+  String get chatRowActionMenuUnmuteLabel => 'RÉACTIVER LA CONVERSATION';
+
+  @override
+  String get roomInfoScreenMuteLabel => 'SOURDINE';
+
+  @override
+  String get roomInfoScreenNotMutedRow => 'Pas en sourdine';
 }

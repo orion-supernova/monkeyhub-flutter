@@ -11,7 +11,7 @@ import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
 
-enum ChatRowAction { pin, unpin, archive, unarchive }
+enum ChatRowAction { pin, unpin, archive, unarchive, mute, unmute }
 
 /// The hold that opens [showChatRowActionMenu] on a chat-list row.
 ///
@@ -78,16 +78,29 @@ class ChatRowLongPress extends StatelessWidget {
 /// what makes the lift look like it grew out of the real row rather than
 /// spawning a second one.
 ///
-/// [isArchived] alone decides the row set: an archived room only offers
+/// [isArchived] decides most of the row set: an archived room only offers
 /// Unarchive — pinning something that's simultaneously archived-and-hidden
 /// from the main list is a confusing combination not worth exposing, whether
 /// this is opened from the main list or from the Archived Chats sheet.
+///
+/// Mute is the exception to that rule, and offered on an archived room too.
+/// Archiving hides a chat from a list; it does not stop the chat pushing to a
+/// locked phone, which is the thing someone reaching for this menu on an
+/// archived room is most likely trying to stop. The pin/archive pairing is
+/// confusing because both organise the same list; mute organises something
+/// else entirely.
+///
+/// [canMute] comes from the room's capability table
+/// (`lib/models/room_capabilities.dart`) and hides the row for the one kind of
+/// room where a mute would provably do nothing.
 Future<ChatRowAction?> showChatRowActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
   required WidgetBuilder rowBuilder,
   required bool isPinned,
   required bool isArchived,
+  required bool isMuted,
+  required bool canMute,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -110,6 +123,8 @@ Future<ChatRowAction?> showChatRowActionMenu({
       safeInsets: safeInsets,
       isPinned: isPinned,
       isArchived: isArchived,
+      isMuted: isMuted,
+      canMute: canMute,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         try {
@@ -130,6 +145,8 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
     required this.safeInsets,
     required this.isPinned,
     required this.isArchived,
+    required this.isMuted,
+    required this.canMute,
     required this.onResolve,
   });
 
@@ -139,6 +156,8 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   final EdgeInsets safeInsets;
   final bool isPinned;
   final bool isArchived;
+  final bool isMuted;
+  final bool canMute;
   final ValueChanged<ChatRowAction?> onResolve;
 
   @override
@@ -179,12 +198,13 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
     widget.onResolve(result);
   }
 
-  List<ChatRowAction> get _actions => widget.isArchived
-      ? const [ChatRowAction.unarchive]
-      : [
+  List<ChatRowAction> get _actions => [
+        if (!widget.isArchived)
           widget.isPinned ? ChatRowAction.unpin : ChatRowAction.pin,
-          ChatRowAction.archive,
-        ];
+        if (widget.canMute)
+          widget.isMuted ? ChatRowAction.unmute : ChatRowAction.mute,
+        widget.isArchived ? ChatRowAction.unarchive : ChatRowAction.archive,
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -385,6 +405,14 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow> {
     ChatRowAction.unarchive => (
       CupertinoIcons.tray_arrow_up,
       l10n.chatRowActionMenuUnarchiveLabel,
+    ),
+    ChatRowAction.mute => (
+      CupertinoIcons.bell_slash,
+      l10n.chatRowActionMenuMuteLabel,
+    ),
+    ChatRowAction.unmute => (
+      CupertinoIcons.bell,
+      l10n.chatRowActionMenuUnmuteLabel,
     ),
   };
 
