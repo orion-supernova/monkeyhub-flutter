@@ -110,7 +110,12 @@ class _PullRevealPanel extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+      // The bottom inset is the only thing separating the search field from
+      // the filter row directly under it in the list, so it's wider than a
+      // symmetric padding would be. It has to live in here rather than
+      // between the two in home_screen: out there it would hold space even
+      // with the panel shut, which is the dead band this panel just lost.
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
       child: Column(
         // Load-bearing now that the reveal measures this panel instead of
         // clipping it to a constant: a max-size Column would report whatever

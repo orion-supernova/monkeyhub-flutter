@@ -17,9 +17,10 @@ import 'package:monkeyhub/widgets/search_field.dart';
 const firstRow = Key('first-chat-row');
 
 void main() {
-  /// The panel's own bottom padding, the only gap that belongs under the last
-  /// thing in it (`_PullRevealPanel`'s EdgeInsets.fromLTRB(20, 4, 20, 10)).
-  const bottomPadding = 10.0;
+  /// The panel's own bottom inset — the only gap that belongs under the last
+  /// thing in it, and what separates the search field from the filter row
+  /// beneath it (`_PullRevealPanel`'s EdgeInsets.fromLTRB(20, 4, 20, 18)).
+  const bottomPadding = 18.0;
 
   Widget host({required int archivedCount, required bool open}) => MaterialApp(
     locale: const Locale('en'),
