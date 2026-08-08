@@ -48,26 +48,40 @@ void main() {
     }
   }
 
-  Widget wrap(Widget child, {TextDirection direction = TextDirection.ltr}) =>
-      ThemeScope(
-        controller: ThemeController(BasicTheme.midnight()),
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Directionality(
-              textDirection: direction,
+  Widget wrap(
+    Widget child, {
+    TextDirection direction = TextDirection.ltr,
+    bool calm = false,
+  }) => ThemeScope(
+    controller: ThemeController(BasicTheme.midnight()),
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: Directionality(
+          textDirection: direction,
+          child: Builder(
+            // Reduce motion resolves through MediaQuery — see [MotionScope] —
+            // so the override has to sit *inside* MaterialApp's own
+            // MediaQuery, and has to copyWith rather than replace it, or the
+            // bar's SafeArea and size stop reading the real view and every
+            // measurement in here shifts.
+            builder: (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(disableAnimations: calm),
               child: Stack(children: [child]),
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> pumpNav(
     WidgetTester tester, {
     HomeSection active = HomeSection.chat,
     ValueChanged<HomeSection>? onSelect,
     TextDirection direction = TextDirection.ltr,
+    bool calm = false,
   }) async {
     tester.view.physicalSize = const Size(375, 812);
     tester.view.devicePixelRatio = 1.0;
@@ -80,6 +94,7 @@ void main() {
           badges: const {},
         ),
         direction: direction,
+        calm: calm,
       ),
     );
     await tester.pumpAndSettle();
@@ -107,6 +122,167 @@ void main() {
       );
     },
   );
+
+  testWidgets('a tap pops the pill the way a hold does, and switches instantly',
+      (tester) async {
+    // The bar used to speak two languages: hold it and the selection was
+    // visibly picked up, tap it and the selection merely relocated. A tap now
+    // plays the hold's swell on the hold's own spring — half the response,
+    // turned around after a fixed dwell — so the two gestures read as one
+    // motion at two speeds rather than as two similar-but-different ones.
+    final picked = <HomeSection>[];
+    await pumpNav(tester, onSelect: picked.add);
+    final rest = pillOf(tester);
+    final target = slotOf(tester, 2);
+
+    await tester.tapAt(target.center);
+
+    expect(
+      picked,
+      [_navDestinations[2].section],
+      reason:
+          'not one frame has been pumped yet. onSelect fires straight out of '
+          'the pointer-up handler, so the pop decorates an instant switch — '
+          'it must never become a gate in front of one',
+    );
+
+    // Height is the load-bearing measurement, and segment 2 is deliberately
+    // not an end. Neither of the other two things that resize the pill can
+    // fake a *taller* pill mid-slide: the wall squash needs an end segment to
+    // compress against, and the travel stretch only ever trades height away
+    // for length (see `_placed`). So this can only be the pop.
+    await frames(tester, 3);
+    final popped = pillOf(tester);
+    expect(
+      popped.height,
+      greaterThan(rest.height + 4),
+      reason:
+          'three frames in, the pill should be visibly mid-pop rather than '
+          'sliding across at scale 1.0, which is all a tap used to do',
+    );
+    expect(
+      popped.center.dx,
+      greaterThan(rest.center.dx),
+      reason: 'and popping *while* it travels, not before it sets off',
+    );
+
+    // And out of the way well before the slide lands. "Quickly" is the whole
+    // brief: a pop still inflating when the pill arrives would read as the bar
+    // being busy rather than as the tab being snappy.
+    await frames(tester, 5);
+    final settling = pillOf(tester);
+    expect(settling.height, lessThan(rest.height + 2));
+    expect(
+      settling.center.dx,
+      lessThan(target.center.dx - 20),
+      reason: 'the pop is spent and the pill is still on its way',
+    );
+
+    await tester.pumpAndSettle();
+    final after = pillOf(tester);
+    expect(
+      after.height,
+      closeTo(rest.height, 0.01),
+      reason: 'the scale comes all the way back to 1',
+    );
+    expect(after.width, closeTo(rest.width, 0.01));
+    expect(
+      after.center.dx,
+      closeTo(target.center.dx, 0.5),
+      reason: 'parked on the tapped destination',
+    );
+  });
+
+  testWidgets('re-tapping the active tab pops it and puts it back exactly', (
+    tester,
+  ) async {
+    // Nothing travels here, which isolates the pop from the slide completely:
+    // whatever the pill does it must do about its own centre and undo entirely.
+    final picked = <HomeSection>[];
+    await pumpNav(tester, onSelect: picked.add);
+    final rest = pillOf(tester);
+
+    await tester.tapAt(slotOf(tester, 0).center);
+    expect(
+      picked,
+      [_navDestinations[0].section],
+      reason: 'a reselect is still an event the shell wants — see tab_reselect',
+    );
+
+    await frames(tester, 3);
+    final popped = pillOf(tester);
+    expect(popped.height, greaterThan(rest.height + 4));
+    expect(
+      popped.width - rest.width,
+      closeTo(popped.height - rest.height, 0.5),
+      reason:
+          'the pop inherits the hold\'s equal-points swell, so it grows by the '
+          'same number of points on every side instead of ballooning sideways',
+    );
+    expect(
+      popped.center,
+      within(distance: 0.5, from: rest.center),
+      reason: 'about its own centre — the selection has nowhere to go',
+    );
+
+    await tester.pumpAndSettle();
+    expect(pillOf(tester), rectMoreOrLessEquals(rest, epsilon: 0.01));
+  });
+
+  testWidgets('rapid taps across the bar never strand the pill mid-pop', (
+    tester,
+  ) async {
+    // Each tap retargets the spring the previous one is still riding rather
+    // than restarting it from a stale zero, and reschedules the one pending
+    // turnaround rather than adding a second. Get either wrong and a burst of
+    // taps ends with the bar wearing a swollen pill that nothing is coming
+    // back to deflate.
+    final picked = <HomeSection>[];
+    await pumpNav(tester, onSelect: picked.add);
+    final rest = pillOf(tester);
+
+    for (final i in [1, 2, 3]) {
+      await tester.tapAt(slotOf(tester, i).center);
+      // Two frames: nowhere near enough for either spring to arrive, so every
+      // tap after the first lands on a pill that is already in motion.
+      await frames(tester, 2);
+    }
+    await tester.pumpAndSettle();
+
+    expect(picked, [
+      _navDestinations[1].section,
+      _navDestinations[2].section,
+      _navDestinations[3].section,
+    ]);
+    final after = pillOf(tester);
+    expect(after.width, closeTo(rest.width, 0.01));
+    expect(after.height, closeTo(rest.height, 0.01));
+    expect(after.center.dx, closeTo(slotOf(tester, 3).center.dx, 0.5));
+  });
+
+  testWidgets('reduce motion switches the tab without popping anything', (
+    tester,
+  ) async {
+    // Calm is a code path, not a faster pop: the selection is simply *there*,
+    // and the tap still selects. Reduce Motion means stop decorating, never
+    // stop responding — see [MotionScope].
+    final picked = <HomeSection>[];
+    await pumpNav(tester, onSelect: picked.add, calm: true);
+    final rest = pillOf(tester);
+
+    await tester.tapAt(slotOf(tester, 2).center);
+    await tester.pump(const Duration(milliseconds: 16));
+
+    final after = pillOf(tester);
+    expect(picked, [_navDestinations[2].section]);
+    expect(after.width, closeTo(rest.width, 0.01), reason: 'no swell');
+    expect(after.height, closeTo(rest.height, 0.01));
+    expect(
+      after.center.dx,
+      closeTo(slotOf(tester, 2).center.dx, 0.5),
+      reason: 'and no slide either — it is already there',
+    );
+  });
 
   testWidgets('switching tabs travels; it does not cut', (tester) async {
     // The bug this guards: a 220ms easeOutCubic has done most of its distance
@@ -283,6 +459,16 @@ void main() {
     );
 
     await gesture.up();
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(
+      pillOf(tester).height,
+      lessThan(held.height),
+      reason:
+          'a hold released in place still commits like a tap, but it must not '
+          'also fire the tap\'s pop: the pill is already at the top of its arc '
+          'and already on its way down, and re-inflating it after the finger '
+          'has gone reads as the release not taking',
+    );
     await tester.pumpAndSettle();
 
     final after = pillOf(tester);
