@@ -363,7 +363,12 @@ export default defineSchema({
     // Account deletion, which tombstones `reporterId` the same way it does on
     // `reports`. Exists only so that sweep is an index range and not a full
     // table scan on every account deletion.
-    .index("by_reporter", ["reporterId"]),
+    .index("by_reporter", ["reporterId"])
+    // Retention sweep only, and load-bearing for the same reason the identical
+    // index on `reports` is: nothing else ever deletes one of these rows, so
+    // without the job that reads this index the table is an append-only ledger
+    // of device identifiers. See problemReports.gcExpiredReports.
+    .index("by_createdAt", ["createdAt"]),
 
   messages: defineTable({
     roomId: v.id("rooms"),

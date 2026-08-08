@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { internalMutation, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { galleryBucketFor } from "./messages";
@@ -122,8 +122,23 @@ async function ensureLogAccount(ctx: any) {
     // Absent `lastSeen` on purpose, for the same reason — there is no last
     // time this account was seen, and inventing one would be a lie the
     // presence UI would happily render.
-    // Every visibility key absent, which reads as "nobody" everywhere the
-    // client resolves it. Nothing about this account is anyone's business.
+    //
+    // No `visibility` block, which is NOT the same as hiding everything: the
+    // server's defaults in `visibility.DEFAULT_LEVEL` are "public" for avatar,
+    // status and lastSeen (only read receipts default to "nobody"). That is the
+    // wanted outcome here — the account's face has to reach the one person it
+    // writes to — and it is worth stating because the client defaults a user's
+    // OWN unset keys to "nobody" in the settings UI, so the two halves disagree
+    // and the wrong half is the easier one to remember.
+    //
+    // Nothing sensitive rides on those defaults for this row anyway: there is no
+    // real `lastSeen`, the status is a constant, and the avatar is a logo.
+    //
+    // `avatarStorageId` is deliberately absent. A mutation cannot create a blob
+    // (`ctx.storage.store` is action-only), so the avatar is deployment data —
+    // see `tools/monkeyhub-logs-avatar.md` for the file and the three commands
+    // that attach it. Until that runs the client draws its usual monogram, which
+    // is a working account with a plain face rather than a broken one.
   });
 }
 
@@ -171,6 +186,75 @@ async function ensureReportRoom(ctx: any, logUserId: any, inboxUserId: any) {
     role: "member",
   });
   return roomId;
+}
+
+/**
+ * Makes the two parties accepted contacts, both directions.
+ *
+ * Not decoration, and not a shortcut around the check `ensureReportRoom`
+ * deliberately skips — it is what makes the room render. `ChatRepository`
+ * resolves a DM's peer with `userById`, which searches ONE cache: the friends
+ * list. A DM with somebody who is not in it resolves to null, every consumer
+ * falls back to `room.name`, and the room list, the chat header, room info and
+ * the forward sheet all title the room `dm:regular:jn7ab…:kx02…`.
+ *
+ * Fixed here rather than by teaching the client to fetch an uncached peer,
+ * because this account is not a special case that the UI should learn about — it
+ * is a correspondent the maintainer answers, and "a DM you have is with a contact
+ * you have" is already true of every other room in the list. Doing it the other
+ * way would put a per-room profile fetch on the room list's build path to serve
+ * exactly one room.
+ *
+ * Written in both directions because the friends list is read from `by_user`
+ * only, so one row would render for one side and not the other.
+ *
+ * Called on every report rather than only when the room is created, so it also
+ * repairs a deployment whose room predates this function — and so unfriending
+ * the log account is undone by the next report instead of permanently breaking
+ * the room's title.
+ */
+async function ensureFriendship(
+  ctx: any,
+  a: any,
+  b: any,
+  roomId: any,
+): Promise<void> {
+  for (const [userId, friendId] of [
+    [a, b],
+    [b, a],
+  ]) {
+    const existing = await ctx.db
+      .query("friendships")
+      .withIndex("by_pair", (q: any) =>
+        q.eq("userId", userId).eq("friendId", friendId),
+      )
+      .first();
+    if (existing) {
+      // Never downgrade a row somebody else wrote, and never re-stamp one that
+      // is already right — a patch here would re-fire the friends subscription
+      // on every report.
+      if (existing.status !== "accepted") {
+        await ctx.db.patch(existing._id, {
+          status: "accepted",
+          respondedAt: Date.now(),
+          stage: undefined,
+          deniedBy: undefined,
+        });
+      }
+      continue;
+    }
+    await ctx.db.insert("friendships", {
+      userId,
+      friendId,
+      status: "accepted",
+      createdAt: Date.now(),
+      respondedAt: Date.now(),
+      roomId,
+      // No `stage`: absent means "fully visible to the recipient", which is the
+      // only correct value for a contact that was never requested and never
+      // needed releasing along a guardian chain.
+    });
+  }
 }
 
 /**
@@ -235,6 +319,7 @@ export const submit = mutation({
 
     const logUserId = await ensureLogAccount(ctx);
     const roomId = await ensureReportRoom(ctx, logUserId, inbox._id);
+    await ensureFriendship(ctx, logUserId, inbox._id, roomId);
 
     // `Date.now()` is fixed for the whole mutation — Convex freezes it so a
     // replay is deterministic. Every row below would therefore share one
@@ -316,5 +401,49 @@ export const submit = mutation({
     });
 
     return { ok: true };
+  },
+});
+
+/**
+ * How long a `problemReports` row is kept.
+ *
+ * The throttle needs one hour of it. The rest is audit trail: enough to answer
+ * "did that report reach us, and when" for as long as anybody is still asking,
+ * and no longer. Deliberately far shorter than the 24 months `reports` keeps —
+ * a moderation record is evidence about an incident between people, while this
+ * is a receipt for a bug report, and there is no argument for holding a device
+ * identifier from a children's app for two years to prove one was filed.
+ */
+export const RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/**
+ * Deletes report receipts past [RETENTION_MS].
+ *
+ * Like `users.gcExpiredReports`, this is not a garbage collector tidying up
+ * after a path that already cleans itself — nothing else ever deletes one of
+ * these rows, so this job IS the retention policy. Without it the table is an
+ * append-only ledger of device identifiers, which is the exact shape the
+ * moderation table was fixed for.
+ *
+ * Batched at 200 like the other sweeps: the cron is daily and the table is
+ * small, so a backlog drains over a few days instead of risking the 1s function
+ * limit on a box that is also serving live traffic.
+ *
+ * The delivered chat messages are untouched. They live in the maintainer's DM
+ * and are bug reports about the app, not personal data about whoever filed one —
+ * and a report deleted out from under an open conversation about it would be a
+ * worse outcome than keeping it.
+ */
+export const gcExpiredReports = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - RETENTION_MS;
+    const expired = await ctx.db
+      .query("problemReports")
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
+      .take(200);
+    for (const row of expired) await ctx.db.delete(row._id);
+    return null;
   },
 });

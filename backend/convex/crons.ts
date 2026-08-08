@@ -141,4 +141,15 @@ crons.interval(
   {},
 );
 
+// The same job for problem-report receipts, which are a different table and a
+// much shorter period — 90 days, not 24 months. Same reason it exists at all:
+// nothing else deletes one, so without this the table is an append-only ledger
+// of device identifiers. See problemReports.gcExpiredReports.
+crons.interval(
+  "problemReports.gcExpiredReports",
+  { hours: 24 },
+  internal.problemReports.gcExpiredReports,
+  {},
+);
+
 export default crons;
