@@ -10,6 +10,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/daily_game.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
 
 /// Today's four games, compact enough to live on the Feed board.
@@ -185,13 +186,10 @@ class _StripTile extends StatelessWidget {
       DailyGame.zip => boards.zip.size,
       DailyGame.sudoku => boards.sudoku.size,
     };
+    // Fewer cells than the hub's: at four-to-a-row the tile is under 80pt, and
+    // a six-cell grid drawn that small is a texture rather than a board.
     if (size == 0) {
-      return Container(
-        decoration: BoxDecoration(
-          color: theme.surfaceSunken,
-          borderRadius: BorderRadius.circular(theme.radiusSm),
-        ),
-      );
+      return GameBoardSkeleton(radius: theme.radiusSm, cells: 4);
     }
     return CustomPaint(
       painter: switch (game) {

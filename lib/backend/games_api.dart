@@ -25,10 +25,18 @@ class GamesApi {
   ///
   /// Server-side this reads no table at all — the boards are a pure function of
   /// the day key — so it is about as cheap as a network call gets.
-  Future<DailyBoards> daily({required String dayKey}) async {
-    final res = await _cv.query('games:daily', {'dayKey': dayKey});
-    return DailyBoards.fromJson(res);
-  }
+  Future<DailyBoards> daily({required String dayKey}) async =>
+      DailyBoards.fromJson(await dailyRaw(dayKey: dayKey));
+
+  /// The same call, undecoded.
+  ///
+  /// Exists so the store can put the payload on disk verbatim. Caching the
+  /// parsed [DailyBoards] instead would mean a `toJson` on all five board
+  /// classes whose only reader is the cache, and a new field on a board would
+  /// then be a backend change plus a serialiser nobody thinks to update — it
+  /// would go missing on relaunch and nowhere else.
+  Future<dynamic> dailyRaw({required String dayKey}) =>
+      _cv.query('games:daily', {'dayKey': dayKey});
 
   /// The viewer's own rows, any half-finished board, and a leaderboard per game
   /// over accepted friends.

@@ -11,6 +11,7 @@ import '../models/daily_game.dart';
 import '../models/puzzle.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
+import 'game_board_skeleton.dart';
 import 'game_info_sheet.dart';
 import 'puzzle_symbol.dart';
 
@@ -87,7 +88,7 @@ class GameTile extends StatelessWidget {
       DailyGame.zip => boards.zip.size,
       DailyGame.sudoku => boards.sudoku.size,
     };
-    if (size == 0) return const _PreviewSkeleton();
+    if (size == 0) return GameBoardSkeleton(radius: theme.radiusMd);
     return CustomPaint(painter: painter, size: Size.infinite);
   }
 }
@@ -297,22 +298,3 @@ class _Status extends StatelessWidget {
   }
 }
 
-/// Stands in for a board that has not arrived yet.
-///
-/// A muted grid rather than a spinner: the tile is a square either way, and a
-/// grid settling into a real board reads as loading where a spinner replaced by
-/// a grid reads as two different screens.
-class _PreviewSkeleton extends StatelessWidget {
-  const _PreviewSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-      ),
-    );
-  }
-}

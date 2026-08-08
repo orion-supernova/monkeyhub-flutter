@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import '../backend/convex_client.dart';
 import '../backend/games_api.dart';
 import '../models/daily_game.dart';
+import 'cache_store.dart';
 import 'feed_day.dart';
 import 'feed_store.dart';
 
@@ -40,6 +41,7 @@ class GamesStore extends ChangeNotifier {
   DailyBoards _boards = const DailyBoards();
   GameStandings _standings = const GameStandings();
   bool _loading = false;
+  bool _fetchingBoards = false;
   Object? _error;
 
   /// Guards against a stale [load] finishing after a newer one — the same
@@ -133,12 +135,24 @@ class GamesStore extends ChangeNotifier {
       // read one index per friend, so there is nothing for one to wait on.
       final results = await Future.wait([
         _boards.ready && !rolled
-            ? Future.value(_boards)
-            : api.daily(dayKey: day),
+            ? Future.value(null)
+            : api.dailyRaw(dayKey: day),
         api.standings(userId: userId, dayKey: day),
       ]);
       if (gen != _gen) return;
-      _boards = results[0] as DailyBoards;
+      final raw = results[0];
+      if (raw != null) {
+        _boards = DailyBoards.fromJson(raw);
+        // Whichever screen pays for the fetch fills the cache. Opening the hub
+        // first and the Feed second is as common as the other way round, and
+        // only one of them should ever cost a round trip.
+        if (raw is Map && _boards.ready) {
+          await CacheStore.instance.saveDailyBoards(
+            day,
+            raw.cast<String, dynamic>(),
+          );
+        }
+      }
       _standings = results[1] as GameStandings;
       _loading = false;
       _error = null;
@@ -165,20 +179,76 @@ class GamesStore extends ChangeNotifier {
         ? FeedStore.instance.dayKey
         : dayKeyOf(DateTime.now());
     if (_boards.ready && day == _dayKey) return;
+    // The Feed calls this from every mount, and the shell remounts it on a tab
+    // switch and on a theme change. Without this the retries below would each
+    // get their own competing chain.
+    if (_fetchingBoards) return;
+    _fetchingBoards = true;
 
     final gen = ++_gen;
+    // Across a rollover, drop yesterday's four before taking the new day key.
+    // Otherwise a failed fetch leaves the store holding boards it now believes
+    // belong to today, and `load` — which decides whether to re-fetch by
+    // comparing the same two things — hands the hub yesterday's puzzles for
+    // the rest of the day.
+    if (day != _dayKey) _boards = const DailyBoards();
     _dayKey = day;
     try {
-      final next = await api.daily(dayKey: day);
+      // Disk first, and no network at all if it answers. The boards are a pure
+      // function of the day key, so a cached payload for today is not a stale
+      // copy of the truth — it is the truth, and the four squares are on screen
+      // in the time it takes to read one small file.
+      final cached = await CacheStore.instance.loadDailyBoards(day);
       if (gen != _gen) return;
-      _boards = next;
-      _notify();
-    } catch (_) {
-      // Silent. The band degrades to muted placeholders, which is the right
-      // outcome for a strip nobody asked to refresh — the hub has a real
-      // retry, and the Feed has four other sections that loaded fine.
+      if (cached != null) {
+        final boards = DailyBoards.fromJson(cached);
+        if (boards.ready) {
+          _boards = boards;
+          _notify();
+          return;
+        }
+      }
+
+      // Three tries, then give up until something remounts the Feed. The first
+      // launch of a day has nothing on disk to fall back on, and a socket that
+      // is still coming up — which is where a cold start starts — fails this
+      // call once and then works. Swallowing that left the band showing
+      // placeholders until the player happened to switch tabs and come back.
+      for (var attempt = 0; ; attempt++) {
+        try {
+          final raw = await api.dailyRaw(dayKey: day);
+          if (gen != _gen) return;
+          final boards = DailyBoards.fromJson(raw);
+          if (!boards.ready) return;
+          _boards = boards;
+          _notify();
+          if (raw is Map) {
+            await CacheStore.instance.saveDailyBoards(
+              day,
+              raw.cast<String, dynamic>(),
+            );
+          }
+          return;
+        } catch (_) {
+          if (attempt >= boardRetries.length) return;
+          await Future<void>.delayed(boardRetries[attempt]);
+          if (gen != _gen) return;
+        }
+      }
+    } finally {
+      _fetchingBoards = false;
     }
   }
+
+  /// The waits between those attempts. Mutable only so the tests that pin the
+  /// retry do not have to sit through them — the suite runs in ten seconds and
+  /// four of those spent asleep is four the next person will not spend running
+  /// it.
+  @visibleForTesting
+  static List<Duration> boardRetries = const [
+    Duration(milliseconds: 600),
+    Duration(seconds: 3),
+  ];
 
   /// Re-reads the leaderboards alone. Called after a board is finished, so the
   /// player's own time appears in the standings they are being shown.

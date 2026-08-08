@@ -35,14 +35,14 @@ void main() {
           as Map<String, dynamic>;
   final day = (fixtures['days'] as List).first as Map<String, dynamic>;
 
-  final boards = DailyBoards.fromJson({
+  final payload = <String, dynamic>{
     'dayKey': day['dayKey'],
     for (final game in ['queens', 'tango', 'zip', 'sudoku'])
       game: ((day[game] as Map)['board'] as Map).cast<String, dynamic>(),
-  });
+  };
 
   setUp(() {
-    GamesStore.instance.api = _StubGamesApi(boards);
+    GamesStore.instance.api = _StubGamesApi(payload);
     GamesStore.instance.clear();
   });
 
@@ -147,13 +147,21 @@ class _StoreListenerState extends State<_StoreListener> {
 }
 
 /// Answers every call instantly with today's real boards and nobody's times.
+///
+/// Holds the wire payload rather than the decoded boards: the store reads the
+/// raw one so it has something to put on disk, and a stub that only knew how to
+/// answer the decoded call would pass while the cached path went untested.
 class _StubGamesApi implements GamesApi {
-  _StubGamesApi(this.boards);
+  _StubGamesApi(this.payload);
 
-  final DailyBoards boards;
+  final Map<String, dynamic> payload;
 
   @override
-  Future<DailyBoards> daily({required String dayKey}) async => boards;
+  Future<DailyBoards> daily({required String dayKey}) async =>
+      DailyBoards.fromJson(payload);
+
+  @override
+  Future<dynamic> dailyRaw({required String dayKey}) async => payload;
 
   @override
   Future<GameStandings> standings({

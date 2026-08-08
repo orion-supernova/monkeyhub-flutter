@@ -111,6 +111,58 @@ class CacheStore {
     });
   }
 
+  // ─────────────────────────── today's game boards ───────────────────────────
+
+  /// Today's four puzzles, kept between launches.
+  ///
+  /// The boards are a pure function of the day key — there is no version of
+  /// them that can go stale before midnight — so a launch on a day this device
+  /// has already fetched has nothing to ask the server for. Without this the
+  /// Feed's games band paints four placeholders on every cold start for as long
+  /// as the round trip takes, which on a cold socket is the first thing anyone
+  /// sees, every morning.
+  ///
+  /// Deliberately not under `<userId>/`, unlike everything else here: the
+  /// payload is the same four puzzles for everybody and carries nobody's
+  /// results, so scoping it per account would mean re-fetching the identical
+  /// bytes for the second person on a shared handset. It is left alone by
+  /// [clearFor] for the same reason — there is nothing in it to leak.
+  ///
+  /// The raw payload rather than the parsed model, so that adding a field to a
+  /// board is a backend change and not also a serialiser this file has to know
+  /// how to write.
+  Future<Map<String, dynamic>?> loadDailyBoards(String dayKey) async {
+    if (kIsWeb) return null; // no path_provider on web — live data only
+    try {
+      final docs = _baseDir ??= await getApplicationDocumentsDirectory();
+      final f = File('${docs.path}/cache/games_daily.json');
+      if (!await f.exists()) return null;
+      final j = jsonDecode(await f.readAsString()) as Map?;
+      // A payload for yesterday is not a stale board, it is the wrong game.
+      if (j == null || j['dayKey'] != dayKey) return null;
+      return (j['payload'] as Map?)?.cast<String, dynamic>();
+    } catch (e) {
+      debugPrint('cache loadDailyBoards failed: $e');
+      return null;
+    }
+  }
+
+  /// Undebounced: this is written once a day, right after the fetch that a
+  /// relaunch a minute later would otherwise repeat.
+  Future<void> saveDailyBoards(String dayKey, Map<String, dynamic> payload) async {
+    if (kIsWeb) return; // no disk cache on web
+    try {
+      final docs = _baseDir ??= await getApplicationDocumentsDirectory();
+      final dir = Directory('${docs.path}/cache');
+      if (!await dir.exists()) await dir.create(recursive: true);
+      await File('${dir.path}/games_daily.json').writeAsString(
+        jsonEncode({'dayKey': dayKey, 'payload': payload}),
+      );
+    } catch (e) {
+      debugPrint('cache saveDailyBoards failed: $e');
+    }
+  }
+
   // ─────────────────────────────── cleanup ───────────────────────────────
 
   /// Drop all cached data for the given user. Called on signOut + deleteAccount.
