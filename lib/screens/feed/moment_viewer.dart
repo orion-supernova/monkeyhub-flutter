@@ -13,6 +13,7 @@ import '../../widgets/glass_close_button.dart';
 import '../../widgets/moment_rail.dart';
 import '../../widgets/moment_reactor_sheet.dart';
 import '../../widgets/remote_image.dart';
+import '../../widgets/route_landing.dart';
 import '../../widgets/steady_hero.dart';
 
 /// Reactions offered on a moment.
@@ -105,7 +106,7 @@ class _MomentViewer extends StatefulWidget {
 }
 
 class _MomentViewerState extends State<_MomentViewer>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteLanding {
   /// Optimistic local overlay on top of the subscription's reaction state.
   ///
   /// The board is live, so the truth arrives on its own within a round trip —
@@ -166,14 +167,6 @@ class _MomentViewerState extends State<_MomentViewer>
   /// over in the gesture arena, where the two would only ever half-work.
   bool _canScroll = false;
 
-  /// True once the opening animation has finished.
-  ///
-  /// Until then the picture is painted from the thumbnail's decode, which is
-  /// already resident, so the flight has nothing to wait for and nothing to
-  /// compete with. Same reasoning as the fullscreen image viewer's.
-  bool _landed = false;
-  Animation<double>? _routeAnimation;
-
   @override
   void initState() {
     super.initState();
@@ -198,28 +191,7 @@ class _MomentViewerState extends State<_MomentViewer>
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final animation = ModalRoute.of(context)?.animation;
-    if (identical(animation, _routeAnimation)) return;
-    _routeAnimation?.removeStatusListener(_handleRouteStatus);
-    _routeAnimation = animation;
-    // No route animation to wait on, or already past it: nothing to defer.
-    if (animation == null || animation.isCompleted) {
-      _landed = true;
-      return;
-    }
-    animation.addStatusListener(_handleRouteStatus);
-  }
-
-  void _handleRouteStatus(AnimationStatus status) {
-    if (_landed || !status.isCompleted || !mounted) return;
-    setState(() => _landed = true);
-  }
-
-  @override
   void dispose() {
-    _routeAnimation?.removeStatusListener(_handleRouteStatus);
     _settleCtrl.dispose();
     _drag.dispose();
     super.dispose();
@@ -564,8 +536,13 @@ class _MomentViewerState extends State<_MomentViewer>
   /// The decode to paint right now: the thumbnail's while the picture is still
   /// flying, and the full one once it has landed. Null all the way through when
   /// there was no thumbnail to defer to.
+  ///
+  /// Same reasoning as the fullscreen image viewer's, and the same reason it
+  /// leans on [RouteLanding] rather than reading the route animation itself:
+  /// during the frame a hero flight is set up, a route that has not moved yet
+  /// claims to be finished.
   int? get _deferredDecodeWidth =>
-      _landed || widget.heroTag == null ? null : momentThumbDecodeWidth;
+      landed || widget.heroTag == null ? null : momentThumbDecodeWidth;
 
   Widget _image(BuildContext context, String storageId) {
     final theme = ThemeScope.of(context);

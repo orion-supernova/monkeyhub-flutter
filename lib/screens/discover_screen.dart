@@ -14,6 +14,7 @@ import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
 import '../widgets/request_cards.dart';
+import '../widgets/search_field.dart';
 import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'navigation/enter_public_room.dart';
@@ -233,7 +234,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     }
   }
 
-  void _openSearch(SearchMode mode) {
+  /// Opens the search screen for [mode].
+  ///
+  /// [fromDoor] is what tells the screen whether it has a box to fly out of.
+  /// The doors do; SEE ALL — which opens the same screen from the bottom of the
+  /// rooms list — does not, and letting it claim the door's tag anyway would
+  /// fly the bar out of a card that is usually scrolled off the top by then.
+  void _openSearch(SearchMode mode, {bool fromDoor = true}) {
     final theme = ThemeScope.of(context);
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -244,6 +251,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           api: widget.api,
           family: widget.family,
           mode: mode,
+          heroTag: fromDoor ? searchFieldHeroTagFor(mode) : null,
         ),
         transitionsBuilder: (_, anim, _, child) {
           final curved = CurvedAnimation(
@@ -363,6 +371,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     ),
                   if (showPeople) ...[
                     _DoorRow(
+                      heroTag: searchFieldHeroTagFor(SearchMode.people),
                       circular: true,
                       icon: CupertinoIcons.person_2,
                       title: t.discoverScreenFindPeopleTitle,
@@ -485,6 +494,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                     // the section below as the only list, and mirrors the
                     // people door exactly: search entry, then your own list.
                     _DoorRow(
+                      heroTag: searchFieldHeroTagFor(SearchMode.rooms),
                       circular: false,
                       icon: Icons.tag,
                       title: t.discoverScreenSearchRoomsTitle,
@@ -529,7 +539,8 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                 // The search screen with an empty query IS the
                                 // full list, so there's no second full-rooms
                                 // screen to maintain.
-                                onTap: () => _openSearch(SearchMode.rooms),
+                                onTap: () =>
+                                    _openSearch(SearchMode.rooms, fromDoor: false),
                               ),
                           ],
                         ),
@@ -748,13 +759,18 @@ class _JumpChip extends StatelessWidget {
 /// distinction the app already draws between a round [UserAvatar] and a room
 /// tile's chip, so the two worlds stay apart at a glance.
 ///
-/// Deliberately not a [Hero]. The old single search field was bar-shaped and
-/// flew cleanly into the search screen's own bar; a door is a two-line card and
-/// the destination is still a one-line field, so the flight interpolated toward
-/// a box shorter than the card's own text and overflowed on every frame. The
-/// route's fade-and-slide carries the continuity instead.
+/// The card flies into the search screen's bar via [SearchFieldHero].
+///
+/// A plain [Hero] between the two was tried and reverted once, and the reason
+/// is worth keeping: its default shuttle draws the *destination's* child at
+/// every intermediate size, so this card's own two lines of text were being
+/// asked to fit a box collapsing toward a one-line field, and overflowed on
+/// every frame of the flight. [SearchFieldHero] flies the box and the
+/// magnifier — the two things both ends actually have — and nothing that can
+/// overflow.
 class _DoorRow extends StatelessWidget {
   const _DoorRow({
+    required this.heroTag,
     required this.circular,
     required this.icon,
     required this.title,
@@ -762,6 +778,7 @@ class _DoorRow extends StatelessWidget {
     required this.onTap,
   });
 
+  final Object heroTag;
   final bool circular;
   final IconData icon;
   final String title;
@@ -778,49 +795,62 @@ class _DoorRow extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          decoration: theme.inputDecoration(),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.accentSoft,
-                  shape: circular ? BoxShape.circle : BoxShape.rectangle,
-                  borderRadius: circular
-                      ? null
-                      : BorderRadius.circular(theme.radiusMd),
+        child: SearchFieldHero(
+          tag: heroTag,
+          child: Container(
+            decoration: theme.inputDecoration(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: searchDoorHPadding,
+              vertical: 12,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.accentSoft,
+                    shape: circular ? BoxShape.circle : BoxShape.rectangle,
+                    borderRadius: circular
+                        ? null
+                        : BorderRadius.circular(theme.radiusMd),
+                  ),
+                  child: Icon(icon, size: 15, color: theme.accent),
                 ),
-                child: Icon(icon, size: 15, color: theme.accent),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.displaySmall.copyWith(fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: theme.monoTiny,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.displaySmall.copyWith(fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: theme.monoTiny,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.search, size: 18, color: theme.inkMuted),
-            ],
+                const SizedBox(width: 8),
+                // The one glyph the door and the bar share, and the one the
+                // flight shuttle carries between them — same size at both ends
+                // so it never resizes mid-air.
+                Icon(
+                  Icons.search,
+                  size: searchFieldIconSize,
+                  color: theme.inkMuted,
+                ),
+              ],
+            ),
           ),
         ),
       ),

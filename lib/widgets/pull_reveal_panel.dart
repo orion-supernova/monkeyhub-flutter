@@ -5,6 +5,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
+import 'search_field.dart';
 
 /// Generous upper bound on the panel's real natural height (collapse chevron
 /// + search field row + optional archived-folder row), used only to give
@@ -133,72 +134,17 @@ class _PullRevealPanel extends StatelessWidget {
               ),
             ),
           ),
-          // Material(transparency) + no-underline InputDecoration: this app
-          // never lets Flutter's debug underline show through on a text field
-          // that lives outside a Material-themed ancestor.
-          //
-          // Full pill shape (theme's own color/border, just rounder) rather
-          // than the app's default moderate-radius input box — every big
-          // chat app's search field reads this way, and it's what makes this
-          // look like a search bar rather than a stray text field.
-          Material(
-            type: MaterialType.transparency,
-            child: Container(
-              decoration: theme
-                  .inputDecoration()
-                  .copyWith(borderRadius: BorderRadius.circular(999)),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: theme.inkMuted, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: searchCtrl,
-                      style: theme.body.copyWith(color: theme.ink),
-                      cursorColor: theme.accent,
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        hintText: l10n.pullRevealSearchHint,
-                        hintStyle: theme.body.copyWith(color: theme.inkMuted),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                        ),
-                      ),
-                      onChanged: onSearchChanged,
-                    ),
-                  ),
-                  // Rebuilds only this small row on every keystroke — the
-                  // controller is a Listenable, and the clear button's whole
-                  // job is reacting to its text, so there's no reason to
-                  // rebuild the rest of the panel (or lift state up) for it.
-                  AnimatedBuilder(
-                    animation: searchCtrl,
-                    builder: (context, _) => searchCtrl.text.isEmpty
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsets.only(left: 4),
-                            child: FocusableTap(
-                              onTap: onClear,
-                              semanticLabel: l10n.pullRevealClearSearchSemanticLabel,
-                              shape: FocusRingShape.circle,
-                              radius: 999,
-                              child: GestureDetector(
-                                onTap: onClear,
-                                behavior: HitTestBehavior.opaque,
-                                child: Icon(
-                                  CupertinoIcons.clear_circled_solid,
-                                  size: 18,
-                                  color: theme.inkMuted,
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
+          // The app's one search bar — the same widget Discover's search
+          // screen uses, which is what keeps the two from drifting apart the
+          // way the hand-rolled copies did.
+          SearchField(
+            controller: searchCtrl,
+            hintText: l10n.pullRevealSearchHint,
+            onChanged: onSearchChanged,
+            // Its own, not the default: this one also has to cancel the
+            // pending debounce, or the list would come back 250ms after a tap
+            // that asked for it now.
+            onClear: onClear,
           ),
           if (archivedCount > 0) ...[
             const SizedBox(height: 10),
