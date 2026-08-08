@@ -2971,6 +2971,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get messageStampFailedToSendLabel => '发送失败';
 
   @override
+  String get messageStampSentLabel => '已发送';
+
+  @override
+  String get messageStampDeliveredLabel => '已送达';
+
+  @override
   String get messageStampSeenLabel => '已读';
 
   @override

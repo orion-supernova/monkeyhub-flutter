@@ -73,12 +73,14 @@ void main() {
     ChatMessage m, {
     bool isMine = false,
     bool seenByOthers = false,
+    bool deliveredToOthers = false,
   }) => MessageBubble(
     message: m,
     now: DateTime(2026, 3, 1, 12, 4),
     currentUserId: isMine ? 'alice' : 'bob',
     api: api,
     seenByOthers: seenByOthers,
+    deliveredToOthers: deliveredToOthers,
     author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
   );
 
@@ -234,9 +236,9 @@ void main() {
     ) async {
       // `seenByOthers` is another member's read cursor measured against this
       // message's timestamp, and a cursor already past "now" makes it true for a
-      // message created a moment ago. Left to fall through to the showSeen
-      // branch, an upload in flight would draw `done_all` — "seen" — on a photo
-      // nobody has received yet.
+      // message created a moment ago. Left to fall through to the receipt
+      // branches, an upload in flight would draw `done_all` — "seen" — on a
+      // photo nobody has received yet.
       await tester.pumpWidget(
         host(
           bubble(
@@ -273,6 +275,131 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+  });
+
+  group('the tick ladder', () {
+    /// The single icon the stamp drew, or null if it drew none. The stamp emits
+    /// at most one status glyph by construction — the branches are one `if`
+    /// chain — so a list longer than one is itself the failure.
+    Icon? glyph(WidgetTester tester) {
+      final icons = tester
+          .widgetList<Icon>(
+            find.descendant(of: visibleStamp, matching: find.byType(Icon)),
+          )
+          .toList();
+      expect(
+        icons.length,
+        lessThan(2),
+        reason: 'the stamp says one thing about a message, not two',
+      );
+      return icons.isEmpty ? null : icons.first;
+    }
+
+    testWidgets('pending draws the clock and no tick', (tester) async {
+      await tester.pumpWidget(
+        host(bubble(msg(status: MessageStatus.pending), isMine: true)),
+      );
+      expect(glyph(tester)?.icon, Icons.schedule);
+    });
+
+    testWidgets('sent draws a single tick', (tester) async {
+      await tester.pumpWidget(host(bubble(msg(), isMine: true)));
+
+      expect(
+        glyph(tester)?.icon,
+        Icons.done,
+        reason: 'on the server, on nobody else\'s phone yet',
+      );
+      expect(find.byIcon(Icons.done_all), findsNothing);
+    });
+
+    testWidgets('delivered draws a double tick', (tester) async {
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, deliveredToOthers: true)),
+      );
+
+      expect(glyph(tester)?.icon, Icons.done_all);
+      expect(
+        find.byIcon(Icons.done),
+        findsNothing,
+        reason: 'the second tick replaces the first, it does not join it',
+      );
+    });
+
+    testWidgets('error draws the error affordance and no tick', (tester) async {
+      await tester.pumpWidget(
+        host(bubble(msg(status: MessageStatus.error), isMine: true)),
+      );
+
+      expect(glyph(tester)?.icon, Icons.error_outline);
+      expect(find.byIcon(Icons.done), findsNothing);
+      expect(find.byIcon(Icons.done_all), findsNothing);
+    });
+
+    testWidgets('seen keeps the double tick and lights it up', (tester) async {
+      // The whole point of splitting sent from delivered is that the ladder
+      // still has three rungs afterwards. Delivered and seen share a glyph and
+      // are told apart by ink alone, so a regression that collapsed the two
+      // would pass a shape-only check.
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, deliveredToOthers: true)),
+      );
+      final delivered = glyph(tester);
+
+      await tester.pumpWidget(
+        host(
+          bubble(
+            msg(),
+            isMine: true,
+            deliveredToOthers: true,
+            seenByOthers: true,
+          ),
+        ),
+      );
+      final seen = glyph(tester);
+
+      expect(delivered?.icon, Icons.done_all);
+      expect(seen?.icon, Icons.done_all);
+      expect(seen?.color, theme.accentInk, reason: 'seen is the loud ink');
+      expect(
+        delivered?.color,
+        isNot(seen?.color),
+        reason: 'delivered must not read as seen',
+      );
+    });
+
+    testWidgets('someone else\'s message carries no ticks at all', (
+      tester,
+    ) async {
+      // Receipts are news about your own messages. An incoming bubble that grew
+      // a tick would be claiming something about the reader's own device.
+      await tester.pumpWidget(
+        host(bubble(msg(), deliveredToOthers: true, seenByOthers: true)),
+      );
+
+      expect(glyph(tester), isNull);
+    });
+
+    test('the rungs are ordered, and only outgoing messages have any', () {
+      MessageReceipt? at({
+        bool isMine = true,
+        bool delivered = false,
+        bool seen = false,
+      }) => messageReceipt(
+        isMine: isMine,
+        deliveredToOthers: delivered,
+        seenByOthers: seen,
+      );
+
+      expect(at(), MessageReceipt.sent);
+      expect(at(delivered: true), MessageReceipt.delivered);
+      expect(at(delivered: true, seen: true), MessageReceipt.seen);
+      // Read implies delivered, so a read cursor ahead of a lagging delivery
+      // one — an old row, or a recipient who shares reads but hides last-seen —
+      // still lands on the top rung rather than falling back to one tick.
+      expect(at(seen: true), MessageReceipt.seen);
+      expect(at(isMine: false, delivered: true, seen: true), isNull);
     });
   });
 

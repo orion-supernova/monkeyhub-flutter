@@ -3132,6 +3132,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'kunde inte skickas';
 
   @override
+  String get messageStampSentLabel => 'skickat';
+
+  @override
+  String get messageStampDeliveredLabel => 'levererat';
+
+  @override
   String get messageStampSeenLabel => 'läst';
 
   @override

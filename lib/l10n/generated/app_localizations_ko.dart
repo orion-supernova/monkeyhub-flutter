@@ -3018,6 +3018,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messageStampFailedToSendLabel => '전송 실패';
 
   @override
+  String get messageStampSentLabel => '전송됨';
+
+  @override
+  String get messageStampDeliveredLabel => '전달됨';
+
+  @override
   String get messageStampSeenLabel => '읽음';
 
   @override

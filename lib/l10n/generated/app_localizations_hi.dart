@@ -3127,6 +3127,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'भेजने में विफल';
 
   @override
+  String get messageStampSentLabel => 'भेजा गया';
+
+  @override
+  String get messageStampDeliveredLabel => 'डिलीवर हो गया';
+
+  @override
   String get messageStampSeenLabel => 'देखा गया';
 
   @override

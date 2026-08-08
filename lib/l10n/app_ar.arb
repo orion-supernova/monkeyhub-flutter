@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "جارٍ الرفع",
   "messageStampSendingLabel": "جارٍ الإرسال",
   "messageStampFailedToSendLabel": "فشل الإرسال",
+  "messageStampSentLabel": "تم الإرسال",
+  "messageStampDeliveredLabel": "تم التسليم",
   "messageStampSeenLabel": "تمت المشاهدة",
   "messageStampCountdownSeconds": "{count}ث",
   "messageStampCountdownMinutes": "{count}د",

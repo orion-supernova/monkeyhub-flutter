@@ -773,8 +773,23 @@ class _ThreadSheetState extends State<_ThreadSheet>
         : (author?.displayName.trim().isNotEmpty ?? false
               ? author!.displayName
               : (m.senderName.trim().isEmpty ? null : m.senderName));
+    // The same two cursors the transcript reads, and read the same way. The
+    // overlay is always opened over the room that is already open, so the
+    // repository's active read/delivery state is this thread's room's. Left
+    // unpassed, a reply would sit on one tick in the overlay while its own copy
+    // in the transcript underneath showed two.
+    final mine = m.senderId == me;
+    final othersRead = widget.repo.latestOthersReadAt;
+    final othersDelivered = widget.repo.latestOthersDeliveredAt;
+    final seenByOthers =
+        mine && othersRead != null && !othersRead.isBefore(m.createdAt);
+    final deliveredToOthers = mine &&
+        othersDelivered != null &&
+        !othersDelivered.isBefore(m.createdAt);
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
+        seenByOthers: seenByOthers,
+        deliveredToOthers: deliveredToOthers,
         bubbleKey: bubbleKey,
         message: m,
         now: _now,
@@ -801,6 +816,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
       );
     }
     return MessageBubble(
+      seenByOthers: seenByOthers,
+      deliveredToOthers: deliveredToOthers,
       bubbleKey: bubbleKey,
       message: m,
       now: _now,

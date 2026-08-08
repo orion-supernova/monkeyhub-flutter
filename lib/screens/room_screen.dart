@@ -2073,8 +2073,16 @@ class _RoomScreenState extends State<RoomScreen>
                     : (author?.displayName.trim().isNotEmpty ?? false
                         ? author!.displayName
                         : (m.senderName.trim().isEmpty ? null : m.senderName));
+                // Both receipts are room-wide cursors measured against THIS
+                // message's timestamp — "somebody's cursor is at or past you".
+                // Group rooms therefore read as "at least one other member",
+                // which is the same promise the SEEN indicator has always made.
                 final othersRead = widget.repo.latestOthersReadAt;
                 final seenByOthers = isMine && othersRead != null && !othersRead.isBefore(m.createdAt);
+                final othersDelivered = widget.repo.latestOthersDeliveredAt;
+                final deliveredToOthers = isMine &&
+                    othersDelivered != null &&
+                    !othersDelivered.isBefore(m.createdAt);
                 final isPending = m.id.startsWith('tmp_');
                 final selecting = _selection.active;
                 // Same rule the selection bar applies to a whole batch, asked
@@ -2159,6 +2167,7 @@ class _RoomScreenState extends State<RoomScreen>
                               author: author,
                               parentAuthor: parentAuthor,
                               seenByOthers: seenByOthers,
+                              deliveredToOthers: deliveredToOthers,
                               replyMarker: replyMarker,
                               grouped: grouped,
                               lastInRun: messageItem.lastInRun,
@@ -2305,6 +2314,7 @@ class _RoomScreenState extends State<RoomScreen>
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
+                        deliveredToOthers: deliveredToOthers,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,
@@ -2335,6 +2345,7 @@ class _RoomScreenState extends State<RoomScreen>
                         parentAuthor: parentAuthor,
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
+                        deliveredToOthers: deliveredToOthers,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,

@@ -3151,6 +3151,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'no se pudo enviar';
 
   @override
+  String get messageStampSentLabel => 'enviado';
+
+  @override
+  String get messageStampDeliveredLabel => 'entregado';
+
+  @override
   String get messageStampSeenLabel => 'visto';
 
   @override

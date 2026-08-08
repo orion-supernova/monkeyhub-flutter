@@ -882,6 +882,8 @@
   "messageStampUploadingLabel": "アップロード中",
   "messageStampSendingLabel": "送信中",
   "messageStampFailedToSendLabel": "送信に失敗しました",
+  "messageStampSentLabel": "送信済み",
+  "messageStampDeliveredLabel": "配信済み",
   "messageStampSeenLabel": "既読",
   "messageStampCountdownSeconds": "{count}秒",
   "messageStampCountdownMinutes": "{count}分",

@@ -53,6 +53,7 @@ class MessageBubble extends StatelessWidget {
     this.useHero = true,
     this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
+    this.deliveredToOthers = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -134,6 +135,10 @@ class MessageBubble extends StatelessWidget {
   final ReplyMarker replyMarker;
 
   final bool seenByOthers;
+
+  /// Whether anyone else's device is known to hold this yet — the second
+  /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
+  final bool deliveredToOthers;
 
   /// When true this message continues a run from the same sender: the vertical
   /// gap tightens and [senderName] is left null by the caller. Nothing
@@ -302,6 +307,7 @@ class MessageBubble extends StatelessWidget {
                 message: message,
                 isMine: isMine,
                 seenByOthers: seenByOthers,
+                deliveredToOthers: deliveredToOthers,
               ),
       ),
     );
@@ -324,6 +330,7 @@ class MessageBubble extends StatelessWidget {
       firstInRun: !grouped,
       lastInRun: lastInRun,
       seenByOthers: seenByOthers,
+      deliveredToOthers: deliveredToOthers,
       onOpenViewOnce: onOpenViewOnce,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
@@ -354,6 +361,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.useHero = true,
     this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
+    this.deliveredToOthers = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -404,6 +412,10 @@ class EphemeralMessageBubble extends StatelessWidget {
   final ReplyMarker replyMarker;
 
   final bool seenByOthers;
+
+  /// Whether anyone else's device is known to hold this yet — the second
+  /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
+  final bool deliveredToOthers;
 
   /// See [MessageBubble.grouped].
   final bool grouped;
@@ -458,6 +470,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       lastInRun: lastInRun,
       countdown: message.timeLeft(now),
       seenByOthers: seenByOthers,
+      deliveredToOthers: deliveredToOthers,
       onOpenViewOnce: onOpenViewOnce,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
@@ -606,6 +619,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                     isMine: isMine,
                     countdown: message.timeLeft(now),
                     seenByOthers: seenByOthers,
+                    deliveredToOthers: deliveredToOthers,
                   ),
                 ),
         ),
@@ -848,8 +862,13 @@ Widget buildMessageContent({
   /// everything else.
   Duration? countdown,
 
-  /// Whether anyone else has read this yet. Drives the stamp's read receipt.
+  /// Whether anyone else has read this yet. The top of the stamp's tick
+  /// ladder — see [MessageReceipt].
   bool seenByOthers = false,
+
+  /// Whether anyone else's device is known to hold this yet. The rung below
+  /// [seenByOthers]; a message that is neither draws a single tick.
+  bool deliveredToOthers = false,
 
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// where no repository is wired up (tests, previews), which leaves the sealed
@@ -905,7 +924,11 @@ Widget buildMessageContent({
           createdAt: message.createdAt,
           status: message.status,
           countdown: countdown,
-          showSeen: isMine && seenByOthers,
+          receipt: messageReceipt(
+            isMine: isMine,
+            deliveredToOthers: deliveredToOthers,
+            seenByOthers: seenByOthers,
+          ),
           tone: tone,
         )
       : null;
@@ -2434,11 +2457,16 @@ class _MetaRow extends StatelessWidget {
     required this.isMine,
     this.countdown,
     this.seenByOthers = false,
+    this.deliveredToOthers = false,
   });
   final ChatMessage message;
   final bool isMine;
   final Duration? countdown;
   final bool seenByOthers;
+
+  /// Whether anyone else's device is known to hold this yet — the second
+  /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
+  final bool deliveredToOthers;
 
   @override
   Widget build(BuildContext context) {
@@ -2451,7 +2479,11 @@ class _MetaRow extends StatelessWidget {
         createdAt: message.createdAt,
         status: message.status,
         countdown: countdown,
-        showSeen: isMine && seenByOthers,
+        receipt: messageReceipt(
+          isMine: isMine,
+          deliveredToOthers: deliveredToOthers,
+          seenByOthers: seenByOthers,
+        ),
         tone: StampTone.onSurface,
       ),
     );

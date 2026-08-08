@@ -12,6 +12,7 @@ class ChatRoom {
     this.lastMessage,
     this.lastMessageTime,
     this.lastReadAt,
+    this.lastDeliveredAt,
     this.passwordHash,
     this.hasPassword = false,
     this.type = RoomType.regular,
@@ -41,6 +42,17 @@ class ChatRoom {
   /// This user's own read cursor for the room (ms since epoch, from
   /// roomMembers.lastReadAt). Null until the user has ever read the room.
   DateTime? lastReadAt;
+
+  /// This user's own DELIVERY cursor for the room (roomMembers.lastDeliveredAt)
+  /// — how far this account's devices have confirmed they hold the room's
+  /// traffic, whether or not anyone looked at it.
+  ///
+  /// Not rendered anywhere. It is here so the repository can tell which rooms
+  /// it has already reported and stay quiet about them; see
+  /// `ChatRepository._reportDelivery`. Null on a room this account has never
+  /// confirmed, and on every room read back from a cache written before the
+  /// field existed.
+  DateTime? lastDeliveredAt;
   String? passwordHash; // not sent to clients per backend; kept nullable
   bool hasPassword;
   RoomType type;
@@ -137,6 +149,8 @@ class ChatRoom {
         if (lastMessage != null) 'lastMessage': lastMessage,
         if (lastMessageTime != null) 'lastMessageTime': lastMessageTime!.millisecondsSinceEpoch,
         if (lastReadAt != null) 'lastReadAt': lastReadAt!.millisecondsSinceEpoch,
+        if (lastDeliveredAt != null)
+          'lastDeliveredAt': lastDeliveredAt!.millisecondsSinceEpoch,
         'hasPassword': hasPassword,
         'type': type.wire,
         if (messageLifetime != null) 'messageLifetime': messageLifetime!.inSeconds,
@@ -168,6 +182,10 @@ class ChatRoom {
           : null,
       lastReadAt: j['lastReadAt'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['lastReadAt'] as num).toInt())
+          : null,
+      lastDeliveredAt: j['lastDeliveredAt'] is num
+          ? DateTime.fromMillisecondsSinceEpoch(
+              (j['lastDeliveredAt'] as num).toInt())
           : null,
       hasPassword: (j['hasPassword'] ?? false) as bool,
       type: RoomTypeWire.parse(j['type'] as String?),

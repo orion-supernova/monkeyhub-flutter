@@ -334,6 +334,12 @@ export const listUserRooms = query({
           participantIds,
           hasPassword: !!passwordHash,
           lastReadAt: m.lastReadAt ?? null,
+          // The caller's own delivery cursor, for the same reason: it lets the
+          // client see which rooms it has ALREADY reported as delivered and
+          // skip them. Without it, a cold start with twenty unread rooms would
+          // fire twenty `markRoomDelivered` mutations on every launch instead
+          // of only on rooms that genuinely moved since.
+          lastDeliveredAt: m.lastDeliveredAt ?? null,
           unreadCount: unread.count,
           unreadCapped: unread.capped,
           // Computed from the rows `unreadForRoom` already read — see badges.ts.

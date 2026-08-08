@@ -3174,6 +3174,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get messageStampFailedToSendLabel => 'فشل الإرسال';
 
   @override
+  String get messageStampSentLabel => 'تم الإرسال';
+
+  @override
+  String get messageStampDeliveredLabel => 'تم التسليم';
+
+  @override
   String get messageStampSeenLabel => 'تمت المشاهدة';
 
   @override
