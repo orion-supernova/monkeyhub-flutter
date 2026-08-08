@@ -1746,6 +1746,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'hoş geldin.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'merhaba\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'hoş geldin.';
+
+  @override
   String get loginScreenSignInCta => 'GİRİŞ YAP';
 
   @override
@@ -3598,9 +3604,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => 'veya';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Apple ile Devam Et';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Google ile Devam Et';

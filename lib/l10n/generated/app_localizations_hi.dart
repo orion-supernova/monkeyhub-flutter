@@ -1763,6 +1763,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'स्वागत है।';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'नमस्ते\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'स्वागत है।';
+
+  @override
   String get loginScreenSignInCta => 'साइन इन करें';
 
   @override
@@ -3628,9 +3634,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => 'या';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Apple के साथ जारी रखें';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Google से जारी रखें';

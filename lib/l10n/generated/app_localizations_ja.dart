@@ -1691,6 +1691,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'おかえり。';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'はじめまして\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'ようこそ。';
+
+  @override
   String get loginScreenSignInCta => 'ログイン';
 
   @override
@@ -3495,9 +3501,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => 'または';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Appleで続ける';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Googleで続ける';

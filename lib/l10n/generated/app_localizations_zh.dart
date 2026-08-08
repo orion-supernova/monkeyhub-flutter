@@ -1665,6 +1665,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginScreenSignInHeroInk => '回来。';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => '欢迎\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => '光临。';
+
+  @override
   String get loginScreenSignInCta => '登录';
 
   @override
@@ -3450,9 +3456,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => '或';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => '通过 Apple 继续';
 
   @override
   String get viewOnceViewerGoogleContinueButton => '通过 Google 继续';

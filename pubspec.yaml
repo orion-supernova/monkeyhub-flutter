@@ -143,6 +143,13 @@ dependencies:
   sign_in_with_apple: ^8.1.0
   google_sign_in: ^7.2.0
 
+  # Solely to render Google's official "G" inside the Google sign-in button.
+  # Their branding guidelines forbid recolouring, rescaling or redrawing the
+  # mark, so it ships as Google's own vector (branding/google_g.svg) rather
+  # than as one of this app's hand-painted CustomPainter icons. Nothing else
+  # in the app uses SVG.
+  flutter_svg: ^2.2.1
+
   # Child-device pairing. The parent's phone renders a short-lived code as a
   # QR (qr_flutter); the child's phone either scans it (mobile_scanner) or the
   # six digits get typed in by hand.
@@ -305,6 +312,9 @@ flutter:
     # env.local is gitignored. Copy env.example → env.local before running.
     - env.local
     - branding/logo.png
+    # Google's official "G", for the Google sign-in button. Their artwork,
+    # unmodified — see the file's own header before touching it.
+    - branding/google_g.svg
     # Monkey Collection — curated alternate-icon set. See
     # lib/widgets/monkey_collection.dart.
     - branding/monkey/monkey-hmm.png
@@ -322,11 +332,19 @@ flutter:
     # messaging app that is a third-party data flow we neither need nor want to
     # disclose, and it is the sort of thing the Kids-category rules bar outright.
     #
-    # Six of the eleven families ship only as VARIABLE fonts upstream, so those
-    # variants are static instances cut with fontTools at the exact weights the
-    # themes ask for. All are subset to Latin + Latin Extended — Turkish
-    # (ı İ ş ğ ç ö ü) is verified present in all 37 files. Re-cutting them means
-    # instancing from google/fonts and subsetting again; do not hand-edit.
+    # Seven of the twelve families ship only as VARIABLE fonts upstream, so
+    # those variants are static instances cut with fontTools at the exact
+    # weights the themes ask for. All are subset to Latin + Latin Extended —
+    # Turkish (ı İ ş ğ ç ö ü) is verified present in all 38 files. Re-cutting
+    # them means instancing from google/fonts and subsetting again; do not
+    # hand-edit.
+    #
+    # Roboto-Medium is the odd one out: no theme uses it. It is there for the
+    # Google sign-in button alone, whose branding guidelines specify Google's
+    # own typeface at Medium 14/20 — see lib/widgets/social_sign_in_buttons.dart.
+    # Its Latin-only subset is deliberate; the button's label is localized, and
+    # the five non-Latin locales fall through to the platform's own font for
+    # those scripts, which is what Google's Android button does too.
     - assets/google_fonts/
 
     # Alert sounds — incoming-call ringtone (looped) + new-message ping. Used

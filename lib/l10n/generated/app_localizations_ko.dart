@@ -1692,6 +1692,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get loginScreenSignInHeroInk => '환영해요.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => '어서\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => '오세요.';
+
+  @override
   String get loginScreenSignInCta => '로그인';
 
   @override
@@ -3506,9 +3512,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => '또는';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Apple로 계속하기';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Google로 계속하기';

@@ -6,10 +6,24 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<!-- Must stay in step with AppLocalizations.supportedLocales (lib/l10n/).
+	     iOS builds the app's row in Settings > General > Language & Region from
+	     this list, so a locale the app translates but doesn't declare here is a
+	     locale the user cannot pick per-app. -->
 	<key>CFBundleLocalizations</key>
 	<array>
+		<string>ar</string>
 		<string>en</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>hi</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>pt</string>
+		<string>pt-BR</string>
+		<string>sv</string>
 		<string>tr</string>
+		<string>zh</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>MonkeyHub</string>

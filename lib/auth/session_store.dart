@@ -19,6 +19,7 @@ class SessionStore {
   static const _kThemeId = 'mh.themeId';
   static const _kAccountType = 'mh.accountType';
   static const _kChildDevice = 'mh.isChildDevice';
+  static const _kHasSignedIn = 'mh.hasSignedIn';
 
   // `first_unlock_this_device`, NOT `unlocked`: a VoIP push can cold-start
   // the app while the phone is LOCKED, and the session must be readable
@@ -75,6 +76,19 @@ class SessionStore {
   bool _isChildDevice = false;
   bool get isChildDevice => _isChildDevice;
 
+  /// Sticky marker that somebody has completed a sign-in on this handset.
+  ///
+  /// Only the login screen's greeting reads it: a device that has never been
+  /// signed into is not owed "welcome back". Deliberately NOT cleared by
+  /// [clearSession] — signing out does not make the device new again, and the
+  /// greeting would be a lie on the very next launch if it did.
+  ///
+  /// Cached in memory for the same reason as [isChildDevice]: `LoginScreen`
+  /// picks its hero on the first frame and must not flash the wrong one.
+  /// Populated by [loadSession].
+  bool _hasSignedInBefore = false;
+  bool get hasSignedInBefore => _hasSignedInBefore;
+
   Future<void> saveSession({
     required String userId,
     required String username,
@@ -85,13 +99,16 @@ class SessionStore {
     await _storage.write(key: _kUsername, value: username);
     await _storage.write(key: _kName, value: name);
     await _storage.write(key: _kAccountType, value: accountType.wire);
+    _hasSignedInBefore = true;
+    await _storage.write(key: _kHasSignedIn, value: 'true');
     if (accountType == AccountType.child) await markChildDevice();
   }
 
   Future<Session?> loadSession() async {
-    // Read the marker first — the login screen needs it even when there is
-    // no session left to restore.
+    // Read the markers first — the login screen needs both of them even when
+    // there is no session left to restore.
     _isChildDevice = (await _read(_kChildDevice)) == 'true';
+    _hasSignedInBefore = (await _read(_kHasSignedIn)) == 'true';
     final id = await _read(_kUserId);
     if (id == null || id.isEmpty) return null;
     final username = await _read(_kUsername) ?? '';
@@ -125,6 +142,9 @@ class SessionStore {
     await _storage.delete(key: _kChildDevice);
   }
 
+  /// Note what is absent: `_kChildDevice` (see [clearChildDevice]) and
+  /// `_kHasSignedIn` (see [hasSignedInBefore]). Both describe the handset
+  /// rather than the session, and both must outlive a sign-out.
   Future<void> clearSession() async {
     await _storage.delete(key: _kUserId);
     await _storage.delete(key: _kUsername);

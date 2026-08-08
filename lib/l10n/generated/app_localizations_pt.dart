@@ -1779,6 +1779,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginScreenSignInHeroInk => 'de volta.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'olá\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'tudo bem.';
+
+  @override
   String get loginScreenSignInCta => 'ENTRAR';
 
   @override
@@ -3662,9 +3668,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get viewOnceViewerSocialDividerOr => 'ou';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Continuar com a Apple';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
@@ -7321,6 +7324,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get loginScreenSignInHeroInk => 'de volta.';
 
   @override
+  String get loginScreenSignInFirstHeroMuted => 'olá\n';
+
+  @override
+  String get loginScreenSignInFirstHeroInk => 'tudo bem.';
+
+  @override
   String get loginScreenSignInCta => 'ENTRAR';
 
   @override
@@ -9204,9 +9213,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get viewOnceViewerSocialDividerOr => 'ou';
-
-  @override
-  String get viewOnceViewerAppleContinueButton => 'Continuar com a Apple';
 
   @override
   String get viewOnceViewerGoogleContinueButton => 'Continuar com o Google';
