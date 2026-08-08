@@ -619,7 +619,33 @@ validate_environment
 # ----- Convex deploy -----
 # IMPORTANT: must run from backend/ — MonkeyHub's convex/ lives there.
 if [ "$RUN_CONVEX" = true ]; then
-    convex_deploy() { (cd backend && npx convex deploy); }
+    # Retried, because this step fails transiently and takes the whole run with
+    # it — including iOS/Android builds already queued behind it.
+    #
+    # The observed failure is the backend answering evaluate_push with
+    # "Function execution timed out (maximum duration: 1s)" plus a Node TLS
+    # "self-signed certificate", on a push that succeeds unchanged seconds
+    # later. Module evaluation has a hard 1s budget, and this deployment now
+    # has a `use node` module (backend/convex/webPush.ts — Web Push needs ECDH,
+    # which the V8 isolate lacks), so a cold Node runner can blow it.
+    #
+    # Deliberately NOT retried forever: three attempts distinguishes a blip
+    # from a genuine schema or type error, which no amount of retrying fixes.
+    convex_deploy() {
+        local attempt=1
+        while true; do
+            if (cd backend && npx convex deploy); then
+                return 0
+            fi
+            if [ "$attempt" -ge 3 ]; then
+                echo "   convex deploy failed $attempt times — not transient." >&2
+                return 1
+            fi
+            echo "   convex deploy attempt $attempt failed; retrying in 10s…" >&2
+            attempt=$((attempt + 1))
+            sleep 10
+        done
+    }
     run_with_spinner "Deploying Convex backend" convex_deploy
 fi
 
