@@ -186,42 +186,54 @@ class _TileShell extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(theme.radiusLg),
-              border: Border.all(color: theme.divider),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      preview,
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: GameInfoButton(onTap: onInfo),
-                      ),
-                    ],
-                  ),
+          // The ⓘ hangs off the card, not off the preview inside it. Its tap
+          // box is far wider than the glyph, and a box that overhangs the
+          // Stack it lives in is not hit-tested at all — parented to the
+          // preview it would have lost every tap that landed on the padding.
+          child: Stack(
+            // The disc hangs over the card's corner, so the Stack must not
+            // trim what its children paint outside it.
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  borderRadius: BorderRadius.circular(theme.radiusLg),
+                  border: Border.all(color: theme.divider),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: theme.bodyEmph,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AspectRatio(aspectRatio: 1, child: preview),
+                    const SizedBox(height: 10),
+                    Text(
+                      title,
+                      style: theme.bodyEmph,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    status,
+                  ],
                 ),
-                const SizedBox(height: 3),
-                status,
-              ],
-            ),
+              ),
+              // Box pinned flush to the corner and pointing inward, glyph
+              // pushed the other way — the target keeps the whole corner of
+              // the card, and the disc still reads as sitting on its edge.
+              // The Wrap around these tiles leaves a 12pt gutter, so 6pt of
+              // overhang clears the neighbour.
+              Positioned(
+                top: 0,
+                right: 0,
+                child: GameInfoButton(
+                  onTap: onInfo,
+                  glyphAlignment: Alignment.topRight,
+                  glyphOffset: const Offset(6, -6),
+                ),
+              ),
+            ],
           ),
         ),
       ),

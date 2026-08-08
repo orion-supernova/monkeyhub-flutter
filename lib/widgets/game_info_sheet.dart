@@ -58,46 +58,81 @@ Future<void> showCodePuzzleInfo(BuildContext context) {
 /// children are tested before their parents — and the tile still opens from
 /// everywhere else.
 class GameInfoButton extends StatelessWidget {
-  const GameInfoButton({super.key, required this.onTap, this.size = 26});
+  const GameInfoButton({
+    super.key,
+    required this.onTap,
+    this.size = 34,
+    this.tapSize = 44,
+    this.glyphAlignment = Alignment.center,
+    this.glyphOffset = Offset.zero,
+  });
 
   final VoidCallback onTap;
 
-  /// The tap target. The glyph inside scales with it, but the target itself is
-  /// what matters on the Feed band, where the tile is barely wider than a
-  /// thumb.
+  /// How big the glyph is drawn — a separate question from how big it is to a
+  /// thumb, and the only one the eye answers.
   final double size;
+
+  /// How big the glyph is to a thumb, which is a different number entirely.
+  /// The 26pt disc these tiles want visually is nowhere near a target anyone
+  /// can hit on the first try, so the target is a transparent box around it.
+  ///
+  /// Callers must leave this box room inside whatever hit-tests it: a box that
+  /// hangs off the edge of its parent is invisible to hit testing, not merely
+  /// clipped, which is exactly how the old ⓘ ended up half the size it looked.
+  final double tapSize;
+
+  /// Where the glyph sits inside that box. Centred by default; corner-aligned
+  /// where the box has to be pushed inward to stay in bounds and the glyph
+  /// still belongs on the corner.
+  final Alignment glyphAlignment;
+
+  /// Nudges the glyph off the corner it is aligned to — paint only, so the box
+  /// underneath does not move out of the bounds it has to stay inside. Lets the
+  /// disc hang over the edge of the tile like a badge pinned to it, which is
+  /// also how it reads as belonging to the tile rather than to the board art.
+  ///
+  /// The Stack it sits in needs [Clip.none] or the overhang is cut off.
+  final Offset glyphOffset;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final box = tapSize < size ? size : tapSize;
     return FocusableTap(
       onTap: onTap,
       semanticLabel: l10n.gameInfoOpen,
       shape: FocusRingShape.circle,
-      radius: size / 2,
+      radius: box / 2,
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
-          width: size,
-          height: size,
-          child: Center(
-            child: Container(
-              width: size * 0.72,
-              height: size * 0.72,
-              decoration: BoxDecoration(
-                // Painted onto a board, so it needs its own ground to stay
-                // legible over eight different region colours.
-                color: theme.background.withValues(alpha: 0.82),
-                shape: BoxShape.circle,
-                border: Border.all(color: theme.divider),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                Icons.question_mark,
-                size: size * 0.40,
-                color: theme.inkSoft,
+          width: box,
+          height: box,
+          child: Align(
+            alignment: glyphAlignment,
+            child: Transform.translate(
+              offset: glyphOffset,
+              child: Container(
+                width: size * 0.72,
+                height: size * 0.72,
+                decoration: BoxDecoration(
+                  // Solid, not a tint. It is painted onto a board of eight
+                  // region colours and across the tile's own outline, and a
+                  // translucent disc would carry that border line through its
+                  // middle.
+                  color: theme.background,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: theme.divider),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.question_mark,
+                  size: size * 0.40,
+                  color: theme.inkSoft,
+                ),
               ),
             ),
           ),

@@ -124,6 +124,141 @@ void main() {
     expect(opened, 0);
   });
 
+  // The two below are the reason the ⓘ's tap box is a separate number from its
+  // glyph. Both tap a point that is nowhere near the 26pt disc but well inside
+  // the box around it — and, crucially, a point the old layout could not reach
+  // at all: the box used to hang off its Stack, and a hit outside a Stack's
+  // bounds is never offered to the child sitting there. The glyph looked like
+  // the target; roughly a quarter of it actually was one.
+  testWidgets('the hub ⓘ takes a tap short of the glyph', (tester) async {
+    var opened = 0;
+    await tester.pumpWidget(
+      host(
+        GameTile(
+          game: DailyGame.queens,
+          boards: boards,
+          width: 170,
+          onTap: () => opened++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Up in the card's padding, left of the disc — over the tile's own tap
+    // region, which used to win this one and open the board.
+    final tile = tester.getRect(find.byType(GameTile));
+    await tester.tapAt(Offset(tile.right - 30, tile.top + 6));
+    await tester.pumpAndSettle();
+
+    expect(find.text('THE RULES'), findsOneWidget);
+    expect(opened, 0);
+  });
+
+  testWidgets('the Feed band ⓘ takes a tap short of the glyph', (tester) async {
+    var opened = 0;
+    await tester.pumpWidget(
+      host(
+        SizedBox(
+          width: 340,
+          child: GamesStrip(
+            boards: boards,
+            results: const {},
+            onOpen: (_) => opened++,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Well below the disc, onto the board itself: on a tile this small the
+    // whole top-right corner has to open the rules or nothing does.
+    final tile = tester.getRect(find.byKey(const ValueKey('strip_zip')));
+    await tester.tapAt(Offset(tile.right - 12, tile.top + 30));
+    await tester.pumpAndSettle();
+
+    expect(find.text('start on 1 and finish on the last number.'),
+        findsOneWidget);
+    expect(opened, 0);
+  });
+
+  // The disc is meant to hang off the corner of the tile rather than sit
+  // inside it. It is a Stack child painting outside its parent's bounds, which
+  // survives only as long as the Stack stays Clip.none — flip that back and
+  // the overhang is trimmed with nothing else to show for it.
+  Clip clipOf(WidgetTester tester, Finder button) => tester
+      .widget<Stack>(
+        find.ancestor(of: button, matching: find.byType(Stack)).first,
+      )
+      .clipBehavior;
+
+  final disc = find.descendant(
+    of: find.byType(GameInfoButton),
+    matching: find.byWidgetPredicate(
+      (w) =>
+          w is Container &&
+          w.decoration is BoxDecoration &&
+          (w.decoration! as BoxDecoration).shape == BoxShape.circle,
+    ),
+  );
+
+  testWidgets('the hub ⓘ hangs off the corner of its tile', (tester) async {
+    await tester.pumpWidget(
+      host(
+        GameTile(
+          game: DailyGame.queens,
+          boards: boards,
+          width: 170,
+          onTap: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tile = tester.getRect(find.byType(GameTile));
+    final glyph = tester.getRect(disc);
+
+    expect(glyph.right, greaterThan(tile.right));
+    expect(glyph.top, lessThan(tile.top));
+    // Over the edge, not off the tile: the Wrap's gutter is 12.
+    expect(glyph.right - tile.right, lessThan(12));
+    // Geometry alone would not notice the overhang being clipped away —
+    // getRect reports where a child lays out, not what survives to the screen.
+    expect(clipOf(tester, find.byType(GameInfoButton)), Clip.none);
+  });
+
+  testWidgets('the Feed band ⓘ hangs off its tile too', (tester) async {
+    await tester.pumpWidget(
+      host(
+        SizedBox(
+          width: 340,
+          child: GamesStrip(
+            boards: boards,
+            results: const {},
+            onOpen: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tile = tester.getRect(
+      find.descendant(
+        of: find.byKey(const ValueKey('strip_zip')),
+        matching: find.byType(AspectRatio),
+      ),
+    );
+    final glyph = tester.getRect(disc.at(DailyGame.zip.index));
+
+    expect(glyph.right, greaterThan(tile.right));
+    expect(glyph.top, lessThan(tile.top));
+    // The strip's own gutter is 8.
+    expect(glyph.right - tile.right, lessThan(8));
+    expect(
+      clipOf(tester, find.byType(GameInfoButton).at(DailyGame.zip.index)),
+      Clip.none,
+    );
+  });
+
   testWidgets('the code puzzle explains its own scoring', (tester) async {
     await tester.pumpWidget(
       host(

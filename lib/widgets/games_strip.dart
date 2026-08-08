@@ -94,40 +94,51 @@ class _StripTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            AspectRatio(
-              aspectRatio: 1,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  borderRadius: BorderRadius.circular(theme.radiusMd),
-                  border: Border.all(
-                    // A solved board wears the accent. Four identical outlines
-                    // would make "how am I doing today" a thing you read rather
-                    // than a thing you see.
-                    color: done && (row?.solved ?? false)
-                        ? theme.accent
-                        : theme.divider,
-                  ),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _preview(theme),
-                    Positioned(
-                      // Hangs off the corner of a tile that is barely wider
-                      // than a thumb, so the glyph stays small while the tap
-                      // target keeps its full size.
-                      top: -8,
-                      right: -8,
-                      child: GameInfoButton(
-                        onTap: () => showGameInfo(context, game),
-                        size: 24,
+            Stack(
+              // The disc hangs over the tile's corner, into the gutter between
+              // tiles and the 12pt under the section rule.
+              clipBehavior: Clip.none,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: theme.surface,
+                      borderRadius: BorderRadius.circular(theme.radiusMd),
+                      border: Border.all(
+                        // A solved board wears the accent. Four identical
+                        // outlines would make "how am I doing today" a thing
+                        // you read rather than a thing you see.
+                        color: done && (row?.solved ?? false)
+                            ? theme.accent
+                            : theme.divider,
                       ),
                     ),
-                  ],
+                    child: _preview(theme),
+                  ),
                 ),
-              ),
+                // The whole top-right corner of the tile opens the rules. The
+                // tile here is barely wider than a thumb, so the glyph has to
+                // stay small — but the box around it does not, and it has to
+                // sit inside the tile rather than overhang it, because a tap
+                // outside a Stack's bounds never reaches the child under it.
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: GameInfoButton(
+                    onTap: () => showGameInfo(context, game),
+                    // A step under the hub's, like everything else on the
+                    // band, and hanging 5pt off the corner it is pinned to.
+                    size: 30,
+                    // Short of the 44 the hub tile can afford: past this, the
+                    // corner starts eating the taps meant to open the board.
+                    tapSize: 40,
+                    glyphAlignment: Alignment.topRight,
+                    glyphOffset: const Offset(5, -5),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Text(
