@@ -19,11 +19,21 @@ class RoomFilterBar extends StatelessWidget {
     required this.filter,
     required this.counts,
     required this.onChanged,
+    this.gutter = 20,
   });
 
   final RoomFilter filter;
   final RoomFacetCounts counts;
   final ValueChanged<RoomFilter> onChanged;
+
+  /// The page margin the row lines up with at rest.
+  ///
+  /// The bar itself must be laid out full-bleed and apply this itself, rather
+  /// than being handed an already-inset box: as leading and trailing scroll
+  /// padding the first and last chip still start and end on the page margin,
+  /// but the ones in between run to the screen edge and slide off it instead of
+  /// vanishing at an invisible wall 20pt in.
+  final double gutter;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +50,7 @@ class RoomFilterBar extends StatelessWidget {
       height: scaled,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
+        padding: EdgeInsets.symmetric(horizontal: gutter),
         physics: const BouncingScrollPhysics(),
         children: [
           // 'all' is a reset, not a facet — it reads active precisely when

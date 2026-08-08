@@ -169,6 +169,35 @@ void main() {
     });
 
     testWidgets('"unread" sits directly after the "all" reset', (tester) async {
+      // Laid out on a surface the whole row fits on. Comparing offsets needs
+      // every chip built in one frame, and at a phone width the later ones fall
+      // outside the viewport's cache band and are never built at all — which
+      // made this assertion a hostage to how much of the row happened to fit.
+      tester.view.physicalSize = const Size(1600, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        host(
+          RoomFilterBar(
+            filter: RoomFilter.empty,
+            counts: counts,
+            onChanged: (_) {},
+          ),
+          width: 1400,
+        ),
+      );
+      final all = tester.getTopLeft(find.text('all')).dx;
+      final unread = tester.getTopLeft(find.text('unread')).dx;
+      final dms = tester.getTopLeft(find.text('dms')).dx;
+      expect(unread, greaterThan(all));
+      expect(unread, lessThan(dms));
+    });
+
+    testWidgets('the daily-driver "unread" needs no scrolling on a phone', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         host(
           RoomFilterBar(
@@ -178,12 +207,10 @@ void main() {
           ),
         ),
       );
-      // The daily-driver facet has to be reachable without scrolling the row.
-      final all = tester.getTopLeft(find.text('all')).dx;
-      final unread = tester.getTopLeft(find.text('unread')).dx;
-      final dms = tester.getTopLeft(find.text('dms')).dx;
-      expect(unread, greaterThan(all));
-      expect(unread, lessThan(dms));
+      // `.hitTestable()`, not a plain find: the row's leading gutter shifts every
+      // chip inward, and a chip parked in the cache band past the right edge is
+      // findable while being neither visible nor tappable.
+      expect(find.text('unread').hitTestable(), findsOneWidget);
     });
 
     testWidgets('"all" clears an active filter', (tester) async {

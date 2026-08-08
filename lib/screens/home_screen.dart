@@ -25,6 +25,12 @@ import 'navigation/open_room.dart';
 import 'create_room_sheet.dart';
 import 'profile_screen.dart';
 
+/// The page margin every element on this screen lines up with.
+///
+/// Carried per child rather than by the scroll view, because the filter chip
+/// row has to be laid out edge to edge and inset itself.
+const _gutter = EdgeInsets.symmetric(horizontal: 20);
+
 /// Your conversations, and nothing else.
 ///
 /// Discover (public rooms) and Friends used to live here as sibling tabs, above
@@ -190,12 +196,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                 ),
                 Expanded(
+                  // No horizontal padding here — the chip row has to reach the
+                  // screen edge to scroll off it, so the page margin lives on
+                  // each child instead of on the viewport.
                   child: ListView(
                     key: const PageStorageKey('home_main_list'),
                     padding: const EdgeInsets.fromLTRB(
-                      20,
+                      0,
                       14,
-                      20,
+                      0,
                       kFloatingNavClearance,
                     ),
                     children: [
@@ -205,6 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       // as part of the list's own header, not as chrome. Only
                       // the header above stays pinned.
                       if (chipsStyle) ...[
+                        // Not wrapped in `_gutter` on purpose: it takes the full
+                        // width and applies the margin as scroll padding.
                         RoomFilterBar(
                           filter: filter,
                           counts: counts,
@@ -218,27 +229,37 @@ class _HomeScreenState extends State<HomeScreen> {
                       // filter persists, so a cold start really can open onto a
                       // short list with no visible reason for it.
                       if (filter.isNotEmpty)
-                        ActiveFilterCue(
-                          filter: filter,
-                          matchCount: visibleRooms.length,
-                          onClear: _clearFilter,
+                        Padding(
+                          padding: _gutter,
+                          child: ActiveFilterCue(
+                            filter: filter,
+                            matchCount: visibleRooms.length,
+                            onClear: _clearFilter,
+                          ),
                         ),
                       if (!chipsStyle)
-                        RoomFilterPanel(
-                          filter: filter,
-                          counts: counts,
-                          expanded: _filterExpanded,
-                          onChanged: _setFilter,
-                          onDone: () => setState(() => _filterExpanded = false),
+                        Padding(
+                          padding: _gutter,
+                          child: RoomFilterPanel(
+                            filter: filter,
+                            counts: counts,
+                            expanded: _filterExpanded,
+                            onChanged: _setFilter,
+                            onDone: () =>
+                                setState(() => _filterExpanded = false),
+                          ),
                         ),
                       const SizedBox(height: 14),
-                      _RoomsPanel(
-                        repo: widget.repo,
-                        api: widget.api,
-                        filter: filter,
-                        allRooms: allRooms,
-                        rooms: visibleRooms,
-                        onClearFilter: _clearFilter,
+                      Padding(
+                        padding: _gutter,
+                        child: _RoomsPanel(
+                          repo: widget.repo,
+                          api: widget.api,
+                          filter: filter,
+                          allRooms: allRooms,
+                          rooms: visibleRooms,
+                          onClearFilter: _clearFilter,
+                        ),
                       ),
                     ],
                   ),
