@@ -22,27 +22,52 @@ class NativeVideoPlayer {
 
   static const _channel = MethodChannel('monkeyhub/video');
 
+  /// Forces [supported] either way, so the handoff decision can be exercised
+  /// under `flutter test` — which reports neither iOS nor Android, and would
+  /// otherwise send every test down the unsupported branch. Null asks the
+  /// platform, which is what every non-test caller gets.
+  @visibleForTesting
+  static bool? debugSupportedOverride;
+
   /// kIsWeb is const, so the `&&` short-circuits before `Platform` (dart:io),
   /// which throws on web. Same guard `CaptureProtection` uses.
-  static bool get supported => !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  static bool get supported =>
+      debugSupportedOverride ??
+      (!kIsWeb && (Platform.isIOS || Platform.isAndroid));
 
   /// Presents the OS player over the app and resolves once it is on screen —
   /// NOT when the user closes it. The native surface owns its own dismissal
   /// from that point on; the caller's job is only to get out of the way.
   ///
-  /// [secure] asks the platform to block screenshots and screen recording of
-  /// the player (Android's FLAG_SECURE). It has no iOS equivalent, which is
-  /// why callers there decline the handoff outright rather than pass `true` —
-  /// see the note at the call site in `fullscreen_video_viewer.dart`.
+  /// [secure] asks the platform to keep the video away from a screen recording,
+  /// and the two platforms honour it by different means because only one of
+  /// them can prevent capture at all. Android sets FLAG_SECURE and the frames
+  /// simply never reach the recording. iOS has no such flag, so it does what
+  /// the Flutter `CaptureShield` does: watches `UIScreen.isCaptured` and covers
+  /// the player while a recording or AirPlay mirror is live. Detection instead
+  /// of prevention — weaker, and the same weakness the Dart shield already has.
+  ///
+  /// [shieldTitle] and [shieldBody] are that cover's copy. They are passed down
+  /// rather than written in Swift because the strings live in the app's
+  /// localizations, in twelve languages; the native side has no access to them
+  /// and hardcoding English would be the one screen that stops translating.
+  /// Only iOS reads them, and only when [secure] is set.
   ///
   /// Returns false if the platform declined, the channel is missing (a build
   /// where the native half didn't land), or anything threw.
-  static Future<bool> present({required String url, bool secure = false}) async {
+  static Future<bool> present({
+    required String url,
+    bool secure = false,
+    String? shieldTitle,
+    String? shieldBody,
+  }) async {
     if (!supported) return false;
     try {
       final ok = await _channel.invokeMethod<bool>('present', {
         'url': url,
         'secure': secure,
+        'shieldTitle': shieldTitle,
+        'shieldBody': shieldBody,
       });
       return ok == true;
     } on MissingPluginException {

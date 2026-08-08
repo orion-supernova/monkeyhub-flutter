@@ -891,6 +891,9 @@ import flutter_callkit_incoming
           result(false)
           return
         }
+        let secure = (args["secure"] as? Bool) ?? false
+        let shieldTitle = args["shieldTitle"] as? String
+        let shieldBody = args["shieldBody"] as? String
         // Presentation is main-thread-only, and the channel handler is already
         // on it — the hop is for the case where it isn't (a background
         // isolate's messenger), not ceremony.
@@ -903,6 +906,13 @@ import flutter_callkit_incoming
           let controller = _VideoPlayerViewController()
           controller.player = AVPlayer(url: url)
           controller.modalPresentationStyle = .fullScreen
+          // Set before presentation so a recording that is ALREADY running when
+          // the video opens is caught by the initial check in viewDidLoad. The
+          // notification only fires on a change, so a player presented into an
+          // in-progress capture would otherwise start unshielded.
+          controller.shieldsAgainstCapture = secure
+          controller.shieldTitle = shieldTitle
+          controller.shieldBody = shieldBody
           // The chat is already showing this video's poster; a second entrance
           // animation on top of the Flutter route's own fade reads as a stutter.
           host.present(controller, animated: false) {
@@ -1041,6 +1051,127 @@ import flutter_callkit_incoming
 /// and keeps the audio session (and its decoder) alive, which is audible: back
 /// out of a video and it goes on playing over the transcript.
 private class _VideoPlayerViewController: AVPlayerViewController {
+  /// Whether this player covers itself while the screen is being recorded or
+  /// mirrored. Set from the `secure` channel argument.
+  ///
+  /// iOS has no FLAG_SECURE, so this cannot *prevent* a capture the way Android
+  /// does — it detects one and hides the content, which is the same bargain the
+  /// Dart `CaptureShield` strikes for the rest of the app. Worth being honest
+  /// about the gap: frames between the capture starting and the notification
+  /// arriving are not recoverable, and nothing on this platform closes that.
+  var shieldsAgainstCapture = false
+
+  /// Localized copy for the cover, handed down from Dart (see NativeVideoPlayer).
+  var shieldTitle: String?
+  var shieldBody: String?
+
+  private var shield: UIView?
+  private var resumeAfterShield = false
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    guard shieldsAgainstCapture else { return }
+    // Two ways the video walks out from behind the shield. Picture-in-Picture
+    // floats it into a system window this controller does not own and cannot
+    // cover; external playback hands the stream to an AirPlay receiver without
+    // ever setting `isCaptured`, so the shield would not even know to raise.
+    // Neither is worth keeping while protection is on.
+    allowsPictureInPicturePlayback = false
+    player?.allowsExternalPlayback = false
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(_capturedDidChange),
+      name: UIScreen.capturedDidChangeNotification,
+      object: nil
+    )
+    // The notification fires on a CHANGE, so a capture already in progress when
+    // this player opens would never announce itself. Ask once, up front.
+    _applyCaptureState()
+  }
+
+  @objc private func _capturedDidChange() {
+    _applyCaptureState()
+  }
+
+  private func _applyCaptureState() {
+    UIScreen.main.isCaptured ? _raiseShield() : _dropShield()
+  }
+
+  private func _raiseShield() {
+    guard shield == nil, isViewLoaded else { return }
+    // Pause AND cover, because either alone leaks. A covered player keeps
+    // sending audio to the recording; a paused one still shows the frame it
+    // stopped on.
+    resumeAfterShield = player?.timeControlStatus != .paused
+    player?.pause()
+    // The controls come off rather than being covered: the scrubber renders
+    // preview thumbnails of the video above the content overlay, and a
+    // filmstrip of the frames is precisely what must not survive the shield.
+    showsPlaybackControls = false
+
+    let cover = UIView(frame: view.bounds)
+    cover.backgroundColor = .black
+    cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+
+    let icon = UIImageView(image: UIImage(systemName: "eye.slash"))
+    icon.tintColor = .white
+    icon.contentMode = .scaleAspectFit
+
+    let stack = UIStackView(arrangedSubviews: [icon])
+    stack.axis = .vertical
+    stack.alignment = .center
+    stack.spacing = 12
+    stack.translatesAutoresizingMaskIntoConstraints = false
+
+    if let text = shieldTitle, !text.isEmpty {
+      let label = UILabel()
+      // Matches the letter-spacing the Dart shield gives the same word, so the
+      // two protected states read as one design rather than two.
+      label.attributedText = NSAttributedString(
+        string: text,
+        attributes: [.kern: 2.4, .foregroundColor: UIColor.white]
+      )
+      label.font = .systemFont(ofSize: 13, weight: .semibold)
+      stack.addArrangedSubview(label)
+    }
+    if let text = shieldBody, !text.isEmpty {
+      let label = UILabel()
+      label.text = text
+      label.font = .systemFont(ofSize: 15)
+      label.textColor = UIColor.white.withAlphaComponent(0.7)
+      label.textAlignment = .center
+      label.numberOfLines = 0
+      stack.addArrangedSubview(label)
+    }
+
+    cover.addSubview(stack)
+    // Added to `view` rather than `contentOverlayView`, which is the sanctioned
+    // place for custom content but sits UNDER anything AVKit draws. A shield
+    // that something can be drawn on top of is not a shield.
+    view.addSubview(cover)
+    NSLayoutConstraint.activate([
+      icon.heightAnchor.constraint(equalToConstant: 32),
+      stack.centerXAnchor.constraint(equalTo: cover.centerXAnchor),
+      stack.centerYAnchor.constraint(equalTo: cover.centerYAnchor),
+      stack.leadingAnchor.constraint(
+        greaterThanOrEqualTo: cover.leadingAnchor, constant: 32),
+      stack.trailingAnchor.constraint(
+        lessThanOrEqualTo: cover.trailingAnchor, constant: -32),
+    ])
+    shield = cover
+  }
+
+  private func _dropShield() {
+    guard let cover = shield else { return }
+    cover.removeFromSuperview()
+    shield = nil
+    showsPlaybackControls = true
+    // Only resume what the shield actually interrupted — a video the user had
+    // already paused should stay paused when they stop recording.
+    if resumeAfterShield { player?.play() }
+    resumeAfterShield = false
+  }
+
   override func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
     // Only on a real dismissal — a Picture-in-Picture handoff or a pushed

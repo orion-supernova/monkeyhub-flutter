@@ -1,9 +1,8 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../media/file_url_cache.dart';
 import '../media/native_video_player.dart';
 import '../media/video_file_cache.dart';
@@ -21,6 +20,16 @@ import '../widgets/video_message.dart' show VideoPlayerSurface;
 /// a platform that declined, a URL that wouldn't resolve — plus the poster
 /// backdrop that covers the resolve so a tap has something to land on rather
 /// than a frozen transcript.
+///
+/// Capture protection does NOT send the video back here, though it used to.
+/// The reasoning was that iOS has no FLAG_SECURE and the Dart `CaptureShield`
+/// cannot cover a UIKit controller presented above the engine — true, but the
+/// conclusion was wrong twice over. A user who leaves the protection toggle on
+/// never sees the OS player at all, which is most of what this route exists
+/// for; and the cache never filled either, because the download lives in
+/// `_source` behind a handoff that was being skipped, so every open re-streamed
+/// from scratch. The native player now carries its own shield instead, off the
+/// same `UIScreen.isCaptured` signal the Dart one uses.
 ///
 /// On the fallback path: no pinch-zoom (a video has no reason to support one)
 /// and no Hero flight — a `VideoPlayer` texture cannot be flown between routes,
@@ -105,35 +114,24 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
   @override
   void initState() {
     super.initState();
-    // Both conditions are facts already known here, so they are settled as
-    // initial state rather than behind the async handoff. Routed through
-    // `_handoff` they would still be correct, but the route would mount
-    // showing a handoff plate for a handoff that was never going to happen —
-    // a spinner for one frame in front of a player that could have been
-    // rendering already.
-    _fallback = !NativeVideoPlayer.supported || _shieldNeedsFlutterPlayer;
+    // A fact already known here, so it is settled as initial state rather than
+    // behind the async handoff. Routed through `_handoff` it would still be
+    // correct, but the route would mount showing a handoff plate for a handoff
+    // that was never going to happen — a spinner for one frame in front of a
+    // player that could have been rendering already.
+    _fallback = !NativeVideoPlayer.supported;
     if (_fallback) {
       // Every route to the Flutter player says so, because from the outside
       // they are one indistinguishable symptom: "the OS player didn't open".
       // Naming which gate closed is the difference between a setting to turn
       // off and a build to redo.
       debugPrint(
-        'FullscreenVideoViewer: Flutter player — '
-        '${!NativeVideoPlayer.supported ? "platform has no OS player" : "capture protection is active on iOS"}',
+        'FullscreenVideoViewer: Flutter player — platform has no OS player',
       );
       return;
     }
     _handoff();
   }
-
-  /// Android can hand the OS player FLAG_SECURE and be done. iOS has no such
-  /// flag — capture protection there is the Flutter-side CaptureShield overlay,
-  /// which cannot cover a UIKit view controller presented above the engine. So
-  /// while any protection scope is open (an ephemeral room, the user's global
-  /// toggle), iOS keeps the video inside Flutter where the shield still reaches
-  /// it. Losing the system controls is the cheaper half of that trade.
-  bool get _shieldNeedsFlutterPlayer =>
-      CaptureProtection.instance.active && !kIsWeb && Platform.isIOS;
 
   @override
   void dispose() {
@@ -147,12 +145,27 @@ class _FullscreenVideoViewerState extends State<FullscreenVideoViewer> {
   /// below re-resolves (off the same caches) and draws the real diagnosis,
   /// including the retry and the "this file is gone" case.
   Future<void> _handoff() async {
-    final secure = CaptureProtection.instance.active;
     final source = await _source();
     if (!mounted) return;
 
+    // Read after the await, not before: `_handoff` is called from `initState`,
+    // where a State may not yet depend on an inherited widget, and
+    // `AppLocalizations.of` does exactly that. By here the first await has
+    // landed and `mounted` has just been checked, so the lookup is legal.
+    //
+    // Protection is read this late for a different reason — `_source` can sit
+    // on a multi-megabyte download, and the answer that matters is the one at
+    // the moment the player appears, not the one from before the wait.
+    final l = AppLocalizations.of(context);
+    final secure = CaptureProtection.instance.active;
+
     if (source != null &&
-        await NativeVideoPlayer.present(url: source, secure: secure)) {
+        await NativeVideoPlayer.present(
+          url: source,
+          secure: secure,
+          shieldTitle: l.countBadgeProtectedLabel,
+          shieldBody: l.countBadgeCaptureShieldActiveBody,
+        )) {
       // The OS player owns the screen now, and it outlives this route — so
       // closing it returns to the transcript directly instead of to a poster
       // nobody asked for a second look at.
