@@ -46,6 +46,11 @@ void main() {
     'body': [backend, androidRender, web],
     // Which already-delivered notifications to pull back down.
     'dismissIds': [senders, ios, androidRender],
+    // iOS matches a dismiss against this, NOT only against the notification
+    // identifier: the identifier is assigned by iOS from apns-collapse-id and
+    // is not a value we control, whereas this one is. Drop it from the message
+    // payload and deleting a message stops clearing its banner.
+    'messageId': [backend, senders, ios],
     // Absolute unread count. Rides as data on the silent push because a
     // background APNs payload may not carry aps.badge.
     'badge': [backend, ios],
@@ -121,13 +126,20 @@ void main() {
           isTrue);
     });
 
-    test('the silent dismiss push is a background push at priority 5', () {
-      // Apple documents apns-push-type: background as requiring
-      // content-available and forbidding alert/badge/sound, at priority 5.
+    test('the silent dismiss push carries a badge, so it is not throttled', () {
+      // This is the only thing that takes a deleted message's banner off a
+      // lock screen, and a payload with ONLY content-available is a pure
+      // background push — the most throttled class iOS has, and never
+      // delivered at all to a force-quit app. A badge makes it an `alert`
+      // push, which is prompt, while still displaying nothing because there
+      // is no alert or sound key. Shipping it as `background` once already
+      // broke this feature in production.
       final src = source(backend);
-      expect(src.contains('"background"'), isTrue);
-      expect(src.contains('"content-available"'), isTrue);
-      expect(src.contains('"5"'), isTrue);
+      expect(src.contains('"content-available": 1, badge: spec.badge'), isTrue,
+          reason: 'the dismiss payload must keep its aps badge');
+      expect(src.contains('pushType: "alert"'), isTrue);
+      expect(src.contains('"background"'), isFalse,
+          reason: 'no push here may be sent as apns-push-type: background');
     });
 
     test('dismissIds crosses the wire as JSON, not an array', () {

@@ -94,13 +94,24 @@ function clamp(s: string, max: number): string {
  */
 export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
   if (spec.kind === "dismiss") {
-    // Apple documents `apns-push-type: background` as requiring
-    // content-available and FORBIDDING alert/badge/sound. APNs is lenient in
-    // practice, but a payload that only works by leniency is one behaviour
-    // change away from breaking. The badge therefore rides as a data key and
-    // AppDelegate applies it — same result on screen, compliant on the wire.
+    // Carries a badge, and that is load-bearing rather than incidental.
+    //
+    // A payload with ONLY content-available is a pure background push: the
+    // most aggressively throttled class iOS has, undelivered entirely to a
+    // force-quit app, and "delivered at a time of the system's choosing"
+    // otherwise. This push is the only thing that takes a deleted message's
+    // banner off a lock screen, so throttling it is throttling the feature.
+    //
+    // A badge makes it a legitimate `alert`-type push instead — prompt and
+    // reliable — while still displaying nothing at all, because there is no
+    // alert or sound key. That is exactly what the previous push vendor sent
+    // (ios_badgeType: "SetTo"), and why this used to work.
+    //
+    // content-available stays so didReceiveRemoteNotification still runs and
+    // can do the removal. The badge is duplicated as a data key for Android
+    // and web, which have no `aps`.
     return {
-      aps: { "content-available": 1 },
+      aps: { "content-available": 1, badge: spec.badge },
       ...spec.data,
       badge: String(spec.badge),
     };
@@ -373,8 +384,12 @@ async function alertToDevice(
         token: d.apnsToken,
         env: d.apnsEnv,
         topicSuffix: "",
-        pushType: spec.kind === "dismiss" ? "background" : "alert",
-        priority: spec.kind === "dismiss" ? "5" : "10",
+        // Every kind is an `alert` push, including the invisible dismiss —
+        // see buildApnsBody on why that one carries a badge. `background` at
+        // priority 5 is the throttled path, and a dismissal nobody receives
+        // is a message whose banner outlives it.
+        pushType: "alert",
+        priority: "10",
         expiration: Math.floor(Date.now() / 1000) + ttl,
         collapseId: spec.collapseId,
         body: buildApnsBody(spec),

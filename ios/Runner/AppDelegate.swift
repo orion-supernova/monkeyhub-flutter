@@ -1019,25 +1019,47 @@ import flutter_callkit_incoming
       }
     }
 
+    // Fast path: APNs makes `apns-collapse-id` the delivered notification's
+    // identifier, so removing by messageId usually just works.
     if !ids.isEmpty {
       center.removeDeliveredNotifications(withIdentifiers: ids)
     }
 
-    // Room-level sweep (sent when the user reads the room elsewhere).
-    // removeDeliveredNotifications is asynchronous and fire-and-forget, so we
-    // must not resolve the completion handler until the enumeration is done —
-    // otherwise iOS can suspend us mid-removal.
-    if let roomId, ids.isEmpty {
-      center.getDeliveredNotifications { delivered in
-        let roomIds = delivered
-          .filter { $0.request.content.threadIdentifier == roomId }
-          .map { $0.request.identifier }
-        if !roomIds.isEmpty {
-          center.removeDeliveredNotifications(withIdentifiers: roomIds)
+    // …and then the same job again the hard way, because "usually" is doing a
+    // lot of work in that sentence. The identifier is assigned by iOS from a
+    // header we set; it is not a value we control, and if the mapping ever
+    // fails to hold the removal above silently no-ops — a deleted message's
+    // banner just sits there. The messageId inside the payload IS ours and
+    // cannot drift, so sweeping on it is immune to that.
+    //
+    // One enumeration covers both this and the room-level sweep (sent when the
+    // user reads the room on another device). getDeliveredNotifications is
+    // asynchronous, so the completion handler is resolved inside it — resolve
+    // it earlier and iOS can suspend us mid-removal.
+    let wanted = Set(ids)
+    center.getDeliveredNotifications { delivered in
+      var doomed: [String] = []
+      for n in delivered {
+        let info = n.request.content.userInfo
+        if let mid = info["messageId"] as? String, wanted.contains(mid) {
+          doomed.append(n.request.identifier)
+          continue
         }
-        completionHandler(.newData)
+        if wanted.isEmpty,
+           let roomId,
+           n.request.content.threadIdentifier == roomId {
+          doomed.append(n.request.identifier)
+        }
       }
-    } else {
+      if !doomed.isEmpty {
+        center.removeDeliveredNotifications(withIdentifiers: doomed)
+      }
+      // Deliberately left in. This handler runs in the background where no
+      // debugger is attached, and "did the dismiss push arrive at all" is
+      // otherwise unanswerable from a device.
+      NSLog(
+        "[apns] dismiss: ids=\(ids.count) room=\(roomId ?? "-") delivered=\(delivered.count) removed=\(doomed.count)"
+      )
       completionHandler(.newData)
     }
   }
