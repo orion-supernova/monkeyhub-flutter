@@ -138,7 +138,7 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ChatRowLongPress(
       key: _anchorKey,
       onLongPress: () => _showMenu(context),
       child: RoomCard(

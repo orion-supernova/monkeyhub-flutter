@@ -7,6 +7,7 @@ import '../../backend/feed_api.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
+import '../../theme/interaction.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/glass_close_button.dart';
@@ -703,7 +704,7 @@ class _ReactionPill extends StatelessWidget {
           LongPressGestureRecognizer:
               GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
                 () => LongPressGestureRecognizer(
-                  duration: const Duration(milliseconds: 200),
+                  duration: kReactorsLongPress,
                 ),
                 (instance) => instance.onLongPress = onLongPress,
               ),

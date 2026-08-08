@@ -2,13 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../models/message_reaction.dart';
 import '../theme/app_theme.dart';
+import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
-
-/// Shorter than the platform default (500ms) so peeking at who reacted feels
-/// responsive rather than sluggish to hold for. Deliberately quicker than the
-/// bubble's own hold in message_bubble.dart — a chip is a smaller, lighter
-/// target than the action menu behind the whole message.
-const Duration _reactorsLongPressDuration = Duration(milliseconds: 200);
 
 class ReactionRow extends StatelessWidget {
   const ReactionRow({
@@ -97,8 +92,7 @@ class _ReactionChip extends StatelessWidget {
         ),
         LongPressGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(
-              duration: _reactorsLongPressDuration),
+          () => LongPressGestureRecognizer(duration: kReactorsLongPress),
           (instance) => instance.onLongPress = onLongPress,
         ),
       },

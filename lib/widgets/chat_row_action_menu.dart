@@ -2,13 +2,63 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../theme/interaction.dart';
 import '../theme/theme_scope.dart';
 import 'glass_surface.dart';
 
 enum ChatRowAction { pin, unpin, archive, unarchive }
+
+/// The hold that opens [showChatRowActionMenu] on a chat-list row.
+///
+/// Exists so that a chat row and a message bubble answer a finger on the same
+/// beat and with the same buzz. Before this, the row was a bare
+/// `GestureDetector.onLongPress` — the platform-default 500ms, silent — while
+/// the bubble had already been tuned to [kActionMenuLongPress] with a medium
+/// impact, so the identical gesture felt a fifth of a second stickier and
+/// deader on the list than in the transcript.
+///
+/// [RawGestureDetector] for the same reason `message_bubble.dart` reaches for
+/// one: plain [GestureDetector] has no hook for the long-press duration.
+///
+/// Wrap the row, and give *this* widget the anchor [GlobalKey] the menu is
+/// positioned against — its render object is the row's, so the lifted copy
+/// still lands on the real row's exact rect.
+class ChatRowLongPress extends StatelessWidget {
+  const ChatRowLongPress({
+    super.key,
+    required this.onLongPress,
+    required this.child,
+  });
+
+  final VoidCallback onLongPress;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return RawGestureDetector(
+      gestures: {
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+          () => LongPressGestureRecognizer(duration: kActionMenuLongPress),
+          (instance) => instance.onLongPress = () {
+            // On the trigger, not once the overlay has finished animating in:
+            // the buzz is what tells a finger the hold took and it can let go.
+            // Same impact weight as the bubble's (see room_screen.dart's
+            // `onLongPress` and thread_overlay.dart's `_onLongPressBubble`).
+            HapticFeedback.mediumImpact();
+            onLongPress();
+          },
+        ),
+      },
+      child: child,
+    );
+  }
+}
 
 /// Long-press context menu for a chat-list row.
 ///

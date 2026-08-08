@@ -13,6 +13,7 @@ import '../keyboard/focusable_tap.dart';
 import '../media/media_aspect_cache.dart';
 import '../services/link_preview_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/interaction.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../screens/fullscreen_image_viewer.dart';
@@ -613,11 +614,6 @@ class EphemeralMessageBubble extends StatelessWidget {
   }
 }
 
-/// A shade under the platform default (500ms): the action menu is a deliberate
-/// gesture, so it wants a near-full hold rather than the quicker one the
-/// reaction chips use (see reaction_bubble.dart).
-const Duration _reactionLongPressDuration = Duration(milliseconds: 400);
-
 /// Long-press-for-reactions, double-tap, and right-click-mirrors-long-press
 /// on a single [child], with an explicit long-press duration. Plain
 /// [GestureDetector] has no hook for that duration, so this goes straight to
@@ -640,8 +636,7 @@ class _BubbleGestureDetector extends StatelessWidget {
       gestures: {
         LongPressGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(
-              duration: _reactionLongPressDuration),
+          () => LongPressGestureRecognizer(duration: kActionMenuLongPress),
           (instance) => instance.onLongPress = onLongPress,
         ),
         if (onDoubleTap != null)

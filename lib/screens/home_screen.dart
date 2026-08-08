@@ -762,7 +762,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // left), but pinning and archiving are per-viewer membership flags, and
     // there is no reason a notes-to-self chat can't be unpinned or filed away
     // like the rest of the list.
-    final Widget content = GestureDetector(
+    final Widget content = ChatRowLongPress(
       key: _keyFor(room.id),
       onLongPress: () => _showRowMenu(
         room,
@@ -808,7 +808,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     final repo = widget.repo;
     final api = widget.api;
     // Same menu for every tile, Saved Messages included — see [_row].
-    final Widget content = GestureDetector(
+    final Widget content = ChatRowLongPress(
       key: _keyFor(room.id),
       onLongPress: () => _showRowMenu(
         room,
