@@ -5458,4 +5458,43 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => '채팅 보관 해제';
+
+  @override
+  String get messageActionMenuSaveLabel => '저장';
+
+  @override
+  String get messageActionMenuUnsaveLabel => '저장 해제';
+
+  @override
+  String get roomScreenSaveLimitSnack => '여기 저장한 게 너무 많아요 — 하나를 먼저 해제하세요';
+
+  @override
+  String get roomScreenSaveFailedSnack => '저장할 수 없어요';
+
+  @override
+  String get threadOverlaySaveLimitToast => '여기 저장한 게 너무 많아요 — 하나를 먼저 해제하세요';
+
+  @override
+  String get threadOverlaySaveFailedToast => '저장할 수 없어요';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => '저장한 메시지';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      '이건 나만 볼 수 있고, 이 방에서만 모입니다. 저장한 메시지 채팅과는 별개예요.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      '아직 저장한 게 없어요. 메시지를 길게 누르고 ‘저장’을 선택하세요.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$name님의 저장한 메시지로 이동';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$name님의 메시지 저장 해제';
+  }
 }

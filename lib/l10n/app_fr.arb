@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "ÉPINGLER LE CHAT",
   "chatRowActionMenuUnpinLabel": "DÉSÉPINGLER LE CHAT",
   "chatRowActionMenuArchiveLabel": "ARCHIVER LE CHAT",
-  "chatRowActionMenuUnarchiveLabel": "DÉSARCHIVER LE CHAT"
+  "chatRowActionMenuUnarchiveLabel": "DÉSARCHIVER LE CHAT",
+  "messageActionMenuSaveLabel": "ENREGISTRER",
+  "messageActionMenuUnsaveLabel": "RETIRER",
+  "roomScreenSaveLimitSnack": "trop de messages enregistrés ici — retires-en un d’abord",
+  "roomScreenSaveFailedSnack": "impossible d’enregistrer ça",
+  "threadOverlaySaveLimitToast": "trop de messages enregistrés ici — retires-en un d’abord",
+  "threadOverlaySaveFailedToast": "impossible d’enregistrer ça",
+  "roomInfoScreenSavedMessagesLabel": "MESSAGES ENREGISTRÉS",
+  "roomInfoScreenSavedMessagesCaption": "toi seul peux les voir, et seulement depuis ce salon. ta discussion Messages enregistrés est distincte.",
+  "roomInfoScreenSavedMessagesEmpty": "rien d’enregistré pour l’instant. maintiens un message et choisis ENREGISTRER.",
+  "roomInfoScreenSavedMessageJumpSemantic": "Aller au message enregistré de {name}",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "Retirer des enregistrés le message de {name}"
 }

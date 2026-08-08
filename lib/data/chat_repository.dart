@@ -11,6 +11,7 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
+import '../models/message_bookmark.dart';
 import '../models/pending_upload.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_pin.dart';
@@ -203,6 +204,7 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _activeTypingSub;
   Subscription? _readStateSub;
   Subscription? _pinsSub;
+  Subscription? _bookmarksSub;
 
   /// Pinned messages, keyed by room.
   ///
@@ -211,6 +213,15 @@ class ChatRepository extends ChangeNotifier {
   /// entered. `_activeReadState` is the counter-example this avoids — it is not
   /// keyed, which is why `openRoom` has to clear it by hand.
   final Map<String, List<RoomPin>> _pins = {};
+
+  /// This viewer's saved messages, keyed by room. Room-keyed for the same
+  /// reason [_pins] is.
+  ///
+  /// Only ever holds the SIGNED-IN user's bookmarks — the query is keyed by
+  /// (room, viewer), so there is no other reader's data in here to leak into a
+  /// menu. [detach] still clears it, because the next account's rooms are not
+  /// this one's.
+  final Map<String, List<MessageBookmark>> _bookmarks = {};
   Timer? _typingHeartbeat;
   bool _typingActive = false;
 
@@ -551,6 +562,7 @@ class ChatRepository extends ChangeNotifier {
     // for whoever signs in next.
     _readStateSub?.cancel();
     _pinsSub?.cancel();
+    _bookmarksSub?.cancel();
     _typingHeartbeat?.cancel();
     _roomsSub = null;
     _friendsSub = null;
@@ -561,6 +573,7 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub = null;
     _readStateSub = null;
     _pinsSub = null;
+    _bookmarksSub = null;
     _typingHeartbeat = null;
     _activeRoomId = null;
     _openOwner = null;
@@ -575,6 +588,9 @@ class ChatRepository extends ChangeNotifier {
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.
     _pins.clear();
+    // And these are the previous account's PRIVATE room state, so if anything
+    // the case for dropping them is stronger.
+    _bookmarks.clear();
     // Room ids are per-account, so a stale entry could only ever suppress a
     // delivery report the next account genuinely owed. The pending timer has to
     // go with it: it closes over the departing user's id.
@@ -732,6 +748,7 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
     _pinsSub?.cancel();
+    _bookmarksSub?.cancel();
     // Nulled immediately, not just reassigned at the end: this open can now
     // bail at any of the `gen` checks below, and [closeRoom] would otherwise
     // find and re-cancel a handle that is already dead.
@@ -739,6 +756,7 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub = null;
     _readStateSub = null;
     _pinsSub = null;
+    _bookmarksSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -853,6 +871,32 @@ class ChatRepository extends ChangeNotifier {
     }
     _pinsSub = pinsSub;
 
+    // This viewer's saved messages. Registered beside the pins for the same
+    // reasons, and gated on `me` because unlike `viewerUserId` above the
+    // server's `userId` is required here — a bookmark list with no reader is
+    // not a thing. Signed out there is nobody to have saved anything, so the
+    // absent subscription is the correct state rather than a gap.
+    if (me != null) {
+      final bookmarksSub = await cv.subscribe(
+        'bookmarks:listForRoom',
+        {'roomId': roomId, 'userId': me},
+        onData: (data) {
+          final list = (data as List?) ?? const [];
+          _bookmarks[roomId] = list
+              .whereType<Map>()
+              .map((e) => MessageBookmark.fromJson(e.cast<String, dynamic>()))
+              .toList();
+          notifyListeners();
+        },
+        onError: (err) => debugPrint('bookmarks sub error: $err'),
+      );
+      if (gen != _openGen) {
+        bookmarksSub.cancel();
+        return;
+      }
+      _bookmarksSub = bookmarksSub;
+    }
+
     if (me != null) {
       final readStateSub = await cv.subscribe(
         'messages:getReadState',
@@ -955,10 +999,12 @@ class ChatRepository extends ChangeNotifier {
     _activeTypingSub?.cancel();
     _readStateSub?.cancel();
     _pinsSub?.cancel();
+    _bookmarksSub?.cancel();
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
     _pinsSub = null;
+    _bookmarksSub = null;
     _activeRoomId = null;
     // Hand the room back to the global stream's name-only entry.
     _openTypingRoomId = null;
@@ -2034,6 +2080,47 @@ class ChatRepository extends ChangeNotifier {
     if (id == null) return;
     try {
       await api.unpinMessage(messageId: messageId, userId: id);
+    } catch (_) {/* swallow — live subscription will reconcile */}
+  }
+
+  // ───────────── saved messages (per-reader bookmarks) ─────────────
+  //
+  // Not the `dm:self:` Saved Messages ROOM, which is a place you forward copies
+  // to and which this repository reaches through the ordinary room APIs. See
+  // `lib/models/message_bookmark.dart`.
+
+  /// The messages THIS viewer saved in [roomId], most recently saved first.
+  /// Empty until the subscription lands, and offline.
+  List<MessageBookmark> savedFor(String roomId) =>
+      _bookmarks[roomId] ?? const [];
+
+  bool isMessageSaved(String roomId, String messageId) =>
+      savedFor(roomId).any((b) => b.message.id == messageId);
+
+  /// Saves [messageId]. Returns null on success, or an error code the caller
+  /// must surface.
+  ///
+  /// Shaped like [pinMessage] rather than [toggleReaction] for the same reason:
+  /// the per-room cap is the only way this fails, and a menu row that silently
+  /// does nothing reads as broken.
+  Future<String?> saveMessage(String roomId, String messageId) async {
+    final id = _userId;
+    if (id == null) return null;
+    try {
+      await api.saveMessage(messageId: messageId, userId: id);
+      return null;
+    } catch (e) {
+      return e.toString().contains('SAVE_LIMIT_REACHED')
+          ? 'SAVE_LIMIT_REACHED'
+          : 'SAVE_FAILED';
+    }
+  }
+
+  Future<void> unsaveMessage(String roomId, String messageId) async {
+    final id = _userId;
+    if (id == null) return;
+    try {
+      await api.unsaveMessage(messageId: messageId, userId: id);
     } catch (_) {/* swallow — live subscription will reconcile */}
   }
 

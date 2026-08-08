@@ -5754,4 +5754,45 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DÉSARCHIVER LE CHAT';
+
+  @override
+  String get messageActionMenuSaveLabel => 'ENREGISTRER';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'RETIRER';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'trop de messages enregistrés ici — retires-en un d’abord';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'impossible d’enregistrer ça';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'trop de messages enregistrés ici — retires-en un d’abord';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'impossible d’enregistrer ça';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'MESSAGES ENREGISTRÉS';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'toi seul peux les voir, et seulement depuis ce salon. ta discussion Messages enregistrés est distincte.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'rien d’enregistré pour l’instant. maintiens un message et choisis ENREGISTRER.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Aller au message enregistré de $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Retirer des enregistrés le message de $name';
+  }
 }

@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "置顶聊天",
   "chatRowActionMenuUnpinLabel": "取消置顶聊天",
   "chatRowActionMenuArchiveLabel": "归档聊天",
-  "chatRowActionMenuUnarchiveLabel": "取消归档聊天"
+  "chatRowActionMenuUnarchiveLabel": "取消归档聊天",
+  "messageActionMenuSaveLabel": "保存",
+  "messageActionMenuUnsaveLabel": "取消保存",
+  "roomScreenSaveLimitSnack": "这里保存的太多了，先取消一条",
+  "roomScreenSaveFailedSnack": "无法保存这条消息",
+  "threadOverlaySaveLimitToast": "这里保存的太多了，先取消一条",
+  "threadOverlaySaveFailedToast": "无法保存这条消息",
+  "roomInfoScreenSavedMessagesLabel": "保存的消息",
+  "roomInfoScreenSavedMessagesCaption": "只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。",
+  "roomInfoScreenSavedMessagesEmpty": "还没有保存任何内容。长按消息并选择“保存”。",
+  "roomInfoScreenSavedMessageJumpSemantic": "跳转到{name}保存的消息",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "取消保存{name}的消息"
 }

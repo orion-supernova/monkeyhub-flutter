@@ -5728,4 +5728,45 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'إلغاء أرشفة المحادثة';
+
+  @override
+  String get messageActionMenuSaveLabel => 'حفظ';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'إلغاء الحفظ';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'المحفوظات هنا كثيرة — ألغِ حفظ واحدة أولاً';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'تعذّر حفظ ذلك';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'المحفوظات هنا كثيرة — ألغِ حفظ واحدة أولاً';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'تعذّر حفظ ذلك';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'الرسائل المحفوظة';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'أنت وحدك تراها، ومن هذه الغرفة فقط. محادثة الرسائل المحفوظة منفصلة.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'لا شيء محفوظ بعد. اضغط مطولاً على رسالة واختر حفظ.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'الانتقال إلى الرسالة المحفوظة من $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'إلغاء حفظ الرسالة من $name';
+  }
 }

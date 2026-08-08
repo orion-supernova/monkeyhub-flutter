@@ -1593,5 +1593,16 @@
   "chatRowActionMenuPinLabel": "चैट पिन करें",
   "chatRowActionMenuUnpinLabel": "चैट अनपिन करें",
   "chatRowActionMenuArchiveLabel": "चैट आर्काइव करें",
-  "chatRowActionMenuUnarchiveLabel": "चैट अनआर्काइव करें"
+  "chatRowActionMenuUnarchiveLabel": "चैट अनआर्काइव करें",
+  "messageActionMenuSaveLabel": "सेव करें",
+  "messageActionMenuUnsaveLabel": "सेव हटाएँ",
+  "roomScreenSaveLimitSnack": "यहाँ बहुत सारे सेव हैं — पहले एक हटाओ",
+  "roomScreenSaveFailedSnack": "उसे सेव नहीं किया जा सका",
+  "threadOverlaySaveLimitToast": "यहाँ बहुत सारे सेव हैं — पहले एक हटाओ",
+  "threadOverlaySaveFailedToast": "उसे सेव नहीं किया जा सका",
+  "roomInfoScreenSavedMessagesLabel": "सेव किए गए मैसेज",
+  "roomInfoScreenSavedMessagesCaption": "इन्हें सिर्फ तुम देख सकते हो, और सिर्फ इसी रूम से। तुम्हारी सेव किए गए मैसेज चैट अलग है।",
+  "roomInfoScreenSavedMessagesEmpty": "अभी कुछ सेव नहीं हुआ। किसी मैसेज को दबाए रखो और सेव करें चुनो।",
+  "roomInfoScreenSavedMessageJumpSemantic": "{name} के सेव किए गए मैसेज पर जाना",
+  "roomInfoScreenSavedMessageUnsaveSemantic": "{name} के मैसेज से सेव हटाना"
 }

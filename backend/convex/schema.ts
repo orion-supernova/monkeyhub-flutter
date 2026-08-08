@@ -740,6 +740,66 @@ export default defineSchema({
     // Same role as `reactions.by_user`.
     .index("by_user", ["userId"]),
 
+  // One reader keeping one message, inside one room. The "SAVE" row in the
+  // bubble menu and the "Saved messages" section of room info.
+  //
+  // ── Not the Saved Messages ROOM ────────────────────────────────────────────
+  //
+  // The product already has something called Saved Messages: the single-member
+  // `dm:self:<userId>` notes-to-self room (`rooms.ensureSavedMessagesRoom`,
+  // `ChatRoom.isSavedMessages` client-side). That is a PLACE you forward a COPY
+  // to. This is a MARK on a message where it already lives, and copies nothing.
+  //
+  // The table is called `messageBookmarks` and not `savedMessages` precisely so
+  // the two cannot be confused in code — `savedMessages` would read as "rows of
+  // the saved-messages room" to everyone who touched it. The user-facing words
+  // stay "Save" and "Saved messages"; only the code disambiguates.
+  //
+  // The distinction is the whole point of the feature. Forwarding into the
+  // self-room duplicates content and strands it away from the conversation that
+  // gave it meaning; a bookmark leaves it where it was said, and is how you get
+  // back to it. It is also per-reader, so it says nothing to anyone else in the
+  // room — unlike a pin, which is room state everybody sees.
+  //
+  // ── Why a table ────────────────────────────────────────────────────────────
+  //
+  // Everything the `pinnedMessages` comment above says applies, and one thing
+  // more. A `savedBy` array on `messages` would be the O(messages × members)
+  // fan-out the `roomMembers` comment rules out, AND every save would patch a
+  // document `messages:list` reads — so one person quietly keeping something
+  // for themselves would rebuild the transcript for every member of the room.
+  // A cursor on the membership row (the `lastReadAt` trick) cannot help either:
+  // a bookmark set is sparse and arbitrary, not a monotone watermark.
+  //
+  // `roomId` is denormalized exactly as `pinnedMessages` and `viewOnceViews`
+  // denormalize it. Written server-side from `msg.roomId` and never taken from
+  // the client, so a bookmark naming a room its message doesn't live in is not
+  // representable. Every field is required, so no `undefined` reaches an index.
+  messageBookmarks: defineTable({
+    roomId: v.id("rooms"),
+    messageId: v.id("messages"),
+    // Whose bookmark. Named `userId` rather than `savedBy` so auth.ts's
+    // `byUser` index helper applies verbatim, matching `pinnedMessages`.
+    userId: v.id("users"),
+    savedAt: v.number(),
+  })
+    // Four reads off one index, because Convex indexes are prefix-scannable:
+    // this reader's bookmarks in this room (`roomId`+`userId`, the live query),
+    // the idempotence probe and the unsave lookup (all three fields), the sweep
+    // when this reader leaves the room (`roomId`+`userId` again), and
+    // `wipeRoomCompletely`'s by-room sweep (`roomId` alone) — which is the same
+    // one-index-range-instead-of-a-probe-per-message win that comment claims
+    // for pins. `userId` sits ahead of `messageId` because no read ever asks
+    // for a room's bookmarks across all readers.
+    .index("by_room_user_message", ["roomId", "userId", "messageId"])
+    // Message teardown: `removeMessageAndFanout` holds a messageId and no room
+    // scope. Without this there is no way to find a dying message's bookmarks.
+    .index("by_message", ["messageId"])
+    // Account teardown. Not subsumed by `by_room_user_message` the way
+    // `gameResults` subsumes its own — that index leads with `roomId`, so it
+    // cannot answer "everything this user saved" without a full scan.
+    .index("by_user", ["userId"]),
+
   // ── Feed board ─────────────────────────────────────────────────────────────
   //
   // ONE table for two features. A "highlight" (a photo worth showing, with an

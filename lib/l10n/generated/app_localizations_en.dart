@@ -5647,4 +5647,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'UNARCHIVE CHAT';
+
+  @override
+  String get messageActionMenuSaveLabel => 'SAVE';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'UNSAVE';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'too many saved here — unsave one first';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'couldn’t save that';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'too many saved here — unsave one first';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'couldn’t save that';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'SAVED MESSAGES';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'only you can see these, and only from this room. your Saved Messages chat is separate.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'nothing saved yet. hold a message and choose SAVE.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Jump to saved message from $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Unsave message from $name';
+  }
 }

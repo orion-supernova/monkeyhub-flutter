@@ -598,6 +598,20 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
     .collect();
   for (const p of pins) await ctx.db.delete(p._id);
 
+  // Bookmarks. Personal rather than room state, but with the same defect if
+  // left behind: `bookmarks:listForRoom` would drop the dangling row on read
+  // and the reader would be left with a saved message that silently isn't
+  // there, and no way to clear it — `bookmarks:unsave` can't find a row for a
+  // message it can no longer load. Here rather than in `deleteMessage` for the
+  // reason the pins above are: this is also the path a Chamber of Secrets
+  // message takes when it self-destructs, and a saved message expiring out from
+  // under its reader is the ordinary case, not the exotic one.
+  const bookmarks = await ctx.db
+    .query("messageBookmarks")
+    .withIndex("by_message", (q: any) => q.eq("messageId", messageId))
+    .collect();
+  for (const b of bookmarks) await ctx.db.delete(b._id);
+
   // Media, and the video poster that rides with it. Via `releaseMessageBlobs`
   // rather than a bare `deleteStored` because forwarding re-references a file
   // instead of copying it, so this message may not be the last one pointing at

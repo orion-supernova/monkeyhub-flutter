@@ -22,6 +22,7 @@ import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/saved_messages_section.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'fullscreen_image_viewer.dart';
@@ -664,6 +665,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
                         _sharedContent(theme),
+                        // Directly under SHARED CONTENT because the two answer
+                        // adjacent questions — "what has this room produced"
+                        // and "what did I keep out of it" — and the contrast
+                        // is what makes the second one's privacy read. Gated on
+                        // the capability rather than an `isSavedMessages`
+                        // check: a room where saving is meaningless has nothing
+                        // to list either.
+                        if (caps.canSaveMessages) ...[
+                          const SizedBox(height: 28),
+                          SavedMessagesSection(
+                            repo: widget.repo,
+                            api: widget.api,
+                            roomId: widget.roomId,
+                            onJump: _jumpToSaved,
+                          ),
+                        ],
                         // "Members (1): you" is not information — and neither
                         // is "Members (2): you and a bot".
                         if (caps.hasMembers) ...[
@@ -1165,6 +1182,17 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
     if (!mounted || jump == null) return;
     Navigator.of(context).pop(jump);
+  }
+
+  /// Hands a saved message back to whoever pushed this screen, so the
+  /// transcript can travel to it.
+  ///
+  /// Identical in shape to `_openContent`'s return path and for the same
+  /// reason: `RoomScreen` owns the jump machinery, and a route stacked on top
+  /// of it cannot reach any of that. One pop rather than the two `_openContent`
+  /// does — there is no browser in between here, just this screen.
+  void _jumpToSaved(ChatMessage message) {
+    Navigator.of(context).pop(message);
   }
 
   Widget _seg(AppTheme theme, {

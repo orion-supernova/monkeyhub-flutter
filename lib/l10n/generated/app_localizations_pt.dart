@@ -5726,6 +5726,49 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CONVERSA';
+
+  @override
+  String get messageActionMenuSaveLabel => 'GUARDAR';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'REMOVER';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'demasiadas mensagens guardadas aqui — remove uma primeiro';
+
+  @override
+  String get roomScreenSaveFailedSnack =>
+      'não foi possível guardar essa mensagem';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'demasiadas mensagens guardadas aqui — remove uma primeiro';
+
+  @override
+  String get threadOverlaySaveFailedToast =>
+      'não foi possível guardar essa mensagem';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'MENSAGENS GUARDADAS';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'só tu as vês, e só a partir desta sala. a tua conversa Mensagens guardadas é à parte.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'ainda não há nada guardado. mantém uma mensagem premida e escolhe GUARDAR.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Ir para a mensagem guardada de $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Remover dos guardados a mensagem de $name';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -11449,4 +11492,45 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CHAT';
+
+  @override
+  String get messageActionMenuSaveLabel => 'SALVAR';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'REMOVER';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'muitas mensagens salvas aqui — remova uma primeiro';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'não deu pra salvar isso';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'muitas mensagens salvas aqui — remova uma primeiro';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'não deu pra salvar isso';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'MENSAGENS SALVAS';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'só você vê essas, e só desta sala. seu chat Mensagens salvas é separado.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'nada salvo ainda. segure uma mensagem e escolha SALVAR.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Ir para a mensagem salva de $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Remover das salvas a mensagem de $name';
+  }
 }

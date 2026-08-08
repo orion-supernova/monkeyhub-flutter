@@ -5680,4 +5680,45 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'AVARKIVERA CHATTEN';
+
+  @override
+  String get messageActionMenuSaveLabel => 'SPARA';
+
+  @override
+  String get messageActionMenuUnsaveLabel => 'TA BORT';
+
+  @override
+  String get roomScreenSaveLimitSnack =>
+      'för många sparade här — ta bort en först';
+
+  @override
+  String get roomScreenSaveFailedSnack => 'kunde inte spara det';
+
+  @override
+  String get threadOverlaySaveLimitToast =>
+      'för många sparade här — ta bort en först';
+
+  @override
+  String get threadOverlaySaveFailedToast => 'kunde inte spara det';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'SPARADE MEDDELANDEN';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'bara du ser dessa, och bara från det här rummet. din chatt Sparade meddelanden är separat.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'inget sparat än. håll in ett meddelande och välj SPARA.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return 'Hoppa till sparat meddelande från $name';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return 'Ta bort sparat meddelande från $name';
+  }
 }

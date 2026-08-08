@@ -411,6 +411,15 @@ async function purgeUser(ctx: any, userId: any) {
         .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
         .collect(),
     );
+    // Bookmarks OTHER people put on this user's messages. The message row is
+    // about to go, so these would dangle exactly as the pins above would.
+    await deleteRows(
+      ctx,
+      await ctx.db
+        .query("messageBookmarks")
+        .withIndex("by_message", (q: any) => q.eq("messageId", msg._id))
+        .collect(),
+    );
     // Refcounted: somebody else may have forwarded this message's file into a
     // room that has nothing to do with this account. See `releaseMessageBlobs`.
     await releaseMessageBlobs(ctx, msg);
@@ -443,6 +452,22 @@ async function purgeUser(ctx: any, userId: any) {
     ctx,
     await ctx.db
       .query("pinnedMessages")
+      .withIndex("by_user", byUser(userId))
+      .collect(),
+  );
+
+  // Bookmarks this user put on other people's messages. Same shape as the pins
+  // directly overhead, and the only reason `messageBookmarks.by_user` exists.
+  //
+  // The policy the pins comment sets out is deliberately NOT copied. A pin is
+  // room state, so it survives its author walking out of a group and only the
+  // user row vanishing takes it. A bookmark is that user's own private mark, so
+  // it dies whenever their access does — `rooms:leave` sweeps it too, and this
+  // is only the tail of that same rule for the rooms they never left.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("messageBookmarks")
       .withIndex("by_user", byUser(userId))
       .collect(),
   );

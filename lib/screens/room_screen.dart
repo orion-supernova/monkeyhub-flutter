@@ -1899,10 +1899,12 @@ class _RoomScreenState extends State<RoomScreen>
 
   /// Opens room info, and travels to whatever it hands back.
   ///
-  /// The result comes from the shared-content browser two routes up, passed
-  /// through `RoomInfoScreen` untouched: only this screen owns the back-trail,
-  /// the folded-thread fallback and the `listAround` window fetch, and none of
-  /// that is reachable from a route stacked on top of it.
+  /// The result comes from one of two places — the shared-content browser two
+  /// routes up, passed through `RoomInfoScreen` untouched, or its own "Saved
+  /// messages" section one route up. Both hand the message here rather than
+  /// travelling themselves because only this screen owns the back-trail, the
+  /// folded-thread fallback and the `listAround` window fetch, and none of that
+  /// is reachable from a route stacked on top of it.
   ///
   /// The `mounted` check after the await is load-bearing rather than
   /// defensive. `RoomInfoScreen` pops TWICE on leave and on delete, which takes
@@ -1921,12 +1923,11 @@ class _RoomScreenState extends State<RoomScreen>
     // tether. Those two jump from one place in the transcript to another, so
     // "back" means the position you were reading and the pill is the way home.
     //
-    // This arrives from two routes away. The reader was not in the transcript
-    // when they chose the message — they were in the media library — so there
-    // is no reading position they left behind, and a back pill would offer to
-    // return them to wherever the transcript happened to be sitting before
-    // they opened room info. That is not somewhere they were; it is somewhere
-    // they had already navigated away from twice.
+    // This arrives from a screen the reader deliberately left the transcript
+    // for — the media library, or room info's saved list. Either way there is
+    // no reading position they left behind mid-scroll, and a back pill would
+    // offer to return them to wherever the transcript happened to be sitting
+    // before they navigated away from it.
     //
     // `from` is still the target message, so one folded into a thread hands
     // off to that thread exactly as a pin does.
@@ -2125,6 +2126,16 @@ class _RoomScreenState extends State<RoomScreen>
                         m.status == MessageStatus.sent &&
                         m.type != MessageType.system,
                     isPinned: widget.repo.isMessagePinned(room.id, m.id),
+                    // Same three gates as pinning — no server id, no system
+                    // notice — plus the capability, which is what keeps Saved
+                    // Messages from offering to save into itself. Routed
+                    // through the table rather than an `isSavedMessages` check
+                    // here, per `room_capabilities.dart`.
+                    canSave: !isPending &&
+                        m.status == MessageStatus.sent &&
+                        m.type != MessageType.system &&
+                        widget.repo.capabilitiesFor(room).canSaveMessages,
+                    isSaved: widget.repo.isMessageSaved(room.id, m.id),
                     canForward: canForwardOne,
                     // Offered on anything the transcript will let you long-press
                     // — including messages that aren't yours and can't be
@@ -2234,6 +2245,25 @@ class _RoomScreenState extends State<RoomScreen>
                       break;
                     case MessageAction.unpin:
                       await widget.repo.unpinMessage(room.id, m.id);
+                      break;
+                    case MessageAction.save:
+                      final saveErr =
+                          await widget.repo.saveMessage(room.id, m.id);
+                      // Surfaced for the reason the pin cap is: the per-room
+                      // ceiling is the only way this fails, and a menu row that
+                      // quietly does nothing reads as broken.
+                      if (saveErr != null) {
+                        if (!context.mounted) return;
+                        final l10n = AppLocalizations.of(context);
+                        messenger.showSnackBar(SnackBar(
+                          content: Text(saveErr == 'SAVE_LIMIT_REACHED'
+                              ? l10n.roomScreenSaveLimitSnack
+                              : l10n.roomScreenSaveFailedSnack),
+                        ));
+                      }
+                      break;
+                    case MessageAction.unsave:
+                      await widget.repo.unsaveMessage(room.id, m.id);
                       break;
                     case MessageAction.delete:
                       await widget.repo.deleteMessage(m.id);

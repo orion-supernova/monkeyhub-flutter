@@ -31,6 +31,18 @@ enum MessageAction {
   copyName,
   pin,
   unpin,
+
+  /// Keeps this message for the viewer alone, where it is — the per-reader
+  /// bookmark listed by room info's "Saved messages" section.
+  ///
+  /// Deliberately NOT [forward]-into-Saved-Messages, which is the other thing
+  /// the word "save" could mean in this app and is already reachable through
+  /// the forward sheet. That copies the message into the `dm:self:` room and
+  /// strands it away from the conversation it belonged to; this leaves it in
+  /// place and marks it. Paired with [unsave] for the reason pin/unpin are
+  /// paired.
+  save,
+  unsave,
   select,
   delete,
   report,
@@ -76,6 +88,8 @@ Future<MessageActionResult?> showMessageActionMenu({
   bool hasParent = false,
   bool canPin = false,
   bool isPinned = false,
+  bool canSave = false,
+  bool isSaved = false,
   bool canForward = false,
   bool canSelect = false,
 
@@ -123,6 +137,8 @@ Future<MessageActionResult?> showMessageActionMenu({
       hasParent: hasParent,
       canPin: canPin,
       isPinned: isPinned,
+      canSave: canSave,
+      isSaved: isSaved,
       canForward: canForward,
       canSelect: canSelect,
       fileName: fileName,
@@ -151,6 +167,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.hasParent,
     required this.canPin,
     required this.isPinned,
+    required this.canSave,
+    required this.isSaved,
     required this.canForward,
     required this.canSelect,
     required this.fileName,
@@ -169,6 +187,8 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final bool hasParent;
   final bool canPin;
   final bool isPinned;
+  final bool canSave;
+  final bool isSaved;
   final bool canForward;
   final bool canSelect;
 
@@ -222,6 +242,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // count mispositions the whole menu by 48pt, silently, and only near the
     // top and bottom edges of the screen.
     if (widget.canPin) n++;
+    if (widget.canSave) n++;
     if (widget.canSelect) n++;
     if (!widget.isMine) n++; // view profile
     if (widget.isMine) n++; // delete
@@ -448,6 +469,8 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
               hasParent: widget.hasParent,
               canPin: widget.canPin,
               isPinned: widget.isPinned,
+              canSave: widget.canSave,
+              isSaved: widget.isSaved,
               canForward: widget.canForward,
               canSelect: widget.canSelect,
               fileName: widget.fileName,
@@ -709,6 +732,8 @@ class _ActionList extends StatelessWidget {
     required this.hasParent,
     required this.canPin,
     required this.isPinned,
+    required this.canSave,
+    required this.isSaved,
     required this.canForward,
     required this.canSelect,
     required this.onAction,
@@ -726,6 +751,8 @@ class _ActionList extends StatelessWidget {
   final bool hasParent;
   final bool canPin;
   final bool isPinned;
+  final bool canSave;
+  final bool isSaved;
   final bool canForward;
   final bool canSelect;
   final ValueChanged<MessageAction> onAction;
@@ -811,6 +838,20 @@ class _ActionList extends StatelessWidget {
         action: isPinned ? MessageAction.unpin : MessageAction.pin,
         icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
         label: isPinned ? l10n.messageActionMenuUnpinLabel : l10n.messageActionMenuPinLabel,
+        destructive: false,
+      ));
+    }
+    // Directly after PIN, because the two are the same gesture aimed at
+    // different audiences — "everyone here should see this" and "I want this
+    // later" — and reading them together is what makes the difference legible.
+    // Neither is destructive; both undo in one tap.
+    if (canSave) {
+      add(_ActionRowSpec(
+        action: isSaved ? MessageAction.unsave : MessageAction.save,
+        icon: isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+        label: isSaved
+            ? l10n.messageActionMenuUnsaveLabel
+            : l10n.messageActionMenuSaveLabel,
         destructive: false,
       ));
     }
