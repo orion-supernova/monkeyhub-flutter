@@ -1515,6 +1515,30 @@ abstract class AppLocalizations {
   /// **'DELETE'**
   String get roomInfoScreenDeleteConfirmButton;
 
+  /// Title of the confirmation dialog before either participant ends (deletes) a 1:1 DM.
+  ///
+  /// In en, this message translates to:
+  /// **'end this conversation?'**
+  String get roomInfoScreenEndConversationConfirmTitle;
+
+  /// Body text of the end-conversation confirmation dialog for a DM, warning that deleting it removes it for the other participant as well.
+  ///
+  /// In en, this message translates to:
+  /// **'{peerName} loses this conversation too — every message disappears for both of you. this is permanent.'**
+  String roomInfoScreenEndConversationConfirmBody(String peerName);
+
+  /// All-caps confirm button label in the end-conversation (DM delete) confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'END'**
+  String get roomInfoScreenEndConversationConfirmButton;
+
+  /// Fallback used in place of the peer's name in the end-conversation dialog body when the DM peer hasn't loaded yet.
+  ///
+  /// In en, this message translates to:
+  /// **'the other person'**
+  String get roomInfoScreenEndConversationPeerFallback;
+
   /// All-caps cancel button label shared by the leave/delete confirmation dialogs on this screen.
   ///
   /// In en, this message translates to:
@@ -1706,6 +1730,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'DELETE'**
   String get roomInfoScreenDeleteButtonLabel;
+
+  /// All-caps button label shown in place of END CONVERSATION while the action is in progress.
+  ///
+  /// In en, this message translates to:
+  /// **'ENDING…'**
+  String get roomInfoScreenEndingConversationButton;
+
+  /// All-caps danger button label to end (delete) a 1:1 DM. Shown to either participant, unlike room delete which is owner-only.
+  ///
+  /// In en, this message translates to:
+  /// **'END CONVERSATION'**
+  String get roomInfoScreenEndConversationButton;
 
   /// All-caps small header label shown above the title when this screen is showing info for a 1:1 DM.
   ///

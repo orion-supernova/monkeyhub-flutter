@@ -830,6 +830,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomInfoScreenDeleteConfirmButton => 'ELIMINAR';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle =>
+      'terminar esta conversa?';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerName também perde esta conversa — todas as mensagens desaparecem para os dois. isto é permanente.';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => 'TERMINAR';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => 'a outra pessoa';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'CANCELAR';
 
   @override
@@ -934,6 +949,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => 'ELIMINAR';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => 'A TERMINAR…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => 'TERMINAR CONVERSA';
 
   @override
   String get roomInfoScreenHeaderConversation => 'CONVERSA';
@@ -6373,6 +6394,21 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get roomInfoScreenDeleteConfirmButton => 'EXCLUIR';
 
   @override
+  String get roomInfoScreenEndConversationConfirmTitle =>
+      'encerrar esta conversa?';
+
+  @override
+  String roomInfoScreenEndConversationConfirmBody(String peerName) {
+    return '$peerName também perde essa conversa — todas as mensagens somem para os dois. isso é permanente.';
+  }
+
+  @override
+  String get roomInfoScreenEndConversationConfirmButton => 'ENCERRAR';
+
+  @override
+  String get roomInfoScreenEndConversationPeerFallback => 'a outra pessoa';
+
+  @override
   String get roomInfoScreenConfirmCancelButton => 'CANCELAR';
 
   @override
@@ -6477,6 +6513,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInfoScreenDeleteButtonLabel => 'EXCLUIR';
+
+  @override
+  String get roomInfoScreenEndingConversationButton => 'ENCERRANDO…';
+
+  @override
+  String get roomInfoScreenEndConversationButton => 'ENCERRAR CONVERSA';
 
   @override
   String get roomInfoScreenHeaderConversation => 'CONVERSA';

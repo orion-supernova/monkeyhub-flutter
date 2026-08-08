@@ -364,12 +364,25 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     final r = _room;
     final me = widget.repo.userId;
     if (r == null || me == null) return;
-    final ok = await _confirm(
-      title: AppLocalizations.of(context).roomInfoScreenDeleteConfirmTitle,
-      body: AppLocalizations.of(context).roomInfoScreenDeleteConfirmBody,
-      confirm: AppLocalizations.of(context).roomInfoScreenDeleteConfirmButton,
-      destructive: true,
-    );
+    final l10n = AppLocalizations.of(context);
+    // A DM has no "owner" for either side to leave from — the only real
+    // action is ending the conversation, and that takes it away from the
+    // other person too. Say so plainly instead of the generic room copy.
+    final ok = r.isDm
+        ? await _confirm(
+            title: l10n.roomInfoScreenEndConversationConfirmTitle,
+            body: l10n.roomInfoScreenEndConversationConfirmBody(
+              _dmPeer()?.displayName ?? l10n.roomInfoScreenEndConversationPeerFallback,
+            ),
+            confirm: l10n.roomInfoScreenEndConversationConfirmButton,
+            destructive: true,
+          )
+        : await _confirm(
+            title: l10n.roomInfoScreenDeleteConfirmTitle,
+            body: l10n.roomInfoScreenDeleteConfirmBody,
+            confirm: l10n.roomInfoScreenDeleteConfirmButton,
+            destructive: true,
+          );
     if (!ok) return;
     setState(() {
       _deleting = true;
@@ -647,24 +660,36 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         ],
                         _saveButton(theme, busy),
                         const SizedBox(height: 14),
+                        // A DM has no "leave" that makes sense — it's just the
+                        // two people, and leaving alone silently strands you
+                        // (you'd stop being a member but the room lives on,
+                        // and re-opening the DM wouldn't re-add you). The only
+                        // real action for a DM is ending it outright, which is
+                        // available to either side, not just whoever created it.
                         Row(children: [
-                          Expanded(
-                            child: _dangerButton(
-                              theme,
-                              label: _leaving
-                                  ? AppLocalizations.of(context).roomInfoScreenLeavingButton
-                                  : AppLocalizations.of(context).roomInfoScreenLeaveRoomButton,
-                              onTap: busy ? null : _leave,
+                          if (!r.isDm) ...[
+                            Expanded(
+                              child: _dangerButton(
+                                theme,
+                                label: _leaving
+                                    ? AppLocalizations.of(context).roomInfoScreenLeavingButton
+                                    : AppLocalizations.of(context).roomInfoScreenLeaveRoomButton,
+                                onTap: busy ? null : _leave,
+                              ),
                             ),
-                          ),
-                          if (_isOwner) ...[
-                            const SizedBox(width: 10),
+                          ],
+                          if (_isOwner || r.isDm) ...[
+                            if (!r.isDm) const SizedBox(width: 10),
                             Expanded(
                               child: _dangerButton(
                                 theme,
                                 label: _deleting
-                                    ? AppLocalizations.of(context).roomInfoScreenDeletingButton
-                                    : AppLocalizations.of(context).roomInfoScreenDeleteButtonLabel,
+                                    ? (r.isDm
+                                        ? AppLocalizations.of(context).roomInfoScreenEndingConversationButton
+                                        : AppLocalizations.of(context).roomInfoScreenDeletingButton)
+                                    : (r.isDm
+                                        ? AppLocalizations.of(context).roomInfoScreenEndConversationButton
+                                        : AppLocalizations.of(context).roomInfoScreenDeleteButtonLabel),
                                 onTap: busy ? null : _delete,
                                 filled: true,
                               ),
