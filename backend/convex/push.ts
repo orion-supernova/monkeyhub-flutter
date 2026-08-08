@@ -8,8 +8,16 @@ import {
   stringifyValues,
   type ApnsEnv,
 } from "./pushTransport";
-import { webPushPost, type WebPushSubscription } from "./webPush";
 import { badgeTotalFor } from "./badges";
+
+// Deliberately NOT imported from ./webPush: that module runs in the Node
+// runtime (Convex's V8 isolate has no ECDH), and importing it here would drag
+// Node into this bundle. It is reached over ctx.runAction instead.
+type WebPushSubscription = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
 
 // Alert notifications — everything a person sees on a lock screen. Chat
 // messages, guardian approvals, call banners, and the invisible push that
@@ -427,19 +435,29 @@ async function alertToDevice(
   // than the stale notification we were trying to clear. The page reconciles
   // its own notifications on focus instead (see web/mh-push-sw.js).
   if (d.web && spec.kind !== "dismiss") {
-    try {
-      await webPushPost(ctx, d.web, buildWebPushPayload(spec), {
+    // Returns a result instead of throwing: an error crossing a runtime
+    // boundary arrives wrapped, and the three-class prefix branched on below
+    // would no longer be at the start of the message.
+    const res: { ok: boolean; error?: string } = await ctx.runAction(
+      internal.webPush.sendOne,
+      {
+        endpoint: d.web.endpoint,
+        p256dh: d.web.p256dh,
+        auth: d.web.auth,
+        payload: buildWebPushPayload(spec),
         ttlSeconds: ttl,
         // Everything that reaches here is user-visible by definition, which
         // is also what `userVisibleOnly` obliges us to deliver promptly.
         urgency: "high",
         topic: spec.collapseId,
-      });
+      },
+    );
+    if (res.ok) {
       console.log(
         `sendAlert: WebPush OK device=${d.deviceId} kind=${spec.kind}`,
       );
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
+    } else {
+      const msg = res.error ?? "unknown";
       console.error(`sendAlert: WebPush failed device=${d.deviceId}: ${msg}`);
       if (msg.startsWith("WEBPUSH_BAD_TOKEN")) {
         await ctx.runMutation(

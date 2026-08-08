@@ -1,10 +1,8 @@
+"use node";
+
 import { internalAction } from "./_generated/server";
-import {
-  b64url,
-  b64urlToBytes,
-  cachedProviderToken,
-  signJwt,
-} from "./pushTransport";
+import { v } from "convex/values";
+import { b64url, b64urlToBytes, signJwt } from "./pushCodec";
 
 // Web Push, spoken directly to whatever push service the browser handed us
 // (fcm.googleapis.com for Chrome, updates.push.services.mozilla.com for
@@ -16,24 +14,32 @@ import {
 //   RFC 8291  how a push payload derives its key from the subscription
 //   RFC 8292  VAPID — the ES256 JWT that identifies us to the push service
 //
-// Everything here is WebCrypto in the default V8 runtime; `crypto.subtle` has
-// ECDH P-256, HKDF-SHA256 and AES-GCM, which is the whole shopping list.
+// ── Why this file alone says "use node" ──────────────────────────────────
+//
+// Convex's default V8 isolate implements only part of WebCrypto, and the
+// missing part is exactly the one RFC 8291 is built on:
+//
+//     Not implemented: crypto.subtle.deriveBits for ECDH.
+//
+// APNs and FCM get away with the V8 runtime because they only ever *sign*
+// (ECDSA/RSA), which is implemented. Web Push has to agree a shared secret
+// with the browser, and there is no way to do that without ECDH. So this is a
+// Node action, reached from `push.ts` over `ctx.runAction` rather than by a
+// direct import — a V8 module that imported this file would drag the Node
+// runtime into its own bundle.
+//
+// The cost is a slower cold start on the web path only. Rewriting P-256 scalar
+// multiplication in pure JS to stay in V8 would be far worse.
 //
 // This is the only hand-rolled cryptography in the codebase, and its failure
 // mode is a silent HTTP 400 with no diagnostic — a wrong info string or a
 // misplaced delimiter byte produces bytes the browser simply refuses. That is
-// what `selfTest` below is for: run it once after any change here.
+// what `selfTest` below is for: run it after any change here.
 //
 // Required Convex env vars:
 //   VAPID_PUBLIC_KEY      base64url, raw uncompressed P-256 point (65 bytes)
 //   VAPID_PRIVATE_KEY_P8  PKCS#8 PEM for the matching private key
 //   VAPID_SUBJECT         "mailto:…" or "https://…" contact for the operator
-
-export type WebPushSubscription = {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-};
 
 /** Record size. We only ever send one record, so this is just the framing. */
 const RECORD_SIZE = 4096;
@@ -43,49 +49,62 @@ const RECORD_SIZE = 4096;
  * framing overhead is fixed (16 salt + 4 rs + 1 idlen + 65 key + 16 GCM tag +
  * 1 delimiter), so this is what's left for JSON.
  */
-export const MAX_WEB_PUSH_PLAINTEXT = 4096 - 16 - 4 - 1 - 65 - 16 - 1;
+const MAX_WEB_PUSH_PLAINTEXT = 4096 - 16 - 4 - 1 - 65 - 16 - 1;
 
 /** VAPID JWTs may live 24h; 12 sits comfortably inside every service's limit. */
 const VAPID_TTL_SECONDS = 12 * 60 * 60;
 
-export async function webPushPost(
-  ctx: any,
-  sub: WebPushSubscription,
-  payload: Record<string, unknown>,
-  opts: {
-    ttlSeconds: number;
-    urgency: "high" | "normal" | "low";
-    /** Collapse key — a later push with the same topic replaces this one. */
-    topic?: string;
+/**
+ * Deliver one payload to one browser subscription.
+ *
+ * Returns a result rather than throwing, because the caller lives in another
+ * runtime: a thrown error crossing `ctx.runAction` arrives wrapped, and the
+ * three-class error prefix the caller branches on would no longer be at the
+ * start of the message.
+ */
+export const sendOne = internalAction({
+  args: {
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+    /** Flat string map; becomes the JSON body the service worker reads. */
+    payload: v.any(),
+    ttlSeconds: v.number(),
+    urgency: v.string(),
+    topic: v.optional(v.string()),
   },
-): Promise<void> {
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
-  const privateKeyPem = process.env.VAPID_PRIVATE_KEY_P8;
-  const subject = process.env.VAPID_SUBJECT;
-  if (!publicKey || !privateKeyPem || !subject) {
-    throw new Error(
-      "WEBPUSH_MISCONFIG: missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY_P8 / VAPID_SUBJECT",
-    );
-  }
+  returns: v.object({
+    ok: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (_ctx, args) => {
+    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    const privateKeyPem = process.env.VAPID_PRIVATE_KEY_P8;
+    const subject = process.env.VAPID_SUBJECT;
+    if (!publicKey || !privateKeyPem || !subject) {
+      return {
+        ok: false,
+        error:
+          "WEBPUSH_MISCONFIG: missing VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY_P8 / VAPID_SUBJECT",
+      };
+    }
 
-  let origin: string;
-  try {
-    const u = new URL(sub.endpoint);
-    origin = `${u.protocol}//${u.host}`;
-  } catch {
-    // A stored endpoint that won't parse can never be delivered to. Treat it
-    // as dead so the sweep drops the subscription rather than retrying forever.
-    throw new Error(`WEBPUSH_BAD_TOKEN:0:unparseable endpoint`);
-  }
+    let origin: string;
+    try {
+      const u = new URL(args.endpoint);
+      origin = `${u.protocol}//${u.host}`;
+    } catch {
+      // A stored endpoint that won't parse can never be delivered to. Treat it
+      // as dead so the sweep drops the subscription rather than retrying.
+      return { ok: false, error: "WEBPUSH_BAD_TOKEN:0:unparseable endpoint" };
+    }
 
-  // The JWT audience is the push service's origin, so this cache is keyed per
-  // origin — a user base spread across Chrome, Firefox and Safari mints three,
-  // not one per push. keyRef is the public key so rotating VAPID keys
-  // invalidates every cached JWT automatically.
-  let jwt: string;
-  try {
-    jwt = await cachedProviderToken(ctx, `vapid:${origin}`, publicKey, () =>
-      signJwt(
+    // Signed per push rather than cached. The APNs cache exists because Apple
+    // rate-limits provider-token *updates*; no push service has that rule, and
+    // one ECDSA signature is cheaper than the database round trip a cache costs.
+    let jwt: string;
+    try {
+      jwt = await signJwt(
         { typ: "JWT", alg: "ES256" },
         {
           aud: origin,
@@ -94,52 +113,65 @@ export async function webPushPost(
         },
         privateKeyPem,
         "ES256",
-      ),
-    );
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`WEBPUSH_MISCONFIG: VAPID signing failed (${msg})`);
-  }
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: `WEBPUSH_MISCONFIG: VAPID signing (${msg})` };
+    }
 
-  const json = JSON.stringify(payload);
-  if (json.length > MAX_WEB_PUSH_PLAINTEXT) {
-    throw new Error(
-      `WEBPUSH_MISCONFIG: payload ${json.length} > ${MAX_WEB_PUSH_PLAINTEXT} bytes`,
-    );
-  }
+    const json = JSON.stringify(args.payload ?? {});
+    if (json.length > MAX_WEB_PUSH_PLAINTEXT) {
+      return {
+        ok: false,
+        error: `WEBPUSH_MISCONFIG: payload ${json.length} > ${MAX_WEB_PUSH_PLAINTEXT} bytes`,
+      };
+    }
 
-  const asKeyPair = (await crypto.subtle.generateKey(
-    { name: "ECDH", namedCurve: "P-256" },
-    true,
-    ["deriveBits"],
-  )) as CryptoKeyPair;
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+    let body: Uint8Array;
+    try {
+      const asKeyPair = (await crypto.subtle.generateKey(
+        { name: "ECDH", namedCurve: "P-256" },
+        true,
+        ["deriveBits"],
+      )) as CryptoKeyPair;
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      body = await encryptPayload(
+        json,
+        b64urlToBytes(args.p256dh),
+        b64urlToBytes(args.auth),
+        salt,
+        asKeyPair,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: `WEBPUSH_MISCONFIG: encryption (${msg})` };
+    }
 
-  const body = await encryptPayload(
-    json,
-    b64urlToBytes(sub.p256dh),
-    b64urlToBytes(sub.auth),
-    salt,
-    asKeyPair,
-  );
+    const headers: Record<string, string> = {
+      // RFC 8292 §3: the token and the public key that verifies it.
+      authorization: `vapid t=${jwt}, k=${publicKey}`,
+      "content-encoding": "aes128gcm",
+      "content-type": "application/octet-stream",
+      ttl: String(args.ttlSeconds),
+      urgency: args.urgency,
+    };
+    // RFC 8030 §5.4: base64url alphabet, 32 chars max. Convex ids qualify, but
+    // truncate rather than let a longer key become a 400.
+    if (args.topic) headers.topic = args.topic.slice(0, 32);
 
-  const headers: Record<string, string> = {
-    // RFC 8292 §3: the token and the public key that verifies it.
-    authorization: `vapid t=${jwt}, k=${publicKey}`,
-    "content-encoding": "aes128gcm",
-    "content-type": "application/octet-stream",
-    ttl: String(opts.ttlSeconds),
-    urgency: opts.urgency,
-  };
-  // RFC 8030 §5.4: base64url alphabet, 32 chars max. Convex ids qualify, but
-  // truncate rather than let a longer key become a 400.
-  if (opts.topic) headers.topic = opts.topic.slice(0, 32);
+    let res: Response;
+    try {
+      res = await fetch(args.endpoint, { method: "POST", headers, body });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { ok: false, error: `WEBPUSH_TRANSIENT: ${msg}` };
+    }
+    if (res.ok) return { ok: true };
+    return { ok: false, error: classify(res.status, await res.text()) };
+  },
+});
 
-  const res = await fetch(sub.endpoint, { method: "POST", headers, body });
-  if (!res.ok) throw webPushError(res.status, await res.text());
-}
-
-function webPushError(status: number, body: string): Error {
+function classify(status: number, body: string): string {
   // Same three-class split as APNs and FCM, so the caller's error branch is
   // identical for all three transports.
   //   404/410 → the subscription is gone (user cleared site data, unsubscribed,
@@ -148,15 +180,15 @@ function webPushError(status: number, body: string): Error {
   //             big). NEVER delete — the subscription is fine, we aren't.
   //   429/5xx → push service blip. Keep it and retry.
   if (status === 404 || status === 410) {
-    return new Error(`WEBPUSH_BAD_TOKEN:${status}:${body}`);
+    return `WEBPUSH_BAD_TOKEN:${status}:${body}`;
   }
   if (status === 400 || status === 401 || status === 403 || status === 413) {
-    return new Error(`WEBPUSH_MISCONFIG: HTTP ${status}: ${body}`);
+    return `WEBPUSH_MISCONFIG: HTTP ${status}: ${body}`;
   }
   if (status === 429 || status >= 500) {
-    return new Error(`WEBPUSH_TRANSIENT: HTTP ${status}: ${body}`);
+    return `WEBPUSH_TRANSIENT: HTTP ${status}: ${body}`;
   }
-  return new Error(`WebPush HTTP ${status}: ${body}`);
+  return `WebPush HTTP ${status}: ${body}`;
 }
 
 // ────────────────────────── RFC 8291 / RFC 8188 ──────────────────────────
@@ -343,19 +375,15 @@ export const selfTest = internalAction({
         authSecret,
       );
       roundTrip = decrypted === RFC8291_PLAINTEXT;
-      if (!roundTrip) roundTripError = `decrypted to ${JSON.stringify(decrypted)}`;
+      if (!roundTrip) {
+        roundTripError = `decrypted to ${JSON.stringify(decrypted)}`;
+      }
     } catch (e) {
       roundTripError = e instanceof Error ? e.message : String(e);
     }
 
     const matchesRfc = actual === RFC8291_EXPECTED;
-    const result = {
-      roundTrip,
-      roundTripError,
-      matchesRfc,
-      actual,
-      expected: RFC8291_EXPECTED,
-    };
+    const result = { roundTrip, roundTripError, matchesRfc, actual };
     if (roundTrip && matchesRfc) {
       console.log("webPush.selfTest: PASS — RFC 8291 §5 vector reproduced");
     } else {

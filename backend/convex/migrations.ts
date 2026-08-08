@@ -217,3 +217,91 @@ export const backfillRoomContent = internalMutation({
     return { done: true, scanned: totalScanned, patched: totalPatched };
   },
 });
+
+/**
+ * Strip the dead `users.deviceTokens` field.
+ *
+ * It held raw APNs tokens back when the app managed them itself, before the
+ * per-device `userDevices` registry existed. Nothing has read it in a long
+ * time, but Convex will not accept a schema that omits a field still present
+ * on disk — so removing it is a three-step dance, and this is step two:
+ *
+ *   1. keep `deviceTokens: v.optional(...)` in the schema, deploy
+ *   2. npx convex run migrations:stripDeviceTokens '{}'   ← reaches remaining: 0
+ *   3. delete the field from the schema, deploy again
+ *
+ * Paginated and self-chaining like the backfills above, so it can't blow the
+ * per-function read limit and is safe to re-run.
+ */
+export const stripDeviceTokens = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    scanned: v.optional(v.number()),
+    cleared: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, scanned, cleared }) => {
+    const page = await ctx.db
+      .query("users")
+      .paginate({ numItems: 200, cursor: cursor ?? null });
+
+    let totalScanned = scanned ?? 0;
+    let totalCleared = cleared ?? 0;
+    for (const user of page.page) {
+      totalScanned++;
+      if ((user as any).deviceTokens === undefined) continue;
+      // Patching a field to undefined is how Convex removes it.
+      await ctx.db.patch(user._id, { deviceTokens: undefined } as any);
+      totalCleared++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.stripDeviceTokens, {
+        cursor: page.continueCursor,
+        scanned: totalScanned,
+        cleared: totalCleared,
+      });
+      return { done: false, scanned: totalScanned, cleared: totalCleared };
+    }
+
+    console.log(
+      `stripDeviceTokens complete: scanned ${totalScanned}, cleared ${totalCleared}`
+    );
+    return { done: true, scanned: totalScanned, cleared: totalCleared };
+  },
+});
+
+/**
+ * How many user rows still carry `deviceTokens`. Must read 0 before step 3.
+ *
+ *     npx convex run migrations:countDeviceTokens '{}'
+ */
+export const countDeviceTokens = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    total: v.optional(v.number()),
+    remaining: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, total, remaining }) => {
+    const page = await ctx.db
+      .query("users")
+      .paginate({ numItems: 500, cursor: cursor ?? null });
+
+    let t = total ?? 0;
+    let r = remaining ?? 0;
+    for (const user of page.page) {
+      t++;
+      if ((user as any).deviceTokens !== undefined) r++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.countDeviceTokens, {
+        cursor: page.continueCursor,
+        total: t,
+        remaining: r,
+      });
+      return { done: false, total: t, remaining: r };
+    }
+    console.log(`countDeviceTokens: ${r} of ${t} users still carry the field`);
+    return { done: true, total: t, remaining: r };
+  },
+});

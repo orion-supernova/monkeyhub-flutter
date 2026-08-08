@@ -123,6 +123,16 @@ cd backend && npx convex run webPush:selfTest
 Both `roundTrip` and `matchesRfc` must be true; it reproduces the published
 RFC 8291 §5 vector byte for byte.
 
+**`webPush.ts` is the one backend file that says `"use node"`.** Convex's
+default V8 isolate implements only part of WebCrypto, and the missing piece is
+exactly what RFC 8291 is built on — `crypto.subtle.deriveBits` for ECDH throws
+`Not implemented` there. APNs and FCM stay in V8 because they only ever *sign*;
+Web Push has to agree a shared secret with the browser, and there is no way to
+do that without ECDH. `push.ts` therefore reaches it over `ctx.runAction`
+rather than importing it, since a V8 module that imported it would pull the
+Node runtime into its own bundle. The cost is a slower cold start on the web
+path only.
+
 Two web caveats worth knowing: Safari only delivers Web Push to a site added to
 the Home Screen on iOS 16.4+, and Chrome's `userVisibleOnly` means every push
 must display something — which is why the backend never sends the silent

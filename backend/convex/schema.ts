@@ -12,6 +12,11 @@ export default defineSchema({
     lastSeen: v.optional(v.number()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
+    // `deviceTokens` used to sit here: raw APNs tokens from before the
+    // per-device `userDevices` registry existed. Stripped from every row by
+    // `migrations.stripDeviceTokens` and removed 2026-08-08. Convex rejects a
+    // schema that omits a field still present on disk, which is why deleting
+    // one is a deploy → migrate → deploy sequence rather than an edit.
     // PushKit VoIP token (iOS) — a DIFFERENT token from the regular APNs
     // alert token, on the `<bundle>.voip` topic rather than `<bundle>`. Used
     // to wake the app for CallKit ringing when killed.

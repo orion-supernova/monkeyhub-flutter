@@ -32,6 +32,9 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
+import type * as push from "../push.js";
+import type * as pushCodec from "../pushCodec.js";
+import type * as pushTransport from "../pushTransport.js";
 import type * as puzzle from "../puzzle.js";
 import type * as rateLimit from "../rateLimit.js";
 import type * as reactions from "../reactions.js";
@@ -45,6 +48,7 @@ import type * as users from "../users.js";
 import type * as visibility from "../visibility.js";
 import type * as voipPush from "../voipPush.js";
 import type * as voipTokens from "../voipTokens.js";
+import type * as webPush from "../webPush.js";
 
 import type {
   ApiFromModules,
@@ -77,6 +81,9 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   pins: typeof pins;
   presence: typeof presence;
+  push: typeof push;
+  pushCodec: typeof pushCodec;
+  pushTransport: typeof pushTransport;
   puzzle: typeof puzzle;
   rateLimit: typeof rateLimit;
   reactions: typeof reactions;
@@ -90,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   visibility: typeof visibility;
   voipPush: typeof voipPush;
   voipTokens: typeof voipTokens;
+  webPush: typeof webPush;
 }>;
 
 /**
