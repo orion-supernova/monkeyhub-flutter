@@ -4310,7 +4310,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Neyin yanlış gittiğini anlatın. Uygulama ve cihaz bilgileriniz otomatik olarak eklenir — nedeni bulmamıza yardımcı olur.';
+      'Neyin yanlış gittiğini anlatın. Uygulama ve cihaz bilgileriniz, uygulamanın o sırada ne yaptığını gösteren teknik bir kayıtla birlikte otomatik olarak eklenir — nedeni bulmamıza yardımcı olan şey bu.';
 
   @override
   String get reportProblemDescribeLabel => 'NE OLDU';
@@ -4338,9 +4338,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reportProblemSend => 'Raporu gönder';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'Veya $email adresine e-posta gönderin';
-  }
+  String get reportProblemSent => 'Rapor gönderildi — teşekkürler!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'Rapor gönderilemedi. Bağlantınızı kontrol edip tekrar deneyin.';
+
+  @override
+  String get reportProblemTooMany =>
+      'Kısa süre içinde çok fazla rapor gönderdiniz. Lütfen biraz sonra tekrar deneyin.';
 
   @override
   String get reportProblemShakeTitle => 'Sorun bildirilsin mi?';

@@ -4326,7 +4326,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Tell us what went wrong. Your app and device details are included automatically — they help us find the cause.';
+      'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that\'s what helps us find the cause.';
 
   @override
   String get reportProblemDescribeLabel => 'WHAT HAPPENED';
@@ -4354,9 +4354,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportProblemSend => 'Send report';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'Or email $email';
-  }
+  String get reportProblemSent => 'Report sent — thank you!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'Couldn\'t send the report. Check your connection and try again.';
+
+  @override
+  String get reportProblemTooMany =>
+      'You\'ve sent a lot of reports just now. Please try again a bit later.';
 
   @override
   String get reportProblemShakeTitle => 'Report a problem?';

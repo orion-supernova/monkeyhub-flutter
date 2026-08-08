@@ -1587,6 +1587,40 @@ class ChatApi {
   // client delete any file given its id, and nothing ever called it.
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Problem reports
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Files a problem report. See `backend/convex/problemReports.ts` for where it
+  /// lands and why.
+  ///
+  /// Throws whatever the mutation threw — `TOO_MANY_REPORTS` when the device has
+  /// spent its hourly budget, `REPORT_INBOX_MISSING` if the deployment has no
+  /// maintainer account. The screen distinguishes the first and treats the rest
+  /// as a generic failure, because the rest are ours to fix, not the user's.
+  Future<void> submitProblemReport({
+    required String deviceId,
+    String? reporterId,
+    required String body,
+    String? logStorageId,
+    String? logFileName,
+    int? logFileSize,
+    List<String> screenshots = const [],
+  }) async {
+    await _cv.mutation('problemReports:submit', {
+      'deviceId': deviceId,
+      // Omitted rather than sent as null: every one of these is `v.optional`
+      // server-side, and Convex rejects an explicit null against an optional
+      // validator.
+      'reporterId': ?reporterId,
+      'body': body,
+      'logStorageId': ?logStorageId,
+      'logFileName': ?logFileName,
+      'logFileSize': ?logFileSize,
+      if (screenshots.isNotEmpty) 'screenshots': screenshots,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Helpers
   // ─────────────────────────────────────────────────────────────────────────
 

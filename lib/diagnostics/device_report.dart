@@ -32,6 +32,21 @@ class DeviceReport {
 
   static Map<String, Object?>? _cached;
 
+  /// The language the app is actually rendering in, as a BCP-47 tag.
+  ///
+  /// Not derivable from anything else here, which is why it is a static set
+  /// from the widget tree (`app.dart`, in `MaterialApp.builder`) rather than a
+  /// field of [gather]. The device locale is what the handset asks for; the
+  /// saved override is what the user picked *if* they picked anything. Neither
+  /// is the answer: with no override, Flutter resolves the device locale
+  /// against `supportedLocales` and falls back to English, so a Norwegian
+  /// phone runs an English app and both other fields say otherwise.
+  ///
+  /// Deliberately outside the [gather] cache — the user can change language
+  /// mid-session from `LanguageScreen`, and a value cached at launch would then
+  /// be wrong for the rest of it.
+  static String? appLocaleTag;
+
   /// Gathered once per launch. Every lookup is individually guarded: a
   /// diagnostics header that throws is worse than one with a hole in it.
   static Future<Map<String, Object?>> gather() async {
@@ -58,10 +73,17 @@ class DeviceReport {
       }
     } catch (_) {}
 
-    // Android-only native block. iOS gets the same treatment in v2; today the
-    // bug is Android-only and a half-built iOS path would be untested code.
+    // Native build facts. Both mobile platforms answer `getBuildInfo` with the
+    // same key names — `model`, `manufacturer`, `release`, `powerSaveMode`,
+    // `refreshRate` — so nothing downstream has to branch. Android adds its own
+    // extras (`sdkInt`, `oneUi`, the animation scales); iOS adds `osName`.
+    //
+    // Guarded per-platform rather than by a bare invoke because `_device` is
+    // only registered on Android and iOS; on desktop and web the channel does
+    // not exist and the miss would be a thrown MissingPluginException per
+    // launch.
     try {
-      if (!kIsWeb && Platform.isAndroid) {
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         final build = await _device.invokeMapMethod<String, Object?>(
           'getBuildInfo',
         );
@@ -118,6 +140,36 @@ class DeviceReport {
     return out;
   }
 
+  /// The handset, in one line: `iPhone15,3 · Apple` / `SM-S918B · samsung`.
+  ///
+  /// Shared by the export header and the user-facing problem report so the two
+  /// cannot disagree, and so a platform that answers with fewer fields degrades
+  /// in one place. Every part is optional: a line reading just `Apple` is still
+  /// worth more than `— · —`, which is what both callers used to render on iOS
+  /// before there was an iOS `getBuildInfo`.
+  static String describeDevice(Map<String, Object?> d) {
+    final parts = [
+      d['model'],
+      d['manufacturer'],
+      if (d['oneUi'] != null) 'One UI ${d['oneUi']}',
+    ].map((v) => v?.toString()).where((v) => v != null && v.isNotEmpty);
+    return parts.isEmpty ? '—' : parts.join(' · ');
+  }
+
+  /// The OS, in one line: `iOS 18.1.1` / `android 15 (SDK 35)`.
+  ///
+  /// Falls back to `Platform.operatingSystemVersion` when the native side gave
+  /// no `release`, which is what keeps desktop and web from rendering a bare
+  /// platform name with nothing after it.
+  static String describeSystem(Map<String, Object?> d) {
+    final name = (d['osName'] ?? d['os'])?.toString();
+    final version = d['release']?.toString() ?? d['osVersion']?.toString();
+    final b = StringBuffer(name == null || name.isEmpty ? '—' : name);
+    if (version != null && version.isNotEmpty) b.write(' $version');
+    if (d['sdkInt'] != null) b.write(' (SDK ${d['sdkInt']})');
+    return b.toString();
+  }
+
   /// The human-readable header block that opens an export.
   static String format(
     Map<String, Object?> d, {
@@ -135,11 +187,7 @@ class DeviceReport {
       '  (uptime ${_hms(uptimeMs)})',
     );
     b.writeln('app         ${v('appVersion')} (${v('appBuild')})');
-    b.writeln(
-      'device      ${v('model')} · ${v('manufacturer')}'
-      '${d['oneUi'] != null ? ' · One UI ${v('oneUi')}' : ''}'
-      ' · ${v('os')} ${v('release')} (SDK ${v('sdkInt')})',
-    );
+    b.writeln('device      ${describeDevice(d)} · ${describeSystem(d)}');
     b.writeln('deviceId    ${v('deviceId')}');
     b.writeln(
       'display     ${v('physW')}x${v('physH')} @${v('dpr')}'
@@ -155,9 +203,10 @@ class DeviceReport {
       ' chat=${v('chatStyle')} captureProtection=${v('captureProtection')}',
     );
     b.writeln(
-      'locale      ${v('locale')} (override ${v('localeOverride')})'
-      ' · textScale ${v('textScale')} · a11y ${v('a11y')}',
+      'language    app ${appLocaleTag ?? '—'}'
+      ' · system ${v('locale')} · override ${v('localeOverride')}',
     );
+    b.writeln('a11y        textScale ${v('textScale')} · flags ${v('a11y')}');
     b.writeln('power       powerSave=${v('powerSaveMode')}');
     b.writeln(
       'network     convex ${v('convexHost')}'

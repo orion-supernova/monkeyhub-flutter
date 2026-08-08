@@ -14,6 +14,7 @@ import {
   familyOf,
   isChild,
 } from "./childGuard";
+import { LOG_USERNAME } from "./problemReports";
 import { findDmRoomsBetween, wipeRoomCompletely } from "./roomCleanup";
 import { lensFor } from "./visibility";
 
@@ -391,6 +392,14 @@ export const searchUsers = query({
       .filter((u) => {
         if (u._id === currentUserId) return false;
         if (hidden.has(u._id.toString())) return false;
+        // The account problem reports are posted by. It has no client, so a
+        // message to it is a message into nothing — and this is an app children
+        // use, where a findable, plausible-looking "MonkeyHub" account is worse
+        // than a dead end. Filtered here rather than given a visibility setting
+        // because search is the ONLY way it could ever be reached: it sends no
+        // friend requests, joins no public rooms, and appears in no roster
+        // except the one DM it posts into.
+        if (u.username === LOG_USERNAME) return false;
         const handle = u.username.toLowerCase();
         const fuzzy =
           handle.includes(needle) ||

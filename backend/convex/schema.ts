@@ -335,6 +335,36 @@ export default defineSchema({
     // The published period is 24 months; see users.gcExpiredReports.
     .index("by_createdAt", ["createdAt"]),
 
+  // Problem reports — the "Report a problem" screen, NOT the moderation
+  // `reports` table above. Different thing entirely: this is a bug report about
+  // the app, that one is a complaint about a person.
+  //
+  // Holds no content on purpose. The report itself is delivered as a chat
+  // message (see problemReports.ts) and that message IS the record; duplicating
+  // the text, the device facts and the log here would mean a second copy of a
+  // child's screenshot living in a table nobody reads, with its own retention
+  // problem. What is left is exactly the throttle key and an audit trail.
+  problemReports: defineTable({
+    // The device, not the account, because the throttle has to work for a
+    // signed-out reporter too — and because one person with two accounts is
+    // still one person hammering the inbox.
+    deviceId: v.string(),
+    // Absent when nobody was signed in. Nulled the same way `reports` does it
+    // if the account later goes away.
+    reporterId: v.optional(v.id("users")),
+    createdAt: v.number(),
+    // The delivered text message. Absent only if delivery was skipped.
+    messageId: v.optional(v.id("messages")),
+  })
+    // Serves the rate limiter, which asks one question: how many reports has
+    // THIS device filed since a cutoff. Compound so the answer is a bounded
+    // index range rather than a scan of every report ever filed.
+    .index("by_device_createdAt", ["deviceId", "createdAt"])
+    // Account deletion, which tombstones `reporterId` the same way it does on
+    // `reports`. Exists only so that sweep is an index range and not a full
+    // table scan on every account deletion.
+    .index("by_reporter", ["reporterId"]),
+
   messages: defineTable({
     roomId: v.id("rooms"),
     userId: v.id("users"),

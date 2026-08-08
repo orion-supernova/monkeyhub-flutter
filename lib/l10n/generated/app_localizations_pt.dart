@@ -4383,7 +4383,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Diga-nos o que correu mal. Os dados da app e do seu dispositivo são incluídos automaticamente — ajudam-nos a encontrar a causa.';
+      'Diga-nos o que correu mal. Os dados da app e do seu dispositivo são incluídos automaticamente, juntamente com um registo técnico do que a app estava a fazer — é isso que nos ajuda a encontrar a causa.';
 
   @override
   String get reportProblemDescribeLabel => 'O QUE ACONTECEU';
@@ -4411,9 +4411,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reportProblemSend => 'Enviar relatório';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'Ou envie e-mail para $email';
-  }
+  String get reportProblemSent => 'Relatório enviado — obrigado!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'Não foi possível enviar o relatório. Verifique a sua ligação e tente novamente.';
+
+  @override
+  String get reportProblemTooMany =>
+      'Enviou muitos relatórios em pouco tempo. Tente novamente mais tarde.';
 
   @override
   String get reportProblemShakeTitle => 'Comunicar um problema?';
@@ -9928,7 +9934,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get reportProblemIntro =>
-      'Conte o que deu errado. Os dados do app e do seu aparelho são incluídos automaticamente — eles ajudam a encontrar a causa.';
+      'Conte o que deu errado. Os dados do app e do seu aparelho são incluídos automaticamente, junto com um registro técnico do que o app estava fazendo — é isso que ajuda a encontrar a causa.';
 
   @override
   String get reportProblemDescribeLabel => 'O QUE ACONTECEU';
@@ -9956,9 +9962,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get reportProblemSend => 'Enviar relatório';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'Ou envie um e-mail para $email';
-  }
+  String get reportProblemSent => 'Relatório enviado — obrigado!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'Não foi possível enviar o relatório. Verifique sua conexão e tente de novo.';
+
+  @override
+  String get reportProblemTooMany =>
+      'Você enviou muitos relatórios em pouco tempo. Tente de novo mais tarde.';
 
   @override
   String get reportProblemShakeTitle => 'Relatar um problema?';

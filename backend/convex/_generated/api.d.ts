@@ -32,6 +32,7 @@ import type * as migrations from "../migrations.js";
 import type * as notifications from "../notifications.js";
 import type * as pins from "../pins.js";
 import type * as presence from "../presence.js";
+import type * as problemReports from "../problemReports.js";
 import type * as push from "../push.js";
 import type * as pushCodec from "../pushCodec.js";
 import type * as pushTransport from "../pushTransport.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   pins: typeof pins;
   presence: typeof presence;
+  problemReports: typeof problemReports;
   push: typeof push;
   pushCodec: typeof pushCodec;
   pushTransport: typeof pushTransport;

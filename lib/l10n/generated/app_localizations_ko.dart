@@ -4198,7 +4198,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      '무엇이 잘못되었는지 알려주세요. 앱과 기기 정보가 자동으로 포함되어 원인을 찾는 데 도움이 됩니다.';
+      '무엇이 잘못되었는지 알려주세요. 앱과 기기 정보, 그리고 그때 앱이 무엇을 하고 있었는지 담은 기술 로그가 자동으로 함께 첨부됩니다. 원인을 찾는 데 바로 이것이 도움이 됩니다.';
 
   @override
   String get reportProblemDescribeLabel => '무슨 일이 있었나요';
@@ -4225,9 +4225,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reportProblemSend => '신고 보내기';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return '또는 $email 로 이메일 보내기';
-  }
+  String get reportProblemSent => '신고를 보냈어요. 감사합니다!';
+
+  @override
+  String get reportProblemSendFailed => '신고를 보내지 못했어요. 연결을 확인하고 다시 시도해 주세요.';
+
+  @override
+  String get reportProblemTooMany => '짧은 시간에 신고를 너무 많이 보냈어요. 잠시 후에 다시 시도해 주세요.';
 
   @override
   String get reportProblemShakeTitle => '문제를 신고할까요?';

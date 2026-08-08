@@ -4375,7 +4375,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Cuéntanos qué ha fallado. Los datos de tu app y tu dispositivo se incluyen automáticamente: nos ayudan a encontrar la causa.';
+      'Cuéntanos qué ha fallado. Los datos de tu app y tu dispositivo se incluyen automáticamente, junto con un registro técnico de lo que estaba haciendo la app: eso es lo que nos ayuda a encontrar la causa.';
 
   @override
   String get reportProblemDescribeLabel => 'QUÉ HA PASADO';
@@ -4403,9 +4403,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reportProblemSend => 'Enviar informe';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'O escríbenos a $email';
-  }
+  String get reportProblemSent => 'Informe enviado. ¡Gracias!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'No se ha podido enviar el informe. Comprueba tu conexión e inténtalo de nuevo.';
+
+  @override
+  String get reportProblemTooMany =>
+      'Has enviado muchos informes en poco tiempo. Inténtalo de nuevo más tarde.';
 
   @override
   String get reportProblemShakeTitle => '¿Informar de un problema?';

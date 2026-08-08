@@ -597,6 +597,20 @@ async function purgeUser(ctx: any, userId: any) {
     await ctx.db.patch(r._id, { reporterId: undefined });
   }
 
+  // Problem reports, tombstoned for a different reason than moderation ones:
+  // the row is the rate-limit ledger keyed on `deviceId`, so deleting it would
+  // hand anyone a way to reset their own throttle by deleting an account. The
+  // delivered chat message is not touched here either — it lives in the log
+  // account's DM and is a bug report about the app, not personal data about
+  // whoever happened to file it.
+  const problems = await ctx.db
+    .query("problemReports")
+    .withIndex("by_reporter", (q: any) => q.eq("reporterId", userId))
+    .collect();
+  for (const p of problems) {
+    await ctx.db.patch(p._id, { reporterId: undefined });
+  }
+
   // ── Finally ──────────────────────────────────────────────────────────────
   await deleteRows(
     ctx,

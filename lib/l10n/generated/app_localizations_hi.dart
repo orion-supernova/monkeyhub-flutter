@@ -4346,7 +4346,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'बताइए क्या गड़बड़ हुई। आपके ऐप और डिवाइस की जानकारी अपने आप जुड़ जाती है — इससे कारण ढूँढ़ने में मदद मिलती है।';
+      'बताइए क्या गड़बड़ हुई। आपके ऐप और डिवाइस की जानकारी अपने आप जुड़ जाती है, साथ में एक तकनीकी लॉग भी जिसमें ऐप उस समय क्या कर रहा था — इसी से कारण ढूँढ़ने में मदद मिलती है।';
 
   @override
   String get reportProblemDescribeLabel => 'क्या हुआ';
@@ -4374,9 +4374,15 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reportProblemSend => 'रिपोर्ट भेजें';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'या $email पर ईमेल करें';
-  }
+  String get reportProblemSent => 'रिपोर्ट भेज दी गई — धन्यवाद!';
+
+  @override
+  String get reportProblemSendFailed =>
+      'रिपोर्ट नहीं भेजी जा सकी। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
+
+  @override
+  String get reportProblemTooMany =>
+      'आपने थोड़ी ही देर में बहुत सारी रिपोर्ट भेज दी हैं। कुछ देर बाद कोशिश करें।';
 
   @override
   String get reportProblemShakeTitle => 'समस्या की रिपोर्ट करें?';

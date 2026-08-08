@@ -1,59 +1,77 @@
 import 'dart:convert';
-import 'dart:ui' show Rect;
 
-import 'package:share_plus/share_plus.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:image_picker/image_picker.dart';
 
 import '../auth/auth_service.dart';
+import '../backend/chat_api.dart';
+import '../media/upload_service.dart';
 import 'device_report.dart';
-
-/// Where problem reports are meant to land.
-///
-/// Shown on screen and put at the top of the report body, because a share sheet
-/// carries no recipient — whichever app the user picks, they need the address
-/// in front of them.
-const String kSupportEmail = 'info@walhallaa.com';
+import 'diag_buffer.dart';
+import 'diag_export.dart';
 
 /// Builds and sends a user-written problem report.
 ///
-/// Separate from `DiagExport` on purpose. That one is a developer tool behind an
-/// allowlist and emits a machine-readable event log; this is a normal feature
-/// every user can reach, and it emits a short human-readable note. They share a
-/// device header and nothing else — and critically, **this never includes the
-/// captured event log**, because an ordinary user tapping "send report" has not
-/// agreed to hand over a trace of everything their app did.
+/// Separate from [DiagExport], which is the developer-facing tool: that one
+/// hands a whole session to whoever is holding the phone, through a share sheet.
+/// This one is the feature every user can reach, and it *delivers* — it uploads
+/// and posts, so the report exists whether or not the user knows what to do next
+/// with a share sheet.
+///
+/// The two now carry the same evidence. [DiagExport] used to be the only route
+/// the captured event log could leave by, and a report saying "it flickers" with
+/// no log attached is a report nobody can act on. Since capture is on for
+/// everyone and `Redactor` withholds message content, credentials and capability
+/// URLs at capture time, the log holds the app's own timings and nothing the user
+/// wrote — so attaching it costs the reporter nothing they would object to, and
+/// the screen says plainly that it is attached.
 class ProblemReport {
   const ProblemReport._();
 
-  /// The facts that identify this install, in the order somebody triaging wants
-  /// them. Device id is first: it is the one thing that cannot be guessed or
-  /// looked up any other way, and it is what unlocks diagnostics for this
-  /// handset.
+  /// The identifying facts, in the order somebody triaging wants them.
+  ///
+  /// Device id is first: it is the one thing that cannot be guessed or looked up
+  /// any other way, and it is what ties this report to a specific handset.
+  ///
+  /// [appLocale] is the language the app is actually rendering in, which the
+  /// caller has to supply because it only exists below `MaterialApp` — see
+  /// [DeviceReport.appLocaleTag]. Passed rather than read off that static so a
+  /// screen with a `BuildContext` in hand always wins over a value some earlier
+  /// build recorded.
   static Future<List<({String label, String value})>> facts(
-    AuthService auth,
-  ) async {
+    AuthService auth, {
+    String? appLocale,
+  }) async {
     final d = await DeviceReport.gather();
     String s(String k) => d[k]?.toString() ?? '—';
     final session = auth.session;
+    final override = d['localeOverride']?.toString();
     return [
       (label: 'Device ID', value: s('deviceId')),
       (label: 'User ID', value: session?.userId ?? '—'),
       (label: 'Username', value: session?.name ?? '—'),
       (label: 'App', value: '${s('appVersion')} (${s('appBuild')})'),
-      (label: 'Device', value: '${s('model')} · ${s('manufacturer')}'),
-      (
-        label: 'System',
-        value:
-            '${s('os')} ${s('release')}'
-            '${d['sdkInt'] != null ? ' (SDK ${s('sdkInt')})' : ''}'
-            '${d['oneUi'] != null ? ' · One UI ${s('oneUi')}' : ''}',
-      ),
+      (label: 'Device', value: DeviceReport.describeDevice(d)),
+      (label: 'System', value: DeviceReport.describeSystem(d)),
       (label: 'Display', value: '${s('physW')}x${s('physH')} @${s('dpr')}'),
-      (label: 'Locale', value: s('locale')),
+      // Three separate lines because they answer three different questions and
+      // used to be collapsed into one labelled "Locale" — which read as the app
+      // language and was not: it was the handset's. On a Norwegian phone with no
+      // override the app renders in English while that row said `nb-NO`, so the
+      // one fact a language bug turns on was the one fact missing.
+      (
+        label: 'App language',
+        value:
+            '${appLocale ?? DeviceReport.appLocaleTag ?? '—'}'
+            ' (${override == null ? 'from system' : 'chosen'})',
+      ),
+      (label: 'System locale', value: s('locale')),
+      (label: 'Log', value: '${DiagBuffer.instance.length} events attached'),
     ];
   }
 
-  /// One copyable block. What the user pastes if they'd rather type it into a
-  /// chat than use the share sheet.
+  /// One copyable block. What the user pastes if they'd rather hand the details
+  /// over some other way than by sending the report.
   static String formatFacts(List<({String label, String value})> facts) {
     final width = facts
         .map((f) => f.label.length)
@@ -69,8 +87,6 @@ class ProblemReport {
     required int screenshotCount,
   }) {
     final b = StringBuffer()
-      ..writeln('To: $kSupportEmail')
-      ..writeln()
       ..writeln('--- what happened ---')
       ..writeln(
         description.trim().isEmpty ? '(not described)' : description.trim(),
@@ -86,49 +102,79 @@ class ProblemReport {
     return b.toString();
   }
 
-  /// Opens the share sheet with the note as the message body and any
-  /// screenshots attached.
+  /// Uploads the evidence and files the report. Throws on failure, so the caller
+  /// can only ever tell the user "sent" when it was.
   ///
-  /// [origin] is the tapped button's global rect, required for iPad and macOS
-  /// popover anchoring and harmless elsewhere.
+  /// Order matters: the blobs go up first and the mutation goes last. Convex
+  /// storage is written by a direct PUT that the deployment cannot roll back, so
+  /// an upload that succeeds while the mutation fails leaves orphaned bytes —
+  /// which `files.gcOrphanedFiles` already reclaims, since nothing references
+  /// them. The other order would be a message pointing at a blob that never
+  /// arrived: a permanent broken tile, and one no sweep can repair.
+  ///
+  /// A screenshot that fails to upload is dropped rather than allowed to fail the
+  /// report. The text and the identifiers are the part that has to arrive.
   static Future<void> send({
+    required ChatApi api,
+    required UploadService uploads,
+    required AuthService auth,
     required String body,
     required List<XFile> screenshots,
-    required String deviceLabel,
-    Rect? origin,
+    required String deviceId,
   }) async {
-    await SharePlus.instance.share(
-      ShareParams(
-        // Gmail and most mail clients pick this up as the subject line, which
-        // is the closest a share sheet gets to prefilling an email.
-        subject: 'MonkeyHub problem report — $deviceLabel',
-        text: body,
-        files: screenshots.isEmpty ? null : screenshots,
-        sharePositionOrigin: origin,
-      ),
+    final log = await DiagExport.build(
+      events: DiagBuffer.instance.snapshot(),
+      dropped: DiagBuffer.instance.dropped,
+    );
+    final logBytes = utf8.encode(log);
+
+    String? logStorageId;
+    try {
+      logStorageId = await uploads.uploadFile(
+        bytes: logBytes,
+        contentType: 'text/plain',
+      );
+    } catch (e) {
+      // Same reasoning as a dropped screenshot, one level more important: a
+      // report with no log still names the device, and a device id is enough to
+      // ask for a fresh one.
+      debugPrint('[report] log upload failed, sending without it: $e');
+    }
+
+    final shotIds = <String>[];
+    for (final shot in screenshots) {
+      try {
+        shotIds.add(
+          await uploads.uploadFile(
+            bytes: await shot.readAsBytes(),
+            contentType: shot.mimeType ?? 'image/jpeg',
+          ),
+        );
+      } catch (e) {
+        debugPrint('[report] screenshot upload failed, dropping it: $e');
+      }
+    }
+
+    await api.submitProblemReport(
+      deviceId: deviceId,
+      reporterId: auth.session?.userId,
+      body: body,
+      logStorageId: logStorageId,
+      logFileName: logStorageId == null ? null : _logFileName(),
+      logFileSize: logStorageId == null ? null : logBytes.length,
+      screenshots: shotIds,
     );
   }
 
-  /// A `mailto:` for the case where the user would rather just write an email.
-  ///
-  /// Fully prefills recipient, subject and body — the one thing a share sheet
-  /// cannot do — at the cost of carrying no attachments, which is why it is the
-  /// secondary route and not the primary one.
-  static Uri mailto({required String body, required String deviceLabel}) => Uri(
-    scheme: 'mailto',
-    path: kSupportEmail,
-    query: Uri(
-      queryParameters: {
-        'subject': 'MonkeyHub problem report — $deviceLabel',
-        'body': body,
-      },
-    ).query,
-  );
-
-  /// Encodes the note as a file when a share target refuses long text.
-  static XFile asTextFile(String body) => XFile.fromData(
-    utf8.encode(body),
-    name: 'monkeyhub-report.txt',
-    mimeType: 'text/plain',
-  );
+  /// `.txt`, not `.ndjson`, for the same reason [DiagExport.share] uses it: the
+  /// content is one JSON object per line either way, and an extension the
+  /// receiving platform recognises is the difference between a file that opens
+  /// with a tap and one that does not open at all.
+  static String _logFileName() {
+    final stamp = DateTime.now()
+        .toIso8601String()
+        .replaceAll(RegExp(r'[:.]'), '-')
+        .substring(0, 19);
+    return 'monkeyhub-report-$stamp.txt';
+  }
 }

@@ -104,6 +104,14 @@ class Redactor {
     'files:getFileUrl': ArgPolicy.drop,
     'files:generateUploadUrl': ArgPolicy.drop,
 
+    // ---- The problem report itself, which is free text a user typed plus a
+    // list of storage ids for their own screenshots. `body` is already a denied
+    // key at layer 2, but the policy is stated anyway because the leak here is
+    // recursive rather than obvious: every report attaches the current log, so
+    // an argument recorded on this call is an argument re-sent inside the NEXT
+    // report — and a second reporter's screenshot ids would ride along with it.
+    'problemReports:submit': ArgPolicy.drop,
+
     // ---- Device-takeover: a push token lets somebody ring this handset. ----
     'voipTokens:registerDevice': ArgPolicy.drop,
     'voipTokens:setVoipToken': ArgPolicy.drop,

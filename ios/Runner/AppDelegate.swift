@@ -690,6 +690,44 @@ import flutter_callkit_incoming
           // user's name. Either way, this is the best handle we have
           // server-side without entitlements.
           result(UIDevice.current.name)
+        case "getBuildInfo":
+          // The iOS half of the diagnostics header, mirroring the Android
+          // handler's keys so `DeviceReport` needs no per-platform branch.
+          // Read once per launch; never on a hot path.
+          //
+          // Before this existed the header rendered "Device: — · —" and
+          // "System: ios —" on every iPhone, because `release`, `model` and
+          // `manufacturer` were only ever produced by the Android side.
+          var info: [String: Any?] = [:]
+          info["manufacturer"] = "Apple"
+          info["release"] = UIDevice.current.systemVersion
+          // "iOS" or "iPadOS" — more specific than Dart's
+          // `Platform.operatingSystem`, which says "ios" for both.
+          info["osName"] = UIDevice.current.systemName
+          // The machine identifier ("iPhone15,3"), not a marketing name. A
+          // triager wants the identifier — it names one SoC and one panel,
+          // and unlike a lookup table of marketing names it cannot go stale.
+          // On the simulator `utsname` reports the host arch, so the real
+          // identifier comes from the environment instead.
+          info["model"] = {
+            if let simulated = ProcessInfo.processInfo
+              .environment["SIMULATOR_MODEL_IDENTIFIER"] {
+              return "\(simulated) (simulator)"
+            }
+            var system = utsname()
+            uname(&system)
+            let machine = withUnsafePointer(to: &system.machine) {
+              $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(validatingUTF8: $0) ?? ""
+              }
+            }
+            return machine.isEmpty ? UIDevice.current.model : machine
+          }()
+          // Same standing suspects as the Android side: a throttled process
+          // and a variable-refresh panel look identical from Dart.
+          info["powerSaveMode"] = ProcessInfo.processInfo.isLowPowerModeEnabled
+          info["refreshRate"] = UIScreen.main.maximumFramesPerSecond
+          result(info)
         default:
           result(FlutterMethodNotImplemented)
         }

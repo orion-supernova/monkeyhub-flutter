@@ -26,6 +26,7 @@ import 'data/chat_repository.dart';
 import 'data/feed_store.dart';
 import 'data/games_store.dart';
 import 'data/settings_store.dart';
+import 'diagnostics/device_report.dart';
 import 'diagnostics/diag_buffer.dart';
 import 'diagnostics/diag_log.dart';
 import 'diagnostics/metrics_watch.dart';
@@ -937,6 +938,18 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             ],
             supportedLocales: AppLocalizations.supportedLocales,
             builder: (context, child) {
+              // The language the app SETTLED on, which is not knowable from
+              // either of the two things that produce it: `locale:` above is
+              // null whenever the user has not overridden anything, and the
+              // device locale may not be supported at all. This builder sits
+              // below WidgetsApp's Localizations, so it is the first place the
+              // resolved answer exists — recorded for the diagnostics header
+              // and the problem report, both of which are context-free.
+              // Idempotent, and rerun on every language change.
+              DeviceReport.appLocaleTag = Localizations.localeOf(
+                context,
+              ).toLanguageTag();
+
               // _WindowClassProvider hosts the single app-wide LayoutBuilder
               // ABOVE the root navigator, so every route — the shell and any
               // full-screen push (profile, search, room, …) — reads the same
@@ -1027,7 +1040,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                         // bootstrap so a shake during the splash cannot open a
                         // form over a half-built tree.
                         if (_bootstrapped && _bootError == null)
-                          ShakeToReport(auth: _auth),
+                          ShakeToReport(auth: _auth, api: _api),
                         // Sits above every other layer so it covers banners +
                         // overlays during a screen recording.
                         const CaptureShield(),

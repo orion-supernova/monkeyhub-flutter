@@ -4185,7 +4185,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      '何が起きたか教えてください。アプリと端末の情報は自動的に含まれます。原因の特定に役立ちます。';
+      '何が起きたか教えてください。アプリと端末の情報に加えて、そのときアプリが何をしていたかの技術ログも自動的に添付されます。原因の特定に役立つのはこの部分です。';
 
   @override
   String get reportProblemDescribeLabel => '何が起きたか';
@@ -4212,9 +4212,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reportProblemSend => 'レポートを送信';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'または $email にメールを送信';
-  }
+  String get reportProblemSent => 'レポートを送信しました。ありがとうございます！';
+
+  @override
+  String get reportProblemSendFailed => 'レポートを送信できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
+  String get reportProblemTooMany => '短い時間に多くのレポートが送信されました。しばらくしてからお試しください。';
 
   @override
   String get reportProblemShakeTitle => '問題を報告しますか？';

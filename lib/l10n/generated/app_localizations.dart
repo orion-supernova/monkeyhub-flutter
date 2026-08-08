@@ -7400,7 +7400,7 @@ abstract class AppLocalizations {
   /// Short paragraph at the top of the problem-report screen explaining what will be sent.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what went wrong. Your app and device details are included automatically — they help us find the cause.'**
+  /// **'Tell us what went wrong. Your app and device details are included automatically, along with a technical log of what the app was doing — that\'s what helps us find the cause.'**
   String get reportProblemIntro;
 
   /// All-caps section header above the free-text field where the user describes the problem.
@@ -7445,17 +7445,29 @@ abstract class AppLocalizations {
   /// **'Copied'**
   String get reportProblemCopied;
 
-  /// Primary button that opens the share sheet to send the problem report.
+  /// Primary button that sends the problem report. Tapping it uploads and delivers the report; there is no further confirmation step.
   ///
   /// In en, this message translates to:
   /// **'Send report'**
   String get reportProblemSend;
 
-  /// Secondary option below the send button, opening the mail app with the report prefilled. Placeholder is the support email address.
+  /// Confirmation shown after the problem report has been sent successfully.
   ///
   /// In en, this message translates to:
-  /// **'Or email {email}'**
-  String reportProblemEmailInstead(String email);
+  /// **'Report sent — thank you!'**
+  String get reportProblemSent;
+
+  /// Shown when sending the problem report failed for a technical reason, e.g. no connection.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send the report. Check your connection and try again.'**
+  String get reportProblemSendFailed;
+
+  /// Shown when this device has filed too many problem reports in a short time and has to wait.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve sent a lot of reports just now. Please try again a bit later.'**
+  String get reportProblemTooMany;
 
   /// Title of the sheet that appears when the user shakes the device, offering to open the problem-report screen.
   ///

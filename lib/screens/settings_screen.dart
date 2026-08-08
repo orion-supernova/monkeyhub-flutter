@@ -624,7 +624,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => openSettingsDetail(
                   context,
                   key: 'report',
-                  builder: (_) => ReportProblemScreen(auth: widget.auth),
+                  builder: (_) =>
+                      ReportProblemScreen(auth: widget.auth, api: widget.api),
                 ),
               ),
               const SizedBox(height: 10),

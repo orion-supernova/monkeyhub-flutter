@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_service.dart';
+import '../backend/chat_api.dart';
 import '../diagnostics/problem_report.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../media/upload_service.dart';
+import '../push/device_identity.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 
@@ -14,18 +16,20 @@ import '../widgets/adaptive_page_body.dart';
 /// it actionable already filled in.
 ///
 /// The identifiers are the point. A report saying "it flickers" is unactionable;
-/// the same report carrying a device id can be turned into a real diagnostic
-/// session with one CLI command, because that id is what unlocks capture for
-/// that handset. Everything else on this screen exists to make somebody
-/// willing to send it.
+/// the same report carrying a device id and the captured log can be triaged
+/// without a single follow-up question. Everything else on this screen exists to
+/// make somebody willing to send it.
 ///
-/// Nothing is uploaded. The report leaves through the share sheet, which means
-/// it works when the connection is the thing that is broken — and means no
-/// user-submitted screenshots are stored on a server for a children's app.
+/// Tapping send SENDS. It used to open the share sheet, which meant the report
+/// only existed if the user then picked an app, found a recipient and hit send
+/// there — three chances to abandon a form they had already filled in, and no way
+/// for anyone to know they had. Now the screen uploads the evidence, posts the
+/// report, and says so.
 class ReportProblemScreen extends StatefulWidget {
-  const ReportProblemScreen({super.key, required this.auth});
+  const ReportProblemScreen({super.key, required this.auth, required this.api});
 
   final AuthService auth;
+  final ChatApi api;
 
   @override
   State<ReportProblemScreen> createState() => _ReportProblemScreenState();
@@ -37,10 +41,20 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
   List<({String label, String value})> _facts = const [];
   bool _sending = false;
 
+  /// The locale the loaded [_facts] were built for, so a rebuild that changed
+  /// something else — a theme swap, a keyboard inset — does not kick off another
+  /// gather. Only a real language change should.
+  String? _factsLocale;
+
   @override
-  void initState() {
-    super.initState();
-    _loadFacts();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Here rather than in initState because the app language is read off this
+    // context, and Localizations is not resolvable until dependencies are.
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    if (locale == _factsLocale) return;
+    _factsLocale = locale;
+    _loadFacts(locale);
   }
 
   @override
@@ -49,8 +63,8 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     super.dispose();
   }
 
-  Future<void> _loadFacts() async {
-    final facts = await ProblemReport.facts(widget.auth);
+  Future<void> _loadFacts(String appLocale) async {
+    final facts = await ProblemReport.facts(widget.auth, appLocale: appLocale);
     if (!mounted) return;
     setState(() => _facts = facts);
   }
@@ -59,8 +73,9 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        // Reports go out through a share sheet into a chat app, and a handful
-        // of full-resolution screenshots is enough to get the message bounced.
+        // Downscaled because these are uploaded now, and a handful of
+        // full-resolution screenshots is a slow send on the connection most
+        // likely to be part of the problem.
         maxWidth: 1600,
         imageQuality: 85,
       );
@@ -78,26 +93,38 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
     screenshotCount: _shots.length,
   );
 
-  String get _deviceLabel {
-    for (final f in _facts) {
-      if (f.label == 'Device') return f.value;
-    }
-    return 'device';
-  }
-
-  Future<void> _send(Rect? origin) async {
+  Future<void> _send() async {
     if (_sending) return;
     setState(() => _sending = true);
+    final l10n = AppLocalizations.of(context);
+    var ok = true;
+    var message = l10n.reportProblemSent;
     try {
       await ProblemReport.send(
+        api: widget.api,
+        uploads: UploadService(widget.api),
+        auth: widget.auth,
         body: _body(),
         screenshots: _shots,
-        deviceLabel: _deviceLabel,
-        origin: origin,
+        deviceId: await DeviceIdentity.ensure(),
       );
-    } finally {
-      if (mounted) setState(() => _sending = false);
+    } catch (e) {
+      // The throttle is the one failure that is the user's to understand — it
+      // says "wait", not "something broke", and telling them to retry would be
+      // telling them to do the thing that cannot work. Everything else is ours.
+      ok = false;
+      message = e.toString().contains('TOO_MANY_REPORTS')
+          ? l10n.reportProblemTooMany
+          : l10n.reportProblemSendFailed;
     }
+    if (!mounted) return;
+    setState(() => _sending = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(duration: const Duration(seconds: 3), content: Text(message)),
+    );
+    // Leave on success only. A failed report must keep the text the user typed
+    // and the screenshots they picked, or the retry is a retype.
+    if (ok) Navigator.of(context).maybePop();
   }
 
   Future<void> _copyDetails() async {
@@ -112,15 +139,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
         content: Text(l10n.reportProblemCopied),
       ),
     );
-  }
-
-  Future<void> _emailInstead() async {
-    final uri = ProblemReport.mailto(body: _body(), deviceLabel: _deviceLabel);
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      // No mail client configured. The share sheet above is the real route.
-    }
   }
 
   @override
@@ -213,7 +231,11 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                  width: 88,
+                                  // Wide enough for "System locale", the longest
+                                  // label — a narrower column wraps it onto two
+                                  // lines and knocks the whole block out of
+                                  // alignment.
+                                  width: 104,
                                   child: Text(
                                     f.label,
                                     style: theme.monoTiny.copyWith(
@@ -248,22 +270,6 @@ class _ReportProblemScreenState extends State<ReportProblemScreen> {
                     label: l10n.reportProblemSend,
                     busy: _sending,
                     onSend: _send,
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: FocusableTap(
-                      onTap: _emailInstead,
-                      radius: theme.radiusSm,
-                      semanticLabel: kSupportEmail,
-                      child: GestureDetector(
-                        onTap: _emailInstead,
-                        behavior: HitTestBehavior.opaque,
-                        child: Text(
-                          l10n.reportProblemEmailInstead(kSupportEmail),
-                          style: theme.bodySoft.copyWith(color: theme.accent),
-                        ),
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -363,8 +369,8 @@ class _Button extends StatelessWidget {
   }
 }
 
-/// Needs the button's global rect for iPad/macOS share-popover anchoring, so it
-/// cannot use the plain [_Button] shape.
+/// The primary action, wider and filled — a different shape from [_Button] on
+/// purpose, so the one button that sends does not look like the two that don't.
 class _SendButton extends StatelessWidget {
   const _SendButton({
     required this.label,
@@ -373,51 +379,40 @@ class _SendButton extends StatelessWidget {
   });
   final String label;
   final bool busy;
-  final Future<void> Function(Rect? origin) onSend;
+  final Future<void> Function() onSend;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return Builder(
-      builder: (context) {
-        void go() {
-          final box = context.findRenderObject() as RenderBox?;
-          onSend(
-            box == null ? null : box.localToGlobal(Offset.zero) & box.size,
-          );
-        }
-
-        return FocusableTap(
-          onTap: busy ? null : go,
-          radius: theme.radiusMd,
-          semanticLabel: label,
-          child: GestureDetector(
-            onTap: busy ? null : go,
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.accent,
-                borderRadius: BorderRadius.circular(theme.radiusMd),
-              ),
-              child: busy
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.accentInk,
-                      ),
-                    )
-                  : Text(
-                      label,
-                      style: theme.bodyEmph.copyWith(color: theme.accentInk),
-                    ),
-            ),
+    return FocusableTap(
+      onTap: busy ? null : onSend,
+      radius: theme.radiusMd,
+      semanticLabel: label,
+      child: GestureDetector(
+        onTap: busy ? null : onSend,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.accent,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
-        );
-      },
+          child: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.accentInk,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: theme.bodyEmph.copyWith(color: theme.accentInk),
+                ),
+        ),
+      ),
     );
   }
 }

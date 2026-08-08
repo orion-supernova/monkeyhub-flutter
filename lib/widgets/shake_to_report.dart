@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
+import '../backend/chat_api.dart';
 import '../diagnostics/shake_detector.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../keyboard/focusable_tap.dart';
@@ -20,9 +21,13 @@ import '../theme/theme_scope.dart';
 /// ask for is worse than not having the shortcut at all. [ShakeDetector] already
 /// requires three separate spikes inside 1.2 s; this sheet is the second gate.
 class ShakeToReport extends StatefulWidget {
-  const ShakeToReport({super.key, required this.auth});
+  const ShakeToReport({super.key, required this.auth, required this.api});
 
   final AuthService auth;
+
+  /// Threaded through purely to hand to [ReportProblemScreen], which needs it to
+  /// upload and post the report. This widget makes no calls of its own.
+  final ChatApi api;
 
   @override
   State<ShakeToReport> createState() => _ShakeToReportState();
@@ -64,7 +69,8 @@ class _ShakeToReportState extends State<ShakeToReport> {
       if (open != true) return;
       nav.push(
         MaterialPageRoute(
-          builder: (_) => ReportProblemScreen(auth: widget.auth),
+          builder: (_) =>
+              ReportProblemScreen(auth: widget.auth, api: widget.api),
         ),
       );
     });

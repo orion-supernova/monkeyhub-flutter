@@ -4129,7 +4129,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportProblemRowValue => '把详情发给我们';
 
   @override
-  String get reportProblemIntro => '告诉我们出了什么问题。应用和设备信息会自动附上，有助于我们找到原因。';
+  String get reportProblemIntro =>
+      '告诉我们出了什么问题。应用和设备信息会自动附上，还会附上一份记录应用当时运行情况的技术日志——正是这些帮助我们找到原因。';
 
   @override
   String get reportProblemDescribeLabel => '发生了什么';
@@ -4156,9 +4157,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportProblemSend => '发送报告';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return '或发邮件至 $email';
-  }
+  String get reportProblemSent => '报告已发送，谢谢！';
+
+  @override
+  String get reportProblemSendFailed => '报告发送失败。请检查网络连接后重试。';
+
+  @override
+  String get reportProblemTooMany => '你刚刚发送了很多报告，请稍后再试。';
 
   @override
   String get reportProblemShakeTitle => '要报告问题吗？';

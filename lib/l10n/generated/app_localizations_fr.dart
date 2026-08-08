@@ -4408,7 +4408,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get reportProblemIntro =>
-      'Dites-nous ce qui n\'a pas fonctionné. Les informations sur votre app et votre appareil sont incluses automatiquement — elles nous aident à trouver la cause.';
+      'Dites-nous ce qui n\'a pas fonctionné. Les informations sur votre app et votre appareil sont incluses automatiquement, ainsi qu\'un journal technique de ce que faisait l\'app — c\'est ce qui nous aide à trouver la cause.';
 
   @override
   String get reportProblemDescribeLabel => 'CE QUI S\'EST PASSÉ';
@@ -4436,9 +4436,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reportProblemSend => 'Envoyer le signalement';
 
   @override
-  String reportProblemEmailInstead(String email) {
-    return 'Ou écrivez à $email';
-  }
+  String get reportProblemSent => 'Signalement envoyé — merci !';
+
+  @override
+  String get reportProblemSendFailed =>
+      'Impossible d\'envoyer le signalement. Vérifiez votre connexion et réessayez.';
+
+  @override
+  String get reportProblemTooMany =>
+      'Vous venez d\'envoyer beaucoup de signalements. Réessayez un peu plus tard.';
 
   @override
   String get reportProblemShakeTitle => 'Signaler un problème ?';
