@@ -89,6 +89,8 @@ class _ForwardTargetSheetState extends State<_ForwardTargetSheet> {
     for (final r in widget.repo.rooms) {
       if (r.id == widget.excludeRoomId) continue;
       if (!r.isMember) continue;
+      // A write-only feed the app posts into is not a place to put things.
+      if (!widget.repo.capabilitiesFor(r).canReceiveForwards) continue;
       if (q.isNotEmpty && !_titleOf(r).toLowerCase().contains(q)) continue;
       out.add(r);
     }

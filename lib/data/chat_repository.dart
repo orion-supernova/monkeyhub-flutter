@@ -12,6 +12,7 @@ import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
 import '../models/pending_upload.dart';
+import '../models/room_capabilities.dart';
 import '../models/room_pin.dart';
 import '../push/push_manager.dart';
 import 'cache_store.dart';
@@ -101,6 +102,16 @@ class ChatRepository extends ChangeNotifier {
     if (otherId == null) return null;
     return userById(otherId);
   }
+
+  /// What [room] affords — which buttons, fields and lists its chrome may draw.
+  /// See `lib/models/room_capabilities.dart`.
+  ///
+  /// The entry point every UI site should use, because it resolves the DM peer
+  /// itself: that is the half of the answer a widget holding only a [ChatRoom]
+  /// cannot work out, and forgetting it silently downgrades a bot room to an
+  /// ordinary DM.
+  RoomCapabilities capabilitiesFor(ChatRoom room) =>
+      roomCapabilitiesFor(room, peer: otherUserFor(room));
 
   List<ChatUser> _friends = [];
   List<ChatUser> get friends => List.unmodifiable(_friends);

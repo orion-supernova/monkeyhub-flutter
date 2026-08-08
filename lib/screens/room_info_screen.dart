@@ -13,6 +13,7 @@ import '../media/upload_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../models/room_capabilities.dart';
 import '../models/room_content_item.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
@@ -497,6 +498,14 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // it needs its own substitution instead of the "dm:self:<id>" key.
     final peer = r.isDm ? _dmPeer() : null;
     final title = r.isSavedMessages ? AppLocalizations.of(context).savedMessagesTitle : (peer?.displayName ?? r.name);
+    // Resolved from the live member list rather than the repo's friends cache,
+    // so it is right on the first frame — `_dmPeer()` above already had to
+    // solve that problem, and the peer is half the answer for a bot DM.
+    final caps = roomCapabilitiesFor(r, peer: peer);
+    // The save button's own condition: is there a single editable field above
+    // it. A DM has exactly one — its description — which is why this is not
+    // just [RoomCapabilities.canEditSettings].
+    final canSaveAnything = caps.canEditSettings || caps.hasDescription;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -517,8 +526,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         _avatarBlock(theme, r, peer),
                         const SizedBox(height: 26),
                         // Name/visibility don't apply to a 1:1 DM — the room is
-                        // just the two people.
-                        if (!r.isDm) ...[
+                        // just the two people — nor to a room the app owns.
+                        if (caps.canEditSettings) ...[
                           LabeledField(
                             label: AppLocalizations.of(context).roomInfoScreenNameLabel,
                             controller: _name,
@@ -526,16 +535,16 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ),
                           const SizedBox(height: 18),
                         ],
-                        // Nothing to describe about a chat with only
-                        // yourself in it.
-                        if (!r.isSavedMessages) ...[
+                        // Nothing to describe about a chat with only yourself
+                        // in it, or one the app writes to you.
+                        if (caps.hasDescription) ...[
                           LabeledField(
                             label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
                             controller: _desc,
                             hint: AppLocalizations.of(context).roomInfoScreenDescriptionHint,
                           ),
                         ],
-                        if (!r.isDm) ...[
+                        if (caps.canEditSettings) ...[
                           const SizedBox(height: 22),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenVisibilityLabel),
                           Row(children: [
@@ -591,7 +600,7 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                             ],
                           ),
                         ],
-                        if (_isOwner && !r.isDm) ...[
+                        if (_isOwner && caps.canEditSettings) ...[
                           const SizedBox(height: 22),
                           Row(children: [
                             FieldLabel(AppLocalizations.of(context).roomInfoScreenPasswordLabel),
@@ -655,9 +664,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
                         _sharedContent(theme),
-                        // "Members (1): you" is not information — a chat
-                        // with only yourself in it has nothing to list here.
-                        if (!r.isSavedMessages) ...[
+                        // "Members (1): you" is not information — and neither
+                        // is "Members (2): you and a bot".
+                        if (caps.hasMembers) ...[
                           const SizedBox(height: 28),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
                           const SizedBox(height: 6),
@@ -668,10 +677,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           Text(_error!, style: theme.body.copyWith(color: theme.danger)),
                           const SizedBox(height: 14),
                         ],
-                        // Nothing above is editable for Saved Messages (name,
-                        // description and visibility are all hidden for it),
-                        // so there is nothing for this button to save.
-                        if (!r.isSavedMessages) ...[
+                        // Nothing above is editable for Saved Messages or a
+                        // system room (name, description and visibility are all
+                        // hidden for them), so there is nothing to save. A DM
+                        // keeps the button for its description alone.
+                        if (canSaveAnything) ...[
                           _saveButton(theme, busy),
                           const SizedBox(height: 14),
                         ],
@@ -681,10 +691,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         // and re-opening the DM wouldn't re-add you). The only
                         // real action for a DM is ending it outright, which is
                         // available to either side, not just whoever created
-                        // it — except Saved Messages, which is a permanent
-                        // fixture with nothing to end or delete.
+                        // it — except Saved Messages and the system rooms,
+                        // permanent fixtures with nothing to end or delete.
+                        //
+                        // `_isOwner` stays here rather than moving into the
+                        // capability: whether a KIND of room can be deleted and
+                        // whether THIS viewer may delete it are different
+                        // questions, and only this screen knows the second.
                         Row(children: [
-                          if (!r.isDm) ...[
+                          if (caps.canLeave) ...[
                             Expanded(
                               child: _dangerButton(
                                 theme,
@@ -695,8 +710,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                               ),
                             ),
                           ],
-                          if ((_isOwner || r.isDm) && !r.isSavedMessages) ...[
-                            if (!r.isDm) const SizedBox(width: 10),
+                          if (caps.canDelete && (_isOwner || r.isDm)) ...[
+                            if (caps.canLeave) const SizedBox(width: 10),
                             Expanded(
                               child: _dangerButton(
                                 theme,

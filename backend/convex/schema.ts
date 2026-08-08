@@ -212,6 +212,11 @@ export default defineSchema({
     avatarStorageId: v.optional(v.id("_storage")),
     lastMessage: v.optional(v.string()),
     lastMessageTime: v.optional(v.number()),
+    // Set only on rooms the APP owns rather than people — see
+    // `systemAccount.SYSTEM_ROOM_LOGS`. Absent on every ordinary room, and the
+    // client reads it straight off the row (`listUserRooms` spreads the whole
+    // document) to decide which chrome the room gets.
+    system: v.optional(v.string()),
   })
     .index("by_name", ["name"])
     .index("by_last_activity", ["lastMessageTime"])

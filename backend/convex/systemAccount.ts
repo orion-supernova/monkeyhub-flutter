@@ -48,6 +48,43 @@
 /** The account problem reports are posted BY. */
 export const LOG_USERNAME = "monkeyhub_logs";
 
+/**
+ * The value of `rooms.system` on the report room, and the whole vocabulary of
+ * that field so far.
+ *
+ * A room carries this slug when it is a fixture of the app rather than a
+ * conversation between people, and the slug says WHICH fixture. That second
+ * part is the point: the client keys a capability table off it (see
+ * `lib/models/room_capabilities.dart`), so `logs` can be a read-only feed while
+ * a future `support` room takes replies, without either of them being a special
+ * case anybody has to remember.
+ *
+ * A field on the room, not a test on the name or on who is in it, for two
+ * reasons. A name test only works for a DM with a known account, which rules
+ * out the announcement channel this will eventually also have to describe. And
+ * the client already gets the room row — no extra read, no extra round trip,
+ * and a room created by a path nobody has written yet is a plain room until
+ * somebody stamps it, which is the safe direction to be wrong.
+ *
+ * Slugs are permanent once shipped: an old client that has never heard of a new
+ * one falls back to [SYSTEM_ROOM_FALLBACK_BEHAVIOUR] below, but a RENAMED slug
+ * silently demotes a room every installed client already had opinions about.
+ */
+export const SYSTEM_ROOM_LOGS = "logs";
+
+/**
+ * Not code — the contract the client's fallback implements, recorded here so
+ * the two halves can't drift.
+ *
+ * A client that meets a `rooms.system` slug it does not recognise treats the
+ * room as a system room with the most restricted capability set it has: no
+ * call, no leave, no delete, no description, no member list, no settings. So
+ * the server may ship a new kind of system room *before* any client knows what
+ * it is, and the worst outcome is a room with less chrome than it deserves —
+ * never a call button that rings nothing, or a "leave" that strands the user.
+ */
+export const SYSTEM_ROOM_FALLBACK_BEHAVIOUR = "most-restricted" as const;
+
 /** Its display name — the one the maintainer's room list renders. */
 export const LOG_DISPLAY_NAME = "MonkeyHub Logs";
 
@@ -229,4 +266,32 @@ export async function assertNoSystemAccount(
   for (const id of userIds) {
     if (await isSystemAccountId(ctx, id)) throw new Error(ERR_SYSTEM_ACCOUNT);
   }
+}
+
+/**
+ * Refused when somebody tries to reshape or dispose of a system room.
+ *
+ * Distinct from [ERR_SYSTEM_ACCOUNT], which is about the *correspondent*. These
+ * are different failures with different fixes: one says "there is nobody there
+ * to talk to", this says "this room is not yours to edit".
+ */
+export const ERR_SYSTEM_ROOM = "SYSTEM_ROOM";
+
+/** True for a room stamped with a [SYSTEM_ROOM_LOGS]-style slug. */
+export function isSystemRoom(room: { system?: string } | null): boolean {
+  return typeof room?.system === "string" && room.system.length > 0;
+}
+
+/**
+ * Throws [ERR_SYSTEM_ROOM] if [roomId] names a system room.
+ *
+ * The client hides the buttons these guard, which is the part users see — but
+ * hiding a button is a layout decision, not a rule. Deleting the report room
+ * would drop the maintainer's bug reports and the next report would silently
+ * build a new one; renaming it would break nothing and mean nothing. Both are
+ * cheap to refuse here and expensive to discover later.
+ */
+export async function assertNotSystemRoom(ctx: any, roomId: any): Promise<void> {
+  if (!roomId) return;
+  if (isSystemRoom(await ctx.db.get(roomId))) throw new Error(ERR_SYSTEM_ROOM);
 }

@@ -8,7 +8,7 @@ import {
   childMayUseRoom,
   isChild,
 } from "./childGuard";
-import { assertNoSystemAccount } from "./systemAccount";
+import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
 import { lensFor, publicUserView } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { deleteStored } from "./files";
@@ -102,6 +102,10 @@ export const join = mutation({
 export const leave = mutation({
   args: { roomId: v.id("rooms"), userId: v.id("users") },
   handler: async (ctx, { roomId, userId }) => {
+    // Leaving a system room is the worst of the three refusals below, because
+    // it half-works: the membership row goes, the room lives on, and the next
+    // report arrives somewhere the maintainer can no longer see.
+    await assertNotSystemRoom(ctx, roomId);
     const member = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
@@ -142,6 +146,9 @@ export const deleteRoom = mutation({
   handler: async (ctx, { roomId, userId }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
+    // Before the DM branch below, which would otherwise wave this through:
+    // the report room IS a DM, so "either side may end it" would apply to it.
+    await assertNotSystemRoom(ctx, roomId);
 
     // A DM has no real "owner" — createdBy is just whichever of the two
     // people happened to open it first. Gating deletion on that would leave
@@ -189,6 +196,11 @@ export const updateRoom = mutation({
   handler: async (ctx, { roomId, userId, name, description, isPrivate, messageLifetime }) => {
     const room = await ctx.db.get(roomId);
     if (!room) throw new Error("ROOM_NOT_FOUND");
+    // A system room's name is load-bearing (`ensureReportRoom` looks it up by
+    // the exact `dm:regular:<a>:<b>` string), and it has no description or
+    // visibility a user should be setting. The client hides the fields; this
+    // makes it a rule.
+    await assertNotSystemRoom(ctx, roomId);
     const membership = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))

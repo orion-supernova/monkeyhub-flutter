@@ -33,6 +33,7 @@ import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
+import '../models/room_capabilities.dart';
 import '../models/room_pin.dart';
 import '../data/ui_selection_store.dart';
 import '../platform.dart';
@@ -1416,7 +1417,17 @@ class _RoomScreenState extends State<RoomScreen>
     if (u != null) _openProfile(u);
   }
 
+  /// The single funnel for every profile route out of this screen — the header,
+  /// a bubble's avatar, the message-actions sheet and an `@` mention all land
+  /// here, which is why the system-account guard belongs here and not at each
+  /// of them.
+  ///
+  /// It is a fact about the USER, not about the room: the app's own account can
+  /// post into a group room, and its bubble's avatar is a tap target there too.
+  /// A profile for it offers a friend request `friends.ts` refuses and a call
+  /// `calls.ts` refuses — a screenful of buttons that all say no.
   void _openProfile(ChatUser u) {
+    if (u.isSystem) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ProfileScreen(user: u, repo: widget.repo, api: widget.api),
@@ -1674,6 +1685,7 @@ class _RoomScreenState extends State<RoomScreen>
             typing: widget.repo.typingIn(room.id),
             dmUser: widget.repo.otherUserFor(room),
             api: widget.api,
+            caps: widget.repo.capabilitiesFor(room),
             onTapDmUser: () {
               final u = widget.repo.otherUserFor(room);
               if (u == null) return;
@@ -1799,6 +1811,7 @@ class _RoomScreenState extends State<RoomScreen>
                       room: room,
                       dmUser: widget.repo.otherUserFor(room),
                       api: widget.api,
+                      caps: widget.repo.capabilitiesFor(room),
                       onOpenInfo: () => _openRoomInfo(room),
                     ),
                     if (!room.isDm && GroupCallService.maybeInstance != null)
@@ -2009,6 +2022,7 @@ class _RoomScreenState extends State<RoomScreen>
                         room: room,
                         members: _members.values.toList(),
                         api: widget.api,
+                        caps: widget.repo.capabilitiesFor(room),
                       );
                     }
                     if (item is DateDividerItem) {
@@ -2567,6 +2581,7 @@ class _Header extends StatelessWidget {
     required this.typing,
     required this.onOpenInfo,
     required this.api,
+    required this.caps,
     this.dmUser,
     this.onTapDmUser,
   });
@@ -2575,11 +2590,15 @@ class _Header extends StatelessWidget {
   final VoidCallback onOpenInfo;
   final ChatUser? dmUser;
   final ChatApi api;
+  final RoomCapabilities caps;
   final VoidCallback? onTapDmUser;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    // A profile that offers a friend request the bot will refuse and a call it
+    // cannot take is a dead end; leave the row inert instead.
+    final onTapPeer = caps.canOpenPeerProfile ? onTapDmUser : null;
     // The rule stays full-bleed while the header CONTENT shares the chat
     // column — the macOS/Slack convention, and what stops the remaining
     // gutter on an ultrawide monitor from reading as a rendering bug. The
@@ -2612,7 +2631,7 @@ class _Header extends StatelessWidget {
             const SizedBox(width: 10),
           ] else if (dmUser != null) ...[
             GestureDetector(
-              onTap: onTapDmUser,
+              onTap: onTapPeer,
               child: UserAvatar(user: dmUser!, size: 32, api: api),
             ),
             const SizedBox(width: 10),
@@ -2622,7 +2641,7 @@ class _Header extends StatelessWidget {
           ],
           Expanded(
             child: GestureDetector(
-              onTap: dmUser != null ? onTapDmUser : null,
+              onTap: dmUser != null ? onTapPeer : null,
               behavior: HitTestBehavior.opaque,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2640,8 +2659,9 @@ class _Header extends StatelessWidget {
                     runSpacing: 6,
                     children: [
                       // No username, no meaningful member count — a chat with
-                      // only yourself has nothing useful to say here.
-                      if (!room.isSavedMessages) ...[
+                      // only yourself, or with the app itself, has nothing
+                      // useful to say here.
+                      if (caps.hasMembers) ...[
                         if (dmUser != null)
                           Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
                         else ...[
@@ -2681,8 +2701,10 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // A chat with only yourself has no one to call.
-          if (room.isSavedMessages)
+          // Nobody to call in a chat with only yourself, and nobody home in a
+          // chat with the app — `calls.ts` refuses a system account outright,
+          // so a button here would ring nothing.
+          if (!caps.canCall)
             const SizedBox.shrink()
           else if (room.isDm && dmUser != null)
             CallButton(
@@ -2713,10 +2735,16 @@ String _fmtTtl(BuildContext context, Duration d) {
 }
 
 class _RoomIntro extends StatelessWidget {
-  const _RoomIntro({required this.room, required this.members, required this.api});
+  const _RoomIntro({
+    required this.room,
+    required this.members,
+    required this.api,
+    required this.caps,
+  });
   final ChatRoom room;
   final List<ChatUser> members;
   final ChatApi api;
+  final RoomCapabilities caps;
 
   @override
   Widget build(BuildContext context) {
@@ -2728,7 +2756,9 @@ class _RoomIntro extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (room.description != null && room.description!.isNotEmpty) ...[
+          if (caps.hasDescription &&
+              room.description != null &&
+              room.description!.isNotEmpty) ...[
             Text('"${room.description!.toLowerCase()}"', style: theme.bodyEmph),
             const SizedBox(height: 14),
           ],
@@ -2749,7 +2779,9 @@ class _RoomIntro extends StatelessWidget {
             ),
             const SizedBox(height: 14),
           ],
-          if (members.isNotEmpty)
+          // A face stack of "you", or of you and a bot, is decoration standing
+          // where information should be.
+          if (caps.hasMembers && members.isNotEmpty)
             Wrap(
               spacing: -6,
               children: [
@@ -3150,11 +3182,13 @@ class _LiquidHeader extends StatefulWidget {
     required this.room,
     required this.api,
     required this.onOpenInfo,
+    required this.caps,
     this.dmUser,
   });
   final ChatRoom room;
   final ChatApi api;
   final VoidCallback onOpenInfo;
+  final RoomCapabilities caps;
   final ChatUser? dmUser;
 
   @override
@@ -3357,8 +3391,9 @@ class _LiquidHeaderState extends State<_LiquidHeader> {
             ),
           ),
           const SizedBox(width: 12),
-          // A chat with only yourself has no one to call.
-          if (widget.room.isSavedMessages) ...[
+          // See the classic header: no one to call in a chat with only
+          // yourself, and no one home in a chat with the app.
+          if (!widget.caps.canCall) ...[
             const SizedBox.shrink(),
           ] else if (widget.room.isDm && widget.dmUser != null) ...[
             CallButton(

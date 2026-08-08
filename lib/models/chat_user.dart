@@ -134,6 +134,7 @@ class ChatUser {
     this.hasRecoveryKey,
     this.hasPassword,
     this.usernameChangedAt,
+    this.isSystem = false,
   });
 
   final String id;
@@ -197,6 +198,19 @@ class ChatUser {
   /// typed it. The backend enforces the window regardless.
   DateTime? usernameChangedAt;
 
+  /// True when this row is the app rather than a person — the account bug
+  /// reports are posted by, and whatever bots come after it.
+  ///
+  /// The backend already refuses every ordinary thing you can do to one
+  /// (`calls.ts`, `groupCalls.ts`, `friends.ts` all guard on it), so this exists
+  /// so the client can stop OFFERING those things: a call button that is
+  /// refused server-side is still a dead end that looks like a live one.
+  ///
+  /// Defaults false, which is also what an older backend that never sends the
+  /// key produces — the safe way to be wrong is treating a bot as a person for
+  /// one deploy window, not the reverse.
+  final bool isSystem;
+
   bool get isChild => accountType == AccountType.child;
 
   String get displayName => name.trim().isNotEmpty ? name : username;
@@ -239,6 +253,8 @@ class ChatUser {
         final num ms => DateTime.fromMillisecondsSinceEpoch(ms.toInt()),
         _ => null,
       },
+      // Sent only when true — see `publicUserView` in backend/convex/visibility.ts.
+      isSystem: (j['isSystem'] as bool?) ?? false,
     );
   }
 
@@ -279,5 +295,8 @@ class ChatUser {
         // the rename row's gate and cooldown the moment the profile reloaded.
         hasPassword: hasPassword,
         usernameChangedAt: usernameChangedAt,
+        // Same reason: ProfileScreen re-grafts friendship state onto a fresh
+        // fetch, and dropping this would turn a bot back into a person.
+        isSystem: isSystem,
       );
 }

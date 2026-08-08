@@ -1,5 +1,8 @@
 import { effectiveStatus } from "./presence";
 import { childrenOf } from "./childGuard";
+// Imports nothing itself, so this cannot cycle — see the note at the top of
+// `systemAccount.ts` on why that module exists.
+import { isSystemAccount } from "./systemAccount";
 
 /**
  * Per-field privacy, resolved once per query and applied at EVERY read site.
@@ -195,5 +198,13 @@ export function publicUserView(lens: PrivacyLens, user: any) {
     // who can address a friend request to you should not learn your address.
     // `users.getProfile` serves it to self and guardians only.
     ...lens.identity(user),
+    // Passes the test above trivially: it is not a fact ABOUT anyone, it is the
+    // statement that this row is the app rather than a person. Only ever true
+    // for a row `problemReports.ensureLogAccount` wrote, so it discloses
+    // nothing a human account could be embarrassed by, and it is what lets the
+    // client stop offering to call, befriend or profile something that will
+    // never answer. Omitted rather than `false` for the 99.99% case — the wire
+    // shape stays exactly as it was for every real user.
+    ...(isSystemAccount(user) ? { isSystem: true } : {}),
   };
 }

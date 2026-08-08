@@ -7,6 +7,7 @@ import {
   LOG_USERNAME,
   REPORT_INBOX_USERNAME,
   SYSTEM_PASSWORD_PREFIX,
+  SYSTEM_ROOM_LOGS,
   SYSTEM_VISIBILITY,
   isSystemAccount,
 } from "./systemAccount";
@@ -142,7 +143,16 @@ async function ensureReportRoom(ctx: any, logUserId: any, inboxUserId: any) {
     .query("rooms")
     .withIndex("by_name", (q: any) => q.eq("name", name))
     .first();
-  if (existing) return existing._id;
+  if (existing) {
+    // Repair a room created before `rooms.system` existed. Without this the
+    // deployment's ONE report room is the only room in the app that would never
+    // get the slug — it already exists, so the insert below never runs again —
+    // and it would keep drawing a call button that rings nothing.
+    if (existing.system !== SYSTEM_ROOM_LOGS) {
+      await ctx.db.patch(existing._id, { system: SYSTEM_ROOM_LOGS });
+    }
+    return existing._id;
+  }
 
   const roomId = await ctx.db.insert("rooms", {
     name,
@@ -151,6 +161,10 @@ async function ensureReportRoom(ctx: any, logUserId: any, inboxUserId: any) {
     isPrivate: true,
     memberCount: 2,
     type: "Regular Room",
+    // What tells the client this is a fixture and not a conversation: no call,
+    // no "end conversation", no description, no member list. See
+    // `systemAccount.SYSTEM_ROOM_LOGS`.
+    system: SYSTEM_ROOM_LOGS,
     // No `messageLifetime`. A Chamber-of-Secrets lifetime here would delete
     // bug reports on a timer, which is the one thing this room must not do.
   });

@@ -25,6 +25,7 @@ class ChatRoom {
     this.pinnedAt,
     this.isArchived = false,
     this.archivedAt,
+    this.systemRole,
     List<String>? participantIds,
   }) : participantIds = participantIds ?? const [];
 
@@ -78,6 +79,16 @@ class ChatRoom {
   bool isArchived;
   DateTime? archivedAt;
 
+  /// Set only on rooms the APP owns rather than people — the maintainer's
+  /// `MonkeyHub Logs` feed today, a support or announcements channel later.
+  /// The value names WHICH fixture (`rooms.system` server-side, see
+  /// `backend/convex/systemAccount.ts`); null on every ordinary room.
+  ///
+  /// Never inspected directly by UI code. It is the key into the capability
+  /// table in `room_capabilities.dart`, which is what decides whether a room
+  /// gets a call button, a member list or a way to end it.
+  final String? systemRole;
+
   bool get isEphemeral => type == RoomType.secret;
   bool get isPublic => !isPrivate;
   bool get isDm => name.startsWith('dm:');
@@ -86,6 +97,10 @@ class ChatRoom {
   /// A DM by the [isDm] test above, but every entry in [participantIds] is
   /// the viewer, so [otherParticipantId] correctly resolves to null for it.
   bool get isSavedMessages => name.startsWith('dm:self:');
+
+  /// True for a room stamped with a [systemRole] — an app fixture, not a
+  /// conversation. See [systemRole].
+  bool get isSystemRoom => systemRole != null && systemRole!.isNotEmpty;
 
   /// True when the room has a message newer than this user's read cursor.
   ///
@@ -134,6 +149,7 @@ class ChatRoom {
         if (pinnedAt != null) 'pinnedAt': pinnedAt!.millisecondsSinceEpoch,
         if (isArchived) 'isArchived': true,
         if (archivedAt != null) 'archivedAt': archivedAt!.millisecondsSinceEpoch,
+        if (systemRole != null) 'system': systemRole,
       };
 
   factory ChatRoom.fromJson(Map<String, dynamic> j) {
@@ -169,6 +185,9 @@ class ChatRoom {
       archivedAt: j['archivedAt'] is num
           ? DateTime.fromMillisecondsSinceEpoch((j['archivedAt'] as num).toInt())
           : null,
+      // Absent on every ordinary room and on any backend that predates the
+      // field, which both mean the same thing: not a system room.
+      systemRole: j['system'] as String?,
       participantIds: (j['participantIds'] as List?)?.map((e) => e.toString()).toList() ?? const [],
     );
   }
