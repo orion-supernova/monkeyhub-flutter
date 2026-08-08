@@ -402,7 +402,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get profileScreenJustTappedAction => 'TRYCKTE FEL';
 
   @override
-  String get settingsScreenLegalSection => 'JURIDISKT';
+  String get settingsScreenSectionHelpAndLegal => 'HJÄLP OCH JURIDIK';
 
   @override
   String get settingsScreenLicence => 'LICENS';
@@ -4321,7 +4321,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'UTSEENDE';
 
   @override
-  String get settingsScreenSectionLayout => 'LAYOUT';
+  String get settingsScreenSectionChat => 'CHATT';
 
   @override
   String get settingsScreenSectionGeneral => 'ALLMÄNT';
@@ -4343,9 +4343,6 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Det gick inte att söka efter uppdateringar. Försök igen senare.';
-
-  @override
-  String get settingsScreenSectionLinks => 'LÄNKAR';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTISER';

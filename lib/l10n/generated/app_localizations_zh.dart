@@ -376,7 +376,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileScreenJustTappedAction => '手滑了';
 
   @override
-  String get settingsScreenLegalSection => '法律';
+  String get settingsScreenSectionHelpAndLegal => '帮助与法律';
 
   @override
   String get settingsScreenLicence => '许可证';
@@ -4096,7 +4096,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScreenSectionAppearance => '外观';
 
   @override
-  String get settingsScreenSectionLayout => '布局';
+  String get settingsScreenSectionChat => '聊天';
 
   @override
   String get settingsScreenSectionGeneral => '通用';
@@ -4115,9 +4115,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsScreenUpdateErrorSnackbar => '无法检查更新，请稍后重试。';
-
-  @override
-  String get settingsScreenSectionLinks => '链接';
 
   @override
   String get settingsScreenSectionNotifications => '通知';

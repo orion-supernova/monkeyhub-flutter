@@ -387,7 +387,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get profileScreenJustTappedAction => '誤タップ';
 
   @override
-  String get settingsScreenLegalSection => '法的情報';
+  String get settingsScreenSectionHelpAndLegal => 'ヘルプと法的情報';
 
   @override
   String get settingsScreenLicence => 'ライセンス';
@@ -4149,7 +4149,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsScreenSectionAppearance => '外観';
 
   @override
-  String get settingsScreenSectionLayout => 'レイアウト';
+  String get settingsScreenSectionChat => 'チャット';
 
   @override
   String get settingsScreenSectionGeneral => '一般';
@@ -4170,9 +4170,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'アップデートを確認できませんでした。後でもう一度お試しください。';
-
-  @override
-  String get settingsScreenSectionLinks => 'リンク';
 
   @override
   String get settingsScreenSectionNotifications => '通知';

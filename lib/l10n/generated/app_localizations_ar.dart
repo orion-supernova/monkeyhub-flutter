@@ -420,7 +420,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'ضغطت بالخطأ';
 
   @override
-  String get settingsScreenLegalSection => 'قانوني';
+  String get settingsScreenSectionHelpAndLegal => 'المساعدة والشؤون القانونية';
 
   @override
   String get settingsScreenLicence => 'الترخيص';
@@ -4388,7 +4388,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'المظهر';
 
   @override
-  String get settingsScreenSectionLayout => 'التخطيط';
+  String get settingsScreenSectionChat => 'المحادثات';
 
   @override
   String get settingsScreenSectionGeneral => 'عام';
@@ -4409,9 +4409,6 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'تعذّر التحقق من التحديثات. حاول مرة أخرى لاحقًا.';
-
-  @override
-  String get settingsScreenSectionLinks => 'الروابط';
 
   @override
   String get settingsScreenSectionNotifications => 'الإشعارات';
