@@ -409,7 +409,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'TOUCHÉ PAR ERREUR';
 
   @override
-  String get settingsScreenLegalSection => 'MENTIONS LÉGALES';
+  String get settingsScreenSectionHelpAndLegal => 'AIDE ET MENTIONS LÉGALES';
 
   @override
   String get settingsScreenLicence => 'LICENCE';
@@ -4371,7 +4371,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'APPARENCE';
 
   @override
-  String get settingsScreenSectionLayout => 'DISPOSITION';
+  String get settingsScreenSectionChat => 'CHAT';
 
   @override
   String get settingsScreenSectionGeneral => 'GÉNÉRAL';
@@ -4393,9 +4393,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Impossible de vérifier les mises à jour. Réessayez plus tard.';
-
-  @override
-  String get settingsScreenSectionLinks => 'LIENS';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';

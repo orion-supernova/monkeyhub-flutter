@@ -765,11 +765,11 @@ abstract class AppLocalizations {
   /// **'JUST TAPPED'**
   String get profileScreenJustTappedAction;
 
-  /// All-caps section header above the privacy policy / terms / licence links, shown to every account including children.
+  /// All-caps section header grouping Report a Problem with the privacy policy / terms / licence links, shown to every account including children.
   ///
   /// In en, this message translates to:
-  /// **'LEGAL'**
-  String get settingsScreenLegalSection;
+  /// **'HELP & LEGAL'**
+  String get settingsScreenSectionHelpAndLegal;
 
   /// All-caps row label linking to the app's open-source licence page.
   ///
@@ -7331,11 +7331,11 @@ abstract class AppLocalizations {
   /// **'APPEARANCE'**
   String get settingsScreenSectionAppearance;
 
-  /// All-caps section header grouping Chat List/Navigation/Chat Style/Bubble Style/Reply Style rows.
+  /// All-caps section header grouping the Chat List/Chat Style/Bubble Style/Reply Style rows.
   ///
   /// In en, this message translates to:
-  /// **'LAYOUT'**
-  String get settingsScreenSectionLayout;
+  /// **'CHAT'**
+  String get settingsScreenSectionChat;
 
   /// All-caps section header grouping the Language row and the Check for Updates row.
   ///
@@ -7372,12 +7372,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t check for updates. Try again later.'**
   String get settingsScreenUpdateErrorSnackbar;
-
-  /// All-caps section header above the Show Link URLs toggle.
-  ///
-  /// In en, this message translates to:
-  /// **'LINKS'**
-  String get settingsScreenSectionLinks;
 
   /// All-caps section header above the Push Notifications toggle.
   ///

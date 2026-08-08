@@ -387,7 +387,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get profileScreenJustTappedAction => '실수로 눌렀어요';
 
   @override
-  String get settingsScreenLegalSection => '법적 정보';
+  String get settingsScreenSectionHelpAndLegal => '도움말 및 법적 정보';
 
   @override
   String get settingsScreenLicence => '오픈소스 라이선스';
@@ -4162,7 +4162,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsScreenSectionAppearance => '외관';
 
   @override
-  String get settingsScreenSectionLayout => '레이아웃';
+  String get settingsScreenSectionChat => '채팅';
 
   @override
   String get settingsScreenSectionGeneral => '일반';
@@ -4183,9 +4183,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       '업데이트를 확인할 수 없습니다. 나중에 다시 시도해 주세요.';
-
-  @override
-  String get settingsScreenSectionLinks => '링크';
 
   @override
   String get settingsScreenSectionNotifications => '알림';

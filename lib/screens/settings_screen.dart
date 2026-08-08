@@ -390,6 +390,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
               const SizedBox(height: 24),
 
+              // Sections run in descending order of how often anyone opens
+              // them, not in the order they were built. The nine appearance
+              // and chat-styling rows used to sit up here, which meant that
+              // changing your language or silencing push started with a scroll
+              // past six flavours of message bubble. The customisation is the
+              // part people browse; the rest is the part they came for.
+              _SectionHeader(label: l10n.settingsScreenSectionGeneral),
+              const SizedBox(height: 12),
+              _DisclosureRow(
+                label: l10n.settingsLanguageRowLabel,
+                value: _languageLabel,
+                selected: _isOpen('language'),
+                leading: Icon(
+                  Icons.language_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'language',
+                  builder: (_) => const LanguageScreen(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const _CheckForUpdatesRow(),
+              const SizedBox(height: 10),
+              // Absorbed from a LINKS section that existed to hold this one
+              // toggle. A heading, a gap and a scroll for a single switch is a
+              // worse deal than the switch is worth, and how a link renders is
+              // a reading preference like any other on this list.
+              _ShowLinkUrlsToggle(),
+
+              const SizedBox(height: 28),
+              _SectionHeader(label: l10n.settingsScreenSectionNotifications),
+              const SizedBox(height: 12),
+              _PushToggle(),
+              // Android's two call-delivery settings. Renders nothing at all
+              // when there is nothing to fix — see _CallDeliveryRows.
+              const _CallDeliveryRows(),
+
+              const SizedBox(height: 28),
+              _SectionHeader(label: l10n.settingsScreenSectionCalls),
+              const SizedBox(height: 12),
+              _DisclosureRow(
+                label: l10n.settingsScreenRowVideoQuality,
+                value: _videoQualityLabel,
+                selected: _isOpen('videoQuality'),
+                leading: Icon(
+                  Icons.high_quality_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'videoQuality',
+                  builder: (_) => const VideoQualityScreen(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _ShowNetworkStatsToggle(),
+
+              // Appearance is everything that dresses the app as a whole —
+              // Navigation and Motion moved in from LAYOUT because a switcher
+              // animation is app chrome, not a property of a conversation.
+              const SizedBox(height: 28),
               _SectionHeader(label: l10n.settingsScreenSectionAppearance),
               const SizedBox(height: 12),
               _DisclosureRow(
@@ -435,9 +500,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => const GlassScreen(),
                 ),
               ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: l10n.settingsScreenRowNavigation,
+                value: _navLabel,
+                selected: _isOpen('navigation'),
+                leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'navigation',
+                  builder: (_) => const NavigationScreen(),
+                ),
+              ),
+              const SizedBox(height: 10),
+              _DisclosureRow(
+                label: l10n.settingsScreenRowMotion,
+                value: _motionLabel,
+                selected: _isOpen('motion'),
+                leading: Icon(
+                  Icons.animation_outlined,
+                  size: 16,
+                  color: theme.inkSoft,
+                ),
+                onTap: () => openSettingsDetail(
+                  context,
+                  key: 'motion',
+                  builder: (_) => const MotionScreen(),
+                ),
+              ),
 
+              // What used to be LAYOUT, minus the two rows that were never
+              // about layout. Everything left answers one question — how a
+              // conversation renders — so the header says so.
               const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenSectionLayout),
+              _SectionHeader(label: l10n.settingsScreenSectionChat),
               const SizedBox(height: 12),
               _DisclosureRow(
                 label: l10n.settingsScreenRowChatList,
@@ -452,18 +548,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   context,
                   key: 'roomLayout',
                   builder: (_) => const RoomLayoutScreen(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _DisclosureRow(
-                label: l10n.settingsScreenRowNavigation,
-                value: _navLabel,
-                selected: _isOpen('navigation'),
-                leading: Icon(Icons.swap_horiz, size: 16, color: theme.inkSoft),
-                onTap: () => openSettingsDetail(
-                  context,
-                  key: 'navigation',
-                  builder: (_) => const NavigationScreen(),
                 ),
               ),
               const SizedBox(height: 10),
@@ -514,71 +598,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => ReplyStyleScreen(api: widget.api),
                 ),
               ),
-              const SizedBox(height: 10),
-              _DisclosureRow(
-                label: l10n.settingsScreenRowMotion,
-                value: _motionLabel,
-                selected: _isOpen('motion'),
-                leading: Icon(
-                  Icons.animation_outlined,
-                  size: 16,
-                  color: theme.inkSoft,
-                ),
-                onTap: () => openSettingsDetail(
-                  context,
-                  key: 'motion',
-                  builder: (_) => const MotionScreen(),
-                ),
-              ),
 
+              // Report a Problem used to float here without a header of its
+              // own, in the middle of the screen. It belongs with the legal
+              // links by the same argument that brought those up from Profile:
+              // none of the four says anything about the account you are
+              // looking at — they are facts about the app.
+              //
+              // The privacy policy stays unconditional, and it has to:
+              // Guideline 5.1.1(i) and Google's User Data policy both want one
+              // reachable from inside the app for EVERY account, children
+              // included, and Settings is the one screen all of them can open.
               const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenSectionGeneral),
+              _SectionHeader(label: l10n.settingsScreenSectionHelpAndLegal),
               const SizedBox(height: 12),
-              _DisclosureRow(
-                label: l10n.settingsLanguageRowLabel,
-                value: _languageLabel,
-                selected: _isOpen('language'),
-                leading: Icon(
-                  Icons.language_outlined,
-                  size: 16,
-                  color: theme.inkSoft,
-                ),
-                onTap: () => openSettingsDetail(
-                  context,
-                  key: 'language',
-                  builder: (_) => const LanguageScreen(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              const _CheckForUpdatesRow(),
-
-              const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenSectionLinks),
-              const SizedBox(height: 12),
-              _ShowLinkUrlsToggle(),
-
-              const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenSectionCalls),
-              const SizedBox(height: 12),
-              _DisclosureRow(
-                label: l10n.settingsScreenRowVideoQuality,
-                value: _videoQualityLabel,
-                selected: _isOpen('videoQuality'),
-                leading: Icon(
-                  Icons.high_quality_outlined,
-                  size: 16,
-                  color: theme.inkSoft,
-                ),
-                onTap: () => openSettingsDetail(
-                  context,
-                  key: 'videoQuality',
-                  builder: (_) => const VideoQualityScreen(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _ShowNetworkStatsToggle(),
-
-              const SizedBox(height: 28),
               _DisclosureRow(
                 label: l10n.reportProblemRowLabel,
                 value: l10n.reportProblemRowValue,
@@ -594,27 +627,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (_) => ReportProblemScreen(auth: widget.auth),
                 ),
               ),
-
-              const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenSectionNotifications),
-              const SizedBox(height: 12),
-              _PushToggle(),
-              // Android's two call-delivery settings. Renders nothing at all
-              // when there is nothing to fix — see _CallDeliveryRows.
-              const _CallDeliveryRows(),
-
-              // Moved here from the bottom of Profile. None of these three
-              // documents says anything about the account you are looking at,
-              // which is what Profile is for — they are facts about the app,
-              // and this is the screen that holds those.
-              //
-              // Unconditional, and it has to stay that way: Guideline 5.1.1(i)
-              // and Google's User Data policy both want a privacy policy
-              // reachable from inside the app for EVERY account, children
-              // included, and Settings is the one screen all of them can open.
-              const SizedBox(height: 28),
-              _SectionHeader(label: l10n.settingsScreenLegalSection),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               // The same row Profile stacks — these three came from there, and
               // arriving looking like something else would read as three new
               // rows rather than three moved ones.

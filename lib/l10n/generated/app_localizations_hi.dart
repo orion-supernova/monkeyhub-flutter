@@ -403,7 +403,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get profileScreenJustTappedAction => 'ग़लती से टैप हुआ';
 
   @override
-  String get settingsScreenLegalSection => 'कानूनी';
+  String get settingsScreenSectionHelpAndLegal => 'सहायता और कानूनी';
 
   @override
   String get settingsScreenLicence => 'लाइसेंस';
@@ -4310,7 +4310,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'दिखावट';
 
   @override
-  String get settingsScreenSectionLayout => 'लेआउट';
+  String get settingsScreenSectionChat => 'चैट';
 
   @override
   String get settingsScreenSectionGeneral => 'सामान्य';
@@ -4331,9 +4331,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'अपडेट जाँचे नहीं जा सके। बाद में फिर से कोशिश करें।';
-
-  @override
-  String get settingsScreenSectionLinks => 'लिंक्स';
 
   @override
   String get settingsScreenSectionNotifications => 'नोटिफिकेशन';

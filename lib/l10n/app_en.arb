@@ -432,9 +432,9 @@
   "@profileScreenJustTappedAction": {
     "description": "All-caps dismiss button in the confirm dialog before editing name/email, meaning 'that was an accidental tap'."
   },
-  "settingsScreenLegalSection": "LEGAL",
-  "@settingsScreenLegalSection": {
-    "description": "All-caps section header above the privacy policy / terms / licence links, shown to every account including children."
+  "settingsScreenSectionHelpAndLegal": "HELP & LEGAL",
+  "@settingsScreenSectionHelpAndLegal": {
+    "description": "All-caps section header grouping Report a Problem with the privacy policy / terms / licence links, shown to every account including children."
   },
   "settingsScreenLicence": "LICENCE",
   "@settingsScreenLicence": {
@@ -4792,9 +4792,9 @@
   "@settingsScreenSectionAppearance": {
     "description": "All-caps section header grouping Theme/App Logo/Glass rows."
   },
-  "settingsScreenSectionLayout": "LAYOUT",
-  "@settingsScreenSectionLayout": {
-    "description": "All-caps section header grouping Chat List/Navigation/Chat Style/Bubble Style/Reply Style rows."
+  "settingsScreenSectionChat": "CHAT",
+  "@settingsScreenSectionChat": {
+    "description": "All-caps section header grouping the Chat List/Chat Style/Bubble Style/Reply Style rows."
   },
   "settingsScreenSectionGeneral": "GENERAL",
   "@settingsScreenSectionGeneral": {
@@ -4819,10 +4819,6 @@
   "settingsScreenUpdateErrorSnackbar": "Couldn't check for updates. Try again later.",
   "@settingsScreenUpdateErrorSnackbar": {
     "description": "SnackBar shown after a manual Check for Updates tap fails (offline, backend unreachable)."
-  },
-  "settingsScreenSectionLinks": "LINKS",
-  "@settingsScreenSectionLinks": {
-    "description": "All-caps section header above the Show Link URLs toggle."
   },
   "settingsScreenSectionNotifications": "NOTIFICATIONS",
   "@settingsScreenSectionNotifications": {

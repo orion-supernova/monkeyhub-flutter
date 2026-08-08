@@ -397,7 +397,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get profileScreenJustTappedAction => 'YANLIŞLIKLA DOKUNDUM';
 
   @override
-  String get settingsScreenLegalSection => 'YASAL';
+  String get settingsScreenSectionHelpAndLegal => 'YARDIM VE YASAL';
 
   @override
   String get settingsScreenLicence => 'LİSANS';
@@ -4273,7 +4273,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'GÖRÜNÜM';
 
   @override
-  String get settingsScreenSectionLayout => 'DÜZEN';
+  String get settingsScreenSectionChat => 'SOHBET';
 
   @override
   String get settingsScreenSectionGeneral => 'GENEL';
@@ -4295,9 +4295,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Güncellemeler kontrol edilemedi. Daha sonra tekrar dene.';
-
-  @override
-  String get settingsScreenSectionLinks => 'BAĞLANTILAR';
 
   @override
   String get settingsScreenSectionNotifications => 'BİLDİRİMLER';

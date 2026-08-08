@@ -409,7 +409,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileScreenJustTappedAction => 'FOI SEM QUERER';
 
   @override
-  String get settingsScreenLegalSection => 'LEGAL';
+  String get settingsScreenSectionHelpAndLegal => 'AJUDA E LEGAL';
 
   @override
   String get settingsScreenLicence => 'LICENÇA';
@@ -4346,7 +4346,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'APARÊNCIA';
 
   @override
-  String get settingsScreenSectionLayout => 'DISPOSIÇÃO';
+  String get settingsScreenSectionChat => 'CONVERSAS';
 
   @override
   String get settingsScreenSectionGeneral => 'GERAL';
@@ -4368,9 +4368,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Não foi possível verificar atualizações. Tenta mais tarde.';
-
-  @override
-  String get settingsScreenSectionLinks => 'LIGAÇÕES';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';
@@ -5953,7 +5950,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get profileScreenJustTappedAction => 'TOQUEI SEM QUERER';
 
   @override
-  String get settingsScreenLegalSection => 'JURÍDICO';
+  String get settingsScreenSectionHelpAndLegal => 'AJUDA E JURÍDICO';
 
   @override
   String get settingsScreenLicence => 'LICENÇA';
@@ -9891,7 +9888,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get settingsScreenSectionAppearance => 'APARÊNCIA';
 
   @override
-  String get settingsScreenSectionLayout => 'LAYOUT';
+  String get settingsScreenSectionChat => 'CHAT';
 
   @override
   String get settingsScreenSectionGeneral => 'GERAL';
@@ -9913,9 +9910,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Não foi possível verificar atualizações. Tente novamente mais tarde.';
-
-  @override
-  String get settingsScreenSectionLinks => 'LINKS';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICAÇÕES';

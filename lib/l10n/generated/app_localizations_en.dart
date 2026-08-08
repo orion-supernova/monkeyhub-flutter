@@ -401,7 +401,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileScreenJustTappedAction => 'JUST TAPPED';
 
   @override
-  String get settingsScreenLegalSection => 'LEGAL';
+  String get settingsScreenSectionHelpAndLegal => 'HELP & LEGAL';
 
   @override
   String get settingsScreenLicence => 'LICENCE';
@@ -4289,7 +4289,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsScreenSectionAppearance => 'APPEARANCE';
 
   @override
-  String get settingsScreenSectionLayout => 'LAYOUT';
+  String get settingsScreenSectionChat => 'CHAT';
 
   @override
   String get settingsScreenSectionGeneral => 'GENERAL';
@@ -4311,9 +4311,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsScreenUpdateErrorSnackbar =>
       'Couldn\'t check for updates. Try again later.';
-
-  @override
-  String get settingsScreenSectionLinks => 'LINKS';
 
   @override
   String get settingsScreenSectionNotifications => 'NOTIFICATIONS';
