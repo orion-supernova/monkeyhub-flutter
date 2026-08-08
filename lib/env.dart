@@ -13,7 +13,15 @@ class Env {
   }
 
   static String get convexUrl => _get('CONVEX_URL');
-  static String get oneSignalAppId => _get('ONESIGNAL_APP_ID');
+
+  /// VAPID application server key for Web Push, base64url — the public half of
+  /// the pair whose private key lives in Convex deployment env as
+  /// `VAPID_PRIVATE_KEY_P8`. PUBLIC by design: the browser has to be handed it
+  /// to subscribe at all.
+  ///
+  /// Deliberately NOT in [missing]. Web push is the only thing it affects, so
+  /// an absent key must not stop an iPhone from launching.
+  static String get vapidPublicKey => _get('VAPID_PUBLIC_KEY');
 
   /// Origin serving Convex HTTP actions — currently just `/viewOnce`, which
   /// streams a view-once photo against a single-use nonce.
@@ -52,7 +60,6 @@ class Env {
   static List<String> missing() {
     final m = <String>[];
     if (convexUrl.isEmpty) m.add('CONVEX_URL');
-    if (oneSignalAppId.isEmpty) m.add('ONESIGNAL_APP_ID');
     return m;
   }
 }

@@ -322,8 +322,70 @@ class ChatApi {
     });
   }
 
-  /// Persist the FCM (Android) token for high-priority data pushes that wake
-  /// a killed app into the native ConnectionService ringer.
+  /// Persist the ordinary APNs (iOS) token — the one every banner, badge and
+  /// silent dismiss is addressed to.
+  ///
+  /// A DIFFERENT token from [setVoipToken], on a different APNs topic. They
+  /// are stored in separate columns and must never be crossed: sent on the
+  /// wrong topic APNs answers 400, and the backend's dead-token sweep would
+  /// then clear a perfectly good credential.
+  Future<void> setApnsToken({
+    required String userId,
+    required String deviceId,
+    required String platform,
+    required String token,
+    String? deviceName,
+    String? apnsEnv, // "sandbox" | "production"
+  }) async {
+    await _cv.mutation('voipTokens:setApnsToken', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'platform': platform,
+      'token': token,
+      'deviceName': ?deviceName,
+      'apnsEnv': ?apnsEnv,
+    });
+  }
+
+  /// Persist a browser Web Push subscription (RFC 8030). All three fields move
+  /// together: the endpoint says which push service to POST to, the two keys
+  /// seed the payload encryption, and a partial update yields a subscription
+  /// that can be addressed but not encrypted for.
+  Future<void> setWebPushSubscription({
+    required String userId,
+    required String deviceId,
+    required String endpoint,
+    required String p256dh,
+    required String auth,
+    String? deviceName,
+  }) async {
+    await _cv.mutation('voipTokens:setWebPushSubscription', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'endpoint': endpoint,
+      'p256dh': p256dh,
+      'auth': auth,
+      'deviceName': ?deviceName,
+    });
+  }
+
+  /// The notifications toggle, per device. Suppresses alert pushes only —
+  /// calls still ring.
+  Future<void> setPushEnabled({
+    required String userId,
+    required String deviceId,
+    required bool enabled,
+  }) async {
+    await _cv.mutation('voipTokens:setPushEnabled', {
+      'userId': userId,
+      'deviceId': deviceId,
+      'enabled': enabled,
+    });
+  }
+
+  /// Persist the FCM (Android) token. Carries both the high-priority data
+  /// pushes that wake a killed app into the native ringer and the ordinary
+  /// notifications rendered by ChatNotifications.
   Future<void> setFcmToken({
     required String userId,
     required String deviceId,

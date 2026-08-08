@@ -1,5 +1,3 @@
-import { internalQuery } from "./_generated/server";
-import { v } from "convex/values";
 import { isReleasedToRecipient } from "./childGuard";
 
 /**
@@ -107,20 +105,8 @@ export async function badgeTotalFor(
   return { total: unread + requests, perRoom };
 }
 
-/**
- * Absolute badge value per user, for stamping into push payloads.
- *
- * Actions can't read the database directly, so `notifications.*` reaches this
- * through `ctx.runQuery` before building each recipient's payload.
- */
-export const badgeSnapshot = internalQuery({
-  args: { userIds: v.array(v.id("users")) },
-  handler: async (ctx, { userIds }) => {
-    const out: Record<string, number> = {};
-    for (const userId of userIds) {
-      const { total } = await badgeTotalFor(ctx, userId);
-      out[userId.toString()] = total;
-    }
-    return out;
-  },
-});
+// `badgeSnapshot` used to live here: a batched internalQuery the push actions
+// called before building each recipient's payload. `push._loadAlertTargets`
+// now calls `badgeTotalFor` directly as part of the one query it already makes
+// for devices and read cursors, so the separate round trip has no reason to
+// exist.

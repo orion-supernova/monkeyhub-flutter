@@ -16,8 +16,11 @@
 // arrives from the network.
 //
 // Deliberately NOT a blanket "unregister everything at scope /" script on the
-// page itself: OneSignal's worker also sits at scope "/", and killing it would
-// silently unsubscribe every web-push user. Only this one self-destructs.
+// page itself — only this one self-destructs. (It used to matter more: a push
+// SDK's worker also sat at scope "/", and killing it would have unsubscribed
+// every web-push user. The app's own push worker now lives under /web/, so the
+// origin root holds nothing worth keeping — but a blanket unregister is still
+// a blunt instrument aimed at whatever a future build might install.)
 //
 // Keep serving this file for as long as anyone might still have the old worker
 // installed. It costs nothing.

@@ -12,9 +12,9 @@ export default defineSchema({
     lastSeen: v.optional(v.number()),
     email: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
-    deviceTokens: v.optional(v.array(v.string())), // legacy field — OneSignal manages tokens now
-    // PushKit VoIP token (iOS) — separate from the regular APNs/OneSignal
-    // token. Used to wake the app for CallKit ringing when killed.
+    // PushKit VoIP token (iOS) — a DIFFERENT token from the regular APNs
+    // alert token, on the `<bundle>.voip` topic rather than `<bundle>`. Used
+    // to wake the app for CallKit ringing when killed.
     voipToken: v.optional(v.string()),
     // FCM token (Android) — used to send data-only high-priority pushes that
     // wake a killed app for the native ConnectionService ringer.
@@ -93,16 +93,39 @@ export default defineSchema({
     userId: v.id("users"),
     deviceId: v.string(),                    // client-persisted UUIDv4
     platform: v.string(),                    // "ios" | "ios-simulator" | "android" | "macos" | "windows" | "linux" | "web"
-    voipToken: v.optional(v.string()),       // iOS PushKit
-    // APNs environment the voipToken was minted under. Debug/dev builds
+    voipToken: v.optional(v.string()),       // iOS PushKit — topic <bundle>.voip
+    // Regular APNs alert/background token, from
+    // application(_:didRegisterForRemoteNotificationsWithDeviceToken:).
+    // NOT interchangeable with voipToken: different token, different topic
+    // (`<bundle>`). Sending one on the other's topic gets a 400
+    // DeviceTokenNotForTopic — and since the dead-token sweep would then
+    // clear a perfectly good token, crossing them silently stops a phone
+    // ringing. `push.ts` never reads voipToken for exactly this reason.
+    apnsToken: v.optional(v.string()),
+    // APNs environment both iOS tokens were minted under. Debug/dev builds
     // produce sandbox tokens, distribution (TestFlight/App Store) builds
     // produce production tokens; the two are NOT interchangeable. Stored
-    // per-device so one deployment can ring both. Missing → fall back to
-    // the APNS_SANDBOX env default.
+    // per-device so one deployment can reach both. Missing → fall back to
+    // the APNS_SANDBOX env default. Resolved from the embedded provisioning
+    // profile, not the build mode — see AppDelegate.apnsEnvironment().
     apnsEnv: v.optional(
       v.union(v.literal("sandbox"), v.literal("production")),
     ),
     fcmToken: v.optional(v.string()),        // Android FCM
+    // Web Push subscription (RFC 8030), on `platform: "web"` rows only. The
+    // three fields are what `PushSubscription.toJSON()` yields, and all three
+    // are needed: the endpoint says which push service to POST to, and the
+    // two keys seed the RFC 8291 payload encryption. Cleared together.
+    webEndpoint: v.optional(v.string()),
+    webP256dh: v.optional(v.string()),       // base64url, 65-byte P-256 pubkey
+    webAuth: v.optional(v.string()),         // base64url, 16-byte auth secret
+    // Per-device notification opt-out. `undefined` means enabled, so every
+    // row that predates this field keeps working untouched.
+    //
+    // Governs ALERT pushes only. A ringing call is not a notification
+    // preference — silencing chat should never silence the phone — so
+    // voipPush deliberately ignores it.
+    pushEnabled: v.optional(v.boolean()),
     // Human-readable label shown in the "Move call here" pill. Captured
     // from `UIDevice.current.name` / `Host.current().localizedName` /
     // `Settings.Global.DEVICE_NAME` etc. at login. Optional — clients
@@ -112,7 +135,19 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_device", ["userId", "deviceId"]),
+    .index("by_user_device", ["userId", "deviceId"])
+    // Token-reassignment dedupe. A push token is unique to one device-app
+    // pair at any moment, so a token appearing under a second (userId,
+    // deviceId) means it moved and the old row must stop being pushed to.
+    // Indexed rather than `.filter()`-scanned — the original voipToken sweep
+    // reads the whole table on every login.
+    .index("by_voip_token", ["voipToken"])
+    .index("by_apns_token", ["apnsToken"])
+    .index("by_fcm_token", ["fcmToken"])
+    .index("by_web_endpoint", ["webEndpoint"])
+    // Bounds `push.coverageReport` to devices that have been seen recently,
+    // so "can we actually reach our users" stays a cheap question to ask.
+    .index("by_last_seen", ["lastSeenAt"]),
 
   friendships: defineTable({
     userId: v.id("users"),
@@ -612,19 +647,6 @@ export default defineSchema({
     // Same role as `reactions.by_user`.
     .index("by_user", ["userId"]),
 
-  // One row per (recipient, message) push OneSignal accepted.
-  //
-  // Exists so deleting a message can call DELETE /notifications/{id} while the
-  // push is still queued — that endpoint cancels undelivered notifications
-  // only, it cannot pull one off a device. Removing an *already delivered*
-  // notification is the client's job, driven by the silent dismiss push, and
-  // needs no lookup here because the notification's identifier is just the
-  // messageId (sent as collapse_id).
-  //
-  // Deliberately NOT a field on roomMembers: that table is read by three hot
-  // reactive queries (listUserRooms / getReadState / getMemberIds), and
-  // writing to it on every send would re-fire all of them for every member —
-  // the subscription-storm class already documented in messages.ts.
   // ── Feed board ─────────────────────────────────────────────────────────────
   //
   // ONE table for two features. A "highlight" (a photo worth showing, with an
@@ -797,20 +819,15 @@ export default defineSchema({
     elapsedMs: v.optional(v.number()),
   }).index("by_user_day_game", ["userId", "dayKey", "game"]),
 
-  pushReceipts: defineTable({
-    userId: v.id("users"),
-    roomId: v.id("rooms"),
-    // Dangles once the message is deleted. Only ever compared against, never
-    // ctx.db.get()'d, so a stale id is harmless.
-    messageId: v.id("messages"),
-    onesignalId: v.string(),
-    sentAt: v.number(),
-  })
-    .index("by_message", ["messageId"])
-    // Also serves ["userId"] as a prefix, which is what account teardown walks.
-    .index("by_user_room", ["userId", "roomId"])
-    .index("by_room", ["roomId"])
-    .index("by_sent", ["sentAt"]),
+  // `pushReceipts` used to live here. It held a OneSignal notification id per
+  // (user, message) so a delete-or-read could call DELETE /notifications/{id}
+  // and cancel a push OneSignal had not yet handed to APNs/FCM. Talking to
+  // Apple and Google directly means there is no such queue and no such API —
+  // a push is accepted or it isn't. Its three jobs are now done by
+  // apns-collapse-id / the Android notification tag / the Web Push Topic
+  // header (a later push replaces the displayed one), by the sentAt-vs-
+  // lastReadAt check in push.sendAlert (which skips the send rather than
+  // racing to undo it), and by per-kind expiration.
 
   typingIndicators: defineTable({
     roomId: v.id("rooms"),

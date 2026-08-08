@@ -22,11 +22,11 @@ import 'web_badge.dart';
 ///     channel; each runner sets its app-icon / dock / taskbar / launcher badge.
 ///   - Web → [WebBadge]: tab title + favicon bubble (+ `navigator.setAppBadge`
 ///     when the app is an installed PWA). A browser tab has no app-icon badge.
-///   - Android → no-op: badges are notification-channel-driven and handled by
-///     OneSignal directly; we don't override that here.
-/// Backend pushes already set the iOS badge via the OneSignal payload (an
-/// absolute `SetTo` value) — this manager is responsible for the in-process
-/// truth and for re-asserting it when the user reopens the app.
+///   - Android → no-op: launchers derive a badge from the posted notifications
+///     and their channel, so there is nothing for us to set.
+/// Backend pushes already carry an absolute iOS badge value in `aps.badge` —
+/// this manager is responsible for the in-process truth and for re-asserting it
+/// when the user reopens the app.
 class BadgeManager extends ChangeNotifier {
   BadgeManager._();
   static final BadgeManager instance = BadgeManager._();

@@ -636,11 +636,12 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
     });
   }
 
-  // Take back the pushes. Cancels anything still queued, and asks devices that
-  // already showed it to remove it. See notifications.revokeMessagePushes.
+  // Ask devices that already showed this message to take it back down. See
+  // notifications.revokeMessagePushes for what that can and cannot reach.
   await ctx.scheduler.runAfter(0, internal.notifications.revokeMessagePushes, {
     messageId,
     roomId: msg.roomId,
+    senderId: msg.userId,
   });
 }
 
@@ -1596,22 +1597,14 @@ export const markRoomRead = mutation({
     // Reading the room retires its outstanding notifications. The device that
     // did the reading also clears them locally (it doesn't need a round trip);
     // this covers the user's *other* devices and corrects the badge everywhere.
-    const rows = await ctx.db
-      .query("pushReceipts")
-      .withIndex("by_user_room", (q) =>
-        q.eq("userId", userId).eq("roomId", roomId)
-      )
-      .collect();
-    for (const r of rows) await ctx.db.delete(r._id);
-
-    if (rows.length > 0) {
-      await ctx.scheduler.runAfter(0, internal.notifications.cancelByIds, {
-        onesignalIds: rows.map((r) => r.onesignalId),
-      });
-    }
+    //
+    // No id list: every platform sweeps this case by thread/group id (the
+    // roomId), which is what `dismissAndSync` carries. The old code passed the
+    // ids it had just read out of `pushReceipts`, but that table only ever
+    // existed to hold OneSignal notification ids for cancellation, and the
+    // client never used the list for the whole-room case.
     await ctx.scheduler.runAfter(0, internal.notifications.dismissAndSync, {
       userIds: [userId],
-      dismissIds: rows.map((r) => r.messageId.toString()),
       roomId,
     });
   },

@@ -1,5 +1,6 @@
 package com.walhallaa.chattest20241220
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,8 @@ import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -22,6 +25,12 @@ class MainActivity : FlutterActivity() {
     companion object {
         /// Arbitrary but must not collide with a plugin's own request codes.
         private const val CALL_PERMISSION_REQUEST = 0x0CA1
+
+        /// Deliberately a SECOND request code, paired with its own pending
+        /// result below. Sharing the call one would let a notification prompt
+        /// answer the microphone request — or complete the same MethodChannel
+        /// result twice, which throws.
+        private const val NOTIF_PERMISSION_REQUEST = 0x0CA2
 
         /// Cache key for the one and only Dart isolate this process runs.
         const val ENGINE_ID = "monkeyhub.main"
@@ -51,6 +60,19 @@ class MainActivity : FlutterActivity() {
     /// Held so [onRequestPermissionsResult] can answer it — a MethodChannel
     /// result cannot be completed twice, so this is nulled the moment it is used.
     private var pendingPermissionResult: MethodChannel.Result? = null
+
+    /// Same idea for POST_NOTIFICATIONS, on its own slot — see
+    /// NOTIF_PERMISSION_REQUEST.
+    private var pendingNotifPermissionResult: MethodChannel.Result? = null
+
+    /// The monkeyhub/notifications channel, retained so a notification tap can
+    /// be pushed to Dart from onCreate/onNewIntent.
+    private var notifChannel: MethodChannel? = null
+
+    /// Taps that arrived before Dart installed its handler — a cold start from
+    /// a notification is exactly that case. Drained by `takePendingEvents`.
+    private val pendingNotifEvents = mutableListOf<Map<String, Any?>>()
+    private var notifDartReady = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         val cache = FlutterEngineCache.getInstance()
@@ -333,6 +355,141 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // monkeyhub/notifications — mirrors the iOS channel of the same name.
+        // Dismissal, the notification permission, and which room is on screen.
+        notifChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "monkeyhub/notifications"
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "dismiss" -> {
+                        val ids = call.argument<List<String>>("ids").orEmpty()
+                        val nm = NotificationManagerCompat.from(this)
+                        for (id in ids) nm.cancel(id, ChatNotifications.ID)
+                        result.success(null)
+                    }
+                    "dismissRoom" -> {
+                        call.argument<String>("roomId")?.let {
+                            ChatNotifications.cancelRoom(this, it)
+                        }
+                        result.success(null)
+                    }
+                    "setActiveRoom" -> {
+                        ChatNotifications.activeRoomId = call.argument<String>("roomId")
+                        result.success(null)
+                    }
+                    "authorizationStatus" -> result.success(notificationAuthorizationStatus())
+                    "requestAuthorization" -> requestNotificationPermission(result)
+                    "takePendingEvents" -> {
+                        notifDartReady = true
+                        val events = pendingNotifEvents.toList()
+                        pendingNotifEvents.clear()
+                        result.success(events)
+                    }
+                    // iOS answers this from its cached APNs token; Android's
+                    // equivalent lives on monkeyhub/fcm. Answering null keeps
+                    // one Dart code path for both.
+                    "getApnsToken" -> result.success(null)
+                    else -> result.notImplemented()
+                }
+            }
+        }
+
+        // A cold start FROM a notification: the intent is already on the
+        // activity by the time the engine is configured.
+        handleNotificationIntent(intent)
+    }
+
+    /// A tap while the process is alive. `launchMode="singleTask"` routes it
+    /// here rather than through a fresh onCreate.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        val extras = intent?.extras ?: return
+        val roomId = extras.getString(ChatNotifications.EXTRA_ROOM_ID).orEmpty()
+        val kind = extras.getString(ChatNotifications.EXTRA_KIND).orEmpty()
+        if (roomId.isEmpty() && kind.isEmpty()) return
+        // Consume it, or rotating the device replays the same navigation.
+        intent.removeExtra(ChatNotifications.EXTRA_ROOM_ID)
+        intent.removeExtra(ChatNotifications.EXTRA_KIND)
+
+        val event: Map<String, Any?> = when {
+            roomId.isNotEmpty() -> mapOf("method" to "onOpenRoom", "roomId" to roomId)
+            kind == "approval" -> mapOf("method" to "onOpenRequests")
+            else -> return
+        }
+        val method = event["method"] as String
+        if (notifDartReady) {
+            notifChannel?.invokeMethod(method, event)
+        } else {
+            pendingNotifEvents.add(event)
+        }
+    }
+
+    private fun notificationAuthorizationStatus(): String {
+        // Pre-13 there is no runtime permission; the per-app switch in Settings
+        // is the only control, and NotificationManagerCompat reads it.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return if (NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+                "granted"
+            } else {
+                "denied"
+            }
+        }
+        val granted = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return "granted"
+        // Android cannot distinguish "never asked" from "permanently denied"
+        // directly. shouldShowRequestPermissionRationale is true only between
+        // the two — i.e. asked once and refused — so a false here is either
+        // state, and asking is only safe in the first. Dart's own one-ask latch
+        // resolves the ambiguity across launches; this keeps us from ever
+        // hammering the permanently-denied case.
+        return if (ActivityCompat.shouldShowRequestPermissionRationale(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        ) {
+            "denied"
+        } else {
+            "notDetermined"
+        }
+    }
+
+    private fun requestNotificationPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            result.success(NotificationManagerCompat.from(this).areNotificationsEnabled())
+            return
+        }
+        val perm = Manifest.permission.POST_NOTIFICATIONS
+        if (ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED) {
+            result.success(true)
+            return
+        }
+        // Once permanently denied, requestPermissions returns INSTANTLY with no
+        // dialog — while still pausing and resuming the activity. That resume
+        // is what re-triggers a token refresh, which asks again: the ~30
+        // permission flips in 23 seconds seen on a Galaxy S24. Refusing here is
+        // what breaks the loop.
+        if (ActivityCompat.shouldShowRequestPermissionRationale(this, perm)) {
+            result.success(false)
+            return
+        }
+        // One dialog at a time, same contract as the call permissions above.
+        if (pendingNotifPermissionResult != null) {
+            result.success(false)
+            return
+        }
+        pendingNotifPermissionResult = result
+        ActivityCompat.requestPermissions(this, arrayOf(perm), NOTIF_PERMISSION_REQUEST)
     }
 
     override fun onRequestPermissionsResult(
@@ -343,6 +500,18 @@ class MainActivity : FlutterActivity() {
         // Plugins (camerax, mobile_scanner, webrtc) share this callback — always
         // let them see it first.
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == NOTIF_PERMISSION_REQUEST) {
+            val pendingNotif = pendingNotifPermissionResult ?: return
+            pendingNotifPermissionResult = null
+            val granted = grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            try {
+                pendingNotif.success(granted)
+            } catch (_: Throwable) {
+                // Channel already torn down — nothing left to answer.
+            }
+            return
+        }
         if (requestCode != CALL_PERMISSION_REQUEST) return
         val pending = pendingPermissionResult ?: return
         pendingPermissionResult = null
@@ -363,6 +532,13 @@ class MainActivity : FlutterActivity() {
         // longer outlive; a stuck future would wedge the call it gates.
         pendingPermissionResult?.let {
             pendingPermissionResult = null
+            try {
+                it.success(false)
+            } catch (_: Throwable) {
+            }
+        }
+        pendingNotifPermissionResult?.let {
+            pendingNotifPermissionResult = null
             try {
                 it.success(false)
             } catch (_: Throwable) {

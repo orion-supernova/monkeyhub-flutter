@@ -140,10 +140,29 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _incomingSub;
   Subscription? _outgoingSub;
   Subscription? _globalTypingSub;
-  String? _activeRoomId;
-  /// The room currently visible to the user (if any). Used by [PushManager] to
-  /// suppress incoming-message notifications for the chat already on screen.
-  String? get activeRoomId => _activeRoomId;
+  String? _activeRoomIdValue;
+
+  /// The room currently visible to the user (if any).
+  ///
+  /// Assigning also tells the platform, so an incoming-message push for the
+  /// chat already on screen doesn't raise a banner over it. The native side
+  /// caches the value rather than calling back into Dart: iOS makes that
+  /// decision inside a completion handler it must answer promptly, and a round
+  /// trip into an isolate that may be suspended is a good way to hang it.
+  ///
+  /// Wrapped in a setter rather than pushed from each call site because there
+  /// are three assignment points (open, close, detach) and a missed one leaves
+  /// the platform believing a room is still on screen — which silently
+  /// suppresses that room's notifications for the rest of the session.
+  String? get _activeRoomId => _activeRoomIdValue;
+
+  set _activeRoomId(String? value) {
+    if (_activeRoomIdValue == value) return;
+    _activeRoomIdValue = value;
+    unawaited(PushManager.instance.setActiveRoom(value));
+  }
+
+  String? get activeRoomId => _activeRoomIdValue;
 
   /// Whoever asked for the open room — the `RoomScreen` state that called
   /// [openRoom]. [closeRoom] only tears the room down for THIS holder.

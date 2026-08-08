@@ -43,8 +43,9 @@ X509v3 Subject Alternative Name: DNS:*.walhallaa.com, DNS:walhallaa.com
 handshake outright (`tls alert handshake failure`, alert 40). Covering it needs
 Advanced Certificate Manager (~$10/mo). A one-level name like
 `monkeyhub-web.walhallaa.com` *would* be covered — but a separate origin drops
-every web user's Convex session (localStorage is per-origin) and forces a fresh
-OneSignal push-permission prompt. Staying on one origin costs one `--base-href`
+every web user's Convex session (localStorage is per-origin), forces a fresh
+notification-permission prompt, and invalidates every Web Push subscription
+(they are bound to the origin). Staying on one origin costs one `--base-href`
 flag and nothing else.
 
 ## Flags (non-interactive / CI)
@@ -321,13 +322,16 @@ and relaxing the `no-store`. It buys back under 2 MB per visit in exchange for a
 credential to store and rotate. Not worth it at this audience size; revisit if
 the app ever faces a lot of people on mobile data.
 
-### Two service workers, two scopes
+### Service workers
 
-- `/OneSignalSDKWorker.js` is deliberately still served at the **origin root**,
-  out of the Flutter build directory. Existing web-push subscriptions were
-  registered at scope `/`, and moving the scope would silently unsubscribe every
-  one of them.
-- `/flutter_service_worker.js` at the root is now a **tombstone**
+- `/web/mh-push-sw.js` handles Web Push. It ships with the Flutter build and
+  registers itself at scope `/web/push/` — narrower than its own directory on
+  purpose, so it can never collide with whatever worker `flutter build web`
+  decides to install at `/web/`. Push delivery does not care that no page lives
+  at that path.
+  (Nothing is served at the origin root any more. The old push SDK needed that
+  because it hardcoded the worker's path; the Caddy rule for it is gone.)
+- `/flutter_service_worker.js` at the root is a **tombstone**
   (`hosting/static/`) that unregisters itself and clears caches, in case anyone
   still has a genuinely-caching worker from when the app was served at `/`.
 

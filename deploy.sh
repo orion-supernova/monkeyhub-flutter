@@ -28,7 +28,7 @@
 # Windows build gets a card without touching this script's page code.
 #
 # IMPORTANT — two similarly-named files at project root:
-#   env.local   (no dot)  → runtime app secrets (CONVEX_URL, ONESIGNAL_APP_ID).
+#   env.local   (no dot)  → runtime app config (CONVEX_URL, VAPID_PUBLIC_KEY).
 #                           Bundled into the app via pubspec assets — DO NOT put
 #                           deploy secrets here.
 #   .env.local  (with dot) → deploy-only secrets (App Store Connect API key,
@@ -478,8 +478,8 @@ validate_environment() {
         exit 1
     fi
 
-    # Runtime app secrets — bundled into the app. Builds silently miss
-    # CONVEX_URL / ONESIGNAL_APP_ID if this is absent.
+    # Runtime app config — bundled into the app. Builds silently miss
+    # CONVEX_URL / VAPID_PUBLIC_KEY if this is absent.
     if { [ "$DEPLOY_IOS" = true ] || [ "$DEPLOY_ANDROID" = true ]; } && [ ! -f "env.local" ]; then
         echo "❌ Missing env.local at project root (runtime app secrets)."
         echo "   Copy env.example to env.local and fill in values."

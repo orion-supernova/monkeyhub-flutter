@@ -1,0 +1,33 @@
+<!--
+  Status-bar icon for every notification this app posts.
+
+  MUST be a white-on-transparent silhouette: Android treats a small icon as an
+  alpha mask and tints it itself, so a full-colour asset (ic_launcher_foreground
+  and friends) renders as a solid white square. That is the single most common
+  way an Android push migration ships looking broken.
+
+  The glyph is the app's own mark — the screen-and-stand from the web splash —
+  drawn as strokes so it stays legible at the 24dp the status bar gives it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M4,3 L20,3 A2,2 0 0 1 22,5 L22,15 A2,2 0 0 1 20,17 L4,17 A2,2 0 0 1 2,15 L2,5 A2,2 0 0 1 4,3 Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M12,17 L12,21" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M8,21 L16,21" />
+</vector>

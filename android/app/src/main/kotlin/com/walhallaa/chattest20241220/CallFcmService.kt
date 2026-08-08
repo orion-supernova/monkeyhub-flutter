@@ -12,18 +12,23 @@ import com.hiennv.flutter_callkit_incoming.FlutterCallkitIncomingPlugin
 import io.flutter.embedding.engine.FlutterEngine
 import java.util.UUID
 
-/// Android mirror of the iOS PushKit path in AppDelegate.swift.
+/// The single entry point for every push this app receives on Android.
 ///
-/// The backend (backend/convex/voipPush.ts sendFcmData) sends data-only,
-/// priority-high FCM messages so this service runs even when the app process
-/// is dead. Two message kinds, same contract as the iOS VoIP push:
-///   kind=invite → show the flutter_callkit_incoming full-screen call UI
-///   kind=taken  → dismiss it (answered/rejected elsewhere, cancelled, timeout)
+/// The backend sends data-only, priority-high FCM messages — never a
+/// `notification` block — so this service runs even when the app process is
+/// dead, and so WE own the rendering. That ownership is the point: a
+/// `notification` payload would be drawn by the system and would skip
+/// onMessageReceived entirely while backgrounded, which costs tag collapse,
+/// group summaries, per-room dismissal and active-room suppression.
 ///
-/// OneSignal coexistence: OneSignal registers a high-priority FCMBroadcastReceiver
-/// (not a FirebaseMessagingService) and filters out its own payloads, so every
-/// non-OneSignal message — i.e. ours — flows here. This is the only
-/// FirebaseMessagingService in the merged manifest.
+/// Five kinds, two families:
+///   kind=invite/taken            ringing — flutter_callkit_incoming
+///                                (voipPush.ts, mirrors iOS PushKit)
+///   kind=message/approval/…      banners — ChatNotifications
+///                                (push.ts, mirrors iOS UNNotification)
+///
+/// The one cost of data-only is that a FORCE-stopped app receives nothing
+/// until it is next launched. That was already true of the call path.
 class CallFcmService : FirebaseMessagingService() {
 
     companion object {
@@ -62,6 +67,9 @@ class CallFcmService : FirebaseMessagingService() {
         when (data["kind"]) {
             "invite" -> handleInvite(data)
             "taken" -> handleTaken(data)
+            "message", "approval", "call_invite", "group_call_invite" ->
+                ChatNotifications.show(this, data)
+            "dismiss" -> ChatNotifications.dismiss(this, data)
             else -> Log.d(TAG, "ignoring message kind=${data["kind"]}")
         }
     }

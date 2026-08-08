@@ -64,14 +64,9 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
     .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const t of typing) await ctx.db.delete(t._id);
-  // Outstanding push receipts. The notifications themselves are already moot —
-  // every message they pointed at is gone — so we drop the rows without
-  // cancelling; the badge corrects on the recipients' next push or foreground.
-  const receipts = await ctx.db
-    .query("pushReceipts")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-    .collect();
-  for (const p of receipts) await ctx.db.delete(p._id);
+  // Nothing to clean up for notifications: there is no server-side record of
+  // one. Any banner still on a device for this room is already moot, and the
+  // badge corrects on the recipient's next push or foreground.
   // The room's own avatar. Easy to forget because it isn't a row — the room
   // document is about to vanish, and with it the only pointer to the file.
   const room = await ctx.db.get(roomId);

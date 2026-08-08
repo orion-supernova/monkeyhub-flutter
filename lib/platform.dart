@@ -5,9 +5,9 @@ import 'package:flutter/foundation.dart';
 /// These two look similar and mean different things — read the doc comments
 /// before picking one. The distinction is the `kIsWeb` short-circuit.
 
-/// Platforms that need the web/desktop delivery paths: alert sounds, the web
-/// Notification API, web push. Mobile is served by OneSignal and needs none of
-/// it.
+/// Platforms that need the web/desktop delivery paths: alert sounds and the
+/// in-page Notification API. Mobile is served by an OS notification from
+/// APNs/FCM and needs none of it.
 ///
 /// `kIsWeb` is checked first so `defaultTargetPlatform` reads stay off the
 /// mobile path — the convention used everywhere else in this codebase.

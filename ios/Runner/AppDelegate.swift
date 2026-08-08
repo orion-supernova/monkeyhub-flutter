@@ -8,7 +8,8 @@ import AVFoundation
 import flutter_callkit_incoming
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate {
+@objc class AppDelegate: FlutterAppDelegate, PKPushRegistryDelegate, CXProviderDelegate,
+                         UNUserNotificationCenterDelegate {
   // Pre-warmed Flutter engine, created and run at process launch —
   // INCLUDING cold background launches triggered by a VoIP push, where no
   // UI scene ever connects. The previous implicit-engine setup only
@@ -54,6 +55,30 @@ import flutter_callkit_incoming
   private static let lastInviteCallIdKey = "voip.lastInvite.callId"
   private static let lastInviteUuidKey = "voip.lastInvite.uuid"
 
+  // ── Ordinary (alert) push ────────────────────────────────────────────────
+  //
+  // A DIFFERENT token from `cachedVoipToken`, on a different APNs topic: this
+  // one is the bare bundle id, PushKit's is `<bundle>.voip`. Every banner,
+  // badge and silent dismiss goes here; only ringing goes there. Sending one
+  // on the other's topic is rejected, and the backend's dead-token sweep would
+  // then clear a perfectly good token — so they are kept scrupulously apart on
+  // this side too.
+  private var cachedApnsToken: String?
+  private var notifChannel: FlutterMethodChannel?
+  // Same queue-until-Dart-exists contract as the voip channel below: a tap
+  // that cold-launches the app fires `didReceive response` long before any
+  // Dart handler is installed, and a bare invokeMethod would be dropped.
+  private var pendingNotifEvents: [(method: String, args: [String: Any])] = []
+  private var notifDartReady = false
+  // The room the user is currently looking at, pushed down from Dart on every
+  // open and close. Read in `willPresent` to suppress a banner for a
+  // conversation that is already on screen.
+  //
+  // Cached rather than asked for: `willPresent` hands iOS a completion handler
+  // it expects promptly, and a round trip into an isolate that may be mid-GC
+  // is a good way to hang it.
+  private var activeRoomId: String?
+
   fileprivate func setCaptureEventSink(_ sink: FlutterEventSink?) {
     captureEventSink = sink
   }
@@ -91,7 +116,90 @@ import flutter_callkit_incoming
     registry.desiredPushTypes = [.voIP]
     voipRegistry = registry
 
+    // Ordinary APNs. Taking the delegate is safe: FlutterAppDelegate doesn't
+    // claim it (it routes remote notifications through its plugin lifecycle
+    // delegate instead), and flutter_callkit_incoming only *offers* a
+    // willPresent helper — it never assigns itself.
+    UNUserNotificationCenter.current().delegate = self
+    // Does NOT prompt. Since iOS 8 a device token is issued regardless of
+    // notification authorization, because silent/background pushes need one —
+    // which is exactly how the `kind=dismiss` badge sync keeps working for
+    // someone who declined banners. Asking is a separate, later, Dart-driven
+    // act; see PushManager._maybeRequestNotificationPermission.
+    application.registerForRemoteNotifications()
+
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // MARK: - APNs (alert) registration
+
+  override func application(
+    _ application: UIApplication,
+    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+  ) {
+    let token = deviceToken.map { String(format: "%02x", $0) }.joined()
+    cachedApnsToken = token
+    NSLog("[apns] alert token: \(token)")
+    invokeNotifOrQueue("onApnsTokenUpdated", args: ["token": token])
+    super.application(
+      application,
+      didRegisterForRemoteNotificationsWithDeviceToken: deviceToken
+    )
+  }
+
+  override func application(
+    _ application: UIApplication,
+    didFailToRegisterForRemoteNotificationsWithError error: Error
+  ) {
+    // Expected on a Simulator without a paired push environment, and on a
+    // device with no network at launch. Dart re-asks on every resume, so this
+    // is informational rather than a failure to recover from.
+    NSLog("[apns] registration failed: \(error.localizedDescription)")
+    super.application(
+      application,
+      didFailToRegisterForRemoteNotificationsWithError: error
+    )
+  }
+
+  // MARK: - UNUserNotificationCenterDelegate
+
+  /// Whether to show a notification that arrived while the app is frontmost.
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    let info = notification.request.content.userInfo
+    if let roomId = info["roomId"] as? String,
+       !roomId.isEmpty,
+       roomId == activeRoomId {
+      // They are already reading this conversation — the live subscription
+      // put the message on screen before the push arrived.
+      completionHandler([])
+      return
+    }
+    if #available(iOS 14.0, *) {
+      completionHandler([.banner, .list, .sound, .badge])
+    } else {
+      completionHandler([.alert, .sound, .badge])
+    }
+  }
+
+  /// A notification was tapped. Routes to the same two destinations the
+  /// in-app handler uses; `app.dart` stashes the roomId if the navigator
+  /// isn't mounted yet (cold start from a lock-screen tap).
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse,
+    withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+    let info = response.notification.request.content.userInfo
+    if let roomId = info["roomId"] as? String, !roomId.isEmpty {
+      invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId])
+    } else if (info["kind"] as? String) == "approval" {
+      invokeNotifOrQueue("onOpenRequests", args: [:])
+    }
+    completionHandler()
   }
 
   // MARK: - PKPushRegistryDelegate
@@ -440,6 +548,17 @@ import flutter_callkit_incoming
     }
   }
 
+  // Same contract for the notifications channel. The token arrives moments
+  // after launch and a lock-screen tap can BE the launch, both of them well
+  // before Dart has a handler.
+  private func invokeNotifOrQueue(_ method: String, args: [String: Any]) {
+    if notifDartReady, let channel = notifChannel {
+      channel.invokeMethod(method, arguments: args)
+    } else {
+      pendingNotifEvents.append((method: method, args: args))
+    }
+  }
+
   @objc private func _capturedDidChange() {
     captureEventSink?(UIScreen.main.isCaptured)
   }
@@ -633,20 +752,22 @@ import flutter_callkit_incoming
       }
     }
 
-    // monkeyhub/notifications — pull already-delivered notifications out of
-    // Notification Center.
+    // monkeyhub/notifications — the whole alert-push surface Dart talks to:
+    // the APNs token, the authorization prompt, which room is on screen, and
+    // pulling already-delivered notifications back out of Notification Center.
     //
-    // The server can only cancel a push while it's still queued (OneSignal's
-    // DELETE /notifications explicitly does not remove a delivered message),
-    // so removing one that already landed has to happen here. Notifications
-    // are matched by the identifiers the backend set as `collapse_id`
-    // (= messageId) and `thread_id` (= roomId).
+    // A delivered notification can only be removed from here. No server and no
+    // provider can recall one once APNs has handed it over, which is why the
+    // backend sends a silent push carrying the identifiers instead — matched
+    // against what it set as `apns-collapse-id` (= messageId) and
+    // `aps.thread-id` (= roomId).
     if let registrar = engine.registrar(forPlugin: "MonkeyHubNotificationsPlugin") {
-      let notifChannel = FlutterMethodChannel(
+      let channel = FlutterMethodChannel(
         name: "monkeyhub/notifications",
         binaryMessenger: registrar.messenger()
       )
-      notifChannel.setMethodCallHandler { call, result in
+      notifChannel = channel
+      channel.setMethodCallHandler { [weak self] call, result in
         let args = call.arguments as? [String: Any] ?? [:]
         let center = UNUserNotificationCenter.current()
         switch call.method {
@@ -672,6 +793,53 @@ import flutter_callkit_incoming
             // before touching the Flutter channel.
             DispatchQueue.main.async { result(nil) }
           }
+
+        case "getApnsToken":
+          result(self?.cachedApnsToken)
+
+        case "authorizationStatus":
+          center.getNotificationSettings { settings in
+            let value: String
+            switch settings.authorizationStatus {
+            case .notDetermined: value = "notDetermined"
+            case .denied: value = "denied"
+            case .provisional: value = "provisional"
+            default: value = "granted"
+            }
+            DispatchQueue.main.async { result(value) }
+          }
+
+        case "requestAuthorization":
+          center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if let error {
+              NSLog("[apns] requestAuthorization failed: \(error.localizedDescription)")
+            }
+            DispatchQueue.main.async { result(granted) }
+          }
+
+        case "setActiveRoom":
+          // Pushed from Dart on room open/close so `willPresent` can decide
+          // synchronously. Nil clears it.
+          self?.activeRoomId = args["roomId"] as? String
+          result(nil)
+
+        case "takePendingEvents":
+          // Dart's handler is installed (it just called us) — hand over the
+          // token and any taps that fired before it existed, then switch to
+          // direct delivery.
+          if let self {
+            self.notifDartReady = true
+            let events = self.pendingNotifEvents.map { event -> [String: Any] in
+              var e = event.args
+              e["method"] = event.method
+              return e
+            }
+            self.pendingNotifEvents.removeAll()
+            result(events)
+          } else {
+            result([])
+          }
+
         default:
           result(FlutterMethodNotImplemented)
         }
@@ -774,16 +942,11 @@ import flutter_callkit_incoming
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
   ) {
-    // OneSignal nests the app's `data` payload under "custom" → "a".
-    //
-    // The fallback re-keys userInfo to [String: Any] rather than using it as-is:
-    // `??` needs both sides to be the same type, and userInfo arrives as
-    // [AnyHashable: Any]. APNs payload keys are always strings, so the cast
-    // holds; an empty dictionary just falls through to super below.
-    let custom = userInfo["custom"] as? [String: Any]
-    let data = (custom?["a"] as? [String: Any])
-      ?? (userInfo as? [String: Any])
-      ?? [:]
+    // Our custom keys arrive FLAT, as siblings of `aps` — the re-key to
+    // [String: Any] is only because userInfo is typed [AnyHashable: Any].
+    // APNs payload keys are always strings, so the cast holds; an empty
+    // dictionary just falls through to super below.
+    let data = (userInfo as? [String: Any]) ?? [:]
 
     guard (data["kind"] as? String) == "dismiss" else {
       super.application(
@@ -795,8 +958,29 @@ import flutter_callkit_incoming
     }
 
     let center = UNUserNotificationCenter.current()
-    let ids = (data["dismissIds"] as? [String]) ?? []
-    let roomId = data["roomId"] as? String
+    // A JSON string rather than an array: FCM v1 only carries string values,
+    // and one wire format across the platforms beats two. See
+    // notifications.dismissAndSync.
+    var ids: [String] = []
+    if let raw = data["dismissIds"] as? String,
+       let bytes = raw.data(using: .utf8),
+       let parsed = try? JSONSerialization.jsonObject(with: bytes) as? [String] {
+      ids = parsed
+    }
+    let roomId = (data["roomId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+
+    // The badge rides as data on this push, because a background push may not
+    // carry `aps.badge`. Applying it here keeps the icon honest even when the
+    // dismissal itself can't be acted on.
+    if let rawBadge = data["badge"], let count = Int("\(rawBadge)") {
+      if #available(iOS 16.0, *) {
+        center.setBadgeCount(count) { _ in }
+      } else {
+        DispatchQueue.main.async {
+          UIApplication.shared.applicationIconBadgeNumber = count
+        }
+      }
+    }
 
     if !ids.isEmpty {
       center.removeDeliveredNotifications(withIdentifiers: ids)

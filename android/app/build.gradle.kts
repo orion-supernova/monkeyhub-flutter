@@ -114,8 +114,9 @@ flutter {
 }
 
 dependencies {
-    // FCM for the direct data-only call push (CallFcmService). OneSignal keeps
-    // its own bundled FCM transport; this dependency is for OUR service only.
+    // FCM. Every push this app receives arrives through CallFcmService — call
+    // wake-ups and ordinary notifications alike — as a data-only message we
+    // render ourselves (ChatNotifications). There is no push SDK.
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-messaging")
 
