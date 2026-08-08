@@ -89,10 +89,43 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
   /// Selected filter; null means ALL.
   String? _emoji;
 
+  /// The pill for [ReactionDetailsSheet.initialEmoji], so a message carrying
+  /// more emoji than fit across the sheet still opens with the chip you
+  /// long-pressed in view rather than somewhere off the right edge.
+  final GlobalKey _initialPillKey = GlobalKey();
+  bool _revealedInitialPill = false;
+
   @override
   void initState() {
     super.initState();
     _emoji = widget.initialEmoji;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealInitialPill());
+  }
+
+  /// Only ever the pill that opened the sheet, and only until it has been
+  /// scrolled to. A [GlobalKey] that followed the *selected* pill would carry
+  /// its element along on every tap, and the [AnimatedContainer] under it would
+  /// arrive at the new pill already wearing the selected decoration — no
+  /// crossfade on the way in, none on the way out of the old one either.
+  Key? _pillKeyFor(String? emoji) =>
+      _revealedInitialPill || emoji != widget.initialEmoji
+          ? null
+          : _initialPillKey;
+
+  void _revealInitialPill() {
+    if (_revealedInitialPill || !mounted) return;
+    _revealedInitialPill = true;
+    final pill = _initialPillKey.currentContext;
+    // Absent whenever the pill row isn't rendered at all — a single-emoji
+    // message, or one whose reactions were all taken back before we got here.
+    if (pill == null) return;
+    final theme = ThemeScope.of(context);
+    Scrollable.ensureVisible(
+      pill,
+      alignment: 0.5,
+      duration: theme.motionMed,
+      curve: theme.motionCurve,
+    );
   }
 
   /// Read through to the repository on every build rather than snapshotting, so
@@ -131,12 +164,12 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
   }
 
   Widget _body(BuildContext context, AppTheme theme) {
+    final l10n = AppLocalizations.of(context);
     final reactions = _reactions;
     final groups = _groupsOf(reactions);
     // The filter survives everything except its own emoji being taken back by
     // the last person holding it.
-    final selected =
-        groups.any((g) => g.emoji == _emoji) ? _emoji : null;
+    final selected = groups.any((g) => g.emoji == _emoji) ? _emoji : null;
     final people = reactions.map((r) => r.userId).toSet().length;
 
     final rows = (selected == null
@@ -147,47 +180,50 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
     return Container(
       decoration: theme.sheetDecoration(),
       padding: EdgeInsets.fromLTRB(
-          22, 14, 22, 22 + MediaQuery.paddingOf(context).bottom),
+          16, 14, 16, 18 + MediaQuery.paddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SheetGrabber(),
           Text(
-            AppLocalizations.of(context).reactionDetailsSheetTitle,
+            l10n.reactionDetailsSheetTitle,
             textAlign: TextAlign.center,
             style: theme.label.copyWith(letterSpacing: 2.4),
           ),
-          if (reactions.isEmpty) ...[
-            const SizedBox(height: 14),
+          if (reactions.isEmpty)
+            _EmptyState(text: l10n.reactionDetailsSheetEmptyState)
+          else ...[
+            const SizedBox(height: 5),
             Text(
-              AppLocalizations.of(context).reactionDetailsSheetEmptyState,
-              textAlign: TextAlign.center,
-              style: theme.bodySoft,
-            ),
-          ] else ...[
-            const SizedBox(height: 4),
-            Text(
-              AppLocalizations.of(context)
-                  .reactionDetailsSheetPeopleCount(people),
+              l10n.reactionDetailsSheetPeopleCount(people),
               textAlign: TextAlign.center,
               style: theme.monoTiny,
             ),
-            const SizedBox(height: 14),
-            if (groups.length > 1)
+            const SizedBox(height: 16),
+            // One emoji needs no filter — every row would be in every bucket.
+            // It still gets a chip, because the chip is what was long-pressed
+            // to get here and echoing it is what makes the sheet feel like it
+            // belongs to that chip rather than to the message at large.
+            if (groups.length == 1)
+              _SoloSummary(group: groups.single)
+            else
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                // Vertical breathing room so FocusableTap's ring, which paints
-                // outside its child's bounds, isn't clipped by the scroll view.
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                // Breathing room so FocusableTap's ring, which paints outside
+                // its child's bounds, isn't clipped by the scroll view. The
+                // horizontal 8 is also what lines the first pill's edge up
+                // with the avatars below it, which carry the same inset for
+                // their press highlight.
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: Row(
                   children: [
                     _FilterPill(
-                      label: AppLocalizations.of(context)
-                          .reactionDetailsSheetFilterAll,
+                      label: l10n.reactionDetailsSheetFilterAll,
                       count: reactions.length,
                       selected: selected == null,
                       onTap: () => _select(null),
+                      pillKey: _pillKeyFor(null),
                     ),
                     for (final g in groups) ...[
                       const SizedBox(width: 6),
@@ -196,33 +232,47 @@ class _ReactionDetailsSheetState extends State<ReactionDetailsSheet> {
                         count: g.rows.length,
                         selected: selected == g.emoji,
                         onTap: () => _select(g.emoji),
+                        pillKey: _pillKeyFor(g.emoji),
                       ),
                     ],
                   ],
                 ),
               ),
-            const SizedBox(height: 6),
-            Flexible(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.55,
-                ),
+            const SizedBox(height: 10),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+              ),
+              // [AnimatedSwitcher] stacks the outgoing list on the incoming
+              // one, so the sheet stands at the taller of the two for the
+              // length of the crossfade and then snaps. Filters routinely
+              // halve the row count, which made that snap the most visible
+              // thing about changing one. Anchored top so the rows that stay
+              // don't drift upward as the sheet closes around them.
+              child: AnimatedSize(
+                duration: theme.motionFast,
+                curve: theme.motionCurve,
+                alignment: Alignment.topCenter,
                 child: AnimatedSwitcher(
                   duration: theme.motionFast,
                   switchInCurve: theme.motionEntrance,
                   child: ListView.builder(
                     key: ValueKey(selected ?? '*'),
                     shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     itemCount: rows.length,
                     itemBuilder: (context, i) {
                       final r = rows[i];
                       return _ReactorRow(
+                        // Rebuilt from scratch when the filter changes, so the
+                        // entrance animation replays for the incoming list.
+                        key: ValueKey(
+                            '${selected ?? '*'}/${r.userId}/${r.emoji}'),
+                        index: i,
                         user: _userFor(r.userId),
                         api: widget.api,
                         time: formatClockTime(r.createdAt),
-                        // Redundant inside a single-emoji filter — every row
-                        // there carries the emoji already named by the pill.
-                        emoji: selected == null ? r.emoji : null,
+                        emoji: r.emoji,
                         isMe: r.userId == widget.currentUserId,
                         onOpenProfile: _openProfile,
                       );
@@ -267,6 +317,86 @@ class _Group {
       );
 }
 
+/// Emoji render at whatever the platform font decides, and several of them —
+/// flags, ZWJ families — are taller than a Latin glyph at the same point size.
+/// A fixed [height] and a centred box keep every one of them on the same
+/// baseline instead of nudging its row taller than its neighbours.
+class _Emoji extends StatelessWidget {
+  const _Emoji(this.emoji, {required this.size});
+  final String emoji;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        emoji,
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: size, height: 1.15),
+      );
+}
+
+/// What the sheet shows once the last reaction is taken back while it's open.
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 26, 0, 14),
+      child: Column(
+        children: [
+          Icon(Icons.mood_bad_outlined, size: 26, color: theme.inkMuted),
+          const SizedBox(height: 12),
+          Text(text, textAlign: TextAlign.center, style: theme.bodySoft),
+        ],
+      ),
+    );
+  }
+}
+
+/// The header chip for a message carrying exactly one emoji.
+///
+/// Reads as a statement rather than a control, because there is nothing to
+/// filter: no border-as-affordance, no focus ring, not in the tab order.
+class _SoloSummary extends StatelessWidget {
+  const _SoloSummary({required this.group});
+  final _Group group;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Center(
+      child: Semantics(
+        label: '${group.emoji} ${group.rows.length}',
+        excludeSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: theme.accent.withValues(alpha: 0.14),
+            border: Border.all(
+              color: theme.accent.withValues(alpha: 0.45),
+              width: 0.8,
+            ),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _Emoji(group.emoji, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                '${group.rows.length}',
+                style: theme.monoTiny.copyWith(color: theme.accent),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Deliberately the same pill language as the reaction chip under the bubble —
 /// accent-tinted when it's the one in play, plain surface otherwise — so the
 /// chip you long-pressed is recognisable as the filter that opened selected.
@@ -277,6 +407,7 @@ class _FilterPill extends StatelessWidget {
     required this.count,
     required this.selected,
     required this.onTap,
+    this.pillKey,
   });
 
   final String? emoji;
@@ -285,19 +416,30 @@ class _FilterPill extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// Set on the pill the sheet opened on, so it can be scrolled into view.
+  /// Null on every other pill, and on this one once that has happened.
+  final Key? pillKey;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final ink = selected ? theme.accent : theme.inkSoft;
     return FocusableTap(
       onTap: onTap,
       shape: FocusRingShape.capsule,
       radius: 999,
+      selected: selected,
       semanticLabel: '${emoji ?? label} $count',
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: AnimatedContainer(
+          key: pillKey,
+          duration: theme.motionFast,
+          curve: theme.motionCurve,
+          // Taller than the chip it echoes: this one is a control on a sheet,
+          // not a label under a bubble, so it gets a comfortable touch target.
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             color: selected
                 ? theme.accent.withValues(alpha: 0.18)
@@ -314,21 +456,11 @@ class _FilterPill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (emoji != null)
-                Text(emoji!, style: const TextStyle(fontSize: 14))
+                _Emoji(emoji!, size: 15)
               else
-                Text(
-                  label!,
-                  style: theme.monoTiny.copyWith(
-                    color: selected ? theme.accent : theme.inkSoft,
-                  ),
-                ),
-              const SizedBox(width: 5),
-              Text(
-                '$count',
-                style: theme.monoTiny.copyWith(
-                  color: selected ? theme.accent : theme.inkSoft,
-                ),
-              ),
+                Text(label!, style: theme.monoTiny.copyWith(color: ink)),
+              const SizedBox(width: 6),
+              Text('$count', style: theme.monoTiny.copyWith(color: ink)),
             ],
           ),
         ),
@@ -340,8 +472,16 @@ class _FilterPill extends StatelessWidget {
 /// The app's person row, as the room-info member list and the call-invite sheet
 /// already write it: face, name over handle, then whatever this particular list
 /// has to add on the right.
-class _ReactorRow extends StatelessWidget {
+///
+/// What it adds here is the emoji, badged onto the avatar rather than parked at
+/// the end of the row. On the avatar it survives the single-emoji case — where
+/// there are no filter pills to carry it and the sheet used to name the emoji
+/// precisely nowhere — and it reads as "this person, this reaction" instead of
+/// as another column.
+class _ReactorRow extends StatefulWidget {
   const _ReactorRow({
+    super.key,
+    required this.index,
     required this.user,
     required this.api,
     required this.time,
@@ -350,73 +490,191 @@ class _ReactorRow extends StatelessWidget {
     required this.onOpenProfile,
   });
 
+  final int index;
   final ChatUser user;
   final ChatApi api;
   final String time;
-  final String? emoji;
+  final String emoji;
   final bool isMe;
   final void Function(ChatUser user) onOpenProfile;
 
   @override
+  State<_ReactorRow> createState() => _ReactorRowState();
+}
+
+class _ReactorRowState extends State<_ReactorRow> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final open = isMe ? null : () => onOpenProfile(user);
-    return FocusableTap(
-      onTap: open,
-      radius: 12,
-      semanticLabel: user.displayName,
-      child: GestureDetector(
-        onTap: open,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
+    // Your own row goes nowhere: the profile behind it is the one you're
+    // already signed into.
+    final open = widget.isMe ? null : () => widget.onOpenProfile(widget.user);
+
+    final row = Row(
+      children: [
+        _BadgedAvatar(
+          user: widget.user,
+          api: widget.api,
+          emoji: widget.emoji,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              UserAvatar(user: user, api: api, size: 36, showStatus: false),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            user.displayName,
-                            style: theme.body,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (isMe) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                            decoration: theme.chipDecoration(filled: true),
-                            child: Text(
-                              AppLocalizations.of(context)
-                                  .reactionDetailsSheetYouBadge,
-                              style: theme.monoTiny
-                                  .copyWith(color: theme.accentInk),
-                            ),
-                          ),
-                        ],
-                      ],
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      widget.user.displayName,
+                      style: theme.body,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Text('@${user.username}', style: theme.monoTiny),
+                  ),
+                  if (widget.isMe) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: theme.chipDecoration(filled: true),
+                      child: Text(
+                        AppLocalizations.of(context)
+                            .reactionDetailsSheetYouBadge,
+                        style: theme.monoTiny.copyWith(color: theme.accentInk),
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(time, style: theme.monoTiny),
-              if (emoji != null) ...[
-                const SizedBox(width: 10),
-                Text(emoji!, style: const TextStyle(fontSize: 16)),
-              ],
+              const SizedBox(height: 2),
+              Text(
+                '@${widget.user.username}',
+                style: theme.monoTiny,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
+        const SizedBox(width: 10),
+        Text(widget.time, style: theme.monoTiny),
+        // Nothing to open on your own row, so nothing points at one. The gap
+        // is held either way so the times stay in a column.
+        SizedBox(
+          width: 18,
+          child: open == null
+              ? null
+              : Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+        ),
+      ],
+    );
+
+    return _RowEntrance(
+      index: widget.index,
+      child: FocusableTap(
+        onTap: open,
+        radius: theme.radiusMd,
+        semanticLabel:
+            '${widget.user.displayName} ${widget.emoji} ${widget.time}',
+        child: GestureDetector(
+          onTap: open,
+          onTapDown: open == null ? null : (_) => setState(() => _pressed = true),
+          onTapUp: open == null ? null : (_) => setState(() => _pressed = false),
+          onTapCancel: open == null ? null : () => setState(() => _pressed = false),
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: theme.motionFast,
+            curve: theme.motionCurve,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: _pressed ? theme.surfaceRaised : Colors.transparent,
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: row,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A short rise-and-fade as a list arrives, offset a little further per row.
+///
+/// Staggered by lengthening the duration rather than delaying the start, so
+/// there is no frame where a row is laid out but invisible — and capped, so a
+/// message with forty reactors doesn't have its last row still easing in
+/// seconds after the sheet settled.
+class _RowEntrance extends StatelessWidget {
+  const _RowEntrance({required this.index, required this.child});
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: theme.motionMed +
+          Duration(milliseconds: 26 * (index > 6 ? 6 : index)),
+      curve: theme.motionEntrance,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 10 * (1 - t)), child: child),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// The reactor's face with their emoji tucked into the corner of it.
+class _BadgedAvatar extends StatelessWidget {
+  const _BadgedAvatar({
+    required this.user,
+    required this.api,
+    required this.emoji,
+  });
+
+  final ChatUser user;
+  final ChatApi api;
+  final String emoji;
+
+  static const double _avatar = 40;
+  static const double _badge = 20;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SizedBox(
+      // The badge hangs off the bottom-right corner; sizing the box to the
+      // avatar alone would let the row's Flex clip it.
+      width: _avatar + 4,
+      height: _avatar + 4,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          UserAvatar(user: user, api: api, size: _avatar, showStatus: false),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: _badge,
+              height: _badge,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                // Raised rather than punched out of the sheet colour: one
+                // theme paints its sheet translucent, and a hole cut in that
+                // shape would show the transcript through the badge.
+                color: theme.surfaceRaised,
+                shape: BoxShape.circle,
+                border: Border.all(color: theme.divider, width: 0.8),
+              ),
+              child: _Emoji(emoji, size: 13),
+            ),
+          ),
+        ],
       ),
     );
   }

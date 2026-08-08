@@ -32,10 +32,14 @@ import '../widgets/video_message.dart' show VideoPlayerSurface;
 /// same `UIScreen.isCaptured` signal the Dart one uses.
 ///
 /// On the fallback path: no pinch-zoom (a video has no reason to support one)
-/// and no Hero flight — a `VideoPlayer` texture cannot be flown between routes,
-/// see the same note on `MediaPagerScreen`'s active page, which discovered that
-/// the hard way. Swipe down or tap the X to dismiss, the same gesture
-/// vocabulary [FullscreenImageViewer] uses.
+/// and no Hero flight. A `VideoPlayer` texture cannot be flown between routes —
+/// it arrives as a black rectangle where the poster was — and the way around
+/// that is to fly the *poster* and hand over to the player on touchdown, which
+/// is what `MediaPagerScreen`'s video page does. It isn't worth it here: this
+/// route's whole job is to get out of the way of the OS player within a frame
+/// or two of opening, so there is nothing for a flight to land on.
+/// Swipe down or tap the X to dismiss, the same gesture vocabulary
+/// [FullscreenImageViewer] uses.
 class FullscreenVideoViewer extends StatefulWidget {
   const FullscreenVideoViewer({
     super.key,

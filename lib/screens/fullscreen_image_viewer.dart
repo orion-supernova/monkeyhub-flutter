@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
 import '../widgets/remote_image.dart';
+import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 
 /// Fullscreen viewer for a single image stored in Convex.
@@ -130,7 +131,7 @@ class FullscreenImageViewer extends StatefulWidget {
 }
 
 class _FullscreenImageViewerState extends State<FullscreenImageViewer>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, RouteLanding {
   /// Fraction of screen height that commits a slow drag to a dismiss.
   static const _dismissFraction = 0.18;
 
@@ -156,35 +157,6 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
 
   bool _dismissing = false;
 
-  /// True once the opening animation has finished.
-  ///
-  /// Until then the picture is painted from the thumbnail's decode, which is
-  /// already resident, so the flight has nothing to wait for and nothing to
-  /// compete with. See [RemoteImage.decodeWidth].
-  bool _landed = false;
-
-  Animation<double>? _routeAnimation;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final animation = ModalRoute.of(context)?.animation;
-    if (identical(animation, _routeAnimation)) return;
-    _routeAnimation?.removeStatusListener(_handleRouteStatus);
-    _routeAnimation = animation;
-    // No route animation to wait on, or already past it: nothing to defer.
-    if (animation == null || animation.isCompleted) {
-      _landed = true;
-      return;
-    }
-    animation.addStatusListener(_handleRouteStatus);
-  }
-
-  void _handleRouteStatus(AnimationStatus status) {
-    if (_landed || !status.isCompleted || !mounted) return;
-    setState(() => _landed = true);
-  }
-
   @override
   void initState() {
     super.initState();
@@ -206,7 +178,6 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
 
   @override
   void dispose() {
-    _routeAnimation?.removeStatusListener(_handleRouteStatus);
     _xform.dispose();
     _zoomCtrl.dispose();
     _settleCtrl.dispose();
@@ -373,8 +344,12 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
   /// The decode to use right now: the thumbnail's while the picture is still
   /// flying, and whatever the box asks for once it has landed. Null the whole
   /// time when there is no thumbnail to stand in — nothing to defer to.
-  int? get _deferredDecodeWidth =>
-      _landed ? null : widget.thumbnailDecodeWidth;
+  ///
+  /// The thumbnail's decode is already resident, so painting from it costs
+  /// nothing and the flight has neither anything to wait for nor anything to
+  /// compete with. See [RemoteImage.decodeWidth], and [RouteLanding] for why
+  /// "has it landed?" is a question that cannot be answered during a build.
+  int? get _deferredDecodeWidth => landed ? null : widget.thumbnailDecodeWidth;
 
   /// The full-bleed destination: the whole frame, at its own ratio.
   Widget _rectImage() {
@@ -414,7 +389,7 @@ class _FullscreenImageViewerState extends State<FullscreenImageViewer>
         // The thing actually on screen for the length of a flight, so this is
         // the one that must never wait on a decode. On the way out that means
         // the thumbnail's, which is resident by definition — it is what was just
-        // tapped. On the way home [_landed] is already true and the full decode
+        // tapped. On the way home [RouteLanding.landed] is already true and the full decode
         // is resident too, so the return flies at full sharpness for free.
         decodeWidth: _deferredDecodeWidth,
       );

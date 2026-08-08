@@ -9,6 +9,7 @@ import '../models/enums.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/media_grid_tile.dart' show roomMediaHeroTag;
 import '../widgets/remote_image.dart';
+import '../widgets/route_landing.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/video_message.dart' show VideoPlayerSurface;
 
@@ -23,6 +24,15 @@ import '../widgets/video_message.dart' show VideoPlayerSurface;
 /// neighbours alive, and each of those would otherwise build and
 /// `initialize()` its own `VideoPlayerController` — three concurrent
 /// pipelines while swiping, and three `<video>` elements on web.
+///
+/// Only the current page takes part in a hero flight either, for a related
+/// reason. `Hero` collects every hero in both routes' trees, visible or not,
+/// and a `PageView`'s neighbours are built (they sit inside the viewport's
+/// cache extent) with the same tags their grid tiles carry — so opening one
+/// photo used to launch three flights, two of them dragging thumbnails off the
+/// side of the screen to pages nobody had asked to see. [HeroMode] on the
+/// inactive pages is what limits the flight to the one picture that was
+/// actually tapped.
 class MediaPagerScreen extends StatefulWidget {
   const MediaPagerScreen({
     super.key,
@@ -113,12 +123,16 @@ class _MediaPagerScreenState extends State<MediaPagerScreen> {
                 controller: _pager,
                 itemCount: widget.items.length,
                 onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (_, i) => _Page(
-                  message: widget.items[i],
-                  api: widget.api,
+                itemBuilder: (_, i) => HeroMode(
                   // Neighbours stay built; only the visible one may own a
-                  // player. See the class comment.
-                  active: i == _index,
+                  // player, and only the visible one may fly. See the class
+                  // comment for both.
+                  enabled: i == _index,
+                  child: _Page(
+                    message: widget.items[i],
+                    api: widget.api,
+                    active: i == _index,
+                  ),
                 ),
               ),
             ),
@@ -165,49 +179,100 @@ class _Page extends StatelessWidget {
     }
 
     if (message.type == MessageType.video) {
-      if (!active) {
-        // Poster if there is one, dark plate if not. Never a player.
-        final poster = message.posterStorageId;
-        return Center(
-          child: _flight(
-            poster == null
-                ? const Icon(CupertinoIcons.film, size: 34, color: Colors.white24)
-                : RemoteImage(storageId: poster, api: api, fit: BoxFit.contain),
-          ),
-        );
-      }
-      // No hero on the page that owns a player: a `VideoPlayer` texture cannot
-      // be flown between routes, and asking it to produces a black rectangle
-      // where the poster used to be. The poster on the inactive page above
-      // carries the flight, which is the one that is on screen when a flight
-      // actually starts.
-      return Center(
-        child: VideoPlayerSurface(
-          api: api,
-          storageId: id,
-          posterStorageId: message.posterStorageId,
-        ),
-      );
+      return _VideoPage(message: message, api: api, active: active);
     }
 
     return InteractiveViewer(
       minScale: 1,
       maxScale: 4,
       child: Center(
-        child: _flight(
+        child: mediaFlight(
+          message,
           RemoteImage(storageId: id, api: api, fit: BoxFit.contain),
         ),
       ),
     );
   }
+}
 
-  /// Pairs this page with its grid tile for the open/close flight.
-  ///
-  /// `SteadyHero` rather than `Hero` for the reason its own doc gives: a plain
-  /// one tears the child out of the tree at both ends of a flight, so the
-  /// picture arrives as a hole and fills in a frame later.
-  Widget _flight(Widget child) =>
-      SteadyHero(tag: roomMediaHeroTag(message.id), child: child);
+/// Pairs a page with its grid tile for the open/close flight.
+///
+/// `SteadyHero` rather than `Hero` for the reason its own doc gives: a plain
+/// one tears the child out of the tree at both ends of a flight, so the
+/// picture arrives as a hole and fills in a frame later.
+Widget mediaFlight(ChatMessage message, Widget child) =>
+    SteadyHero(tag: roomMediaHeroTag(message.id), child: child);
+
+/// A video page: the poster while the route is moving, the real player once it
+/// has stopped.
+///
+/// A video used to be the one thing in this grid that opened with no flight at
+/// all — you tapped a tile and the pager cross-faded in over it, while every
+/// photo beside it flew. The cause was the obvious fix for a real problem: a
+/// `VideoPlayer` texture cannot be flown between routes (it arrives as a black
+/// rectangle where the poster was), so the active page carried no hero, and
+/// the active page is precisely the one a flight needs a destination on. The
+/// poster left on the *inactive* pages could never stand in for it, because
+/// the page being opened is by definition the active one.
+///
+/// So the player is not what flies — it is not even mounted yet. The poster is,
+/// and it hands over to [VideoPlayerSurface] the moment the route settles,
+/// which is invisible: the surface draws that same poster as its own backdrop,
+/// letterboxed by the same [BoxFit.contain] into the same box, so the picture
+/// does not move on the swap.
+///
+/// [RouteLanding.unlandsOnExit] is what gives the pop a hero to fly home: the
+/// player is torn down and the poster is back in the tree a frame before
+/// Flutter goes looking for flight candidates. Tearing the player down is
+/// wanted anyway — a video that keeps playing over a closing route is a video
+/// you can still hear.
+class _VideoPage extends StatefulWidget {
+  const _VideoPage({
+    required this.message,
+    required this.api,
+    required this.active,
+  });
+
+  final ChatMessage message;
+  final ChatApi api;
+  final bool active;
+
+  @override
+  State<_VideoPage> createState() => _VideoPageState();
+}
+
+class _VideoPageState extends State<_VideoPage> with RouteLanding {
+  /// A closing route has to get its poster back before the flight is measured.
+  @override
+  bool get unlandsOnExit => true;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.active && landed) {
+      return Center(
+        child: VideoPlayerSurface(
+          api: widget.api,
+          storageId: widget.message.mediaStorageId,
+          posterStorageId: widget.message.posterStorageId,
+        ),
+      );
+    }
+
+    // Poster if there is one, film glyph if not. Never a player — that is the
+    // whole point of this branch, and of the grid tile's identical rule.
+    //
+    // The glyph flies too, so a posterless video still travels rather than
+    // snapping into place; the tile it leaves behind draws the same one.
+    final poster = widget.message.posterStorageId;
+    return Center(
+      child: mediaFlight(
+        widget.message,
+        poster == null
+            ? const Icon(CupertinoIcons.film, size: 34, color: Colors.white24)
+            : RemoteImage(storageId: poster, api: widget.api, fit: BoxFit.contain),
+      ),
+    );
+  }
 }
 
 class _Chrome extends StatelessWidget {

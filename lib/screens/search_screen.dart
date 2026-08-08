@@ -11,6 +11,7 @@ import '../family/family_service.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
+import '../widgets/search_field.dart';
 import '../widgets/user_avatar.dart';
 import 'friend_request_draft_screen.dart';
 import 'profile_screen.dart';
@@ -23,6 +24,13 @@ import 'navigation/open_room.dart';
 /// door, so an in-place PEOPLE/ROOMS switcher here would re-mix the two worlds
 /// that the doors exist to keep apart.
 enum SearchMode { people, rooms }
+
+/// Ties this screen's search bar to the Discover door that opens it.
+///
+/// One tag per mode, because both doors are on Discover at the same time and a
+/// tag shared between them would make each one a candidate destination for the
+/// other's flight.
+String searchFieldHeroTagFor(SearchMode mode) => 'search-door-${mode.name}';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -37,12 +45,12 @@ class SearchScreen extends StatefulWidget {
   final ChatApi api;
   final SearchMode mode;
 
-  /// Tag of the collapsed bar this screen flies out of, when there is one.
+  /// Tag of the door this screen flies out of, when there is one — normally
+  /// [searchFieldHeroTagFor] of [mode].
   ///
-  /// Null from Discover: its doors are two-line cards, and morphing one into a
-  /// one-line search field made the flight interpolate toward a box shorter
-  /// than the card's own text, overflowing on every frame. The route's
-  /// fade-and-slide carries the transition instead.
+  /// Null falls back to the route's own fade-and-slide, which is what every
+  /// entry point that has no single box to fly from wants: Discover's SEE ALL
+  /// row opens the same screen from somewhere that isn't a search door.
   final String? heroTag;
 
   /// Optional so existing callers keep working; falls back to
@@ -280,20 +288,6 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
-/// A [Hero] when there is something to fly from, and nothing at all when there
-/// isn't. A Hero with no matching source doesn't animate, but it still installs
-/// a flight-manager entry — so skipping it outright keeps the no-tag case
-/// honest.
-class _MaybeHero extends StatelessWidget {
-  const _MaybeHero({required this.tag, required this.child});
-  final String? tag;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) =>
-      tag == null ? child : Hero(tag: tag!, child: child);
-}
-
 class _Header extends StatelessWidget {
   const _Header({
     required this.q,
@@ -315,41 +309,15 @@ class _Header extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _MaybeHero(
-              tag: heroTag,
-              child: Material(
-                type: MaterialType.transparency,
-                child: Container(
-                  decoration: theme.inputDecoration(),
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: theme.inkMuted, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: q,
-                          autofocus: true,
-                          style: theme.body.copyWith(color: theme.ink),
-                          cursorColor: theme.accent,
-                          decoration: InputDecoration(
-                            isCollapsed: true,
-                            border: InputBorder.none,
-                            hintText: hintText,
-                            hintStyle: theme.body.copyWith(
-                              color: theme.inkMuted,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 14,
-                            ),
-                          ),
-                          onChanged: onChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            // The shared bar, and the far end of the flight out of Discover's
+            // door — both halves of Explore land here, so both get the same
+            // clear button and the same shape.
+            child: SearchField(
+              controller: q,
+              hintText: hintText,
+              onChanged: onChanged,
+              autofocus: true,
+              heroTag: heroTag,
             ),
           ),
           const SizedBox(width: 10),
