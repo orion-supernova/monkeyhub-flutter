@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../media/file_url_cache.dart';
+import '../screens/text_file_viewer_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import 'photo_chrome.dart';
@@ -22,6 +23,12 @@ import 'photo_chrome.dart';
 /// Tapping hands the bytes to the OS via [DocumentSaver]. There is deliberately
 /// no in-app viewer: a chat app that renders PDFs is a chat app that renders
 /// PDFs badly, and every platform this ships on already has a better one.
+///
+/// Plain text is the one exception — see [isPlainTextFile]. There is nothing
+/// for a `.txt` to mis-render, and the receiving end of a bug report is
+/// exactly the case where "download it, then open it" is friction for no
+/// reason. That tap opens [TextFileViewerScreen] instead, with the download
+/// still one tap away from there.
 class FileMessage extends StatefulWidget {
   const FileMessage({
     super.key,
@@ -64,11 +71,28 @@ class _FileMessageState extends State<FileMessage> {
     return box.localToGlobal(Offset.zero) & box.size;
   }
 
+  /// Whether this attachment opens [TextFileViewerScreen] instead of going
+  /// straight to [DocumentSaver] — see the class doc for why plain text is
+  /// the one exception to "no in-app viewer".
+  bool get _viewable =>
+      isPlainTextFile(mimeType: widget.mimeType, fileName: widget.fileName ?? '');
+
   Future<void> _open() async {
     final id = widget.storageId;
     if (id == null || _busy) return;
     final l10n = AppLocalizations.of(context);
     final name = widget.fileName ?? l10n.fileMessageDefaultName;
+
+    if (_viewable) {
+      await TextFileViewerScreen.open(
+        context,
+        api: widget.api,
+        storageId: id,
+        fileName: name,
+      );
+      return;
+    }
+
     final messenger = ScaffoldMessenger.of(context);
     final origin = _globalRect();
 
@@ -138,7 +162,13 @@ class _FileMessageState extends State<FileMessage> {
           ),
         ),
         const SizedBox(width: 10),
-        _SaveChip(theme: theme, ink: ink, enabled: enabled, busy: _busy),
+        _SaveChip(
+          theme: theme,
+          ink: ink,
+          enabled: enabled,
+          busy: _busy,
+          viewable: _viewable,
+        ),
       ],
     );
 
@@ -149,7 +179,9 @@ class _FileMessageState extends State<FileMessage> {
     return FocusableTap(
       onTap: enabled ? _open : null,
       enabled: enabled,
-      semanticLabel: l10n.fileMessageSaveSemanticLabel(name),
+      semanticLabel: _viewable
+          ? l10n.fileMessageViewSemanticLabel(name)
+          : l10n.fileMessageSaveSemanticLabel(name),
       radius: 12,
       child: GestureDetector(
         onTap: enabled ? _open : null,
@@ -227,6 +259,7 @@ class _SaveChip extends StatelessWidget {
     required this.ink,
     required this.enabled,
     required this.busy,
+    this.viewable = false,
   });
 
   final AppTheme theme;
@@ -236,6 +269,10 @@ class _SaveChip extends StatelessWidget {
   /// failed — there is nothing to save, and the disc says so by fading.
   final bool enabled;
   final bool busy;
+
+  /// Whether the tap opens the in-app text viewer instead of downloading —
+  /// swaps the glyph so the disc doesn't promise a download it won't do.
+  final bool viewable;
 
   static const double _size = 28;
 
@@ -257,7 +294,7 @@ class _SaveChip extends StatelessWidget {
       child: busy
           ? PhotoSpinner(size: 15, color: ink)
           : Icon(
-              CupertinoIcons.arrow_down,
+              viewable ? CupertinoIcons.eye : CupertinoIcons.arrow_down,
               size: 15,
               color: ink.withValues(alpha: 0.72 * strength),
             ),

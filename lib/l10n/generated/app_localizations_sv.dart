@@ -2845,6 +2845,18 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return 'Visa $name';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'Ladda ner';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'Visar en del av filen — ladda ner för att se resten.';
+
+  @override
   String get fileMessageUploadFailedLabel => 'misslyckades';
 
   @override

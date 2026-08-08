@@ -2838,6 +2838,18 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return '$name देखो';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'डाउनलोड';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'इस फ़ाइल का कुछ हिस्सा दिखाया जा रहा है — बाकी देखने के लिए डाउनलोड करें।';
+
+  @override
   String get fileMessageUploadFailedLabel => 'असफल';
 
   @override

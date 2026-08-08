@@ -2728,6 +2728,18 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return '$nameを表示';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'ダウンロード';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'このファイルの一部のみ表示しています — 残りを見るにはダウンロードしてください。';
+
+  @override
   String get fileMessageUploadFailedLabel => '失敗';
 
   @override

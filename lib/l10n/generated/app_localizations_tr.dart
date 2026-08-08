@@ -2817,6 +2817,18 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return '$name dosyasını görüntüle';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'İndir';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'Bu dosyanın yalnızca bir kısmı gösteriliyor — kalanını görmek için indirin.';
+
+  @override
   String get fileMessageUploadFailedLabel => 'başarısız';
 
   @override

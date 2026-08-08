@@ -2736,6 +2736,18 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return '$name 보기';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => '다운로드';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      '이 파일의 일부만 표시됩니다 — 나머지를 보려면 다운로드하세요.';
+
+  @override
   String get fileMessageUploadFailedLabel => '실패';
 
   @override

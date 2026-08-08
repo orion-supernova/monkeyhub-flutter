@@ -4953,6 +4953,24 @@ abstract class AppLocalizations {
   /// **'Save {name}'**
   String fileMessageSaveSemanticLabel(Object name);
 
+  /// Screen-reader semanticLabel on the tappable FileMessage row for a plain-text attachment, where tapping opens the in-app viewer instead of downloading; {name} is the document's file name.
+  ///
+  /// In en, this message translates to:
+  /// **'View {name}'**
+  String fileMessageViewSemanticLabel(Object name);
+
+  /// Tooltip on TextFileViewerScreen's trailing icon button, which downloads the file being previewed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get textFileViewerDownloadTooltip;
+
+  /// Banner shown above the text body in TextFileViewerScreen when the file was too large to preview in full and was cut off.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing part of this file — download to see the rest.'**
+  String get textFileViewerTruncatedNotice;
+
   /// Caption under a document's name in OutboundFileRow when the upload of that file failed.
   ///
   /// In en, this message translates to:

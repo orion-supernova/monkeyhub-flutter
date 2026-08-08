@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -46,6 +47,25 @@ void main() {
         fileName: name,
         fileSize: 2 * 1024 * 1024,
         mimeType: 'application/epub+zip',
+      );
+
+  /// Exactly the shape `problemReports.submit` inserts for its log attachment:
+  /// empty `content` (see the fix on that mutation — it used to duplicate
+  /// `fileName` into `content`, which rendered as a second bubble holding
+  /// nothing but the name again) and `mimeType: 'text/plain'`.
+  ChatMessage reportLogDoc({String? storageId = 'kg2abc'}) => ChatMessage(
+        id: 'm1',
+        roomId: 'r',
+        senderId: 'monkeyhub-log',
+        senderName: 'MonkeyHub Log',
+        content: '',
+        createdAt: DateTime(2026, 3, 1, 12, 4),
+        type: MessageType.file,
+        status: MessageStatus.sent,
+        mediaStorageId: storageId,
+        fileName: 'monkeyhub-report-2026-03-01T12-04-00.txt',
+        fileSize: 4096,
+        mimeType: 'text/plain',
       );
 
   /// A phone-shaped chat pane: 390pt, which is what `ChatPane` publishes on the
@@ -366,6 +386,70 @@ void main() {
       ),
       findsNothing,
       reason: 'delivery state belongs to the stamp, not to the row',
+    );
+  });
+
+  // Pins the report-attachment fix: `problemReports.submit` used to put the
+  // file's own name into `content` "so the tile isn't unlabelled" — but the
+  // tile already draws its label from `fileName`, so that just doubled the
+  // name into a second bubble underneath. The name must appear exactly once.
+  testWidgets('a report log attachment does not double its name into a caption',
+      (tester) async {
+    await tester.pumpWidget(host(bubble(reportLogDoc(), isMine: false)));
+    expect(tester.takeException(), isNull);
+    expect(find.text('monkeyhub-report-2026-03-01T12-04-00.txt'), findsOneWidget);
+  });
+
+  testWidgets('a plain-text attachment offers to view, not just save',
+      (tester) async {
+    await tester.pumpWidget(host(bubble(reportLogDoc(), isMine: false)));
+    expect(tester.takeException(), isNull);
+
+    // The chip promises what the tap will do — an arrow here on a file that
+    // opens a viewer, not a download, would be the wrong affordance.
+    expect(
+      find.descendant(of: find.byType(FileMessage), matching: find.byIcon(CupertinoIcons.eye)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(FileMessage),
+        matching: find.byIcon(CupertinoIcons.arrow_down),
+      ),
+      findsNothing,
+    );
+
+    final l10n = AppLocalizations.of(tester.element(find.byType(FileMessage)));
+    final semantics = tester.widget<Semantics>(
+      find.descendant(
+        of: find.byType(FileMessage),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label != null,
+        ),
+      ),
+    );
+    expect(
+      semantics.properties.label,
+      l10n.fileMessageViewSemanticLabel('monkeyhub-report-2026-03-01T12-04-00.txt'),
+    );
+  });
+
+  // An ordinary document (an .epub, same as every other test in this file)
+  // must keep tapping straight to a download — the viewer is scoped to plain
+  // text only, not every attachment.
+  testWidgets('a non-text attachment keeps its download affordance', (tester) async {
+    await tester.pumpWidget(host(bubble(doc(), isMine: false)));
+    expect(tester.takeException(), isNull);
+    expect(
+      find.descendant(
+        of: find.byType(FileMessage),
+        matching: find.byIcon(CupertinoIcons.arrow_down),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: find.byType(FileMessage), matching: find.byIcon(CupertinoIcons.eye)),
+      findsNothing,
     );
   });
 }

@@ -2866,6 +2866,18 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return 'Ver $name';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'Transferir';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'A mostrar parte deste ficheiro — transfira-o para ver o resto.';
+
+  @override
   String get fileMessageUploadFailedLabel => 'falhou';
 
   @override
@@ -8445,6 +8457,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String fileMessageSaveSemanticLabel(Object name) {
     return 'Salvar $name';
   }
+
+  @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return 'Ver $name';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'Baixar';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'Mostrando parte deste arquivo — baixe-o para ver o resto.';
 
   @override
   String get fileMessageUploadFailedLabel => 'falhou';

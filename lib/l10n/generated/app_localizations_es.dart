@@ -2863,6 +2863,18 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return 'Ver $name';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => 'Descargar';
+
+  @override
+  String get textFileViewerTruncatedNotice =>
+      'Mostrando parte de este archivo — descárgalo para ver el resto.';
+
+  @override
   String get fileMessageUploadFailedLabel => 'fallido';
 
   @override

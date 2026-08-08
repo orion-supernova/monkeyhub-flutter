@@ -126,4 +126,28 @@ void main() {
       expect(formatFileSize(kMaxFileUploadBytes), '20.0 MB');
     });
   });
+
+  group('isPlainTextFile', () {
+    test('an explicit text/plain mimeType is always viewable', () {
+      expect(
+        isPlainTextFile(mimeType: 'text/plain', fileName: 'report.log'),
+        isTrue,
+        reason: 'the extension does not have to agree — the server said so',
+      );
+    });
+
+    test('any other explicit mimeType is trusted over the extension', () {
+      expect(
+        isPlainTextFile(mimeType: 'application/octet-stream', fileName: 'notes.txt'),
+        isFalse,
+        reason: 'a declared type wins — this is not a guess to second-guess',
+      );
+    });
+
+    test('falls back to the extension only when mimeType is absent', () {
+      expect(isPlainTextFile(mimeType: null, fileName: 'notes.txt'), isTrue);
+      expect(isPlainTextFile(mimeType: '', fileName: 'notes.txt'), isTrue);
+      expect(isPlainTextFile(mimeType: null, fileName: 'photo.jpg'), isFalse);
+    });
+  });
 }

@@ -2693,6 +2693,17 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String fileMessageViewSemanticLabel(Object name) {
+    return '查看 $name';
+  }
+
+  @override
+  String get textFileViewerDownloadTooltip => '下载';
+
+  @override
+  String get textFileViewerTruncatedNotice => '仅显示部分内容——下载以查看完整文件。';
+
+  @override
   String get fileMessageUploadFailedLabel => '失败';
 
   @override

@@ -26,22 +26,16 @@ import 'file_url_cache.dart';
 class DocumentSaver {
   const DocumentSaver._();
 
-  /// Fetches [storageId] and offers it to the OS as [fileName].
+  /// Resolves [storageId] and downloads its bytes.
   ///
   /// Throws [FileUnavailable] when the storage id no longer resolves — a
   /// message whose room was wiped, or a blob reclaimed by `gcOrphanedFiles` —
   /// and rethrows transport failures, both of which the caller reports on the
-  /// tile rather than swallowing.
-  ///
-  /// [originRect] must be the tapped tile's rect in global coordinates. iPads
-  /// and Macs anchor the share popover to it; passing null there leaves the
-  /// sheet pinned to the middle of the screen with no arrow pointing anywhere.
-  static Future<void> save({
+  /// tile rather than swallowing. Shared by [save] and by the in-app text
+  /// viewer, which wants the bytes to decode rather than to hand to the OS.
+  static Future<Uint8List> fetchBytes({
     required ChatApi api,
     required String storageId,
-    required String fileName,
-    required String mimeType,
-    Rect? originRect,
   }) async {
     // Null rather than a throw on a miss — see `FileUrlCache.resolve`, which
     // deliberately doesn't cache the absence either.
@@ -53,7 +47,22 @@ class DocumentSaver {
 
     final resp = await http.get(Uri.parse(url));
     if (resp.statusCode != 200) throw const FileUnavailable();
-    final Uint8List bytes = resp.bodyBytes;
+    return resp.bodyBytes;
+  }
+
+  /// Fetches [storageId] and offers it to the OS as [fileName].
+  ///
+  /// [originRect] must be the tapped tile's rect in global coordinates. iPads
+  /// and Macs anchor the share popover to it; passing null there leaves the
+  /// sheet pinned to the middle of the screen with no arrow pointing anywhere.
+  static Future<void> save({
+    required ChatApi api,
+    required String storageId,
+    required String fileName,
+    required String mimeType,
+    Rect? originRect,
+  }) async {
+    final Uint8List bytes = await fetchBytes(api: api, storageId: storageId);
 
     await SharePlus.instance.share(
       ShareParams(

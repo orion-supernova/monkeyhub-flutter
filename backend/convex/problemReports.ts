@@ -325,9 +325,12 @@ export const submit = mutation({
       await ctx.db.insert("messages", {
         roomId,
         userId: logUserId,
-        // The bubble's caption. The name is on the row already, but a document
-        // message with empty content renders as an unlabelled tile.
-        content: fileName,
+        // Empty, not `fileName` — `content` is the bubble's user-typed
+        // caption, and `FileMessage`/`message_bubble.dart`'s file case already
+        // draw the name from the `fileName` field. A non-empty caption here
+        // used to render as a second bubble underneath the file tile holding
+        // nothing but the name again.
+        content: "",
         createdAt: now + seq++,
         type: "file",
         mediaStorageId: logStorageId,

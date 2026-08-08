@@ -3230,6 +3230,18 @@
   "@fileMessageSaveSemanticLabel": {
     "description": "Screen-reader semanticLabel on the tappable FileMessage row; {name} is the document's file name."
   },
+  "fileMessageViewSemanticLabel": "View {name}",
+  "@fileMessageViewSemanticLabel": {
+    "description": "Screen-reader semanticLabel on the tappable FileMessage row for a plain-text attachment, where tapping opens the in-app viewer instead of downloading; {name} is the document's file name."
+  },
+  "textFileViewerDownloadTooltip": "Download",
+  "@textFileViewerDownloadTooltip": {
+    "description": "Tooltip on TextFileViewerScreen's trailing icon button, which downloads the file being previewed."
+  },
+  "textFileViewerTruncatedNotice": "Showing part of this file — download to see the rest.",
+  "@textFileViewerTruncatedNotice": {
+    "description": "Banner shown above the text body in TextFileViewerScreen when the file was too large to preview in full and was cut off."
+  },
   "fileMessageUploadFailedLabel": "failed",
   "@fileMessageUploadFailedLabel": {
     "description": "Caption under a document's name in OutboundFileRow when the upload of that file failed."

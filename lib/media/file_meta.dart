@@ -107,6 +107,22 @@ String fileExtensionOf(String fileName) {
 String mimeTypeForFileName(String fileName) =>
     _mimeByExtension[fileExtensionOf(fileName)] ?? 'application/octet-stream';
 
+/// Whether a document is plain enough to render in-app rather than only
+/// handed to the OS — the one exception to `FileMessage`'s "no in-app viewer"
+/// rule, since there is nothing a `.txt` can mis-render.
+///
+/// Trusts an explicit [mimeType] either way: `text/plain` says yes, and any
+/// other declared type (a `.log` mislabelled `application/octet-stream` by
+/// some sender, say) says no rather than guessing past it. Only an absent or
+/// empty mimeType falls back to the extension, which is what a message with
+/// no `mimeType` field at all — every one written before that field existed —
+/// leaves to go on.
+bool isPlainTextFile({required String? mimeType, required String fileName}) {
+  if (mimeType == 'text/plain') return true;
+  if (mimeType != null && mimeType.isNotEmpty) return false;
+  return fileExtensionOf(fileName) == 'txt';
+}
+
 /// Short uppercase badge for a document tile — `PDF`, `DOCX`, or `FILE` when
 /// there is no extension to show.
 ///
