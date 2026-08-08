@@ -551,9 +551,11 @@ export const getOrCreateDM = mutation({
 
 /**
  * The self-chat every account has: a one-member DM-shaped room named
- * `dm:self:<userId>`, always pinned. Idempotent — called on every launch from
- * ChatRepository._attach so pre-existing accounts self-heal it too, not just
- * new signups.
+ * `dm:self:<userId>`, pinned to start with. Idempotent — called on every
+ * launch from ChatRepository._attach so pre-existing accounts self-heal it
+ * too, not just new signups. The early return on an existing room is what
+ * makes "pinned to start with" hold: a viewer who unpins or archives it stays
+ * unpinned/archived, because this never runs again for them.
  *
  * Built the same way `problemReports.ts`'s `ensureReportRoom` builds the
  * system-account report room, and for the same reason: `getOrCreateDM`
@@ -593,8 +595,11 @@ export const ensureSavedMessagesRoom = mutation({
       userId,
       joinedAt: Date.now(),
       role: "owner",
-      // Always-pinned by construction, not by a client-side special case —
-      // see room_filter.dart's partitionPinned, which relies on this.
+      // Pinned on day one so it opens at the top of the list, but it's an
+      // ordinary per-viewer membership flag from here on: pinRoom/unpinRoom
+      // and archiveRoom/unarchiveRoom all accept this room like any other,
+      // and room_filter.dart's partitionPinned reads the flag rather than
+      // assuming it.
       isPinned: true,
       pinnedAt: Date.now(),
     });

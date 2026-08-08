@@ -311,10 +311,17 @@ class RoomFacetCounts {
   }
 }
 
-/// Splits [rooms] into a pinned-first group (Saved Messages always leads it,
-/// see [ChatRoom.isSavedMessages]) and everything else — a single stable
-/// pass, not a re-sort, preserving [rooms]'s existing recency order in both
-/// buckets for the same reason [RoomFilter.apply] doesn't re-sort.
+/// Splits [rooms] into a pinned-first group and everything else — a single
+/// stable pass, not a re-sort, preserving [rooms]'s existing recency order in
+/// both buckets for the same reason [RoomFilter.apply] doesn't re-sort.
+///
+/// Saved Messages ([ChatRoom.isSavedMessages]) leads the pinned group *while
+/// it is pinned*, and it starts out that way (`rooms.ts`
+/// ensureSavedMessagesRoom seeds `isPinned`). It is no longer forced there:
+/// unpinning it drops it into `regular` with everything else, and archiving
+/// it removes it from this list entirely (ChatRepository.activeRooms filters
+/// archived rooms out upstream). A notes-to-self chat someone never writes in
+/// shouldn't be nailed to the top of their list forever.
 ({List<ChatRoom> pinned, List<ChatRoom> regular}) partitionPinned(
   List<ChatRoom> rooms,
 ) {
@@ -322,7 +329,7 @@ class RoomFacetCounts {
   final pinned = <ChatRoom>[];
   final regular = <ChatRoom>[];
   for (final r in rooms) {
-    if (r.isSavedMessages) {
+    if (r.isSavedMessages && r.isPinned) {
       saved = r;
     } else if (r.isPinned) {
       pinned.add(r);

@@ -698,7 +698,10 @@ class _RoomsPanelState extends State<_RoomsPanel> {
               itemBuilder: (context, i) =>
                   _gridTile(context, theme, parts.pinned[i], i),
             ),
-            const SizedBox(height: 14),
+            // No extra gap under the group: the label alone already reads as
+            // a break, and a second one made the pinned tiles look detached
+            // from the list rather than at the head of it.
+            SizedBox(height: gridDelegate.mainAxisSpacing),
           ],
           if (parts.regular.isNotEmpty)
             GridView.builder(
@@ -738,9 +741,12 @@ class _RoomsPanelState extends State<_RoomsPanel> {
           _SectionLabel(
             AppLocalizations.of(context).homeScreenPinnedSectionLabel,
           ),
+          // No extra gap under the group — every RoomCard already carries its
+          // own 10px bottom margin, so the last pinned row sits exactly as
+          // far from the first regular one as any two rows do. The section
+          // label is the break; a second one just left a hole.
           for (var i = 0; i < parts.pinned.length; i++)
             _row(context, theme, parts.pinned[i], i),
-          const SizedBox(height: 14),
         ],
         for (var i = 0; i < parts.regular.length; i++)
           _row(context, theme, parts.regular[i], parts.pinned.length + i),
@@ -751,32 +757,31 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   Widget _row(BuildContext context, AppTheme theme, ChatRoom room, int index) {
     final repo = widget.repo;
     final api = widget.api;
-    Widget content = RoomCard(
-      room: room,
-      api: api,
-      dmUser: repo.otherUserFor(room),
-      typists: repo.typingIn(room.id),
-      onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
-    );
-    // Saved Messages is always pinned and permanent by design — no context
-    // menu, since there is nothing on it a user can do (rooms.ts
-    // ensureSavedMessagesRoom).
-    if (!room.isSavedMessages) {
-      content = GestureDetector(
-        key: _keyFor(room.id),
-        onLongPress: () => _showRowMenu(
-          room,
-          (context) => RoomCard(
-            room: room,
-            api: api,
-            dmUser: repo.otherUserFor(room),
-            typists: repo.typingIn(room.id),
-            onTap: () {},
-          ),
+    // Saved Messages gets the same long-press menu as any other row. It is
+    // permanent (rooms.ts ensureSavedMessagesRoom won't let it be deleted or
+    // left), but pinning and archiving are per-viewer membership flags, and
+    // there is no reason a notes-to-self chat can't be unpinned or filed away
+    // like the rest of the list.
+    final Widget content = GestureDetector(
+      key: _keyFor(room.id),
+      onLongPress: () => _showRowMenu(
+        room,
+        (context) => RoomCard(
+          room: room,
+          api: api,
+          dmUser: repo.otherUserFor(room),
+          typists: repo.typingIn(room.id),
+          onTap: () {},
         ),
-        child: content,
-      );
-    }
+      ),
+      child: RoomCard(
+        room: room,
+        api: api,
+        dmUser: repo.otherUserFor(room),
+        typists: repo.typingIn(room.id),
+        onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+      ),
+    );
     return TweenAnimationBuilder<double>(
       // See the grid layout above: keyed by room id so a recency reorder
       // or a filter change moves the element rather than repurposing it,
@@ -802,29 +807,27 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   ) {
     final repo = widget.repo;
     final api = widget.api;
-    Widget content = RoomGridTile(
-      room: room,
-      api: api,
-      dmUser: repo.otherUserFor(room),
-      typists: repo.typingIn(room.id),
-      onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
-    );
-    if (!room.isSavedMessages) {
-      content = GestureDetector(
-        key: _keyFor(room.id),
-        onLongPress: () => _showRowMenu(
-          room,
-          (context) => RoomGridTile(
-            room: room,
-            api: api,
-            dmUser: repo.otherUserFor(room),
-            typists: repo.typingIn(room.id),
-            onTap: () {},
-          ),
+    // Same menu for every tile, Saved Messages included — see [_row].
+    final Widget content = GestureDetector(
+      key: _keyFor(room.id),
+      onLongPress: () => _showRowMenu(
+        room,
+        (context) => RoomGridTile(
+          room: room,
+          api: api,
+          dmUser: repo.otherUserFor(room),
+          typists: repo.typingIn(room.id),
+          onTap: () {},
         ),
-        child: content,
-      );
-    }
+      ),
+      child: RoomGridTile(
+        room: room,
+        api: api,
+        dmUser: repo.otherUserFor(room),
+        typists: repo.typingIn(room.id),
+        onTap: () => openRoom(context, roomId: room.id, repo: repo, api: api),
+      ),
+    );
     return TweenAnimationBuilder<double>(
       // Identity key, not position. Rooms are ordered by recency, so any
       // incoming message reorders this list — and toggling a filter

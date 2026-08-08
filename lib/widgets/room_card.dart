@@ -74,8 +74,12 @@ class RoomCard extends StatelessWidget {
                   if (room.isEphemeral && room.messageLifetime != null)
                     EphemeralBadge(ttl: room.messageLifetime!, dense: true),
                   if (room.hasPassword) const LockedBadge(dense: true),
-                  if (room.isPinned && !room.isSavedMessages)
-                    const PinnedBadge(dense: true),
+                  // Saved Messages carries the pill too. It used to be
+                  // suppressed there because the room was pinned by
+                  // construction and the badge said nothing; now that it can
+                  // be unpinned, the badge is the only thing that says which
+                  // way it currently sits.
+                  if (room.isPinned) const PinnedBadge(dense: true),
                 ],
               ),
             ),

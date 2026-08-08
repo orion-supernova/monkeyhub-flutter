@@ -158,7 +158,9 @@ class RoomGridTile extends StatelessWidget {
                       dense: true,
                       iconOnly: true,
                     ),
-                  if (room.isPinned && !room.isSavedMessages)
+                  // Shown for Saved Messages too, same reasoning as
+                  // room_card.dart: pinning it is now a choice, not a given.
+                  if (room.isPinned)
                     const PinnedBadge(dense: true, iconOnly: true),
                 ],
               ),

@@ -48,8 +48,19 @@ ChatRoom dm({
   isArchived: isArchived,
 );
 
-/// The always-pinned self-chat every account has — `name.startsWith('dm:self:')`.
-ChatRoom savedMessages({String id = 's1'}) => room(id: id, name: 'dm:self:u0');
+/// The self-chat every account has — `name.startsWith('dm:self:')`. Pinned by
+/// default because that's how `rooms.ts` seeds it, but the viewer can unpin it
+/// like any other room, so the flag is a parameter rather than a given.
+ChatRoom savedMessages({
+  String id = 's1',
+  bool isPinned = true,
+  bool isArchived = false,
+}) => room(
+  id: id,
+  name: 'dm:self:u0',
+  isPinned: isPinned,
+  isArchived: isArchived,
+);
 
 void main() {
   group('facet predicates', () {
@@ -358,6 +369,29 @@ void main() {
       final parts = partitionPinned(rooms);
       expect(parts.pinned.map((r) => r.id), ['s1']);
       expect(parts.regular.map((r) => r.id), ['a']);
+    });
+
+    test('unpinned Saved Messages drops into regular, in its recency slot', () {
+      // The point of the change: it is no longer nailed to the top. Its
+      // position among the regular rooms is wherever the caller's recency
+      // order already put it, exactly like any other unpinned room.
+      final rooms = [
+        room(id: 'a'),
+        savedMessages(isPinned: false),
+        room(id: 'b', isPinned: true),
+      ];
+      final parts = partitionPinned(rooms);
+      expect(parts.pinned.map((r) => r.id), ['b']);
+      expect(parts.regular.map((r) => r.id), ['a', 's1']);
+    });
+
+    test('unpinned Saved Messages alone leaves the pinned bucket empty', () {
+      final parts = partitionPinned([
+        room(id: 'a'),
+        savedMessages(isPinned: false),
+      ]);
+      expect(parts.pinned, isEmpty);
+      expect(parts.regular.map((r) => r.id), ['a', 's1']);
     });
 
     test('isArchived does not affect which bucket a room lands in', () {

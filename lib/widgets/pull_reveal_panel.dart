@@ -7,13 +7,6 @@ import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'search_field.dart';
 
-/// Generous upper bound on the panel's real natural height (collapse chevron
-/// + search field row + optional archived-folder row), used only to give
-/// [OverflowBox] room to lay the panel out at full size while [PullRevealSlot]
-/// clips how much of it is actually visible. Doesn't need to be exact — only
-/// tall enough for the real content at any text scale.
-const double _kMaxPanelHeight = 190.0;
-
 /// Lives as the first child of the chat list's [ListView]. Hidden by default;
 /// pulling down at the top of the list (overscroll) reveals it — see
 /// `_HomeScreenState._onScrollNotification` in home_screen.dart, which owns
@@ -63,24 +56,32 @@ class PullRevealSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final progress = open ? 1.0 : (dragExtent / dragThreshold).clamp(0.0, 1.0);
+    // `Align.heightFactor` — the same mechanism SizeTransition uses — reveals
+    // a fraction of whatever the panel's NATURAL height turns out to be, and
+    // ClipRect hides the rest.
+    //
+    // This used to clip against a fixed 190pt upper bound instead, which meant
+    // the open panel was always 190pt tall no matter what was in it: an
+    // account with nothing archived (no folder row) got a band of dead space
+    // under the search field, and so, less obviously, did every account at
+    // default text scale. Measuring instead of guessing also drops the
+    // "tall enough at any text scale" caveat the constant carried.
     return ClipRect(
-      child: AnimatedContainer(
+      child: TweenAnimationBuilder<double>(
+        // Same rule the constant-height version followed: instant while the
+        // finger is down so the reveal tracks it, animated on release.
         duration: dragging ? Duration.zero : theme.motionMed,
         curve: Curves.easeOutCubic,
-        height: progress * _kMaxPanelHeight,
-        alignment: Alignment.topCenter,
-        child: OverflowBox(
-          alignment: Alignment.topCenter,
-          maxHeight: _kMaxPanelHeight,
-          minHeight: 0,
-          child: _PullRevealPanel(
-            searchCtrl: searchCtrl,
-            onSearchChanged: onSearchChanged,
-            onClear: onClearSearch,
-            archivedCount: archivedCount,
-            onOpenArchived: onOpenArchived,
-            onCollapse: onCollapse,
-          ),
+        tween: Tween<double>(end: progress),
+        builder: (context, factor, child) =>
+            Align(alignment: Alignment.topCenter, heightFactor: factor, child: child),
+        child: _PullRevealPanel(
+          searchCtrl: searchCtrl,
+          onSearchChanged: onSearchChanged,
+          onClear: onClearSearch,
+          archivedCount: archivedCount,
+          onOpenArchived: onOpenArchived,
+          onCollapse: onCollapse,
         ),
       ),
     );
@@ -111,6 +112,11 @@ class _PullRevealPanel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
       child: Column(
+        // Load-bearing now that the reveal measures this panel instead of
+        // clipping it to a constant: a max-size Column would report whatever
+        // height it was offered, which is exactly the dead space this was
+        // supposed to remove.
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Align(
