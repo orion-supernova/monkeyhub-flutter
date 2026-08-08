@@ -251,8 +251,7 @@ void main() {
     });
 
     testWidgets(
-      'Saved Messages never shows the pinned badge, even though it is '
-      'always pinned server-side',
+      'Saved Messages shows the pinned badge like any other pinned room',
       (tester) async {
         await tester.pumpWidget(
           host(
@@ -262,9 +261,24 @@ void main() {
             ),
           ),
         );
-        expect(find.byType(PinnedBadge), findsNothing);
+        expect(find.byType(PinnedBadge), findsOneWidget);
       },
     );
+
+    testWidgets('unpinned Saved Messages drops the badge with it', (
+      tester,
+    ) async {
+      // The badge was suppressed here while the room was pinned by
+      // construction and the pill could only ever say the same thing. Now
+      // that unpinning it is a real choice, the pill is what reports which
+      // way it went.
+      await tester.pumpWidget(
+        host(
+          RoomCard(room: room(name: 'dm:self:u1'), onTap: () {}),
+        ),
+      );
+      expect(find.byType(PinnedBadge), findsNothing);
+    });
 
     testWidgets(
       'Saved Messages renders its localized title and a bookmark avatar, '
