@@ -165,7 +165,7 @@ dependencies:
 
   # Reads pubspec.yaml at runtime so Settings can show "v$version".
   package_info_plus: ^10.2.1
-  emoji_picker_flutter: ^4.4.0
+  emoji_picker_flutter: ^4.5.3
 
   # URL handling: detection in text, opening externally, and the native system
   # browser for tapped links (SFSafariViewController / Chrome Custom Tabs).

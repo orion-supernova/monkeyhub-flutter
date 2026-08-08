@@ -6941,6 +6941,24 @@ abstract class AppLocalizations {
   /// **'no recents yet'**
   String get reactionBubbleNoRecentsPlaceholder;
 
+  /// Lowercase hint text on the emoji picker's search field (reaction_picker_sheet.dart). Shown both on the resting search bar under the emoji grid and inside the field once search is open.
+  ///
+  /// In en, this message translates to:
+  /// **'search emoji'**
+  String get reactionBubbleSearchHint;
+
+  /// Lowercase placeholder shown in the emoji picker's search results strip when the typed query matches no emoji (reaction_picker_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'no matches'**
+  String get reactionBubbleSearchEmptyPlaceholder;
+
+  /// Screen-reader semantic label for the back chevron that closes emoji search and returns to the category grid (reaction_picker_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Back to emoji'**
+  String get reactionBubbleSearchBackSemanticLabel;
+
   /// Lowercase hint text inside the password field on the password confirmation bottom sheet (password_prompt_sheet.dart), shown before linking/unlinking a social identity or similar sensitive account action.
   ///
   /// In en, this message translates to:

@@ -3891,6 +3891,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => '暂无最近使用';
 
   @override
+  String get reactionBubbleSearchHint => '搜索表情';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => '没有匹配的表情';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => '返回表情列表';
+
+  @override
   String get reactionBubblePasswordHint => '密码';
 
   @override

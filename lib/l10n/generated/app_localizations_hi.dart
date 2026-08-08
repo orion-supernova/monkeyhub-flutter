@@ -4093,6 +4093,15 @@ class AppLocalizationsHi extends AppLocalizations {
       'अभी तक कोई रीसेंट इमोजी नहीं';
 
   @override
+  String get reactionBubbleSearchHint => 'इमोजी खोजो';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'कोई मैच नहीं';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'इमोजी पर वापस जाओ';
+
+  @override
   String get reactionBubblePasswordHint => 'पासवर्ड';
 
   @override

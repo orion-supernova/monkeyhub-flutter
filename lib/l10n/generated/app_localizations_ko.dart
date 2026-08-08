@@ -3953,6 +3953,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => '아직 최근 사용한 이모지가 없어요';
 
   @override
+  String get reactionBubbleSearchHint => '이모지 검색';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => '일치하는 이모지 없음';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => '이모지로 돌아가기';
+
+  @override
   String get reactionBubblePasswordHint => '비밀번호';
 
   @override

@@ -4153,6 +4153,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => 'pas encore de récents';
 
   @override
+  String get reactionBubbleSearchHint => 'rechercher un emoji';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'aucun résultat';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'Retour aux emojis';
+
+  @override
   String get reactionBubblePasswordHint => 'mot de passe';
 
   @override

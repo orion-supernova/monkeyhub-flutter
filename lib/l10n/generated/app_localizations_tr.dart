@@ -4058,6 +4058,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => 'henüz son kullanılan yok';
 
   @override
+  String get reactionBubbleSearchHint => 'emoji ara';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'eşleşme yok';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'Emojilere dön';
+
+  @override
   String get reactionBubblePasswordHint => 'şifre';
 
   @override

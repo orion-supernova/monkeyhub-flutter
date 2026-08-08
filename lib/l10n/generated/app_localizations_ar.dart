@@ -4172,6 +4172,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => 'لا توجد عناصر حديثة بعد';
 
   @override
+  String get reactionBubbleSearchHint => 'ابحث عن إيموجي';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'لا توجد نتائج';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'العودة إلى الإيموجي';
+
+  @override
   String get reactionBubblePasswordHint => 'كلمة المرور';
 
   @override

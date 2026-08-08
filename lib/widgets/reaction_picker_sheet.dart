@@ -1,15 +1,42 @@
+import 'dart:math' as math;
+
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/emoji_set_full.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 
+/// Height of the resting search bar under the grid, before safe-area padding.
+const double _searchBarHeight = 44;
+
+/// Everything the sheet draws above the picker — top padding, drag handle,
+/// title, and the gap under it — plus a little clearance from the status bar.
+/// A constant rather than a measurement: [Config.height] has to agree with the
+/// [SizedBox] wrapping the picker, and a LayoutBuilder would only know the
+/// answer after the picker had already been asked how tall it is.
+const double _chromeHeight = 90;
+
+/// A top-level tear-off, not an inline `(_) => fullEmojiSet` closure.
+///
+/// `Config` implements `==` and compares `emojiSet` by identity, and
+/// `EmojiPicker.didUpdateWidget` rebuilds its entire category list — all 1,906
+/// entries, plus a recents read — whenever the config compares unequal. A
+/// fresh closure per build makes that fire on every rebuild, and this sheet
+/// rebuilds on every frame of the keyboard animation. Nothing visibly breaks
+/// (the reload runs synchronously once recents are cached), it is simply a lot
+/// of work to redo sixty times a second for a list that never changes.
+List<CategoryEmoji> _emojiSet(Locale locale) => fullEmojiSet;
+
 /// Reached via the `+` on the floating reaction pill. WhatsApp-style:
-/// a categorized sheet of every emoji, with skin tones and search. No
-/// freeform text entry — picking an emoji is the only way out.
+/// a categorized sheet of every emoji, with skin tones and search. The only
+/// text entry is the search field, and it commits nothing — picking an emoji
+/// is still the only way out.
 class ReactionPickerSheet extends StatelessWidget {
   const ReactionPickerSheet({super.key});
 
@@ -17,15 +44,31 @@ class ReactionPickerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final screenH = MediaQuery.sizeOf(context).height;
-    final pickerH = (screenH * 0.5).clamp(320.0, 460.0);
     // viewInsets.bottom = soft keyboard (pushes the WHOLE sheet up).
     // paddingOf().bottom = home indicator / gesture bar — folded INTO the
-    // picker's height + grid padding so the emoji grid itself extends all
-    // the way to the screen edge (no visible blank strip), while the last
-    // row of emojis still clears the indicator.
+    // picker's height and onto the search bar, which is the bottom-most row,
+    // so the sheet still reaches the screen edge while the search field
+    // clears the indicator. Flutter zeroes this padding once the keyboard
+    // covers it, so opening search reclaims the space instead of stranding it.
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final bottomSafe = MediaQuery.paddingOf(context).bottom;
-    final totalPickerH = pickerH + bottomSafe;
+    final safeArea = MediaQuery.paddingOf(context);
+    final bottomSafe = safeArea.bottom;
+
+    final desiredH = (screenH * 0.5).clamp(320.0, 460.0).toDouble() +
+        bottomSafe +
+        _searchBarHeight;
+    // Until search existed there was no text entry here, so the keyboard never
+    // came up and half the screen was always free. Now it does: the sheet is
+    // lifted by the full keyboard height, and a picker still asking for half
+    // the *screen* overflows the space left above it. Give back whatever the
+    // keyboard took.
+    //
+    // No minimum floor. A floor is what you reach for here, and on a short
+    // viewport — landscape, a small phone, a split view — honouring it is
+    // exactly what overflows the sheet, because the sheet sits above the
+    // keyboard and cannot grow into it. A cramped grid beats a broken one.
+    final ceiling = screenH - bottomInset - safeArea.top - _chromeHeight;
+    final totalPickerH = math.max(0.0, math.min(desiredH, ceiling));
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Container(
@@ -63,8 +106,23 @@ class ReactionPickerSheet extends StatelessWidget {
                   Navigator.of(context).pop(emoji.emoji);
                 },
                 config: Config(
-                  height: totalPickerH,
-                  checkPlatformCompatibility: true,
+                  // Null, not `totalPickerH`: the SizedBox above already bounds
+                  // the picker, and a height that moves with the keyboard is
+                  // the other thing that makes the config compare unequal every
+                  // frame — see [_emojiSet]. With both gone this Config is
+                  // stable across rebuilds.
+                  height: null,
+                  // The package's bundled set stopped at Unicode 14.0, so every
+                  // glyph added since — 🫨 🩷 🐦‍🔥 🍋‍🟩 ⛓️‍💥 🫩 and ~290 others —
+                  // was missing from the grid even though the phone renders
+                  // them fine. `fullEmojiSet` is generated from Unicode 16.0;
+                  // see tool/generate_emoji_set.dart.
+                  emojiSet: _emojiSet,
+                  // Android-only inside the package (it no-ops everywhere
+                  // else), and pointless now that we ship exactly the glyphs we
+                  // want: it would only cost a platform channel round-trip over
+                  // 1,900 entries on every open.
+                  checkPlatformCompatibility: false,
                   emojiTextStyle: TextStyle(color: theme.ink, fontSize: 24),
                   emojiViewConfig: EmojiViewConfig(
                     columns: 8,
@@ -72,7 +130,7 @@ class ReactionPickerSheet extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     verticalSpacing: 2,
                     horizontalSpacing: 2,
-                    gridPadding: EdgeInsets.fromLTRB(8, 4, 8, 4 + bottomSafe),
+                    gridPadding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
                     recentsLimit: 28,
                     noRecents: Center(
                       child: Text(
@@ -93,11 +151,30 @@ class ReactionPickerSheet extends StatelessWidget {
                     tabBarHeight: 40,
                     initCategory: Category.SMILEYS,
                   ),
-                  bottomActionBarConfig: const BottomActionBarConfig(
-                    enabled: false,
+                  // The package only ever opens search from this bar, so
+                  // disabling it (as this sheet used to) left 1,900 emoji
+                  // reachable by scrolling alone. Ours is a search field
+                  // rather than the stock circular button — there is no text
+                  // to backspace in a reaction picker, so that half of the
+                  // default bar is dropped.
+                  bottomActionBarConfig: BottomActionBarConfig(
+                    customBottomActionBar: (_, _, showSearchView) => _SearchBar(
+                      onTap: showSearchView,
+                      bottomSafe: bottomSafe,
+                    ),
+                  ),
+                  searchViewConfig: SearchViewConfig(
+                    customSearchView: (config, state, showEmojiView) =>
+                        _ReactionSearchView(
+                      config,
+                      state,
+                      showEmojiView,
+                      bottomSafe: bottomSafe,
+                    ),
                   ),
                   skinToneConfig: SkinToneConfig(
                     enabled: true,
+                    rememberSkinTone: true,
                     dialogBackgroundColor: theme.surface,
                     indicatorColor: theme.accent,
                   ),
@@ -107,6 +184,199 @@ class ReactionPickerSheet extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The resting search affordance under the grid. Looks like the search field
+/// it opens, so tapping it feels like focusing rather than navigating.
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.onTap, required this.bottomSafe});
+
+  final VoidCallback onTap;
+  final double bottomSafe;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final hint = AppLocalizations.of(context).reactionBubbleSearchHint;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10, 4, 10, 4 + bottomSafe),
+      child: FocusableTap(
+        onTap: onTap,
+        semanticLabel: hint,
+        radius: 12,
+        // Bare GestureDetector, never InkWell — this app renders no ink anywhere.
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            height: 36,
+            decoration: theme.inputDecoration(),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.search, size: 15, color: theme.inkMuted),
+                const SizedBox(width: 8),
+                Text(
+                  hint,
+                  style: theme.bodySoft.copyWith(color: theme.inkMuted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Replaces the whole picker while search is open — that is the package's
+/// model, not a choice we make here. The stock view is rebuilt rather than
+/// configured because it leans on [IconButton], and nothing in this app is
+/// allowed to render an ink ripple.
+class _ReactionSearchView extends SearchView {
+  const _ReactionSearchView(
+    super.config,
+    super.state,
+    super.showEmojiView, {
+    required this.bottomSafe,
+  });
+
+  final double bottomSafe;
+
+  @override
+  _ReactionSearchViewState createState() => _ReactionSearchViewState();
+}
+
+class _ReactionSearchViewState extends SearchViewState<_ReactionSearchView> {
+  /// Tracked only to tell the two empty states apart: with nothing typed the
+  /// view seeds itself with recents, so "no matches" would be a lie for a user
+  /// who has simply never reacted before.
+  String _query = '';
+
+  @override
+  void onTextInputChanged(String text) {
+    _query = text;
+    super.onTextInputChanged(text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final loc = AppLocalizations.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final emojiSize =
+            widget.config.emojiViewConfig.getEmojiSize(constraints.maxWidth);
+        final emojiBoxSize =
+            widget.config.emojiViewConfig.getEmojiBoxSize(constraints.maxWidth);
+
+        return Column(
+          children: [
+            // Transparent Material, not the default one: the skin-tone overlay
+            // and the emoji cells both want a Material ancestor for text
+            // styling, and without one Flutter paints its yellow debug
+            // underlines over every glyph.
+            //
+            // A grid rather than the stock horizontal strip: search replaces
+            // the entire picker, so a one-row strip would leave most of a
+            // 460pt sheet empty and cap a 200-hit query at whatever fits
+            // across.
+            Expanded(
+              child: Material(
+                type: MaterialType.transparency,
+                child: results.isEmpty
+                    ? Center(
+                        child: Text(
+                          _query.isEmpty
+                              ? loc.reactionBubbleNoRecentsPlaceholder
+                              : loc.reactionBubbleSearchEmptyPlaceholder,
+                          style: theme.monoTiny,
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: widget.config.emojiViewConfig.columns,
+                          mainAxisSpacing:
+                              widget.config.emojiViewConfig.verticalSpacing,
+                          crossAxisSpacing:
+                              widget.config.emojiViewConfig.horizontalSpacing,
+                        ),
+                        itemCount: results.length,
+                        itemBuilder: (context, index) => buildEmoji(
+                          results[index],
+                          emojiSize,
+                          emojiBoxSize,
+                        ),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(4, 4, 10, 4 + widget.bottomSafe),
+              child: Row(
+                children: [
+                  FocusableTap(
+                    onTap: widget.showEmojiView,
+                    semanticLabel: loc.reactionBubbleSearchBackSemanticLabel,
+                    shape: FocusRingShape.circle,
+                    radius: 18,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.showEmojiView,
+                      child: SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Icon(
+                          CupertinoIcons.chevron_left,
+                          size: 18,
+                          color: theme.inkMuted,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      decoration: theme.inputDecoration(),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            CupertinoIcons.search,
+                            size: 15,
+                            color: theme.inkMuted,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              focusNode: focusNode,
+                              onChanged: onTextInputChanged,
+                              style: theme.body.copyWith(color: theme.ink),
+                              cursorColor: theme.accent,
+                              textInputAction: TextInputAction.search,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                hintText: loc.reactionBubbleSearchHint,
+                                hintStyle: theme.bodySoft
+                                    .copyWith(color: theme.inkMuted),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

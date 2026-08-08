@@ -3940,6 +3940,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => '最近使った絵文字はまだありません';
 
   @override
+  String get reactionBubbleSearchHint => '絵文字を検索';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => '一致する絵文字なし';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => '絵文字一覧に戻る';
+
+  @override
   String get reactionBubblePasswordHint => 'パスワード';
 
   @override

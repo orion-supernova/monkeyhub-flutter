@@ -4127,6 +4127,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => 'ainda sem recentes';
 
   @override
+  String get reactionBubbleSearchHint => 'procurar emoji';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'sem correspondências';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'Voltar aos emojis';
+
+  @override
   String get reactionBubblePasswordHint => 'palavra-passe';
 
   @override
@@ -9769,6 +9778,15 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get reactionBubbleNoRecentsPlaceholder => 'ainda sem recentes';
+
+  @override
+  String get reactionBubbleSearchHint => 'buscar emoji';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'nenhum resultado';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'Voltar aos emojis';
 
   @override
   String get reactionBubblePasswordHint => 'senha';

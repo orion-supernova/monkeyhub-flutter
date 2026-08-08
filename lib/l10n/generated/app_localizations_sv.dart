@@ -4102,6 +4102,15 @@ class AppLocalizationsSv extends AppLocalizations {
   String get reactionBubbleNoRecentsPlaceholder => 'inga senaste än';
 
   @override
+  String get reactionBubbleSearchHint => 'sök emoji';
+
+  @override
+  String get reactionBubbleSearchEmptyPlaceholder => 'inga träffar';
+
+  @override
+  String get reactionBubbleSearchBackSemanticLabel => 'Tillbaka till emoji';
+
+  @override
   String get reactionBubblePasswordHint => 'lösenord';
 
   @override
