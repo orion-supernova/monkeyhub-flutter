@@ -2,10 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
+import 'destructive_sheet.dart' show SheetGrabber;
 
 class AttachmentMenuChoice {
   const AttachmentMenuChoice._(this.id);
@@ -55,6 +56,14 @@ class _AttachmentSheet extends StatelessWidget {
 
   final bool allowMedia;
   final bool allowLocation;
+
+  /// Tiles sit four to a row no matter how many are on offer. A fixed grid
+  /// reads as considered furniture; a single row that keeps redividing its
+  /// width by however many tiles happen to survive the guardian policy and
+  /// `kIsWeb` gates is what made the old sheet feel squashed.
+  static const _columns = 4;
+  static const _tileSpacing = 12.0;
+  static const _rowSpacing = 22.0;
 
   @override
   Widget build(BuildContext context) {
@@ -125,40 +134,37 @@ class _AttachmentSheet extends StatelessWidget {
       type: MaterialType.transparency,
       child: Container(
         decoration: theme.sheetDecoration(),
-        padding: EdgeInsets.fromLTRB(14, 8, 14, 10 + bottomInset),
+        padding: EdgeInsets.fromLTRB(20, 10, 20, 18 + bottomInset),
         child: DefaultTextStyle(
           style: theme.body.copyWith(color: theme.ink),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Meaningless once dismiss-by-drag isn't a thing — the desktop
-              // popover closes via barrier tap / Esc, not a drag gesture.
-              if (context.isCompact) ...[
-                Container(
-                  width: 36,
-                  height: 3.5,
-                  decoration: BoxDecoration(
-                    color: theme.inkMuted.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final t in tiles)
-                    Expanded(
-                      child: _AttachTile(
-                        icon: t.$2,
-                        label: t.$3,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.of(context).pop(t.$1);
-                        },
-                      ),
-                    ),
-                ],
+              const SheetGrabber(),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final tileWidth = (constraints.maxWidth -
+                          _tileSpacing * (_columns - 1)) /
+                      _columns;
+                  return Wrap(
+                    spacing: _tileSpacing,
+                    runSpacing: _rowSpacing,
+                    children: [
+                      for (final t in tiles)
+                        SizedBox(
+                          width: tileWidth,
+                          child: _AttachTile(
+                            icon: t.$2,
+                            label: t.$3,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.of(context).pop(t.$1);
+                            },
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -188,41 +194,48 @@ class _AttachTileState extends State<_AttachTile> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
+    return FocusableTap(
       onTap: widget.onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedScale(
-        scale: _pressed ? 0.92 : 1.0,
-        duration: const Duration(milliseconds: 90),
-        curve: Curves.easeOut,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: theme.surfaceRaised,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.divider, width: 0.8),
+      radius: theme.radiusMd,
+      semanticLabel: widget.label,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedScale(
+          scale: _pressed ? 0.92 : 1.0,
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOut,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: theme.accentSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(widget.icon, size: 23, color: theme.accent),
                 ),
-                child: Icon(widget.icon, size: 20, color: theme.accent),
-              ),
-              const SizedBox(height: 7),
-              Text(
-                widget.label,
-                style: theme.monoTiny.copyWith(
-                  color: theme.inkSoft,
-                  letterSpacing: 0.8,
+                const SizedBox(height: 8),
+                Text(
+                  widget.label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.monoTiny.copyWith(
+                    color: theme.inkSoft,
+                    letterSpacing: 0.8,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

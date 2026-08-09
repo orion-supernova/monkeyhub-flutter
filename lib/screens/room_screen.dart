@@ -3127,6 +3127,18 @@ class _RoomIntro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final showDescription = caps.hasDescription &&
+        room.description != null &&
+        room.description!.isNotEmpty;
+    final showEphemeral = room.isEphemeral && room.messageLifetime != null;
+    final showMembers = caps.hasMembers && members.isNotEmpty;
+    // A system bot room or Saved Messages has nothing here worth a card for —
+    // no description, no member list, nothing but empty padding floating
+    // above the first message. `caps` already zeroes hasDescription/hasMembers
+    // for both, so once ephemeral is also off there is nothing left to show.
+    if (!showDescription && !showEphemeral && !showMembers) {
+      return const SizedBox.shrink();
+    }
     return Container(
       margin: const EdgeInsets.only(top: MessageGap.aroundMarker),
       padding: const EdgeInsets.all(18),
@@ -3134,13 +3146,11 @@ class _RoomIntro extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (caps.hasDescription &&
-              room.description != null &&
-              room.description!.isNotEmpty) ...[
+          if (showDescription) ...[
             Text('"${room.description!.toLowerCase()}"', style: theme.bodyEmph),
             const SizedBox(height: 14),
           ],
-          if (room.isEphemeral && room.messageLifetime != null) ...[
+          if (showEphemeral) ...[
             Row(
               children: [
                 theme.hourglassIcon(size: 14, color: theme.accent),
@@ -3159,7 +3169,7 @@ class _RoomIntro extends StatelessWidget {
           ],
           // A face stack of "you", or of you and a bot, is decoration standing
           // where information should be.
-          if (caps.hasMembers && members.isNotEmpty)
+          if (showMembers)
             Wrap(
               spacing: -6,
               children: [
