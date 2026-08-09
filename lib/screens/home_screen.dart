@@ -76,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ───────── in-place search ─────────
 
   final _searchCtrl = TextEditingController();
+  final _searchFocus = FocusNode();
   String _searchQuery = '';
   Timer? _searchDebounce;
 
@@ -126,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen>
     widget.auth.removeListener(_onAuth);
     _scroll.dispose();
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
@@ -367,6 +369,7 @@ class _HomeScreenState extends State<HomeScreen>
                             dragging: _dragging,
                             open: _pullPanelOpen,
                             searchCtrl: _searchCtrl,
+                            searchFocus: _searchFocus,
                             onSearchChanged: _onSearchChanged,
                             onClearSearch: _clearSearch,
                             archivedCount: widget.repo.archivedRooms.length,
@@ -375,8 +378,10 @@ class _HomeScreenState extends State<HomeScreen>
                               repo: widget.repo,
                               api: widget.api,
                             ),
-                            onCollapse: () =>
-                                setState(() => _pullPanelOpen = false),
+                            onCollapse: () {
+                              _searchFocus.unfocus();
+                              setState(() => _pullPanelOpen = false);
+                            },
                           ),
                       // The filter control rides inside the scroll view rather
                       // than sitting above it: as a fixed band it ate a strip of

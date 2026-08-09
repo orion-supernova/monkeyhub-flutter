@@ -29,6 +29,7 @@ class PullRevealSlot extends StatelessWidget {
     required this.dragging,
     required this.open,
     required this.searchCtrl,
+    required this.searchFocus,
     required this.onSearchChanged,
     required this.onClearSearch,
     required this.archivedCount,
@@ -46,6 +47,7 @@ class PullRevealSlot extends StatelessWidget {
   final bool dragging;
   final bool open;
   final TextEditingController searchCtrl;
+  final FocusNode searchFocus;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
   final int archivedCount;
@@ -77,6 +79,7 @@ class PullRevealSlot extends StatelessWidget {
             Align(alignment: Alignment.topCenter, heightFactor: factor, child: child),
         child: _PullRevealPanel(
           searchCtrl: searchCtrl,
+          searchFocus: searchFocus,
           onSearchChanged: onSearchChanged,
           onClear: onClearSearch,
           archivedCount: archivedCount,
@@ -91,6 +94,7 @@ class PullRevealSlot extends StatelessWidget {
 class _PullRevealPanel extends StatelessWidget {
   const _PullRevealPanel({
     required this.searchCtrl,
+    required this.searchFocus,
     required this.onSearchChanged,
     required this.onClear,
     required this.archivedCount,
@@ -99,6 +103,7 @@ class _PullRevealPanel extends StatelessWidget {
   });
 
   final TextEditingController searchCtrl;
+  final FocusNode searchFocus;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClear;
   final int archivedCount;
@@ -150,6 +155,7 @@ class _PullRevealPanel extends StatelessWidget {
           // way the hand-rolled copies did.
           SearchField(
             controller: searchCtrl,
+            focusNode: searchFocus,
             hintText: l10n.pullRevealSearchHint,
             onChanged: onSearchChanged,
             // Its own, not the default: this one also has to cancel the
