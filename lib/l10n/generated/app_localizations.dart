@@ -2523,6 +2523,12 @@ abstract class AppLocalizations {
   /// **'no links yet'**
   String get roomContentScreenEmptyLinks;
 
+  /// Empty-state copy for the SAVED tab of the shared-content browser. Longer than the other four on purpose: this is where a reader is most likely to be wondering what the list is, so it names the gesture that fills it AND states the thing they must not guess wrong — saved is private to them, pinned is what everyone sees. 'SAVE' refers to messageActionMenuSaveLabel; keep the two identical.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing saved yet. hold a message and choose SAVE.\n\nwhat you keep here is private to you — a pinned message is what the whole room sees.'**
+  String get roomContentScreenEmptySaved;
+
   /// Empty-state copy shown in place of the tab's normal empty message when loading the shared-content list failed.
   ///
   /// In en, this message translates to:
@@ -5431,6 +5437,12 @@ abstract class AppLocalizations {
   /// **'seen'**
   String get messageStampSeenLabel;
 
+  /// Screen-reader semanticLabel on the small bookmark glyph shown in a message's timestamp stamp when THIS reader has saved that message. Private to the reader — nobody else's bubble shows it.
+  ///
+  /// In en, this message translates to:
+  /// **'saved'**
+  String get messageStampSavedLabel;
+
   /// Terse remaining-seconds countdown (e.g. '42s') shown inline in an ephemeral message's stamp before it self-destructs.
   ///
   /// In en, this message translates to:
@@ -7415,6 +7427,12 @@ abstract class AppLocalizations {
   /// **'LINKS'**
   String get roomContentTabLabelLinks;
 
+  /// All-caps pill-nav tab label for the Saved tab of the shared-content browser — the messages THIS reader bookmarked in this room. Not the personal Saved Messages chat; see savedMessagesTitle for that.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVED'**
+  String get roomContentTabLabelSaved;
+
   /// Lowercase form of the Media tab name, used in the shared-content screen's large heading (app's lowercase heading voice, e.g. 'settings.').
   ///
   /// In en, this message translates to:
@@ -7438,6 +7456,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'links'**
   String get roomContentTabHeaderLinks;
+
+  /// Lowercase form of the Saved tab name, used in the shared-content screen's large heading. Pre-authored per locale rather than lowercased in code, because Dart's toLowerCase() is not locale-aware.
+  ///
+  /// In en, this message translates to:
+  /// **'saved'**
+  String get roomContentTabHeaderSaved;
 
   /// Lowercase chip/filter label for the 'direct messages' (1:1 chat) facet in the chat-list filter bar/drawer.
   ///
@@ -9743,35 +9767,23 @@ abstract class AppLocalizations {
   /// **'couldn’t save that'**
   String get threadOverlaySaveFailedToast;
 
-  /// All-caps section label in room info, above this reader's saved messages from this room. Matches the style of roomInfoScreenSharedContentLabel directly above it.
+  /// Caption under the SHARED CONTENT group in room info, explaining the SAVED row that sits in it. The contrast with pinning is the whole point of the sentence — saved is per-reader, pinned is room state — so keep both halves.
   ///
   /// In en, this message translates to:
-  /// **'SAVED MESSAGES'**
-  String get roomInfoScreenSavedMessagesLabel;
+  /// **'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.'**
+  String get roomInfoScreenSharedContentSavedNote;
 
-  /// Explanatory caption under the SAVED MESSAGES heading in room info. States the two things a reader would otherwise have to guess: these are private to them, and scoped to this room. The final clause names the separate personal self-chat room — translate that name IDENTICALLY to savedMessagesTitle in this locale, or the two features will read as the same one.
-  ///
-  /// In en, this message translates to:
-  /// **'only you can see these, and only from this room. your Saved Messages chat is separate.'**
-  String get roomInfoScreenSavedMessagesCaption;
-
-  /// Empty state inside the SAVED MESSAGES group in room info, shown when this reader has saved nothing from this room. Names the gesture, because 'nothing here' alone does not say how to change that. 'SAVE' refers to messageActionMenuSaveLabel — keep the two identical.
-  ///
-  /// In en, this message translates to:
-  /// **'nothing saved yet. hold a message and choose SAVE.'**
-  String get roomInfoScreenSavedMessagesEmpty;
-
-  /// Accessibility semanticLabel on a tappable row in room info's saved-messages list; tapping closes room info and scrolls the chat transcript to that message. {name} is the sender's display name.
+  /// Accessibility semanticLabel on a row in the SAVED tab of the shared-content browser; tapping closes the browser and scrolls the chat transcript to that message. {name} is the sender's display name.
   ///
   /// In en, this message translates to:
   /// **'Jump to saved message from {name}'**
-  String roomInfoScreenSavedMessageJumpSemantic(Object name);
+  String roomContentScreenSavedJumpSemantic(Object name);
 
-  /// Accessibility semanticLabel on the small bookmark icon button at the end of each row in room info's saved-messages list; tapping removes this reader's bookmark. {name} is the sender's display name.
+  /// Accessibility semanticLabel on the small bookmark icon button at the end of each row in the SAVED tab; tapping removes this reader's bookmark. {name} is the sender's display name.
   ///
   /// In en, this message translates to:
   /// **'Unsave message from {name}'**
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name);
+  String roomContentScreenUnsaveSemantic(Object name);
 
   /// All-caps headline of the bottom sheet that silences one chat.
   ///

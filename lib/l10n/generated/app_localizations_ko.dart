@@ -1364,6 +1364,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomContentScreenEmptyLinks => '아직 링크가 없어요';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      '아직 저장한 것이 없습니다. 메시지를 길게 눌러 저장을 선택하세요.\n\n여기에 보관한 것은 나만 볼 수 있습니다. 고정한 메시지는 방 전체가 봅니다.';
+
+  @override
   String get roomContentScreenLoadFailed => '불러오지 못했어요';
 
   @override
@@ -3027,6 +3031,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messageStampSeenLabel => '읽음';
 
   @override
+  String get messageStampSavedLabel => '저장됨';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '$count초';
   }
@@ -4214,6 +4221,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get roomContentTabLabelLinks => '링크';
 
   @override
+  String get roomContentTabLabelSaved => '저장됨';
+
+  @override
   String get roomContentTabHeaderMedia => '미디어';
 
   @override
@@ -4224,6 +4234,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => '링크';
+
+  @override
+  String get roomContentTabHeaderSaved => '저장됨';
 
   @override
   String get roomFacetLabelDms => '1:1 채팅';
@@ -5478,23 +5491,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get threadOverlaySaveFailedToast => '저장할 수 없어요';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => '저장한 메시지';
+  String get roomInfoScreenSharedContentSavedNote =>
+      '저장한 메시지는 나만 볼 수 있습니다. 고정한 메시지는 반대로 방 전체가 봅니다.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      '이건 나만 볼 수 있고, 이 방에서만 모입니다. 저장한 메시지 채팅과는 별개예요.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      '아직 저장한 게 없어요. 메시지를 길게 누르고 ‘저장’을 선택하세요.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name님의 저장한 메시지로 이동';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return '$name님의 메시지 저장 해제';
   }
 

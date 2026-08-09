@@ -13,6 +13,7 @@ import '../media/document_saver.dart';
 import '../media/file_meta.dart';
 import '../models/chat_message.dart';
 import '../models/enums.dart';
+import '../models/message_preview.dart';
 import '../models/room_content_item.dart';
 import '../services/link_opener.dart';
 import '../theme/app_theme.dart';
@@ -24,7 +25,9 @@ import '../widgets/bulk_action_bar.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
 import '../widgets/media_grid_tile.dart';
+import '../widgets/message_stamp.dart' show formatClockTime;
 import '../widgets/pill_nav.dart';
+import '../widgets/remote_image.dart';
 import 'fullscreen_video_viewer.dart';
 import 'media_pager_screen.dart';
 import 'room_content_actions.dart';
@@ -65,6 +68,15 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   /// depth in a gallery they may have paged a long way into.
   final Map<RoomContentTab, RoomContentController> _controllers = {};
 
+  /// The tabs this room actually offers, resolved once.
+  ///
+  /// Only ever shorter than [RoomContentTab.values] by the SAVED tab, which is
+  /// gated on `canSaveMessages` — the same capability that decides whether the
+  /// bubble menu offers SAVE at all. A room where nothing can be saved must not
+  /// offer a pill leading to a list that can never fill, and the room-info row
+  /// above is gated on exactly the same thing.
+  late final List<RoomContentTab> _tabsShown;
+
   Map<String, RoomContentCount> _counts = const {};
 
   RoomContentController get _c => _controllers[_tab]!;
@@ -72,8 +84,20 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   @override
   void initState() {
     super.initState();
-    _tab = widget.initialTab;
-    for (final t in RoomContentTab.values) {
+    final room = widget.repo.roomById(widget.roomId);
+    final canSave =
+        room != null && widget.repo.capabilitiesFor(room).canSaveMessages;
+    _tabsShown = [
+      for (final t in RoomContentTab.values)
+        if (t != RoomContentTab.saved || canSave) t,
+    ];
+    // Falls back rather than throwing if a caller ever asks for a tab this room
+    // does not offer: the browser opening on MEDIA is a far better outcome than
+    // a route that cannot build.
+    _tab = _tabsShown.contains(widget.initialTab)
+        ? widget.initialTab
+        : RoomContentTab.media;
+    for (final t in _tabsShown) {
       _controllers[t] = RoomContentController(
         repo: widget.repo,
         api: widget.api,
@@ -139,6 +163,15 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   void _openMessage(ChatMessage m) {
     if (_selection.active) {
       _selection.toggle(m.id);
+      return;
+    }
+    // A bookmark is a place in the conversation, not a file. The other tabs
+    // route by type because a photo wants the pager and a document wants the
+    // OS — but the reason to keep a message is the exchange around it, so
+    // every saved row goes back to where it was said, whatever it is. That is
+    // also what the block this replaced did on tap.
+    if (_tab == RoomContentTab.saved) {
+      _showInChat(m);
       return;
     }
     switch (m.type) {
@@ -502,27 +535,41 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   Widget _tabs(AppTheme theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
-      child: SingleChildScrollView(
-        // Four labels plus badges overflow a narrow phone; scrolling is what
-        // keeps the strip honest rather than shrinking the text.
-        scrollDirection: Axis.horizontal,
-        child: PillNav(
-          items: [
-            for (final t in RoomContentTab.values)
-              PillNavItem(
-                id: t.name,
-                label: t.label(context),
-                badge: (_counts[t.countKey] ?? RoomContentCount.zero).badge,
-              ),
-          ],
-          activeId: _tab.name,
-          onChange: (id) => _switchTo(
-            RoomContentTab.values.firstWhere((t) => t.name == id),
+      // Rebuilt with the active controller, which listens to the repository —
+      // so unsaving the last bookmark drops the SAVED badge on the same frame
+      // the row leaves the list, rather than on the next screen open.
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, _) => SingleChildScrollView(
+          // Five labels plus badges overflow a narrow phone; scrolling is what
+          // keeps the strip honest rather than shrinking the text.
+          scrollDirection: Axis.horizontal,
+          child: PillNav(
+            items: [
+              for (final t in _tabsShown)
+                PillNavItem(
+                  id: t.name,
+                  label: t.label(context),
+                  badge: (_countFor(t) ?? RoomContentCount.zero).badge,
+                ),
+            ],
+            activeId: _tab.name,
+            onChange: (id) => _switchTo(
+              _tabsShown.firstWhere((t) => t.name == id),
+            ),
           ),
         ),
       ),
     );
   }
+
+  /// This tab's badge number, from the server counts or from the bookmark
+  /// subscription — see [roomContentCountFor].
+  RoomContentCount? _countFor(RoomContentTab tab) => roomContentCountFor(
+        tab,
+        serverCounts: _counts,
+        savedCount: widget.repo.savedFor(widget.roomId).length,
+      );
 
   Widget _body(AppTheme theme) {
     // Ids are pruned after the list settles so the header count and the actions
@@ -544,6 +591,7 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     return switch (_tab) {
       RoomContentTab.media => _mediaGrid(theme, bottomPad),
       RoomContentTab.links => _linkList(theme, bottomPad),
+      RoomContentTab.saved => _savedList(theme, bottomPad),
       RoomContentTab.file || RoomContentTab.voice => _rowList(theme, bottomPad),
     };
   }
@@ -654,6 +702,49 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     );
   }
 
+  /// This reader's own shelf for this room.
+  ///
+  /// No day headers, unlike [_rowList] and [_linkList]. Those group by
+  /// `createdAt` and only read correctly because their lists descend by it;
+  /// this one descends by `savedAt` instead — see [RoomContentController.items]
+  /// — so a "yesterday" header could sit above a message from last March. The
+  /// per-row timestamp carries the date question on its own here.
+  ///
+  /// No tail spinner either: `bookmarks.ts` caps the list at 50 and the whole
+  /// of it is already in memory, so there is never another page coming.
+  Widget _savedList(AppTheme theme, double bottomPad) {
+    final items = _c.items;
+    return ListView.builder(
+      controller: _scroll,
+      padding: EdgeInsets.fromLTRB(14, 6, 14, bottomPad),
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final m = items[i];
+        return _SavedRow(
+          theme: theme,
+          message: m,
+          api: widget.api,
+          selected: _selection.contains(m.id),
+          selecting: _selection.active,
+          onTap: () => _openMessage(m),
+          onLongPress: () {
+            HapticFeedback.selectionClick();
+            _selection.begin(m.id);
+          },
+          onUnsave: () => _unsave(m),
+        );
+      },
+    );
+  }
+
+  /// Drops one bookmark. Nothing is removed locally: the subscription behind
+  /// [ChatRepository.savedFor] is what this list reads, and it reconciles on
+  /// its own — leading it here would fight it rather than lead it.
+  Future<void> _unsave(ChatMessage m) async {
+    HapticFeedback.selectionClick();
+    await widget.repo.unsaveMessage(widget.roomId, m.id);
+  }
+
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
@@ -723,6 +814,13 @@ class _EmptyState extends StatelessWidget {
       RoomContentTab.file => l10n.roomContentScreenEmptyFiles,
       RoomContentTab.voice => l10n.roomContentScreenEmptyVoice,
       RoomContentTab.links => l10n.roomContentScreenEmptyLinks,
+      // Three sentences where the other four get a phrase, and the extra two
+      // are the point. This is the moment a reader is most likely to be asking
+      // what the list even is, and the answer they must not guess wrong is that
+      // it is theirs alone — a pin is room state everyone sees, a save is not.
+      // Saying it here rather than only in a caption they scrolled past on
+      // another screen is what keeps the distinction attached to the feature.
+      RoomContentTab.saved => l10n.roomContentScreenEmptySaved,
     };
     return Center(
       child: Padding(
@@ -885,6 +983,149 @@ class _LinkRow extends StatelessWidget {
   }
 }
 
+/// One bookmark, as the SAVED tab draws it.
+///
+/// Two tap targets, the same pair the room-info block this replaced had: the
+/// body travels to where the message was said, the trailing glyph lets it go.
+/// Keeping the release here rather than adding an UNSAVE button to the action
+/// bar is deliberate — that bar can already show five buttons on a phone, and
+/// dropping ONE bookmark is a per-row gesture rather than a bulk one.
+///
+/// The glyph is hidden while a selection is live, because the checkbox takes
+/// that end of the row and a filled bookmark beside a checkbox reads as a
+/// second thing to pick.
+class _SavedRow extends StatelessWidget {
+  const _SavedRow({
+    required this.theme,
+    required this.message,
+    required this.api,
+    required this.selected,
+    required this.selecting,
+    required this.onTap,
+    required this.onLongPress,
+    required this.onUnsave,
+  });
+
+  final AppTheme theme;
+  final ChatMessage message;
+  final ChatApi api;
+  final bool selected;
+  final bool selecting;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  final VoidCallback onUnsave;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final m = message;
+    // View-once media has no storage id — the server withholds it — so there is
+    // deliberately nothing to show for those beyond the words.
+    final hasThumb = !m.viewOnce &&
+        m.mediaStorageId != null &&
+        (m.type == MessageType.image || m.type == MessageType.video);
+
+    return _SelectableRow(
+      theme: theme,
+      selected: selected,
+      selecting: selecting,
+      onTap: onTap,
+      onLongPress: onLongPress,
+      semanticLabel: l10n.roomContentScreenSavedJumpSemantic(m.senderName),
+      leading: hasThumb
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(theme.radiusSm),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: RemoteImage(
+                  storageId: m.mediaStorageId!,
+                  api: api,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            )
+          : Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.surfaceSunken,
+                borderRadius: BorderRadius.circular(theme.radiusSm),
+                border: Border.all(color: theme.divider, width: 0.8),
+              ),
+              // What KIND of message this is, not that it is saved. Every row
+              // in this tab is saved, so a bookmark here would carry no
+              // information — and would then be the second one in the row,
+              // beside the trailing glyph that actually means something.
+              child: Icon(_kindGlyph(m), size: 17, color: theme.accent),
+            ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  m.senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.bodyEmph.copyWith(color: theme.ink),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // The message's own time, not `savedAt`. The list is already
+              // ordered by when it was saved; what a reader needs here is where
+              // in the conversation they are being sent.
+              Text(
+                formatClockTime(m.createdAt),
+                style: theme.monoTiny.copyWith(color: theme.inkMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            messagePreviewLine(m, hasThumbnail: hasThumb),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.caption.copyWith(color: theme.inkMuted),
+          ),
+        ],
+      ),
+      trailing: FocusableTap(
+        onTap: onUnsave,
+        radius: theme.radiusSm,
+        semanticLabel: l10n.roomContentScreenUnsaveSemantic(m.senderName),
+        child: GestureDetector(
+          onTap: onUnsave,
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 4, 6),
+            // Filled, and the only fill in the row: this is the mark the
+            // bubble wears and the action menu fills in, so tapping it to make
+            // the row leave reads as undoing that.
+            child: Icon(CupertinoIcons.bookmark_fill,
+                size: 18, color: theme.accent),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Something to look at for a bookmark with no picture behind it. A saved
+  /// list is the one place in this browser that mixes kinds, so the square
+  /// answers "what is this" rather than repeating "this is saved".
+  static IconData _kindGlyph(ChatMessage m) => switch (m.type) {
+        MessageType.audio => CupertinoIcons.waveform,
+        MessageType.file => CupertinoIcons.doc,
+        MessageType.url => CupertinoIcons.link,
+        // Includes image and video, which only reach here with no storage id —
+        // a view-once photo, or one whose upload never landed. A picture glyph
+        // would promise a picture that is not coming.
+        _ => CupertinoIcons.quote_bubble,
+      };
+}
+
 /// Shared chrome for every list row: a leading square, two lines, and the
 /// selection ring that replaces nothing when selection is off.
 class _SelectableRow extends StatelessWidget {
@@ -899,6 +1140,7 @@ class _SelectableRow extends StatelessWidget {
     this.title,
     this.subtitle,
     this.body,
+    this.trailing,
   });
 
   final AppTheme theme;
@@ -918,6 +1160,11 @@ class _SelectableRow extends StatelessWidget {
 
   /// Replaces the [title]/[subtitle] pair entirely.
   final Widget? body;
+
+  /// A second tap target at the tail of the row, drawn only while selection is
+  /// OFF — the checkbox owns that end once it is on, and the row must be a
+  /// single unambiguous pick target while a batch is being assembled.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -974,6 +1221,7 @@ class _SelectableRow extends StatelessWidget {
                       ],
                     ),
               ),
+              if (!selecting && trailing != null) trailing!,
               if (selecting) ...[
                 const SizedBox(width: 10),
                 AnimatedContainer(

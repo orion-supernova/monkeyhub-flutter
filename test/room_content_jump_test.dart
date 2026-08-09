@@ -158,6 +158,57 @@ void main() {
     expect(body.contains('if (!mounted || jump == null) return;'), isTrue);
   });
 
+  group('saved messages now travel the same road as everything else', () {
+    // They used to have their own: a `SavedMessagesSection` in room info with
+    // its own `_jumpToSaved`, which popped ONCE where `_openContent` pops
+    // twice. Two hand-offs to the same destination is two things to keep
+    // right, and only one of them was ever exercised by the tests above.
+    test('room info owns no second pop path', () {
+      expect(
+        roomInfo.contains('_jumpToSaved'),
+        isFalse,
+        reason: 'the SAVED tab pops through RoomContentScreen like the rest',
+      );
+      expect(roomInfo.contains('SavedMessagesSection'), isFalse);
+    });
+
+    test('the SAVED row is gated on the capability, not on a room name', () {
+      final code = codeOf(
+        roomInfo,
+        'Widget _sharedContent(AppTheme theme, RoomCapabilities caps)',
+      );
+      expect(
+        code.contains('caps.canSaveMessages'),
+        isTrue,
+        reason:
+            'Saved Messages is already the pile of things you kept — routed '
+            'through the capability table, per room_capabilities.dart',
+      );
+      expect(
+        code.contains('RoomContentTab.saved'),
+        isTrue,
+        reason: 'the fifth row is the whole point of the move',
+      );
+    });
+
+    test('and the privacy caption survived the move', () {
+      // The row label cannot carry it: "SAVED" beside MEDIA and FILES reads as
+      // a fifth bucket of the room's stuff, which is exactly the wrong model.
+      // Deleting the block that carried this sentence without rehoming it is
+      // the regression this exists to catch.
+      expect(
+        roomInfo.contains('roomInfoScreenSharedContentSavedNote'),
+        isTrue,
+        reason: 'saved is per-reader, pinned is room state — say so somewhere',
+      );
+      expect(
+        browser.contains('roomContentScreenEmptySaved'),
+        isTrue,
+        reason: 'and again where a reader is most likely to be wondering',
+      );
+    });
+  });
+
   test('the browser pops the whole message, not just an id', () {
     final body = bodyOf(browser, 'void _showInChat(ChatMessage m)');
     expect(

@@ -2084,6 +2084,11 @@ class _RoomScreenState extends State<RoomScreen>
                 final deliveredToOthers = isMine &&
                     othersDelivered != null &&
                     !othersDelivered.isBefore(m.createdAt);
+                // Read on every build rather than snapshotted, so saving from
+                // the action menu marks the bubble on the next frame — the
+                // bookmark subscription notifies the repository, and this list
+                // already rebuilds on that.
+                final saved = widget.repo.isMessageSaved(room.id, m.id);
                 final isPending = m.id.startsWith('tmp_');
                 final selecting = _selection.active;
                 // Same rule the selection bar applies to a whole batch, asked
@@ -2161,6 +2166,7 @@ class _RoomScreenState extends State<RoomScreen>
                               api: widget.api,
                               author: author,
                               parentAuthor: parentAuthor,
+                              saved: saved,
                               replyMarker: replyMarker,
                               grouped: grouped,
                               lastInRun: messageItem.lastInRun,
@@ -2179,6 +2185,7 @@ class _RoomScreenState extends State<RoomScreen>
                               parentAuthor: parentAuthor,
                               seenByOthers: seenByOthers,
                               deliveredToOthers: deliveredToOthers,
+                              saved: saved,
                               replyMarker: replyMarker,
                               grouped: grouped,
                               lastInRun: messageItem.lastInRun,
@@ -2345,6 +2352,7 @@ class _RoomScreenState extends State<RoomScreen>
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
                         deliveredToOthers: deliveredToOthers,
+                        saved: saved,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,
@@ -2376,6 +2384,7 @@ class _RoomScreenState extends State<RoomScreen>
                         highlightT: highlightT,
                         seenByOthers: seenByOthers,
                         deliveredToOthers: deliveredToOthers,
+                        saved: saved,
                         replyMarker: replyMarker,
                         grouped: grouped,
                         lastInRun: messageItem.lastInRun,

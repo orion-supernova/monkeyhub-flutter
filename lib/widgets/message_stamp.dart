@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -86,7 +87,8 @@ MessageReceipt? messageReceipt({
 }
 
 /// Everything a message says about itself once it has been sent: the time, how
-/// far its delivery got, and — for an ephemeral message — how long it has left.
+/// far its delivery got, whether the reader kept it, and — for an ephemeral
+/// message — how long it has left.
 ///
 /// This used to be a row *below* the bubble, which cost every single message a
 /// line of vertical space to show four characters. It now lives inside the
@@ -98,6 +100,14 @@ MessageReceipt? messageReceipt({
 ///    affordable below the bubble and are not affordable inside it: every
 ///    character of status is a character the message body gives up. The words
 ///    live on as the icons' semantics labels.
+///
+/// That second rule is also why [saved] is drawn HERE rather than as a corner
+/// badge over the bubble. A second overlay would need its own ink for four
+/// tones, its own inset clear of the tail gutter and the media tile's corner
+/// radius, and its own answer for RTL — all of which this row already has, and
+/// all of which a photo bubble's dark lozenge already carries. One glyph inside
+/// the row costs the message body about what one tick costs it; a badge outside
+/// it costs a corner of every saved message forever.
 class MessageStamp extends StatelessWidget {
   const MessageStamp({
     super.key,
@@ -106,6 +116,7 @@ class MessageStamp extends StatelessWidget {
     required this.tone,
     this.receipt,
     this.countdown,
+    this.saved = false,
   });
 
   final DateTime createdAt;
@@ -118,6 +129,17 @@ class MessageStamp extends StatelessWidget {
 
   /// Remaining life of an ephemeral message; null on every other message.
   final Duration? countdown;
+
+  /// Whether THIS viewer has this message on their personal shelf — the
+  /// per-reader bookmark of `bookmarks.ts`, never the room-wide pin.
+  ///
+  /// Deliberately outside the status chain below rather than another rung on
+  /// it. Everything in that chain is one claim about where the message got to,
+  /// which is why exactly one of its branches ever draws; this is a claim about
+  /// what the reader did, and it is true at the same time as any of them. So it
+  /// leads the row instead of joining the ladder — a mark on the cluster rather
+  /// than the cluster's last word.
+  final bool saved;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +181,18 @@ class MessageStamp extends StatelessWidget {
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // First in the row, which in RTL means first from the right — a `Row`
+        // resolves its own direction, so nothing here has to know. `_fill`
+        // rather than the outline: it is the same glyph the action menu turns
+        // solid when you save, so the bubble ends up wearing the mark the menu
+        // just handed it.
+        if (saved) ...[
+          Icon(CupertinoIcons.bookmark_fill,
+              size: 10,
+              color: loud,
+              semanticLabel: l10n.messageStampSavedLabel),
+          const SizedBox(width: 5),
+        ],
         if (left != null) ...[
           theme.hourglassIcon(size: 9, color: loud),
           const SizedBox(width: 3),

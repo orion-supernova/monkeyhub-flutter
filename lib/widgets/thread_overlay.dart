@@ -819,10 +819,15 @@ class _ThreadSheetState extends State<_ThreadSheet>
     final deliveredToOthers = mine &&
         othersDelivered != null &&
         !othersDelivered.isBefore(m.createdAt);
+    // Same reasoning as the two cursors above: a reply is one message with two
+    // copies on screen, and a bookmark visible in the transcript underneath but
+    // not in the overlay would read as two different messages.
+    final saved = widget.repo.isMessageSaved(widget.roomId, m.id);
     if (m.isEphemeral) {
       return EphemeralMessageBubble(
         seenByOthers: seenByOthers,
         deliveredToOthers: deliveredToOthers,
+        saved: saved,
         bubbleKey: bubbleKey,
         message: m,
         now: _now,
@@ -851,6 +856,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
     return MessageBubble(
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
+      saved: saved,
       bubbleKey: bubbleKey,
       message: m,
       now: _now,

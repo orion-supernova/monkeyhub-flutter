@@ -23,7 +23,6 @@ import '../widgets/mute_room_sheet.dart';
 import '../widgets/password_field.dart';
 import '../widgets/photo_chrome.dart';
 import '../widgets/remote_image.dart';
-import '../widgets/saved_messages_section.dart';
 import '../widgets/steady_hero.dart';
 import '../widgets/user_avatar.dart';
 import 'fullscreen_image_viewer.dart';
@@ -675,21 +674,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                         const SizedBox(height: 28),
                         FieldLabel(AppLocalizations.of(context).roomInfoScreenSharedContentLabel),
                         const SizedBox(height: 6),
-                        _sharedContent(theme),
-                        // Directly under SHARED CONTENT because the two answer
-                        // adjacent questions — "what has this room produced"
-                        // and "what did I keep out of it" — and the contrast
-                        // is what makes the second one's privacy read. Gated on
-                        // the capability rather than an `isSavedMessages`
-                        // check: a room where saving is meaningless has nothing
-                        // to list either.
+                        _sharedContent(theme, caps),
+                        // The caption the deleted SAVED MESSAGES block used to
+                        // carry, kept because the row label cannot carry it.
+                        // "SAVED" next to MEDIA and FILES reads as a fifth
+                        // bucket of the room's stuff, which is exactly the
+                        // wrong model — and the reader has no way to find out
+                        // otherwise until they have already saved something in
+                        // front of people. Under the group rather than in it:
+                        // it is about one row but it is also the only sentence
+                        // on this screen that says what a pin is, so it sits
+                        // where a caption sits.
                         if (caps.canSaveMessages) ...[
-                          const SizedBox(height: 28),
-                          SavedMessagesSection(
-                            repo: widget.repo,
-                            api: widget.api,
-                            roomId: widget.roomId,
-                            onJump: _jumpToSaved,
+                          const SizedBox(height: 8),
+                          Text(
+                            AppLocalizations.of(context).roomInfoScreenSharedContentSavedNote,
+                            style: theme.bodySoft.copyWith(fontSize: 12),
                           ),
                         ],
                         // "Members (1): you" is not information — and neither
@@ -1119,20 +1119,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
-  /// The four ways into the shared-content browser.
-  ///
-  /// A grouped list rather than a row of tiles. Four tiles across a phone left
-  /// each one about 64pt of content, which is narrower than the word `MEDIA`
-  /// at this letter-spacing — so every label sat on the edge of truncating and
-  /// the whole block read as cramped. Rows have the width to be legible, match
-  /// the rhythm of the members section directly below, and stay right on a
-  /// 720pt desktop pane where four tiles would instead stretch absurdly wide.
-  ///
-  /// Counts come from a separate query so this renders on the frame the screen
-  /// opens rather than waiting on four index scans. A tab whose count has not
-  /// arrived shows nothing at all — never a placeholder dash, which reads as
-  /// "broken" rather than "pending" and is indistinguishable from genuinely
-  /// empty. Once the count IS known, an empty tab says so in words.
   /// What is silenced about this room, and until when — in words, in the
   /// viewer's language, on the screen that exists to explain the room.
   ///
@@ -1210,42 +1196,84 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
   }
 
-  Widget _sharedContent(AppTheme theme) {
-    const rows = <(RoomContentTab, IconData)>[
+  /// The ways into the shared-content browser.
+  ///
+  /// A grouped list rather than a row of tiles. Four tiles across a phone left
+  /// each one about 64pt of content, which is narrower than the word `MEDIA`
+  /// at this letter-spacing — so every label sat on the edge of truncating and
+  /// the whole block read as cramped. Rows have the width to be legible, match
+  /// the rhythm of the members section directly below, and stay right on a
+  /// 720pt desktop pane where four tiles would instead stretch absurdly wide.
+  /// The fifth row costs nothing here that a fifth tile would have cost.
+  ///
+  /// Counts come from a separate query so this renders on the frame the screen
+  /// opens rather than waiting on four index scans. A tab whose count has not
+  /// arrived shows nothing at all — never a placeholder dash, which reads as
+  /// "broken" rather than "pending" and is indistinguishable from genuinely
+  /// empty. Once the count IS known, an empty tab says so in words.
+  ///
+  /// ── The fifth row is not like the other four ──
+  ///
+  /// SAVED lists what THIS reader bookmarked rather than what the room shared,
+  /// which has two consequences visible right here. It is gated on
+  /// [RoomCapabilities.canSaveMessages] — the capability, not an
+  /// `isSavedMessages` check, per `room_capabilities.dart` — so a room where
+  /// saving is meaningless offers no door to a list that can never fill. And
+  /// its count comes off the bookmark subscription instead of
+  /// `roomContent:counts`; see [roomContentCountFor] for why that is cheaper
+  /// AND more current rather than a compromise.
+  ///
+  /// That subscription is also why the group rebuilds on every repository
+  /// notify: `_onRepo` filters those down to room-field changes for the whole
+  /// screen's sake, and a bookmark is not a room field. Five rows is a fraction
+  /// of what the block this replaced rebuilt on the same signal.
+  Widget _sharedContent(AppTheme theme, RoomCapabilities caps) {
+    final rows = <(RoomContentTab, IconData)>[
       (RoomContentTab.media, CupertinoIcons.photo),
       (RoomContentTab.file, CupertinoIcons.doc),
       (RoomContentTab.voice, CupertinoIcons.waveform),
       (RoomContentTab.links, CupertinoIcons.link),
+      // The outline, where every other mark of a save in the app is the fill.
+      // Deliberate: these five icons are doors, not states — a filled bookmark
+      // in a column of line glyphs would read as "this one is on".
+      if (caps.canSaveMessages) (RoomContentTab.saved, CupertinoIcons.bookmark),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surfaceSunken,
-        borderRadius: BorderRadius.circular(theme.radiusMd),
-        border: Border.all(color: theme.divider, width: 1.4),
-      ),
-      // Clipped so the first and last rows' press highlight cannot paint over
-      // the rounded corners.
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0)
-              // Inset to the text column, so the dividers read as separating
-              // rows rather than as a table grid.
-              Padding(
-                padding: const EdgeInsets.only(left: 52),
-                child: Divider(height: 1, thickness: 1, color: theme.divider),
+    return AnimatedBuilder(
+      animation: widget.repo,
+      builder: (context, _) => Container(
+        decoration: BoxDecoration(
+          color: theme.surfaceSunken,
+          borderRadius: BorderRadius.circular(theme.radiusMd),
+          border: Border.all(color: theme.divider, width: 1.4),
+        ),
+        // Clipped so the first and last rows' press highlight cannot paint over
+        // the rounded corners.
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                // Inset to the text column, so the dividers read as separating
+                // rows rather than as a table grid.
+                Padding(
+                  padding: const EdgeInsets.only(left: 52),
+                  child: Divider(height: 1, thickness: 1, color: theme.divider),
+                ),
+              _SharedContentRow(
+                theme: theme,
+                tab: rows[i].$1,
+                icon: rows[i].$2,
+                count: roomContentCountFor(
+                  rows[i].$1,
+                  serverCounts: _contentCounts,
+                  savedCount: widget.repo.savedFor(widget.roomId).length,
+                ),
+                onTap: () => _openContent(rows[i].$1),
               ),
-            _SharedContentRow(
-              theme: theme,
-              tab: rows[i].$1,
-              icon: rows[i].$2,
-              count: _contentCounts[rows[i].$1.countKey],
-              onTap: () => _openContent(rows[i].$1),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1270,17 +1298,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     );
     if (!mounted || jump == null) return;
     Navigator.of(context).pop(jump);
-  }
-
-  /// Hands a saved message back to whoever pushed this screen, so the
-  /// transcript can travel to it.
-  ///
-  /// Identical in shape to `_openContent`'s return path and for the same
-  /// reason: `RoomScreen` owns the jump machinery, and a route stacked on top
-  /// of it cannot reach any of that. One pop rather than the two `_openContent`
-  /// does — there is no browser in between here, just this screen.
-  void _jumpToSaved(ChatMessage message) {
-    Navigator.of(context).pop(message);
   }
 
   Widget _seg(AppTheme theme, {

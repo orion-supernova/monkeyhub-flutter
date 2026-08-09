@@ -1426,6 +1426,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'अभी तक कोई लिंक नहीं';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'अभी तक कुछ सेव नहीं किया. किसी मैसेज को दबाकर रखें और सेव करें चुनें.\n\nयहाँ आप जो रखते हैं वह सिर्फ़ आपके लिए है — पिन किया गया मैसेज पूरा रूम देखता है.';
+
+  @override
   String get roomContentScreenLoadFailed => 'वह लोड नहीं हो पाया';
 
   @override
@@ -3136,6 +3140,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageStampSeenLabel => 'देखा गया';
 
   @override
+  String get messageStampSavedLabel => 'सेव किया गया';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '$countसे';
   }
@@ -4365,6 +4372,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get roomContentTabLabelLinks => 'लिंक्स';
 
   @override
+  String get roomContentTabLabelSaved => 'सेव किए गए';
+
+  @override
   String get roomContentTabHeaderMedia => 'मीडिया';
 
   @override
@@ -4375,6 +4385,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'लिंक्स';
+
+  @override
+  String get roomContentTabHeaderSaved => 'सेव किए गए';
 
   @override
   String get roomFacetLabelDms => 'डीएम';
@@ -5686,23 +5699,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'उसे सेव नहीं किया जा सका';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'सेव किए गए मैसेज';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'आपके सेव किए मैसेज सिर्फ़ आपको दिखते हैं — पिन किया गया मैसेज इसका उल्टा है: उसे पूरा रूम देखता है.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'इन्हें सिर्फ तुम देख सकते हो, और सिर्फ इसी रूम से। तुम्हारी सेव किए गए मैसेज चैट अलग है।';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'अभी कुछ सेव नहीं हुआ। किसी मैसेज को दबाए रखो और सेव करें चुनो।';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name के सेव किए गए मैसेज पर जाना';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return '$name के मैसेज से सेव हटाना';
   }
 

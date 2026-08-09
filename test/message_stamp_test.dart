@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/backend/chat_api.dart';
@@ -74,6 +75,7 @@ void main() {
     bool isMine = false,
     bool seenByOthers = false,
     bool deliveredToOthers = false,
+    bool saved = false,
   }) => MessageBubble(
     message: m,
     now: DateTime(2026, 3, 1, 12, 4),
@@ -81,6 +83,7 @@ void main() {
     api: api,
     seenByOthers: seenByOthers,
     deliveredToOthers: deliveredToOthers,
+    saved: saved,
     author: ChatUser(id: 'alice', username: 'alice', name: 'Alice'),
   );
 
@@ -400,6 +403,119 @@ void main() {
       // still lands on the top rung rather than falling back to one tick.
       expect(at(seen: true), MessageReceipt.seen);
       expect(at(isMine: false, delivered: true, seen: true), isNull);
+    });
+  });
+
+  group('the bookmark a saved message wears', () {
+    /// The bookmark inside the painted stamp — never the twin's copy, and never
+    /// the row's other glyphs.
+    Finder mark = find.descendant(
+      of: visibleStamp,
+      matching: find.byIcon(CupertinoIcons.bookmark_fill),
+    );
+
+    testWidgets('is absent until this reader saves the message', (tester) async {
+      // The default has to be false everywhere, because a bubble is also drawn
+      // in previews and chrome that have no repository to ask.
+      await tester.pumpWidget(host(bubble(msg())));
+      expect(mark, findsNothing);
+    });
+
+    testWidgets('appears in the stamp, not as a second overlay', (tester) async {
+      await tester.pumpWidget(host(bubble(msg(), saved: true)));
+
+      expect(mark, findsOneWidget);
+      final stamp = tester.getRect(visibleStamp);
+      final glyph = tester.getRect(mark);
+      expect(
+        stamp.contains(glyph.center),
+        isTrue,
+        reason: 'a corner badge would need its own ink, inset and RTL answer',
+      );
+    });
+
+    testWidgets('does not displace what the message says about delivery', (
+      tester,
+    ) async {
+      // The status chain draws exactly one branch because those are one claim
+      // about where the message got to. This is a different claim — what the
+      // reader did — and both are true at once.
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, seenByOthers: true, saved: true)),
+      );
+
+      expect(mark, findsOneWidget);
+      expect(
+        find.descendant(of: visibleStamp, matching: find.byIcon(Icons.done_all)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('leads the row, so it never competes with the tick', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(bubble(msg(), isMine: true, seenByOthers: true, saved: true)),
+      );
+
+      final bookmark = tester.getRect(mark).center.dx;
+      final time = tester.getRect(stampText('12:04')).center.dx;
+      final tick = tester
+          .getRect(
+            find.descendant(
+              of: visibleStamp,
+              matching: find.byIcon(Icons.done_all),
+            ),
+          )
+          .center
+          .dx;
+      expect(bookmark, lessThan(time));
+      expect(time, lessThan(tick));
+    });
+
+    testWidgets('flips with the paragraph in RTL', (tester) async {
+      // Nothing in the stamp resolves a direction by hand — it is a `Row`, so
+      // "leading" becomes the visual right. This is the check that would catch
+      // someone reaching for `left:`/`right:` in here later.
+      await tester.pumpWidget(
+        host(
+          Directionality(
+            textDirection: TextDirection.rtl,
+            child: bubble(msg(), saved: true),
+          ),
+        ),
+      );
+
+      final bookmark = tester.getRect(mark).center.dx;
+      final time = tester.getRect(stampText('12:04')).center.dx;
+      expect(
+        bookmark,
+        greaterThan(time),
+        reason: 'the head of the row is the right-hand end in RTL',
+      );
+    });
+
+    testWidgets('rides the media lozenge rather than the picture', (
+      tester,
+    ) async {
+      // A photo has no bubble to mark, which is exactly why the stamp already
+      // carries its own dark lozenge there — the bookmark gets that for free
+      // instead of needing a second frosted chip in another corner.
+      await tester.pumpWidget(
+        host(
+          bubble(
+            msg(content: '', type: MessageType.image, mediaStorageId: 's1'),
+            saved: true,
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(mark, findsOneWidget);
+      expect(
+        tester.getRect(visibleStamp).contains(tester.getRect(mark).center),
+        isTrue,
+      );
     });
   });
 

@@ -1431,6 +1431,10 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'inga länkar än';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'inget sparat än. håll in ett meddelande och välj SPARA.\n\ndet du sparar här är bara ditt — ett fäst meddelande är det hela rummet ser.';
+
+  @override
   String get roomContentScreenLoadFailed => 'kunde inte läsa in det';
 
   @override
@@ -3141,6 +3145,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get messageStampSeenLabel => 'läst';
 
   @override
+  String get messageStampSavedLabel => 'sparad';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -4375,6 +4382,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get roomContentTabLabelLinks => 'LÄNKAR';
 
   @override
+  String get roomContentTabLabelSaved => 'SPARADE';
+
+  @override
   String get roomContentTabHeaderMedia => 'media';
 
   @override
@@ -4385,6 +4395,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'länkar';
+
+  @override
+  String get roomContentTabHeaderSaved => 'sparade';
 
   @override
   String get roomFacetLabelDms => 'dm';
@@ -5702,23 +5715,16 @@ class AppLocalizationsSv extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'kunde inte spara det';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'SPARADE MEDDELANDEN';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'bara du ser meddelandena du sparar — ett fäst meddelande är tvärtom: hela rummet ser det.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'bara du ser dessa, och bara från det här rummet. din chatt Sparade meddelanden är separat.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'inget sparat än. håll in ett meddelande och välj SPARA.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Hoppa till sparat meddelande från $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Ta bort sparat meddelande från $name';
   }
 

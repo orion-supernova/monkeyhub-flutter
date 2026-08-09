@@ -1461,6 +1461,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'pas encore de liens';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'rien d’enregistré pour l’instant. appuie longuement sur un message et choisis ENREGISTRER.\n\nce que tu gardes ici n’appartient qu’à toi — un message épinglé, lui, est vu par toute la salle.';
+
+  @override
   String get roomContentScreenLoadFailed => 'impossible de charger ça';
 
   @override
@@ -3190,6 +3194,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get messageStampSeenLabel => 'vu';
 
   @override
+  String get messageStampSavedLabel => 'enregistré';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -4428,6 +4435,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get roomContentTabLabelLinks => 'LIENS';
 
   @override
+  String get roomContentTabLabelSaved => 'ENREGISTRÉS';
+
+  @override
   String get roomContentTabHeaderMedia => 'médias';
 
   @override
@@ -4438,6 +4448,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'liens';
+
+  @override
+  String get roomContentTabHeaderSaved => 'enregistrés';
 
   @override
   String get roomFacetLabelDms => 'mp';
@@ -5776,23 +5789,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'impossible d’enregistrer ça';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'MESSAGES ENREGISTRÉS';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'toi seul vois les messages que tu enregistres ; un message épinglé, c’est l’inverse : toute la salle le voit.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'toi seul peux les voir, et seulement depuis ce salon. ta discussion Messages enregistrés est distincte.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'rien d’enregistré pour l’instant. maintiens un message et choisis ENREGISTRER.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Aller au message enregistré de $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Retirer des enregistrés le message de $name';
   }
 
