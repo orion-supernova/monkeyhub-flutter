@@ -117,65 +117,67 @@ class RoomGridTile extends StatelessWidget {
               ),
             const SizedBox(width: 10),
             Expanded(
-              child: Wrap(
-                spacing: 4,
-                runSpacing: 2,
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Mute-resolved, same as room_card.dart: a badge-muted
-                  // room shows neither the pill nor the dot it falls back to.
-                  if (room.visibleUnreadCount > 0)
-                    CountBadge(
-                      count: room.visibleUnreadCount,
-                      mention: room.hasVisibleMention,
-                    )
-                  else if (room.hasUnread)
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: theme.accent,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
-                        ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 4,
+                  children: [
+                    // Mute-resolved, same as room_card.dart: a badge-muted
+                    // room shows neither the pill nor the dot it falls back to.
+                    if (room.visibleUnreadCount > 0)
+                      CountBadge(
+                        count: room.visibleUnreadCount,
+                        mention: room.hasVisibleMention,
+                      )
+                    else if (room.hasUnread)
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: theme.accent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: theme.accent.withValues(alpha: 0.7), blurRadius: 8),
+                          ],
+                        ),
                       ),
-                    ),
-                  // Icons alone up here: the tile has a name, a preview
-                  // line and an unread count to fit as well, and every
-                  // pill explains itself on tap. A DM gets no visibility
-                  // pill at all — "private" is the only thing a
-                  // one-to-one conversation could be.
-                  if (!room.isDm)
-                    VisibilityBadge(
-                      isPublic: room.isPublic,
-                      dense: true,
-                      iconOnly: true,
-                    ),
-                  if (room.hasPassword)
-                    const LockedBadge(dense: true, iconOnly: true),
-                  if (room.isEphemeral && room.messageLifetime != null)
-                    EphemeralBadge(
-                      ttl: room.messageLifetime!,
-                      dense: true,
-                      iconOnly: true,
-                    ),
-                  // Shown for Saved Messages too, same reasoning as
-                  // room_card.dart: pinning it is now a choice, not a given.
-                  if (room.isPinned)
-                    const PinnedBadge(dense: true, iconOnly: true),
-                  // Icon-only here: a tile this narrow has no room for the
-                  // word, and the pill's tap tooltip still spells out which of
-                  // the two switches is on.
-                  if (room.isMuted)
-                    MutedBadge(
-                      dense: true,
-                      iconOnly: true,
-                      silencesNotifications: room.notificationsMuted,
-                      silencesCounts: room.badgesMuted,
-                    ),
-                ],
+                    // Icons alone up here: the tile has a name, a preview
+                    // line and an unread count to fit as well, and every
+                    // pill explains itself on tap. A DM gets no visibility
+                    // pill at all — "private" is the only thing a
+                    // one-to-one conversation could be.
+                    if (!room.isDm)
+                      VisibilityBadge(
+                        isPublic: room.isPublic,
+                        dense: true,
+                        iconOnly: true,
+                      ),
+                    if (room.hasPassword)
+                      const LockedBadge(dense: true, iconOnly: true),
+                    if (room.isEphemeral && room.messageLifetime != null)
+                      EphemeralBadge(
+                        ttl: room.messageLifetime!,
+                        dense: true,
+                        iconOnly: true,
+                      ),
+                    // Shown for Saved Messages too, same reasoning as
+                    // room_card.dart: pinning it is now a choice, not a given.
+                    if (room.isPinned)
+                      const PinnedBadge(dense: true, iconOnly: true),
+                    // Icon-only here: a tile this narrow has no room for the
+                    // word, and the pill's tap tooltip still spells out which of
+                    // the two switches is on.
+                    if (room.isMuted)
+                      MutedBadge(
+                        dense: true,
+                        iconOnly: true,
+                        silencesNotifications: room.notificationsMuted,
+                        silencesCounts: room.badgesMuted,
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
