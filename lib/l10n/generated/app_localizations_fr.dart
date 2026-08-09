@@ -5883,4 +5883,140 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Pas en sourdine';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'appareil photo';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'message vocal';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'note vidéo';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Balayez à deux doigts ou utilisez les flèches pour changer de mode.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode sélectionné';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Enregistrement démarré';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Enregistrement verrouillé. Mains libres.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Enregistrement supprimé';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Enregistrement envoyé';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Enregistrement, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'glissez pour annuler';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'relâchez pour annuler';
+
+  @override
+  String get composerCaptureTapToSendHint => 'appuyez pour envoyer';
+
+  @override
+  String get composerCaptureSendingLabel => 'envoi…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '$seconds s restantes';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'supprimer l\'enregistrement';
+
+  @override
+  String get composerCaptureSendLabel => 'envoyer l\'enregistrement';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'glissez vers le haut pour verrouiller l\'enregistrement';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Microphone requis';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'MonkeyHub a besoin de votre microphone pour enregistrer un message vocal. Activez-le dans les Réglages et réessayez.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Appareil photo requis';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'MonkeyHub a besoin de votre appareil photo et de votre microphone pour enregistrer une note vidéo. Activez-les dans les Réglages et réessayez.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'L\'enregistrement est désactivé par une restriction sur cet appareil.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Ouvrir les Réglages';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'L\'enregistrement n\'est pas disponible sur cet appareil.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Enregistrement interrompu.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'Impossible d\'enregistrer. Vérifiez votre espace libre.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'lire la note vidéo';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'mettre la note vidéo en pause';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'chargement de la note vidéo';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'note vidéo indisponible';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'réessayer la note vidéo';
+
+  @override
+  String get videoNoteMessageRetryHint => 'appuyez pour réessayer';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'supprimer la note vidéo';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'note vidéo';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'PHOTO';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VIDÉO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'démarrer l\'enregistrement';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'arrêter l\'enregistrement';
+
+  @override
+  String get cameraScreenVideoFailedSnack =>
+      'Impossible d\'enregistrer cette vidéo.';
 }

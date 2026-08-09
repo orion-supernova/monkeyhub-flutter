@@ -5807,4 +5807,140 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Inte tystad';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'kamera';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'röstmeddelande';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'videonotis';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Svep med två fingrar eller använd piltangenterna för att byta läge.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode valt';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Inspelning startad';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Inspelning låst. Händerna fria.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Inspelningen kasserades';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Inspelningen skickades';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Spelar in, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'dra för att avbryta';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'släpp för att avbryta';
+
+  @override
+  String get composerCaptureTapToSendHint => 'tryck för att skicka';
+
+  @override
+  String get composerCaptureSendingLabel => 'skickar…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '$seconds s kvar';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'kasta inspelningen';
+
+  @override
+  String get composerCaptureSendLabel => 'skicka inspelningen';
+
+  @override
+  String get composerCaptureLockLabel => 'dra uppåt för att låsa inspelningen';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Mikrofon krävs';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'MonkeyHub behöver din mikrofon för att spela in ett röstmeddelande. Slå på den i Inställningar och försök igen.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Kamera krävs';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'MonkeyHub behöver din kamera och mikrofon för att spela in en videonotis. Slå på dem i Inställningar och försök igen.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'Inspelning är avstängd av en begränsning på den här enheten.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Öppna Inställningar';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'Inspelning är inte tillgänglig på den här enheten.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Inspelningen stoppades.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'Det gick inte att spara inspelningen. Kontrollera ledigt utrymme.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'spela upp videonotis';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'pausa videonotis';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'laddar videonotis';
+
+  @override
+  String get videoNoteMessageUnavailableLabel =>
+      'videonotis är inte tillgänglig';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'försök med videonotisen igen';
+
+  @override
+  String get videoNoteMessageRetryHint => 'tryck för att försöka igen';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'kasta videonotisen';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'videonotis';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'FOTO';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VIDEO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'starta inspelning';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'stoppa inspelning';
+
+  @override
+  String get cameraScreenVideoFailedSnack =>
+      'Det gick inte att spela in videon.';
 }

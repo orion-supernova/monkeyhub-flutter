@@ -745,7 +745,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     switch (result) {
       case CameraReviewed(:final value):
         await _uploadAvatar(value);
-      case CameraPickLibrary():
+      case CameraRecorded():
+      // Unreachable: this call site opens the camera with `allowVideo` left
+      // off, so the VIDEO position never appears and nothing can record.
+      // Named rather than defaulted so that turning video on here becomes a
+      // compile error to answer rather than a clip silently dropped.
+      break;
+    case CameraPickLibrary():
         // The camera's own shortcut into the photo library. `_busy` is already
         // raised, and the library path re-raises it harmlessly.
         await _pickAndUploadAvatarFromLibrary();

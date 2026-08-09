@@ -259,6 +259,7 @@ Future<BulkResult> deleteMessages({
 String _fallbackName(ChatMessage m) => switch (m.type) {
       MessageType.image => 'photo-${m.id}.jpg',
       MessageType.video => 'video-${m.id}.mp4',
+      MessageType.videoNote => 'video-note-${m.id}.mp4',
       MessageType.audio => 'voice-${m.id}.m4a',
       _ => 'file-${m.id}',
     };

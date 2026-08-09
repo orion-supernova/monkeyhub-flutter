@@ -5792,4 +5792,139 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'म्यूट नहीं है';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'कैमरा';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'वॉइस मैसेज';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'वीडियो नोट';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. मोड बदलने के लिए दो उंगलियों से स्वाइप करें या ऐरो कीज़ का उपयोग करें।';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode चुना गया';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'रिकॉर्डिंग शुरू';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'रिकॉर्डिंग लॉक हो गई। हाथ मुक्त।';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'रिकॉर्डिंग हटा दी गई';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'रिकॉर्डिंग भेजी गई';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'रिकॉर्डिंग, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'रद्द करने के लिए स्लाइड करें';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'रद्द करने के लिए छोड़ें';
+
+  @override
+  String get composerCaptureTapToSendHint => 'भेजने के लिए टैप करें';
+
+  @override
+  String get composerCaptureSendingLabel => 'भेजा जा रहा है…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '$seconds सेकंड बाकी';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'रिकॉर्डिंग हटाएँ';
+
+  @override
+  String get composerCaptureSendLabel => 'रिकॉर्डिंग भेजें';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'रिकॉर्डिंग लॉक करने के लिए ऊपर स्लाइड करें';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'माइक्रोफ़ोन चाहिए';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'वॉइस मैसेज रिकॉर्ड करने के लिए MonkeyHub को आपके माइक्रोफ़ोन की ज़रूरत है। इसे सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'कैमरा चाहिए';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'वीडियो नोट रिकॉर्ड करने के लिए MonkeyHub को आपके कैमरे और माइक्रोफ़ोन की ज़रूरत है। इन्हें सेटिंग्स में चालू करें और दोबारा कोशिश करें।';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'इस डिवाइस पर लगी पाबंदी के कारण रिकॉर्डिंग बंद है।';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'सेटिंग्स खोलें';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'इस डिवाइस पर रिकॉर्डिंग उपलब्ध नहीं है।';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'रिकॉर्डिंग रुक गई।';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'रिकॉर्डिंग सेव नहीं हो सकी। खाली जगह जाँचें।';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'वीडियो नोट चलाएँ';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'वीडियो नोट रोकें';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'वीडियो नोट लोड हो रहा है';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'वीडियो नोट उपलब्ध नहीं';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'वीडियो नोट फिर से आज़माएँ';
+
+  @override
+  String get videoNoteMessageRetryHint => 'फिर से आज़माने के लिए टैप करें';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'वीडियो नोट हटाएँ';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'वीडियो नोट';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'फ़ोटो';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'वीडियो';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'रिकॉर्डिंग शुरू करें';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'रिकॉर्डिंग रोकें';
+
+  @override
+  String get cameraScreenVideoFailedSnack => 'वह वीडियो रिकॉर्ड नहीं हो सका।';
 }

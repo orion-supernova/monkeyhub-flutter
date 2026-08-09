@@ -145,6 +145,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.image:
         _openPager(m);
       case MessageType.video:
+      // Opened in the same player. A note plays in a circle in the transcript
+      // because that is where its shape means something; in the browser it is
+      // one video among the rest.
+      case MessageType.videoNote:
         _openVideo(m);
       case MessageType.file:
         _saveOne(m);

@@ -5845,4 +5845,139 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Sin silenciar';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'cámara';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'mensaje de voz';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'nota de vídeo';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Desliza con dos dedos o usa las flechas para cambiar de modo.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode seleccionado';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Grabación iniciada';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Grabación bloqueada. Manos libres.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Grabación descartada';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Grabación enviada';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Grabando, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'desliza para cancelar';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'suelta para cancelar';
+
+  @override
+  String get composerCaptureTapToSendHint => 'toca para enviar';
+
+  @override
+  String get composerCaptureSendingLabel => 'enviando…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return 'quedan $seconds s';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'descartar grabación';
+
+  @override
+  String get composerCaptureSendLabel => 'enviar grabación';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'desliza hacia arriba para bloquear la grabación';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Se necesita el micrófono';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'MonkeyHub necesita tu micrófono para grabar un mensaje de voz. Actívalo en Ajustes e inténtalo de nuevo.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Se necesita la cámara';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'MonkeyHub necesita tu cámara y tu micrófono para grabar una nota de vídeo. Actívalos en Ajustes e inténtalo de nuevo.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'La grabación está desactivada por una restricción de este dispositivo.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Abrir Ajustes';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'La grabación no está disponible en este dispositivo.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Grabación detenida.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'No se pudo guardar la grabación. Comprueba el espacio libre.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'reproducir nota de vídeo';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'pausar nota de vídeo';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'cargando nota de vídeo';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'nota de vídeo no disponible';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'reintentar nota de vídeo';
+
+  @override
+  String get videoNoteMessageRetryHint => 'toca para reintentar';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'descartar nota de vídeo';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'nota de vídeo';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'FOTO';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VÍDEO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'empezar a grabar';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'detener la grabación';
+
+  @override
+  String get cameraScreenVideoFailedSnack => 'No se pudo grabar ese vídeo.';
 }

@@ -159,7 +159,13 @@ class _MomentComposerState extends State<_MomentComposer> {
               _video = null;
             });
           }
-        case CameraPickLibrary():
+        case CameraRecorded():
+        // Unreachable: this call site opens the camera with `allowVideo` left
+        // off, so the VIDEO position never appears and nothing can record.
+        // Named rather than defaulted so that turning video on here becomes a
+        // compile error to answer rather than a clip silently dropped.
+        break;
+      case CameraPickLibrary():
           await _pickFromLibrary();
         case CameraUnavailable():
           // No in-app camera (web, or a denied permission). The system camera

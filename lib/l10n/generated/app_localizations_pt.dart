@@ -5857,6 +5857,142 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Não silenciada';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'câmera';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'mensagem de voz';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'nota de vídeo';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Deslize com dois dedos ou use as setas para mudar de modo.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode selecionado';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Gravação iniciada';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Gravação bloqueada. Mãos livres.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Gravação descartada';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Gravação enviada';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Gravando, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'deslize para cancelar';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'solte para cancelar';
+
+  @override
+  String get composerCaptureTapToSendHint => 'toque para enviar';
+
+  @override
+  String get composerCaptureSendingLabel => 'enviando…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return 'restam $seconds s';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'descartar gravação';
+
+  @override
+  String get composerCaptureSendLabel => 'enviar gravação';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'deslize para cima para bloquear a gravação';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Microfone necessário';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'O MonkeyHub precisa do seu microfone para gravar uma mensagem de voz. Ative-o nas Definições e tente novamente.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Câmera necessária';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'O MonkeyHub precisa da sua câmara e do seu microfone para gravar uma nota de vídeo. Ative-os nas Definições e tente novamente.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'A gravação está desativada por uma restrição neste dispositivo.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Abrir Definições';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'A gravação não está disponível neste dispositivo.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Gravação interrompida.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'Não foi possível guardar a gravação. Verifique o espaço livre.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'reproduzir nota de vídeo';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'pausar nota de vídeo';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'a carregar nota de vídeo';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'nota de vídeo indisponível';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'tentar novamente a nota de vídeo';
+
+  @override
+  String get videoNoteMessageRetryHint => 'toque para tentar novamente';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'descartar nota de vídeo';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'nota de vídeo';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'FOTO';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VÍDEO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'iniciar gravação';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'parar gravação';
+
+  @override
+  String get cameraScreenVideoFailedSnack =>
+      'Não foi possível gravar esse vídeo.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -11709,4 +11845,140 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Não silenciada';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'câmera';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'mensagem de voz';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'nota de vídeo';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Deslize com dois dedos ou use as setas para mudar de modo.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode selecionado';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Gravação iniciada';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Gravação bloqueada. Mãos livres.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Gravação descartada';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Gravação enviada';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Gravando, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'deslize para cancelar';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'solte para cancelar';
+
+  @override
+  String get composerCaptureTapToSendHint => 'toque para enviar';
+
+  @override
+  String get composerCaptureSendingLabel => 'enviando…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return 'restam $seconds s';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'descartar gravação';
+
+  @override
+  String get composerCaptureSendLabel => 'enviar gravação';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'deslize para cima para bloquear a gravação';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Microfone necessário';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'O MonkeyHub precisa do seu microfone para gravar uma mensagem de voz. Ative nas Configurações e tente de novo.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Câmera necessária';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'O MonkeyHub precisa da sua câmera e do seu microfone para gravar uma nota de vídeo. Ative nas Configurações e tente de novo.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'A gravação está desativada por uma restrição neste dispositivo.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Abrir Configurações';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'A gravação não está disponível neste dispositivo.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Gravação interrompida.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'Não foi possível salvar a gravação. Verifique o espaço livre.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'reproduzir nota de vídeo';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'pausar nota de vídeo';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'carregando nota de vídeo';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'nota de vídeo indisponível';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'tentar novamente a nota de vídeo';
+
+  @override
+  String get videoNoteMessageRetryHint => 'toque para tentar de novo';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'descartar nota de vídeo';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'nota de vídeo';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'FOTO';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VÍDEO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'iniciar gravação';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'parar gravação';
+
+  @override
+  String get cameraScreenVideoFailedSnack =>
+      'Não foi possível gravar esse vídeo.';
 }

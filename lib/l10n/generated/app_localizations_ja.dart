@@ -5562,4 +5562,134 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'ミュートしていません';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'カメラ';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'ボイスメッセージ';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'ビデオメッセージ';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode。2本指でスワイプするか矢印キーでモードを変更できます。';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$modeを選択しました';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => '録音を開始しました';
+
+  @override
+  String get composerCaptureLockedAnnouncement => '録音をロックしました。手を離せます。';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => '録音を破棄しました';
+
+  @override
+  String get composerCaptureSentAnnouncement => '録音を送信しました';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return '録音中、$elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'スライドでキャンセル';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => '離してキャンセル';
+
+  @override
+  String get composerCaptureTapToSendHint => 'タップで送信';
+
+  @override
+  String get composerCaptureSendingLabel => '送信中…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '残り$seconds秒';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => '録音を破棄';
+
+  @override
+  String get composerCaptureSendLabel => '録音を送信';
+
+  @override
+  String get composerCaptureLockLabel => '上にスライドして録音をロック';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'マイクが必要です';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'ボイスメッセージを録音するにはマイクが必要です。設定でオンにしてからもう一度お試しください。';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'カメラが必要です';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'ビデオメッセージを録画するにはカメラとマイクが必要です。設定でオンにしてからもう一度お試しください。';
+
+  @override
+  String get composerCaptureRestrictedBody => 'この端末の制限により録音・録画が無効になっています。';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => '設定を開く';
+
+  @override
+  String get composerCaptureUnavailableSnack => 'この端末では録音・録画を利用できません。';
+
+  @override
+  String get composerCaptureInterruptedSnack => '録音を停止しました。';
+
+  @override
+  String get composerCaptureStorageSnack => '録音を保存できませんでした。空き容量を確認してください。';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'ビデオメッセージを再生';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'ビデオメッセージを一時停止';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'ビデオメッセージを読み込み中';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'ビデオメッセージを利用できません';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'ビデオメッセージを再試行';
+
+  @override
+  String get videoNoteMessageRetryHint => 'タップで再試行';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'ビデオメッセージを破棄';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'ビデオ';
+
+  @override
+  String get cameraScreenPhotoModeLabel => '写真';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'ビデオ';
+
+  @override
+  String get cameraScreenStartRecordingLabel => '録画を開始';
+
+  @override
+  String get cameraScreenStopRecordingLabel => '録画を停止';
+
+  @override
+  String get cameraScreenVideoFailedSnack => '動画を録画できませんでした。';
 }

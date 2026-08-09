@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show File;
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
@@ -10,8 +11,10 @@ import 'package:flutter/services.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/preview_luminance.dart';
+import '../media/video_poster.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/photo_chrome.dart';
+import 'room_items.dart' show formatClockDuration;
 
 /// In-app camera. Shutter → the photo, immediately.
 ///
@@ -39,7 +42,17 @@ class CameraScreen<T> extends StatefulWidget {
     super.key,
     required this.review,
     this.initialLens = CameraLensDirection.back,
+    this.allowVideo = false,
   });
+
+  /// Whether the PHOTO/VIDEO switch is offered at all.
+  ///
+  /// Off by default, and both non-chat callers leave it off: an avatar is a
+  /// still and a moment is a still, so a mode switch there would be a control
+  /// that can only produce something the caller cannot accept. Chat turns it
+  /// on, which is the whole reason this exists — the camera button used to be
+  /// able to take a photograph and nothing else.
+  final bool allowVideo;
 
   /// Which lens to open on. Avatars open front — you are photographing
   /// yourself; chat opens back.
@@ -61,6 +74,7 @@ class CameraScreen<T> extends StatefulWidget {
     BuildContext context, {
     required CameraReviewer<T> review,
     CameraLensDirection initialLens = CameraLensDirection.back,
+    bool allowVideo = false,
   }) {
     return Navigator.of(context).push<CameraResult<T>>(
       MaterialPageRoute(
@@ -68,6 +82,7 @@ class CameraScreen<T> extends StatefulWidget {
         builder: (_) => CameraScreen<T>(
           review: review,
           initialLens: initialLens,
+          allowVideo: allowVideo,
         ),
       ),
     );
@@ -143,6 +158,33 @@ class CameraPhoto {
   final bool mirrored;
 }
 
+/// The user recorded a video and stopped. Unlike a photograph there is no
+/// review surface in between: this app has no video editor, and inventing a
+/// confirm step for a clip the user just watched themselves record would be the
+/// same unwanted second confirmation that made owning this camera worthwhile in
+/// the first place.
+class CameraRecorded<T> extends CameraResult<T> {
+  const CameraRecorded(this.video);
+  final CameraVideo video;
+}
+
+/// A recorded clip, on its way back to the caller.
+///
+/// Carries a poster because extracting one needs the file, and the file is
+/// deleted on the way out of this screen — there is no later moment at which
+/// anybody still has a path to extract from.
+class CameraVideo {
+  const CameraVideo({
+    required this.bytes,
+    required this.durationMs,
+    this.posterBytes,
+  });
+
+  final Uint8List bytes;
+  final int durationMs;
+  final Uint8List? posterBytes;
+}
+
 /// The user asked for the photo library instead. The caller owns the picker.
 class CameraPickLibrary<T> extends CameraResult<T> {
   const CameraPickLibrary();
@@ -199,6 +241,22 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 
   _Fault? _fault;
   bool _capturing = false;
+
+  _CaptureMode _mode = _CaptureMode.photo;
+  bool _recording = false;
+  DateTime? _recordStartedAt;
+  Duration _recordElapsed = Duration.zero;
+  Timer? _recordTicker;
+
+  /// Ceiling on an in-camera video.
+  ///
+  /// Not a plugin limit — a budget one. `ChatRepository` holds every unfinished
+  /// upload's bytes in memory against a 48 MB cap, and 60 seconds at the 720p
+  /// this records lands comfortably inside it where an unbounded recording
+  /// would not. The countdown in the last ten seconds is what makes the cap
+  /// fair rather than abrupt.
+  static const _maxVideo = Duration(seconds: 60);
+  static const _videoWarning = Duration(seconds: 10);
 
   /// The capture being reviewed on top of this route, or null when the camera
   /// is the thing on screen.
@@ -266,6 +324,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _recordTicker?.cancel();
     _controller?.removeListener(_onControllerUpdate);
     _controller?.dispose();
     super.dispose();
@@ -279,6 +338,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
+      // Stopped, and discarded, BEFORE the session goes: a recording left
+      // running into a dispose leaves a half-written file nobody will ever
+      // read, and on iOS an AVAssetWriter torn down mid-write can hang the
+      // next session. Discarded rather than kept because a clip the user did
+      // not choose to end is not one to hand them a send button for.
+      if (_recording) {
+        unawaited(_stopVideo(discard: true).then((_) => _release()));
+        return;
+      }
       unawaited(_release());
     } else if (state == AppLifecycleState.resumed) {
       // Not while the review surface is up: the user is looking at a photo, and
@@ -338,18 +406,25 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
     previous?.removeListener(_onControllerUpdate);
     await previous?.dispose();
 
+    final video = _mode == _CaptureMode.video;
     final controller = CameraController(
       description,
-      // The session preset caps the *photo* output too, and the plugin never
-      // uses AVCaptureSessionPreset.photo — so this is a 1920×1080 JPEG, which
-      // is the right size for a sent photo and leaves headroom for the 1024px
-      // avatar crop. `high` would be 720p; `max` would trade a full-sensor
-      // capture for materially worse shutter latency.
-      ResolutionPreset.veryHigh,
-      // Stills only. Requesting audio would trigger a microphone permission
-      // prompt the user has no reason to connect with taking a photo, and adds
-      // a second capture session to start.
-      enableAudio: false,
+      // Photo: the session preset caps the *photo* output too, and the plugin
+      // never uses AVCaptureSessionPreset.photo — so this is a 1920×1080 JPEG,
+      // which is the right size for a sent photo and leaves headroom for the
+      // 1024px avatar crop. `max` would trade a full-sensor capture for
+      // materially worse shutter latency.
+      //
+      // Video: 720p rather than 1080p, deliberately. A minute of 1080p is
+      // 40-50 MB — past the repository's whole 48 MB retained-upload budget on
+      // its own — and the difference is invisible in a chat bubble.
+      video ? ResolutionPreset.high : ResolutionPreset.veryHigh,
+      // Audio only in video mode. Asking for the microphone to take a
+      // photograph would be a permission prompt the user cannot connect with
+      // what they are doing, and a second capture session to start on a path
+      // that will never use it. This is also why switching modes rebinds the
+      // controller: `enableAudio` is fixed at construction.
+      enableAudio: video,
     );
 
     try {
@@ -424,8 +499,150 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 
   // ------------------------------------------------------------------ actions
 
+  /// Switches between stills and video.
+  ///
+  /// Rebinds the controller, because `enableAudio` and the session preset are
+  /// both fixed at construction. That costs a few hundred milliseconds of black
+  /// preview, which is why the switch is a deliberate two-position control
+  /// rather than something a stray swipe can trip.
+  Future<void> _setMode(_CaptureMode mode) async {
+    if (_mode == mode || _capturing || _recording) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _mode = mode;
+      _recordElapsed = Duration.zero;
+    });
+    await _select(_lens);
+  }
+
+  Future<void> _startVideo() async {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (_recording || _capturing) return;
+    // Streaming frames and recording at the same time is the same Android
+    // conflict `_capture` documents, and the metering decision is not needed
+    // once recording has begun.
+    if (_metering) {
+      try {
+        await controller.stopImageStream();
+      } catch (_) {}
+      _metering = false;
+    }
+    try {
+      await controller.startVideoRecording();
+    } on CameraException catch (e) {
+      _fail(e);
+      return;
+    } catch (e) {
+      debugPrint('startVideoRecording: $e');
+      if (mounted) setState(() => _fault = _Fault.failed);
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    if (!mounted) {
+      // Stopped rather than left running: this route is going away and nothing
+      // downstream will ever ask for the file.
+      try {
+        final file = await controller.stopVideoRecording();
+        await File(file.path).delete();
+      } catch (_) {}
+      return;
+    }
+    _recordStartedAt = DateTime.now();
+    setState(() {
+      _recording = true;
+      _recordElapsed = Duration.zero;
+    });
+    _recordTicker?.cancel();
+    _recordTicker = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      final started = _recordStartedAt;
+      if (!mounted || started == null) return;
+      final elapsed = DateTime.now().difference(started);
+      setState(() => _recordElapsed = elapsed);
+      if (elapsed >= _maxVideo) unawaited(_stopVideo());
+    });
+  }
+
+  /// Stops and pops with the clip, or — with [discard] — throws it away.
+  ///
+  /// [discard] is the backgrounding path: the OS is about to take the capture
+  /// session and a clip the user did not choose to end is not one to hand them
+  /// a send button for.
+  Future<void> _stopVideo({bool discard = false}) async {
+    final controller = _controller;
+    _recordTicker?.cancel();
+    _recordTicker = null;
+    final started = _recordStartedAt;
+    _recordStartedAt = null;
+    if (controller == null || !_recording) return;
+    setState(() {
+      _recording = false;
+      _capturing = true;
+    });
+
+    XFile? file;
+    try {
+      file = await controller.stopVideoRecording();
+    } catch (e) {
+      debugPrint('stopVideoRecording: $e');
+    }
+    if (file == null) {
+      if (mounted) setState(() => _capturing = false);
+      return;
+    }
+    if (discard) {
+      try {
+        await File(file.path).delete();
+      } catch (_) {}
+      if (mounted) setState(() => _capturing = false);
+      return;
+    }
+
+    Uint8List bytes;
+    Uint8List? poster;
+    try {
+      // The poster first: it needs the file, and the file is deleted below.
+      // Best-effort, exactly as it is on the gallery path — a clip that sends
+      // without a still is fine, a clip that fails to send because its still
+      // could not be made is not.
+      // Guarded on the expression, not on the screen: `XFile.path` is a
+      // `blob:` URL on web with no filesystem behind it, and `video_thumbnail`
+      // has no web implementation to receive it either. See
+      // `video_poster_gate_test`.
+      poster = kIsWeb ? null : await VideoPoster.extract(file.path);
+      bytes = await file.readAsBytes();
+    } catch (e) {
+      debugPrint('reading recorded video: $e');
+      try {
+        await File(file.path).delete();
+      } catch (_) {}
+      if (mounted) setState(() => _capturing = false);
+      return;
+    }
+    // Deleted here rather than left for the OS: this is the file that leaks on
+    // every recording if nothing removes it, and nothing downstream ever sees
+    // the path.
+    try {
+      await File(file.path).delete();
+    } catch (_) {}
+    if (!mounted) return;
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop<CameraResult<T>>(
+      CameraRecorded<T>(
+        CameraVideo(
+          bytes: bytes,
+          durationMs: (started == null
+                  ? _recordElapsed
+                  : DateTime.now().difference(started))
+              .inMilliseconds,
+          posterBytes: poster,
+        ),
+      ),
+    );
+  }
+
   Future<void> _flip() async {
-    if (_cameras.length < 2 || _capturing) return;
+    if (_cameras.length < 2 || _capturing || _recording) return;
     HapticFeedback.selectionClick();
     await _select(
       _isFront ? CameraLensDirection.back : CameraLensDirection.front,
@@ -644,6 +861,12 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   // ------------------------------------------------------------------ capture
 
   Future<void> _capture() async {
+    if (_mode == _CaptureMode.video) {
+      // One button, two meanings, and the glyph under the finger already says
+      // which — the shutter draws a red disc in video mode and a red square
+      // while recording.
+      return _recording ? _stopVideo() : _startVideo();
+    }
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized || _capturing) {
       return;
@@ -744,7 +967,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   }
 
   void _pop(CameraResult<T> result) {
-    if (_capturing) return;
+    if (_capturing || _recording) return;
     Navigator.of(context).pop<CameraResult<T>>(result);
   }
 
@@ -940,13 +1163,23 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                 icon: CupertinoIcons.xmark,
                 semanticLabel:
                     AppLocalizations.of(context).cameraScreenCloseButtonLabel,
-                onTap: _capturing ? null : () => Navigator.of(context).pop(),
+                onTap: _capturing || _recording
+                    ? null
+                    : () => Navigator.of(context).pop(),
               ),
               const Spacer(),
+              if (_recording) ...[
+                _RecordingBadge(
+                  elapsed: _recordElapsed,
+                  remaining: _maxVideo - _recordElapsed,
+                  warnAt: _videoWarning,
+                ),
+                const Spacer(),
+              ],
               // Brightens a dark scene by pushing exposure compensation. Not
               // Apple's Night Mode — no plugin exposes that — so it is labelled
               // for what it does rather than for what it resembles.
-              if (_ready && _boostAvailable) ...[
+              if (_ready && _boostAvailable && !_recording) ...[
                 PhotoGlassButton(
                   icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
                   semanticLabel: _boost
@@ -965,7 +1198,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               // Offered on the selfie lens too. It has no flash unit, but it
               // has a screen pointed straight at the subject, which is what
               // fires instead — see [_usesScreenFlash].
-              if (_ready && _lensControls && _flashAvailable)
+              if (_ready && _lensControls && _flashAvailable && !_recording)
                 PhotoGlassButton(
                   icon: switch (_flash) {
                     FlashMode.auto => CupertinoIcons.bolt_badge_a_fill,
@@ -990,6 +1223,21 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             bottom: 108,
             child: Center(child: _zoomPill()),
           ),
+          // Above the shutter, the way every phone camera puts it. Hidden while
+          // recording: switching mid-clip is not a thing that can be honoured,
+          // and a control that refuses taps is worse than one that isn't there.
+          if (widget.allowVideo && !_recording)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 84,
+              child: Center(
+                child: _ModeSwitch(
+                  mode: _mode,
+                  onChanged: _capturing ? null : _setMode,
+                ),
+              ),
+            ),
           Positioned(
             left: 12,
             right: 12,
@@ -998,19 +1246,21 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               children: [
                 SizedBox(
                   width: 46,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: PhotoGlassButton(
-                      icon: CupertinoIcons.photo_on_rectangle,
-                      semanticLabel: AppLocalizations.of(context)
-                          .cameraScreenChooseFromLibraryLabel,
-                      size: 38,
-                      iconSize: 17,
-                      onTap: _capturing
-                          ? null
-                          : () => _pop(CameraPickLibrary<T>()),
-                    ),
-                  ),
+                  child: _recording
+                      ? null
+                      : Align(
+                          alignment: Alignment.centerLeft,
+                          child: PhotoGlassButton(
+                            icon: CupertinoIcons.photo_on_rectangle,
+                            semanticLabel: AppLocalizations.of(context)
+                                .cameraScreenChooseFromLibraryLabel,
+                            size: 38,
+                            iconSize: 17,
+                            onTap: _capturing
+                                ? null
+                                : () => _pop(CameraPickLibrary<T>()),
+                          ),
+                        ),
                 ),
                 Expanded(
                   child: Center(
@@ -1019,12 +1269,14 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                       // while the session starts rather than appearing piecemeal.
                       onTap: _ready && !_capturing ? _capture : null,
                       busy: _capturing || !_ready,
+                      video: _mode == _CaptureMode.video,
+                      recording: _recording,
                     ),
                   ),
                 ),
                 SizedBox(
                   width: 46,
-                  child: _cameras.length < 2
+                  child: _cameras.length < 2 || _recording
                       ? null
                       : Align(
                           alignment: Alignment.centerRight,
@@ -1073,15 +1325,30 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 /// Why the camera isn't showing, when it isn't.
 enum _Fault { denied, unavailable, failed }
 
+/// What the shutter produces.
+enum _CaptureMode { photo, video }
+
 /// The shutter. A ring with an inner disc, the way every camera has looked
 /// since the first one shipped with a touchscreen — deliberately the one
 /// control on this screen that is not glass, because it is the only one you
 /// should be able to find without looking.
 class _ShutterButton extends StatefulWidget {
-  const _ShutterButton({required this.onTap, required this.busy});
+  const _ShutterButton({
+    required this.onTap,
+    required this.busy,
+    this.video = false,
+    this.recording = false,
+  });
 
   final VoidCallback? onTap;
   final bool busy;
+
+  /// Draws the inner disc red rather than white, so the button says what it
+  /// will do before it is pressed rather than only afterwards.
+  final bool video;
+
+  /// Collapses the disc into a rounded square — the universal "stop".
+  final bool recording;
 
   @override
   State<_ShutterButton> createState() => _ShutterButtonState();
@@ -1093,9 +1360,14 @@ class _ShutterButtonState extends State<_ShutterButton> {
   @override
   Widget build(BuildContext context) {
     final enabled = widget.onTap != null;
+    final l10n = AppLocalizations.of(context);
     return FocusableTap(
       onTap: widget.onTap,
-      semanticLabel: AppLocalizations.of(context).cameraScreenTakePhotoLabel,
+      semanticLabel: !widget.video
+          ? l10n.cameraScreenTakePhotoLabel
+          : widget.recording
+              ? l10n.cameraScreenStopRecordingLabel
+              : l10n.cameraScreenStartRecordingLabel,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         onTap: widget.onTap,
@@ -1121,16 +1393,21 @@ class _ShutterButtonState extends State<_ShutterButton> {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 110),
                   curve: Curves.easeOut,
-                  width: _pressed ? 50 : 58,
-                  height: _pressed ? 50 : 58,
+                  width: widget.recording ? 30 : (_pressed ? 50 : 58),
+                  height: widget.recording ? 30 : (_pressed ? 50 : 58),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: PhotoChrome.ink.withValues(
-                      alpha: widget.busy ? 0.4 : 1,
-                    ),
+                    // A circle everywhere except mid-recording, where the
+                    // rounded square is the stop glyph every camera has used
+                    // since phones had one.
+                    shape:
+                        widget.recording ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius:
+                        widget.recording ? BorderRadius.circular(6) : null,
+                    color: (widget.video ? _recordRed : PhotoChrome.ink)
+                        .withValues(alpha: widget.busy ? 0.4 : 1),
                   ),
                 ),
-                if (widget.busy)
+                if (widget.busy && !widget.recording)
                   const PhotoSpinner(size: 22, color: Colors.black54),
               ],
             ),
@@ -1185,6 +1462,132 @@ class _FocusReticleState extends State<_FocusReticle>
           ),
         );
       },
+    );
+  }
+}
+
+/// The red every recording affordance on this screen shares.
+const _recordRed = Color(0xFFFF3B30);
+
+/// PHOTO | VIDEO, the two-position control above the shutter.
+///
+/// Labels rather than icons, and a segmented pill rather than the swipeable
+/// carousel the system cameras use. A carousel is a horizontal drag over the
+/// preview, and this screen already spends horizontal drags on pinch-zoom and
+/// vertical ones on nothing — adding a third meaning to a gesture over a live
+/// viewfinder is how you get a mode change every time somebody tries to frame
+/// a shot.
+class _ModeSwitch extends StatelessWidget {
+  const _ModeSwitch({required this.mode, required this.onChanged});
+
+  final _CaptureMode mode;
+  final ValueChanged<_CaptureMode>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PhotoGlassSurface(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _segment(_CaptureMode.photo, l10n.cameraScreenPhotoModeLabel),
+            _segment(_CaptureMode.video, l10n.cameraScreenVideoModeLabel),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _segment(_CaptureMode value, String label) {
+    final selected = mode == value;
+    return FocusableTap(
+      onTap: onChanged == null || selected ? null : () => onChanged!(value),
+      semanticLabel: label,
+      selected: selected,
+      shape: FocusRingShape.capsule,
+      radius: 16,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onChanged == null || selected ? null : () => onChanged!(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: selected
+                ? PhotoChrome.ink.withValues(alpha: 0.16)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? PhotoChrome.ink : PhotoChrome.inkDim,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.6,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The pulsing dot and running time shown at the top while recording, with the
+/// countdown that takes over in the last ten seconds.
+///
+/// The countdown is not decoration: the sixty-second cap stops the recording on
+/// its own, and a cap the user cannot see coming reads as the app crashing
+/// rather than as a limit.
+class _RecordingBadge extends StatelessWidget {
+  const _RecordingBadge({
+    required this.elapsed,
+    required this.remaining,
+    required this.warnAt,
+  });
+
+  final Duration elapsed;
+  final Duration remaining;
+  final Duration warnAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final counting = remaining <= warnAt;
+    final seconds = remaining.inSeconds < 0 ? 0 : remaining.inSeconds;
+    return PhotoGlassSurface(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: _recordRed,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              counting
+                  ? AppLocalizations.of(context).composerCaptureTimeLeft(seconds)
+                  : formatClockDuration(elapsed),
+              style: TextStyle(
+                color: counting ? _recordRed : PhotoChrome.ink,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                decoration: TextDecoration.none,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

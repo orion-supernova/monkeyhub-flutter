@@ -31,6 +31,7 @@ import 'steady_hero.dart';
 import 'reply_indicator.dart';
 import 'user_avatar.dart';
 import 'video_message.dart';
+import 'video_note_message.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
@@ -819,6 +820,12 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
     case MessageType.file:
     case MessageType.system:
       return true;
+    case MessageType.videoNote:
+      // The one media shape with nowhere to tuck a stamp: a round tile has no
+      // bottom-right corner to lay one over, and a lozenge floating beside the
+      // circle's edge reads as a detached label rather than part of the bubble.
+      // It keeps the external timestamp row, the same as a bare error plate.
+      return false;
     case MessageType.text:
     case MessageType.url:
       return !_isStandaloneLinkCard(message, showLinkUrls);
@@ -1222,6 +1229,34 @@ Widget buildMessageContent({
                 onMentionTap: onMentionTap),
           ),
         ],
+      );
+    case MessageType.videoNote:
+      // Everything about the circle lives in `video_note_message.dart`, the way
+      // audio and documents already live in files of their own. One branch here
+      // and nothing else in this file knows the shape exists.
+      final noteUpload = message.upload;
+      final noteSize = math.min(metrics?.videoMaxWidth ?? 200.0, 200.0);
+      if (noteUpload != null) {
+        return ValueListenableBuilder<double?>(
+          valueListenable: noteUpload.progress,
+          builder: (context, value, _) => OutboundVideoNote(
+            theme: theme,
+            diameter: noteSize,
+            failed: message.status == MessageStatus.error,
+            progress: value,
+            posterBytes: noteUpload.posterBytes,
+            onRetry: onRetrySend,
+            onDiscard: onDiscardSend,
+          ),
+        );
+      }
+      return VideoNoteMessage(
+        api: api,
+        storageId: message.mediaStorageId,
+        isMine: isMine,
+        posterStorageId: message.posterStorageId,
+        durationMs: message.mediaDurationMs,
+        diameter: noteSize,
       );
     case MessageType.system:
       return Container(

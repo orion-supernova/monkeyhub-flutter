@@ -457,7 +457,7 @@ export default defineSchema({
     createdAt: v.number(),
     edited: v.optional(v.boolean()),
     // New fields
-    type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "file" | "url" | "system"
+    type: v.optional(v.string()),            // "text" | "image" | "video" | "videoNote" | "audio" | "file" | "url" | "system"
     mediaStorageId: v.optional(v.id("_storage")),
     // Pixel size of `mediaStorageId`, recorded by the sender who already holds
     // it. A photo bubble lays out at the picture's own ratio, and without this

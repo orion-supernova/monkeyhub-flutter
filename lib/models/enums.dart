@@ -4,7 +4,7 @@ enum RoomType { regular, secret }
 
 /// Ordering is free: [MessageTypeWire.wire] is `name`, so nothing anywhere
 /// depends on the index.
-enum MessageType { text, image, video, audio, file, url, system }
+enum MessageType { text, image, video, audio, file, url, system, videoNote }
 
 /// Where an outgoing message is in its journey.
 ///
@@ -57,6 +57,12 @@ extension MessageTypeWire on MessageType {
         return MessageType.image;
       case 'video':
         return MessageType.video;
+      // Its own type rather than a flag on `video`, because every read path
+      // that lays a message out has to know the difference before it can
+      // choose a shape — and a bool nobody remembered to check renders a
+      // circular note as a 16∶9 tile.
+      case 'videoNote':
+        return MessageType.videoNote;
       case 'audio':
         return MessageType.audio;
       case 'file':

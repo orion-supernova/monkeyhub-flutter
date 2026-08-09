@@ -51,6 +51,11 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
     case MessageType.video:
       if (m.content.isNotEmpty) return m.content;
       return hasThumbnail ? '' : 'video';
+    case MessageType.videoNote:
+      // Named apart from a plain video on purpose: the two are different
+      // things to receive, and a row that said "video" for both would make a
+      // four-second face indistinguishable from a 40 MB clip.
+      return 'video note';
     case MessageType.audio:
       return 'voice message';
     case MessageType.file:

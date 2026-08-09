@@ -46,7 +46,10 @@ import '../widgets/approval_gate.dart';
 import '../widgets/attachment_menu.dart';
 import '../widgets/bulk_action_bar.dart';
 import '../widgets/busy_scrim.dart';
+import '../composer/capture_machine.dart';
+import '../composer/capture_recorder.dart';
 import '../widgets/chat_composer.dart';
+import '../widgets/composer_capture.dart';
 import '../widgets/chat_pane.dart';
 import '../widgets/destructive_sheet.dart' show showConfirmSheet;
 import '../widgets/forward_target_sheet.dart';
@@ -640,6 +643,7 @@ class _RoomScreenState extends State<RoomScreen>
       UiSelectionStore.instance.selectRoom(null);
     }
     _ticker.cancel();
+    _captureController.dispose();
     // Before the controller: the session is a listener on it.
     _mention.removeListener(_onMentionChanged);
     _mention.dispose();
@@ -1201,6 +1205,63 @@ class _RoomScreenState extends State<RoomScreen>
     return true;
   }
 
+  /// The handle the attachment sheet uses to reach the composer's recording
+  /// modes. See [ComposerCaptureController].
+  final _captureController = ComposerCaptureController();
+
+  /// What the composer's capture control is allowed to do in this room.
+  ///
+  /// Rebuilt on every `build` rather than cached, because it closes over
+  /// `context` and over the room's live media permission — a `ComposerCapture`
+  /// held across a permission change would keep offering a camera a supervised
+  /// account has just lost.
+  ComposerCapture get _composerCapture => ComposerCapture(
+        modes: ComposerInputMode.values,
+        controller: _captureController,
+        onCamera: _onCamera,
+        onCaptured: _onCaptured,
+        onProblem: _onCaptureProblem,
+      );
+
+  /// A finished recording, straight into the same optimistic send path a photo
+  /// takes. No separate upload flow: `sendMediaLocal` already owns the bubble,
+  /// the retained-bytes budget, the retry and the reconnect sweepers, and a
+  /// second path would have to grow all four again.
+  void _onCaptured(ComposerInputMode mode, CaptureOutcome outcome) {
+    if (!mounted) return;
+    // Checked here rather than at the start of the recording so a supervised
+    // account that loses the permission mid-hold cannot post what it recorded.
+    // The bytes are simply dropped — the temp file is already gone.
+    if (FamilyService.maybeInstance?.canSendMedia == false) {
+      unawaited(showApprovalGate(
+        context,
+        what: AppLocalizations.of(context).roomScreenGateSendMedia,
+        canAsk: false,
+      ));
+      return;
+    }
+    _sendMedia(
+      bytes: outcome.bytes,
+      type: mode == ComposerInputMode.videoNote
+          ? MessageType.videoNote
+          : MessageType.audio,
+      contentType: outcome.contentType,
+      posterBytes: outcome.posterBytes,
+      mediaDurationMs: outcome.duration.inMilliseconds,
+    );
+  }
+
+  void _onCaptureProblem(CaptureFailure failure) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    unawaited(showCaptureProblem(
+      context,
+      failure,
+      onMessage: (message) =>
+          messenger.showSnackBar(SnackBar(content: Text(message))),
+    ));
+  }
+
   /// The composer's camera button — the same flow the attachment sheet's Camera
   /// entry reaches, one tap sooner.
   ///
@@ -1239,6 +1300,13 @@ class _RoomScreenState extends State<RoomScreen>
         case AttachmentMenuChoice.file:
           await _pickAndSendFile();
           break;
+        case AttachmentMenuChoice.videoNote:
+          // Routed into the composer's own control rather than opening
+          // anything: a video note is recorded inline, and this sheet entry
+          // exists to give that gesture a named, tappable, screen-reader
+          // reachable door — not to become a second implementation of it.
+          _captureController.requestMode(ComposerInputMode.videoNote);
+          break;
         case AttachmentMenuChoice.voice:
           final bytes = await nav.push<Uint8List>(
             MaterialPageRoute(builder: (_) => const VoiceRecorderScreen()),
@@ -1268,12 +1336,22 @@ class _RoomScreenState extends State<RoomScreen>
   /// [initialLens] is which lens to open on, and RETAKE stays on it — a retake
   /// is a second attempt at the shot the entry point was for, not a different
   /// one.
+  ///
+  /// The camera can also record: see [CameraScreen.allowVideo]. A clip comes
+  /// back as [CameraRecorded] and skips the editor entirely — there is no video
+  /// editor to send it through, and the review the photograph gets exists to
+  /// crop and draw on it rather than to confirm it.
   Future<void> _captureAndSend({
     CameraLensDirection initialLens = CameraLensDirection.back,
   }) async {
     final result = await CameraScreen.open<EditorSend>(
       context,
       initialLens: initialLens,
+      // Chat is the one caller that can accept a clip, so it is the one caller
+      // that gets the PHOTO/VIDEO switch. The camera button used to be able to
+      // take a photograph and nothing else, which meant the only way to send a
+      // video was to have already recorded one somewhere else.
+      allowVideo: true,
       review: (context, photo) async {
         final outcome = await CameraEditorScreen.open(
           context,
@@ -1296,6 +1374,18 @@ class _RoomScreenState extends State<RoomScreen>
         // Sent from here rather than inside the review so the upload starts
         // against a chat that is already back on screen.
         if (value != null) _sendEdited(value);
+
+      case CameraRecorded(:final video):
+        // Recorded in the camera's VIDEO mode. Sent from here rather than from
+        // inside the camera for exactly the reason the photograph is: the
+        // upload should start against a chat that is already back on screen.
+        _sendMedia(
+          bytes: video.bytes,
+          type: MessageType.video,
+          contentType: 'video/mp4',
+          posterBytes: video.posterBytes,
+          mediaDurationMs: video.durationMs,
+        );
 
       case CameraPickLibrary():
         // The camera's own shortcut into the photo library.
@@ -1564,6 +1654,12 @@ class _RoomScreenState extends State<RoomScreen>
     /// cannot be extracted at all.
     Uint8List? posterBytes,
 
+    /// Playing time, when the sender measured it — which the composer's own
+    /// recorder always does, and a picked file never can without decoding it.
+    /// Rides on the message so a shared-content row and a circular note can
+    /// both show a length without opening the blob.
+    int? mediaDurationMs,
+
     /// Armed with the circled "1" in the editor: one look per recipient, then
     /// the file is deleted from the server.
     bool viewOnce = false,
@@ -1591,6 +1687,7 @@ class _RoomScreenState extends State<RoomScreen>
       fileName: fileName,
       fileSize: fileSize,
       posterBytes: posterBytes,
+      mediaDurationMs: mediaDurationMs,
       replyToId: replyTarget?.id,
       viewOnce: viewOnce,
     );
@@ -1755,6 +1852,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
+                  capture: _composerCapture,
                   mention: _mention,
                 ),
               ],
@@ -1868,6 +1966,7 @@ class _RoomScreenState extends State<RoomScreen>
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
+                  capture: _composerCapture,
                   mention: _mention,
                 ),
               ],

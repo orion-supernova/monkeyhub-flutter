@@ -5855,4 +5855,138 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'غير مكتومة';
+
+  @override
+  String get composerCaptureCameraModeLabel => 'الكاميرا';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'رسالة صوتية';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'ملاحظة فيديو';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. مرّر بإصبعين أو استخدم مفاتيح الأسهم لتغيير الوضع.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return 'تم اختيار $mode';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'بدأ التسجيل';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'تم تثبيت التسجيل. بدون استخدام اليدين.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'تم تجاهل التسجيل';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'تم إرسال التسجيل';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'جارٍ التسجيل، $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'اسحب للإلغاء';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'أفلت للإلغاء';
+
+  @override
+  String get composerCaptureTapToSendHint => 'اضغط للإرسال';
+
+  @override
+  String get composerCaptureSendingLabel => 'جارٍ الإرسال…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return 'بقيت $seconds ثانية';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'تجاهل التسجيل';
+
+  @override
+  String get composerCaptureSendLabel => 'إرسال التسجيل';
+
+  @override
+  String get composerCaptureLockLabel => 'اسحب لأعلى لتثبيت التسجيل';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'الميكروفون مطلوب';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'يحتاج MonkeyHub إلى الميكروفون لتسجيل رسالة صوتية. فعّله من الإعدادات ثم أعد المحاولة.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'الكاميرا مطلوبة';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'يحتاج MonkeyHub إلى الكاميرا والميكروفون لتسجيل ملاحظة فيديو. فعّلهما من الإعدادات ثم أعد المحاولة.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'التسجيل معطّل بسبب قيد على هذا الجهاز.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'فتح الإعدادات';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'التسجيل غير متاح على هذا الجهاز.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'تم إيقاف التسجيل.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'تعذّر حفظ التسجيل. تحقق من المساحة المتاحة.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'تشغيل ملاحظة الفيديو';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'إيقاف ملاحظة الفيديو مؤقتًا';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'جارٍ تحميل ملاحظة الفيديو';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'ملاحظة الفيديو غير متاحة';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'إعادة محاولة ملاحظة الفيديو';
+
+  @override
+  String get videoNoteMessageRetryHint => 'اضغط لإعادة المحاولة';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'تجاهل ملاحظة الفيديو';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'ملاحظة فيديو';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'صورة';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'فيديو';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'بدء التسجيل';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'إيقاف التسجيل';
+
+  @override
+  String get cameraScreenVideoFailedSnack => 'تعذّر تسجيل هذا الفيديو.';
 }

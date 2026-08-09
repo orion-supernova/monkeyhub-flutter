@@ -6,6 +6,7 @@ import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
+import 'composer_capture.dart';
 import 'liquid_glass.dart';
 
 /// The two message composers, lifted verbatim out of `room_screen.dart` so
@@ -22,6 +23,14 @@ import 'liquid_glass.dart';
 /// `SettingsStore.instance.chatStyle`. Don't move that switch in here: hosts
 /// listen to `SettingsStore` to rebuild on style change, and a widget reading
 /// the singleton in `build` would silently stop updating.
+///
+/// Both stay `StatelessWidget` even now that the right-hand button records.
+/// Everything stateful about that — the mode, the recorder, the camera session,
+/// the lifecycle observer — lives in [ComposerCaptureHost], which each of them
+/// wraps its row in. Making either composer stateful would have been the
+/// obvious move and the wrong one: their state would be rebuilt from scratch
+/// whenever the host re-ran `build` off a `SettingsStore` notification, which
+/// is exactly the contract the paragraph above exists to protect.
 
 /// Bordered, flat composer. Assumes an ancestor `SafeArea`.
 class ChatComposerClassic extends StatelessWidget {
@@ -36,6 +45,7 @@ class ChatComposerClassic extends StatelessWidget {
     this.onCamera,
     this.padding,
     this.mention,
+    this.capture,
   });
 
   final TextEditingController controller;
@@ -68,6 +78,15 @@ class ChatComposerClassic extends StatelessWidget {
   /// what else is stacked there.
   final MentionSession? mention;
 
+  /// Turns the camera button into a mode switcher that can also record a voice
+  /// note or a circular video note. Null leaves the plain camera button, and
+  /// every host that passes null is byte-identical to what it was.
+  ///
+  /// Independent of [onCamera] on purpose: the camera is a full-screen route
+  /// and the two recorders are not, so a host with nowhere to push a route can
+  /// still offer both of them.
+  final ComposerCapture? capture;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -76,7 +95,10 @@ class ChatComposerClassic extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: theme.divider, width: 1)),
       ),
-      child: Row(
+      child: ComposerCaptureHost(
+        capture: capture,
+        style: ComposerCaptureStyle.classic,
+        builder: (context, modeButton) => Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (onAttach != null) ...[
@@ -138,7 +160,14 @@ class ChatComposerClassic extends StatelessWidget {
           // Built like the attach button, not like send: send carries a glow
           // that marks it as the one primary action, and a second glowing
           // circle beside it would read as a rival rather than a shortcut.
-          if (onCamera != null) ...[
+          //
+          // [modeButton] is the same 38pt circle with a drag on it. When there
+          // is one, the plain camera button is not also drawn — they occupy the
+          // same slot and the mode button already opens the camera on a tap.
+          if (modeButton != null) ...[
+            const SizedBox(width: 10),
+            modeButton,
+          ] else if (onCamera != null) ...[
             const SizedBox(width: 10),
             FocusableTap(
               onTap: onCamera,
@@ -190,6 +219,7 @@ class ChatComposerClassic extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -208,6 +238,7 @@ class ChatComposerLiquid extends StatelessWidget {
     this.onCamera,
     this.padding,
     this.mention,
+    this.capture,
   });
 
   final TextEditingController controller;
@@ -235,6 +266,9 @@ class ChatComposerLiquid extends StatelessWidget {
   /// See [ChatComposerClassic.mention].
   final MentionSession? mention;
 
+  /// See [ChatComposerClassic.capture].
+  final ComposerCapture? capture;
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -245,7 +279,10 @@ class ChatComposerLiquid extends StatelessWidget {
     final pad = padding ?? EdgeInsets.fromLTRB(16, 8, 16, 8 + bottomSafe);
     return Padding(
       padding: pad,
-      child: Row(
+      child: ComposerCaptureHost(
+        capture: capture,
+        style: ComposerCaptureStyle.liquid,
+        builder: (context, modeButton) => Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (onAttach != null) ...[
@@ -294,7 +331,13 @@ class ChatComposerLiquid extends StatelessWidget {
           // action, and a second tinted circle beside it would read as a rival
           // rather than a shortcut. LiquidGlass supplies its own press animation
           // and wraps itself in FocusableTap, so no extra wrapper here.
-          if (onCamera != null) ...[
+          //
+          // See the classic composer: the mode button occupies this same slot
+          // and subsumes the camera when one is wired up.
+          if (modeButton != null) ...[
+            const SizedBox(width: 12),
+            modeButton,
+          ] else if (onCamera != null) ...[
             const SizedBox(width: 12),
             LiquidGlass(
               shape: LiquidGlassShape.circle,
@@ -316,6 +359,7 @@ class ChatComposerLiquid extends StatelessWidget {
             child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
           ),
         ],
+        ),
       ),
     );
   }

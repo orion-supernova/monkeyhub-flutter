@@ -6557,5 +6557,185 @@
   "roomInfoScreenNotMutedRow": "Not muted",
   "@roomInfoScreenNotMutedRow": {
     "description": "Text of the room info screen's mute row when nothing about the chat is silenced."
+  },
+  "composerCaptureCameraModeLabel": "camera",
+  "@composerCaptureCameraModeLabel": {
+    "description": "Name of the composer capture button's camera mode, used in its semantic label and in the screen-reader announcement when the mode changes (composer_capture.dart)."
+  },
+  "composerCaptureVoiceModeLabel": "voice message",
+  "@composerCaptureVoiceModeLabel": {
+    "description": "Name of the composer capture button's voice-message mode (composer_capture.dart)."
+  },
+  "composerCaptureVideoNoteModeLabel": "video note",
+  "@composerCaptureVideoNoteModeLabel": {
+    "description": "Name of the composer capture button's video-note mode — the small circular video message (composer_capture.dart)."
+  },
+  "composerCaptureModeButtonLabel": "{mode}. Swipe with two fingers or use the arrow keys to change mode.",
+  "@composerCaptureModeButtonLabel": {
+    "description": "Semantic label of the composer's capture button. {mode} is the current mode's name; the sentence tells a screen-reader user the mode can be changed without dragging.",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "composerCaptureModeAnnouncement": "{mode} selected",
+  "@composerCaptureModeAnnouncement": {
+    "description": "Screen-reader announcement fired when the composer capture button changes mode. {mode} is the newly selected mode's name.",
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "composerCaptureRecordingAnnouncement": "Recording started",
+  "@composerCaptureRecordingAnnouncement": {
+    "description": "Screen-reader announcement fired the moment a hold-to-record capture actually starts writing."
+  },
+  "composerCaptureLockedAnnouncement": "Recording locked. Hands free.",
+  "@composerCaptureLockedAnnouncement": {
+    "description": "Screen-reader announcement fired when a recording latches hands-free, either by sliding up or by tapping the button."
+  },
+  "composerCaptureCancelledAnnouncement": "Recording discarded",
+  "@composerCaptureCancelledAnnouncement": {
+    "description": "Screen-reader announcement fired when a recording is discarded — slid to cancel, the delete control, or an interruption."
+  },
+  "composerCaptureSentAnnouncement": "Recording sent",
+  "@composerCaptureSentAnnouncement": {
+    "description": "Screen-reader announcement fired when a finished recording is handed to the send path."
+  },
+  "composerCaptureRecordingLabel": "Recording, {elapsed}",
+  "@composerCaptureRecordingLabel": {
+    "description": "Semantic label of the whole recording strip that replaces the composer while recording. {elapsed} is the running time, already formatted as m:ss.",
+    "placeholders": {
+      "elapsed": {
+        "type": "String"
+      }
+    }
+  },
+  "composerCaptureSlideToCancelHint": "slide to cancel",
+  "@composerCaptureSlideToCancelHint": {
+    "description": "Hint shown in the recording strip while the finger is still down: sliding away from the send button aborts the recording."
+  },
+  "composerCaptureReleaseToCancelHint": "release to cancel",
+  "@composerCaptureReleaseToCancelHint": {
+    "description": "Hint replacing 'slide to cancel' once the finger has passed the cancel threshold, so releasing now discards the recording."
+  },
+  "composerCaptureTapToSendHint": "tap to send",
+  "@composerCaptureTapToSendHint": {
+    "description": "Hint shown in the recording strip once the recording is locked hands-free and the explicit send button has appeared."
+  },
+  "composerCaptureSendingLabel": "sending…",
+  "@composerCaptureSendingLabel": {
+    "description": "Hint shown in the recording strip while the recorder is being closed and the bytes read, between the send tap and the message appearing."
+  },
+  "composerCaptureTimeLeft": "{seconds}s left",
+  "@composerCaptureTimeLeft": {
+    "description": "Countdown shown in the recording strip in the last ten seconds before the maximum duration. {seconds} is a whole number of seconds remaining.",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "composerCaptureCancelLabel": "discard recording",
+  "@composerCaptureCancelLabel": {
+    "description": "Semantic label of the trash button in the recording strip, which aborts the recording and deletes it."
+  },
+  "composerCaptureSendLabel": "send recording",
+  "@composerCaptureSendLabel": {
+    "description": "Semantic label of the send button that appears in the recording strip once a recording is locked hands-free."
+  },
+  "composerCaptureLockLabel": "slide up to lock recording",
+  "@composerCaptureLockLabel": {
+    "description": "Semantic label of the padlock affordance in the recording strip that fills as the finger slides up to lock the recording."
+  },
+  "composerCaptureMicPermissionTitle": "Microphone needed",
+  "@composerCaptureMicPermissionTitle": {
+    "description": "Headline of the sheet shown when a voice recording is refused because the microphone permission is missing."
+  },
+  "composerCaptureMicPermissionBody": "MonkeyHub needs your microphone to record a voice message. Turn it on in Settings and try again.",
+  "@composerCaptureMicPermissionBody": {
+    "description": "Body of the microphone-permission sheet, explaining what to turn on and where."
+  },
+  "composerCaptureCameraPermissionTitle": "Camera needed",
+  "@composerCaptureCameraPermissionTitle": {
+    "description": "Headline of the sheet shown when a video note is refused because the camera (or its microphone) permission is missing."
+  },
+  "composerCaptureCameraPermissionBody": "MonkeyHub needs your camera and microphone to record a video note. Turn them on in Settings and try again.",
+  "@composerCaptureCameraPermissionBody": {
+    "description": "Body of the camera-permission sheet shown for video notes, which need both the camera and the microphone."
+  },
+  "composerCaptureRestrictedBody": "Recording is turned off by a restriction on this device.",
+  "@composerCaptureRestrictedBody": {
+    "description": "Message shown when recording is blocked by a device restriction (iOS Screen Time, an Android work profile) that the user cannot lift from Settings, so no Settings button is offered."
+  },
+  "composerCaptureOpenSettingsLabel": "Open Settings",
+  "@composerCaptureOpenSettingsLabel": {
+    "description": "Confirm-button label on the capture permission sheet; opens this app's page in the system settings."
+  },
+  "composerCaptureUnavailableSnack": "Recording isn't available on this device.",
+  "@composerCaptureUnavailableSnack": {
+    "description": "Message shown when recording cannot start for a reason that is not a permission — no hardware, no plugin, or a browser."
+  },
+  "composerCaptureInterruptedSnack": "Recording stopped.",
+  "@composerCaptureInterruptedSnack": {
+    "description": "Message shown when a recording was stopped by something outside the app — an incoming call, backgrounding, another app taking the camera."
+  },
+  "composerCaptureStorageSnack": "Couldn't save the recording. Check your free space.",
+  "@composerCaptureStorageSnack": {
+    "description": "Message shown when a recording produced no usable file, which is what a full disk looks like from the app's side."
+  },
+  "videoNoteMessagePlayLabel": "play video note",
+  "@videoNoteMessagePlayLabel": {
+    "description": "Semantic label of a circular video-note bubble that is paused or has not started; tapping plays it."
+  },
+  "videoNoteMessagePauseLabel": "pause video note",
+  "@videoNoteMessagePauseLabel": {
+    "description": "Semantic label of a circular video-note bubble that is playing; tapping pauses it."
+  },
+  "videoNoteMessageLoadingLabel": "loading video note",
+  "@videoNoteMessageLoadingLabel": {
+    "description": "Semantic label of a circular video-note bubble while its source is being resolved and opened."
+  },
+  "videoNoteMessageUnavailableLabel": "video note unavailable",
+  "@videoNoteMessageUnavailableLabel": {
+    "description": "Semantic label of a circular video-note bubble whose blob the backend no longer has — nothing a retry can fix, so no retry is offered."
+  },
+  "videoNoteMessageRetryLabel": "retry video note",
+  "@videoNoteMessageRetryLabel": {
+    "description": "Semantic label of a failed circular video-note bubble, and of the retry control on a failed outgoing one."
+  },
+  "videoNoteMessageRetryHint": "tap to retry",
+  "@videoNoteMessageRetryHint": {
+    "description": "Small caption drawn under the refresh glyph inside a failed circular video-note bubble."
+  },
+  "videoNoteMessageDiscardLabel": "discard video note",
+  "@videoNoteMessageDiscardLabel": {
+    "description": "Semantic label of the discard control on a failed outgoing circular video note, which throws the send away."
+  },
+  "attachmentMenuVideoNoteLabel": "video note",
+  "@attachmentMenuVideoNoteLabel": {
+    "description": "Label under the video-note icon in the attachment picker sheet (attachment_menu.dart); the non-gesture route to the composer's video-note mode. Hidden on web."
+  },
+  "cameraScreenPhotoModeLabel": "PHOTO",
+  "@cameraScreenPhotoModeLabel": {
+    "description": "All-caps label of the PHOTO position in the in-app camera's photo/video mode switch (camera_screen.dart)."
+  },
+  "cameraScreenVideoModeLabel": "VIDEO",
+  "@cameraScreenVideoModeLabel": {
+    "description": "All-caps label of the VIDEO position in the in-app camera's photo/video mode switch (camera_screen.dart)."
+  },
+  "cameraScreenStartRecordingLabel": "start recording",
+  "@cameraScreenStartRecordingLabel": {
+    "description": "Semantic label of the in-app camera's shutter while it is in video mode and idle."
+  },
+  "cameraScreenStopRecordingLabel": "stop recording",
+  "@cameraScreenStopRecordingLabel": {
+    "description": "Semantic label of the in-app camera's shutter while a video recording is running."
+  },
+  "cameraScreenVideoFailedSnack": "Couldn't record that video.",
+  "@cameraScreenVideoFailedSnack": {
+    "description": "Message shown when the in-app camera's video recording could not be started or produced nothing usable."
   }
 }
