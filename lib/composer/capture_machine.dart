@@ -78,6 +78,17 @@ const double kCancelDragThreshold = 96;
 /// stopped that fast often has not written a playable container at all.
 const Duration kMinRecordingDuration = Duration(milliseconds: 700);
 
+/// How long the mode button must be held before a hold-to-record gesture is
+/// recognised.
+///
+/// Deliberately far short of Flutter's default long-press timeout (500 ms): a
+/// button whose entire job is "hold to record" should start the moment a hold
+/// is credible, not half a second later — that gap read as the button not
+/// responding rather than as a deliberate threshold. [kMinRecordingDuration]
+/// is what still keeps a genuine tap from being sent as a note, so this can be
+/// short without a mis-tap turning into an accidental recording.
+const Duration kCaptureHoldDuration = Duration(milliseconds: 150);
+
 /// Ceiling on a video note. The big-corp value, and it is the value for a
 /// reason — a circular note is a glance, not a film, and the file has to fit
 /// inside the send path's retained-bytes budget.
@@ -126,29 +137,22 @@ double travelAwayFromSend(double dx, TextDirection direction) =>
 /// flips it. No [TextDirection]: up is up in every script.
 double travelUpward(double dy) => -dy;
 
-/// Which mode a cumulative drag of [travel] from [from] lands on.
+/// Which of [from]'s two neighbours — if either — a drag of [travel] has
+/// committed to, clamped to at most one notch away regardless of how far
+/// [travel] runs: -1, 0 (still on [from]) or +1.
 ///
-/// Pure, and separated from the machine so the arithmetic can be tested without
-/// a widget, a pointer or a haptic channel. Clamped rather than wrapped: a
-/// drag that runs off the end of the list should rest on the last mode, not
-/// silently cycle back to the camera the user was dragging away from.
-ComposerInputMode modeForTravel({
-  required ComposerInputMode from,
-  required double travel,
-  required List<ComposerInputMode> modes,
-  double step = kModeSwitchStep,
-}) {
-  if (modes.isEmpty) return from;
-  final origin = modes.indexOf(from);
-  if (origin < 0) return modes.first;
-  // Rounded, not truncated: the button should settle on whichever mode it is
-  // nearest, so the halfway point is where the switch happens in both
-  // directions. Truncating would make the return trip need a full extra step
-  // before it gave the previous mode back.
-  final steps = (travel / step).round();
-  final index = (origin + steps).clamp(0, modes.length - 1);
-  return modes[index];
-}
+/// Pure, and separated from the machine so the arithmetic can be tested
+/// without a widget, a pointer or a haptic channel. Clamped rather than
+/// rounded to a distant notch: a mode switch is a two- or three-position
+/// wheel, not a scroll list, and a long or fast one-directional drag used to
+/// be able to cycle straight through every mode in it before the finger ever
+/// lifted — which reads as the control flickering, not as a wheel turning.
+/// One continuous drag now changes the mode by exactly one step, however far
+/// or fast it travels; dragging back toward [from] un-commits it, so
+/// overshooting and correcting course before release still works. See
+/// [ComposerCaptureMachine.updateModeDrag] for how this feeds the wrap.
+int committedStepForTravel(double travel) =>
+    travel.abs() < kModeSwitchStep / 2 ? 0 : (travel.isNegative ? -1 : 1);
 
 /// The composer's input-mode and recording state, with the haptics that belong
 /// to each transition.
@@ -197,6 +201,18 @@ class ComposerCaptureMachine extends ChangeNotifier {
   bool _dragging = false;
   bool get draggingMode => _dragging;
 
+  /// The current drag's committed offset from [_dragOrigin] — see
+  /// [committedStepForTravel]. Tracked separately from [_mode] purely so
+  /// [updateModeDrag] can tell which way the most recent change moved, for
+  /// [lastStepDirection].
+  int _committedStep = 0;
+
+  /// Which way [mode] moved on its most recent change: +1 toward the last
+  /// mode in the list, -1 toward the first. Purely a UI signal for the
+  /// glyph-swap animation — nothing in this class's own logic reads it.
+  int _lastStepDirection = 1;
+  int get lastStepDirection => _lastStepDirection;
+
   /// Live 0..1 progress toward the lock and cancel thresholds, for the
   /// affordances that grow as the finger approaches them.
   double _lockProgress = 0;
@@ -209,6 +225,14 @@ class ComposerCaptureMachine extends ChangeNotifier {
   /// somewhere the user was not aiming.
   bool _outside = false;
 
+  /// Whether the cancel-threshold buzz has already fired for the current
+  /// crossing. Without this [updateHold] would re-fire it on every pointer
+  /// move while the finger sits past the threshold, which is dozens of times
+  /// a second — one heavy buzz on the way in is a warning, a motor running
+  /// under the finger is not. Cleared once the finger drifts back under the
+  /// threshold, so sliding out and back in warns again.
+  bool _cancelArmed = false;
+
   // ─────────────────────────────── mode drag ───────────────────────────────
 
   void beginModeDrag() {
@@ -216,28 +240,32 @@ class ComposerCaptureMachine extends ChangeNotifier {
     _dragging = true;
     _dragOrigin = _mode;
     _modeDrag = 0;
+    _committedStep = 0;
     notifyListeners();
   }
 
-  /// Feeds the drag a raw vertical delta. Buzzes once per mode crossed.
+  /// Feeds the drag a raw vertical delta.
+  ///
+  /// Changes the mode by at most one step per drag — see
+  /// [committedStepForTravel]. A drag with fewer than two modes to switch
+  /// between has nothing to do.
   ///
   /// Vertical, and takes no [TextDirection]: up is up in every script, so
   /// unlike the cancel gesture this axis has no mirror image to get wrong.
   void updateModeDrag(double dy) {
-    if (!_dragging) return;
+    if (!_dragging || modes.length < 2) return;
     _modeDrag += travelUpward(dy);
-    final next = modeForTravel(
-      from: _dragOrigin,
-      travel: _modeDrag,
-      modes: modes,
-    );
-    if (next != _mode) {
-      _mode = next;
-      // One buzz per mode boundary, not one per frame — the guard above is what
-      // makes that true, and it is the whole difference between a control that
-      // feels detented and one that feels like a stuck motor.
-      HapticFeedback.selectionClick();
-    }
+    final step = committedStepForTravel(_modeDrag);
+    if (step == _committedStep) return;
+    final origin = modes.indexOf(_dragOrigin);
+    _mode = modes[(origin + step) % modes.length];
+    _lastStepDirection = step > _committedStep ? 1 : -1;
+    _committedStep = step;
+    // Strong rather than the light selectionClick: this wheel is driven
+    // blind, under the thumb that is covering it, and a tick that is easy
+    // to miss on a fast drag is a mode change the user has to double back
+    // to confirm actually happened.
+    HapticFeedback.heavyImpact();
     notifyListeners();
   }
 
@@ -245,6 +273,7 @@ class ComposerCaptureMachine extends ChangeNotifier {
     if (!_dragging) return;
     _dragging = false;
     _modeDrag = 0;
+    _committedStep = 0;
     notifyListeners();
   }
 
@@ -255,17 +284,19 @@ class ComposerCaptureMachine extends ChangeNotifier {
   /// by dragging is a mode a VoiceOver user does not have.
   void selectMode(ComposerInputMode next, {bool haptic = true}) {
     if (isRecording || !modes.contains(next) || next == _mode) return;
+    _lastStepDirection = modes.indexOf(next) >= modes.indexOf(_mode) ? 1 : -1;
     _mode = next;
     if (haptic) HapticFeedback.selectionClick();
     notifyListeners();
   }
 
-  /// Steps [delta] modes along, clamped. Bound to arrow keys, where [delta] is
-  /// already resolved for direction by the caller.
+  /// Steps [delta] modes along, wrapped the same way the drag is — see
+  /// [committedStepForTravel]. Bound to arrow keys, where [delta] is already
+  /// resolved for direction by the caller.
   void stepMode(int delta) {
     final i = modes.indexOf(_mode);
     if (i < 0) return;
-    selectMode(modes[(i + delta).clamp(0, modes.length - 1)]);
+    selectMode(modes[(i + delta) % modes.length]);
   }
 
   // ──────────────────────────────── recording ──────────────────────────────
@@ -279,6 +310,7 @@ class ComposerCaptureMachine extends ChangeNotifier {
     _lockProgress = 0;
     _cancelProgress = 0;
     _outside = false;
+    _cancelArmed = false;
     HapticFeedback.mediumImpact();
     notifyListeners();
   }
@@ -304,9 +336,17 @@ class ComposerCaptureMachine extends ChangeNotifier {
     // user who has dragged far enough to cancel has said so, and locking them
     // into a recording they were trying to abandon is the worse failure.
     if (_cancelProgress >= 1) {
+      // Buzzed once per crossing, the same as the lock — a delete that is
+      // armed and a delete that is not are two different states, and only one
+      // of them should be reachable by a slide the user cannot see the end of.
+      if (!_cancelArmed) {
+        _cancelArmed = true;
+        HapticFeedback.heavyImpact();
+      }
       notifyListeners();
       return false;
     }
+    _cancelArmed = false;
     if (_lockProgress >= 1) {
       _stage = CaptureStage.locked;
       _lockProgress = 1;

@@ -1226,11 +1226,16 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
           // Above the shutter, the way every phone camera puts it. Hidden while
           // recording: switching mid-clip is not a thing that can be honoured,
           // and a control that refuses taps is worse than one that isn't there.
+          //
+          // 116, not 84: the shutter row's tallest child is the 78pt shutter
+          // itself sat at bottom: 22, so its top edge is at 100 — anything
+          // closer than that clips into the shutter regardless of this pill's
+          // own height, which `bottom` alone doesn't account for.
           if (widget.allowVideo && !_recording)
             Positioned(
               left: 0,
               right: 0,
-              bottom: 84,
+              bottom: 116,
               child: Center(
                 child: _ModeSwitch(
                   mode: _mode,

@@ -46,8 +46,8 @@ void main() {
     // stating what the numbers mean rather than only asserting them. The
     // button sits beside Send at the trailing edge; the room to drag is in the
     // other direction. Leftward in LTR must therefore be POSITIVE travel, or
-    // `modeForTravel`'s clamp pins the mode on camera forever and the whole
-    // control is dead to the only drag a thumb can actually perform.
+    // the mode drag reads it backwards and the whole control is dead to the
+    // only drag a thumb can actually perform.
     test('counts leftward travel as positive in a left-to-right layout', () {
       expect(travelAwayFromSend(-30, TextDirection.ltr), 30);
       expect(travelAwayFromSend(30, TextDirection.ltr), -30);
@@ -63,109 +63,102 @@ void main() {
     });
   });
 
-  group('modeForTravel', () {
-    const modes = ComposerInputMode.values;
-
-    test('stays put below half a step', () {
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.camera, travel: 20, modes: modes),
-        ComposerInputMode.camera,
-      );
+  group('committedStepForTravel', () {
+    test('stays at zero below half a step', () {
+      expect(committedStepForTravel(20), 0);
+      expect(committedStepForTravel(-20), 0);
     });
 
-    test('advances one mode per step', () {
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.camera,
-            travel: kModeSwitchStep,
-            modes: modes),
-        ComposerInputMode.voice,
-      );
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.camera,
-            travel: kModeSwitchStep * 2,
-            modes: modes),
-        ComposerInputMode.videoNote,
-      );
+    test('commits one step past half a step, signed by direction', () {
+      expect(committedStepForTravel(kModeSwitchStep), 1);
+      expect(committedStepForTravel(-kModeSwitchStep), -1);
     });
 
-    // Clamped rather than wrapped. Wrapping would put the camera back under a
-    // thumb that is dragging away from it, which is the one thing a detented
-    // control must never do.
-    test('clamps at both ends instead of wrapping', () {
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.camera,
-            travel: kModeSwitchStep * 9,
-            modes: modes),
-        ComposerInputMode.videoNote,
-      );
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.camera,
-            travel: -kModeSwitchStep * 9,
-            modes: modes),
-        ComposerInputMode.camera,
-      );
-    });
-
-    test('comes back on the return trip at the same halfway point', () {
-      expect(
-        modeForTravel(
-            from: ComposerInputMode.videoNote,
-            travel: -kModeSwitchStep,
-            modes: modes),
-        ComposerInputMode.voice,
-      );
+    // Clamped, not proportional. A picker wheel with two or three positions
+    // on it changes by one notch per turn of the wrist regardless of how hard
+    // you turn it — it does not spin faster the harder you flick it.
+    test('never commits more than one step, however far the travel', () {
+      expect(committedStepForTravel(kModeSwitchStep * 10), 1);
+      expect(committedStepForTravel(-kModeSwitchStep * 10), -1);
     });
   });
 
   group('mode drag', () {
     // Up is a NEGATIVE dy — Flutter's y grows downward — so every drag that
     // advances a mode here is written negative. Getting this backwards is the
-    // bug this control shipped with, in its horizontal incarnation: the button
-    // followed the finger while `modeForTravel`'s clamp pinned the mode on
-    // camera, so the whole feature looked alive and did nothing.
-    test('buzzes once per boundary crossed, not once per frame', () {
+    // bug this control shipped with, in its horizontal incarnation: the
+    // button followed the finger while the clamp pinned the mode on camera,
+    // so the whole feature looked alive and did nothing.
+    test('commits one step just past half the switch distance, and buzzes',
+        () {
       final m = build();
       m.beginModeDrag();
-      // Ten frames of upward drag that together cross exactly one boundary.
-      for (var i = 0; i < 10; i++) {
-        m.updateModeDrag(-kModeSwitchStep / 8);
-      }
+      m.updateModeDrag(-kModeSwitchStep / 2 - 1);
       expect(m.mode, ComposerInputMode.voice);
       expect(haptics, hasLength(1));
-      m.endModeDrag();
     });
 
-    test('crossing two boundaries buzzes twice', () {
+    // The bug report this exists to fix: a long or fast one-directional drag
+    // used to be distance-proportional, so it could cycle straight through
+    // every mode in the list — voice flickering past on the way to video
+    // note — before the finger ever lifted. One continuous swipe now changes
+    // the mode exactly once, however far or fast it travels.
+    test('a long drag still commits only one step, not one per boundary',
+        () {
       final m = build();
       m.beginModeDrag();
-      m.updateModeDrag(-kModeSwitchStep);
-      m.updateModeDrag(-kModeSwitchStep);
-      expect(m.mode, ComposerInputMode.videoNote);
-      expect(haptics, hasLength(2));
-    });
-
-    test('dragging back down returns to the previous mode', () {
-      final m = build();
-      m.beginModeDrag();
-      m.updateModeDrag(-kModeSwitchStep * 2);
-      expect(m.mode, ComposerInputMode.videoNote);
-      // The return trip switches at the same halfway point it advanced on,
-      // which is what `modeForTravel` rounds rather than truncates for.
-      m.updateModeDrag(kModeSwitchStep);
+      m.updateModeDrag(-kModeSwitchStep * 10);
       expect(m.mode, ComposerInputMode.voice);
-      m.updateModeDrag(kModeSwitchStep);
+      expect(haptics, hasLength(1));
+    });
+
+    test('overshooting and dragging back before release un-commits the step',
+        () {
+      final m = build();
+      m.beginModeDrag();
+      m.updateModeDrag(-kModeSwitchStep * 3);
+      expect(m.mode, ComposerInputMode.voice);
+      m.updateModeDrag(kModeSwitchStep * 3);
       expect(m.mode, ComposerInputMode.camera);
     });
 
-    test('downward drag from camera clamps rather than wrapping', () {
+    // This is the bug report the wrap exists to fix: a user whose first move
+    // was a downward swipe off the camera — the mode the button always starts
+    // on — used to hit a dead clamp and conclude the control was broken.
+    test('downward drag from camera wraps to the last mode', () {
       final m = build();
       m.beginModeDrag();
-      m.updateModeDrag(kModeSwitchStep * 3);
+      m.updateModeDrag(kModeSwitchStep);
+      expect(m.mode, ComposerInputMode.videoNote);
+      expect(haptics, hasLength(1));
+    });
+
+    test('the mode-drag buzz is a strong impact, not the light selection click',
+        () {
+      final m = build();
+      m.beginModeDrag();
+      m.updateModeDrag(-kModeSwitchStep);
+      expect(haptics, ['HapticFeedbackType.heavyImpact']);
+    });
+
+    test('lastStepDirection reflects which way the committed step moved', () {
+      final m = build();
+      m.beginModeDrag();
+      m.updateModeDrag(-kModeSwitchStep);
+      expect(m.mode, ComposerInputMode.voice);
+      expect(m.lastStepDirection, 1);
+      m.endModeDrag();
+
+      m.beginModeDrag();
+      m.updateModeDrag(kModeSwitchStep);
+      expect(m.mode, ComposerInputMode.camera);
+      expect(m.lastStepDirection, -1);
+    });
+
+    test('a drag with only one mode available does nothing', () {
+      final m = build(modes: const [ComposerInputMode.camera]);
+      m.beginModeDrag();
+      m.updateModeDrag(-kModeSwitchStep * 3);
       expect(m.mode, ComposerInputMode.camera);
       expect(haptics, isEmpty);
     });
@@ -201,10 +194,10 @@ void main() {
       expect(haptics, isEmpty);
     });
 
-    test('stepMode clamps at both ends', () {
+    test('stepMode wraps at both ends', () {
       final m = build();
       m.stepMode(-1);
-      expect(m.mode, ComposerInputMode.camera);
+      expect(m.mode, ComposerInputMode.videoNote);
       m.stepMode(1);
       m.stepMode(1);
       m.stepMode(1);
@@ -279,7 +272,39 @@ void main() {
       expect(m.wouldCancel, isTrue);
       expect(m.endHold(elapsed: const Duration(seconds: 5)), HoldOutcome.cancel);
       expect(m.stage, CaptureStage.idle);
+      // Two buzzes: one the moment the drag armed the delete, one for the
+      // discard itself on release — see the next two tests for why the first
+      // one exists at all.
+      expect(haptics, hasLength(2));
+    });
+
+    // The lock buzzes the instant the finger crosses its threshold, mid-drag —
+    // the delete swipe used to stay silent until release, which is the bug
+    // this covers: a gesture the user cannot see the end of has to be felt as
+    // soon as it is armed, not just once it is too late to back out of it.
+    test('crossing the cancel threshold buzzes once while still holding', () {
+      final m = recording();
+      m.updateHold(const Offset(-kCancelDragThreshold / 2, 0), TextDirection.ltr);
+      expect(m.wouldCancel, isFalse);
+      expect(haptics, isEmpty);
+
+      m.updateHold(const Offset(-kCancelDragThreshold, 0), TextDirection.ltr);
+      expect(m.wouldCancel, isTrue);
       expect(haptics, hasLength(1));
+
+      // Still past the threshold: must not buzz again every frame.
+      m.updateHold(const Offset(-kCancelDragThreshold * 2, 0), TextDirection.ltr);
+      expect(haptics, hasLength(1));
+    });
+
+    test('drifting back under the cancel threshold re-arms the buzz', () {
+      final m = recording();
+      m.updateHold(const Offset(-kCancelDragThreshold, 0), TextDirection.ltr);
+      expect(haptics, hasLength(1));
+
+      m.updateHold(Offset.zero, TextDirection.ltr);
+      m.updateHold(const Offset(-kCancelDragThreshold, 0), TextDirection.ltr);
+      expect(haptics, hasLength(2));
     });
 
     test('the cancel direction is mirrored in RTL', () {

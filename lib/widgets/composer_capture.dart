@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart'
     show debugPrint, kIsWeb, listEquals, visibleForTesting;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -722,7 +723,13 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(child: _preview(ThemeScope.of(context), idle: true)),
+            Padding(
+              padding: EdgeInsets.only(right: _previewTrailingGap(recording: false)),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: _previewWithBadge(ThemeScope.of(context), idle: true),
+              ),
+            ),
             const SizedBox(height: 12),
             row,
           ],
@@ -745,9 +752,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final diameter = _buttonDiameter;
     _buttonSize = Size(diameter, diameter);
 
-    final glyph = Icon(
-      _modeIcon(mode),
-      size: widget.style == ComposerCaptureStyle.classic ? 18 : 18,
+    final glyph = _animatedGlyph(
+      mode: mode,
+      icon: _modeIcon(mode),
+      size: 18,
       color: widget.style == ComposerCaptureStyle.classic
           ? (mode == ComposerInputMode.camera ? theme.inkSoft : theme.accent)
           : theme.accent,
@@ -789,30 +797,55 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // The gesture detector is INSIDE FocusableTap and carries the same onTap —
     // FocusableTap registers no recognizer of its own, so a wrapper without
     // this inner detector is a control that looks right and cannot be tapped.
-    body = GestureDetector(
+    //
+    // RawGestureDetector, not GestureDetector: a plain GestureDetector's long
+    // press always uses Flutter's built-in half-second timeout with no way to
+    // shorten it. This button starts recording someone's voice, and 500ms of
+    // holding it before anything happens reads as unresponsive rather than
+    // deliberate — see [kCaptureHoldDuration].
+    body = RawGestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _onTap,
-      // Vertical, not horizontal: dragging up is what switches mode. The
-      // horizontal axis belongs to slide-to-cancel during a hold, and the
-      // button has no room to travel toward Send anyway — see [travelUpward].
-      onVerticalDragStart: (_) => _machine.beginModeDrag(),
-      onVerticalDragUpdate: (d) {
-        final before = _machine.mode;
-        _machine.updateModeDrag(d.delta.dy);
-        if (_machine.mode != before) _announceMode();
+      gestures: {
+        TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+          () => TapGestureRecognizer(),
+          (instance) {
+            instance.onTap = _onTap;
+          },
+        ),
+        // Vertical, not horizontal: dragging up is what switches mode. The
+        // horizontal axis belongs to slide-to-cancel during a hold, and the
+        // button has no room to travel toward Send anyway — see [travelUpward].
+        VerticalDragGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
+          () => VerticalDragGestureRecognizer(),
+          (instance) {
+            instance.onStart = (_) => _machine.beginModeDrag();
+            instance.onUpdate = (d) {
+              final before = _machine.mode;
+              _machine.updateModeDrag(d.delta.dy);
+              if (_machine.mode != before) _announceMode();
+            };
+            instance.onEnd = (_) {
+              _machine.endModeDrag();
+              _onModeChanged();
+            };
+            instance.onCancel = () {
+              _machine.endModeDrag();
+              _onModeChanged();
+            };
+          },
+        ),
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+          () => LongPressGestureRecognizer(duration: kCaptureHoldDuration),
+          (instance) {
+            instance.onLongPressStart = _onLongPressStart;
+            instance.onLongPressMoveUpdate = _onLongPressMove;
+            instance.onLongPressEnd = _onLongPressEnd;
+            instance.onLongPressCancel = _onLongPressCancel;
+          },
+        ),
       },
-      onVerticalDragEnd: (_) {
-        _machine.endModeDrag();
-        _onModeChanged();
-      },
-      onVerticalDragCancel: () {
-        _machine.endModeDrag();
-        _onModeChanged();
-      },
-      onLongPressStart: _onLongPressStart,
-      onLongPressMoveUpdate: _onLongPressMove,
-      onLongPressEnd: _onLongPressEnd,
-      onLongPressCancel: _onLongPressCancel,
       child: body,
     );
 
@@ -854,6 +887,60 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     return body;
   }
 
+  /// The mode glyph, cross-fading and sliding between icons instead of
+  /// snapping — the instant swap read as broken rather than deliberate, which
+  /// a control this is the *entire visible feedback* for cannot afford (see
+  /// the note in [_modeButton] on why the button itself never moves).
+  ///
+  /// Directional, not a generic cross-fade: [ComposerCaptureMachine.mode]
+  /// keys the `AnimatedSwitcher`, so a change is always a swap, but which way
+  /// the new glyph slides in from — and the old one slides out toward —
+  /// follows [ComposerCaptureMachine.lastStepDirection], so the animation
+  /// reads as the wheel actually turning in the direction the finger (or the
+  /// arrow key) just moved it, not as a generic dissolve.
+  ///
+  /// `animation.status` is what tells the incoming glyph from the outgoing
+  /// one inside one shared `transitionBuilder`: `AnimatedSwitcher` drives the
+  /// entering child's controller forward and the leaving child's in reverse,
+  /// so a status of [AnimationStatus.reverse] is the exiting glyph and
+  /// everything else is the entering one. The bounce (`easeOutBack`) is
+  /// applied only to the slide, never to the fade — overshooting past 1.0 is
+  /// fine for an `Offset`, but `FadeTransition.opacity` asserts if it ever
+  /// sees a value outside 0..1.
+  Widget _animatedGlyph({
+    required ComposerInputMode mode,
+    required IconData icon,
+    required double size,
+    required Color color,
+  }) {
+    final forward = _machine.lastStepDirection >= 0;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      reverseDuration: const Duration(milliseconds: 160),
+      transitionBuilder: (child, animation) {
+        final entering = animation.status != AnimationStatus.reverse;
+        final startOffset = entering == forward
+            ? const Offset(0, 0.45)
+            : const Offset(0, -0.45);
+        return FadeTransition(
+          opacity: CurvedAnimation(
+            parent: animation,
+            curve: entering ? Curves.easeOut : Curves.easeIn,
+          ),
+          child: SlideTransition(
+            position: Tween<Offset>(begin: startOffset, end: Offset.zero)
+                .animate(CurvedAnimation(
+              parent: animation,
+              curve: entering ? Curves.easeOutBack : Curves.easeIn,
+            )),
+            child: child,
+          ),
+        );
+      },
+      child: Icon(icon, key: ValueKey(mode), size: size, color: color),
+    );
+  }
+
   // ───────────────────────────── recording UI ─────────────────────────────
 
   Widget _recordingBody(BuildContext context) {
@@ -864,10 +951,74 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showPreview) ...[
-          Center(child: _preview(theme)),
+          Padding(
+            padding: EdgeInsets.only(right: _previewTrailingGap(recording: true)),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: _previewWithBadge(theme, idle: false),
+            ),
+          ),
           const SizedBox(height: 12),
         ],
         _strip(theme),
+      ],
+    );
+  }
+
+  /// Horizontal gap between the preview's right edge and the composer's right
+  /// edge, so the circle lines up with the mode button that owns it instead of
+  /// sitting dead-centre over the whole composer row — a full-width text field
+  /// away from the button that actually produces it, which is what made it
+  /// read as a stray, possibly-broken shape rather than a viewfinder.
+  ///
+  /// The button's own position differs by state. In the idle row it sits one
+  /// Send-button-and-gap in from the row's right edge, because Send is always
+  /// the last control (see `chat_composer.dart`, where the mode button and
+  /// Send are drawn at the same diameter in both styles). In the recording
+  /// strip it — or the Send control it turns into once locked — IS the last
+  /// control, flush against the strip's own inset. Either way this lines the
+  /// preview's centre up with the button's centre, clamped at zero so a
+  /// preview wider than that reach just hugs the edge instead of overshooting
+  /// past it.
+  double _previewTrailingGap({required bool recording}) {
+    final diameter = _buttonDiameter;
+    final stripInset = widget.style == ComposerCaptureStyle.classic ? 0.0 : 4.0;
+    final rowGap = widget.style == ComposerCaptureStyle.classic ? 10.0 : 12.0;
+    final buttonCenterFromRight =
+        recording ? stripInset + diameter / 2 : diameter * 1.5 + rowGap;
+    final previewRadius = (recording ? 168.0 : 108.0) / 2;
+    return math.max(0.0, buttonCenterFromRight - previewRadius);
+  }
+
+  /// The preview circle, tagged with the same "PREVIEW" badge the theme
+  /// screen uses for its own live preview — so a first-time video note reads
+  /// as a deliberate viewfinder instead of something rendering by mistake.
+  Widget _previewWithBadge(AppTheme theme, {required bool idle}) {
+    final l10n = AppLocalizations.of(context);
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        _preview(theme, idle: idle),
+        Positioned(
+          top: -8,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: theme.surfaceRaised.withValues(alpha: 0.92),
+              shape: StadiumBorder(side: BorderSide(color: theme.divider, width: 0.5)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              child: Text(
+                l10n.glassScreenPreviewBadge,
+                style: theme.monoTiny.copyWith(
+                  color: theme.inkSoft,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
