@@ -60,6 +60,20 @@ String _rawPreview(ChatMessage m, {required bool hasThumbnail}) {
       // here — a document tile draws a type badge, not a picture of itself.
       final name = m.fileName ?? '';
       return name.isEmpty ? 'document' : name;
+    case MessageType.location:
+    case MessageType.liveLocation:
+      // The word, never the coordinates — and this is the reason it is spelled
+      // out rather than folded into the text case. Every caller of this line is
+      // a surface that shows a message it is NOT rendering: a pin banner at the
+      // top of a room, a reply card in the composer, a row in a list. Putting a
+      // position in any of those puts it somewhere it stays after the bubble has
+      // scrolled away, and a live share's coordinates change under it besides,
+      // so the banner would be quietly wrong within a minute.
+      //
+      // Static and live share one label deliberately. This line is one row tall
+      // and is read at a glance; "live location" in a pin banner would raise
+      // exactly the question the banner cannot answer — live until when?
+      return 'location';
     case MessageType.system:
       return m.content;
   }

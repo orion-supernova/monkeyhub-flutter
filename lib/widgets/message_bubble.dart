@@ -23,6 +23,7 @@ import 'audio_message.dart';
 import 'file_message.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
+import 'location_bubble.dart';
 import 'message_stamp.dart';
 import 'photo_chrome.dart';
 import 'reaction_bubble.dart';
@@ -61,6 +62,8 @@ class MessageBubble extends StatelessWidget {
     this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
+    this.onStopLiveShare,
+    this.publishingLiveShare = false,
     this.onRetrySend,
     this.onDiscardSend,
     this.bubbleKey,
@@ -69,6 +72,15 @@ class MessageBubble extends StatelessWidget {
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
   final Future<void> Function()? onOpenViewOnce;
+
+  /// Ends a running live-location share. Null on everything except the sender's
+  /// own live share, which is what makes the bubble draw STOP at all.
+  final Future<void> Function()? onStopLiveShare;
+
+  /// Whether THIS device is the one publishing that share. False on the
+  /// sender's second device, which can see its own share running but is not
+  /// what is feeding it.
+  final bool publishingLiveShare;
 
   /// Re-run or throw away a send that failed. Null on everything except the
   /// sender's own failed attachment, which is what makes the tile draw the pair.
@@ -332,6 +344,8 @@ class MessageBubble extends StatelessWidget {
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
       onOpenViewOnce: onOpenViewOnce,
+      onStopLiveShare: onStopLiveShare,
+      publishingLiveShare: publishingLiveShare,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
       currentUserId: currentUserId,
@@ -369,6 +383,8 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.avatarAtBottom = false,
     this.senderName,
     this.onOpenViewOnce,
+    this.onStopLiveShare,
+    this.publishingLiveShare = false,
     this.onRetrySend,
     this.onDiscardSend,
     this.bubbleKey,
@@ -377,6 +393,15 @@ class EphemeralMessageBubble extends StatelessWidget {
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// leaves the sealed tile inert.
   final Future<void> Function()? onOpenViewOnce;
+
+  /// Ends a running live-location share. Null on everything except the sender's
+  /// own live share, which is what makes the bubble draw STOP at all.
+  final Future<void> Function()? onStopLiveShare;
+
+  /// Whether THIS device is the one publishing that share. False on the
+  /// sender's second device, which can see its own share running but is not
+  /// what is feeding it.
+  final bool publishingLiveShare;
 
   /// Re-run or throw away a send that failed. Null on everything except the
   /// sender's own failed attachment, which is what makes the tile draw the pair.
@@ -472,6 +497,8 @@ class EphemeralMessageBubble extends StatelessWidget {
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
       onOpenViewOnce: onOpenViewOnce,
+      onStopLiveShare: onStopLiveShare,
+      publishingLiveShare: publishingLiveShare,
       onRetrySend: onRetrySend,
       onDiscardSend: onDiscardSend,
       currentUserId: currentUserId,
@@ -819,6 +846,14 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
     case MessageType.file:
     case MessageType.system:
       return true;
+    // A location card is a filled rectangle with a stamp-sized corner to spare,
+    // exactly like a media tile — with one exception. A share with no
+    // coordinates renders as a bare error plate with no room in it, which is the
+    // same shape as an image whose storage id never arrived, and takes the same
+    // answer: keep the external row.
+    case MessageType.location:
+    case MessageType.liveLocation:
+      return message.locationShare != null;
     case MessageType.text:
     case MessageType.url:
       return !_isStandaloneLinkCard(message, showLinkUrls);
@@ -874,6 +909,13 @@ Widget buildMessageContent({
   /// where no repository is wired up (tests, previews), which leaves the sealed
   /// tile inert rather than half-working.
   Future<void> Function()? onOpenViewOnce,
+
+  /// Ends a running live-location share, and whether this device is the one
+  /// publishing it. Threaded exactly like [onOpenViewOnce]: null leaves the
+  /// bubble showing the share without offering to stop it, which is the right
+  /// state for a recipient and for a preview with no repository behind it.
+  Future<void> Function()? onStopLiveShare,
+  bool publishingLiveShare = false,
 
   /// Re-run a send that failed, and throw one away. Threaded the same way
   /// [onOpenViewOnce] is, and null everywhere except a failed outgoing
@@ -1232,6 +1274,30 @@ Widget buildMessageContent({
             mentionsEveryone: message.mentionsEveryone,
             currentUserId: currentUserId,
             onMentionTap: onMentionTap),
+      );
+    case MessageType.location:
+    case MessageType.liveLocation:
+      // No bubble frame, matching the media tiles above: alignment in the row
+      // already says mine/theirs, and a chat bubble drawn around a map card
+      // reads as a frame around a frame.
+      //
+      // No caption branch either, unlike image and file. Nothing can attach text
+      // to a location today — the sheet sends the fix and nothing else — and the
+      // card's own two lines of readout are already the caption. If a label is
+      // ever added it belongs INSIDE this widget, next to the coordinates,
+      // rather than in a second bubble underneath.
+      return LocationBubble(
+        theme: theme,
+        message: message,
+        isMine: isMine,
+        width: imageSize,
+        radius: mediaRadius,
+        // `onMedia`, not `onBubble`: the stamp is laid over the drawn card, and
+        // the card's ground is a theme surface the stamp has to survive the same
+        // way it survives a photograph.
+        stamp: stampFor(StampTone.onMedia),
+        onStopSharing: onStopLiveShare,
+        publishing: publishingLiveShare,
       );
     case MessageType.url:
     case MessageType.text:

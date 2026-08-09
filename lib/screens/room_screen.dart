@@ -28,6 +28,7 @@ import '../media/video_poster.dart';
 import '../media/image_raster.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
+import '../services/location_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -53,6 +54,7 @@ import '../widgets/forward_target_sheet.dart';
 import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
+import '../widgets/location_share_sheet.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
 import '../widgets/pinned_banner.dart';
@@ -1183,13 +1185,25 @@ class _RoomScreenState extends State<RoomScreen>
   /// button entirely when the callback is null, so the composer would visibly
   /// reflow the moment the sheet opened and reflow back when it closed. The
   /// guard belongs here, where it costs no layout.
-  Future<bool> _claimMediaEntry() async {
+  /// [locationCounts] widens the parental check from "may send media" to "may
+  /// send media OR may share a location", for the one door that offers both.
+  ///
+  /// It exists because the two guardian switches are independent: a child whose
+  /// guardian turned media off and location on has nothing wrong with them, and
+  /// a gate that only knew about media would refuse them the sheet containing
+  /// the one thing they are allowed. The camera button keeps the strict media
+  /// check, because a camera is media whatever the location policy says.
+  Future<bool> _claimMediaEntry({bool locationCounts = false}) async {
     // Checked before the haptic, so a second tap during the flow is silent
     // rather than buzzing back at a user whose first tap is still being
     // honoured.
     if (_attachInFlight) return false;
     HapticFeedback.lightImpact();
-    if (FamilyService.maybeInstance?.canSendMedia == false) {
+    final family = FamilyService.maybeInstance;
+    final refused = family != null &&
+        !family.canSendMedia &&
+        !(locationCounts && family.canShareLocation);
+    if (refused) {
       await showApprovalGate(
         context,
         what: AppLocalizations.of(context).roomScreenGateSendMedia,
@@ -1220,10 +1234,15 @@ class _RoomScreenState extends State<RoomScreen>
   }
 
   Future<void> _onAttach() async {
-    if (!await _claimMediaEntry()) return;
+    if (!await _claimMediaEntry(locationCounts: true)) return;
     try {
       if (!mounted) return; // the `finally` still clears the in-flight flag
-      final choice = await showAttachmentMenu(context);
+      final family = FamilyService.maybeInstance;
+      final choice = await showAttachmentMenu(
+        context,
+        allowMedia: family?.canSendMedia ?? true,
+        allowLocation: family?.canShareLocation ?? true,
+      );
       if (choice == null || !mounted) return;
       final nav = Navigator.of(context);
       switch (choice) {
@@ -1251,9 +1270,136 @@ class _RoomScreenState extends State<RoomScreen>
             );
           }
           break;
+        case AttachmentMenuChoice.location:
+          await _shareLocation();
+          break;
       }
     } finally {
       _attachInFlight = false;
+    }
+  }
+
+  // ───────────────────────── location ─────────────────────────
+
+  /// Picks a mode, clears the permission hurdles, gets a fix, and sends.
+  ///
+  /// The order matters and is the opposite of the obvious one: the sheet opens
+  /// BEFORE any permission is requested. Asking for location the moment the
+  /// attachment menu is tapped would put a system dialog in front of somebody
+  /// who has not yet said they want to share anything — and on iOS that dialog
+  /// can only be shown once, so spending it on a tap the user might abandon is
+  /// spending it badly.
+  Future<void> _shareLocation() async {
+    // Live sharing is hidden in a Chamber of Secrets room — see the sheet's
+    // header. The room's own message lifetime already governs how long anything
+    // written there survives, and a share whose duration the room would silently
+    // override is worse than one that was never offered.
+    final choice = await showLocationShareSheet(
+      context,
+      allowLive: (_room ?? widget.repo.roomById(widget.roomId))
+              ?.messageLifetime ==
+          null,
+    );
+    if (choice == null || !mounted) return;
+
+    if (!await _ensureLocationPermission()) return;
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final roomId = widget.roomId;
+
+    // Snapshotted and disarmed up front, exactly as `_sendMedia` does it and for
+    // the same reason: the fix below can take fifteen seconds, and re-arming a
+    // reply target under a user who has started typing something else is worse
+    // than losing it.
+    final replyTarget = _replyingTo;
+    if (replyTarget != null) setState(() => _replyingTo = null);
+    widget.repo.exitHistoryWindow(roomId);
+
+    // The fix is taken before the message exists, for both modes. A live share
+    // needs a first position to be a share at all — an empty card that fills in
+    // when the publisher's first update lands would be a bubble that arrives
+    // saying nothing.
+    final fix = await LocationService.instance.currentFix();
+    if (fix == null) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.locationCouldNotGetFix)),
+      );
+      return;
+    }
+
+    final duration = choice.duration;
+    if (duration == null) {
+      await widget.repo.sendLocation(
+        roomId: roomId,
+        fix: fix,
+        replyToId: replyTarget?.id,
+      );
+      _scrollToBottom();
+      return;
+    }
+
+    // A live share deliberately carries no reply tether. It is a standing
+    // object in the transcript for hours, not a remark about the message above
+    // it, and a tether would have it quoting something long since scrolled past.
+    final started = await widget.repo.startLiveLocation(
+      roomId: roomId,
+      fix: fix,
+      duration: duration,
+    );
+    if (!started && mounted) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.locationCouldNotStartLiveShare)),
+      );
+      return;
+    }
+    _scrollToBottom();
+  }
+
+  /// Walks the three ways location can be unavailable, each to its own exit.
+  ///
+  /// None of them is allowed to be a dead end, which is the whole reason this
+  /// is three branches rather than a boolean:
+  ///
+  ///  * a soft denial is re-asked, once, by [LocationService.ensureAvailable];
+  ///  * a permanent denial cannot be re-asked at all — the OS answers without
+  ///    showing anything — so the only honest offer is the Settings page;
+  ///  * location switched off device-wide is not a permission problem, and
+  ///    sending the user to the app's permission screen would be sending them
+  ///    somewhere with no switch that helps.
+  Future<bool> _ensureLocationPermission() async {
+    final state = await LocationService.instance.ensureAvailable();
+    if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
+    switch (state) {
+      case LocationAvailability.ready:
+        return true;
+      case LocationAvailability.denied:
+        // Asked and refused, just now. No sheet: they answered the question a
+        // second ago and repeating it in our own words is nagging.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.locationPermissionNeeded)),
+        );
+        return false;
+      case LocationAvailability.deniedForever:
+        final go = await showConfirmSheet(
+          context,
+          headline: l10n.locationPermissionBlockedTitle,
+          body: l10n.locationPermissionBlockedBody,
+          confirmLabel: l10n.locationOpenSettings,
+        );
+        if (go) await LocationService.instance.openAppSettings();
+        return false;
+      case LocationAvailability.servicesDisabled:
+        final go = await showConfirmSheet(
+          context,
+          headline: l10n.locationServicesOffTitle,
+          body: l10n.locationServicesOffBody,
+          confirmLabel: l10n.locationOpenSettings,
+        );
+        if (go) await LocationService.instance.openLocationSettings();
+        return false;
     }
   }
 
@@ -2323,6 +2469,16 @@ class _RoomScreenState extends State<RoomScreen>
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
+                        // Offered only on the sender's own running share. A
+                        // recipient has nothing to stop, and the bubble hides
+                        // the control entirely rather than showing a disabled
+                        // one — "you may not stop this" is not a thing anyone
+                        // needs told about somebody else's location.
+                        onStopLiveShare: isMine && m.isLiveLocationRunning(_now)
+                            ? () => widget.repo.stopLiveLocation(messageId: m.id)
+                            : null,
+                        publishingLiveShare:
+                            widget.repo.activeLiveShareMessageId == m.id,
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
                       )
@@ -2354,6 +2510,16 @@ class _RoomScreenState extends State<RoomScreen>
                         avatarAtBottom: avatarAtBottom,
                         senderName: senderName,
                         onOpenViewOnce: () => _openViewOnce(m),
+                        // Offered only on the sender's own running share. A
+                        // recipient has nothing to stop, and the bubble hides
+                        // the control entirely rather than showing a disabled
+                        // one — "you may not stop this" is not a thing anyone
+                        // needs told about somebody else's location.
+                        onStopLiveShare: isMine && m.isLiveLocationRunning(_now)
+                            ? () => widget.repo.stopLiveLocation(messageId: m.id)
+                            : null,
+                        publishingLiveShare:
+                            widget.repo.activeLiveShareMessageId == m.id,
                         onRetrySend: sendFailed ? onRetrySend : null,
                         onDiscardSend: sendFailed ? onDiscardSend : null,
                       );

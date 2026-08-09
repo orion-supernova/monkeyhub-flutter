@@ -98,7 +98,18 @@ export const sendMessagePush = internalAction({
                   // Naming it beats "📎 File" for the same reason it does on the
                   // room card: one document is not interchangeable with another.
                   `📎 ${content}`
-                : "New message";
+                : type === "location"
+                  ? "📍 Location"
+                  : type === "liveLocation"
+                    ? // Named as live, because whether the sender is still
+                      // moving is the entire difference between the two and a
+                      // banner is often all the recipient sees for a while.
+                      // No coordinates and no duration: a push body is rendered
+                      // on a locked screen, and where somebody is should take
+                      // one deliberate tap to see, not a glance from across a
+                      // table.
+                      "📍 Live location"
+                    : "New message";
 
     // Who, of this room, was named. `@everyone` makes that everybody, which is
     // the whole point of it — every recipient below is already the roster minus

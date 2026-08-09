@@ -9706,6 +9706,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNARCHIVE CHAT'**
   String get chatRowActionMenuUnarchiveLabel;
+
+  /// Label under the location icon in the attachment picker sheet (attachment_menu.dart); tile is hidden on web.
+  ///
+  /// In en, this message translates to:
+  /// **'location'**
+  String get attachmentMenuLocationLabel;
+
+  /// Title of the first row in the location sheet, which sends one fixed position (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Send current location'**
+  String get locationSheetSendCurrent;
+
+  /// Subtitle under "Send current location" in the location sheet, explaining it is a single fixed position (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Where you are right now'**
+  String get locationSheetSendCurrentDetail;
+
+  /// Small all-caps heading above the three live-sharing duration rows in the location sheet (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'SHARE LIVE'**
+  String get locationSheetLiveHeading;
+
+  /// Subtitle repeated under every live-sharing duration row, promising the share ends by itself (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Stops on its own'**
+  String get locationSheetLiveDetail;
+
+  /// Live-location duration option: fifteen minutes (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'For 15 minutes'**
+  String get locationShareFor15Minutes;
+
+  /// Live-location duration option: one hour (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'For 1 hour'**
+  String get locationShareFor1Hour;
+
+  /// Live-location duration option: eight hours (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'For 8 hours'**
+  String get locationShareFor8Hours;
+
+  /// Accessibility label for tapping a location bubble, which hands the coordinates to the platform maps app (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Open in maps'**
+  String get locationBubbleOpenInMaps;
+
+  /// Short all-caps badge drawn on a location card while the share is still running (location_bubble.dart). Keep to a few characters.
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get locationBubbleLiveBadge;
+
+  /// Short all-caps badge drawn on a location card once the live share has finished (location_bubble.dart). Keep to a few characters.
+  ///
+  /// In en, this message translates to:
+  /// **'ENDED'**
+  String get locationBubbleEndedBadge;
+
+  /// Line under a running live-location card saying when it stops on its own (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Live until {time}'**
+  String locationBubbleLiveUntil(String time);
+
+  /// Line under a finished live-location card saying when it stopped (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Live location ended at {time}'**
+  String locationBubbleLiveEnded(String time);
+
+  /// Warning line under a running live-location card when the sharer’s device has not reported a position recently (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'No recent update'**
+  String get locationBubbleNoRecentUpdate;
+
+  /// Horizontal accuracy of a shared position, shown after the coordinates (location_bubble.dart). The ± sign is part of the string.
+  ///
+  /// In en, this message translates to:
+  /// **'±{meters} m'**
+  String locationBubbleAccuracy(int meters);
+
+  /// Button on the sender’s own running live-location bubble that ends the share early (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sharing'**
+  String get locationBubbleStopSharing;
+
+  /// Plate shown in place of a location card when the message carries no coordinates (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable'**
+  String get locationBubbleUnavailable;
+
+  /// Snackbar shown when no maps application could be opened for a shared position (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'No maps app to open this in'**
+  String get locationBubbleNoMapsApp;
+
+  /// Snackbar confirming a long-press copied the shared coordinates to the clipboard (location_bubble.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Coordinates copied'**
+  String get locationBubbleCoordinatesCopied;
+
+  /// Snackbar shown when the device could not produce a position fix in time (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t get your location'**
+  String get locationCouldNotGetFix;
+
+  /// Snackbar shown when starting a live-location share failed (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t start live sharing'**
+  String get locationCouldNotStartLiveShare;
+
+  /// Snackbar shown immediately after the user declines the system location prompt (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is needed to share where you are'**
+  String get locationPermissionNeeded;
+
+  /// Headline of the sheet shown when location access has been permanently denied and can only be changed in Settings (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location access is off'**
+  String get locationPermissionBlockedTitle;
+
+  /// Body of the sheet shown when location access has been permanently denied, directing the user to the app’s Settings page (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub can’t ask again from here. Turn on location access for MonkeyHub in Settings.'**
+  String get locationPermissionBlockedBody;
+
+  /// Headline of the sheet shown when location services are switched off for the whole device (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location services are off'**
+  String get locationServicesOffTitle;
+
+  /// Body of the sheet shown when location services are switched off device-wide, directing the user to the system location settings (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location is switched off for this device. Turn it on in Settings to share where you are.'**
+  String get locationServicesOffBody;
+
+  /// Confirm button on both location-permission sheets, which opens the relevant OS settings page (room_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get locationOpenSettings;
+
+  /// Label of the guardian toggle controlling whether a child may share their location (child_policy_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get childPolicyScreenLocationLabel;
+
+  /// Description shown under the location toggle when it is ON, in the guardian’s child-policy screen (child_policy_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Can share where they are, including live for up to 8 hours'**
+  String get childPolicyScreenLocationOnDesc;
+
+  /// Description shown under the location toggle when it is OFF, in the guardian’s child-policy screen (child_policy_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot share where they are'**
+  String get childPolicyScreenLocationOffDesc;
 }
 
 class _AppLocalizationsDelegate

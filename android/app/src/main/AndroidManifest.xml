@@ -19,6 +19,25 @@
          FCM call wake. Requested once post-login; see AndroidCallReliability. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Location sharing. Both are foreground-only.
+
+         ACCESS_COARSE_LOCATION is listed alongside FINE because Android 12+
+         lets the user grant "approximate" instead, and an app that declares
+         only FINE has that choice taken away from it — the system shows the
+         precise/approximate toggle only when both are declared. A coarse fix
+         is a legitimate answer here: the bubble draws the accuracy it was
+         given, so a 1 km radius renders as a 1 km radius.
+
+         Deliberately ABSENT: ACCESS_BACKGROUND_LOCATION and
+         FOREGROUND_SERVICE_LOCATION. Live sharing stops publishing when the
+         app leaves the foreground and viewers see the share go stale; the
+         share's deadline is enforced server-side and does not depend on this
+         device. Adding background location would also mean a Play Console
+         background-location declaration and a demo video. See
+         live_location_publisher.dart. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
         android:label="MonkeyHub"
         android:name="${applicationName}"

@@ -6393,5 +6393,143 @@
   "chatRowActionMenuUnarchiveLabel": "UNARCHIVE CHAT",
   "@chatRowActionMenuUnarchiveLabel": {
     "description": "All-caps row label in the chat-list long-press action menu (and inside the Archived Chats sheet) that restores an archived chat to the main list."
+  },
+  "attachmentMenuLocationLabel": "location",
+  "@attachmentMenuLocationLabel": {
+    "description": "Label under the location icon in the attachment picker sheet (attachment_menu.dart); tile is hidden on web."
+  },
+  "locationSheetSendCurrent": "Send current location",
+  "@locationSheetSendCurrent": {
+    "description": "Title of the first row in the location sheet, which sends one fixed position (location_share_sheet.dart)."
+  },
+  "locationSheetSendCurrentDetail": "Where you are right now",
+  "@locationSheetSendCurrentDetail": {
+    "description": "Subtitle under \"Send current location\" in the location sheet, explaining it is a single fixed position (location_share_sheet.dart)."
+  },
+  "locationSheetLiveHeading": "SHARE LIVE",
+  "@locationSheetLiveHeading": {
+    "description": "Small all-caps heading above the three live-sharing duration rows in the location sheet (location_share_sheet.dart)."
+  },
+  "locationSheetLiveDetail": "Stops on its own",
+  "@locationSheetLiveDetail": {
+    "description": "Subtitle repeated under every live-sharing duration row, promising the share ends by itself (location_share_sheet.dart)."
+  },
+  "locationShareFor15Minutes": "For 15 minutes",
+  "@locationShareFor15Minutes": {
+    "description": "Live-location duration option: fifteen minutes (location_share_sheet.dart)."
+  },
+  "locationShareFor1Hour": "For 1 hour",
+  "@locationShareFor1Hour": {
+    "description": "Live-location duration option: one hour (location_share_sheet.dart)."
+  },
+  "locationShareFor8Hours": "For 8 hours",
+  "@locationShareFor8Hours": {
+    "description": "Live-location duration option: eight hours (location_share_sheet.dart)."
+  },
+  "locationBubbleOpenInMaps": "Open in maps",
+  "@locationBubbleOpenInMaps": {
+    "description": "Accessibility label for tapping a location bubble, which hands the coordinates to the platform maps app (location_bubble.dart)."
+  },
+  "locationBubbleLiveBadge": "LIVE",
+  "@locationBubbleLiveBadge": {
+    "description": "Short all-caps badge drawn on a location card while the share is still running (location_bubble.dart). Keep to a few characters."
+  },
+  "locationBubbleEndedBadge": "ENDED",
+  "@locationBubbleEndedBadge": {
+    "description": "Short all-caps badge drawn on a location card once the live share has finished (location_bubble.dart). Keep to a few characters."
+  },
+  "locationBubbleLiveUntil": "Live until {time}",
+  "@locationBubbleLiveUntil": {
+    "description": "Line under a running live-location card saying when it stops on its own (location_bubble.dart).",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:30"
+      }
+    }
+  },
+  "locationBubbleLiveEnded": "Live location ended at {time}",
+  "@locationBubbleLiveEnded": {
+    "description": "Line under a finished live-location card saying when it stopped (location_bubble.dart).",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "14:30"
+      }
+    }
+  },
+  "locationBubbleNoRecentUpdate": "No recent update",
+  "@locationBubbleNoRecentUpdate": {
+    "description": "Warning line under a running live-location card when the sharer’s device has not reported a position recently (location_bubble.dart)."
+  },
+  "locationBubbleAccuracy": "±{meters} m",
+  "@locationBubbleAccuracy": {
+    "description": "Horizontal accuracy of a shared position, shown after the coordinates (location_bubble.dart). The ± sign is part of the string.",
+    "placeholders": {
+      "meters": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "locationBubbleStopSharing": "Stop sharing",
+  "@locationBubbleStopSharing": {
+    "description": "Button on the sender’s own running live-location bubble that ends the share early (location_bubble.dart)."
+  },
+  "locationBubbleUnavailable": "Location unavailable",
+  "@locationBubbleUnavailable": {
+    "description": "Plate shown in place of a location card when the message carries no coordinates (location_bubble.dart)."
+  },
+  "locationBubbleNoMapsApp": "No maps app to open this in",
+  "@locationBubbleNoMapsApp": {
+    "description": "Snackbar shown when no maps application could be opened for a shared position (location_bubble.dart)."
+  },
+  "locationBubbleCoordinatesCopied": "Coordinates copied",
+  "@locationBubbleCoordinatesCopied": {
+    "description": "Snackbar confirming a long-press copied the shared coordinates to the clipboard (location_bubble.dart)."
+  },
+  "locationCouldNotGetFix": "Couldn’t get your location",
+  "@locationCouldNotGetFix": {
+    "description": "Snackbar shown when the device could not produce a position fix in time (room_screen.dart)."
+  },
+  "locationCouldNotStartLiveShare": "Couldn’t start live sharing",
+  "@locationCouldNotStartLiveShare": {
+    "description": "Snackbar shown when starting a live-location share failed (room_screen.dart)."
+  },
+  "locationPermissionNeeded": "Location access is needed to share where you are",
+  "@locationPermissionNeeded": {
+    "description": "Snackbar shown immediately after the user declines the system location prompt (room_screen.dart)."
+  },
+  "locationPermissionBlockedTitle": "Location access is off",
+  "@locationPermissionBlockedTitle": {
+    "description": "Headline of the sheet shown when location access has been permanently denied and can only be changed in Settings (room_screen.dart)."
+  },
+  "locationPermissionBlockedBody": "MonkeyHub can’t ask again from here. Turn on location access for MonkeyHub in Settings.",
+  "@locationPermissionBlockedBody": {
+    "description": "Body of the sheet shown when location access has been permanently denied, directing the user to the app’s Settings page (room_screen.dart)."
+  },
+  "locationServicesOffTitle": "Location services are off",
+  "@locationServicesOffTitle": {
+    "description": "Headline of the sheet shown when location services are switched off for the whole device (room_screen.dart)."
+  },
+  "locationServicesOffBody": "Location is switched off for this device. Turn it on in Settings to share where you are.",
+  "@locationServicesOffBody": {
+    "description": "Body of the sheet shown when location services are switched off device-wide, directing the user to the system location settings (room_screen.dart)."
+  },
+  "locationOpenSettings": "Open settings",
+  "@locationOpenSettings": {
+    "description": "Confirm button on both location-permission sheets, which opens the relevant OS settings page (room_screen.dart)."
+  },
+  "childPolicyScreenLocationLabel": "Location",
+  "@childPolicyScreenLocationLabel": {
+    "description": "Label of the guardian toggle controlling whether a child may share their location (child_policy_screen.dart)."
+  },
+  "childPolicyScreenLocationOnDesc": "Can share where they are, including live for up to 8 hours",
+  "@childPolicyScreenLocationOnDesc": {
+    "description": "Description shown under the location toggle when it is ON, in the guardian’s child-policy screen (child_policy_screen.dart)."
+  },
+  "childPolicyScreenLocationOffDesc": "Cannot share where they are",
+  "@childPolicyScreenLocationOffDesc": {
+    "description": "Description shown under the location toggle when it is OFF, in the guardian’s child-policy screen (child_policy_screen.dart)."
   }
 }

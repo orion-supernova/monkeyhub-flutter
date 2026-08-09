@@ -5726,6 +5726,111 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CONVERSA';
+
+  @override
+  String get attachmentMenuLocationLabel => 'localização';
+
+  @override
+  String get locationSheetSendCurrent => 'Enviar localização atual';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'Onde estás agora';
+
+  @override
+  String get locationSheetLiveHeading => 'PARTILHAR EM DIRETO';
+
+  @override
+  String get locationSheetLiveDetail => 'Termina sozinho';
+
+  @override
+  String get locationShareFor15Minutes => 'Durante 15 minutos';
+
+  @override
+  String get locationShareFor1Hour => 'Durante 1 hora';
+
+  @override
+  String get locationShareFor8Hours => 'Durante 8 horas';
+
+  @override
+  String get locationBubbleOpenInMaps => 'Abrir nos mapas';
+
+  @override
+  String get locationBubbleLiveBadge => 'EM DIRETO';
+
+  @override
+  String get locationBubbleEndedBadge => 'TERMINADO';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return 'Em direto até às $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'Localização em direto terminou às $time';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'Sem atualizações recentes';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'Parar de partilhar';
+
+  @override
+  String get locationBubbleUnavailable => 'Localização indisponível';
+
+  @override
+  String get locationBubbleNoMapsApp =>
+      'Não há nenhuma app de mapas para abrir isto';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'Coordenadas copiadas';
+
+  @override
+  String get locationCouldNotGetFix =>
+      'Não foi possível obter a tua localização';
+
+  @override
+  String get locationCouldNotStartLiveShare =>
+      'Não foi possível iniciar a partilha em direto';
+
+  @override
+  String get locationPermissionNeeded =>
+      'É necessário acesso à localização para partilhares onde estás';
+
+  @override
+  String get locationPermissionBlockedTitle =>
+      'O acesso à localização está desativado';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'O MonkeyHub não pode voltar a pedir aqui. Ativa o acesso à localização para o MonkeyHub nas Definições.';
+
+  @override
+  String get locationServicesOffTitle =>
+      'Os serviços de localização estão desativados';
+
+  @override
+  String get locationServicesOffBody =>
+      'A localização está desativada neste dispositivo. Ativa-a nas Definições para partilhares onde estás.';
+
+  @override
+  String get locationOpenSettings => 'Abrir definições';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'Localização';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'Pode partilhar onde está, incluindo em direto até 8 horas';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'Não pode partilhar onde está';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -11449,4 +11554,108 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => 'DESARQUIVAR CHAT';
+
+  @override
+  String get attachmentMenuLocationLabel => 'localização';
+
+  @override
+  String get locationSheetSendCurrent => 'Enviar localização atual';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'Onde você está agora';
+
+  @override
+  String get locationSheetLiveHeading => 'COMPARTILHAR AO VIVO';
+
+  @override
+  String get locationSheetLiveDetail => 'Termina sozinho';
+
+  @override
+  String get locationShareFor15Minutes => 'Por 15 minutos';
+
+  @override
+  String get locationShareFor1Hour => 'Por 1 hora';
+
+  @override
+  String get locationShareFor8Hours => 'Por 8 horas';
+
+  @override
+  String get locationBubbleOpenInMaps => 'Abrir no mapa';
+
+  @override
+  String get locationBubbleLiveBadge => 'AO VIVO';
+
+  @override
+  String get locationBubbleEndedBadge => 'ENCERRADO';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return 'Ao vivo até $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'Localização ao vivo encerrada às $time';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'Sem atualizações recentes';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'Parar de compartilhar';
+
+  @override
+  String get locationBubbleUnavailable => 'Localização indisponível';
+
+  @override
+  String get locationBubbleNoMapsApp => 'Nenhum app de mapas para abrir isso';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'Coordenadas copiadas';
+
+  @override
+  String get locationCouldNotGetFix => 'Não foi possível obter sua localização';
+
+  @override
+  String get locationCouldNotStartLiveShare =>
+      'Não foi possível iniciar o compartilhamento ao vivo';
+
+  @override
+  String get locationPermissionNeeded =>
+      'É necessário acesso à localização para compartilhar onde você está';
+
+  @override
+  String get locationPermissionBlockedTitle =>
+      'O acesso à localização está desativado';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'O MonkeyHub não pode pedir de novo por aqui. Ative o acesso à localização para o MonkeyHub nos Ajustes.';
+
+  @override
+  String get locationServicesOffTitle =>
+      'Os serviços de localização estão desativados';
+
+  @override
+  String get locationServicesOffBody =>
+      'A localização está desativada neste dispositivo. Ative nos Ajustes para compartilhar onde você está.';
+
+  @override
+  String get locationOpenSettings => 'Abrir ajustes';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'Localização';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'Pode compartilhar onde está, inclusive ao vivo por até 8 horas';
+
+  @override
+  String get childPolicyScreenLocationOffDesc =>
+      'Não pode compartilhar onde está';
 }

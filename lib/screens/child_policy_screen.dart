@@ -86,6 +86,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
     bool? mediaEnabled,
     bool? canRequestContacts,
     bool? canCreateRooms,
+    bool? locationSharingEnabled,
   }) async {
     if (_saving) return;
     // Optimistic: the toggle should move under the thumb, not after a round
@@ -98,6 +99,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         mediaEnabled: mediaEnabled,
         canRequestContacts: canRequestContacts,
         canCreateRooms: canCreateRooms,
+        locationSharingEnabled: locationSharingEnabled,
       );
     });
     try {
@@ -108,6 +110,7 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
         mediaEnabled: mediaEnabled,
         canRequestContacts: canRequestContacts,
         canCreateRooms: canCreateRooms,
+        locationSharingEnabled: locationSharingEnabled,
       );
       if (mounted) setState(() => _policy = next);
       widget.family.refresh();
@@ -485,6 +488,19 @@ class _ChildPolicyScreenState extends State<ChildPolicyScreen> {
                           onDesc: l10n.childPolicyScreenCreateRoomsOnDesc,
                           offDesc: l10n.childPolicyScreenCreateRoomsOffDesc,
                           onChanged: (v) => _set(canCreateRooms: v),
+                        ),
+                        const SizedBox(height: 10),
+                        // The only switch on this screen that starts OFF, and
+                        // its own switch rather than part of MEDIA — see
+                        // `LOCATION_POLICY_FLAG` in childGuard.ts. Allowing
+                        // photos is not the same decision as allowing a child
+                        // to tell a room where they physically are.
+                        _Toggle(
+                          label: l10n.childPolicyScreenLocationLabel,
+                          on: _policy.locationSharingEnabled,
+                          onDesc: l10n.childPolicyScreenLocationOnDesc,
+                          offDesc: l10n.childPolicyScreenLocationOffDesc,
+                          onChanged: (v) => _set(locationSharingEnabled: v),
                         ),
 
                         const SizedBox(height: 30),

@@ -89,6 +89,15 @@ class FamilyService extends ChangeNotifier {
   /// True when the create-room entry point should render.
   bool get canCreateRooms => !isChild || policy.canCreateRooms;
 
+  /// True when the attachment menu should offer to share a location.
+  ///
+  /// Read separately from [canSendMedia] because the two policy flags are
+  /// separate — a guardian can allow photos and not positions, or the reverse.
+  /// `messages:send` enforces the same rule server-side; this only decides
+  /// whether the tile is drawn, which matters because a tile that is always
+  /// refused is worse than no tile.
+  bool get canShareLocation => !isChild || policy.locationSharingEnabled;
+
   /// Re-attaching the *same* user is a no-op only while the subscription is
   /// actually live. If it failed to open (or was torn down), fall through and
   /// try again — otherwise the account would silently stay on stale rules

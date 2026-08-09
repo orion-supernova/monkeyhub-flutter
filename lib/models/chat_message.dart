@@ -1,4 +1,5 @@
 import 'enums.dart';
+import 'location_share.dart';
 import 'message_reaction.dart';
 import 'pending_upload.dart';
 
@@ -104,6 +105,13 @@ class ChatMessage {
     this.clientId,
     List<MessageMention>? mentions,
     this.mentionsEveryone = false,
+    this.latitude,
+    this.longitude,
+    this.locationAccuracyM,
+    this.liveExpiresAt,
+    this.liveUpdatedAt,
+    this.liveEndedAt,
+    this.liveShareDurationMs,
   })  : reactions = reactions ?? [],
         mentions = mentions ?? const [];
 
@@ -268,6 +276,72 @@ class ChatMessage {
   bool viewOnceOpenable({required bool isMine}) =>
       viewOnce && !isMine && !viewOnceOpened && !viewOnceBurned;
 
+  // ── Location ──────────────────────────────────────────────────────────────
+  //
+  // Flat here and bundled by [locationShare], matching how every other
+  // attachment's metadata is stored on this class and matching the wire. The
+  // behaviour — is it live, has it ended, is it stale — lives on
+  // [LocationShare] rather than here, because all of it is pure and all of it
+  // is worth testing without a message.
+  //
+  // Mutable, unlike `mediaWidth` and friends, and that is the one thing about
+  // these fields that is not obvious: a live share is the only message in this
+  // app whose content is REWRITTEN after it is sent. The server patches the
+  // same row as the sharer moves and `messages:list` re-delivers it, so the
+  // local copy has to be able to take the new numbers in place.
+  double? latitude;
+  double? longitude;
+  double? locationAccuracyM;
+
+  /// Live shares only — see [LocationShare.liveExpiresAt].
+  DateTime? liveExpiresAt;
+  DateTime? liveUpdatedAt;
+  DateTime? liveEndedAt;
+
+  /// The duration this live share was STARTED for, in milliseconds.
+  ///
+  /// Send-side only, and never serialized: [toJson] omits it and the server has
+  /// no such column — it stores the resulting deadline, which is what everyone
+  /// reads. It exists for the same reason [upload] does. `_postMessage` builds
+  /// its arguments entirely from the optimistic bubble, so both reconnect
+  /// sweepers re-post from this object alone; without the duration recorded
+  /// here, a live share retried after a dropped ack would be re-sent with no
+  /// duration and the server would write it as a static pin.
+  ///
+  /// Null on every message that came from the server, which is correct — a
+  /// received share is not something this device can re-send.
+  final int? liveShareDurationMs;
+
+  /// The location this message carries, or null if it carries none.
+  ///
+  /// Gated on the type as well as on the coordinates so a stray `latitude` on a
+  /// text message — which the server refuses to write, but which a hand-built
+  /// test fixture or a future field could produce — cannot turn a text bubble
+  /// into a map.
+  LocationShare? get locationShare {
+    if (type != MessageType.location && type != MessageType.liveLocation) {
+      return null;
+    }
+    final lat = latitude, lng = longitude;
+    if (lat == null || lng == null) return null;
+    return LocationShare(
+      latitude: lat,
+      longitude: lng,
+      accuracyM: locationAccuracyM,
+      liveExpiresAt: liveExpiresAt,
+      liveUpdatedAt: liveUpdatedAt,
+      liveEndedAt: liveEndedAt,
+    );
+  }
+
+  /// Whether this viewer may still be shown a moving dot for this message.
+  ///
+  /// Takes `now` rather than reading the clock so the caller — a widget that
+  /// already ticks once a second, or a test — decides what time it is. See
+  /// [LocationShare.stateAt] for why expiry is derived and never stored.
+  bool isLiveLocationRunning(DateTime now) =>
+      locationShare?.stateAt(now) == LiveShareState.live;
+
   bool get isEphemeral => expiresAt != null;
 
   /// Carries an attachment, so it is unsendable until a storage id exists.
@@ -341,8 +415,21 @@ class ChatMessage {
               .toList() ??
           const [],
       mentionsEveryone: (j['mentionsEveryone'] ?? false) as bool,
+      // `num` rather than `double` because Convex hands back a whole-number
+      // latitude as an int, and a location on the equator or the prime meridian
+      // would otherwise throw on the wire rather than render.
+      latitude: (j['latitude'] as num?)?.toDouble(),
+      longitude: (j['longitude'] as num?)?.toDouble(),
+      locationAccuracyM: (j['locationAccuracyM'] as num?)?.toDouble(),
+      liveExpiresAt: _epochMs(j['liveExpiresAt']),
+      liveUpdatedAt: _epochMs(j['liveUpdatedAt']),
+      liveEndedAt: _epochMs(j['liveEndedAt']),
     );
   }
+
+  static DateTime? _epochMs(Object? v) => v is num
+      ? DateTime.fromMillisecondsSinceEpoch(v.toInt())
+      : null;
 
   Map<String, dynamic> toJson() => {
         '_id': id,
@@ -391,6 +478,22 @@ class ChatMessage {
         if (viewOnceOpened) 'viewOnceOpened': true,
         if (viewOnceBurnedAt != null)
           'viewOnceBurnedAt': viewOnceBurnedAt!.millisecondsSinceEpoch,
+        // A location bubble IS its coordinates — there is no thumbnail and no
+        // text underneath — so dropping these from the cache would give a cold
+        // boot a row of empty map cards, the same failure the `fileName`
+        // comment above describes. `liveExpiresAt` in particular has to survive:
+        // it is what a restored bubble derives its expired state from, and
+        // without it a share that ended overnight would come back claiming to
+        // be static and current.
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        if (locationAccuracyM != null) 'locationAccuracyM': locationAccuracyM,
+        if (liveExpiresAt != null)
+          'liveExpiresAt': liveExpiresAt!.millisecondsSinceEpoch,
+        if (liveUpdatedAt != null)
+          'liveUpdatedAt': liveUpdatedAt!.millisecondsSinceEpoch,
+        if (liveEndedAt != null)
+          'liveEndedAt': liveEndedAt!.millisecondsSinceEpoch,
       };
 
   ChatMessage copyWith({
@@ -442,5 +545,19 @@ class ChatMessage {
         // reaction and view-once paths, neither of which knows mentions exist.
         mentions: mentions,
         mentionsEveryone: mentionsEveryone,
+        // Carried for the same reason as everything else in this list, and with
+        // the sharpest consequence: `copyWith` runs on the reaction path, so a
+        // thumbs-up on a live share that dropped these would replace a moving
+        // map with an empty card — and, because `liveExpiresAt` would go too,
+        // one that no longer knew it had ever been live.
+        latitude: latitude,
+        longitude: longitude,
+        locationAccuracyM: locationAccuracyM,
+        liveExpiresAt: liveExpiresAt,
+        liveUpdatedAt: liveUpdatedAt,
+        liveEndedAt: liveEndedAt,
+        // Carried for the same reason [upload] is: a copy that lost it could
+        // neither be retried as the share it was, nor say at the call site why.
+        liveShareDurationMs: liveShareDurationMs,
       );
 }

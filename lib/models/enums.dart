@@ -4,7 +4,14 @@ enum RoomType { regular, secret }
 
 /// Ordering is free: [MessageTypeWire.wire] is `name`, so nothing anywhere
 /// depends on the index.
-enum MessageType { text, image, video, audio, file, url, system }
+///
+/// [location] and [liveLocation] are two members rather than one plus a flag
+/// for the same reason [image] and [video] are: every renderer here dispatches
+/// on this enum with an exhaustive `switch`, so a share that moves and a share
+/// that does not are two cases the compiler makes somebody answer. Folded into
+/// one member with a nullable deadline beside it, "did you handle the live
+/// case?" would be a question no tool could ask.
+enum MessageType { text, image, video, audio, file, url, system, location, liveLocation }
 
 /// Where an outgoing message is in its journey.
 ///
@@ -65,6 +72,10 @@ extension MessageTypeWire on MessageType {
         return MessageType.url;
       case 'system':
         return MessageType.system;
+      case 'location':
+        return MessageType.location;
+      case 'liveLocation':
+        return MessageType.liveLocation;
       default:
         return MessageType.text;
     }

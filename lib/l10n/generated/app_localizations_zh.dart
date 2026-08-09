@@ -5372,4 +5372,101 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatRowActionMenuUnarchiveLabel => '取消归档聊天';
+
+  @override
+  String get attachmentMenuLocationLabel => '位置';
+
+  @override
+  String get locationSheetSendCurrent => '发送当前位置';
+
+  @override
+  String get locationSheetSendCurrentDetail => '你现在所在的位置';
+
+  @override
+  String get locationSheetLiveHeading => '实时共享';
+
+  @override
+  String get locationSheetLiveDetail => '会自动结束';
+
+  @override
+  String get locationShareFor15Minutes => '15 分钟';
+
+  @override
+  String get locationShareFor1Hour => '1 小时';
+
+  @override
+  String get locationShareFor8Hours => '8 小时';
+
+  @override
+  String get locationBubbleOpenInMaps => '在地图中打开';
+
+  @override
+  String get locationBubbleLiveBadge => '实时';
+
+  @override
+  String get locationBubbleEndedBadge => '已结束';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return '实时共享至 $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return '实时位置已于 $time 结束';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => '最近没有更新';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters 米';
+  }
+
+  @override
+  String get locationBubbleStopSharing => '停止共享';
+
+  @override
+  String get locationBubbleUnavailable => '位置不可用';
+
+  @override
+  String get locationBubbleNoMapsApp => '没有可打开的地图应用';
+
+  @override
+  String get locationBubbleCoordinatesCopied => '坐标已复制';
+
+  @override
+  String get locationCouldNotGetFix => '无法获取你的位置';
+
+  @override
+  String get locationCouldNotStartLiveShare => '无法开始实时共享';
+
+  @override
+  String get locationPermissionNeeded => '共享你的位置需要位置权限';
+
+  @override
+  String get locationPermissionBlockedTitle => '位置权限已关闭';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHub 无法在此再次请求。请在“设置”中为 MonkeyHub 开启位置权限。';
+
+  @override
+  String get locationServicesOffTitle => '定位服务已关闭';
+
+  @override
+  String get locationServicesOffBody => '此设备已关闭定位。请在“设置”中开启后再共享你的位置。';
+
+  @override
+  String get locationOpenSettings => '打开设置';
+
+  @override
+  String get childPolicyScreenLocationLabel => '位置';
+
+  @override
+  String get childPolicyScreenLocationOnDesc => '可以共享所在位置，包括最长 8 小时的实时共享';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => '不能共享所在位置';
 }

@@ -16,5 +16,10 @@
 	<true/>
 	<key>com.apple.security.device.microphone</key>
 	<true/>
+	<!-- Location sharing. The sandbox needs this in addition to the
+	     NSLocationWhenInUseUsageDescription string in Info.plist; without it
+	     CoreLocation refuses every request without ever prompting. -->
+	<key>com.apple.security.personal-information.location</key>
+	<true/>
 </dict>
 </plist>
