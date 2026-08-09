@@ -133,8 +133,8 @@ class RoomGridTile extends StatelessWidget {
                       )
                     else if (room.hasUnread)
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 14,
+                        height: 14,
                         decoration: BoxDecoration(
                           color: theme.accent,
                           shape: BoxShape.circle,
