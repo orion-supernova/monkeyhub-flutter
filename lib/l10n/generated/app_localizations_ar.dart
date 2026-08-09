@@ -1443,6 +1443,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'لا توجد روابط بعد';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'لم تحفظ شيئًا بعد. اضغط مطوّلًا على رسالة واختر حفظ.\n\nما تحفظه هنا يخصّك وحدك — أما الرسالة المثبّتة فتراها الغرفة كلها.';
+
+  @override
   String get roomContentScreenLoadFailed => 'تعذّر تحميل ذلك';
 
   @override
@@ -3183,6 +3187,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get messageStampSeenLabel => 'تمت المشاهدة';
 
   @override
+  String get messageStampSavedLabel => 'محفوظة';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '$countث';
   }
@@ -4440,6 +4447,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get roomContentTabLabelLinks => 'الروابط';
 
   @override
+  String get roomContentTabLabelSaved => 'المحفوظة';
+
+  @override
   String get roomContentTabHeaderMedia => 'الوسائط';
 
   @override
@@ -4450,6 +4460,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'الروابط';
+
+  @override
+  String get roomContentTabHeaderSaved => 'المحفوظة';
 
   @override
   String get roomFacetLabelDms => 'فردي';
@@ -5750,23 +5763,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'تعذّر حفظ ذلك';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'الرسائل المحفوظة';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'أنت وحدك من يرى الرسائل التي تحفظها — والرسالة المثبّتة عكس ذلك تمامًا: تراها الغرفة كلها.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'أنت وحدك تراها، ومن هذه الغرفة فقط. محادثة الرسائل المحفوظة منفصلة.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'لا شيء محفوظ بعد. اضغط مطولاً على رسالة واختر حفظ.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'الانتقال إلى الرسالة المحفوظة من $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'إلغاء حفظ الرسالة من $name';
   }
 

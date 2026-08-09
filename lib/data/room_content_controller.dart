@@ -26,6 +26,16 @@ import 'chat_repository.dart';
 /// the first page and the live list both contain the newest attachments — so
 /// the merge dedupes by id. Without that, anything that arrived between the
 /// fetch starting and finishing renders twice.
+///
+/// ── The SAVED tab has neither half ──
+///
+/// [RoomContentTab.saved] is not paged and not merged: `bookmarks:listForRoom`
+/// is already subscribed for the open room and is capped at 50, so the whole
+/// list is in [ChatRepository] and there is nothing to fetch, nothing to
+/// deduplicate and no cursor to keep. Every method below therefore short-circuits
+/// for it — see [items] and [_loadOnePage]. Modelling it as a tab that simply
+/// never has more to load is what lets the screen keep one controller per tab
+/// and one scroll handler for all of them.
 class RoomContentController extends ChangeNotifier {
   RoomContentController({
     required this.repo,
@@ -66,6 +76,16 @@ class RoomContentController extends ChangeNotifier {
   /// invalidating on each one anyway. The lists involved are a few hundred
   /// entries at most.
   List<ChatMessage> get items {
+    // The saved tab is the repository's list verbatim, and the ordering is the
+    // point: `bookmarks:listForRoom` sorts by `savedAt` descending, NOT by
+    // `createdAt` the way every other tab does. A personal shelf reads with the
+    // last thing you put on it at the top — see [MessageBookmark.savedAt] — so
+    // re-sorting this into transcript order below would quietly undo the one
+    // decision that makes it a shelf rather than a second gallery.
+    if (tab == RoomContentTab.saved) {
+      return [for (final b in repo.savedFor(roomId)) b.message];
+    }
+
     final seen = <String>{};
     final out = <ChatMessage>[];
 
@@ -151,6 +171,16 @@ class RoomContentController extends ChangeNotifier {
 
   Future<void> _loadOnePage() async {
     if (_loading || !_hasMore) return;
+    // Nothing to fetch, and saying so once is what stops the scroll handler
+    // from asking again on every frame near the bottom. `loadedOnce` matters as
+    // much as `hasMore`: without it the screen would sit on its spinner
+    // forever, because an empty shelf and an unasked question look identical.
+    if (tab == RoomContentTab.saved) {
+      _hasMore = false;
+      _loadedOnce = true;
+      notifyListeners();
+      return;
+    }
     final userId = repo.userId;
     if (userId == null) return;
 

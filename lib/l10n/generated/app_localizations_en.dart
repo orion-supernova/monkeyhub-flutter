@@ -1418,6 +1418,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'no links yet';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'nothing saved yet. hold a message and choose SAVE.\n\nwhat you keep here is private to you — a pinned message is what the whole room sees.';
+
+  @override
   String get roomContentScreenLoadFailed => 'couldn’t load that';
 
   @override
@@ -3121,6 +3125,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageStampSeenLabel => 'seen';
 
   @override
+  String get messageStampSavedLabel => 'saved';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -4342,6 +4349,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roomContentTabLabelLinks => 'LINKS';
 
   @override
+  String get roomContentTabLabelSaved => 'SAVED';
+
+  @override
   String get roomContentTabHeaderMedia => 'media';
 
   @override
@@ -4352,6 +4362,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'links';
+
+  @override
+  String get roomContentTabHeaderSaved => 'saved';
 
   @override
   String get roomFacetLabelDms => 'dms';
@@ -5669,23 +5682,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'couldn’t save that';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'SAVED MESSAGES';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'only you can see the messages you save — a pinned message is the opposite: the whole room sees it.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'only you can see these, and only from this room. your Saved Messages chat is separate.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'nothing saved yet. hold a message and choose SAVE.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Jump to saved message from $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Unsave message from $name';
   }
 

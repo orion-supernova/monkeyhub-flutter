@@ -1362,6 +1362,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'まだリンクはありません';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'まだ何も保存されていません。メッセージを長押しして「保存」を選んでください。\n\nここに保存したものはあなただけに見えます。ピン留めしたメッセージはルーム全員に見えます。';
+
+  @override
   String get roomContentScreenLoadFailed => '読み込めませんでした';
 
   @override
@@ -3017,6 +3021,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get messageStampSeenLabel => '既読';
 
   @override
+  String get messageStampSavedLabel => '保存済み';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '$count秒';
   }
@@ -4201,6 +4208,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roomContentTabLabelLinks => 'リンク';
 
   @override
+  String get roomContentTabLabelSaved => '保存済み';
+
+  @override
   String get roomContentTabHeaderMedia => 'メディア';
 
   @override
@@ -4211,6 +4221,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'リンク';
+
+  @override
+  String get roomContentTabHeaderSaved => '保存済み';
 
   @override
   String get roomFacetLabelDms => 'DM';
@@ -5461,23 +5474,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get threadOverlaySaveFailedToast => '保存できませんでした';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => '保存したメッセージ';
+  String get roomInfoScreenSharedContentSavedNote =>
+      '保存したメッセージが見えるのはあなただけです。ピン留めしたメッセージはその逆で、ルーム全員に見えます。';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'これらはあなたにしか見えず、このルームのものだけです。保存済みメッセージのチャットとは別です。';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'まだ何も保存されていません。メッセージを長押しして「保存」を選んでください。';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return '$nameの保存したメッセージにジャンプ';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return '$nameのメッセージの保存を解除';
   }
 

@@ -1410,6 +1410,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'henüz bağlantı yok';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'henüz bir şey kaydedilmedi. bir mesaja basılı tutup KAYDET’i seç.\n\nburada tuttukların yalnızca sana ait — sabitlenmiş bir mesajı ise odadaki herkes görür.';
+
+  @override
   String get roomContentScreenLoadFailed => 'bu yüklenemedi';
 
   @override
@@ -3111,6 +3115,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get messageStampSeenLabel => 'görüldü';
 
   @override
+  String get messageStampSavedLabel => 'kaydedildi';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}sn';
   }
@@ -4327,6 +4334,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roomContentTabLabelLinks => 'BAĞLANTILAR';
 
   @override
+  String get roomContentTabLabelSaved => 'KAYDEDİLENLER';
+
+  @override
   String get roomContentTabHeaderMedia => 'medya';
 
   @override
@@ -4337,6 +4347,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'bağlantılar';
+
+  @override
+  String get roomContentTabHeaderSaved => 'kaydedilenler';
 
   @override
   String get roomFacetLabelDms => 'birebir';
@@ -5653,23 +5666,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'kaydedilemedi';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'KAYDEDİLEN MESAJLAR';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'kaydettiğin mesajları yalnızca sen görürsün — sabitlenen bir mesaj ise tam tersi: onu odadaki herkes görür.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'bunları yalnızca sen görürsün ve yalnızca bu odadan. Kaydedilmiş Mesajlar sohbetin ayrıdır.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'henüz bir şey kaydedilmedi. bir mesaja basılı tutup KAYDET’i seç.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return '$name tarafından gönderilen kaydedilen mesaja git';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return '$name tarafından gönderilen mesajın kaydını kaldır';
   }
 

@@ -1440,6 +1440,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'aún no hay enlaces';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'aún no has guardado nada. mantén pulsado un mensaje y elige GUARDAR.\n\nlo que guardas aquí es solo tuyo: un mensaje fijado es lo que ve toda la sala.';
+
+  @override
   String get roomContentScreenLoadFailed => 'no se pudo cargar eso';
 
   @override
@@ -3160,6 +3164,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get messageStampSeenLabel => 'visto';
 
   @override
+  String get messageStampSavedLabel => 'guardado';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -4392,6 +4399,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get roomContentTabLabelLinks => 'ENLACES';
 
   @override
+  String get roomContentTabLabelSaved => 'GUARDADOS';
+
+  @override
   String get roomContentTabHeaderMedia => 'multimedia';
 
   @override
@@ -4402,6 +4412,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'enlaces';
+
+  @override
+  String get roomContentTabHeaderSaved => 'guardados';
 
   @override
   String get roomFacetLabelDms => 'directos';
@@ -5739,23 +5752,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get threadOverlaySaveFailedToast => 'no se pudo guardar ese mensaje';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'MENSAJES GUARDADOS';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'solo tú ves los mensajes que guardas; un mensaje fijado es lo contrario: lo ve toda la sala.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'solo tú puedes verlos, y solo desde esta sala. tu chat Mensajes guardados es aparte.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'todavía no hay nada guardado. mantén pulsado un mensaje y elige GUARDAR.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir al mensaje guardado de $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Quitar de guardados el mensaje de $name';
   }
 

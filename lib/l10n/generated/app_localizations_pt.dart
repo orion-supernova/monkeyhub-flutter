@@ -1443,6 +1443,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomContentScreenEmptyLinks => 'ainda não há links';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      'ainda não guardaste nada. mantém premida uma mensagem e escolhe GUARDAR.\n\no que guardas aqui é só teu — uma mensagem fixada é o que toda a sala vê.';
+
+  @override
   String get roomContentScreenLoadFailed => 'não foi possível carregar isso';
 
   @override
@@ -3166,6 +3170,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get messageStampSeenLabel => 'visto';
 
   @override
+  String get messageStampSavedLabel => 'guardada';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -4401,6 +4408,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get roomContentTabLabelLinks => 'LIGAÇÕES';
 
   @override
+  String get roomContentTabLabelSaved => 'GUARDADAS';
+
+  @override
   String get roomContentTabHeaderMedia => 'multimédia';
 
   @override
@@ -4411,6 +4421,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => 'ligações';
+
+  @override
+  String get roomContentTabHeaderSaved => 'guardadas';
 
   @override
   String get roomFacetLabelDms => 'individual';
@@ -5750,23 +5763,16 @@ class AppLocalizationsPt extends AppLocalizations {
       'não foi possível guardar essa mensagem';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'MENSAGENS GUARDADAS';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'só tu vês as mensagens que guardas — uma mensagem fixada é o oposto: toda a sala a vê.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'só tu as vês, e só a partir desta sala. a tua conversa Mensagens guardadas é à parte.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'ainda não há nada guardado. mantém uma mensagem premida e escolhe GUARDAR.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir para a mensagem guardada de $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Remover dos guardados a mensagem de $name';
   }
 
@@ -7397,6 +7403,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomContentScreenEmptyLinks => 'ainda não tem links por aqui';
+
+  @override
+  String get roomContentScreenEmptySaved =>
+      'nada salvo ainda. segure uma mensagem e escolha SALVAR.\n\no que você guarda aqui é só seu — uma mensagem fixada é o que a sala inteira vê.';
 
   @override
   String get roomContentScreenLoadFailed => 'não deu pra carregar isso';
@@ -9120,6 +9130,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get messageStampSeenLabel => 'visto';
 
   @override
+  String get messageStampSavedLabel => 'salva';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '${count}s';
   }
@@ -10359,6 +10372,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get roomContentTabLabelLinks => 'LINKS';
 
   @override
+  String get roomContentTabLabelSaved => 'SALVAS';
+
+  @override
   String get roomContentTabHeaderMedia => 'mídia';
 
   @override
@@ -10369,6 +10385,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get roomContentTabHeaderLinks => 'links';
+
+  @override
+  String get roomContentTabHeaderSaved => 'salvas';
 
   @override
   String get roomFacetLabelDms => 'diretas';
@@ -11707,23 +11726,16 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get threadOverlaySaveFailedToast => 'não deu pra salvar isso';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => 'MENSAGENS SALVAS';
+  String get roomInfoScreenSharedContentSavedNote =>
+      'só você vê as mensagens que salva — uma mensagem fixada é o oposto: a sala inteira vê.';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      'só você vê essas, e só desta sala. seu chat Mensagens salvas é separado.';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty =>
-      'nada salvo ainda. segure uma mensagem e escolha SALVAR.';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return 'Ir para a mensagem salva de $name';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return 'Remover das salvas a mensagem de $name';
   }
 

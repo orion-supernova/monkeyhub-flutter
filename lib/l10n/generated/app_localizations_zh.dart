@@ -1342,6 +1342,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomContentScreenEmptyLinks => '还没有链接';
 
   @override
+  String get roomContentScreenEmptySaved =>
+      '还没有保存任何内容。长按一条消息并选择保存。\n\n你在这里保存的内容只有你能看到；置顶的消息则是整个房间都能看到。';
+
+  @override
   String get roomContentScreenLoadFailed => '没能加载';
 
   @override
@@ -2980,6 +2984,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get messageStampSeenLabel => '已读';
 
   @override
+  String get messageStampSavedLabel => '已保存';
+
+  @override
   String messageStampCountdownSeconds(Object count) {
     return '$count秒';
   }
@@ -4147,6 +4154,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roomContentTabLabelLinks => '链接';
 
   @override
+  String get roomContentTabLabelSaved => '已保存';
+
+  @override
   String get roomContentTabHeaderMedia => '媒体';
 
   @override
@@ -4157,6 +4167,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get roomContentTabHeaderLinks => '链接';
+
+  @override
+  String get roomContentTabHeaderSaved => '已保存';
 
   @override
   String get roomFacetLabelDms => '私聊';
@@ -5392,22 +5405,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get threadOverlaySaveFailedToast => '无法保存这条消息';
 
   @override
-  String get roomInfoScreenSavedMessagesLabel => '保存的消息';
+  String get roomInfoScreenSharedContentSavedNote =>
+      '你保存的消息只有你能看到；置顶的消息正相反，整个房间都能看到。';
 
   @override
-  String get roomInfoScreenSavedMessagesCaption =>
-      '只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。';
-
-  @override
-  String get roomInfoScreenSavedMessagesEmpty => '还没有保存任何内容。长按消息并选择“保存”。';
-
-  @override
-  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+  String roomContentScreenSavedJumpSemantic(Object name) {
     return '跳转到$name保存的消息';
   }
 
   @override
-  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+  String roomContentScreenUnsaveSemantic(Object name) {
     return '取消保存$name的消息';
   }
 

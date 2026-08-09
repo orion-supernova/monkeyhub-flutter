@@ -55,6 +55,7 @@ class MessageBubble extends StatelessWidget {
     this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
     this.deliveredToOthers = false,
+    this.saved = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -151,6 +152,13 @@ class MessageBubble extends StatelessWidget {
   /// Whether anyone else's device is known to hold this yet — the second
   /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
   final bool deliveredToOthers;
+
+  /// Whether THIS viewer has bookmarked this message, which puts a small mark
+  /// on its stamp. Passed in rather than read from a repository here for the
+  /// same reason the two receipts above are: a bubble is also rendered in
+  /// previews and chrome that have no repository, and false is the right answer
+  /// there. See [MessageStamp.saved].
+  final bool saved;
 
   /// When true this message continues a run from the same sender: the vertical
   /// gap tightens and [senderName] is left null by the caller. Nothing
@@ -320,6 +328,7 @@ class MessageBubble extends StatelessWidget {
                 isMine: isMine,
                 seenByOthers: seenByOthers,
                 deliveredToOthers: deliveredToOthers,
+                saved: saved,
               ),
       ),
     );
@@ -343,6 +352,7 @@ class MessageBubble extends StatelessWidget {
       lastInRun: lastInRun,
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
+      saved: saved,
       onOpenViewOnce: onOpenViewOnce,
       onStopLiveShare: onStopLiveShare,
       publishingLiveShare: publishingLiveShare,
@@ -376,6 +386,7 @@ class EphemeralMessageBubble extends StatelessWidget {
     this.replyMarker = ReplyMarker.full,
     this.seenByOthers = false,
     this.deliveredToOthers = false,
+    this.saved = false,
     this.grouped = false,
     this.lastInRun = true,
     this.showAvatarSlot = true,
@@ -442,6 +453,11 @@ class EphemeralMessageBubble extends StatelessWidget {
   /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
   final bool deliveredToOthers;
 
+  /// See [MessageBubble.saved]. Meaningful here too: an ephemeral message can
+  /// be bookmarked, and the bookmark simply goes with it when it burns —
+  /// `removeMessageAndFanout` drops both.
+  final bool saved;
+
   /// See [MessageBubble.grouped].
   final bool grouped;
 
@@ -496,6 +512,7 @@ class EphemeralMessageBubble extends StatelessWidget {
       countdown: message.timeLeft(now),
       seenByOthers: seenByOthers,
       deliveredToOthers: deliveredToOthers,
+      saved: saved,
       onOpenViewOnce: onOpenViewOnce,
       onStopLiveShare: onStopLiveShare,
       publishingLiveShare: publishingLiveShare,
@@ -647,6 +664,7 @@ class EphemeralMessageBubble extends StatelessWidget {
                     countdown: message.timeLeft(now),
                     seenByOthers: seenByOthers,
                     deliveredToOthers: deliveredToOthers,
+                    saved: saved,
                   ),
                 ),
         ),
@@ -905,6 +923,10 @@ Widget buildMessageContent({
   /// [seenByOthers]; a message that is neither draws a single tick.
   bool deliveredToOthers = false,
 
+  /// Whether this viewer has bookmarked the message, which marks its stamp.
+  /// See [MessageStamp.saved].
+  bool saved = false,
+
   /// Spends this viewer's one look at a view-once photo and shows it. Null
   /// where no repository is wired up (tests, previews), which leaves the sealed
   /// tile inert rather than half-working.
@@ -971,6 +993,7 @@ Widget buildMessageContent({
             deliveredToOthers: deliveredToOthers,
             seenByOthers: seenByOthers,
           ),
+          saved: saved,
           tone: tone,
         )
       : null;
@@ -2524,6 +2547,7 @@ class _MetaRow extends StatelessWidget {
     this.countdown,
     this.seenByOthers = false,
     this.deliveredToOthers = false,
+    this.saved = false,
   });
   final ChatMessage message;
   final bool isMine;
@@ -2533,6 +2557,11 @@ class _MetaRow extends StatelessWidget {
   /// Whether anyone else's device is known to hold this yet — the second
   /// tick, below [seenByOthers] on the same ladder. See [MessageReceipt].
   final bool deliveredToOthers;
+
+  /// See [MessageStamp.saved]. The fallback row carries the bookmark for the
+  /// same two shapes it carries the clock for — a standalone link card has no
+  /// surface of ours to mark either.
+  final bool saved;
 
   @override
   Widget build(BuildContext context) {
@@ -2550,6 +2579,7 @@ class _MetaRow extends StatelessWidget {
           deliveredToOthers: deliveredToOthers,
           seenByOthers: seenByOthers,
         ),
+        saved: saved,
         tone: StampTone.onSurface,
       ),
     );
