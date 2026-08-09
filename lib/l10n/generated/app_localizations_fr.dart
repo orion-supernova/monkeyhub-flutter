@@ -5985,6 +5985,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get locationOpenSettings => 'Ouvrir les réglages';
 
   @override
+  String get locationBackgroundSheetTitle => 'Si votre téléphone redémarre';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Votre partage en direct continue déjà quand vous quittez MonkeyHub. L’accès en arrière-plan couvre le reste : un redémarrage, une fermeture forcée, un téléphone tombé en panne de batterie qui revient.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'La reprendre toute seule';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Votre téléphone vous demandera l’autorisation';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'La laisser arrêtée';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Rien d’autre à autoriser';
+
+  @override
+  String get locationServiceNotificationTitle =>
+      'Partage de votre position en direct';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Touchez pour ouvrir la conversation, ou Arrêter pour y mettre fin';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Position';
 
   @override

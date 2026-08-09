@@ -10103,6 +10103,54 @@ abstract class AppLocalizations {
   /// **'Open settings'**
   String get locationOpenSettings;
 
+  /// Headline of the sheet offering background location access, shown once ever, at the moment the user starts their first live share (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'If your phone restarts'**
+  String get locationBackgroundSheetTitle;
+
+  /// Body of the background-location sheet, explaining that backgrounding already works and what the extra permission adds (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Your live share already keeps going when you leave MonkeyHub. Background access covers the rest: a restart, a force-quit, a phone that runs out of battery and comes back.'**
+  String get locationBackgroundSheetBody;
+
+  /// First option in the background-location sheet: the user wants the share to resume itself after the app or phone has been closed (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Pick it back up'**
+  String get locationBackgroundSheetKeepRunning;
+
+  /// Subtitle under the first option in the background-location sheet, warning that a system permission prompt follows (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone will ask you to allow this'**
+  String get locationBackgroundSheetKeepRunningDetail;
+
+  /// Second option in the background-location sheet: the user declines background access and the share ends if the app is closed (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Leave it stopped'**
+  String get locationBackgroundSheetAppOnly;
+
+  /// Subtitle under the second option in the background-location sheet, noting that declining involves no further system prompt (location_share_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing else to allow'**
+  String get locationBackgroundSheetAppOnlyDetail;
+
+  /// Title of the ongoing system notification shown for the whole time a live share is running (LiveLocationService.kt / LiveLocationBridge.swift). Kept short — Android truncates one line.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing your live location'**
+  String get locationServiceNotificationTitle;
+
+  /// Body of the ongoing live-share notification, pointing at its two actions (LiveLocationService.kt / LiveLocationBridge.swift).
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to open the chat, or Stop to end it now'**
+  String get locationServiceNotificationBody;
+
   /// Label of the guardian toggle controlling whether a child may share their location (child_policy_screen.dart).
   ///
   /// In en, this message translates to:

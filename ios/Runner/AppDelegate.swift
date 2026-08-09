@@ -5,6 +5,7 @@ import PushKit
 import CallKit
 import AVKit
 import AVFoundation
+import CoreLocation
 import flutter_callkit_incoming
 
 @main
@@ -24,6 +25,13 @@ import flutter_callkit_incoming
 
   // Event sink for screen-capture state changes pushed to Dart.
   fileprivate var captureEventSink: FlutterEventSink?
+
+  // Background live-location sharing. Retained for the app's whole lifetime for
+  // the same reason `voipRegistry` is: it owns a CLLocationManager whose
+  // delegate callbacks — the Always answer, and the significant-change wake —
+  // arrive minutes or hours after the call that started them, and a manager
+  // that has been deallocated simply never calls back.
+  private let liveLocation = LiveLocationBridge()
 
   // PushKit registry — must be retained by the app delegate for the whole
   // lifetime, otherwise iOS never delivers VoIP pushes. Token is read by Dart
@@ -99,7 +107,18 @@ import flutter_callkit_incoming
     engine.run()
     GeneratedPluginRegistrant.register(with: engine)
     registerAppChannels(on: engine)
+    liveLocation.register(on: engine)
     flutterEngine = engine
+
+    // Before anything else touches launchOptions. An app relaunched by a
+    // significant location change must re-register for them here, in this
+    // method — the registration does not survive the relaunch, so waiting for
+    // Dart to ask would buy exactly one more wake and then silence. See
+    // [LiveLocationBridge].
+    //
+    // This runs on every launch, including ordinary ones, and does nothing
+    // unless the location key is present.
+    liveLocation.handleLaunch(options: launchOptions)
 
     NotificationCenter.default.addObserver(
       self,
@@ -211,6 +230,15 @@ import flutter_callkit_incoming
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
+    // First, because it is matched on the ACTION identifier rather than on the
+    // payload and would otherwise fall through to the room branch below — the
+    // live-share notification carries no roomId, but a future one might, and a
+    // STOP press that merely opened the chat would be the worst possible
+    // outcome for a button whose entire job is to stop a tracker.
+    if liveLocation.handleNotificationResponse(response) {
+      completionHandler()
+      return
+    }
     let info = response.notification.request.content.userInfo
     if let roomId = info["roomId"] as? String, !roomId.isEmpty {
       invokeNotifOrQueue("onOpenRoom", args: ["roomId": roomId])
@@ -1240,6 +1268,309 @@ private class _VideoPlayerViewController: AVPlayerViewController {
     guard isBeingDismissed || isMovingFromParent else { return }
     player?.pause()
     player = nil
+  }
+}
+
+/// The iOS half of background live-location sharing: everything `geolocator`
+/// does not expose.
+///
+/// Lives in this file rather than in its own because every Swift source has to
+/// be listed by hand in `Runner.xcodeproj/project.pbxproj`, and a new file that
+/// somebody forgets to add compiles perfectly and simply is not there. Swift is
+/// happy with several types per file; a silently-missing bridge is a much worse
+/// trade than a longer AppDelegate.
+///
+/// ## What geolocator already does, and why this is not that
+///
+/// Continuous background updates are the plugin's job and it does them well:
+/// `AppleSettings(allowBackgroundLocationUpdates:showBackgroundLocationIndicator:
+/// pauseLocationUpdatesAutomatically:)` sets exactly the three CLLocationManager
+/// properties that matter, and needs nothing here. Three things it cannot do:
+///
+///  1. **Ask for Always.** `geolocator`'s `requestPermission` calls
+///     `requestWhenInUseAuthorization` whenever `NSLocationWhenInUseUsageDescription`
+///     exists, and returns early without prompting once the status is anything
+///     but `notDetermined`. The Always escalation is by definition a second
+///     prompt after When-In-Use was granted, so it needs its own call.
+///  2. **Significant-change monitoring.** Not exposed at all, and the only iOS
+///     API that can relaunch a terminated app.
+///  3. **A notification with a STOP action.** iOS has no equivalent of Android's
+///     foreground-service notification, so this posts an ordinary local one.
+///
+/// ## The relaunch contract, stated plainly
+///
+/// `startMonitoringSignificantLocationChanges` survives termination. When the
+/// device moves roughly 500 m, iOS relaunches this app into the background with
+/// `UIApplication.LaunchOptionsKey.location` set. Three things about that are
+/// easy to get wrong and are handled here:
+///
+///  * The relaunched app **must restart monitoring immediately**, in
+///    `didFinishLaunchingWithOptions`. A relaunch does not carry the old
+///    registration forward; an app that waits for Dart to ask gets one callback
+///    and is never woken again.
+///  * The launch key is **consumed once** and reported to Dart as
+///    `wasLaunchedForLocation`, so a launch the user did not ask for stays
+///    silent — no route restored, no room marked read.
+///  * Granularity is ~500 m and several minutes. Between callbacks the share
+///    reads STALE to every viewer, which is correct: between callbacks nobody
+///    knows where this phone is.
+///
+/// It requires Always. On When-In-Use everything above is skipped and the share
+/// simply stops when the process does — which is the ordinary outcome, not a
+/// failure, and nothing here reports it as one.
+/// Deliberately NOT a `UNUserNotificationCenterDelegate`. `AppDelegate` already
+/// owns that role and there is only one; a second claimant would silently take
+/// the first one's deliveries and break every push in the app. The STOP action
+/// reaches this class through [handleNotificationResponse], called from
+/// AppDelegate's override.
+final class LiveLocationBridge: NSObject, CLLocationManagerDelegate {
+
+  /// Set before Dart exists, read once by it. Same "native buffers, Dart
+  /// drains" pattern the VoIP and notification channels in this file use, and
+  /// for the same reason: on a background relaunch the OS talks to us a long
+  /// time before an isolate is listening.
+  static var launchedForLocation = false
+
+  private static let notificationId = "monkeyhub.liveShare"
+  private static let stopActionId = "monkeyhub.liveShare.stop"
+  private static let categoryId = "monkeyhub.liveShare.category"
+
+  private let manager = CLLocationManager()
+  private var channel: FlutterMethodChannel?
+
+  /// The Dart future waiting on the Always prompt, if any. Held because
+  /// `requestAlwaysAuthorization` answers through the delegate rather than a
+  /// completion handler, and a FlutterResult cannot be completed twice — so this
+  /// is nulled the moment it is used.
+  private var pendingAuthResult: FlutterResult?
+
+  func register(on engine: FlutterEngine) {
+    guard let registrar = engine.registrar(forPlugin: "MonkeyHubLiveLocationPlugin")
+    else { return }
+    let channel = FlutterMethodChannel(
+      name: "monkeyhub/live_location",
+      binaryMessenger: registrar.messenger()
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      self?.handle(call, result: result)
+    }
+    self.channel = channel
+    manager.delegate = self
+    registerNotificationCategory()
+  }
+
+  /// Re-arms significant-change monitoring on a relaunch, before Dart is up.
+  ///
+  /// Called from `didFinishLaunchingWithOptions`. The share may turn out to be
+  /// over — the persisted handle decides that, in Dart, a moment later — but
+  /// re-registering first costs nothing and NOT doing it costs everything: an
+  /// app relaunched for location that does not restart monitoring gets exactly
+  /// one more callback in its life.
+  func handleLaunch(options: [UIApplication.LaunchOptionsKey: Any]?) {
+    guard options?[.location] != nil else { return }
+    LiveLocationBridge.launchedForLocation = true
+    NSLog("[live-location] relaunched by significant location change")
+    manager.delegate = self
+    manager.startMonitoringSignificantLocationChanges()
+  }
+
+  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    switch call.method {
+    case "authorizationTier":
+      result(tierString())
+
+    case "requestAlwaysAuthorization":
+      requestAlways(result: result)
+
+    case "startSharing":
+      let args = call.arguments as? [String: Any] ?? [:]
+      startSharing(
+        title: args["title"] as? String ?? "",
+        body: args["body"] as? String ?? "",
+        stopLabel: args["stopLabel"] as? String ?? "Stop",
+        significantChanges: args["significantChanges"] as? Bool ?? false
+      )
+      result(nil)
+
+    case "stopSharing":
+      stopSharing()
+      result(nil)
+
+    case "wasLaunchedForLocation":
+      let was = LiveLocationBridge.launchedForLocation
+      // Consumed. A second reader asking "was this a location launch?" ten
+      // minutes into a session the user has been tapping through would get a
+      // yes, and act on it.
+      LiveLocationBridge.launchedForLocation = false
+      result(was)
+
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  // MARK: - Authorization
+
+  private func tierString() -> String {
+    let status: CLAuthorizationStatus
+    if #available(iOS 14.0, *) {
+      status = manager.authorizationStatus
+    } else {
+      status = CLLocationManager.authorizationStatus()
+    }
+    switch status {
+    case .authorizedAlways: return "always"
+    case .authorizedWhenInUse: return "whenInUse"
+    default: return "none"
+    }
+  }
+
+  /// Shows the Always prompt, and resolves with whatever iOS decides.
+  ///
+  /// The honest description of what happens next, because the naive reading of
+  /// this API is wrong: on a device that already holds When-In-Use,
+  /// `requestAlwaysAuthorization` very often returns the SAME status
+  /// immediately and shows the user nothing. iOS defers the real question until
+  /// the app has actually used location in the background, then asks on its own
+  /// terms — the "Keep Only While Using / Change to Always" sheet, which can
+  /// arrive hours later.
+  ///
+  /// So a `whenInUse` answer here means "not decided yet", never "refused", and
+  /// the Dart side is written to carry on with Tier 1 and never re-ask. The
+  /// two-second timeout below exists for exactly that case: without it the Dart
+  /// future would hang until the user next moved 500 m.
+  private func requestAlways(result: @escaping FlutterResult) {
+    if tierString() == "always" {
+      result("always")
+      return
+    }
+    if pendingAuthResult != nil {
+      // A second request while one is open. Answering with the current status
+      // is better than replacing the pending result, which would strand the
+      // first caller forever.
+      result(tierString())
+      return
+    }
+    pendingAuthResult = result
+    manager.requestAlwaysAuthorization()
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+      guard let self, let pending = self.pendingAuthResult else { return }
+      self.pendingAuthResult = nil
+      pending(self.tierString())
+    }
+  }
+
+  func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    guard let pending = pendingAuthResult else { return }
+    pendingAuthResult = nil
+    pending(tierString())
+  }
+
+  // MARK: - Sharing
+
+  private func startSharing(
+    title: String,
+    body: String,
+    stopLabel: String,
+    significantChanges: Bool
+  ) {
+    postNotification(title: title, body: body, stopLabel: stopLabel)
+    // Guarded on Always, and silently. Asking for significant-change monitoring
+    // without it is not an error iOS reports — it simply never calls back — so
+    // the check is here rather than left to the OS, and a When-In-Use user gets
+    // the full backgrounded-app share with no warning about what they do not
+    // have.
+    guard significantChanges, tierString() == "always" else { return }
+    manager.startMonitoringSignificantLocationChanges()
+  }
+
+  private func stopSharing() {
+    manager.stopMonitoringSignificantLocationChanges()
+    let center = UNUserNotificationCenter.current()
+    center.removePendingNotificationRequests(
+      withIdentifiers: [LiveLocationBridge.notificationId])
+    center.removeDeliveredNotifications(
+      withIdentifiers: [LiveLocationBridge.notificationId])
+  }
+
+  /// The iOS answer to "let me stop this without hunting for the app".
+  ///
+  /// Not as good as Android's ongoing notification — iOS has no such thing for
+  /// a non-service app, so this is an ordinary local notification that the user
+  /// can swipe away without stopping anything. It is a shortcut, not a status
+  /// display. The actual always-visible indicator on iOS is the blue status-bar
+  /// pill that `showsBackgroundLocationIndicator` draws, and tapping that goes
+  /// straight into the app.
+  ///
+  /// Interruption level `.passive` so it lands in Notification Centre without
+  /// lighting the screen or making a sound. A share the user just started does
+  /// not need announcing to the person who started it.
+  private func postNotification(title: String, body: String, stopLabel: String) {
+    let content = UNMutableNotificationContent()
+    content.title = title
+    content.body = body
+    content.categoryIdentifier = LiveLocationBridge.categoryId
+    content.sound = nil
+    if #available(iOS 15.0, *) {
+      content.interruptionLevel = .passive
+    }
+    // Rebuilt on every start so the action carries the user's current language.
+    registerNotificationCategory(stopLabel: stopLabel)
+    let request = UNNotificationRequest(
+      identifier: LiveLocationBridge.notificationId,
+      content: content,
+      trigger: nil
+    )
+    UNUserNotificationCenter.current().add(request) { error in
+      if let error {
+        // Not fatal and not surfaced. The user declined notifications, most
+        // likely; the share itself is unaffected and the blue pill is still
+        // there.
+        NSLog("[live-location] notification failed: \(error.localizedDescription)")
+      }
+    }
+  }
+
+  private func registerNotificationCategory(stopLabel: String = "Stop sharing") {
+    let stop = UNNotificationAction(
+      identifier: LiveLocationBridge.stopActionId,
+      title: stopLabel,
+      options: [.destructive]
+    )
+    let category = UNNotificationCategory(
+      identifier: LiveLocationBridge.categoryId,
+      actions: [stop],
+      intentIdentifiers: [],
+      options: []
+    )
+    let center = UNUserNotificationCenter.current()
+    // Merged rather than replaced: this app registers no other categories today
+    // but overwriting the whole set from a location bridge is the kind of line
+    // that quietly breaks somebody else's notification a year from now.
+    center.getNotificationCategories { existing in
+      var next = existing.filter { $0.identifier != LiveLocationBridge.categoryId }
+      next.insert(category)
+      center.setNotificationCategories(next)
+    }
+  }
+
+  /// True if this response was the share's STOP button, in which case Dart has
+  /// been told and the caller should not treat it as an ordinary tap.
+  ///
+  /// Called from AppDelegate's own `didReceive response` override, because
+  /// `UNUserNotificationCenter.delegate` is already assigned there and a second
+  /// claimant would silently take the first one's deliveries.
+  func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
+    guard response.actionIdentifier == LiveLocationBridge.stopActionId else {
+      return false
+    }
+    stopSharing()
+    // The notification is already gone; what matters is that the SERVER hears
+    // about it, which only Dart can do. Buffered by nothing on purpose: pressing
+    // STOP on a notification launches the app if it is not running, and by the
+    // time this fires the engine has been started for at least a run loop.
+    channel?.invokeMethod("stopRequested", arguments: nil)
+    return true
   }
 }
 

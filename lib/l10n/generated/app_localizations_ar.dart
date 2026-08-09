@@ -5953,6 +5953,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationOpenSettings => 'فتح الإعدادات';
 
   @override
+  String get locationBackgroundSheetTitle => 'إذا أُعيد تشغيل هاتفك';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'مشاركتك المباشرة تستمر بالفعل عند خروجك من MonkeyHub. الوصول في الخلفية يغطي ما تبقّى: إعادة تشغيل، إغلاق قسري، أو هاتف نفدت بطاريته ثم عاد.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'استئنافها تلقائيًا';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'سيطلب منك هاتفك السماح بذلك';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'اتركها متوقفة';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'لا شيء آخر للسماح به';
+
+  @override
+  String get locationServiceNotificationTitle => 'تتم مشاركة موقعك المباشر';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'اضغط لفتح المحادثة، أو «إيقاف» لإنهائها الآن';
+
+  @override
   String get childPolicyScreenLocationLabel => 'الموقع';
 
   @override

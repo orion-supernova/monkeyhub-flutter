@@ -5872,6 +5872,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationOpenSettings => 'Open settings';
 
   @override
+  String get locationBackgroundSheetTitle => 'If your phone restarts';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Your live share already keeps going when you leave MonkeyHub. Background access covers the rest: a restart, a force-quit, a phone that runs out of battery and comes back.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Pick it back up';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Your phone will ask you to allow this';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Leave it stopped';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Nothing else to allow';
+
+  @override
+  String get locationServiceNotificationTitle => 'Sharing your live location';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Tap to open the chat, or Stop to end it now';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Location';
 
   @override

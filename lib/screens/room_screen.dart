@@ -28,8 +28,12 @@ import '../media/video_poster.dart';
 import '../media/image_raster.dart';
 import '../media/view_once_fetch.dart';
 import '../privacy/capture_protection.dart';
+import '../services/live_location_permission.dart';
+import '../services/live_location_platform.dart';
+import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
 import '../models/chat_message.dart';
+import '../models/location_share.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
@@ -1373,6 +1377,18 @@ class _RoomScreenState extends State<RoomScreen>
     if (!await _ensureLocationPermission()) return;
     if (!mounted) return;
 
+    // The Always escalation, and the only place it happens. Before the fix
+    // rather than after, because taking a fix can spend fifteen seconds and a
+    // sheet that appears after that wait reads as an interruption rather than as
+    // part of the same decision. Live shares only: a single pin sent once has
+    // nothing to gain from background permission and asking for it there would
+    // be the upfront prompt this whole flow exists to avoid.
+    var keepRunningInBackground = false;
+    if (choice.isLive) {
+      keepRunningInBackground = await _offerBackgroundUpgradeIfDue();
+      if (!mounted) return;
+    }
+
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final roomId = widget.roomId;
@@ -1415,6 +1431,15 @@ class _RoomScreenState extends State<RoomScreen>
       roomId: roomId,
       fix: fix,
       duration: duration,
+      // Resolved here, where a locale exists, and persisted with the share.
+      // The Android foreground service and its boot receiver both read it back
+      // off disk with no `BuildContext` anywhere in reach — see [LiveShareNotice].
+      notice: LiveShareNotice(
+        title: l10n.locationServiceNotificationTitle,
+        body: l10n.locationServiceNotificationBody,
+        stopLabel: l10n.locationBubbleStopSharing,
+      ),
+      monitorSignificantChanges: keepRunningInBackground,
     );
     if (!started && mounted) {
       messenger.showSnackBar(
@@ -1423,6 +1448,44 @@ class _RoomScreenState extends State<RoomScreen>
       return;
     }
     _scrollToBottom();
+  }
+
+  /// Offers the background upgrade, exactly once per install, and reports what
+  /// the share can now promise.
+  ///
+  /// Returns whether the platform should be asked to keep this share alive
+  /// across termination — iOS significant-change monitoring, Android's boot
+  /// receiver. A false answer is the ordinary outcome and not a failure: the
+  /// share still publishes for the whole time the app is backgrounded, which is
+  /// what almost everybody means by "keeps working". See [decideLiveShareStart]
+  /// for the table this consults and why the flag is set on ASKING rather than
+  /// on being granted.
+  ///
+  /// Availability is passed as ready because the caller has just established it
+  /// through [_ensureLocationPermission]; re-deriving it here would be a second
+  /// permission round trip for an answer we hold.
+  Future<bool> _offerBackgroundUpgradeIfDue() async {
+    final platform = LiveLocationPlatform.instance;
+    final store = LiveShareResumeStore.instance;
+    final tier = await platform.authorizationTier();
+    final action = decideLiveShareStart(
+      availability: LocationAvailability.ready,
+      tier: tier,
+      alreadyOfferedAlways: await store.hasOfferedAlwaysUpgrade(),
+      platformSupportsAlways: platform.supportsAlways,
+    );
+    if (action != LiveShareStartAction.offerAlwaysUpgrade || !mounted) {
+      return tierSurvivesTermination(tier);
+    }
+
+    final wants = await showLiveShareBackgroundSheet(context);
+    // Marked whichever way they answered, and marked even if the request below
+    // fails. The point of the flag is "this person has been asked", not "this
+    // person has granted" — see the sheet's own doc comment.
+    await store.markAlwaysUpgradeOffered();
+    if (!wants) return false;
+
+    return tierSurvivesTermination(await platform.requestAlwaysAuthorization());
   }
 
   /// Walks the three ways location can be unavailable, each to its own exit.

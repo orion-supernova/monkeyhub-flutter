@@ -19,7 +19,8 @@
          FCM call wake. Requested once post-login; see AndroidCallReliability. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- Location sharing. Both are foreground-only.
+    <!-- Location sharing. Four permissions, three tiers, and the difference
+         between them is what the Play Console declaration has to describe.
 
          ACCESS_COARSE_LOCATION is listed alongside FINE because Android 12+
          lets the user grant "approximate" instead, and an app that declares
@@ -28,15 +29,25 @@
          is a legitimate answer here: the bubble draws the accuracy it was
          given, so a 1 km radius renders as a 1 km radius.
 
-         Deliberately ABSENT: ACCESS_BACKGROUND_LOCATION and
-         FOREGROUND_SERVICE_LOCATION. Live sharing stops publishing when the
-         app leaves the foreground and viewers see the share go stale; the
-         share's deadline is enforced server-side and does not depend on this
-         device. Adding background location would also mean a Play Console
-         background-location declaration and a demo video. See
-         live_location_publisher.dart. -->
+         FOREGROUND_SERVICE_LOCATION is what lets LiveLocationService promote
+         the process while a share runs, which is what stops Android throttling
+         location to a few updates an hour and then killing us. Started while
+         the app is on screen, so it needs NO background permission — this is
+         the tier almost everybody will use.
+
+         ACCESS_BACKGROUND_LOCATION is requested separately, later, and only
+         from somebody who has started a live share and chosen the "pick it back
+         up" option in an explainer sheet. It buys exactly one thing: the boot
+         receiver below can restart a share after a reboot. Declining it costs
+         nothing else — see LIVE_LOCATION_BACKGROUND.md, which is also the
+         Play declaration this permission requires.
+
+         RECEIVE_BOOT_COMPLETED is the boot receiver's trigger. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="MonkeyHub"
@@ -83,6 +94,45 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!-- Keeps a live location share publishing while the app is off screen.
+             Not a location provider — geolocator still takes the fixes from the
+             Dart isolate — this only keeps that isolate alive and unthrottled,
+             and owns the notification with the STOP button that geolocator's
+             own foreground-service notification cannot have.
+
+             The type must match the ServiceInfo constant passed to
+             startForeground() or Android 14+ throws rather than degrading.
+             Not exported: nothing outside this app has any business starting
+             or stopping somebody's location share. -->
+        <service
+            android:name=".LiveLocationService"
+            android:exported="false"
+            android:foregroundServiceType="location"
+            android:stopWithTask="false" />
+
+        <!-- Restarts an unexpired share after a reboot. Reads the deadline out
+             of shared_preferences and does nothing at all in the overwhelmingly
+             common case where no share is running — booting a Flutter engine to
+             discover that on every boot is the cost this avoids.
+
+             NOT direct-boot aware, and LOCKED_BOOT_COMPLETED is deliberately not
+             listed: the share's deadline lives in credential-encrypted storage
+             (shared_preferences) and the session lives in the keystore, neither
+             of which is readable before the first unlock. So the honest
+             behaviour is what happens anyway — a phone that reboots in a pocket
+             resumes its share when it is next unlocked, not before. -->
+        <receiver
+            android:name=".LiveLocationBootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- HTC/older-OEM alias for the same event. Harmless where it is
+                     not sent, and the receiver is idempotent where both are. -->
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
         <!-- Full-screen ExoPlayer surface for tapped video messages, launched
              over MainActivity by the monkeyhub/video channel. Not exported:

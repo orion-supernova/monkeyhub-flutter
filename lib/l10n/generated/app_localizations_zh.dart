@@ -5589,6 +5589,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locationOpenSettings => '打开设置';
 
   @override
+  String get locationBackgroundSheetTitle => '如果手机重启';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      '离开 MonkeyHub 后，实时共享本来就会继续。后台权限负责其余情况：重启、强制退出，或者手机没电后重新开机。';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => '自动恢复共享';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail => '手机会请求你的许可';
+
+  @override
+  String get locationBackgroundSheetAppOnly => '就让它停下';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => '无需其他权限';
+
+  @override
+  String get locationServiceNotificationTitle => '正在共享实时位置';
+
+  @override
+  String get locationServiceNotificationBody => '点按可打开聊天，点“停止”立即结束';
+
+  @override
   String get childPolicyScreenLocationLabel => '位置';
 
   @override

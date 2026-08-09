@@ -504,6 +504,21 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
           state == AppLifecycleState.resumed ||
           state == AppLifecycleState.inactive,
     );
+    // The publisher's power tier, driven from here rather than from the room
+    // screen because a live share outlives the screen that started it: walking
+    // out of the chat, or opening Settings, must not look like backgrounding.
+    //
+    // `inactive` counts as visible for the same reason it counts as foreground
+    // above — iOS fires it for every Control Centre swipe — and here the cost of
+    // getting it wrong is concrete: each mode change tears down and reopens the
+    // OS position stream, so a share would rebuild it twice per app-switcher
+    // peek. Web is excluded because there is no background mode to switch to.
+    if (!kIsWeb) {
+      _repo.liveLocation.setAppVisible(
+        state == AppLifecycleState.resumed ||
+            state == AppLifecycleState.inactive,
+      );
+    }
     final session = _auth.session;
     if (session == null) return;
     final next = presenceStatusFor(state);

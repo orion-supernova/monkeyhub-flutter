@@ -6692,6 +6692,38 @@
   "@locationOpenSettings": {
     "description": "Confirm button on both location-permission sheets, which opens the relevant OS settings page (room_screen.dart)."
   },
+  "locationBackgroundSheetTitle": "If your phone restarts",
+  "@locationBackgroundSheetTitle": {
+    "description": "Headline of the sheet offering background location access, shown once ever, at the moment the user starts their first live share (location_share_sheet.dart)."
+  },
+  "locationBackgroundSheetBody": "Your live share already keeps going when you leave MonkeyHub. Background access covers the rest: a restart, a force-quit, a phone that runs out of battery and comes back.",
+  "@locationBackgroundSheetBody": {
+    "description": "Body of the background-location sheet, explaining that backgrounding already works and what the extra permission adds (location_share_sheet.dart)."
+  },
+  "locationBackgroundSheetKeepRunning": "Pick it back up",
+  "@locationBackgroundSheetKeepRunning": {
+    "description": "First option in the background-location sheet: the user wants the share to resume itself after the app or phone has been closed (location_share_sheet.dart)."
+  },
+  "locationBackgroundSheetKeepRunningDetail": "Your phone will ask you to allow this",
+  "@locationBackgroundSheetKeepRunningDetail": {
+    "description": "Subtitle under the first option in the background-location sheet, warning that a system permission prompt follows (location_share_sheet.dart)."
+  },
+  "locationBackgroundSheetAppOnly": "Leave it stopped",
+  "@locationBackgroundSheetAppOnly": {
+    "description": "Second option in the background-location sheet: the user declines background access and the share ends if the app is closed (location_share_sheet.dart)."
+  },
+  "locationBackgroundSheetAppOnlyDetail": "Nothing else to allow",
+  "@locationBackgroundSheetAppOnlyDetail": {
+    "description": "Subtitle under the second option in the background-location sheet, noting that declining involves no further system prompt (location_share_sheet.dart)."
+  },
+  "locationServiceNotificationTitle": "Sharing your live location",
+  "@locationServiceNotificationTitle": {
+    "description": "Title of the ongoing system notification shown for the whole time a live share is running (LiveLocationService.kt / LiveLocationBridge.swift). Kept short — Android truncates one line."
+  },
+  "locationServiceNotificationBody": "Tap to open the chat, or Stop to end it now",
+  "@locationServiceNotificationBody": {
+    "description": "Body of the ongoing live-share notification, pointing at its two actions (LiveLocationService.kt / LiveLocationBridge.swift)."
+  },
   "childPolicyScreenLocationLabel": "Location",
   "@childPolicyScreenLocationLabel": {
     "description": "Label of the guardian toggle controlling whether a child may share their location (child_policy_screen.dart)."

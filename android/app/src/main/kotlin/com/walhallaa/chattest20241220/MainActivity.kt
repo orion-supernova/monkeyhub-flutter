@@ -397,6 +397,19 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // monkeyhub/live_location — the foreground service that keeps a live
+        // share publishing off screen, its stoppable notification, and the
+        // background-location escalation. Registered through the shared object
+        // rather than inline because [LiveLocationService] registers the SAME
+        // channel on the headless engine it boots after a reboot, and the STOP
+        // button has to reach Dart whichever of the two brought the isolate up.
+        LiveLocationBridge.register(flutterEngine, applicationContext)
+        // Below Android 11 the background-location prompt is a runtime dialog
+        // and needs an activity to show it from. Re-attached on every engine
+        // attach, like the handlers above, so a second activity taking the
+        // engine over does not leave this pointing at a destroyed window.
+        LiveLocationBridge.attachActivity(this)
+
         // A cold start FROM a notification: the intent is already on the
         // activity by the time the engine is configured.
         handleNotificationIntent(intent)
@@ -543,6 +556,12 @@ class MainActivity : FlutterActivity() {
                 it.success(false)
             } catch (_: Throwable) {
             }
+        }
+        // Only if it is still us. A second activity may already have taken the
+        // engine over and attached itself, and clearing that would leave the
+        // live one unable to show the background-location dialog.
+        if (LiveLocationBridge.activityIsCurrent(this)) {
+            LiveLocationBridge.attachActivity(null)
         }
         super.onDestroy()
     }

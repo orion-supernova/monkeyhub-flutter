@@ -5891,6 +5891,34 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationOpenSettings => 'सेटिंग्स खोलें';
 
   @override
+  String get locationBackgroundSheetTitle => 'अगर आपका फ़ोन रीस्टार्ट हो जाए';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'MonkeyHub से बाहर निकलने पर भी आपकी लाइव शेयरिंग चलती रहती है। बैकग्राउंड एक्सेस बाकी सब संभालता है: रीस्टार्ट, ऐप का ज़बरदस्ती बंद होना, या बैटरी खत्म होकर फ़ोन का वापस आना।';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'अपने आप फिर शुरू करें';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'आपका फ़ोन इसकी अनुमति मांगेगा';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'बंद ही रहने दें';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'और कुछ अनुमति नहीं देनी';
+
+  @override
+  String get locationServiceNotificationTitle =>
+      'आपकी लाइव लोकेशन शेयर हो रही है';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'चैट खोलने के लिए टैप करें, या अभी बंद करने के लिए रोकें दबाएँ';
+
+  @override
   String get childPolicyScreenLocationLabel => 'स्थान';
 
   @override

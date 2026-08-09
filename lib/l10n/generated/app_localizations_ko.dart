@@ -5676,6 +5676,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get locationOpenSettings => '설정 열기';
 
   @override
+  String get locationBackgroundSheetTitle => '휴대폰이 다시 시작되면';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'MonkeyHub를 벗어나도 실시간 공유는 계속됩니다. 백그라운드 권한은 나머지를 맡습니다. 재시작, 강제 종료, 배터리가 나갔다가 다시 켜진 경우까지.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => '자동으로 다시 시작';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail => '휴대폰이 허용을 요청합니다';
+
+  @override
+  String get locationBackgroundSheetAppOnly => '그대로 중지';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => '추가로 허용할 것 없음';
+
+  @override
+  String get locationServiceNotificationTitle => '실시간 위치 공유 중';
+
+  @override
+  String get locationServiceNotificationBody => '탭하면 채팅이 열리고, 중지를 누르면 바로 끝납니다';
+
+  @override
   String get childPolicyScreenLocationLabel => '위치';
 
   @override
