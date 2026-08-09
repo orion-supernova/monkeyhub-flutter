@@ -10120,6 +10120,276 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cannot share where they are'**
   String get childPolicyScreenLocationOffDesc;
+
+  /// All-caps section label in room info, above this reader's saved messages from this room. Matches the style of roomInfoScreenSharedContentLabel directly above it.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVED MESSAGES'**
+  String get roomInfoScreenSavedMessagesLabel;
+
+  /// Explanatory caption under the SAVED MESSAGES heading in room info. States the two things a reader would otherwise have to guess: these are private to them, and scoped to this room. The final clause names the separate personal self-chat room — translate that name IDENTICALLY to savedMessagesTitle in this locale, or the two features will read as the same one.
+  ///
+  /// In en, this message translates to:
+  /// **'only you can see these, and only from this room. your Saved Messages chat is separate.'**
+  String get roomInfoScreenSavedMessagesCaption;
+
+  /// Empty state inside the SAVED MESSAGES group in room info, shown when this reader has saved nothing from this room. Names the gesture, because 'nothing here' alone does not say how to change that. 'SAVE' refers to messageActionMenuSaveLabel — keep the two identical.
+  ///
+  /// In en, this message translates to:
+  /// **'nothing saved yet. hold a message and choose SAVE.'**
+  String get roomInfoScreenSavedMessagesEmpty;
+
+  /// Accessibility semanticLabel on a tappable row in room info's saved-messages list; tapping closes room info and scrolls the chat transcript to that message. {name} is the sender's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to saved message from {name}'**
+  String roomInfoScreenSavedMessageJumpSemantic(Object name);
+
+  /// Accessibility semanticLabel on the small bookmark icon button at the end of each row in room info's saved-messages list; tapping removes this reader's bookmark. {name} is the sender's display name.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave message from {name}'**
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name);
+
+  /// Name of the composer capture button's camera mode, used in its semantic label and in the screen-reader announcement when the mode changes (composer_capture.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'camera'**
+  String get composerCaptureCameraModeLabel;
+
+  /// Name of the composer capture button's voice-message mode (composer_capture.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'voice message'**
+  String get composerCaptureVoiceModeLabel;
+
+  /// Name of the composer capture button's video-note mode — the small circular video message (composer_capture.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'video note'**
+  String get composerCaptureVideoNoteModeLabel;
+
+  /// Semantic label of the composer's capture button. {mode} is the current mode's name; the sentence tells a screen-reader user the mode can be changed without dragging.
+  ///
+  /// In en, this message translates to:
+  /// **'{mode}. Swipe with two fingers or use the arrow keys to change mode.'**
+  String composerCaptureModeButtonLabel(String mode);
+
+  /// Screen-reader announcement fired when the composer capture button changes mode. {mode} is the newly selected mode's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{mode} selected'**
+  String composerCaptureModeAnnouncement(String mode);
+
+  /// Screen-reader announcement fired the moment a hold-to-record capture actually starts writing.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording started'**
+  String get composerCaptureRecordingAnnouncement;
+
+  /// Screen-reader announcement fired when a recording latches hands-free, either by sliding up or by tapping the button.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording locked. Hands free.'**
+  String get composerCaptureLockedAnnouncement;
+
+  /// Screen-reader announcement fired when a recording is discarded — slid to cancel, the delete control, or an interruption.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording discarded'**
+  String get composerCaptureCancelledAnnouncement;
+
+  /// Screen-reader announcement fired when a finished recording is handed to the send path.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording sent'**
+  String get composerCaptureSentAnnouncement;
+
+  /// Semantic label of the whole recording strip that replaces the composer while recording. {elapsed} is the running time, already formatted as m:ss.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording, {elapsed}'**
+  String composerCaptureRecordingLabel(String elapsed);
+
+  /// Hint shown in the recording strip while the finger is still down: sliding away from the send button aborts the recording.
+  ///
+  /// In en, this message translates to:
+  /// **'slide to cancel'**
+  String get composerCaptureSlideToCancelHint;
+
+  /// Hint replacing 'slide to cancel' once the finger has passed the cancel threshold, so releasing now discards the recording.
+  ///
+  /// In en, this message translates to:
+  /// **'release to cancel'**
+  String get composerCaptureReleaseToCancelHint;
+
+  /// Hint shown in the recording strip once the recording is locked hands-free and the explicit send button has appeared.
+  ///
+  /// In en, this message translates to:
+  /// **'tap to send'**
+  String get composerCaptureTapToSendHint;
+
+  /// Hint shown in the recording strip while the recorder is being closed and the bytes read, between the send tap and the message appearing.
+  ///
+  /// In en, this message translates to:
+  /// **'sending…'**
+  String get composerCaptureSendingLabel;
+
+  /// Countdown shown in the recording strip in the last ten seconds before the maximum duration. {seconds} is a whole number of seconds remaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s left'**
+  String composerCaptureTimeLeft(int seconds);
+
+  /// Semantic label of the trash button in the recording strip, which aborts the recording and deletes it.
+  ///
+  /// In en, this message translates to:
+  /// **'discard recording'**
+  String get composerCaptureCancelLabel;
+
+  /// Semantic label of the send button that appears in the recording strip once a recording is locked hands-free.
+  ///
+  /// In en, this message translates to:
+  /// **'send recording'**
+  String get composerCaptureSendLabel;
+
+  /// Semantic label of the padlock affordance in the recording strip that fills as the finger slides up to lock the recording.
+  ///
+  /// In en, this message translates to:
+  /// **'slide up to lock recording'**
+  String get composerCaptureLockLabel;
+
+  /// Headline of the sheet shown when a voice recording is refused because the microphone permission is missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone needed'**
+  String get composerCaptureMicPermissionTitle;
+
+  /// Body of the microphone-permission sheet, explaining what to turn on and where.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub needs your microphone to record a voice message. Turn it on in Settings and try again.'**
+  String get composerCaptureMicPermissionBody;
+
+  /// Headline of the sheet shown when a video note is refused because the camera (or its microphone) permission is missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera needed'**
+  String get composerCaptureCameraPermissionTitle;
+
+  /// Body of the camera-permission sheet shown for video notes, which need both the camera and the microphone.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub needs your camera and microphone to record a video note. Turn them on in Settings and try again.'**
+  String get composerCaptureCameraPermissionBody;
+
+  /// Message shown when recording is blocked by a device restriction (iOS Screen Time, an Android work profile) that the user cannot lift from Settings, so no Settings button is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording is turned off by a restriction on this device.'**
+  String get composerCaptureRestrictedBody;
+
+  /// Confirm-button label on the capture permission sheet; opens this app's page in the system settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get composerCaptureOpenSettingsLabel;
+
+  /// Message shown when recording cannot start for a reason that is not a permission — no hardware, no plugin, or a browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording isn\'t available on this device.'**
+  String get composerCaptureUnavailableSnack;
+
+  /// Message shown when a recording was stopped by something outside the app — an incoming call, backgrounding, another app taking the camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording stopped.'**
+  String get composerCaptureInterruptedSnack;
+
+  /// Message shown when a recording produced no usable file, which is what a full disk looks like from the app's side.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the recording. Check your free space.'**
+  String get composerCaptureStorageSnack;
+
+  /// Semantic label of a circular video-note bubble that is paused or has not started; tapping plays it.
+  ///
+  /// In en, this message translates to:
+  /// **'play video note'**
+  String get videoNoteMessagePlayLabel;
+
+  /// Semantic label of a circular video-note bubble that is playing; tapping pauses it.
+  ///
+  /// In en, this message translates to:
+  /// **'pause video note'**
+  String get videoNoteMessagePauseLabel;
+
+  /// Semantic label of a circular video-note bubble while its source is being resolved and opened.
+  ///
+  /// In en, this message translates to:
+  /// **'loading video note'**
+  String get videoNoteMessageLoadingLabel;
+
+  /// Semantic label of a circular video-note bubble whose blob the backend no longer has — nothing a retry can fix, so no retry is offered.
+  ///
+  /// In en, this message translates to:
+  /// **'video note unavailable'**
+  String get videoNoteMessageUnavailableLabel;
+
+  /// Semantic label of a failed circular video-note bubble, and of the retry control on a failed outgoing one.
+  ///
+  /// In en, this message translates to:
+  /// **'retry video note'**
+  String get videoNoteMessageRetryLabel;
+
+  /// Small caption drawn under the refresh glyph inside a failed circular video-note bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'tap to retry'**
+  String get videoNoteMessageRetryHint;
+
+  /// Semantic label of the discard control on a failed outgoing circular video note, which throws the send away.
+  ///
+  /// In en, this message translates to:
+  /// **'discard video note'**
+  String get videoNoteMessageDiscardLabel;
+
+  /// Label under the video-note icon in the attachment picker sheet (attachment_menu.dart); the non-gesture route to the composer's video-note mode. Hidden on web.
+  ///
+  /// In en, this message translates to:
+  /// **'video note'**
+  String get attachmentMenuVideoNoteLabel;
+
+  /// All-caps label of the PHOTO position in the in-app camera's photo/video mode switch (camera_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'PHOTO'**
+  String get cameraScreenPhotoModeLabel;
+
+  /// All-caps label of the VIDEO position in the in-app camera's photo/video mode switch (camera_screen.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'VIDEO'**
+  String get cameraScreenVideoModeLabel;
+
+  /// Semantic label of the in-app camera's shutter while it is in video mode and idle.
+  ///
+  /// In en, this message translates to:
+  /// **'start recording'**
+  String get cameraScreenStartRecordingLabel;
+
+  /// Semantic label of the in-app camera's shutter while a video recording is running.
+  ///
+  /// In en, this message translates to:
+  /// **'stop recording'**
+  String get cameraScreenStopRecordingLabel;
+
+  /// Message shown when the in-app camera's video recording could not be started or produced nothing usable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t record that video.'**
+  String get cameraScreenVideoFailedSnack;
 }
 
 class _AppLocalizationsDelegate

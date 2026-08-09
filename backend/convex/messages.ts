@@ -180,6 +180,10 @@ export function galleryBucketFor(
   switch (type) {
     case "image":
     case "video":
+    // A circular video note is a video for browsing purposes. It gets no tab of
+    // its own: one note in a room is a message, and a MEDIA tab that split them
+    // out would be a tab that is empty for almost everybody.
+    case "videoNote":
       return "media";
     case "audio":
       return "voice";
@@ -382,6 +386,10 @@ function roomPreviewFor(msg: {
   // chats tab, and none of those are places somebody agreed to be located.
   if (type === "location") return "[location]";
   if (type === "liveLocation") return "[live location]";
+  // Spelled out rather than falling through to `[videoNote]`, which is a
+  // camelCase identifier leaking onto the chat list where every other preview
+  // is a word.
+  if (type === "videoNote") return "[video note]";
   return `[${type}]`;
 }
 
@@ -424,7 +432,7 @@ export const send = mutation({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     content: v.string(),
-    type: v.optional(v.string()),          // "text" | "image" | "video" | "audio" | "url" | "system"
+    type: v.optional(v.string()),          // "text" | "image" | "video" | "videoNote" | "audio" | "url" | "system"
     mediaStorageId: v.optional(v.id("_storage")),
     // Pixel size of the attachment, so a receiver can lay the bubble out at the
     // picture's real ratio before decoding it. See the schema comment.

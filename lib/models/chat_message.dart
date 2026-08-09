@@ -356,6 +356,7 @@ class ChatMessage {
       type == MessageType.image ||
       type == MessageType.video ||
       type == MessageType.audio ||
+      type == MessageType.videoNote ||
       type == MessageType.file;
   bool get isReply => replyToId != null && replyToPreview != null;
 

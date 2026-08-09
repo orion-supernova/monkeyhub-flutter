@@ -200,8 +200,9 @@ bool messageBelongsIn(ChatMessage m, RoomContentTab tab) {
   }
   if (m.mediaStorageId == null) return false;
   return switch (tab) {
-    RoomContentTab.media =>
-      m.type == MessageType.image || m.type == MessageType.video,
+    RoomContentTab.media => m.type == MessageType.image ||
+        m.type == MessageType.video ||
+        m.type == MessageType.videoNote,
     RoomContentTab.voice => m.type == MessageType.audio,
     RoomContentTab.file => m.type == MessageType.file,
     RoomContentTab.links || RoomContentTab.saved => false,

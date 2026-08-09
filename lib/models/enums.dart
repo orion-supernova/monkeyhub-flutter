@@ -11,7 +11,23 @@ enum RoomType { regular, secret }
 /// that does not are two cases the compiler makes somebody answer. Folded into
 /// one member with a nullable deadline beside it, "did you handle the live
 /// case?" would be a question no tool could ask.
-enum MessageType { text, image, video, audio, file, url, system, location, liveLocation }
+///
+/// [videoNote] is separate from [video] on the same principle: it is a video
+/// by storage and a different thing by every rule that matters — round, capped
+/// at a minute, played in place. A `video` with an `isNote` flag would have let
+/// every existing `case video:` silently claim it.
+enum MessageType {
+  text,
+  image,
+  video,
+  videoNote,
+  audio,
+  file,
+  url,
+  system,
+  location,
+  liveLocation,
+}
 
 /// Where an outgoing message is in its journey.
 ///
@@ -64,6 +80,12 @@ extension MessageTypeWire on MessageType {
         return MessageType.image;
       case 'video':
         return MessageType.video;
+      // Its own type rather than a flag on `video`, because every read path
+      // that lays a message out has to know the difference before it can
+      // choose a shape — and a bool nobody remembered to check renders a
+      // circular note as a 16∶9 tile.
+      case 'videoNote':
+        return MessageType.videoNote;
       case 'audio':
         return MessageType.audio;
       case 'file':

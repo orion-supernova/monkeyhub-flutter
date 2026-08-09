@@ -5865,4 +5865,160 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get childPolicyScreenLocationOffDesc => 'Nerede olduğunu paylaşamaz';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => 'KAYDEDİLEN MESAJLAR';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      'bunları yalnızca sen görürsün ve yalnızca bu odadan. Kaydedilmiş Mesajlar sohbetin ayrıdır.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      'henüz bir şey kaydedilmedi. bir mesaja basılı tutup KAYDET’i seç.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$name tarafından gönderilen kaydedilen mesaja git';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$name tarafından gönderilen mesajın kaydını kaldır';
+  }
+
+  @override
+  String get composerCaptureCameraModeLabel => 'kamera';
+
+  @override
+  String get composerCaptureVoiceModeLabel => 'sesli mesaj';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => 'video notu';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. Modu değiştirmek için iki parmakla kaydırın veya ok tuşlarını kullanın.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode seçildi';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => 'Kayıt başladı';
+
+  @override
+  String get composerCaptureLockedAnnouncement =>
+      'Kayıt kilitlendi. Eller serbest.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => 'Kayıt silindi';
+
+  @override
+  String get composerCaptureSentAnnouncement => 'Kayıt gönderildi';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return 'Kaydediliyor, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => 'iptal için kaydır';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => 'iptal için bırakın';
+
+  @override
+  String get composerCaptureTapToSendHint => 'göndermek için dokunun';
+
+  @override
+  String get composerCaptureSendingLabel => 'gönderiliyor…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '$seconds sn kaldı';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => 'kaydı sil';
+
+  @override
+  String get composerCaptureSendLabel => 'kaydı gönder';
+
+  @override
+  String get composerCaptureLockLabel =>
+      'kaydı kilitlemek için yukarı kaydırın';
+
+  @override
+  String get composerCaptureMicPermissionTitle => 'Mikrofon gerekli';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      'MonkeyHub, sesli mesaj kaydetmek için mikrofonunuza ihtiyaç duyuyor. Ayarlar\'dan açıp tekrar deneyin.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => 'Kamera gerekli';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      'MonkeyHub, video notu kaydetmek için kameranıza ve mikrofonunuza ihtiyaç duyuyor. Ayarlar\'dan açıp tekrar deneyin.';
+
+  @override
+  String get composerCaptureRestrictedBody =>
+      'Kayıt, bu cihazdaki bir kısıtlama nedeniyle kapalı.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => 'Ayarları Aç';
+
+  @override
+  String get composerCaptureUnavailableSnack =>
+      'Bu cihazda kayıt kullanılamıyor.';
+
+  @override
+  String get composerCaptureInterruptedSnack => 'Kayıt durduruldu.';
+
+  @override
+  String get composerCaptureStorageSnack =>
+      'Kayıt kaydedilemedi. Boş alanınızı kontrol edin.';
+
+  @override
+  String get videoNoteMessagePlayLabel => 'video notunu oynat';
+
+  @override
+  String get videoNoteMessagePauseLabel => 'video notunu duraklat';
+
+  @override
+  String get videoNoteMessageLoadingLabel => 'video notu yükleniyor';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => 'video notu kullanılamıyor';
+
+  @override
+  String get videoNoteMessageRetryLabel => 'video notunu yeniden dene';
+
+  @override
+  String get videoNoteMessageRetryHint => 'yeniden denemek için dokunun';
+
+  @override
+  String get videoNoteMessageDiscardLabel => 'video notunu sil';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => 'video notu';
+
+  @override
+  String get cameraScreenPhotoModeLabel => 'FOTOĞRAF';
+
+  @override
+  String get cameraScreenVideoModeLabel => 'VİDEO';
+
+  @override
+  String get cameraScreenStartRecordingLabel => 'kaydı başlat';
+
+  @override
+  String get cameraScreenStopRecordingLabel => 'kaydı durdur';
+
+  @override
+  String get cameraScreenVideoFailedSnack => 'Bu video kaydedilemedi.';
 }

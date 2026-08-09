@@ -19,8 +19,11 @@ import '../screens/room_items.dart';
 import '../keyboard/overlay_modal_scope.dart';
 import '../theme/theme_scope.dart';
 import 'anchored_scroll.dart';
+import '../composer/capture_machine.dart';
+import '../composer/capture_recorder.dart';
 import 'chat_composer.dart';
 import 'chat_pane.dart';
+import 'composer_capture.dart';
 import 'composer_reply_card.dart';
 import 'glass_close_button.dart';
 import 'glass_pill.dart';
@@ -457,6 +460,64 @@ class _ThreadSheetState extends State<_ThreadSheet>
     _toastTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => _toast = null);
     });
+  }
+
+  /// What the thread's composer may capture.
+  ///
+  /// Voice notes and video notes only — no camera. The camera is a full-screen
+  /// route and this composer lives inside a root `OverlayEntry` that a route
+  /// would fight for layering, which is exactly why `onCamera` and `onAttach`
+  /// have always been null here. Both recorders are inline: they push nothing,
+  /// they grow the composer upward, and so the objection that keeps
+  /// attachments out of a thread simply does not apply to them.
+  ComposerCapture get _threadCapture => ComposerCapture(
+        modes: const [ComposerInputMode.voice, ComposerInputMode.videoNote],
+        onCaptured: _onCaptured,
+        onProblem: _onCaptureProblem,
+      );
+
+  /// Sends a recording into the thread, tethered to the same reply target a
+  /// text message would take. Without that tether it would land in the room but
+  /// outside the thread and appear to vanish from this overlay — the exact trap
+  /// [_resolveTarget] documents.
+  void _onCaptured(ComposerInputMode mode, CaptureOutcome outcome) {
+    if (!mounted) return;
+    final target = _resolveTarget(_messages);
+    if (target == null) {
+      _showToast(AppLocalizations.of(context).threadOverlayReplyTargetNotFound);
+      return;
+    }
+    if (target.id.startsWith('tmp_')) {
+      _showToast(AppLocalizations.of(context).threadOverlayStillSending);
+      return;
+    }
+    widget.repo.sendMediaLocal(
+      roomId: widget.roomId,
+      bytes: outcome.bytes,
+      contentType: outcome.contentType,
+      type: mode == ComposerInputMode.videoNote
+          ? MessageType.videoNote
+          : MessageType.audio,
+      posterBytes: outcome.posterBytes,
+      mediaDurationMs: outcome.duration.inMilliseconds,
+      replyToId: target.id,
+    );
+    if (_scroll.hasClients) {
+      _scroll.animateTo(
+        0,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _onCaptureProblem(CaptureFailure failure) {
+    if (!mounted) return;
+    // The permission sheet is a pushed route and this overlay's scrim would
+    // blur it — the same objection the child-gate handler makes. A sheet is not
+    // a camera, though: it presents *above* the overlay rather than fighting it
+    // for the same layer, so it is shown here rather than handed to the host.
+    unawaited(showCaptureProblem(context, failure, onMessage: _showToast));
   }
 
   void _armReply(ChatMessage m, {bool haptic = true}) {
@@ -1234,7 +1295,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
               MentionPicker(session: _mention, api: widget.api),
             // Attachments are deliberately absent: the attach flow pushes
             // full-screen routes (camera, voice recorder) that would fight this
-            // root-overlay entry for layering. Text only in the thread.
+            // root-overlay entry for layering. What IS offered is the composer's
+            // own inline recorders — see [_threadCapture] — which push nothing.
             if (classic)
               ChatComposerClassic(
                 controller: _composer,
@@ -1243,6 +1305,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 onSend: _send,
                 onChanged: (_) => widget.repo.noteTyping(),
                 padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                capture: _threadCapture,
                 mention: _mention,
               )
             else
@@ -1253,6 +1316,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
                 onSend: _send,
                 onChanged: (_) => widget.repo.noteTyping(),
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                capture: _threadCapture,
                 mention: _mention,
               ),
           ],

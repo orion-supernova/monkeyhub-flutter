@@ -14,6 +14,11 @@ class AttachmentMenuChoice {
   static const camera = AttachmentMenuChoice._('camera');
   static const voice = AttachmentMenuChoice._('voice');
   static const video = AttachmentMenuChoice._('video');
+
+  /// The circular video note. Here as well as on the composer's drag control
+  /// because a mode reachable only by dragging is a mode a screen-reader user
+  /// does not have — this sheet is the named, tappable route to it.
+  static const videoNote = AttachmentMenuChoice._('videoNote');
   static const file = AttachmentMenuChoice._('file');
   static const location = AttachmentMenuChoice._('location');
 }
@@ -84,6 +89,14 @@ class _AttachmentSheet extends StatelessWidget {
             AttachmentMenuChoice.voice,
             CupertinoIcons.mic,
             l10n.attachmentMenuVoiceLabel,
+          ),
+        // Gated for the same reason voice is, and one more: `camera_web`
+        // implements none of the video-recording API at all.
+        if (!kIsWeb)
+          (
+            AttachmentMenuChoice.videoNote,
+            CupertinoIcons.videocam_circle,
+            l10n.attachmentMenuVideoNoteLabel,
           ),
         // Deliberately NOT web-gated, unlike voice above. `file_selector` has a
         // real web implementation backed by `<input type=file>`, and the bytes

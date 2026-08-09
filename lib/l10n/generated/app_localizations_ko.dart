@@ -5684,4 +5684,155 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get childPolicyScreenLocationOffDesc => '현재 위치를 공유할 수 없습니다';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => '저장한 메시지';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      '이건 나만 볼 수 있고, 이 방에서만 모입니다. 저장한 메시지 채팅과는 별개예요.';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty =>
+      '아직 저장한 게 없어요. 메시지를 길게 누르고 ‘저장’을 선택하세요.';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '$name님의 저장한 메시지로 이동';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '$name님의 메시지 저장 해제';
+  }
+
+  @override
+  String get composerCaptureCameraModeLabel => '카메라';
+
+  @override
+  String get composerCaptureVoiceModeLabel => '음성 메시지';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => '영상 메시지';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode. 두 손가락으로 밀거나 화살표 키로 모드를 바꿀 수 있습니다.';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '$mode 선택됨';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => '녹음을 시작했습니다';
+
+  @override
+  String get composerCaptureLockedAnnouncement => '녹음이 고정되었습니다. 손을 떼도 됩니다.';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => '녹음을 삭제했습니다';
+
+  @override
+  String get composerCaptureSentAnnouncement => '녹음을 보냈습니다';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return '녹음 중, $elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => '밀어서 취소';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => '놓으면 취소';
+
+  @override
+  String get composerCaptureTapToSendHint => '탭하여 전송';
+
+  @override
+  String get composerCaptureSendingLabel => '보내는 중…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '$seconds초 남음';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => '녹음 삭제';
+
+  @override
+  String get composerCaptureSendLabel => '녹음 보내기';
+
+  @override
+  String get composerCaptureLockLabel => '위로 밀어 녹음 고정';
+
+  @override
+  String get composerCaptureMicPermissionTitle => '마이크가 필요합니다';
+
+  @override
+  String get composerCaptureMicPermissionBody =>
+      '음성 메시지를 녹음하려면 마이크가 필요합니다. 설정에서 켠 뒤 다시 시도해 주세요.';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => '카메라가 필요합니다';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      '영상 메시지를 녹화하려면 카메라와 마이크가 필요합니다. 설정에서 켠 뒤 다시 시도해 주세요.';
+
+  @override
+  String get composerCaptureRestrictedBody => '이 기기의 제한으로 녹음·녹화가 꺼져 있습니다.';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => '설정 열기';
+
+  @override
+  String get composerCaptureUnavailableSnack => '이 기기에서는 녹음·녹화를 사용할 수 없습니다.';
+
+  @override
+  String get composerCaptureInterruptedSnack => '녹음이 중단되었습니다.';
+
+  @override
+  String get composerCaptureStorageSnack => '녹음을 저장하지 못했습니다. 저장 공간을 확인해 주세요.';
+
+  @override
+  String get videoNoteMessagePlayLabel => '영상 메시지 재생';
+
+  @override
+  String get videoNoteMessagePauseLabel => '영상 메시지 일시정지';
+
+  @override
+  String get videoNoteMessageLoadingLabel => '영상 메시지 불러오는 중';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => '영상 메시지를 사용할 수 없습니다';
+
+  @override
+  String get videoNoteMessageRetryLabel => '영상 메시지 다시 시도';
+
+  @override
+  String get videoNoteMessageRetryHint => '탭하여 다시 시도';
+
+  @override
+  String get videoNoteMessageDiscardLabel => '영상 메시지 삭제';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => '영상 메시지';
+
+  @override
+  String get cameraScreenPhotoModeLabel => '사진';
+
+  @override
+  String get cameraScreenVideoModeLabel => '동영상';
+
+  @override
+  String get cameraScreenStartRecordingLabel => '녹화 시작';
+
+  @override
+  String get cameraScreenStopRecordingLabel => '녹화 중지';
+
+  @override
+  String get cameraScreenVideoFailedSnack => '동영상을 녹화하지 못했습니다.';
 }

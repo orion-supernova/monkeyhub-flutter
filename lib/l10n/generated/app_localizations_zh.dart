@@ -5596,4 +5596,153 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get childPolicyScreenLocationOffDesc => '不能共享所在位置';
+
+  @override
+  String get roomInfoScreenSavedMessagesLabel => '保存的消息';
+
+  @override
+  String get roomInfoScreenSavedMessagesCaption =>
+      '只有你能看到，而且只来自这个房间。你的“保存的消息”聊天是单独的。';
+
+  @override
+  String get roomInfoScreenSavedMessagesEmpty => '还没有保存任何内容。长按消息并选择“保存”。';
+
+  @override
+  String roomInfoScreenSavedMessageJumpSemantic(Object name) {
+    return '跳转到$name保存的消息';
+  }
+
+  @override
+  String roomInfoScreenSavedMessageUnsaveSemantic(Object name) {
+    return '取消保存$name的消息';
+  }
+
+  @override
+  String get composerCaptureCameraModeLabel => '相机';
+
+  @override
+  String get composerCaptureVoiceModeLabel => '语音消息';
+
+  @override
+  String get composerCaptureVideoNoteModeLabel => '视频留言';
+
+  @override
+  String composerCaptureModeButtonLabel(String mode) {
+    return '$mode。用两根手指滑动或使用方向键切换模式。';
+  }
+
+  @override
+  String composerCaptureModeAnnouncement(String mode) {
+    return '已选择$mode';
+  }
+
+  @override
+  String get composerCaptureRecordingAnnouncement => '已开始录制';
+
+  @override
+  String get composerCaptureLockedAnnouncement => '录制已锁定，可松手。';
+
+  @override
+  String get composerCaptureCancelledAnnouncement => '已丢弃录制';
+
+  @override
+  String get composerCaptureSentAnnouncement => '已发送录制';
+
+  @override
+  String composerCaptureRecordingLabel(String elapsed) {
+    return '录制中，$elapsed';
+  }
+
+  @override
+  String get composerCaptureSlideToCancelHint => '滑动取消';
+
+  @override
+  String get composerCaptureReleaseToCancelHint => '松开取消';
+
+  @override
+  String get composerCaptureTapToSendHint => '点按发送';
+
+  @override
+  String get composerCaptureSendingLabel => '发送中…';
+
+  @override
+  String composerCaptureTimeLeft(int seconds) {
+    return '剩余 $seconds 秒';
+  }
+
+  @override
+  String get composerCaptureCancelLabel => '丢弃录制';
+
+  @override
+  String get composerCaptureSendLabel => '发送录制';
+
+  @override
+  String get composerCaptureLockLabel => '向上滑动锁定录制';
+
+  @override
+  String get composerCaptureMicPermissionTitle => '需要麦克风权限';
+
+  @override
+  String get composerCaptureMicPermissionBody => '录制语音消息需要使用麦克风。请在“设置”中开启后重试。';
+
+  @override
+  String get composerCaptureCameraPermissionTitle => '需要相机权限';
+
+  @override
+  String get composerCaptureCameraPermissionBody =>
+      '录制视频留言需要使用相机和麦克风。请在“设置”中开启后重试。';
+
+  @override
+  String get composerCaptureRestrictedBody => '此设备上的限制已关闭录制功能。';
+
+  @override
+  String get composerCaptureOpenSettingsLabel => '打开设置';
+
+  @override
+  String get composerCaptureUnavailableSnack => '此设备不支持录制。';
+
+  @override
+  String get composerCaptureInterruptedSnack => '录制已停止。';
+
+  @override
+  String get composerCaptureStorageSnack => '无法保存录制内容，请检查可用空间。';
+
+  @override
+  String get videoNoteMessagePlayLabel => '播放视频留言';
+
+  @override
+  String get videoNoteMessagePauseLabel => '暂停视频留言';
+
+  @override
+  String get videoNoteMessageLoadingLabel => '正在加载视频留言';
+
+  @override
+  String get videoNoteMessageUnavailableLabel => '视频留言不可用';
+
+  @override
+  String get videoNoteMessageRetryLabel => '重试视频留言';
+
+  @override
+  String get videoNoteMessageRetryHint => '点按重试';
+
+  @override
+  String get videoNoteMessageDiscardLabel => '丢弃视频留言';
+
+  @override
+  String get attachmentMenuVideoNoteLabel => '视频留言';
+
+  @override
+  String get cameraScreenPhotoModeLabel => '照片';
+
+  @override
+  String get cameraScreenVideoModeLabel => '视频';
+
+  @override
+  String get cameraScreenStartRecordingLabel => '开始录制';
+
+  @override
+  String get cameraScreenStopRecordingLabel => '停止录制';
+
+  @override
+  String get cameraScreenVideoFailedSnack => '无法录制该视频。';
 }
