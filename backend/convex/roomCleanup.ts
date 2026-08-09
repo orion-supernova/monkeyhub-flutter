@@ -12,16 +12,16 @@
  */
 
 import { deleteStored, releaseMessageBlobs } from "./files";
+import { internalMutation, internalQuery } from "./_generated/server";
+import { v } from "convex/values";
 
 /**
- * Deletes every trace of a room: messages, their reactions, their media in
- * `ctx.storage`, typing rows, memberships, the room's own avatar, and the room
- * row itself.
- *
- * This is destructive for EVERY member, not just the caller — a wiped DM is
- * gone for both people. Callers must have confirmed that with the user first.
+ * Deletes messages, reactions, media, and membership-related data for a room.
+ * Does NOT delete the room document itself or its avatar — used by both
+ * `wipeRoomCompletely` (when the room doc is live) and as a repair sweep for
+ * orphaned memberships (when the room doc is already gone).
  */
-export async function wipeRoomCompletely(ctx: any, roomId: any) {
+async function wipeRoomContents(ctx: any, roomId: any) {
   // Messages → reactions + media + row
   const msgs = await ctx.db
     .query("messages")
@@ -76,6 +76,18 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
   // Nothing to clean up for notifications: there is no server-side record of
   // one. Any banner still on a device for this room is already moot, and the
   // badge corrects on the recipient's next push or foreground.
+}
+
+/**
+ * Deletes every trace of a room: messages, their reactions, their media in
+ * `ctx.storage`, typing rows, memberships, the room's own avatar, and the room
+ * row itself.
+ *
+ * This is destructive for EVERY member, not just the caller — a wiped DM is
+ * gone for both people. Callers must have confirmed that with the user first.
+ */
+export async function wipeRoomCompletely(ctx: any, roomId: any) {
+  await wipeRoomContents(ctx, roomId);
   // The room's own avatar. Easy to forget because it isn't a row — the room
   // document is about to vanish, and with it the only pointer to the file.
   const room = await ctx.db.get(roomId);
@@ -83,6 +95,126 @@ export async function wipeRoomCompletely(ctx: any, roomId: any) {
   // The room itself
   await ctx.db.delete(roomId);
 }
+
+/**
+ * Read-only orphan report — which roomMembers rows point at rooms that no
+ * longer exist. Membership and messages for a deleted room become permanently
+ * invisible: there is no room to open and mark read. This can happen if a
+ * room teardown crashes partway through (e.g., `wipeRoomCompletely` calls
+ * `ctx.db.delete(roomId)` before the loop finishes) or if the room is deleted
+ * outside the normal path.
+ *
+ * This function is the dry run for `gcOrphanedRoomMemberships` — inspect the
+ * output before that sweep runs to confirm no live rooms will be deleted.
+ *
+ *   npx convex run roomCleanup:listOrphanedRoomMemberships '{}'
+ */
+export const listOrphanedRoomMemberships = internalQuery({
+  args: {},
+  returns: v.object({
+    totalMemberships: v.number(),
+    orphanedMemberships: v.number(),
+    orphanedRoomCount: v.number(),
+    orphanRoomsWithMessageCount: v.array(
+      v.object({
+        roomId: v.string(),
+        membershipCount: v.number(),
+        messageCount: v.number(),
+      }),
+    ),
+  }),
+  handler: async (ctx) => {
+    const allMembers = await ctx.db
+      .query("roomMembers")
+      .take(50000);
+    const roomCache = new Map();
+    let orphanedMemberships = 0;
+    const orphanedRoomIds = new Set<string>();
+    const orphansByRoomId: { [roomId: string]: any[] } = {};
+
+    for (const m of allMembers) {
+      const key = m.roomId.toString();
+      if (!roomCache.has(key)) {
+        const room = await ctx.db.get(m.roomId);
+        roomCache.set(key, room);
+      }
+      const room = roomCache.get(key);
+      if (!room) {
+        orphanedMemberships++;
+        orphanedRoomIds.add(key);
+        if (!orphansByRoomId[key]) orphansByRoomId[key] = [];
+        orphansByRoomId[key].push(m);
+      }
+    }
+
+    const orphanRoomsWithMessageCount: Array<{
+      roomId: string;
+      membershipCount: number;
+      messageCount: number;
+    }> = [];
+    for (const roomId of orphanedRoomIds) {
+      const msgs = await ctx.db
+        .query("messages")
+        .withIndex("by_room", (q: any) => q.eq("roomId", roomId as any))
+        .take(100000);
+      orphanRoomsWithMessageCount.push({
+        roomId,
+        membershipCount: orphansByRoomId[roomId].length,
+        messageCount: msgs.length,
+      });
+    }
+
+    return {
+      totalMemberships: allMembers.length,
+      orphanedMemberships,
+      orphanedRoomCount: orphanedRoomIds.size,
+      orphanRoomsWithMessageCount,
+    };
+  },
+});
+
+/**
+ * Garbage collect orphaned room memberships: scans for roomMembers rows whose
+ * room document no longer exists, and finishes the teardown by deleting their
+ * messages, reactions, pins, bookmarks, and membership rows. This is a repair
+ * sweep for teardowns that crashed or were interrupted.
+ *
+ * Runs daily via cron as a backstop; the main path is that room deletion never
+ * produces orphaned data in the first place. See `gcOrphanedRoomMemberships`
+ * in `crons.ts`.
+ */
+export const gcOrphanedRoomMemberships = internalMutation({
+  args: {},
+  returns: v.object({ cleaned: v.number() }),
+  handler: async (ctx) => {
+    const allMembers = await ctx.db
+      .query("roomMembers")
+      .take(50000);
+    const roomCache = new Map();
+    const orphanedRoomIds = new Set<string>();
+
+    for (const m of allMembers) {
+      const key = m.roomId.toString();
+      if (!roomCache.has(key)) {
+        const room = await ctx.db.get(m.roomId);
+        roomCache.set(key, room);
+      }
+      const room = roomCache.get(key);
+      if (!room) {
+        orphanedRoomIds.add(key);
+      }
+    }
+
+    let cleaned = 0;
+    for (const roomId of orphanedRoomIds) {
+      await wipeRoomContents(ctx, roomId as any);
+      cleaned++;
+    }
+
+    console.log(`gcOrphanedRoomMemberships: cleaned ${cleaned} orphaned rooms`);
+    return { cleaned };
+  },
+});
 
 /**
  * Every DM room shared by [a] and [b].

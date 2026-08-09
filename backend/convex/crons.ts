@@ -92,6 +92,18 @@ crons.interval(
   {},
 );
 
+// Repair incomplete room teardowns: scan for roomMembers rows whose room
+// document no longer exists (can happen if a teardown crashes mid-flow), and
+// delete the orphaned messages, reactions, and membership rows. A deleted room
+// becomes permanently invisible — its unread messages are unreachable and would
+// otherwise inflate the badge forever. See roomCleanup.ts and badges.ts.
+crons.interval(
+  "roomCleanup.gcOrphanedRoomMemberships",
+  { hours: 24 },
+  internal.roomCleanup.gcOrphanedRoomMemberships,
+  {},
+);
+
 // Burn view-once photos past their 14-day deadline. Every armed send already
 // schedules its own `burnViewOnce` at exactly that moment, so this is purely a
 // repair sweep for the ones the scheduler lost (a restart mid-flight, say).

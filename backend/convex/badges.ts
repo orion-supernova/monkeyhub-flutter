@@ -104,6 +104,8 @@ export async function badgeTotalFor(
   let unread = 0;
   for (const m of memberships) {
     if (resolveMute(m, now).badges) continue;
+    const room = await ctx.db.get(m.roomId);
+    if (!room) continue;
     const { count } = await unreadForRoom(ctx, m.roomId, userId, m.lastReadAt);
     if (count > 0) {
       perRoom.push({ roomId: m.roomId, count });
