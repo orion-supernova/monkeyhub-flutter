@@ -5855,4 +5855,104 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'غير مكتومة';
+
+  @override
+  String get attachmentMenuLocationLabel => 'الموقع';
+
+  @override
+  String get locationSheetSendCurrent => 'إرسال الموقع الحالي';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'مكانك الآن';
+
+  @override
+  String get locationSheetLiveHeading => 'مشاركة مباشرة';
+
+  @override
+  String get locationSheetLiveDetail => 'يتوقّف تلقائيًا';
+
+  @override
+  String get locationShareFor15Minutes => 'لمدة 15 دقيقة';
+
+  @override
+  String get locationShareFor1Hour => 'لمدة ساعة واحدة';
+
+  @override
+  String get locationShareFor8Hours => 'لمدة 8 ساعات';
+
+  @override
+  String get locationBubbleOpenInMaps => 'فتح في الخرائط';
+
+  @override
+  String get locationBubbleLiveBadge => 'مباشر';
+
+  @override
+  String get locationBubbleEndedBadge => 'انتهى';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return 'مباشر حتى $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'انتهى الموقع المباشر في $time';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'لا يوجد تحديث حديث';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters م';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'إيقاف المشاركة';
+
+  @override
+  String get locationBubbleUnavailable => 'الموقع غير متاح';
+
+  @override
+  String get locationBubbleNoMapsApp => 'لا يوجد تطبيق خرائط لفتح هذا';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'تم نسخ الإحداثيات';
+
+  @override
+  String get locationCouldNotGetFix => 'تعذّر الحصول على موقعك';
+
+  @override
+  String get locationCouldNotStartLiveShare => 'تعذّر بدء المشاركة المباشرة';
+
+  @override
+  String get locationPermissionNeeded =>
+      'الوصول إلى الموقع مطلوب لمشاركة مكانك';
+
+  @override
+  String get locationPermissionBlockedTitle => 'الوصول إلى الموقع معطّل';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'لا يمكن لـ MonkeyHub أن يطلب مرة أخرى من هنا. فعّل الوصول إلى الموقع لـ MonkeyHub من الإعدادات.';
+
+  @override
+  String get locationServicesOffTitle => 'خدمات الموقع معطّلة';
+
+  @override
+  String get locationServicesOffBody =>
+      'الموقع معطّل على هذا الجهاز. فعّله من الإعدادات لمشاركة مكانك.';
+
+  @override
+  String get locationOpenSettings => 'فتح الإعدادات';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'الموقع';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'يمكنه مشاركة مكانه، بما في ذلك مباشرةً حتى 8 ساعات';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'لا يمكنه مشاركة مكانه';
 }

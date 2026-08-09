@@ -104,6 +104,28 @@ crons.interval(
   {},
 );
 
+// End live-location shares past their deadline. Same shape and same reasoning
+// as the sweep above: every share schedules its own `expireLiveLocation` at
+// exactly its deadline, and `by_liveLocation_live_expiry` leads with the
+// boolean so the scan touches only shares that are still running.
+//
+// Six-hourly and not by the minute, which needs saying because the failure this
+// repairs is the worst one this feature has — a position still being broadcast
+// after its time. Three things make the interval right anyway: the per-share
+// `runAt` is the actual mechanism and this only catches schedules the
+// deployment lost; `updateLiveLocation` refuses (and ends) an overdue share on
+// the very next fix, so a share whose publisher is alive stops itself; and the
+// clients render expiry from `liveExpiresAt`, so an overdue row already reads
+// as ended on every screen showing it. Tightening this to a minute would buy
+// tidier rows at the cost the header of this file describes.
+// See messages.gcExpiredLiveShares.
+crons.interval(
+  "messages.gcExpiredLiveShares",
+  { hours: 6 },
+  internal.messages.gcExpiredLiveShares,
+  {},
+);
+
 // Reap failed-login counters nobody has touched in a day. Pure tidiness —
 // assertNotLocked already treats a closed window as clean, so a backlog here
 // costs disk and nothing else. See rateLimit.gcAuthAttempts.

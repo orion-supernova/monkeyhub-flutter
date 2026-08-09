@@ -5792,4 +5792,105 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'म्यूट नहीं है';
+
+  @override
+  String get attachmentMenuLocationLabel => 'स्थान';
+
+  @override
+  String get locationSheetSendCurrent => 'मौजूदा स्थान भेजें';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'आप अभी कहाँ हैं';
+
+  @override
+  String get locationSheetLiveHeading => 'लाइव साझा करें';
+
+  @override
+  String get locationSheetLiveDetail => 'अपने आप बंद हो जाता है';
+
+  @override
+  String get locationShareFor15Minutes => '15 मिनट के लिए';
+
+  @override
+  String get locationShareFor1Hour => '1 घंटे के लिए';
+
+  @override
+  String get locationShareFor8Hours => '8 घंटे के लिए';
+
+  @override
+  String get locationBubbleOpenInMaps => 'मैप्स में खोलें';
+
+  @override
+  String get locationBubbleLiveBadge => 'लाइव';
+
+  @override
+  String get locationBubbleEndedBadge => 'समाप्त';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return '$time तक लाइव';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'लाइव स्थान $time पर समाप्त हुआ';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'कोई हालिया अपडेट नहीं';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters मी';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'साझा करना बंद करें';
+
+  @override
+  String get locationBubbleUnavailable => 'स्थान उपलब्ध नहीं';
+
+  @override
+  String get locationBubbleNoMapsApp => 'इसे खोलने के लिए कोई मैप ऐप नहीं है';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'निर्देशांक कॉपी किए गए';
+
+  @override
+  String get locationCouldNotGetFix => 'आपका स्थान नहीं मिल सका';
+
+  @override
+  String get locationCouldNotStartLiveShare =>
+      'लाइव साझा करना शुरू नहीं हो सका';
+
+  @override
+  String get locationPermissionNeeded =>
+      'आप कहाँ हैं यह साझा करने के लिए स्थान की अनुमति चाहिए';
+
+  @override
+  String get locationPermissionBlockedTitle => 'स्थान की अनुमति बंद है';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHub यहाँ से दोबारा नहीं पूछ सकता। सेटिंग्स में MonkeyHub के लिए स्थान की अनुमति चालू करें।';
+
+  @override
+  String get locationServicesOffTitle => 'स्थान सेवाएँ बंद हैं';
+
+  @override
+  String get locationServicesOffBody =>
+      'इस डिवाइस पर स्थान बंद है। आप कहाँ हैं यह साझा करने के लिए सेटिंग्स में इसे चालू करें।';
+
+  @override
+  String get locationOpenSettings => 'सेटिंग्स खोलें';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'स्थान';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'अपना स्थान साझा कर सकते हैं, 8 घंटे तक लाइव भी';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'अपना स्थान साझा नहीं कर सकते';
 }

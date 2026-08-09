@@ -5579,4 +5579,103 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => '음소거 안 함';
+
+  @override
+  String get attachmentMenuLocationLabel => '위치';
+
+  @override
+  String get locationSheetSendCurrent => '현재 위치 보내기';
+
+  @override
+  String get locationSheetSendCurrentDetail => '지금 있는 곳';
+
+  @override
+  String get locationSheetLiveHeading => '실시간 공유';
+
+  @override
+  String get locationSheetLiveDetail => '자동으로 종료됩니다';
+
+  @override
+  String get locationShareFor15Minutes => '15분 동안';
+
+  @override
+  String get locationShareFor1Hour => '1시간 동안';
+
+  @override
+  String get locationShareFor8Hours => '8시간 동안';
+
+  @override
+  String get locationBubbleOpenInMaps => '지도 앱에서 열기';
+
+  @override
+  String get locationBubbleLiveBadge => '실시간';
+
+  @override
+  String get locationBubbleEndedBadge => '종료됨';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return '$time까지 실시간';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return '실시간 위치가 $time에 종료되었습니다';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => '최근 업데이트 없음';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => '공유 중지';
+
+  @override
+  String get locationBubbleUnavailable => '위치를 표시할 수 없음';
+
+  @override
+  String get locationBubbleNoMapsApp => '열 수 있는 지도 앱이 없습니다';
+
+  @override
+  String get locationBubbleCoordinatesCopied => '좌표가 복사되었습니다';
+
+  @override
+  String get locationCouldNotGetFix => '위치를 가져오지 못했습니다';
+
+  @override
+  String get locationCouldNotStartLiveShare => '실시간 공유를 시작하지 못했습니다';
+
+  @override
+  String get locationPermissionNeeded => '위치를 공유하려면 위치 접근 권한이 필요합니다';
+
+  @override
+  String get locationPermissionBlockedTitle => '위치 접근이 꺼져 있음';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      '여기서는 MonkeyHub가 다시 요청할 수 없습니다. 설정에서 MonkeyHub의 위치 접근을 켜 주세요.';
+
+  @override
+  String get locationServicesOffTitle => '위치 서비스가 꺼져 있음';
+
+  @override
+  String get locationServicesOffBody =>
+      '이 기기에서 위치가 꺼져 있습니다. 위치를 공유하려면 설정에서 켜 주세요.';
+
+  @override
+  String get locationOpenSettings => '설정 열기';
+
+  @override
+  String get childPolicyScreenLocationLabel => '위치';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      '현재 위치를 공유할 수 있습니다(최대 8시간 실시간 공유 포함)';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => '현재 위치를 공유할 수 없습니다';
 }

@@ -11,12 +11,15 @@ import '../models/chat_user.dart';
 import '../models/enums.dart';
 import '../models/family.dart';
 import '../models/friend_request.dart';
+import '../models/location_share.dart';
 import '../models/message_bookmark.dart';
 import '../models/pending_upload.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_mute.dart';
 import '../models/room_pin.dart';
 import '../push/push_manager.dart';
+import '../services/live_location_publisher.dart';
+import '../services/location_service.dart';
 import 'cache_store.dart';
 import 'pending_reconcile.dart';
 import 'room_filter.dart';
@@ -606,6 +609,17 @@ class ChatRepository extends ChangeNotifier {
     _deliveryDebounce?.cancel();
     _deliveryDebounce = null;
     _deliveryReported.clear();
+    // Stop feeding any live share. Signing out has to take the GPS with it —
+    // the next account on this device must not inherit a position stream, and
+    // the departing account's publisher would be writing to a message it can no
+    // longer authenticate for.
+    //
+    // Deliberately does NOT end the share itself. The share belongs to the
+    // account, not to this device: it keeps running for the recipients until
+    // its own deadline, exactly as it would if the phone were switched off.
+    // Ending it here would make signing out a way to stop being findable that
+    // nobody asked for, and would need a mutation as the credentials go away.
+    liveLocation.stop();
     // Abort and release anything still going up. Signing out has to take the
     // bytes with it: they are one user's unsent photos, and the next account to
     // sign in on this device has no business holding them in memory — quite
@@ -1455,6 +1469,161 @@ class ChatRepository extends ChangeNotifier {
     );
   }
 
+  // ───────────── location ─────────────
+
+  /// Feeds whichever live share this device is currently running. At most one
+  /// — see [LiveLocationPublisher.start] for why that is a rule and not a
+  /// simplification.
+  final LiveLocationPublisher liveLocation = LiveLocationPublisher();
+
+  /// The live share this device is publishing, if any. Read by the bubble to
+  /// decide whether to offer STOP, and by the composer to decide whether
+  /// offering to start another one makes sense.
+  String? get activeLiveShareMessageId => liveLocation.activeMessageId;
+  String? get activeLiveShareRoomId => liveLocation.activeRoomId;
+
+  /// Sends one position, frozen at send time.
+  Future<void> sendLocation({
+    required String roomId,
+    required LocationFix fix,
+    String? replyToId,
+  }) async {
+    await _send(
+      roomId: roomId,
+      content: '',
+      type: MessageType.location,
+      replyToId: replyToId,
+      latitude: fix.latitude,
+      longitude: fix.longitude,
+      locationAccuracyM: fix.accuracyM,
+    );
+  }
+
+  /// Starts a time-boxed live share and begins publishing to it.
+  ///
+  /// Written out rather than routed through [_send] because this is the one
+  /// send in the app that needs the SERVER's id before it is finished: the
+  /// publisher patches that exact row, and an optimistic `tmp_` id patches
+  /// nothing. So the post is awaited and the publisher started from the ack.
+  ///
+  /// The publisher is deliberately started only on a confirmed send. Starting
+  /// it optimistically would mean a failed send leaves a device quietly running
+  /// its GPS for a share that does not exist.
+  ///
+  /// Returns whether the share started. False covers both a refused send (the
+  /// child gate, a block, no connection) and an ack with no id.
+  Future<bool> startLiveLocation({
+    required String roomId,
+    required LocationFix fix,
+    required LiveShareDuration duration,
+  }) async {
+    final userId = _userId;
+    if (userId == null) return false;
+
+    // Ending the previous share first is belt and braces: the server ends a
+    // sender's earlier share in a room when a new one starts, and the publisher
+    // stops its own predecessor. Doing it here as well is what makes the OLD
+    // bubble go grey immediately rather than at the next subscription tick, and
+    // covers the case where the earlier share is in a different room, which the
+    // server's rule deliberately does not touch.
+    final previous = liveLocation.activeMessageId;
+    if (previous != null) {
+      await stopLiveLocation(messageId: previous);
+    }
+
+    final optimistic = _buildOptimistic(
+      roomId: roomId,
+      content: '',
+      type: MessageType.liveLocation,
+      latitude: fix.latitude,
+      longitude: fix.longitude,
+      locationAccuracyM: fix.accuracyM,
+      // The deadline the SERVER is about to compute, computed again here so the
+      // sender's own bubble counts down from the moment they tapped rather than
+      // from whenever the ack lands. The two can differ by the round trip; the
+      // echo replaces this copy with the authoritative value.
+      liveExpiresAt: DateTime.now().add(duration.duration),
+      liveUpdatedAt: DateTime.now(),
+      liveDurationMs: duration.milliseconds,
+    );
+    if (optimistic == null) return false;
+    _pending.putIfAbsent(roomId, () => []).add(optimistic);
+    notifyListeners();
+    await _postMessage(roomId, optimistic);
+
+    final serverId = optimistic.serverId;
+    if (serverId == null || optimistic.status == MessageStatus.error) {
+      // The honest limit here: an ack lost in transit means the share may
+      // genuinely exist server-side while this device believes it failed. The
+      // reconnect sweeper will re-post the bubble and collapse onto the same
+      // row (the `clientId` key), but nothing restarts the publisher, so that
+      // share sits at its first position until its deadline. Bounded by the
+      // duration the user chose, visible to viewers as a stale share, and
+      // preferable to the alternative — starting a publisher against an id this
+      // device never actually received.
+      return false;
+    }
+
+    liveLocation.start(
+      messageId: serverId,
+      roomId: roomId,
+      expiresAt: optimistic.liveExpiresAt ?? DateTime.now(),
+      firstFix: fix,
+      publish: (f) => api.updateLiveLocation(
+        messageId: serverId,
+        userId: userId,
+        latitude: f.latitude,
+        longitude: f.longitude,
+        accuracyM: f.accuracyM,
+      ),
+      // The publisher shutting down is not the share ending, but it IS the
+      // moment the sender's own controls have to stop claiming to be live.
+      onEnded: notifyListeners,
+    );
+    notifyListeners();
+    return true;
+  }
+
+  /// Ends a live share early.
+  ///
+  /// Stops the publisher first, then tells the server. That order matters: the
+  /// reverse leaves a window in which the server has ended the share and this
+  /// device is still sending fixes into it — harmless, because
+  /// `updateLiveShare` refuses them, but it produces a burst of pointless
+  /// mutations for every stop.
+  ///
+  /// The local row is patched straight away rather than waiting for the echo,
+  /// so the bubble greys out on the tap. The subscription overwrites it with
+  /// the server's version a moment later; the two agree.
+  Future<void> stopLiveLocation({required String messageId}) async {
+    final userId = _userId;
+    if (liveLocation.isRunningFor(messageId)) {
+      await liveLocation.stop();
+    }
+    _markLiveShareEndedLocally(messageId);
+    if (userId == null) return;
+    try {
+      await api.stopLiveLocation(messageId: messageId, userId: userId);
+    } catch (_) {
+      // The share still ends on its own deadline, and the local row already
+      // reads as ended. Surfacing this would offer the user a retry for
+      // something that has, from where they are standing, already happened.
+    }
+  }
+
+  void _markLiveShareEndedLocally(String messageId) {
+    var touched = false;
+    for (final list in [..._messages.values, ..._pending.values]) {
+      for (final m in list) {
+        if (m.id != messageId && m.serverId != messageId) continue;
+        if (m.liveEndedAt != null) continue;
+        m.liveEndedAt = DateTime.now();
+        touched = true;
+      }
+    }
+    if (touched) notifyListeners();
+  }
+
   /// Spends this viewer's one look at a view-once photo and returns a ticket.
   ///
   /// Marks the local copy opened on success so the bubble greys out without
@@ -1631,6 +1800,9 @@ class ChatRepository extends ChangeNotifier {
     bool viewOnce = false,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
+    double? latitude,
+    double? longitude,
+    double? locationAccuracyM,
   }) async {
     final optimistic = _buildOptimistic(
       roomId: roomId,
@@ -1643,6 +1815,9 @@ class ChatRepository extends ChangeNotifier {
       viewOnce: viewOnce,
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
+      latitude: latitude,
+      longitude: longitude,
+      locationAccuracyM: locationAccuracyM,
     );
     if (optimistic == null) return;
     _pending.putIfAbsent(roomId, () => []).add(optimistic);
@@ -1673,6 +1848,17 @@ class ChatRepository extends ChangeNotifier {
     PendingUpload? upload,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
+    double? latitude,
+    double? longitude,
+    double? locationAccuracyM,
+    DateTime? liveExpiresAt,
+    DateTime? liveUpdatedAt,
+
+    /// Carried on the optimistic bubble so [_postMessage] — and therefore both
+    /// reconnect sweepers, which re-post from the bubble alone — send the same
+    /// duration on a retry that the first attempt sent. A retry that dropped it
+    /// would turn the user's eight-hour share into a static pin.
+    int? liveDurationMs,
   }) {
     final id = _userId;
     if (id == null) return null;
@@ -1738,6 +1924,12 @@ class ChatRepository extends ChangeNotifier {
       // still drop one it refuses; the echo replaces this copy with the truth.
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
+      latitude: latitude,
+      longitude: longitude,
+      locationAccuracyM: locationAccuracyM,
+      liveExpiresAt: liveExpiresAt,
+      liveUpdatedAt: liveUpdatedAt,
+      liveShareDurationMs: liveDurationMs,
     );
   }
 
@@ -1786,6 +1978,14 @@ class ChatRepository extends ChangeNotifier {
         // same send carry the same key and collapse to one row; two genuinely
         // different sends never share one.
         clientId: optimistic.id,
+        // Read off the message for exactly the same reason as everything above:
+        // a reconnect sweeper re-posting this knows nothing about locations, and
+        // a retry that dropped these would turn the user's live share into a
+        // static pin — or into an empty bubble with no coordinates at all.
+        latitude: optimistic.latitude,
+        longitude: optimistic.longitude,
+        locationAccuracyM: optimistic.locationAccuracyM,
+        liveDurationMs: optimistic.liveShareDurationMs,
       );
       // The ack is proof, so stop drawing "sending". The bubble stays in the
       // pending list — the live copy is still what carries reactions, read

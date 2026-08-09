@@ -5759,4 +5759,104 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Sessize alınmadı';
+
+  @override
+  String get attachmentMenuLocationLabel => 'konum';
+
+  @override
+  String get locationSheetSendCurrent => 'Mevcut konumu gönder';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'Şu anda bulunduğun yer';
+
+  @override
+  String get locationSheetLiveHeading => 'CANLI PAYLAŞ';
+
+  @override
+  String get locationSheetLiveDetail => 'Kendiliğinden durur';
+
+  @override
+  String get locationShareFor15Minutes => '15 dakika boyunca';
+
+  @override
+  String get locationShareFor1Hour => '1 saat boyunca';
+
+  @override
+  String get locationShareFor8Hours => '8 saat boyunca';
+
+  @override
+  String get locationBubbleOpenInMaps => 'Haritalarda aç';
+
+  @override
+  String get locationBubbleLiveBadge => 'CANLI';
+
+  @override
+  String get locationBubbleEndedBadge => 'BİTTİ';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return '$time saatine kadar canlı';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'Canlı konum $time itibarıyla sona erdi';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'Yakın zamanda güncelleme yok';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'Paylaşımı durdur';
+
+  @override
+  String get locationBubbleUnavailable => 'Konum kullanılamıyor';
+
+  @override
+  String get locationBubbleNoMapsApp => 'Bunu açacak bir harita uygulaması yok';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'Koordinatlar kopyalandı';
+
+  @override
+  String get locationCouldNotGetFix => 'Konumun alınamadı';
+
+  @override
+  String get locationCouldNotStartLiveShare => 'Canlı paylaşım başlatılamadı';
+
+  @override
+  String get locationPermissionNeeded =>
+      'Nerede olduğunu paylaşmak için konum erişimi gerekli';
+
+  @override
+  String get locationPermissionBlockedTitle => 'Konum erişimi kapalı';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHub buradan tekrar soramaz. Ayarlar’dan MonkeyHub için konum erişimini aç.';
+
+  @override
+  String get locationServicesOffTitle => 'Konum servisleri kapalı';
+
+  @override
+  String get locationServicesOffBody =>
+      'Bu cihazda konum kapalı. Nerede olduğunu paylaşmak için Ayarlar’dan aç.';
+
+  @override
+  String get locationOpenSettings => 'Ayarları aç';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'Konum';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'Nerede olduğunu paylaşabilir, 8 saate kadar canlı olarak da';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'Nerede olduğunu paylaşamaz';
 }

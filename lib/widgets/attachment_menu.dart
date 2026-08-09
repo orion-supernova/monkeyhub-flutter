@@ -15,17 +15,41 @@ class AttachmentMenuChoice {
   static const voice = AttachmentMenuChoice._('voice');
   static const video = AttachmentMenuChoice._('video');
   static const file = AttachmentMenuChoice._('file');
+  static const location = AttachmentMenuChoice._('location');
 }
 
-Future<AttachmentMenuChoice?> showAttachmentMenu(BuildContext context) {
+/// [allowMedia] and [allowLocation] are the guardian policy, mirrored from
+/// `FamilyService`. Two flags rather than one because the two backend switches
+/// are genuinely independent — see `LOCATION_POLICY_FLAG` in
+/// `backend/convex/childGuard.ts` — so a child may legitimately be allowed
+/// either without the other.
+///
+/// A refused capability is REMOVED from the sheet rather than dimmed. The
+/// server refuses the send regardless, so a visible-but-dead tile would be a
+/// tap whose only possible outcome is a refusal, and children are the one
+/// audience for whom that reads as the app being broken.
+Future<AttachmentMenuChoice?> showAttachmentMenu(
+  BuildContext context, {
+  bool allowMedia = true,
+  bool allowLocation = true,
+}) {
   return showAdaptiveSheet<AttachmentMenuChoice>(
     context,
-    builder: (_) => const _AttachmentSheet(),
+    builder: (_) => _AttachmentSheet(
+      allowMedia: allowMedia,
+      allowLocation: allowLocation,
+    ),
   );
 }
 
 class _AttachmentSheet extends StatelessWidget {
-  const _AttachmentSheet();
+  const _AttachmentSheet({
+    required this.allowMedia,
+    required this.allowLocation,
+  });
+
+  final bool allowMedia;
+  final bool allowLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -33,40 +57,56 @@ class _AttachmentSheet extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final tiles = <(AttachmentMenuChoice, IconData, String)>[
-      (
-        AttachmentMenuChoice.gallery,
-        CupertinoIcons.photo,
-        l10n.attachmentMenuPhotoLabel,
-      ),
-      (
-        AttachmentMenuChoice.video,
-        CupertinoIcons.film,
-        l10n.attachmentMenuVideoLabel,
-      ),
-      (
-        AttachmentMenuChoice.camera,
-        CupertinoIcons.camera,
-        l10n.attachmentMenuCameraLabel,
-      ),
-      // Absent in a browser. `record_web` writes an opus/webm blob rather than
-      // the AAC the send path and the players downstream both assume, and it
-      // ignores the temp-file path the recorder screen asks path_provider for —
-      // which has no web implementation to ask. Offering a tile that records
-      // something nobody can play back would be worse than not offering it.
-      if (!kIsWeb)
+      if (allowMedia) ...[
         (
-          AttachmentMenuChoice.voice,
-          CupertinoIcons.mic,
-          l10n.attachmentMenuVoiceLabel,
+          AttachmentMenuChoice.gallery,
+          CupertinoIcons.photo,
+          l10n.attachmentMenuPhotoLabel,
         ),
-      // Deliberately NOT web-gated, unlike voice above. `file_selector` has a
-      // real web implementation backed by `<input type=file>`, and the bytes
-      // it hands back are exactly what the upload path already wants.
-      (
-        AttachmentMenuChoice.file,
-        CupertinoIcons.doc,
-        l10n.attachmentMenuFileLabel,
-      ),
+        (
+          AttachmentMenuChoice.video,
+          CupertinoIcons.film,
+          l10n.attachmentMenuVideoLabel,
+        ),
+        (
+          AttachmentMenuChoice.camera,
+          CupertinoIcons.camera,
+          l10n.attachmentMenuCameraLabel,
+        ),
+        // Absent in a browser. `record_web` writes an opus/webm blob rather
+        // than the AAC the send path and the players downstream both assume,
+        // and it ignores the temp-file path the recorder screen asks
+        // path_provider for — which has no web implementation to ask. Offering
+        // a tile that records something nobody can play back would be worse
+        // than not offering it.
+        if (!kIsWeb)
+          (
+            AttachmentMenuChoice.voice,
+            CupertinoIcons.mic,
+            l10n.attachmentMenuVoiceLabel,
+          ),
+        // Deliberately NOT web-gated, unlike voice above. `file_selector` has a
+        // real web implementation backed by `<input type=file>`, and the bytes
+        // it hands back are exactly what the upload path already wants.
+        (
+          AttachmentMenuChoice.file,
+          CupertinoIcons.doc,
+          l10n.attachmentMenuFileLabel,
+        ),
+      ],
+      // Web-gated, unlike the document tile beside it. A browser's Geolocation
+      // API has no distance filter and no background delivery, so a live share
+      // started here would be a share the tab silently stops feeding the moment
+      // it is not the foreground tab — and the tab is also the only thing that
+      // could stop it. Offering half the feature, in the half of the app where
+      // its failure is invisible, is worse than not offering it. Locations SENT
+      // from a phone still render on web, which is the half that matters.
+      if (!kIsWeb && allowLocation)
+        (
+          AttachmentMenuChoice.location,
+          CupertinoIcons.location,
+          l10n.attachmentMenuLocationLabel,
+        ),
     ];
     return Material(
       type: MaterialType.transparency,

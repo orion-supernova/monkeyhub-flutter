@@ -5774,4 +5774,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Not muted';
+
+  @override
+  String get attachmentMenuLocationLabel => 'location';
+
+  @override
+  String get locationSheetSendCurrent => 'Send current location';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'Where you are right now';
+
+  @override
+  String get locationSheetLiveHeading => 'SHARE LIVE';
+
+  @override
+  String get locationSheetLiveDetail => 'Stops on its own';
+
+  @override
+  String get locationShareFor15Minutes => 'For 15 minutes';
+
+  @override
+  String get locationShareFor1Hour => 'For 1 hour';
+
+  @override
+  String get locationShareFor8Hours => 'For 8 hours';
+
+  @override
+  String get locationBubbleOpenInMaps => 'Open in maps';
+
+  @override
+  String get locationBubbleLiveBadge => 'LIVE';
+
+  @override
+  String get locationBubbleEndedBadge => 'ENDED';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return 'Live until $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'Live location ended at $time';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'No recent update';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'Stop sharing';
+
+  @override
+  String get locationBubbleUnavailable => 'Location unavailable';
+
+  @override
+  String get locationBubbleNoMapsApp => 'No maps app to open this in';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'Coordinates copied';
+
+  @override
+  String get locationCouldNotGetFix => 'Couldn’t get your location';
+
+  @override
+  String get locationCouldNotStartLiveShare => 'Couldn’t start live sharing';
+
+  @override
+  String get locationPermissionNeeded =>
+      'Location access is needed to share where you are';
+
+  @override
+  String get locationPermissionBlockedTitle => 'Location access is off';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHub can’t ask again from here. Turn on location access for MonkeyHub in Settings.';
+
+  @override
+  String get locationServicesOffTitle => 'Location services are off';
+
+  @override
+  String get locationServicesOffBody =>
+      'Location is switched off for this device. Turn it on in Settings to share where you are.';
+
+  @override
+  String get locationOpenSettings => 'Open settings';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'Location';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'Can share where they are, including live for up to 8 hours';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'Cannot share where they are';
 }

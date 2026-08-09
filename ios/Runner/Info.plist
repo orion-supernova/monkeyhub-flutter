@@ -440,6 +440,15 @@
 	<string>This app needs to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library.</string>
+	<!-- Location sharing. WHEN IN USE only, deliberately: there is no
+	     NSLocationAlwaysAndWhenInUseUsageDescription here and no "location"
+	     entry in UIBackgroundModes below, so a live share updates while the app
+	     is on screen and stops when it is not. The share still ENDS on time
+	     regardless, because its deadline is enforced by the server — see
+	     live_location_publisher.dart for that decision and what reversing it
+	     would cost at App Review. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MonkeyHub uses your location only when you choose to share it in a chat. Live shares stop by themselves at the time you pick.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

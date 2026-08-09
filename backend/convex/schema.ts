@@ -80,6 +80,17 @@ export default defineSchema({
         mediaEnabled: v.boolean(),       // photo/video/voice sends
         canRequestContacts: v.boolean(), // "ask to add someone"
         canCreateRooms: v.boolean(),
+        // Static and live location shares. OPTIONAL where its five siblings
+        // are required, and that is not laziness: every child account written
+        // before this flag existed has a stored policy object without it, and
+        // a required field here would make those rows fail schema validation
+        // on the next `setChildPolicy` write — i.e. would break the one
+        // mutation a guardian would use to set it.
+        //
+        // The absent case is read as `false` at the enforcement site
+        // (`guardOutgoing`), so an un-backfilled child cannot share location
+        // until a guardian says so. See LOCATION_POLICY_FLAG in childGuard.ts.
+        locationSharingEnabled: v.optional(v.boolean()),
       })
     ),
   })
@@ -457,7 +468,7 @@ export default defineSchema({
     createdAt: v.number(),
     edited: v.optional(v.boolean()),
     // New fields
-    type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "file" | "url" | "system"
+    type: v.optional(v.string()),            // "text" | "image" | "video" | "audio" | "file" | "url" | "system" | "location" | "liveLocation"
     mediaStorageId: v.optional(v.id("_storage")),
     // Pixel size of `mediaStorageId`, recorded by the sender who already holds
     // it. A photo bubble lays out at the picture's own ratio, and without this
@@ -663,6 +674,57 @@ export default defineSchema({
     // matches a row where it is absent, so those are simply invisible to the
     // dedupe lookup, which is the correct behaviour and needs no backfill.
     clientId: v.optional(v.string()),
+
+    // ── Location sharing ────────────────────────────────────────────────────
+    //
+    // Two message types share these: `"location"` (one fix, frozen at send
+    // time) and `"liveLocation"` (the same fields, patched in place as the
+    // sharer moves). Deliberately ONE row that gets patched rather than a
+    // `liveLocationPoints` side table appended to:
+    //
+    //  * `messages:list` is already a live subscription that returns rows
+    //    verbatim, so patching the row IS the delivery mechanism. A side table
+    //    would need a second subscription per visible share.
+    //  * A breadcrumb trail is a location HISTORY. Keeping only the newest fix
+    //    means the thing the sharer stops sharing actually stops existing —
+    //    where they were an hour ago is not recoverable from the transcript.
+    //  * Cost: an 8-hour share is ~320 patches to one row rather than ~320
+    //    inserts plus the sweep that would have to delete them, on the box
+    //    crons.ts:6-13 describes.
+    //
+    // The trade-off, stated so nobody has to rediscover it: there is no
+    // "replay the route" feature available without a schema change.
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    // Horizontal accuracy in metres as the device reported it. The bubble draws
+    // an accuracy ring from this, and refuses to draw one when it is absent
+    // rather than inventing a radius — a fix from a laptop's Wi-Fi lookup can
+    // be a kilometre wide and claiming otherwise would be a lie about how well
+    // this locates somebody.
+    locationAccuracyM: v.optional(v.number()),
+
+    // ── Live shares only ────────────────────────────────────────────────────
+    //
+    // When the share stops on its own. THE authority — the client is never
+    // trusted to end its own share, because a client that is force-quit,
+    // crashes, or loses its battery would otherwise broadcast forever. See
+    // `expireLiveLocation`.
+    liveExpiresAt: v.optional(v.number()),
+    // When `latitude`/`longitude` were last written. Lets a viewer distinguish
+    // "stationary" from "the sharer's phone stopped talking to us", which are
+    // very different things to show on a map and indistinguishable without it.
+    liveUpdatedAt: v.optional(v.number()),
+    // Set when the share ends — early by the sharer, or on its own at
+    // `liveExpiresAt`. Presence of this is what the bubble's expired state
+    // reads; the coordinates are deliberately left in place so the transcript
+    // still says where the person was when it ended, exactly as a static share
+    // would. Nothing new is disclosed by that: every one of those fixes was
+    // already delivered to this room while the share was running.
+    liveEndedAt: v.optional(v.number()),
+    // True exactly while the share is running; UNSET (not `false`) when it
+    // ends. Identical mechanism and identical reasoning to `viewOnceLive`
+    // above — see `by_liveLocation_live_expiry`.
+    liveShareLive: v.optional(v.boolean()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_time", ["roomId", "createdAt"])
@@ -680,6 +742,18 @@ export default defineSchema({
     // boolean in front the scan is `q.eq("viewOnceLive", true).lt(...)`, which
     // touches only armed photos whose file is still there.
     .index("by_viewOnce_live_deadline", ["viewOnceLive", "viewOnceDeadline"])
+    // The overdue-live-share repair sweep, and the same shape as the line
+    // above for the same reason: `liveShareLive` MUST lead, because it is
+    // absent on every message in the deployment except the handful of shares
+    // running right now. Scanned as `q.eq("liveShareLive", true).lt(...)`.
+    //
+    // A repair sweep and not the mechanism. Each share gets its own
+    // `ctx.scheduler.runAt` at send time (see `messages:send`); this only
+    // catches shares whose schedule was lost, which matters more here than it
+    // does for a view-once photo — a share that fails to expire keeps
+    // broadcasting a live position, which is the one failure this feature is
+    // not allowed to have.
+    .index("by_liveLocation_live_expiry", ["liveShareLive", "liveExpiresAt"])
     // Reverse lookup for `files:getFileUrl`, so it can refuse a storage id
     // belonging to a view-once message. Defence in depth — after sanitizing,
     // no client should be able to name one in the first place.

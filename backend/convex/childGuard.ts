@@ -44,7 +44,34 @@ export const DEFAULT_CHILD_POLICY = {
   mediaEnabled: true,
   canRequestContacts: true,
   canCreateRooms: false,
+  locationSharingEnabled: false,
 };
+
+/**
+ * Why location has its own flag instead of riding on `mediaEnabled`.
+ *
+ * `guardOutgoing` gates every non-text message on `mediaEnabled`, so a
+ * `location` message would have been covered the moment the type existed — and
+ * that would have been the wrong answer twice over. A guardian who allowed
+ * photos did not thereby agree that the child may tell a room where they
+ * physically are; and a guardian who *disallowed* photos may still want a
+ * child to be able to send "here's where I am, come get me". The two decisions
+ * are unrelated, so they are two switches.
+ *
+ * The default is off, unlike `mediaEnabled` and `callsEnabled`, because this is
+ * the only thing a child account can send that is dangerous in the hands of
+ * someone who is not the intended recipient — and a child's contact list is
+ * built by guardian approval precisely because the child's judgement about who
+ * that is, is the thing being supervised. A guardian turns it on deliberately,
+ * which is a different act from failing to turn it off.
+ *
+ * This covers both static and live shares. Splitting them further was
+ * considered and rejected: "may say where they are once" and "may broadcast
+ * where they are for eight hours" differ in degree, and a guardian handed two
+ * near-identical switches will not reliably tell them apart. The time-boxing
+ * is the control that separates them, and it applies to every account.
+ */
+export const LOCATION_POLICY_FLAG = "locationSharingEnabled" as const;
 
 // Error codes. Kept as constants so the Flutter client's string matching and
 // the backend can't drift apart.

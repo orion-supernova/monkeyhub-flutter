@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import {
   ERR_APPROVAL_REQUIRED,
   ERR_NOT_ALLOWED,
+  LOCATION_POLICY_FLAG,
   childMayUseRoom,
   childPolicyOf,
 } from "./childGuard";
@@ -46,6 +47,50 @@ const VIEW_ONCE_NONCE_TTL_MS = 120_000;
  * download that triggered the burn.
  */
 const VIEW_ONCE_BURN_GRACE_MS = VIEW_ONCE_NONCE_TTL_MS + 30_000;
+
+// ── Live-location tuning ────────────────────────────────────────────────────
+
+/**
+ * The durations a live share may be started for, in milliseconds.
+ *
+ * A closed set rather than a free number, and validated server-side rather
+ * than only offered client-side: `liveExpiresAt` is the entire safety property
+ * of this feature, so "how long am I visible for" must not be something a
+ * client can set to a year by sending a bigger integer.
+ *
+ * 15 min / 1 h / 8 h is the set the large messengers converged on, and the
+ * reasoning behind it is sound — meeting someone now, an outing, a day out —
+ * so it is copied rather than re-derived. Mirrored client-side in
+ * `LiveShareDuration` (lib/models/location_share.dart); keep the two in step.
+ */
+const LIVE_SHARE_DURATIONS_MS = [
+  15 * 60 * 1000,
+  60 * 60 * 1000,
+  8 * 60 * 60 * 1000,
+];
+
+/**
+ * Smallest gap between two accepted position updates on one share.
+ *
+ * A rate limit rather than a smoothing filter. The client already throttles to
+ * one publish per 10 s (`LiveLocationPublisher`), so in normal operation this
+ * never fires; it exists because `updateLiveLocation` is a public mutation and
+ * a client in a retry loop — or one that simply has a bug — must not be able
+ * to rewrite one row hundreds of times a second on the box crons.ts:6-13
+ * describes. Deliberately below the client's own interval so clock skew
+ * between the two cannot silently drop legitimate updates.
+ */
+const LIVE_UPDATE_MIN_INTERVAL_MS = 5_000;
+
+/**
+ * Row budget for the "starting a share ends your previous one" scan in `send`,
+ * and for the repair sweep. Both range over the currently-live bucket, whose
+ * size is the number of shares running across the whole deployment right now —
+ * a set measured in tens. The cap is a guarantee about the read set rather
+ * than a claim about the data: nothing breaks if it is hit, because every
+ * share also carries its own `runAt`.
+ */
+const LIVE_SHARE_SUPERSEDE_SCAN_LIMIT = 100;
 
 /**
  * Strips a view-once message down to what a client is allowed to hold.
@@ -146,6 +191,40 @@ export function galleryBucketFor(
 }
 
 /**
+ * Which guarded capabilities a write actually uses.
+ *
+ * Two independent booleans, not one type string, and the difference is a
+ * security boundary rather than a refactor. `guardOutgoing` used to branch on
+ * the type, which left two holes:
+ *
+ *  * A mixed forward batch collapses to ONE type string, so a selection of nine
+ *    photos and one location was described as "a location" — and a child with
+ *    location allowed and media forbidden could forward the photos.
+ *  * `send` accepts a `mediaStorageId` on any type at all, so a `location`
+ *    message carrying a blob took the location branch and never met the media
+ *    gate. The blob is fetchable via `files:getFileUrl` even though nothing
+ *    renders it.
+ *
+ * Keyed on [hasBlob] rather than on the type for exactly that second reason: an
+ * attachment is an attachment whatever the message calls itself.
+ */
+function permissionsFor(type: string, hasBlob: boolean) {
+  const location = type === "location" || type === "liveLocation";
+  return {
+    location,
+    // A location message is not media, but a location message with a file
+    // attached to it needs both — see above.
+    //
+    // `!== "text"` and nothing more, deliberately: that is exactly what the
+    // old `msgType !== "text"` covered, so every type that already needed the
+    // media grant still needs it. Introducing a location gate is not the place
+    // to quietly relax an unrelated one (`system`, say) — that would be a
+    // permission change hidden inside a refactor.
+    media: hasBlob || (!location && type !== "text"),
+  };
+}
+
+/**
  * Everything that must be true before a message may be written into a room,
  * plus the three values that fall out of checking it.
  *
@@ -159,15 +238,17 @@ export function galleryBucketFor(
  * again afterwards (view-once recipient counts, mention resolution) and most
  * sends never need it at all.
  *
- * [msgType] is only consulted by the child media policy. A forward passes the
- * type it is about to write, so a child who may not send media may not forward
- * it either.
+ * [needs] is only consulted by the child policy: which of the two guarded
+ * capabilities this write actually uses. A SET rather than a type string,
+ * because the two are independent and a batch can want both — see
+ * [permissionsFor] for the argument, and for the two holes the type-string
+ * version had.
  */
 async function guardOutgoing(
   ctx: any,
   roomId: any,
   userId: any,
-  msgType: string,
+  needs: { media: boolean; location: boolean },
   senderName?: string
 ) {
   const membership = await ctx.db
@@ -199,7 +280,21 @@ async function guardOutgoing(
     if (!(await childMayUseRoom(ctx, userId, roomId))) {
       throw new Error(ERR_APPROVAL_REQUIRED);
     }
-    if (msgType !== "text" && !policy.mediaEnabled) {
+    // Two independent gates, checked independently. They were an if/else-if
+    // over a type string and that was wrong twice: a batch containing a photo
+    // AND a location was described by whichever branch came first, so one
+    // permission let the other through; and a `location`-typed message carrying
+    // a blob took the location branch and skipped the media gate entirely.
+    // Both disappear once the caller says what it NEEDS instead of what it is.
+    //
+    // `?? false` on the location flag rather than `?? true`: a child account
+    // created before that flag existed has a stored policy object without it,
+    // and the safe reading of a missing answer here is no. See
+    // LOCATION_POLICY_FLAG in childGuard.ts for why it is a second switch.
+    if (needs.location && !(policy[LOCATION_POLICY_FLAG] ?? false)) {
+      throw new Error(ERR_NOT_ALLOWED);
+    }
+    if (needs.media && !policy.mediaEnabled) {
       throw new Error(ERR_NOT_ALLOWED);
     }
   }
@@ -280,7 +375,48 @@ function roomPreviewFor(msg: {
     const name = (msg.fileName ?? "").slice(0, 100);
     return name.length > 0 ? name : "[file]";
   }
+  // Spelled out rather than left to the fallback below, which would render
+  // the wire name verbatim and put the literal "[liveLocation]" on a room
+  // card. Coordinates are deliberately NOT in the preview: a room list is
+  // visible on a lock screen, over a shoulder, and in a screenshot of the
+  // chats tab, and none of those are places somebody agreed to be located.
+  if (type === "location") return "[location]";
+  if (type === "liveLocation") return "[live location]";
   return `[${type}]`;
+}
+
+/**
+ * Ends a live share: freezes the last position, stamps `liveEndedAt`, and
+ * takes the row out of the sweep index.
+ *
+ * One function for all three ways a share can end — the sharer stopping it,
+ * the scheduled expiry firing, and the repair sweep catching one whose
+ * schedule was lost — because the three must produce an identical row. A
+ * separately-written stop path that forgot to unset `liveShareLive` would
+ * leave the message in the sweep bucket forever, re-examined every six hours
+ * and never leaving.
+ *
+ * Idempotent: a row that is already ended has no `liveShareLive`, so the
+ * second caller returns without writing. That matters because the scheduled
+ * expiry and the sweep genuinely do race on a share the user stopped a second
+ * before its deadline.
+ *
+ * [endedAt] is the moment the share is *recorded* as having stopped. The
+ * scheduler passes the deadline rather than "now" so a job that runs three
+ * minutes late doesn't claim the share ran three minutes longer than it did.
+ *
+ * The coordinates are left alone on purpose. Every fix on this row was already
+ * delivered to this room while the share was running, so clearing them
+ * discloses nothing and costs the transcript its record of where the person
+ * was when it ended — which is exactly what a static share would have left.
+ */
+async function endLiveShare(ctx: any, msg: any, endedAt: number) {
+  if (msg?.liveShareLive !== true) return false;
+  await ctx.db.patch(msg._id, {
+    liveEndedAt: endedAt,
+    liveShareLive: undefined,
+  });
+  return true;
 }
 
 export const send = mutation({
@@ -319,8 +455,19 @@ export const send = mutation({
     // are called and whether they may be named at all. See `resolveMentions`.
     mentionedUserIds: v.optional(v.array(v.id("users"))),
     mentionsEveryone: v.optional(v.boolean()),
+    // Location, on `type: "location"` and `type: "liveLocation"`. Range-checked
+    // below rather than trusted: a NaN or a longitude of 4000 would render as a
+    // bubble pointing at nowhere that nobody could delete except its sender.
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    locationAccuracyM: v.optional(v.number()),
+    // How long a live share should run for, in milliseconds. Only consulted on
+    // `type: "liveLocation"`, and only accepted if it is one of
+    // `LIVE_SHARE_DURATIONS_MS` — see the note there on why this is a closed
+    // set validated here and not just a client-side picker.
+    liveDurationMs: v.optional(v.number()),
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs }) => {
     // Idempotency, checked before anything else has a chance to happen twice.
     //
     // Everything below this line has side effects that must not be repeated:
@@ -338,7 +485,11 @@ export const send = mutation({
       if (existing) return existing._id;
     }
 
-    const msgType = type ?? "text";
+    // `let`, because the location block below downgrades a malformed
+    // `location`/`liveLocation` send rather than refusing it. Everything that
+    // reads this after that point — the insert, the gallery bucket, the room
+    // preview, the push body — must see the type actually written.
+    let msgType = type ?? "text";
 
     // Membership, the child guard, DM blocks, the sender's display name and the
     // room's message lifetime — all of it, in the order it has always run. See
@@ -348,7 +499,10 @@ export const send = mutation({
       ctx,
       roomId,
       userId,
-      msgType,
+      // `mediaStorageId !== undefined` and not the type: a blob attached to a
+      // `location`-typed send is still an attachment, and used to skip the media
+      // gate by taking the location branch. See `permissionsFor`.
+      permissionsFor(msgType, mediaStorageId !== undefined),
       senderName
     );
 
@@ -409,6 +563,82 @@ export const send = mutation({
         viewOnceViewCount: 0,
         viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
       };
+    }
+
+    // ── Location ────────────────────────────────────────────────────────────
+    //
+    // Validated here rather than believed, for two different reasons that both
+    // end in the same code. A malformed pair (NaN, a longitude of 4000, a
+    // latitude the client computed from an uninitialised variable) produces a
+    // bubble that points at nowhere and cannot be repaired, only deleted. And
+    // an out-of-set `liveDurationMs` is the whole safety property of the
+    // feature: `liveExpiresAt` is what makes a share stop, so a client able to
+    // name its own deadline is a client able to share its position forever.
+    //
+    // A location-typed message whose coordinates don't survive this is
+    // downgraded to `text` rather than refused. Refusing would strand a
+    // retry-forever bubble in the sender's pending list for a message no retry
+    // can fix — the same reasoning as the child-gate branch in
+    // `ChatRepository._postMessage`.
+    const wantsLocation = msgType === "location" || msgType === "liveLocation";
+    const validCoords =
+      wantsLocation &&
+      typeof latitude === "number" &&
+      typeof longitude === "number" &&
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude) &&
+      latitude >= -90 &&
+      latitude <= 90 &&
+      longitude >= -180 &&
+      longitude <= 180;
+    if (wantsLocation && !validCoords) msgType = "text";
+
+    let locationFields: Record<string, any> = {};
+    if (validCoords) {
+      locationFields = {
+        latitude,
+        longitude,
+        // Dropped rather than clamped when it is nonsense. The bubble draws no
+        // ring when this is absent, which is the honest rendering of "the
+        // device did not say how sure it was".
+        locationAccuracyM:
+          typeof locationAccuracyM === "number" &&
+          Number.isFinite(locationAccuracyM) &&
+          locationAccuracyM > 0
+            ? Math.min(locationAccuracyM, 100_000)
+            : undefined,
+      };
+    }
+
+    // Live shares: the deadline, and the flag that puts the row in the sweep's
+    // bucket. A `liveLocation` send whose duration is refused becomes an
+    // ordinary static `location` — the position the sender chose to share is
+    // still shared, it simply does not move. Silently downgrading beats
+    // throwing for the reason above, and beats accepting an unbounded share by
+    // a much wider margin.
+    let liveFields: Record<string, any> = {};
+    if (msgType === "liveLocation") {
+      if (
+        typeof liveDurationMs === "number" &&
+        LIVE_SHARE_DURATIONS_MS.includes(liveDurationMs) &&
+        // Refused in a Chamber of Secrets room, where `expiresAt` is set. Two
+        // self-destruct clocks on one row is a promise the app cannot keep: a
+        // 60-second room lifetime deletes an 8-hour share after a minute, and
+        // the sharer is told nothing — their publisher simply starts getting
+        // "gone" back. Downgraded to a static pin, which the room's own
+        // lifetime then governs, exactly as it governs every other message
+        // there. The client hides the live options in such a room, so reaching
+        // this is a stale screen rather than the normal path.
+        expiresAt === undefined
+      ) {
+        liveFields = {
+          liveExpiresAt: Date.now() + liveDurationMs,
+          liveUpdatedAt: Date.now(),
+          liveShareLive: true,
+        };
+      } else {
+        msgType = "location";
+      }
     }
 
     // Resolve @-mentions. The client sends ids; everything else is decided
@@ -505,6 +735,8 @@ export const send = mutation({
       // Stored so the retry that arrives after this one commits can find it.
       clientId,
       ...viewOnceFields,
+      ...locationFields,
+      ...liveFields,
       ...(replyToPreview
         ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
         : {}),
@@ -542,6 +774,43 @@ export const send = mutation({
       }
     }
 
+    // The share's own deadline. THE mechanism, not a backstop: nothing else
+    // stops a live share, because the client that started it may be force-quit,
+    // out of battery, or in a tunnel when its time is up. `gcExpiredLiveShares`
+    // exists only for the case where this schedule is lost.
+    if (liveFields.liveExpiresAt !== undefined) {
+      await ctx.scheduler.runAt(
+        new Date(liveFields.liveExpiresAt),
+        internal.messages.expireLiveLocation,
+        { messageId }
+      );
+
+      // Starting a share supersedes the sender's previous one in this room.
+      // Two live bubbles in one transcript is a UI nobody can read — which of
+      // them is you? — and only one of them can be fed anyway, because the
+      // client runs a single publisher. Ending the old one here rather than
+      // client-side means it also happens when the new share is started from a
+      // second device.
+      //
+      // Bounded by `.take()` and scoped to the currently-live bucket, which is
+      // the whole deployment's concurrent shares rather than this room's
+      // history — a set measured in tens, not in messages. The cap is a
+      // guarantee about the read set, not an expectation about the data: if it
+      // is ever hit, the extra share still expires on its own schedule.
+      const otherLive = await ctx.db
+        .query("messages")
+        .withIndex("by_liveLocation_live_expiry", (q) =>
+          q.eq("liveShareLive", true)
+        )
+        .take(LIVE_SHARE_SUPERSEDE_SCAN_LIMIT);
+      for (const other of otherLive) {
+        if (other._id === messageId) continue;
+        if (other.roomId.toString() !== roomId.toString()) continue;
+        if (other.userId.toString() !== userId.toString()) continue;
+        await endLiveShare(ctx, other, Date.now());
+      }
+    }
+
     // Update room's last message preview
     const preview = roomPreviewFor({
       type: msgType,
@@ -569,6 +838,256 @@ export const send = mutation({
     });
 
     return messageId;
+  },
+});
+
+// ── Live location ───────────────────────────────────────────────────────────
+//
+// Three mutations and a sweep, and the split between them is the whole design:
+//
+//   updateLiveLocation  the sharer's device, every ~10-90 s while it moves
+//   stopLiveLocation    the sharer, explicitly, at any time
+//   expireLiveLocation  the scheduler, at the deadline — THE authority
+//   gcExpiredLiveShares a six-hourly repair pass for lost schedules
+//
+// No mutation anywhere can extend a share. Ending one early is a user action;
+// ending one on time is not. That asymmetry is deliberate: a "keep sharing"
+// call would turn a time-boxed disclosure into an indefinite one held open by
+// whatever software happened to keep calling it, which is precisely the shape
+// this feature exists to avoid. Sharing for longer means starting a new share,
+// which is a new message the recipients can see arrive.
+
+/**
+ * Moves a running live share to a new position.
+ *
+ * Sender-only, and checked against the row rather than against room
+ * membership: a room member who could write coordinates onto somebody else's
+ * share would be able to say where that person is, in their name, to everyone
+ * watching. There is no legitimate case for it, so there is no branch for it.
+ *
+ * Returns `{ ok }` rather than throwing on a share that has ended. This is
+ * called by a background timer against a deadline the server owns, so "the
+ * share you are feeding is over" is an ordinary, expected outcome — the client
+ * reads a false and shuts its publisher down. Throwing would put an error in
+ * the log for the system working correctly.
+ *
+ * ## It re-runs `guardOutgoing`, and that is the point
+ *
+ * This is a write into a room, hours after the write that created it, and the
+ * `send` path's comment about the child guard applies with far more force here:
+ * "a grant can be revoked while the child is still sitting in the room". A
+ * version that checked only the sender's id would mean that for up to eight
+ * hours after a share starts:
+ *
+ *  * a guardian switching location sharing off does not stop it — the one
+ *    revocation this feature most needs to honour;
+ *  * leaving or being removed from the room does not stop it, so a position
+ *    keeps arriving in a room the sharer is no longer in;
+ *  * a DM block does not stop it.
+ *
+ * So the same guard runs on every update, and a refusal ENDS the share rather
+ * than merely declining the write. Ending it is what makes the bubble read as
+ * finished for everybody, instead of silently going stale while the row still
+ * claims to be live.
+ *
+ * The cost is the guard's handful of indexed reads per update — bounded by
+ * `LIVE_UPDATE_MIN_INTERVAL_MS` — which is the price of the checks meaning
+ * anything at all after the first second.
+ */
+export const updateLiveLocation = mutation({
+  args: {
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    latitude: v.number(),
+    longitude: v.number(),
+    locationAccuracyM: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { messageId, userId, latitude, longitude, locationAccuracyM }
+  ) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg) return { ok: false, reason: "gone" as const };
+    if (msg.userId.toString() !== userId.toString()) {
+      return { ok: false, reason: "not_yours" as const };
+    }
+    if (msg.liveShareLive !== true) {
+      return { ok: false, reason: "ended" as const };
+    }
+
+    const now = Date.now();
+
+    // The deadline is enforced on read as well as by the scheduler. A job that
+    // has not fired yet — the box was busy, the deployment restarted — must not
+    // be a window in which the share keeps accepting positions past its time.
+    // Ending it here rather than merely refusing the write means the very first
+    // late update also cleans the row up.
+    if (typeof msg.liveExpiresAt === "number" && msg.liveExpiresAt <= now) {
+      await endLiveShare(ctx, msg, msg.liveExpiresAt);
+      return { ok: false, reason: "ended" as const };
+    }
+
+    // Rate limit. See LIVE_UPDATE_MIN_INTERVAL_MS — the client throttles well
+    // below this, so a caller tripping it is a caller that is malfunctioning.
+    // Reported as success: the share is fine, this particular fix was simply
+    // not worth a write, and telling the publisher otherwise would make it
+    // retry and trip it again.
+    if (
+      typeof msg.liveUpdatedAt === "number" &&
+      now - msg.liveUpdatedAt < LIVE_UPDATE_MIN_INTERVAL_MS
+    ) {
+      return { ok: true, throttled: true };
+    }
+
+    // May this person still write into this room, right now? See the header —
+    // membership, the child policy and the DM block can all change during a
+    // share, and none of them is honoured by a check that ran hours ago.
+    //
+    // `senderName` is passed so the guard skips its `users` read: this row
+    // already carries the name that was resolved at send time, and a live share
+    // is not the place to discover a rename.
+    try {
+      await guardOutgoing(
+        ctx,
+        msg.roomId,
+        userId,
+        { media: false, location: true },
+        msg.senderName ?? "unknown"
+      );
+    } catch (_) {
+      // Ended, not merely refused. A share whose permission has gone must stop
+      // being a live share on everyone's screen, not sit there going quietly
+      // stale while the row still says it is running.
+      await endLiveShare(ctx, msg, now);
+      return { ok: false, reason: "revoked" as const };
+    }
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return { ok: false, reason: "bad_position" as const };
+    }
+
+    await ctx.db.patch(messageId, {
+      latitude,
+      longitude,
+      locationAccuracyM:
+        typeof locationAccuracyM === "number" &&
+        Number.isFinite(locationAccuracyM) &&
+        locationAccuracyM > 0
+          ? Math.min(locationAccuracyM, 100_000)
+          : undefined,
+      liveUpdatedAt: now,
+    });
+
+    // Deliberately no `rooms.lastMessage` bump and no push. A live share moving
+    // is not a new message: re-sorting the chat list to the top every ninety
+    // seconds for eight hours would make one share look like a conversation,
+    // and a banner per fix would be unusable. The transcript updates because
+    // `messages:list` is subscribed to this row, which is the entire reason the
+    // position lives on the message instead of in a side table.
+    return { ok: true, throttled: false };
+  },
+});
+
+/**
+ * Ends a live share early, at the sharer's request.
+ *
+ * Sender-only for the same reason `updateLiveLocation` is, mirrored: a room
+ * member who could stop somebody else's share could silently cut off a person
+ * who is relying on being followed home.
+ */
+export const stopLiveLocation = mutation({
+  args: {
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, { messageId, userId }) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg) return { ok: false, reason: "gone" as const };
+    // Returned, not thrown, matching `updateLiveLocation` beside it. Both are
+    // the same question — "is this yours?" — and answering it two different
+    // ways means every reader has to check which is which. A caller that
+    // genuinely cannot stop somebody else's share does not need a stack trace.
+    if (msg.userId.toString() !== userId.toString()) {
+      return { ok: false, reason: "not_yours" as const };
+    }
+    // Not an error. The share may have hit its deadline in the second between
+    // the user seeing the button and pressing it, and "it already stopped" is
+    // the outcome they asked for.
+    await endLiveShare(ctx, msg, Date.now());
+    return { ok: true };
+  },
+});
+
+/**
+ * The scheduled end of a live share. Registered by `send` at the moment the
+ * share is created, which is what makes the deadline hold when the sharer's
+ * device does not: force-quit, out of battery, in a tunnel, or simply
+ * uninstalled.
+ *
+ * Stamps `liveEndedAt` with the deadline rather than with `Date.now()`, so a
+ * job that runs late does not record the share as having run longer than it
+ * was allowed to.
+ */
+export const expireLiveLocation = internalMutation({
+  args: { messageId: v.id("messages") },
+  handler: async (ctx, { messageId }) => {
+    const msg = await ctx.db.get(messageId);
+    // Already deleted, already stopped, or superseded. All three are ordinary.
+    if (!msg) return;
+    await endLiveShare(ctx, msg, msg.liveExpiresAt ?? Date.now());
+  },
+});
+
+/**
+ * Repair sweep for shares whose per-message schedule was lost.
+ *
+ * A backstop, exactly like `gcExpiredViewOnce` — and the one whose absence
+ * would matter most, because the failure it repairs is "a position keeps being
+ * broadcast after the person said stop". Runs six-hourly rather than by the
+ * minute for the cost reason crons.ts:6-13 gives; the per-message `runAt` is
+ * what makes that acceptable, since anything this sweep finds is already a
+ * scheduler failure rather than the normal path.
+ *
+ * Scans `by_liveLocation_live_expiry` as `eq(true).lt(now)`, so it reads only
+ * shares that are both running and overdue — see the index comment for why
+ * ranging on the deadline alone would walk the whole table.
+ */
+export const gcExpiredLiveShares = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    // Ranged on the flag alone, then filtered in JS, rather than
+    // `.lt("liveExpiresAt", now)` in the index. The narrower scan looks better
+    // and has a hole: Convex sorts `undefined` ahead of every number, so a row
+    // that somehow acquired `liveShareLive: true` WITHOUT a deadline is
+    // excluded by the `lt` — invisible to the one sweep whose whole job is
+    // catching rows that got away, while sitting permanently at the head of the
+    // bucket. `send` writes all three live fields together so it should not
+    // happen; this is the backstop, and a backstop with a blind spot is not
+    // one. The bucket only ever holds shares that are currently running, so the
+    // wider scan is the same order of magnitude either way.
+    const live = await ctx.db
+      .query("messages")
+      .withIndex("by_liveLocation_live_expiry", (q) =>
+        q.eq("liveShareLive", true)
+      )
+      .take(LIVE_SHARE_SUPERSEDE_SCAN_LIMIT);
+    let ended = 0;
+    for (const msg of live) {
+      // A missing deadline reads as overdue. It cannot be honoured, and a live
+      // share with no end is the one state this feature must never have.
+      const deadline = msg.liveExpiresAt ?? 0;
+      if (deadline > now) continue;
+      if (await endLiveShare(ctx, msg, msg.liveExpiresAt ?? now)) ended++;
+    }
+    return { scanned: live.length, ended };
   },
 });
 
@@ -791,15 +1310,32 @@ export const forwardToRoom = mutation({
     // The child media policy is checked against the strongest type in the
     // batch: a child who may not send media may not forward it either, and
     // checking only the first would let one text message carry nine photos.
-    const batchType = sources.some((m) => m && (m.type ?? "text") !== "text")
-      ? "media"
-      : "text";
+    //
+    // A location anywhere in the batch makes the WHOLE batch a location as far
+    // as the guard is concerned, and outranks media — the two gates are
+    // separate switches (see LOCATION_POLICY_FLAG) and only one type string can
+    // be passed, so the batch has to be described by the permission it most
+    // needs. The alternative, checking media and letting a location through on
+    // a media grant, is the exact conflation that flag exists to undo.
+    // Unioned across the batch rather than collapsed to one type, because a
+    // batch genuinely can need both permissions and describing it with one
+    // string means the one that wins lets the other through — nine photos
+    // forwarded on the strength of a single location in the selection. See
+    // `permissionsFor`.
+    const batchNeeds = sources.reduce(
+      (acc, m) => {
+        if (!m) return acc;
+        const p = permissionsFor(m.type ?? "text", m.mediaStorageId !== undefined);
+        return { media: acc.media || p.media, location: acc.location || p.location };
+      },
+      { media: false, location: false }
+    );
 
     const { resolvedSenderName, expiresAt } = await guardOutgoing(
       ctx,
       targetRoomId,
       userId,
-      batchType
+      batchNeeds
     );
 
     let forwarded = 0;
@@ -823,6 +1359,20 @@ export const forwardToRoom = mutation({
         continue;
       }
       if (msg.viewOnce === true) {
+        refused++;
+        continue;
+      }
+      // A live share is refused for the same structural reason a view-once
+      // photo is: the copy would be a second row claiming to track a person,
+      // with no publisher feeding it and no relationship to the original's
+      // deadline. It would freeze at whatever position the sharer happened to
+      // be at when somebody else pressed forward — a stale position presented
+      // as a live one, in a room the sharer never agreed to be in.
+      //
+      // A STATIC location forwards fine and does below: it is a fixed pair of
+      // numbers the sender already published, which is exactly what forwarding
+      // any other message copies.
+      if ((msg.type ?? "") === "liveLocation") {
         refused++;
         continue;
       }
@@ -868,6 +1418,16 @@ export const forwardToRoom = mutation({
           false
         ),
         ...(LINK_PATTERN.test(msg.content ?? "") ? { hasLink: true } : {}),
+        // Carried, or a forwarded location would arrive as a `location`-typed
+        // message with no coordinates — a bubble that renders nothing and can
+        // only be deleted. Copied rather than re-derived because unlike the
+        // gallery bucket above there is nothing to re-derive: a static share is
+        // exactly these two numbers. No live fields are copied, which is
+        // structural rather than an omission — the refusal above means a
+        // forwarded row can never be a live share.
+        latitude: msg.latitude,
+        longitude: msg.longitude,
+        locationAccuracyM: msg.locationAccuracyM,
         senderName: resolvedSenderName,
         expiresAt,
         ...(clientId !== undefined ? { clientId } : {}),

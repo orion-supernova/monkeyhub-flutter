@@ -5807,4 +5807,104 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'Inte tystad';
+
+  @override
+  String get attachmentMenuLocationLabel => 'plats';
+
+  @override
+  String get locationSheetSendCurrent => 'Skicka nuvarande plats';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'Där du är just nu';
+
+  @override
+  String get locationSheetLiveHeading => 'DELA LIVE';
+
+  @override
+  String get locationSheetLiveDetail => 'Stoppas av sig själv';
+
+  @override
+  String get locationShareFor15Minutes => 'I 15 minuter';
+
+  @override
+  String get locationShareFor1Hour => 'I 1 timme';
+
+  @override
+  String get locationShareFor8Hours => 'I 8 timmar';
+
+  @override
+  String get locationBubbleOpenInMaps => 'Öppna i kartor';
+
+  @override
+  String get locationBubbleLiveBadge => 'LIVE';
+
+  @override
+  String get locationBubbleEndedBadge => 'AVSLUTAD';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return 'Live till $time';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'Live-platsen avslutades $time';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => 'Ingen ny uppdatering';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => 'Sluta dela';
+
+  @override
+  String get locationBubbleUnavailable => 'Platsen är inte tillgänglig';
+
+  @override
+  String get locationBubbleNoMapsApp => 'Ingen kartapp att öppna det här i';
+
+  @override
+  String get locationBubbleCoordinatesCopied => 'Koordinaterna kopierade';
+
+  @override
+  String get locationCouldNotGetFix => 'Kunde inte hämta din plats';
+
+  @override
+  String get locationCouldNotStartLiveShare => 'Kunde inte starta livedelning';
+
+  @override
+  String get locationPermissionNeeded =>
+      'Platsåtkomst krävs för att dela var du är';
+
+  @override
+  String get locationPermissionBlockedTitle => 'Platsåtkomst är avstängd';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHub kan inte fråga igen härifrån. Slå på platsåtkomst för MonkeyHub i Inställningar.';
+
+  @override
+  String get locationServicesOffTitle => 'Platstjänster är avstängda';
+
+  @override
+  String get locationServicesOffBody =>
+      'Plats är avstängt på den här enheten. Slå på det i Inställningar för att dela var du är.';
+
+  @override
+  String get locationOpenSettings => 'Öppna inställningar';
+
+  @override
+  String get childPolicyScreenLocationLabel => 'Plats';
+
+  @override
+  String get childPolicyScreenLocationOnDesc =>
+      'Kan dela var hen är, även live i upp till 8 timmar';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => 'Kan inte dela var hen är';
 }

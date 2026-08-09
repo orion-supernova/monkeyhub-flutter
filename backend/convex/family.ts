@@ -458,6 +458,10 @@ export const setChildPolicy = mutation({
     mediaEnabled: v.optional(v.boolean()),
     canRequestContacts: v.optional(v.boolean()),
     canCreateRooms: v.optional(v.boolean()),
+    // Separate from `mediaEnabled` on purpose, and the only flag here that
+    // starts off — see LOCATION_POLICY_FLAG in childGuard.ts. Covers both a
+    // one-off "here's where I am" and a time-boxed live share.
+    locationSharingEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, { guardianId, childId, ...flags }) => {
     await assertGuardian(ctx, guardianId, childId);

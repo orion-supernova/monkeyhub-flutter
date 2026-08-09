@@ -157,6 +157,16 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       case MessageType.text:
       case MessageType.url:
       case MessageType.system:
+      // Grouped with text rather than opening a maps app, and that is the
+      // point of listing them here instead of adding them to the media cases
+      // above. Nothing routes a location into this screen — a location has no
+      // blob, so `galleryBucketFor` gives it no bucket and no tab holds it —
+      // so if one ever reaches this row it did so through a path nobody
+      // designed. Showing it in the transcript is the answer that is right
+      // whatever that path turns out to be; handing a stale position to a maps
+      // app would not be.
+      case MessageType.location:
+      case MessageType.liveLocation:
         _showInChat(m);
     }
   }

@@ -730,6 +730,21 @@ class ChatApi {
     /// room or isn't actually written into [content].
     List<String> mentionedUserIds = const [],
     bool mentionsEveryone = false,
+
+    /// Set on [MessageType.location] and [MessageType.liveLocation]. The server
+    /// range-checks both and downgrades the message to text rather than
+    /// refusing it if they don't survive — a coordinate a retry cannot fix must
+    /// not strand a bubble in the pending list forever.
+    double? latitude,
+    double? longitude,
+    double? locationAccuracyM,
+
+    /// How long a live share runs for, in milliseconds. Only read on
+    /// [MessageType.liveLocation], and only accepted server-side if it is one
+    /// of the three offered durations — see [LiveShareDuration]. A value the
+    /// server refuses makes the message a static location, not an unbounded
+    /// share.
+    int? liveDurationMs,
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
@@ -752,8 +767,59 @@ class ChatApi {
       // message mentions nobody and shouldn't widen the wire to say so.
       if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
       if (mentionsEveryone) 'mentionsEveryone': true,
+      'latitude': ?latitude,
+      'longitude': ?longitude,
+      'locationAccuracyM': ?locationAccuracyM,
+      'liveDurationMs': ?liveDurationMs,
     });
     return res.toString();
+  }
+
+  /// Moves a running live share to a new position.
+  ///
+  /// Returns whether the share is still live. False is an ordinary answer, not
+  /// an error: the deadline may have passed, the sharer may have stopped it
+  /// from another device, or the message may have been deleted. The publisher
+  /// reads a false as "shut down", which is how a share ended elsewhere reaches
+  /// this device without anything polling for it.
+  ///
+  /// Swallows transport failures as `true`. A dropped mutation on bad cellular
+  /// must not be read as "the share is over" — the next fix will land, and if
+  /// it genuinely is over the server will say so with an answer rather than
+  /// with a socket error.
+  Future<bool> updateLiveLocation({
+    required String messageId,
+    required String userId,
+    required double latitude,
+    required double longitude,
+    double? accuracyM,
+  }) async {
+    try {
+      final res = await _cv.mutation('messages:updateLiveLocation', {
+        'messageId': messageId,
+        'userId': userId,
+        'latitude': latitude,
+        'longitude': longitude,
+        'locationAccuracyM': ?accuracyM,
+      });
+      final m = (res as Map?)?.cast<String, dynamic>() ?? const {};
+      return (m['ok'] as bool?) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Ends a live share early. Idempotent server-side — a share that already
+  /// expired reports success, because "it has stopped" is what the caller asked
+  /// for.
+  Future<void> stopLiveLocation({
+    required String messageId,
+    required String userId,
+  }) async {
+    await _cv.mutation('messages:stopLiveLocation', {
+      'messageId': messageId,
+      'userId': userId,
+    });
   }
 
   /// Spends this viewer's one look at a view-once photo and returns a ticket
@@ -1697,6 +1763,9 @@ class ChatApi {
     required String childId,
     bool? callsEnabled,
     bool? mediaEnabled,
+    /// Static and live location shares. Separate from [mediaEnabled] on
+    /// purpose — see `LOCATION_POLICY_FLAG` in backend/convex/childGuard.ts.
+    bool? locationSharingEnabled,
     bool? canRequestContacts,
     bool? canCreateRooms,
   }) async {
@@ -1705,6 +1774,7 @@ class ChatApi {
       'childId': childId,
       'callsEnabled': ?callsEnabled,
       'mediaEnabled': ?mediaEnabled,
+      'locationSharingEnabled': ?locationSharingEnabled,
       'canRequestContacts': ?canRequestContacts,
       'canCreateRooms': ?canCreateRooms,
     });

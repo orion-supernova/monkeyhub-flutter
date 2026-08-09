@@ -5562,4 +5562,102 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get roomInfoScreenNotMutedRow => 'ミュートしていません';
+
+  @override
+  String get attachmentMenuLocationLabel => '位置情報';
+
+  @override
+  String get locationSheetSendCurrent => '現在地を送信';
+
+  @override
+  String get locationSheetSendCurrentDetail => 'いまいる場所';
+
+  @override
+  String get locationSheetLiveHeading => 'リアルタイム共有';
+
+  @override
+  String get locationSheetLiveDetail => '自動で終了します';
+
+  @override
+  String get locationShareFor15Minutes => '15分間';
+
+  @override
+  String get locationShareFor1Hour => '1時間';
+
+  @override
+  String get locationShareFor8Hours => '8時間';
+
+  @override
+  String get locationBubbleOpenInMaps => '地図アプリで開く';
+
+  @override
+  String get locationBubbleLiveBadge => 'ライブ';
+
+  @override
+  String get locationBubbleEndedBadge => '終了';
+
+  @override
+  String locationBubbleLiveUntil(String time) {
+    return '$timeまで共有中';
+  }
+
+  @override
+  String locationBubbleLiveEnded(String time) {
+    return 'リアルタイムの位置情報は$timeに終了しました';
+  }
+
+  @override
+  String get locationBubbleNoRecentUpdate => '最近の更新がありません';
+
+  @override
+  String locationBubbleAccuracy(int meters) {
+    return '±$meters m';
+  }
+
+  @override
+  String get locationBubbleStopSharing => '共有を停止';
+
+  @override
+  String get locationBubbleUnavailable => '位置情報を表示できません';
+
+  @override
+  String get locationBubbleNoMapsApp => '開ける地図アプリがありません';
+
+  @override
+  String get locationBubbleCoordinatesCopied => '座標をコピーしました';
+
+  @override
+  String get locationCouldNotGetFix => '現在地を取得できませんでした';
+
+  @override
+  String get locationCouldNotStartLiveShare => 'リアルタイム共有を開始できませんでした';
+
+  @override
+  String get locationPermissionNeeded => '現在地を共有するには位置情報へのアクセスが必要です';
+
+  @override
+  String get locationPermissionBlockedTitle => '位置情報へのアクセスがオフです';
+
+  @override
+  String get locationPermissionBlockedBody =>
+      'MonkeyHubはここから再度リクエストできません。設定でMonkeyHubの位置情報アクセスをオンにしてください。';
+
+  @override
+  String get locationServicesOffTitle => '位置情報サービスがオフです';
+
+  @override
+  String get locationServicesOffBody =>
+      'この端末で位置情報がオフになっています。現在地を共有するには設定でオンにしてください。';
+
+  @override
+  String get locationOpenSettings => '設定を開く';
+
+  @override
+  String get childPolicyScreenLocationLabel => '位置情報';
+
+  @override
+  String get childPolicyScreenLocationOnDesc => '現在地を共有できます（最長8時間のリアルタイム共有を含む）';
+
+  @override
+  String get childPolicyScreenLocationOffDesc => '現在地を共有できません';
 }

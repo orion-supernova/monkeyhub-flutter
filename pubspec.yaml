@@ -201,6 +201,24 @@ dependencies:
   # trigger goes through a confirm sheet rather than straight into a form.
   # Needs no permission on either platform.
   sensors_plus: ^7.0.0
+
+  # Location fixes for location sharing (see LocationService). The ONLY new
+  # native capability this feature adds — there is deliberately no map SDK and
+  # no tile client anywhere in this app; see LocationMapPreview for why the
+  # preview is drawn rather than fetched.
+  #
+  # Chosen over the alternatives for the two things that are actually hard here
+  # rather than for the fix itself: a real `distanceFilter` (the setting that
+  # decides whether a stationary phone's GPS is idle — see
+  # kLiveDistanceFilterMeters), and first-class handling of the three permission
+  # dead ends, including `openAppSettings` / `openLocationSettings` deep links
+  # so a denied-forever user is never left at a button that can only fail.
+  #
+  # Requests WHEN IN USE only. This app does not declare background location:
+  # no UIBackgroundModes entry, no Android foreground service. See the header of
+  # live_location_publisher.dart for that decision and what reversing it costs.
+  geolocator: ^14.0.3
+
   flutter_localizations:
     sdk: flutter
 

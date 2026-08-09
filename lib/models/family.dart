@@ -49,6 +49,7 @@ class ChildPolicy {
     this.mediaEnabled = true,
     this.canRequestContacts = true,
     this.canCreateRooms = false,
+    this.locationSharingEnabled = false,
   });
 
   // No `publicRoomsEnabled`. The backend still stores the field on existing
@@ -60,6 +61,12 @@ class ChildPolicy {
   final bool canRequestContacts;
   final bool canCreateRooms;
 
+  /// Static and live location shares. The only flag here that starts OFF, and
+  /// separate from [mediaEnabled] on purpose — see `LOCATION_POLICY_FLAG` in
+  /// `backend/convex/childGuard.ts` for the argument. A guardian who allowed
+  /// photos did not thereby agree the child may tell a room where they are.
+  final bool locationSharingEnabled;
+
   static const locked = ChildPolicy();
 
   factory ChildPolicy.fromJson(Map<String, dynamic> j) => ChildPolicy(
@@ -67,6 +74,10 @@ class ChildPolicy {
         mediaEnabled: (j['mediaEnabled'] as bool?) ?? true,
         canRequestContacts: (j['canRequestContacts'] as bool?) ?? true,
         canCreateRooms: (j['canCreateRooms'] as bool?) ?? false,
+        // `?? false`, matching the enforcement site. A child account written
+        // before this flag existed has a stored policy without it, and the safe
+        // reading of a missing answer about location is no.
+        locationSharingEnabled: (j['locationSharingEnabled'] as bool?) ?? false,
       );
 
   ChildPolicy copyWith({
@@ -74,12 +85,15 @@ class ChildPolicy {
     bool? mediaEnabled,
     bool? canRequestContacts,
     bool? canCreateRooms,
+    bool? locationSharingEnabled,
   }) =>
       ChildPolicy(
         callsEnabled: callsEnabled ?? this.callsEnabled,
         mediaEnabled: mediaEnabled ?? this.mediaEnabled,
         canRequestContacts: canRequestContacts ?? this.canRequestContacts,
         canCreateRooms: canCreateRooms ?? this.canCreateRooms,
+        locationSharingEnabled:
+            locationSharingEnabled ?? this.locationSharingEnabled,
       );
 }
 
