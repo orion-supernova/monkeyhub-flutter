@@ -53,12 +53,15 @@ class CountBadge extends StatelessWidget {
     // accentInk had almost nothing to separate it from its background, so the
     // count all but vanished on the one tab most likely to be carrying one.
     // Filling with the accent puts a solid shape on a translucent one.
+    // On unselected tabs the badge needs more visibility than a 0.16 tint
+    // offers, especially on small tabbar items. Bumped to 0.28 to stay visible
+    // without overwhelming the tab's icon.
     final fg = mention
         ? (onAccent ? theme.accent : theme.accentInk)
         : (onAccent ? theme.accentInk : theme.accent);
     final bg = mention
         ? (onAccent ? theme.accentInk : theme.accent)
-        : (onAccent ? theme.accent : theme.accent.withValues(alpha: 0.16));
+        : (onAccent ? theme.accent : theme.accent.withValues(alpha: 0.28));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       constraints: const BoxConstraints(minWidth: 16),
