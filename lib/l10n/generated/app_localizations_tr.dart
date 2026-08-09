@@ -5857,6 +5857,34 @@ class AppLocalizationsTr extends AppLocalizations {
   String get locationOpenSettings => 'Ayarları aç';
 
   @override
+  String get locationBackgroundSheetTitle => 'Telefonun yeniden başlarsa';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Canlı paylaşımın MonkeyHub’dan çıktığında zaten devam ediyor. Arka plan erişimi gerisini kapsıyor: yeniden başlatma, uygulamayı zorla kapatma, şarjı bitip geri gelen bir telefon.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Kendiliğinden devam etsin';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Telefonun izin isteyecek';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Durmuş kalsın';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail =>
+      'İzin verilecek başka şey yok';
+
+  @override
+  String get locationServiceNotificationTitle => 'Canlı konumun paylaşılıyor';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Sohbeti açmak için dokun, hemen bitirmek için Durdur’a bas';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Konum';
 
   @override

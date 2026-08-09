@@ -18,7 +18,10 @@ import '../models/room_capabilities.dart';
 import '../models/room_mute.dart';
 import '../models/room_pin.dart';
 import '../push/push_manager.dart';
+import '../services/live_location_permission.dart';
+import '../services/live_location_platform.dart';
 import '../services/live_location_publisher.dart';
+import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
 import 'cache_store.dart';
 import 'pending_reconcile.dart';
@@ -461,6 +464,13 @@ class ChatRepository extends ChangeNotifier {
     // not reconnects at all, re-posting messages against a socket that had not
     // come back. [ConnectionHealth] owns that edge now, and it hands it to
     // [flushPending], of which the old handler was a strict subset.
+
+    // Last, and unawaited. A live share left over from a previous process is
+    // real but it is not urgent — nothing on screen is waiting for it — and
+    // putting a disk read and a permission check in front of the subscriptions
+    // above would delay the first frame of every launch for a case that is rare.
+    // Its own re-entrancy guard means the `resubscribe()` path costs one boolean.
+    unawaited(_resumeLiveShareIfAny());
   }
 
   /// The newest `lastMessageTime` we have already reported delivered, per room.
@@ -619,7 +629,15 @@ class ChatRepository extends ChangeNotifier {
     // its own deadline, exactly as it would if the phone were switched off.
     // Ending it here would make signing out a way to stop being findable that
     // nobody asked for, and would need a mutation as the credentials go away.
-    liveLocation.stop();
+    //
+    // It DOES forget the resume handle, which is a different thing and the right
+    // one. The handle is this device's standing instruction to keep publishing
+    // after a reboot, and a signed-out device has no business carrying out a
+    // signed-out account's instructions — least of all if the next person to
+    // sign in on this handset is a different person. The server would refuse
+    // those writes anyway; not making them is better than being refused.
+    liveLocation.stop(forget: true);
+    _resumeAttempted = false;
     // Abort and release anything still going up. Signing out has to take the
     // bytes with it: they are one user's unsent photos, and the next account to
     // sign in on this device has no business holding them in memory — quite
@@ -1482,6 +1500,121 @@ class ChatRepository extends ChangeNotifier {
   String? get activeLiveShareMessageId => liveLocation.activeMessageId;
   String? get activeLiveShareRoomId => liveLocation.activeRoomId;
 
+  /// Listens for the STOP button on the platform's own notification.
+  ///
+  /// Installed once per repository rather than per share, and never cancelled:
+  /// this object lives as long as the process does. The field is the
+  /// double-subscribe guard, not a handle for teardown — a second listener would
+  /// mean every STOP press firing two `messages:stopLiveLocation` mutations.
+  ///
+  /// Per-repository and not per-share on purpose. A subscription that came and
+  /// went with each share would have a window — between the user pressing STOP
+  /// and Dart noticing the share ended — in which the press went nowhere.
+  StreamSubscription<void>? _platformStopSub;
+
+  /// Whether the app has already picked up a share left behind by a previous
+  /// process, this session.
+  ///
+  /// [attach] is re-entrant — `resubscribe()` calls it on every reconnect — and
+  /// a resume that ran per reconnect would tear down and rebuild the position
+  /// stream every time the socket blinked.
+  bool _resumeAttempted = false;
+
+  /// Wires the notification's STOP action to the same path the in-app button
+  /// takes. Idempotent; called from [attach].
+  ///
+  /// Routed through [stopLiveLocation] rather than straight to the publisher
+  /// because stopping from a notification has to mean the same thing as stopping
+  /// from the bubble: the server is told, the row goes grey for the recipients,
+  /// and the handle is forgotten. A version that only stopped the publisher
+  /// would leave the share live for its full eight hours, silently stale, for a
+  /// user who believes they turned it off — which is the worst outcome this
+  /// feature has.
+  void _bindPlatformStop() {
+    LiveLocationPlatform.instance.ensureStarted();
+    _platformStopSub ??= LiveLocationPlatform.instance.onStopRequested.listen((_) {
+      final id = liveLocation.activeMessageId;
+      if (id == null) return;
+      unawaited(stopLiveLocation(messageId: id));
+    });
+  }
+
+  /// Picks up a live share this device was running before the process died.
+  ///
+  /// Called from [attach], which is the first moment both halves exist: a
+  /// restored session (so mutations can be authenticated) and an api. On iOS
+  /// that point is reached even on a background relaunch, because the engine is
+  /// started in `didFinishLaunchingWithOptions` before anything is on screen; on
+  /// Android the boot receiver's service starts the same engine the same way.
+  /// Neither path needs a widget tree, which is what makes this headless.
+  ///
+  /// Three things have to be true before a single GPS query is spent:
+  ///
+  ///  * a handle exists on disk — the share was started on THIS device;
+  ///  * its deadline has not passed — [LiveShareResumeStore.takeResumable]
+  ///    erases it if it has, so an expired share never resumes and never gets
+  ///    re-examined;
+  ///  * the platform still has location authorization at all.
+  ///
+  /// The server remains the authority over all three. The first published fix
+  /// carries the same `messages:updateLiveLocation` checks as any other, so a
+  /// share stopped from another handset, deleted, or belonging to a different
+  /// account than the one that just signed in comes back `ok: false` and the
+  /// publisher shuts itself down and forgets the handle. That is why this can be
+  /// optimistic: the cost of a wrong guess is one refused mutation.
+  Future<void> _resumeLiveShareIfAny() async {
+    if (_resumeAttempted) return;
+    _resumeAttempted = true;
+    // A share is already running in this process — a reconnect, not a cold
+    // start. Nothing to pick up.
+    if (liveLocation.isRunning) return;
+
+    final userId = _userId;
+    if (userId == null) return;
+
+    // Everything below is best-effort and none of it may throw out of here.
+    // This runs unawaited from inside `attach`, so an escaping error surfaces as
+    // an unhandled async exception during SIGN-IN — and there is nothing in a
+    // failed resume worth that. Every one of these calls is a platform channel
+    // that is legitimately absent on some hosts (a test binding, a background
+    // isolate mid-registration), and the correct behaviour there is the one the
+    // app already ships and describes honestly: the share stops when the
+    // process does.
+    try {
+      final handle =
+          await LiveShareResumeStore.instance.takeResumable(DateTime.now());
+      if (handle == null) return;
+      if (_userId != userId) return; // signed out again while we read the disk
+
+      final availability = await LocationService.instance.check();
+      if (availability != LocationAvailability.ready) {
+        // Location was revoked or switched off while we were away. Deliberately
+        // NOT cleared: the share is still live server-side and still within its
+        // window, and a user who re-grants in the next five minutes should have
+        // it pick up rather than have been quietly written off.
+        return;
+      }
+
+      final tier = await LiveLocationPlatform.instance.authorizationTier();
+      _bindPlatformStop();
+      liveLocation.resume(
+        handle: handle,
+        monitorSignificantChanges: tierSurvivesTermination(tier),
+        publish: (f) => api.updateLiveLocation(
+          messageId: handle.messageId,
+          userId: userId,
+          latitude: f.latitude,
+          longitude: f.longitude,
+          accuracyM: f.accuracyM,
+        ),
+        onEnded: notifyListeners,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('live share resume skipped: $e');
+    }
+  }
+
   /// Sends one position, frozen at send time.
   Future<void> sendLocation({
     required String roomId,
@@ -1512,10 +1645,23 @@ class ChatRepository extends ChangeNotifier {
   ///
   /// Returns whether the share started. False covers both a refused send (the
   /// child gate, a block, no connection) and an ack with no id.
+  ///
+  /// [notice] is the copy for the persistent notification the platform posts
+  /// while the share runs — passed down from the room screen because that is
+  /// where a `BuildContext`, and therefore a locale, exists. It is persisted
+  /// with the share; see [LiveShareNotice].
+  ///
+  /// [monitorSignificantChanges] asks the platform for the relaunch-after-death
+  /// behaviour, and is the caller's job to compute because it depends on a
+  /// permission tier the caller has just been through a whole sheet about — see
+  /// [decideLiveShareStart]. Passing false is not a degraded mode with a
+  /// warning; it is the ordinary When-In-Use experience, which is complete.
   Future<bool> startLiveLocation({
     required String roomId,
     required LocationFix fix,
     required LiveShareDuration duration,
+    required LiveShareNotice notice,
+    bool monitorSignificantChanges = false,
   }) async {
     final userId = _userId;
     if (userId == null) return false;
@@ -1564,11 +1710,14 @@ class ChatRepository extends ChangeNotifier {
       return false;
     }
 
+    _bindPlatformStop();
     liveLocation.start(
       messageId: serverId,
       roomId: roomId,
       expiresAt: optimistic.liveExpiresAt ?? DateTime.now(),
       firstFix: fix,
+      notice: notice,
+      monitorSignificantChanges: monitorSignificantChanges,
       publish: (f) => api.updateLiveLocation(
         messageId: serverId,
         userId: userId,
@@ -1598,7 +1747,16 @@ class ChatRepository extends ChangeNotifier {
   Future<void> stopLiveLocation({required String messageId}) async {
     final userId = _userId;
     if (liveLocation.isRunningFor(messageId)) {
-      await liveLocation.stop();
+      // `forget: true` — this is the share ending, not merely this process
+      // letting go of it. Leaving the handle behind would have the next launch
+      // cheerfully restart a share the user has just switched off, and it would
+      // be right to, because nothing else on disk says otherwise.
+      await liveLocation.stop(forget: true);
+    } else {
+      // Stopping a share this device is not feeding — from the notification of
+      // a share whose publisher already gave up, or from another room's bubble.
+      // The handle still has to go, for the same reason.
+      unawaited(LiveShareResumeStore.instance.clear());
     }
     _markLiveShareEndedLocally(messageId);
     if (userId == null) return;

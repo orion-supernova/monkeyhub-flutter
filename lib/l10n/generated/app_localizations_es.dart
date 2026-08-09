@@ -5947,6 +5947,34 @@ class AppLocalizationsEs extends AppLocalizations {
   String get locationOpenSettings => 'Abrir ajustes';
 
   @override
+  String get locationBackgroundSheetTitle => 'Si tu teléfono se reinicia';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Tu ubicación en directo ya sigue funcionando cuando sales de MonkeyHub. El acceso en segundo plano cubre lo demás: un reinicio, un cierre forzado, un teléfono que se queda sin batería y vuelve.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Que se reanude sola';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Tu teléfono te pedirá permiso';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Que se quede parada';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Nada más que permitir';
+
+  @override
+  String get locationServiceNotificationTitle =>
+      'Compartiendo tu ubicación en directo';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Toca para abrir el chat o pulsa Detener para terminar ya';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Ubicación';
 
   @override

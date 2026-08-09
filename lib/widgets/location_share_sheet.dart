@@ -133,6 +133,109 @@ class _LocationSheet extends StatelessWidget {
   }
 }
 
+/// Explains what "Always" buys before the OS asks for it, and offers the choice.
+///
+/// Shown once per install, at the moment a live share starts, and never again —
+/// see `LiveShareResumeStore.hasOfferedAlwaysUpgrade`. The three rules this
+/// encodes are the whole difference between a permission flow people accept and
+/// one they resent:
+///
+///  * **After the choice, not before it.** A user who has just decided to be
+///    findable for the next eight hours has every piece of context needed to
+///    answer this. The same person at first launch has none.
+///  * **Both answers work.** Declining is not a degraded state with a warning
+///    triangle. The share still keeps publishing when the app is backgrounded —
+///    that needs no Always at all — and the only thing given up is being picked
+///    back up after a force-quit or a reboot. So the second row says what it
+///    does rather than what it lacks.
+///  * **Asked once.** The flag is set when this sheet is SHOWN, not when the
+///    permission is granted, so a considered "no" is never re-litigated. The
+///    Settings app remains for anybody who changes their mind.
+///
+/// Returns true if the user asked for background sharing. On iOS a true answer
+/// leads to a system prompt that may show nothing at all right now and instead
+/// arrive later as "Keep Only While Using / Change to Always" — see
+/// `LiveLocationPlatform.requestAlwaysAuthorization`. That is by design and this
+/// sheet promises nothing more specific than "we'll ask".
+Future<bool> showLiveShareBackgroundSheet(BuildContext context) async {
+  final res = await showAdaptiveSheet<bool>(
+    context,
+    builder: (_) => const _BackgroundUpgradeSheet(),
+  );
+  // A dismissed sheet is a no. Not asking is the same answer as declining, and
+  // treating a swipe-away as consent to a background permission would be the
+  // single worst thing this file could do.
+  return res ?? false;
+}
+
+class _BackgroundUpgradeSheet extends StatelessWidget {
+  const _BackgroundUpgradeSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: theme.sheetDecoration(),
+        padding: EdgeInsets.fromLTRB(14, 8, 14, 12 + bottomInset),
+        child: DefaultTextStyle(
+          style: theme.body.copyWith(color: theme.ink),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (context.isCompact) ...[
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 3.5,
+                    decoration: BoxDecoration(
+                      color: theme.inkMuted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+                child: Text(
+                  l10n.locationBackgroundSheetTitle,
+                  style: theme.label.copyWith(color: theme.ink),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
+                child: Text(
+                  l10n.locationBackgroundSheetBody,
+                  style: theme.bodySoft,
+                ),
+              ),
+              _Row(
+                icon: CupertinoIcons.dot_radiowaves_left_right,
+                title: l10n.locationBackgroundSheetKeepRunning,
+                subtitle: l10n.locationBackgroundSheetKeepRunningDetail,
+                onTap: () => Navigator.of(context).pop(true),
+              ),
+              const SizedBox(height: 6),
+              _Row(
+                icon: CupertinoIcons.app,
+                title: l10n.locationBackgroundSheetAppOnly,
+                subtitle: l10n.locationBackgroundSheetAppOnlyDetail,
+                onTap: () => Navigator.of(context).pop(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Row extends StatefulWidget {
   const _Row({
     required this.icon,

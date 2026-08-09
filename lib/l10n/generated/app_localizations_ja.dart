@@ -5659,6 +5659,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get locationOpenSettings => '設定を開く';
 
   @override
+  String get locationBackgroundSheetTitle => '端末が再起動したら';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'MonkeyHub を離れてもライブ共有は続きます。バックグラウンドの許可は残りを引き受けます — 再起動、強制終了、バッテリー切れからの復帰。';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => '自動で再開する';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail => '端末が許可を求めます';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'そのまま止める';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => '追加の許可は不要';
+
+  @override
+  String get locationServiceNotificationTitle => '現在地をライブ共有中';
+
+  @override
+  String get locationServiceNotificationBody => 'タップでチャットを開く、停止で今すぐ終了';
+
+  @override
   String get childPolicyScreenLocationLabel => '位置情報';
 
   @override

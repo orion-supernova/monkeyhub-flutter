@@ -440,15 +440,27 @@
 	<string>This app needs to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library.</string>
-	<!-- Location sharing. WHEN IN USE only, deliberately: there is no
-	     NSLocationAlwaysAndWhenInUseUsageDescription here and no "location"
-	     entry in UIBackgroundModes below, so a live share updates while the app
-	     is on screen and stops when it is not. The share still ENDS on time
-	     regardless, because its deadline is enforced by the server — see
-	     live_location_publisher.dart for that decision and what reversing it
-	     would cost at App Review. -->
+	<!-- Location sharing. Two tiers, and the difference between them is the
+	     whole permission story:
+
+	     WHEN IN USE is what the app asks for first, and it is enough for
+	     everything most people will notice — including a live share that keeps
+	     publishing while the app is in the background, which the "location"
+	     entry in UIBackgroundModes below enables and which needs no ALWAYS.
+
+	     ALWAYS is requested only at the moment a user starts a live share, only
+	     once ever, and only after a sheet explaining what it adds: significant-
+	     change monitoring, which is the only iOS API that can relaunch a
+	     terminated app so a share picks itself back up. Declining it costs
+	     nothing but that.
+
+	     Both strings name the feature and the limit rather than the API,
+	     because App Review reads them as the user will. See
+	     LIVE_LOCATION_BACKGROUND.md for the review justification in full. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>MonkeyHub uses your location only when you choose to share it in a chat. Live shares stop by themselves at the time you pick.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Allow always so a live location share you started can pick itself back up if your phone restarts or MonkeyHub is closed. MonkeyHub never uses your location outside a share you started, and every share stops by itself at the time you pick.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -481,6 +493,12 @@
 		<string>remote-notification</string>
 		<string>audio</string>
 		<string>voip</string>
+		<!-- Live location sharing. Without this key `geolocator` refuses to set
+		     allowsBackgroundLocationUpdates at all — it checks this array itself
+		     — so its absence does not fail loudly, it just makes every live
+		     share stop the moment the app leaves the screen. Works on WHEN IN
+		     USE; see the usage descriptions above. -->
+		<string>location</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

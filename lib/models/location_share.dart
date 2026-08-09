@@ -196,8 +196,10 @@ double haversineMeters(
 
 // ── Battery and freshness tuning ────────────────────────────────────────────
 //
-// These four numbers are the entire battery story of live sharing, so they are
-// stated together with what each one buys.
+// These numbers are the entire battery story of live sharing, so they are
+// stated together with what each one buys. The four below are the FOREGROUND
+// baseline; [LiveLocationMode] holds the background settings and says what it
+// trades away.
 
 /// Only ask the OS to wake us when the sharer has moved this far.
 ///
@@ -235,4 +237,157 @@ const Duration kLiveHeartbeat = Duration(seconds: 90);
 /// cellular, which is a normal event and not worth telling the viewer about;
 /// four takes six minutes to notice a phone that died, which is too long to be
 /// useful in the case where somebody is watching for a reason.
+///
+/// Deliberately the SAME in every [LiveLocationMode]. The viewer has no idea
+/// whether the sharer's app is on screen, and a staleness threshold that
+/// quietly relaxed when the sharer pocketed their phone would mean the bubble's
+/// one honest signal changed meaning without anybody being told. That is why
+/// [kLiveHeartbeat] is also constant across modes — see [LiveLocationMode].
 const Duration kLiveStaleAfter = Duration(minutes: 4, seconds: 30);
+
+/// How precisely the publisher is asking the OS to measure.
+///
+/// Two values rather than the plugin's six, and named for what they cost rather
+/// than for a metre count, because the number is a hint on both platforms and
+/// the honest distinction is binary: [fine] is the one that needs the GPS
+/// receiver powered, [coarse] is the one the OS can answer from cell towers and
+/// Wi-Fi it was already listening to. Everything between those two is the same
+/// decision with a different rounding.
+///
+/// Lives here rather than in `location_service.dart` so the publisher — and its
+/// tests — can reason about power without `geolocator` in scope, which is the
+/// same rule [LocationFix] follows.
+enum LocationPrecision {
+  /// GPS-grade, ~10 m. What a dot following somebody down a street needs.
+  fine,
+
+  /// Network-grade, ~100 m. Enough to say which neighbourhood, at roughly a
+  /// tenth of the power.
+  coarse,
+}
+
+/// How hard the publisher works, and what it gives up to work less.
+///
+/// Three settings rather than a foreground/background boolean, because
+/// "backgrounded" is not one state. Thirty seconds in a pocket while its owner
+/// checks the time and two hours in a pocket on a train are the same
+/// `AppLifecycleState` and completely different power budgets, and a single
+/// background setting has to be tuned for the worse of the two — which makes it
+/// wrong for the common one.
+///
+/// What each mode changes and what it does NOT:
+///
+/// | | filter | interval | precision | heartbeat |
+/// |---|---|---|---|---|
+/// | [foreground] | 25 m | 10 s | fine | 90 s |
+/// | [background] | 100 m | 30 s | fine | 90 s |
+/// | [deepBackground] | 250 m | 60 s | coarse | 90 s |
+///
+/// The heartbeat column is the point of the table. Only the *cost* knobs move;
+/// the freshness contract does not, so a viewer's STALE badge means exactly the
+/// same thing in all three. See [kLiveStaleAfter].
+///
+/// The filter is the knob that matters. It is what the OS itself enforces, so
+/// at 100 m a walking phone wakes this app roughly a quarter as often as at
+/// 25 m — the interval ceiling only ever throws away work already done. The
+/// cost is resolution: a dot that used to follow a street now cuts its corners.
+/// That is the right trade for a screen nobody is looking at, and it is undone
+/// the instant the app comes back.
+enum LiveLocationMode {
+  /// The app is on screen. The existing baseline, unchanged.
+  foreground(
+    distanceFilterMeters: kLiveDistanceFilterMeters,
+    minPublishInterval: kLiveMinPublishInterval,
+    precision: LocationPrecision.fine,
+  ),
+
+  /// The app is backgrounded but the process is alive and publishing —
+  /// iOS's `location` background mode, or Android's foreground service.
+  ///
+  /// Still fine precision: the first minutes after a backgrounding are exactly
+  /// when somebody is most likely to be walking somewhere and being followed,
+  /// and dropping to coarse immediately would make the handoff from foreground
+  /// visible as a 100 m jump.
+  background(
+    distanceFilterMeters: 100,
+    minPublishInterval: Duration(seconds: 30),
+    precision: LocationPrecision.fine,
+  ),
+
+  /// Backgrounded for [kLiveDeepBackgroundAfter] without coming back.
+  ///
+  /// This is the eight-hour share that has become the phone's background load
+  /// for the afternoon, and the only mode that gives up accuracy. A coarse fix
+  /// arrives with a coarse `accuracyM`, so the bubble draws a 100 m ring rather
+  /// than pretending to a precision it no longer has — which is why this is an
+  /// acceptable degradation and simply publishing less often is not: silence
+  /// reads as a dead phone, a wide ring reads as a wide ring.
+  deepBackground(
+    distanceFilterMeters: 250,
+    minPublishInterval: Duration(seconds: 60),
+    precision: LocationPrecision.coarse,
+  );
+
+  const LiveLocationMode({
+    required this.distanceFilterMeters,
+    required this.minPublishInterval,
+    required this.precision,
+  });
+
+  /// Movement the OS must observe before it wakes this app at all.
+  final double distanceFilterMeters;
+
+  /// Floor on the gap between two published positions, whatever the OS sends.
+  final Duration minPublishInterval;
+
+  /// How much radio the fixes are allowed to cost.
+  final LocationPrecision precision;
+
+  bool get isBackground => this != LiveLocationMode.foreground;
+}
+
+/// The words on the notification that says a share is running.
+///
+/// Carried as data rather than looked up where it is used, because the two
+/// places that need it are both places with no `BuildContext`: Android's
+/// foreground service, and the boot receiver that restarts it before there is a
+/// Dart isolate to ask. Both read it back out of `LiveShareResumeStore`, which
+/// is why it is persisted alongside the handle rather than rebuilt.
+///
+/// A pleasant side effect of persisting it: the notification stays in the
+/// language the share was started in, rather than flipping to whatever the
+/// device locale says after a reboot.
+class LiveShareNotice {
+  const LiveShareNotice({
+    required this.title,
+    required this.body,
+    required this.stopLabel,
+  });
+
+  /// One line, e.g. "Sharing your live location".
+  final String title;
+
+  /// The second line — where, and until when.
+  final String body;
+
+  /// The action button. This is the requirement the whole notification exists
+  /// for: a background tracker that can only be stopped by finding the app,
+  /// opening it, finding the room and finding the bubble is the thing people are
+  /// right to distrust.
+  final String stopLabel;
+}
+
+/// How long the app must stay backgrounded before [LiveLocationMode.background]
+/// gives way to [LiveLocationMode.deepBackground].
+///
+/// Twenty minutes, chosen from the shape of the two shares this feature has.
+/// A fifteen-minute "I'm nearly there" share never reaches it, so the case
+/// where fine resolution is the entire point keeps fine resolution for its
+/// whole life. An eight-hour share crosses it once, early, and then runs cheap
+/// for the remaining seven and a half hours. An hour-long share spends the
+/// first third precise and the rest coarse, which matches how those are
+/// actually watched — closely at the start, glanced at later.
+///
+/// Reset by any return to the foreground, not accumulated: coming back to the
+/// app is the user saying the share still matters.
+const Duration kLiveDeepBackgroundAfter = Duration(minutes: 20);

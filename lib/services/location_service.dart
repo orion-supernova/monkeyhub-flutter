@@ -1,5 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+// AppleSettings / AndroidSettings / ForegroundNotificationConfig are re-exported
+// by this one entry point, so the platform-specific packages are not (and must
+// not become) direct dependencies.
 import 'package:geolocator/geolocator.dart';
 
 import '../models/location_share.dart';
@@ -114,13 +119,20 @@ class LocationService {
   /// prevents is the worst kind: a send that hangs with no error and no result.
   /// A [TimeoutException] surfaces as "couldn't get your location", which is
   /// both true and actionable.
+  ///
+  /// [precision] exists for the live-share heartbeat, which takes a fresh fix
+  /// every ninety seconds for as long as the share runs and is therefore the one
+  /// caller where the difference between waking the GPS and not is worth several
+  /// percent of a battery over an afternoon. See [LiveLocationMode]. Everything
+  /// else wants the default.
   Future<LocationFix?> currentFix({
     Duration timeout = const Duration(seconds: 15),
+    LocationPrecision precision = LocationPrecision.fine,
   }) async {
     try {
       final p = await _geo.getCurrentPosition(
         locationSettings: LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: _accuracyFor(precision),
           timeLimit: timeout,
         ),
       );
@@ -154,24 +166,124 @@ class LocationService {
   /// The distance filter is the battery decision and it is made here rather
   /// than by throttling downstream, because a filter the OS understands is the
   /// difference between a sleeping GPS and a spinning one. See
-  /// [kLiveDistanceFilterMeters]; the interval ceiling that rides on top of it
-  /// is [LiveLocationPublisher]'s.
+  /// [LiveLocationMode] for the three settings and what each costs; the interval
+  /// ceiling that rides on top of them is [LiveLocationPublisher]'s.
   ///
-  /// Foreground only. Nothing here asks for `Always`, and the app declares no
-  /// background location capability on either platform — see the header of
-  /// live_location_publisher.dart.
+  /// ## What makes this keep running in the background
+  ///
+  /// Everything, on both platforms, comes from the two settings objects below
+  /// plus two declarations. There is no native code in this path.
+  ///
+  /// **iOS.** `allowBackgroundLocationUpdates` sets
+  /// `CLLocationManager.allowsBackgroundLocationUpdates`, which is what stops
+  /// the OS suspending us when the app leaves the screen. It is inert without
+  /// `UIBackgroundModes: location` in Info.plist — `geolocator` checks the
+  /// bundle itself and quietly forces the flag false if the key is missing, so a
+  /// missing plist entry does not fail loudly, it just fails. It works on
+  /// When-In-Use: Always is only needed for the *relaunch* path, which lives in
+  /// `LiveLocationPlatform`.
+  ///
+  /// `showBackgroundLocationIndicator` puts the blue pill in the status bar for
+  /// the whole time we are publishing. That is switched on deliberately and is
+  /// not a cost to be minimised: a share the user cannot see running is the
+  /// thing that makes background location frightening, and the pill is also the
+  /// fastest route back into the app to stop it.
+  ///
+  /// `pauseLocationUpdatesAutomatically: false` is load-bearing and the least
+  /// obvious of the three. Left at iOS's default the OS decides, from
+  /// accelerometer data, that the device has stopped moving and *stops calling
+  /// us back entirely* — and it never resumes on its own; the app is expected to
+  /// notice and restart. For most apps that is a battery win. Here it is a share
+  /// that silently dies the moment somebody sits down, which is exactly when
+  /// somebody waiting for them starts watching.
+  ///
+  /// `ActivityType.other` rather than `.fitness` or `.automotiveNavigation` for
+  /// the same reason: the specific types make iOS *more* eager to pause and to
+  /// second-guess the fix against an expected movement profile, and a live share
+  /// has no profile — it is a walk, then a bus, then a walk.
+  ///
+  /// **Android.** Background updates need the app to hold a foreground service
+  /// whose type is `location` — without one, the process is an ordinary
+  /// backgrounded app and Android throttles location to a few updates an hour
+  /// before killing it outright.
+  ///
+  /// `geolocator` can provide that service itself, via
+  /// `AndroidSettings.foregroundNotificationConfig`, and this deliberately does
+  /// NOT use it. `LiveLocationService` in `android/app/src/main/kotlin/…` runs
+  /// its own instead, for one reason: `ForegroundNotificationConfig` has a
+  /// title, a body and an icon, and no way to add an action button. A background
+  /// tracker that can only be stopped by finding the app, opening it, finding
+  /// the room and finding the bubble is the thing people are right to distrust.
+  ///
+  /// Two services are not needed and would be wrong. While-in-use location
+  /// access is granted per APP, not per service, so one location-typed
+  /// foreground service anywhere in the process keeps this stream delivering —
+  /// and the notification the user sees is then the one with STOP on it, rather
+  /// than two notifications for one share.
   Stream<LocationFix> fixStream({
-    double distanceFilterMeters = kLiveDistanceFilterMeters,
+    LiveLocationMode mode = LiveLocationMode.foreground,
   }) {
-    return _geo
-        .getPositionStream(
-          locationSettings: LocationSettings(
-            accuracy: LocationAccuracy.high,
-            distanceFilter: distanceFilterMeters.round(),
-          ),
-        )
-        .map(_fix);
+    return _geo.getPositionStream(locationSettings: _settingsFor(mode)).map(_fix);
   }
+
+  /// Builds the per-platform settings for [fixStream].
+  ///
+  /// `defaultTargetPlatform` rather than `dart:io`'s `Platform`, because this
+  /// file is imported on web (the location sheet is hidden there, but the import
+  /// graph does not know that) and `dart:io` is not available.
+  LocationSettings _settingsFor(LiveLocationMode mode) {
+    final accuracy = _accuracyFor(mode.precision);
+    final distanceFilter = mode.distanceFilterMeters.round();
+    if (kIsWeb) {
+      return LocationSettings(accuracy: accuracy, distanceFilter: distanceFilter);
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return AppleSettings(
+          accuracy: accuracy,
+          distanceFilter: distanceFilter,
+          allowBackgroundLocationUpdates: true,
+          showBackgroundLocationIndicator: true,
+          pauseLocationUpdatesAutomatically: false,
+          activityType: ActivityType.other,
+        );
+      case TargetPlatform.android:
+        return AndroidSettings(
+          accuracy: accuracy,
+          distanceFilter: distanceFilter,
+          // A floor under the distance filter, not a substitute for it. On a
+          // motorway a 100 m filter fires every three seconds; without this the
+          // publisher's own ceiling would be discarding most of that work after
+          // the radio had already been woken to do it.
+          intervalDuration: mode.minPublishInterval,
+          // Null on purpose — see above. The foreground service is ours, and it
+          // is the one with a STOP button.
+          foregroundNotificationConfig: null,
+        );
+      default:
+        return LocationSettings(
+          accuracy: accuracy,
+          distanceFilter: distanceFilter,
+        );
+    }
+  }
+
+  /// [LocationPrecision] in the plugin's vocabulary.
+  ///
+  /// `high` and not `best` for [LocationPrecision.fine]: `best` asks iOS to keep
+  /// refining a fix indefinitely, which over an eight-hour share is a
+  /// meaningful amount of radio spent improving 10 m to 5 m on a card that draws
+  /// neither. `medium` for [LocationPrecision.coarse] maps to
+  /// `kCLLocationAccuracyHundredMeters` on iOS and
+  /// `PRIORITY_BALANCED_POWER_ACCURACY` on Android — both of which let the
+  /// platform answer from cell and Wi-Fi and leave the GPS asleep, which is the
+  /// entire saving.
+  static LocationAccuracy _accuracyFor(LocationPrecision precision) =>
+      switch (precision) {
+        LocationPrecision.fine => LocationAccuracy.high,
+        LocationPrecision.coarse => LocationAccuracy.medium,
+      };
 
   LocationFix _fix(Position p) => LocationFix(
         latitude: p.latitude,

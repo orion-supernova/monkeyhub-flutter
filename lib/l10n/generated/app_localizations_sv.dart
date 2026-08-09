@@ -5905,6 +5905,33 @@ class AppLocalizationsSv extends AppLocalizations {
   String get locationOpenSettings => 'Öppna inställningar';
 
   @override
+  String get locationBackgroundSheetTitle => 'Om telefonen startas om';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Din direktdelning fortsätter redan när du lämnar MonkeyHub. Bakgrundsåtkomst täcker resten: en omstart, en tvångsavslutning, en telefon som får slut på batteri och kommer tillbaka.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Återuppta av sig själv';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Telefonen ber dig om tillåtelse';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Låt den vara stoppad';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Inget mer att tillåta';
+
+  @override
+  String get locationServiceNotificationTitle => 'Delar din position live';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Tryck för att öppna chatten, eller Stoppa för att avsluta nu';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Plats';
 
   @override

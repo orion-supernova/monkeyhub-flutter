@@ -5960,6 +5960,34 @@ class AppLocalizationsPt extends AppLocalizations {
   String get locationOpenSettings => 'Abrir definições';
 
   @override
+  String get locationBackgroundSheetTitle => 'Se o teu telemóvel reiniciar';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'A tua partilha em direto já continua quando sais do MonkeyHub. O acesso em segundo plano trata do resto: um reinício, um fecho forçado, um telemóvel que fica sem bateria e volta.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Retomar sozinha';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'O teu telemóvel vai pedir permissão';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Deixar parada';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Nada mais para permitir';
+
+  @override
+  String get locationServiceNotificationTitle =>
+      'A partilhar a tua localização em direto';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Toca para abrir a conversa ou em Parar para terminar já';
+
+  @override
   String get childPolicyScreenLocationLabel => 'Localização';
 
   @override
@@ -11919,6 +11947,34 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get locationOpenSettings => 'Abrir ajustes';
+
+  @override
+  String get locationBackgroundSheetTitle => 'Se o seu celular reiniciar';
+
+  @override
+  String get locationBackgroundSheetBody =>
+      'Seu compartilhamento ao vivo já continua quando você sai do MonkeyHub. O acesso em segundo plano cobre o resto: uma reinicialização, um fechamento forçado, um celular que fica sem bateria e volta.';
+
+  @override
+  String get locationBackgroundSheetKeepRunning => 'Retomar sozinho';
+
+  @override
+  String get locationBackgroundSheetKeepRunningDetail =>
+      'Seu celular vai pedir permissão';
+
+  @override
+  String get locationBackgroundSheetAppOnly => 'Deixar parado';
+
+  @override
+  String get locationBackgroundSheetAppOnlyDetail => 'Nada mais para permitir';
+
+  @override
+  String get locationServiceNotificationTitle =>
+      'Compartilhando sua localização ao vivo';
+
+  @override
+  String get locationServiceNotificationBody =>
+      'Toque para abrir a conversa ou em Parar para encerrar agora';
 
   @override
   String get childPolicyScreenLocationLabel => 'Localização';
