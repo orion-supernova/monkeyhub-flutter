@@ -41,19 +41,25 @@ void main() {
   }) =>
       ComposerCaptureMachine(modes: modes);
 
-  group('travelTowardSend', () {
-    test('is the raw delta in a left-to-right layout', () {
-      expect(travelTowardSend(30, TextDirection.ltr), 30);
-      expect(travelTowardSend(-30, TextDirection.ltr), -30);
+  group('travelAwayFromSend', () {
+    // The sign here is the bug this control shipped with, so it is worth
+    // stating what the numbers mean rather than only asserting them. The
+    // button sits beside Send at the trailing edge; the room to drag is in the
+    // other direction. Leftward in LTR must therefore be POSITIVE travel, or
+    // `modeForTravel`'s clamp pins the mode on camera forever and the whole
+    // control is dead to the only drag a thumb can actually perform.
+    test('counts leftward travel as positive in a left-to-right layout', () {
+      expect(travelAwayFromSend(-30, TextDirection.ltr), 30);
+      expect(travelAwayFromSend(30, TextDirection.ltr), -30);
     });
 
     // The whole RTL story is this one sign flip, which is why every horizontal
     // decision in the machine goes through this function rather than reading
-    // `dx`. If this is wrong, dragging toward Send in Arabic switches modes
-    // backwards and the cancel gesture becomes the lock gesture.
+    // `dx`. Arabic mirrors the composer, so Send is the leading item and the
+    // room to drag is to the right.
     test('is mirrored in a right-to-left layout', () {
-      expect(travelTowardSend(30, TextDirection.rtl), -30);
-      expect(travelTowardSend(-30, TextDirection.rtl), 30);
+      expect(travelAwayFromSend(30, TextDirection.rtl), 30);
+      expect(travelAwayFromSend(-30, TextDirection.rtl), -30);
     });
   });
 
@@ -117,12 +123,17 @@ void main() {
   });
 
   group('mode drag', () {
+    // Up is a NEGATIVE dy — Flutter's y grows downward — so every drag that
+    // advances a mode here is written negative. Getting this backwards is the
+    // bug this control shipped with, in its horizontal incarnation: the button
+    // followed the finger while `modeForTravel`'s clamp pinned the mode on
+    // camera, so the whole feature looked alive and did nothing.
     test('buzzes once per boundary crossed, not once per frame', () {
       final m = build();
       m.beginModeDrag();
-      // Ten frames of drag that together cross exactly one boundary.
+      // Ten frames of upward drag that together cross exactly one boundary.
       for (var i = 0; i < 10; i++) {
-        m.updateModeDrag(kModeSwitchStep / 8, TextDirection.ltr);
+        m.updateModeDrag(-kModeSwitchStep / 8);
       }
       expect(m.mode, ComposerInputMode.voice);
       expect(haptics, hasLength(1));
@@ -132,26 +143,31 @@ void main() {
     test('crossing two boundaries buzzes twice', () {
       final m = build();
       m.beginModeDrag();
-      m.updateModeDrag(kModeSwitchStep, TextDirection.ltr);
-      m.updateModeDrag(kModeSwitchStep, TextDirection.ltr);
+      m.updateModeDrag(-kModeSwitchStep);
+      m.updateModeDrag(-kModeSwitchStep);
       expect(m.mode, ComposerInputMode.videoNote);
       expect(haptics, hasLength(2));
     });
 
-    test('the same physical drag goes the other way in RTL', () {
-      final ltr = build();
-      ltr.beginModeDrag();
-      ltr.updateModeDrag(kModeSwitchStep, TextDirection.ltr);
-      expect(ltr.mode, ComposerInputMode.voice);
+    test('dragging back down returns to the previous mode', () {
+      final m = build();
+      m.beginModeDrag();
+      m.updateModeDrag(-kModeSwitchStep * 2);
+      expect(m.mode, ComposerInputMode.videoNote);
+      // The return trip switches at the same halfway point it advanced on,
+      // which is what `modeForTravel` rounds rather than truncates for.
+      m.updateModeDrag(kModeSwitchStep);
+      expect(m.mode, ComposerInputMode.voice);
+      m.updateModeDrag(kModeSwitchStep);
+      expect(m.mode, ComposerInputMode.camera);
+    });
 
-      final rtl = build();
-      rtl.beginModeDrag();
-      // Same positive dx. In a mirrored layout that is a drag AWAY from send,
-      // so it must not advance — and dragging the other way must.
-      rtl.updateModeDrag(kModeSwitchStep, TextDirection.rtl);
-      expect(rtl.mode, ComposerInputMode.camera);
-      rtl.updateModeDrag(-kModeSwitchStep * 2, TextDirection.rtl);
-      expect(rtl.mode, ComposerInputMode.voice);
+    test('downward drag from camera clamps rather than wrapping', () {
+      final m = build();
+      m.beginModeDrag();
+      m.updateModeDrag(kModeSwitchStep * 3);
+      expect(m.mode, ComposerInputMode.camera);
+      expect(haptics, isEmpty);
     });
 
     test('a drag does nothing while a recording is live', () {
@@ -159,7 +175,7 @@ void main() {
       m.markRecording();
       haptics.clear();
       m.beginModeDrag();
-      m.updateModeDrag(kModeSwitchStep * 3, TextDirection.ltr);
+      m.updateModeDrag(-kModeSwitchStep * 3);
       expect(m.mode, ComposerInputMode.camera);
       expect(haptics, isEmpty);
     });

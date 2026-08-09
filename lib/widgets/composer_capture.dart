@@ -753,14 +753,16 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           : theme.accent,
     );
 
-    // The button slides with the drag so the gesture has something to follow.
-    // Clamped to the travel the modes actually span — dragging past the last
-    // mode must not walk the button out from under the finger.
-    final span = (_machine.modes.length - 1) * kModeSwitchStep;
-    final travel = _machine.draggingMode
-        ? _machine.modeDrag.clamp(-span, span)
-        : 0.0;
-    final dx = _direction == TextDirection.rtl ? -travel : travel;
+    // The button does NOT travel with the finger, deliberately.
+    //
+    // It used to, on the theory that a drag wants something to follow. On the
+    // horizontal axis that was at least survivable — the button slid along the
+    // row it already lives in. Lifted vertically it slides up out of the
+    // composer and hangs over the transcript, and what a user reads is "I
+    // dragged the button somewhere", not "I chose a mode": the movement is
+    // louder than the icon swap that is the actual result. So the mode change
+    // *is* the feedback — the glyph swaps, the detent buzzes, and the button
+    // stays exactly where a thumb expects to find it for the hold that follows.
 
     Widget body = widget.style == ComposerCaptureStyle.classic
         ? Container(
@@ -790,17 +792,20 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     body = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _onTap,
-      onHorizontalDragStart: (_) => _machine.beginModeDrag(),
-      onHorizontalDragUpdate: (d) {
+      // Vertical, not horizontal: dragging up is what switches mode. The
+      // horizontal axis belongs to slide-to-cancel during a hold, and the
+      // button has no room to travel toward Send anyway — see [travelUpward].
+      onVerticalDragStart: (_) => _machine.beginModeDrag(),
+      onVerticalDragUpdate: (d) {
         final before = _machine.mode;
-        _machine.updateModeDrag(d.delta.dx, _direction);
+        _machine.updateModeDrag(d.delta.dy);
         if (_machine.mode != before) _announceMode();
       },
-      onHorizontalDragEnd: (_) {
+      onVerticalDragEnd: (_) {
         _machine.endModeDrag();
         _onModeChanged();
       },
-      onHorizontalDragCancel: () {
+      onVerticalDragCancel: () {
         _machine.endModeDrag();
         _onModeChanged();
       },
@@ -822,8 +827,10 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // shortcut fires while the button's own node holds focus.
     body = CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.arrowRight): () => _onArrow(1),
-        const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _onArrow(-1),
+        // Up/down rather than left/right, matching the drag axis — the
+        // keyboard route should describe the same gesture, not a second one.
+        const SingleActivator(LogicalKeyboardKey.arrowUp): () => _onArrow(1),
+        const SingleActivator(LogicalKeyboardKey.arrowDown): () => _onArrow(-1),
       },
       child: body,
     );
@@ -844,8 +851,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       child: body,
     );
 
-    if (travel == 0) return body;
-    return Transform.translate(offset: Offset(dx, 0), child: body);
+    return body;
   }
 
   // ───────────────────────────── recording UI ─────────────────────────────

@@ -110,29 +110,30 @@ void main() {
         expect(opened, 1);
       });
 
-      testWidgets('dragging toward send walks camera → voice → video note',
+      testWidgets('dragging up walks camera → voice → video note',
           (tester) async {
         await tester.pumpWidget(
             host(build(onCamera: () {}, capture: _capture())));
         await tester.pumpAndSettle();
 
         final button = find.byIcon(Icons.photo_camera_outlined);
-        await tester.drag(button, const Offset(kModeSwitchStep, 0));
+        await tester.drag(button, const Offset(0, -kModeSwitchStep));
         await tester.pumpAndSettle();
         expect(find.byIcon(Icons.mic_none_outlined), findsOneWidget);
         expect(haptics, hasLength(1), reason: 'one detent, one buzz');
 
-        await tester.drag(
-            find.byIcon(Icons.mic_none_outlined), const Offset(kModeSwitchStep, 0));
+        await tester.drag(find.byIcon(Icons.mic_none_outlined),
+            const Offset(0, -kModeSwitchStep));
         await tester.pumpAndSettle();
         expect(find.byIcon(Icons.videocam_outlined), findsOneWidget);
         expect(haptics, hasLength(2));
       });
 
-      // "Drag left toward send" is only true in a left-to-right layout. In
-      // Arabic the composer is mirrored and Send is on the left, so the same
-      // physical drag has to mean the opposite thing.
-      testWidgets('the drag is mirrored in RTL', (tester) async {
+      // The switch axis is vertical precisely so it has no mirror image: the
+      // button sits beside Send at the trailing edge with no room to travel
+      // horizontally, and the horizontal axis already belongs to
+      // slide-to-cancel. Up must therefore mean the same thing in Arabic.
+      testWidgets('the drag is NOT mirrored in RTL — up is up', (tester) async {
         await tester.pumpWidget(host(
           build(onCamera: () {}, capture: _capture()),
           direction: TextDirection.rtl,
@@ -140,15 +141,16 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.drag(find.byIcon(Icons.photo_camera_outlined),
-            const Offset(kModeSwitchStep, 0));
+            const Offset(0, -kModeSwitchStep));
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.mic_none_outlined), findsOneWidget,
+            reason: 'an upward drag advances in every writing direction');
+
+        await tester.drag(find.byIcon(Icons.mic_none_outlined),
+            const Offset(0, kModeSwitchStep));
         await tester.pumpAndSettle();
         expect(find.byIcon(Icons.photo_camera_outlined), findsOneWidget,
-            reason: 'a positive dx is AWAY from send in a mirrored layout');
-
-        await tester.drag(find.byIcon(Icons.photo_camera_outlined),
-            const Offset(-kModeSwitchStep, 0));
-        await tester.pumpAndSettle();
-        expect(find.byIcon(Icons.mic_none_outlined), findsOneWidget);
+            reason: 'and downward walks back, mirrored or not');
       });
 
       // A drag-to-switch control is invisible to a screen reader and
@@ -163,7 +165,9 @@ void main() {
         await tester.pumpAndSettle();
         // Walk focus onto the capture button, wherever it lands in the row.
         for (var i = 0; i < 6; i++) {
-          await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+          // Up, matching the drag axis — the keyboard route should describe the
+          // same gesture rather than introduce a second one.
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
           await tester.pumpAndSettle();
           if (find.byIcon(Icons.photo_camera_outlined).evaluate().isEmpty) break;
           await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -353,10 +357,10 @@ Future<void> _frames(WidgetTester tester, [int count = 12]) async {
   }
 }
 
-/// Drags the capture button one detent, onto voice.
+/// Drags the capture button up one detent, onto voice.
 Future<void> _toVoice(WidgetTester tester) async {
-  await tester.drag(
-      find.byIcon(Icons.photo_camera_outlined), const Offset(kModeSwitchStep, 0));
+  await tester.drag(find.byIcon(Icons.photo_camera_outlined),
+      const Offset(0, -kModeSwitchStep));
   await tester.pumpAndSettle();
   expect(find.byIcon(Icons.mic_none_outlined), findsOneWidget);
 }

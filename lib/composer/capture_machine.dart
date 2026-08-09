@@ -99,16 +99,32 @@ Duration? maxDurationFor(ComposerInputMode mode) => switch (mode) {
       ComposerInputMode.videoNote => kVideoNoteMaxDuration,
     };
 
-/// Converts a raw horizontal delta into travel *toward the send button*.
+/// Converts a raw horizontal delta into travel *away from the send button* —
+/// leftward in a left-to-right layout, rightward in Arabic.
 ///
-/// The brief for this control is "drag left toward send", which is only true in
-/// a left-to-right layout. In Arabic the composer is mirrored and send sits on
-/// the left, so the same physical drag has to mean the opposite sign. Every
-/// horizontal decision in this file goes through here rather than reading `dx`,
-/// so there is exactly one place that knows about direction and exactly one
-/// thing to test in both directions.
-double travelTowardSend(double dx, TextDirection direction) =>
-    direction == TextDirection.rtl ? -dx : dx;
+/// Used by the slide-to-cancel gesture only. Every horizontal decision goes
+/// through here rather than reading `dx`, so there is exactly one place that
+/// knows where Send is and exactly one thing to test in both writing
+/// directions.
+double travelAwayFromSend(double dx, TextDirection direction) =>
+    direction == TextDirection.rtl ? dx : -dx;
+
+/// Converts a raw vertical delta into upward travel, which is what advances the
+/// input mode: camera → voice → video note.
+///
+/// Up because there is room up. The button sits beside Send at the trailing
+/// edge of the composer with barely a dozen points between it and the screen,
+/// and [kModeSwitchStep] is 56 with the far mode two steps out — 112pt that do
+/// not exist horizontally in the direction of Send. The first cut of this
+/// control read the brief's "drag the camera button left to send button" as a
+/// direction ("drag left, toward send") when it was describing the button's
+/// placement (the one to the left OF send). Horizontally it was unreachable in
+/// one direction and, once flipped, competed with slide-to-cancel in the other.
+/// Vertical has the room and its own axis.
+///
+/// Flutter's y grows downward, so an upward drag arrives negative and this
+/// flips it. No [TextDirection]: up is up in every script.
+double travelUpward(double dy) => -dy;
 
 /// Which mode a cumulative drag of [travel] from [from] lands on.
 ///
@@ -203,10 +219,13 @@ class ComposerCaptureMachine extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Feeds the drag a raw horizontal delta. Buzzes once per mode crossed.
-  void updateModeDrag(double dx, TextDirection direction) {
+  /// Feeds the drag a raw vertical delta. Buzzes once per mode crossed.
+  ///
+  /// Vertical, and takes no [TextDirection]: up is up in every script, so
+  /// unlike the cancel gesture this axis has no mirror image to get wrong.
+  void updateModeDrag(double dy) {
     if (!_dragging) return;
-    _modeDrag += travelTowardSend(dx, direction);
+    _modeDrag += travelUpward(dy);
     final next = modeForTravel(
       from: _dragOrigin,
       travel: _modeDrag,
@@ -273,9 +292,9 @@ class ComposerCaptureMachine extends ChangeNotifier {
     // Up is negative dy. A drag that goes down is not "un-locking", it is just
     // no progress toward locking — hence the clamp rather than a signed value.
     final up = (-offset.dy).clamp(0.0, double.infinity);
-    // Away from send, which is the mirror of the mode drag's direction and
-    // therefore goes through the same helper.
-    final away = (-travelTowardSend(offset.dx, direction)).clamp(0.0, double.infinity);
+    // Away from send — the same axis and the same sign as the mode drag, not
+    // its mirror, so no negation here. See [travelAwayFromSend].
+    final away = travelAwayFromSend(offset.dx, direction).clamp(0.0, double.infinity);
 
     _lockProgress = (up / kLockDragThreshold).clamp(0.0, 1.0);
     _cancelProgress = (away / kCancelDragThreshold).clamp(0.0, 1.0);
