@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "録音を破棄しました",
   "composerCaptureSentAnnouncement": "録音を送信しました",
   "composerCaptureRecordingLabel": "録音中、{elapsed}",
+  "composerCaptureHoldToRecordHint": "長押しで録音、スワイプで切り替え",
+  "composerCaptureTapForCameraHint": "タップでカメラ、スワイプで切り替え",
   "composerCaptureSlideToCancelHint": "スライドでキャンセル",
   "composerCaptureReleaseToCancelHint": "離してキャンセル",
   "composerCaptureTapToSendHint": "タップで送信",

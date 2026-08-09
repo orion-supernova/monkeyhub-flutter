@@ -10259,6 +10259,18 @@ abstract class AppLocalizations {
   /// **'Recording, {elapsed}'**
   String composerCaptureRecordingLabel(String elapsed);
 
+  /// Tooltip/pop-up hint shown on the voice and video note capture buttons explaining hold and swipe gestures.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold to record, swipe to switch'**
+  String get composerCaptureHoldToRecordHint;
+
+  /// Tooltip/pop-up hint shown on the camera capture button explaining tap and swipe gestures.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap for camera, swipe to switch'**
+  String get composerCaptureTapForCameraHint;
+
   /// Hint shown in the recording strip while the finger is still down: sliding away from the send button aborts the recording.
   ///
   /// In en, this message translates to:

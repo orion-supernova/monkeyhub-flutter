@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "تم تجاهل التسجيل",
   "composerCaptureSentAnnouncement": "تم إرسال التسجيل",
   "composerCaptureRecordingLabel": "جارٍ التسجيل، {elapsed}",
+  "composerCaptureHoldToRecordHint": "اضغط مع الاستمرار للتسجيل، واسحب للتبديل",
+  "composerCaptureTapForCameraHint": "انقر للكاميرا، واسحب للتبديل",
   "composerCaptureSlideToCancelHint": "اسحب للإلغاء",
   "composerCaptureReleaseToCancelHint": "أفلت للإلغاء",
   "composerCaptureTapToSendHint": "اضغط للإرسال",

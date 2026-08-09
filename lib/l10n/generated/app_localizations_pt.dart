@@ -6056,6 +6056,14 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'Segure para gravar, deslize para alternar';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Toque para a câmera, deslize para alternar';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'deslize para cancelar';
 
   @override
@@ -12201,6 +12209,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String composerCaptureRecordingLabel(String elapsed) {
     return 'Gravando, $elapsed';
   }
+
+  @override
+  String get composerCaptureHoldToRecordHint =>
+      'Segure para gravar, deslize para alternar';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Toque para a câmera, deslize para alternar';
 
   @override
   String get composerCaptureSlideToCancelHint => 'deslize para cancelar';

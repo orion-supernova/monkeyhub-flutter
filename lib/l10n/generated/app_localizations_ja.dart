@@ -5750,6 +5750,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint => '長押しで録音、スワイプで切り替え';
+
+  @override
+  String get composerCaptureTapForCameraHint => 'タップでカメラ、スワイプで切り替え';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'スライドでキャンセル';
 
   @override

@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart'
-    show debugPrint, kIsWeb, listEquals, visibleForTesting;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb, listEquals, visibleForTesting;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -128,12 +127,7 @@ class ComposerCapture {
 /// the way every messenger does it, which is also what keeps the drag gesture
 /// from ever having to share an arena with the text field.
 class ComposerCaptureHost extends StatefulWidget {
-  const ComposerCaptureHost({
-    super.key,
-    required this.capture,
-    required this.style,
-    required this.builder,
-  });
+  const ComposerCaptureHost({super.key, required this.capture, required this.style, required this.builder});
 
   final ComposerCapture? capture;
   final ComposerCaptureStyle style;
@@ -144,8 +138,9 @@ class ComposerCaptureHost extends StatefulWidget {
 }
 
 class _ComposerCaptureHostState extends State<ComposerCaptureHost>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late ComposerCaptureMachine _machine = _buildMachine();
+  late final AnimationController _modeBumpController;
 
   CaptureRecorder? _recorder;
 
@@ -157,6 +152,18 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   Timer? _ticker;
   DateTime? _startedAt;
   Duration _elapsed = Duration.zero;
+
+  Timer? _tooltipTimer;
+  bool _tooltipVisible = false;
+
+  void _triggerTooltip() {
+    _tooltipTimer?.cancel();
+    if (!mounted) return;
+    setState(() => _tooltipVisible = true);
+    _tooltipTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _tooltipVisible = false);
+    });
+  }
 
   /// Guards the whole start/stop path against re-entry. A second long-press
   /// arriving while `start()` is still awaiting the platform would otherwise
@@ -188,10 +195,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   ComposerCaptureMachine _buildMachine() {
     final capture = widget.capture;
     final modes = _availableModes(capture);
-    return ComposerCaptureMachine(
-      modes: modes,
-      initial: modes.first,
-    );
+    return ComposerCaptureMachine(modes: modes, initial: modes.first);
   }
 
   /// The modes this host can actually deliver.
@@ -215,6 +219,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   @override
   void initState() {
     super.initState();
+
+    _modeBumpController = AnimationController(vsync: this, duration: const Duration(milliseconds: 440));
+
     WidgetsBinding.instance.addObserver(this);
     // Orphans from a previous run, deleted before this one can add to them.
     unawaited(CaptureTempFiles.sweep());
@@ -261,6 +268,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     WidgetsBinding.instance.removeObserver(this);
     widget.capture?.controller?.removeListener(_onExternalRequest);
     _ticker?.cancel();
+    _tooltipTimer?.cancel();
     // Fire-and-forget, because dispose cannot await: both implementations stop
     // the device and delete their temp file, and neither needs this widget to
     // still exist to finish doing it.
@@ -270,6 +278,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     _video = null;
     unawaited(recorder?.dispose());
     if (!identical(video, recorder)) unawaited(video?.dispose());
+    _modeBumpController.dispose();
     _machine.dispose();
     super.dispose();
   }
@@ -299,9 +308,8 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   /// already stopped thinking about.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final backgrounded = state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.detached;
+    final backgrounded =
+        state == AppLifecycleState.paused || state == AppLifecycleState.hidden || state == AppLifecycleState.detached;
 
     if (_machine.isRecording || _busy) {
       if (backgrounded) {
@@ -335,9 +343,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     try {
       await recorder.warm();
     } catch (e) {
-      final f = e is CaptureFailure
-          ? e
-          : const CaptureFailure(CaptureFailureKind.unavailable);
+      final f = e is CaptureFailure ? e : const CaptureFailure(CaptureFailureKind.unavailable);
       if (!identical(_video, recorder)) return;
       _video = null;
       await recorder.dispose();
@@ -346,8 +352,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       // mode that cannot work. Silent — the problem itself is about to be
       // reported, and a second buzz on top of it reads as a stutter.
       _machine.selectMode(
-        _machine.modes.firstWhere((m) => m != ComposerInputMode.videoNote,
-            orElse: () => _machine.mode),
+        _machine.modes.firstWhere((m) => m != ComposerInputMode.videoNote, orElse: () => _machine.mode),
         haptic: false,
       );
       widget.capture?.onProblem(f);
@@ -378,6 +383,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   void _onModeChanged() {
+    _modeBumpController.forward(from: 0.0);
+    _triggerTooltip();
+
     if (_machine.mode == ComposerInputMode.videoNote) {
       unawaited(_warmPreview());
     } else {
@@ -425,9 +433,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         _recorder = null;
         if (!identical(recorder, _video)) await recorder.dispose();
         if (mounted) {
-          capture.onProblem(e is CaptureFailure
-              ? e
-              : const CaptureFailure(CaptureFailureKind.unavailable));
+          capture.onProblem(e is CaptureFailure ? e : const CaptureFailure(CaptureFailureKind.unavailable));
         }
         return;
       }
@@ -444,9 +450,11 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       _elapsed = Duration.zero;
       _machine.markRecording();
       if (locked) _machine.updateHold(const Offset(0, -kLockDragThreshold), TextDirection.ltr);
-      _announce(locked
-          ? AppLocalizations.of(context).composerCaptureLockedAnnouncement
-          : AppLocalizations.of(context).composerCaptureRecordingAnnouncement);
+      _announce(
+        locked
+            ? AppLocalizations.of(context).composerCaptureLockedAnnouncement
+            : AppLocalizations.of(context).composerCaptureRecordingAnnouncement,
+      );
       _startTicker();
     } finally {
       _busy = false;
@@ -485,6 +493,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final recorder = _recorder;
     if (capture == null || recorder == null || _busy) return;
     _busy = true;
+    HapticFeedback.mediumImpact();
     final mode = _machine.mode;
     _machine.markFinishing();
     _stopTicker();
@@ -529,10 +538,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
 
   /// Throw the recording away. [silent] suppresses both the buzz and the
   /// message — used when the widget itself is going away.
-  Future<void> _abort({
-    CaptureFailureKind? kind,
-    bool silent = false,
-  }) async {
+  Future<void> _abort({CaptureFailureKind? kind, bool silent = false}) async {
     final recorder = _recorder;
     _stopTicker();
     _recorder = null;
@@ -566,11 +572,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     // `sendAnnouncement`, not the deprecated `announce`: the latter reads
     // `PlatformDispatcher.implicitView` and asserts when there isn't one, which
     // is every multi-window embedding.
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      message,
-      Directionality.of(context),
-    );
+    SemanticsService.sendAnnouncement(View.of(context), message, Directionality.of(context));
   }
 
   // ─────────────────────────────── gestures ───────────────────────────────
@@ -580,6 +582,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   void _onTap() {
     final capture = widget.capture;
     if (capture == null || _machine.isRecording) return;
+    _triggerTooltip();
     switch (_machine.mode) {
       case ComposerInputMode.camera:
         capture.onCamera?.call();
@@ -603,11 +606,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   void _onLongPressMove(LongPressMoveUpdateDetails d) {
     if (!_machine.isRecording) return;
     final offset = d.localPosition - _holdOrigin;
-    final locked = _machine.updateHold(
-      offset,
-      _direction,
-      outside: _isOutsideCorridor(d.localPosition),
-    );
+    final locked = _machine.updateHold(offset, _direction, outside: _isOutsideCorridor(d.localPosition));
     if (locked) {
       _announce(AppLocalizations.of(context).composerCaptureLockedAnnouncement);
     }
@@ -617,11 +616,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     if (!_machine.isRecording) return;
     // Fed one last time so a release that has never produced a move update —
     // a flick straight off the edge — is still judged on where it ended.
-    _machine.updateHold(
-      d.localPosition - _holdOrigin,
-      _direction,
-      outside: _isOutsideCorridor(d.localPosition),
-    );
+    _machine.updateHold(d.localPosition - _holdOrigin, _direction, outside: _isOutsideCorridor(d.localPosition));
     final outcome = _machine.endHold(elapsed: _elapsed);
     switch (outcome) {
       case HoldOutcome.send:
@@ -674,8 +669,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   void _announceMode() {
-    _announce(AppLocalizations.of(context)
-        .composerCaptureModeAnnouncement(_modeLabel(_machine.mode)));
+    _announce(AppLocalizations.of(context).composerCaptureModeAnnouncement(_modeLabel(_machine.mode)));
   }
 
   String _modeLabel(ComposerInputMode mode) {
@@ -688,12 +682,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   IconData _modeIcon(ComposerInputMode mode) => switch (mode) {
-        // Unchanged from the button this replaces. A user who never drags must
-        // see exactly the control they had.
-        ComposerInputMode.camera => Icons.photo_camera_outlined,
-        ComposerInputMode.voice => Icons.mic_none_outlined,
-        ComposerInputMode.videoNote => Icons.videocam_outlined,
-      };
+    // Unchanged from the button this replaces. A user who never drags must
+    // see exactly the control they had.
+    ComposerInputMode.camera => Icons.photo_camera_outlined,
+    ComposerInputMode.voice => Icons.mic_none_outlined,
+    ComposerInputMode.videoNote => Icons.videocam_outlined,
+  };
 
   // ──────────────────────────────── build ─────────────────────────────────
 
@@ -715,8 +709,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         // nothing on screen is battery, heat and a recording indicator the user
         // cannot account for. Either show the preview or let the camera go;
         // this shows it.
-        if (_machine.mode != ComposerInputMode.videoNote ||
-            _video?.controller == null) {
+        if (_machine.mode != ComposerInputMode.videoNote || _video?.controller == null) {
           return row;
         }
         return Column(
@@ -739,11 +732,9 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
   }
 
   /// The button, keyed so it survives being reparented into the strip.
-  Widget _keyedModeButton(BuildContext context) =>
-      KeyedSubtree(key: _modeButtonKey, child: _modeButton(context));
+  Widget _keyedModeButton(BuildContext context) => KeyedSubtree(key: _modeButtonKey, child: _modeButton(context));
 
-  double get _buttonDiameter =>
-      widget.style == ComposerCaptureStyle.classic ? 38 : 44;
+  double get _buttonDiameter => widget.style == ComposerCaptureStyle.classic ? 38 : 44;
 
   Widget _modeButton(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -781,18 +772,12 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               color: theme.surfaceRaised,
               shape: BoxShape.circle,
               border: Border.all(
-                color: mode == ComposerInputMode.camera
-                    ? theme.divider
-                    : theme.accent.withValues(alpha: 0.55),
+                color: mode == ComposerInputMode.camera ? theme.divider : theme.accent.withValues(alpha: 0.55),
               ),
             ),
             child: glyph,
           )
-        : LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: Size(diameter, diameter),
-            child: glyph,
-          );
+        : LiquidGlass(shape: LiquidGlassShape.circle, size: Size(diameter, diameter), child: glyph);
 
     // The gesture detector is INSIDE FocusableTap and carries the same onTap —
     // FocusableTap registers no recognizer of its own, so a wrapper without
@@ -806,17 +791,15 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     body = RawGestureDetector(
       behavior: HitTestBehavior.opaque,
       gestures: {
-        TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-          () => TapGestureRecognizer(),
-          (instance) {
-            instance.onTap = _onTap;
-          },
-        ),
+        TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(() => TapGestureRecognizer(), (
+          instance,
+        ) {
+          instance.onTap = _onTap;
+        }),
         // Vertical, not horizontal: dragging up is what switches mode. The
         // horizontal axis belongs to slide-to-cancel during a hold, and the
         // button has no room to travel toward Send anyway — see [travelUpward].
-        VerticalDragGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
+        VerticalDragGestureRecognizer: GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
           () => VerticalDragGestureRecognizer(),
           (instance) {
             instance.onStart = (_) => _machine.beginModeDrag();
@@ -835,8 +818,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             };
           },
         ),
-        LongPressGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+        LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
           () => LongPressGestureRecognizer(duration: kCaptureHoldDuration),
           (instance) {
             instance.onLongPressStart = _onLongPressStart;
@@ -846,7 +828,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           },
         ),
       },
-      child: body,
+      child: _modeMicroAnimation(body),
     );
 
     body = FocusableTap(
@@ -884,7 +866,86 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       child: body,
     );
 
+    final String tooltipHint = mode == ComposerInputMode.camera
+        ? l10n.composerCaptureTapForCameraHint
+        : l10n.composerCaptureHoldToRecordHint;
+
+    body = Tooltip(
+      message: tooltipHint,
+      preferBelow: false,
+      verticalOffset: 24,
+      child: body,
+    );
+
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    body = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          bottom: diameter + 10,
+          right: isRtl ? null : 0,
+          left: isRtl ? 0 : null,
+          child: _ModeHintTooltipBubble(
+            visible: _tooltipVisible && !_machine.isRecording,
+            message: tooltipHint,
+            theme: theme,
+            isRtl: isRtl,
+          ),
+        ),
+        body,
+      ],
+    );
+
     return body;
+  }
+
+  Widget _modeMicroAnimation(Widget child) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_modeBumpController, _machine]),
+      child: child,
+      builder: (context, child) {
+        final t = _modeBumpController.value;
+
+        // --- 1. Multi-phase damped rubbery spring oscillation (Mode switch impact) ---
+        final decay = math.exp(-t * 5.5);
+        final oscillation = decay * math.sin(t * math.pi * 3.5);
+        final initialImpulse = math.sin(math.pow(t, 0.6) * math.pi);
+
+        final bumpScaleX = 1.0 + initialImpulse * 0.16 * (1.0 - t) + oscillation * 0.08;
+        final bumpScaleY = 1.0 - initialImpulse * 0.14 * (1.0 - t) - oscillation * 0.08;
+
+        final dir = _machine.lastStepDirection.toDouble();
+        final bumpSkew = dir * oscillation * 0.045;
+
+        // --- 2. Live Gesture Deformation (Drag, Lock, Cancel) ---
+        final dragRatio = (_machine.modeDrag / kModeSwitchStep).clamp(-1.0, 1.0);
+        final dragStretchY = 1.0 + dragRatio.abs() * 0.12;
+        final dragStretchX = 1.0 - dragRatio.abs() * 0.06;
+        final dragSkew = -dragRatio * 0.035;
+
+        final cancelProgress = _machine.cancelProgress.clamp(0.0, 1.0);
+        final cancelScaleX = 1.0 + cancelProgress * 0.14;
+        final cancelScaleY = 1.0 - cancelProgress * 0.08;
+        final cancelSkew = -cancelProgress * 0.04;
+
+        final lockProgress = _machine.lockProgress.clamp(0.0, 1.0);
+        final lockScaleY = 1.0 + lockProgress * 0.16;
+        final lockScaleX = 1.0 - lockProgress * 0.08;
+
+        // --- 3. Combined Scale & Matrix Transformation ---
+        final totalScaleX = bumpScaleX * dragStretchX * cancelScaleX * lockScaleX;
+        final totalScaleY = bumpScaleY * dragStretchY * cancelScaleY * lockScaleY;
+        final totalSkew = bumpSkew + dragSkew + cancelSkew;
+
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(0, 1, totalSkew)
+            ..scale(totalScaleX, totalScaleY, 1.0),
+          child: child,
+        );
+      },
+    );
   }
 
   /// The mode glyph, cross-fading and sliding between icons instead of
@@ -919,20 +980,14 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       reverseDuration: const Duration(milliseconds: 160),
       transitionBuilder: (child, animation) {
         final entering = animation.status != AnimationStatus.reverse;
-        final startOffset = entering == forward
-            ? const Offset(0, 0.45)
-            : const Offset(0, -0.45);
+        final startOffset = entering == forward ? const Offset(0, 0.45) : const Offset(0, -0.45);
         return FadeTransition(
-          opacity: CurvedAnimation(
-            parent: animation,
-            curve: entering ? Curves.easeOut : Curves.easeIn,
-          ),
+          opacity: CurvedAnimation(parent: animation, curve: entering ? Curves.easeOut : Curves.easeIn),
           child: SlideTransition(
-            position: Tween<Offset>(begin: startOffset, end: Offset.zero)
-                .animate(CurvedAnimation(
-              parent: animation,
-              curve: entering ? Curves.easeOutBack : Curves.easeIn,
-            )),
+            position: Tween<Offset>(
+              begin: startOffset,
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: animation, curve: entering ? Curves.easeOutBack : Curves.easeIn)),
             child: child,
           ),
         );
@@ -953,10 +1008,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         if (showPreview) ...[
           Padding(
             padding: EdgeInsets.only(right: _previewTrailingGap(recording: true)),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: _previewWithBadge(theme, idle: false),
-            ),
+            child: Align(alignment: Alignment.centerRight, child: _previewWithBadge(theme, idle: false)),
           ),
           const SizedBox(height: 12),
         ],
@@ -984,8 +1036,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final diameter = _buttonDiameter;
     final stripInset = widget.style == ComposerCaptureStyle.classic ? 0.0 : 4.0;
     final rowGap = widget.style == ComposerCaptureStyle.classic ? 10.0 : 12.0;
-    final buttonCenterFromRight =
-        recording ? stripInset + diameter / 2 : diameter * 1.5 + rowGap;
+    final buttonCenterFromRight = recording ? stripInset + diameter / 2 : diameter * 1.5 + rowGap;
     final previewRadius = (recording ? 168.0 : 108.0) / 2;
     return math.max(0.0, buttonCenterFromRight - previewRadius);
   }
@@ -1011,10 +1062,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               child: Text(
                 l10n.glassScreenPreviewBadge,
-                style: theme.monoTiny.copyWith(
-                  color: theme.inkSoft,
-                  letterSpacing: 1.2,
-                ),
+                style: theme.monoTiny.copyWith(color: theme.inkSoft, letterSpacing: 1.2),
               ),
             ),
           ),
@@ -1067,9 +1115,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
               painter: _RingPainter(
                 progress: progress,
                 track: theme.ink.withValues(alpha: 0.15),
-                ink: _elapsed >= max - kMaxDurationWarning
-                    ? theme.danger
-                    : theme.accent,
+                ink: _elapsed >= max - kMaxDurationWarning ? theme.danger : theme.accent,
               ),
             ),
           ),
@@ -1085,26 +1131,25 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     final finishing = _machine.stage == CaptureStage.finishing;
     final max = _maxDuration;
     final remaining = max == null ? null : max - _elapsed;
-    final counting =
-        remaining != null && remaining <= kMaxDurationWarning;
+    final counting = remaining != null && remaining <= kMaxDurationWarning;
 
     final hint = finishing
         ? l10n.composerCaptureSendingLabel
         : counting
-            ? l10n.composerCaptureTimeLeft(math.max(0, remaining.inSeconds))
-            : locked
-                ? l10n.composerCaptureTapToSendHint
-                : _machine.wouldCancel
-                    ? l10n.composerCaptureReleaseToCancelHint
-                    : l10n.composerCaptureSlideToCancelHint;
+        ? l10n.composerCaptureTimeLeft(math.max(0, remaining.inSeconds))
+        : locked
+        ? l10n.composerCaptureTapToSendHint
+        : _machine.wouldCancel
+        ? l10n.composerCaptureReleaseToCancelHint
+        : l10n.composerCaptureSlideToCancelHint;
 
     final row = Row(
       children: [
-        _stripButton(
+        _stripTrashButton(
           theme,
-          icon: Icons.delete_outline,
           label: l10n.composerCaptureCancelLabel,
-          tint: theme.danger,
+          cancelProgress: _machine.cancelProgress,
+          wouldCancel: _machine.wouldCancel,
           onTap: finishing ? null : () => unawaited(_abort()),
         ),
         const SizedBox(width: 12),
@@ -1112,24 +1157,25 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
         const SizedBox(width: 10),
         Text(
           formatClockDuration(_elapsed),
-          style: theme.body.copyWith(
-            color: theme.ink,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          style: theme.body.copyWith(color: theme.ink, fontFeatures: const [FontFeature.tabularFigures()]),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            hint,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: theme.monoTiny.copyWith(
-              color: _machine.wouldCancel || counting
-                  ? theme.danger
-                  : theme.inkMuted,
-            ),
-          ),
+          child: _machine.stage == CaptureStage.holding && !finishing
+              ? _SlidingCancelHint(
+                  hint: hint,
+                  cancelProgress: _machine.cancelProgress,
+                  wouldCancel: _machine.wouldCancel,
+                  counting: counting,
+                  theme: theme,
+                )
+              : Text(
+                  hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.monoTiny.copyWith(color: _machine.wouldCancel || counting ? theme.danger : theme.inkMuted),
+                ),
         ),
         const SizedBox(width: 12),
         if (locked || finishing)
@@ -1143,19 +1189,20 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
           )
         else
           // The button the finger is still on, reparented here rather than
-          // rebuilt — see [_modeButtonKey]. The lock affordance stacks above it
-          // in the lane the finger travels up, which is also why a release
-          // anywhere in that lane counts as "on the control" (see
-          // [_isOutsideCorridor]).
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          // rebuilt — see [_modeButtonKey]. The lock affordance stacks directly
+          // above it in the lane the finger travels up.
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              _LockAffordance(
-                progress: _machine.lockProgress,
-                theme: theme,
-                label: l10n.composerCaptureLockLabel,
+              Positioned(
+                bottom: _buttonDiameter + 8,
+                child: _LockAffordance(
+                  progress: _machine.lockProgress,
+                  theme: theme,
+                  label: l10n.composerCaptureLockLabel,
+                ),
               ),
-              const SizedBox(height: 6),
               _keyedModeButton(context),
             ],
           ),
@@ -1165,15 +1212,61 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
     return Semantics(
       container: true,
       liveRegion: true,
-      label: l10n.composerCaptureRecordingLabel(
-        formatClockDuration(_elapsed),
-      ),
+      label: l10n.composerCaptureRecordingLabel(formatClockDuration(_elapsed)),
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.style == ComposerCaptureStyle.classic ? 0 : 4,
-          vertical: 2,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: widget.style == ComposerCaptureStyle.classic ? 0 : 4, vertical: 2),
         child: row,
+      ),
+    );
+  }
+
+  Widget _stripTrashButton(
+    AppTheme theme, {
+    required String label,
+    required double cancelProgress,
+    required bool wouldCancel,
+    required VoidCallback? onTap,
+  }) {
+    final diameter = _buttonDiameter;
+    final color = wouldCancel ? theme.danger : theme.danger.withValues(alpha: 0.85);
+
+    return FocusableTap(
+      onTap: onTap,
+      semanticLabel: label,
+      shape: FocusRingShape.circle,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: diameter,
+          height: diameter,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: wouldCancel ? theme.danger.withValues(alpha: 0.15) : theme.surfaceRaised,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: wouldCancel ? theme.danger : theme.danger.withValues(alpha: 0.5),
+              width: wouldCancel ? 1.5 : 1.0,
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Opacity(
+                opacity: 0.001,
+                child: Icon(Icons.delete_outline, size: 18, color: color),
+              ),
+              IgnorePointer(
+                child: _AnimatedTrashCan(
+                  cancelProgress: cancelProgress,
+                  wouldCancel: wouldCancel,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1203,11 +1296,7 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
             shape: BoxShape.circle,
             border: Border.all(color: filled ? tint : tint.withValues(alpha: 0.5)),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: filled ? theme.accentInk : tint,
-          ),
+          child: Icon(icon, size: 18, color: filled ? theme.accentInk : tint),
         ),
       ),
     );
@@ -1225,12 +1314,9 @@ class _RecordingPulse extends StatefulWidget {
   State<_RecordingPulse> createState() => _RecordingPulseState();
 }
 
-class _RecordingPulseState extends State<_RecordingPulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..repeat(reverse: true);
+class _RecordingPulseState extends State<_RecordingPulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    ..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -1251,13 +1337,10 @@ class _RecordingPulseState extends State<_RecordingPulse>
   }
 }
 
-/// The chevron-and-padlock that fills as the finger travels up.
+/// The chevron-and-padlock that fills as the finger travels up, positioned
+/// directly above the recording button.
 class _LockAffordance extends StatelessWidget {
-  const _LockAffordance({
-    required this.progress,
-    required this.theme,
-    required this.label,
-  });
+  const _LockAffordance({required this.progress, required this.theme, required this.label});
 
   final double progress;
   final AppTheme theme;
@@ -1266,38 +1349,262 @@ class _LockAffordance extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = progress.clamp(0.0, 1.0);
+    // Rubbery spring upward motion as finger travels up toward lock
+    final dy = -math.sin(t * math.pi / 2.0) * 14.0;
+    final scale = 1.0 + t * 0.14;
+    final isLocked = t >= 1.0;
+
     return Semantics(
       label: label,
       value: '${(t * 100).round()}%',
-      child: SizedBox(
-        width: 38,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Opacity(
-              opacity: 0.35 + 0.65 * t,
-              child: Icon(Icons.keyboard_arrow_up,
-                  size: 16, color: theme.inkMuted),
+      child: Transform.translate(
+        offset: Offset(0, dy),
+        child: Transform.scale(
+          scale: scale,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            decoration: BoxDecoration(
+              color: isLocked ? theme.accent.withValues(alpha: 0.18) : theme.surfaceRaised.withValues(alpha: 0.90),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Color.lerp(theme.divider, theme.accent, t)!,
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            Icon(
-              Icons.lock_outline,
-              size: 18,
-              color: Color.lerp(theme.inkMuted, theme.accent, t),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Opacity(
+                  opacity: (1.0 - t * 0.7).clamp(0.2, 1.0),
+                  child: Icon(Icons.keyboard_arrow_up, size: 14, color: Color.lerp(theme.inkMuted, theme.accent, t)),
+                ),
+                const SizedBox(height: 2),
+                Icon(
+                  isLocked ? Icons.lock : Icons.lock_outline,
+                  size: 16,
+                  color: Color.lerp(theme.inkMuted, theme.accent, t),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
+/// An animated garbage/trash icon that opens its mouth/lid as [cancelProgress] increases
+/// or when [wouldCancel] is active.
+class _AnimatedTrashCan extends StatelessWidget {
+  const _AnimatedTrashCan({
+    required this.cancelProgress,
+    required this.wouldCancel,
+    required this.color,
+    this.size = 20.0,
+  });
+
+  final double cancelProgress;
+  final bool wouldCancel;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = cancelProgress.clamp(0.0, 1.0);
+    final openFactor = wouldCancel ? 1.0 : t;
+    // Rotate lid open counter-clockwise up to ~45 degrees (math.pi / 4)
+    final lidAngle = -openFactor * (math.pi / 4.0);
+    final lidLift = openFactor * 2.5;
+    final scale = 1.0 + openFactor * 0.15;
+
+    return Transform.scale(
+      scale: scale,
+      child: CustomPaint(
+        size: Size(size, size),
+        painter: _TrashCanPainter(
+          color: color,
+          lidAngle: lidAngle,
+          lidLift: lidLift,
+          openFactor: openFactor,
+        ),
+      ),
+    );
+  }
+}
+
+class _TrashCanPainter extends CustomPainter {
+  const _TrashCanPainter({
+    required this.color,
+    required this.lidAngle,
+    required this.lidLift,
+    required this.openFactor,
+  });
+
+  final Color color;
+  final double lidAngle;
+  final double lidLift;
+  final double openFactor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final w = size.width;
+    final h = size.height;
+
+    final binTopY = h * 0.38;
+    final binBottomY = h * 0.88;
+    final binLeftX = w * 0.26;
+    final binRightX = w * 0.74;
+    final binBottomLeftX = w * 0.32;
+    final binBottomRightX = w * 0.68;
+
+    final binPath = Path()
+      ..moveTo(binLeftX, binTopY)
+      ..lineTo(binBottomLeftX, binBottomY)
+      ..arcToPoint(Offset(binBottomRightX, binBottomY), radius: const Radius.circular(2.0))
+      ..lineTo(binRightX, binTopY);
+
+    canvas.drawPath(binPath, paint);
+
+    if (w >= 18) {
+      final linePaint = Paint()
+        ..color = color.withValues(alpha: 0.65)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round;
+
+      final midYTop = binTopY + 2.5;
+      final midYBottom = binBottomY - 2.0;
+      canvas.drawLine(Offset(w * 0.42, midYTop), Offset(w * 0.44, midYBottom), linePaint);
+      canvas.drawLine(Offset(w * 0.58, midYTop), Offset(w * 0.56, midYBottom), linePaint);
+    }
+
+    final pivotX = w * 0.74;
+    final pivotY = binTopY;
+
+    canvas.save();
+    canvas.translate(0, -lidLift);
+    canvas.translate(pivotX, pivotY);
+    canvas.rotate(lidAngle);
+    canvas.translate(-pivotX, -pivotY);
+
+    final lidLeftX = w * 0.18;
+    final lidRightX = w * 0.82;
+    final lidY = binTopY - 1.0;
+
+    canvas.drawLine(Offset(lidLeftX, lidY), Offset(lidRightX, lidY), paint);
+
+    final handleLeftX = w * 0.40;
+    final handleRightX = w * 0.60;
+    final handleTopY = lidY - 3.0;
+
+    final handlePath = Path()
+      ..moveTo(handleLeftX, lidY)
+      ..lineTo(handleLeftX, handleTopY)
+      ..lineTo(handleRightX, handleTopY)
+      ..lineTo(handleRightX, lidY);
+
+    canvas.drawPath(handlePath, paint);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_TrashCanPainter old) =>
+      old.color != color ||
+      old.lidAngle != lidAngle ||
+      old.lidLift != lidLift ||
+      old.openFactor != openFactor;
+}
+
+/// Animated sliding cancel hint cue with chevrons.
+class _SlidingCancelHint extends StatefulWidget {
+  const _SlidingCancelHint({
+    required this.hint,
+    required this.cancelProgress,
+    required this.wouldCancel,
+    required this.counting,
+    required this.theme,
+  });
+
+  final String hint;
+  final double cancelProgress;
+  final bool wouldCancel;
+  final bool counting;
+  final AppTheme theme;
+
+  @override
+  State<_SlidingCancelHint> createState() => _SlidingCancelHintState();
+}
+
+class _SlidingCancelHintState extends State<_SlidingCancelHint> with SingleTickerProviderStateMixin {
+  late final AnimationController _anim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = widget.theme;
+    final color = widget.wouldCancel || widget.counting ? theme.danger : theme.inkMuted;
+
+    final rubberDx = -math.pow(widget.cancelProgress.clamp(0.0, 1.0), 0.8) * 36.0;
+
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, child) {
+        final slideDx = -((1.0 - _anim.value) * 6.0);
+
+        return Transform.translate(
+          offset: Offset(rubberDx, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Transform.translate(
+                offset: Offset(slideDx, 0),
+                child: Icon(Icons.chevron_left, size: 16, color: color),
+              ),
+              const SizedBox(width: 2),
+              Flexible(
+                child: Text(
+                  widget.hint,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: theme.monoTiny.copyWith(color: color),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// The progress ring around the video-note preview.
 class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.progress,
-    required this.track,
-    required this.ink,
-  });
+  const _RingPainter({required this.progress, required this.track, required this.ink});
 
   final double progress;
   final Color track;
@@ -1325,8 +1632,7 @@ class _RingPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.ink != ink || old.track != track;
+  bool shouldRepaint(_RingPainter old) => old.progress != progress || old.ink != ink || old.track != track;
 }
 
 /// Says what went wrong, with a route out of it.
@@ -1338,6 +1644,7 @@ class _RingPainter extends CustomPainter {
 Future<void> showCaptureProblem(
   BuildContext context,
   CaptureFailure failure, {
+
   /// How to show a plain message. A `Scaffold` host passes its `SnackBar`;
   /// the thread overlay passes its toast.
   required void Function(String message) onMessage,
@@ -1354,12 +1661,8 @@ Future<void> showCaptureProblem(
       }
       final go = await showConfirmSheet(
         context,
-        headline: camera
-            ? l10n.composerCaptureCameraPermissionTitle
-            : l10n.composerCaptureMicPermissionTitle,
-        body: camera
-            ? l10n.composerCaptureCameraPermissionBody
-            : l10n.composerCaptureMicPermissionBody,
+        headline: camera ? l10n.composerCaptureCameraPermissionTitle : l10n.composerCaptureMicPermissionTitle,
+        body: camera ? l10n.composerCaptureCameraPermissionBody : l10n.composerCaptureMicPermissionBody,
         confirmLabel: l10n.composerCaptureOpenSettingsLabel,
       );
       if (!go) return;
@@ -1374,5 +1677,64 @@ Future<void> showCaptureProblem(
       break; // a mis-tap is not an error
     case CaptureFailureKind.unknown:
       onMessage(l10n.composerCaptureUnavailableSnack);
+  }
+}
+
+/// Animated floating pop-up bubble shown directly above the mode button
+/// on mode change or tap, displaying the localized gesture hint.
+class _ModeHintTooltipBubble extends StatelessWidget {
+  const _ModeHintTooltipBubble({
+    required this.visible,
+    required this.message,
+    required this.theme,
+    this.isRtl = false,
+  });
+
+  final bool visible;
+  final String message;
+  final AppTheme theme;
+  final bool isRtl;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        opacity: visible ? 1.0 : 0.0,
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 260),
+          curve: visible ? Curves.easeOutBack : Curves.easeIn,
+          scale: visible ? 1.0 : 0.8,
+          alignment: isRtl ? Alignment.bottomLeft : Alignment.bottomRight,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 220),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: ShapeDecoration(
+                color: theme.surfaceRaised.withValues(alpha: 0.96),
+                shape: const StadiumBorder(),
+                shadows: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.monoTiny.copyWith(
+                  color: theme.ink,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

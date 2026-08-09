@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "已丢弃录制",
   "composerCaptureSentAnnouncement": "已发送录制",
   "composerCaptureRecordingLabel": "录制中，{elapsed}",
+  "composerCaptureHoldToRecordHint": "长按录制，滑动切换",
+  "composerCaptureTapForCameraHint": "轻点打开相机，滑动切换",
   "composerCaptureSlideToCancelHint": "滑动取消",
   "composerCaptureReleaseToCancelHint": "松开取消",
   "composerCaptureTapToSendHint": "点按发送",

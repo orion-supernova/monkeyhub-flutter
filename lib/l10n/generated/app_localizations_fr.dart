@@ -6082,6 +6082,14 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'Maintenez pour enregistrer, glissez pour changer';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Appuyez pour la caméra, glissez pour changer';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'glissez pour annuler';
 
   @override

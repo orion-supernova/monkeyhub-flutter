@@ -5967,6 +5967,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'Hold to record, swipe to switch';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Tap for camera, swipe to switch';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'slide to cancel';
 
   @override

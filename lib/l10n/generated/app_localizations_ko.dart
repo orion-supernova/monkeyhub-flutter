@@ -5768,6 +5768,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint => '길게 눌러 녹음, 스와이프하여 전환';
+
+  @override
+  String get composerCaptureTapForCameraHint => '탭하여 카메라, 스와이프하여 전환';
+
+  @override
   String get composerCaptureSlideToCancelHint => '밀어서 취소';
 
   @override

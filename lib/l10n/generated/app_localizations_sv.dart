@@ -6000,6 +6000,14 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'Håll intryckt för att spela in, svep för att växla';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Tryck för kamera, svep för att växla';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'dra för att avbryta';
 
   @override

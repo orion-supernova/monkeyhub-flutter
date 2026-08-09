@@ -9,6 +9,59 @@ import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'liquid_glass.dart';
 
+class _SendButton extends StatelessWidget {
+  const _SendButton({
+    super.key,
+    required this.onSend,
+    required this.semanticLabel,
+    this.classic = true,
+  });
+
+  final VoidCallback onSend;
+  final String semanticLabel;
+  final bool classic;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+
+    if (classic) {
+      return FocusableTap(
+        onTap: onSend,
+        semanticLabel: semanticLabel,
+        shape: FocusRingShape.circle,
+        child: GestureDetector(
+          onTap: onSend,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: theme.accent,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: theme.accent.withValues(alpha: 0.38),
+                  blurRadius: 14,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
+          ),
+        ),
+      );
+    } else {
+      return LiquidGlass(
+        shape: LiquidGlassShape.circle,
+        size: const Size(44, 44),
+        tinted: true,
+        onTap: onSend,
+        child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+      );
+    }
+  }
+}
+
 /// The two message composers, lifted verbatim out of `room_screen.dart` so
 /// the thread overlay can use the same input the room does.
 ///
@@ -157,66 +210,62 @@ class ChatComposerClassic extends StatelessWidget {
               ),
             ),
           ),
-          // Built like the attach button, not like send: send carries a glow
-          // that marks it as the one primary action, and a second glowing
-          // circle beside it would read as a rival rather than a shortcut.
-          //
-          // [modeButton] is the same 38pt circle with a drag on it. When there
-          // is one, the plain camera button is not also drawn — they occupy the
-          // same slot and the mode button already opens the camera on a tap.
-          if (modeButton != null) ...[
-            const SizedBox(width: 10),
-            modeButton,
-          ] else if (onCamera != null) ...[
-            const SizedBox(width: 10),
-            FocusableTap(
-              onTap: onCamera,
-              semanticLabel: AppLocalizations.of(context).deepOceanThemeCameraButtonLabel,
-              shape: FocusRingShape.circle,
-              child: GestureDetector(
-                onTap: onCamera,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: theme.surfaceRaised,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.divider),
-                  ),
-                  child: Icon(
-                    Icons.photo_camera_outlined,
-                    color: theme.inkSoft,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ],
           const SizedBox(width: 10),
-          FocusableTap(
-            onTap: onSend,
-            semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
-            shape: FocusRingShape.circle,
-            child: GestureDetector(
-              onTap: onSend,
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: theme.accent,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: theme.accent.withValues(alpha: 0.38),
-                      blurRadius: 14,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
                 ),
-                child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
+                child: child,
               ),
             ),
+            child: controller.text.isNotEmpty
+                ? _SendButton(
+                    key: const ValueKey('send'),
+                    onSend: onSend,
+                    semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
+                    classic: true,
+                  )
+                : modeButton != null
+                    ? SizedBox(
+                        key: const ValueKey('mode'),
+                        width: 38,
+                        height: 38,
+                        child: modeButton,
+                      )
+                    : onCamera != null
+                        ? FocusableTap(
+                            key: const ValueKey('camera'),
+                            onTap: onCamera,
+                            semanticLabel: AppLocalizations.of(context).deepOceanThemeCameraButtonLabel,
+                            shape: FocusRingShape.circle,
+                            child: GestureDetector(
+                              onTap: onCamera,
+                              child: Container(
+                                width: 38,
+                                height: 38,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: theme.surfaceRaised,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: theme.divider),
+                                ),
+                                child: Icon(
+                                  Icons.photo_camera_outlined,
+                                  color: theme.inkSoft,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('empty'),
+                            width: 38,
+                            height: 38,
+                          ),
           ),
         ],
         ),
@@ -327,36 +376,49 @@ class ChatComposerLiquid extends StatelessWidget {
               ),
             ),
           ),
-          // Untinted, unlike send: `tinted: true` is what marks the one primary
-          // action, and a second tinted circle beside it would read as a rival
-          // rather than a shortcut. LiquidGlass supplies its own press animation
-          // and wraps itself in FocusableTap, so no extra wrapper here.
-          //
-          // See the classic composer: the mode button occupies this same slot
-          // and subsumes the camera when one is wired up.
-          if (modeButton != null) ...[
-            const SizedBox(width: 12),
-            modeButton,
-          ] else if (onCamera != null) ...[
-            const SizedBox(width: 12),
-            LiquidGlass(
-              shape: LiquidGlassShape.circle,
-              size: const Size(44, 44),
-              onTap: onCamera,
-              child: Icon(
-                Icons.photo_camera_outlined,
-                size: 18,
-                color: theme.accent,
+          const SizedBox(width: 12),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.8, end: 1.0).animate(
+                  CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic),
+                ),
+                child: child,
               ),
             ),
-          ],
-          const SizedBox(width: 12),
-          LiquidGlass(
-            shape: LiquidGlassShape.circle,
-            size: const Size(44, 44),
-            tinted: true,
-            onTap: onSend,
-            child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+            child: controller.text.isNotEmpty
+                ? _SendButton(
+                    key: const ValueKey('send'),
+                    onSend: onSend,
+                    semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
+                    classic: false,
+                  )
+                : modeButton != null
+                    ? SizedBox(
+                        key: const ValueKey('mode'),
+                        width: 44,
+                        height: 44,
+                        child: modeButton,
+                      )
+                    : onCamera != null
+                        ? LiquidGlass(
+                            key: const ValueKey('camera'),
+                            shape: LiquidGlassShape.circle,
+                            size: const Size(44, 44),
+                            onTap: onCamera,
+                            child: Icon(
+                              Icons.photo_camera_outlined,
+                              size: 18,
+                              color: theme.accent,
+                            ),
+                          )
+                        : const SizedBox(
+                            key: ValueKey('empty'),
+                            width: 44,
+                            height: 44,
+                          ),
           ),
         ],
         ),

@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "Kayıt silindi",
   "composerCaptureSentAnnouncement": "Kayıt gönderildi",
   "composerCaptureRecordingLabel": "Kaydediliyor, {elapsed}",
+  "composerCaptureHoldToRecordHint": "Kaydetmek için basılı tutun, değiştirmek için kaydırın",
+  "composerCaptureTapForCameraHint": "Kamera için dokunun, değiştirmek için kaydırın",
   "composerCaptureSlideToCancelHint": "iptal için kaydır",
   "composerCaptureReleaseToCancelHint": "iptal için bırakın",
   "composerCaptureTapToSendHint": "göndermek için dokunun",

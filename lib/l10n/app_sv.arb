@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "Inspelningen kasserades",
   "composerCaptureSentAnnouncement": "Inspelningen skickades",
   "composerCaptureRecordingLabel": "Spelar in, {elapsed}",
+  "composerCaptureHoldToRecordHint": "Håll intryckt för att spela in, svep för att växla",
+  "composerCaptureTapForCameraHint": "Tryck för kamera, svep för att växla",
   "composerCaptureSlideToCancelHint": "dra för att avbryta",
   "composerCaptureReleaseToCancelHint": "släpp för att avbryta",
   "composerCaptureTapToSendHint": "tryck för att skicka",

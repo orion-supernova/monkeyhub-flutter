@@ -5953,6 +5953,14 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'Kaydetmek için basılı tutun, değiştirmek için kaydırın';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'Kamera için dokunun, değiştirmek için kaydırın';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'iptal için kaydır';
 
   @override

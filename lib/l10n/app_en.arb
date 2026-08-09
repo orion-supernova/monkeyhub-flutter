@@ -6811,6 +6811,14 @@
       }
     }
   },
+  "composerCaptureHoldToRecordHint": "Hold to record, swipe to switch",
+  "@composerCaptureHoldToRecordHint": {
+    "description": "Tooltip/pop-up hint shown on the voice and video note capture buttons explaining hold and swipe gestures."
+  },
+  "composerCaptureTapForCameraHint": "Tap for camera, swipe to switch",
+  "@composerCaptureTapForCameraHint": {
+    "description": "Tooltip/pop-up hint shown on the camera capture button explaining tap and swipe gestures."
+  },
   "composerCaptureSlideToCancelHint": "slide to cancel",
   "@composerCaptureSlideToCancelHint": {
     "description": "Hint shown in the recording strip while the finger is still down: sliding away from the send button aborts the recording."

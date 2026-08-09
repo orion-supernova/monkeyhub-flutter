@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "Gravação descartada",
   "composerCaptureSentAnnouncement": "Gravação enviada",
   "composerCaptureRecordingLabel": "Gravando, {elapsed}",
+  "composerCaptureHoldToRecordHint": "Segure para gravar, deslize para alternar",
+  "composerCaptureTapForCameraHint": "Toque para a câmera, deslize para alternar",
   "composerCaptureSlideToCancelHint": "deslize para cancelar",
   "composerCaptureReleaseToCancelHint": "solte para cancelar",
   "composerCaptureTapToSendHint": "toque para enviar",

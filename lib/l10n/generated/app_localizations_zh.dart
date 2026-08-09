@@ -5679,6 +5679,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint => '长按录制，滑动切换';
+
+  @override
+  String get composerCaptureTapForCameraHint => '轻点打开相机，滑动切换';
+
+  @override
   String get composerCaptureSlideToCancelHint => '滑动取消';
 
   @override

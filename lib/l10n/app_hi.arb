@@ -1686,6 +1686,8 @@
   "composerCaptureCancelledAnnouncement": "रिकॉर्डिंग हटा दी गई",
   "composerCaptureSentAnnouncement": "रिकॉर्डिंग भेजी गई",
   "composerCaptureRecordingLabel": "रिकॉर्डिंग, {elapsed}",
+  "composerCaptureHoldToRecordHint": "रिकॉर्ड करने के लिए दबाकर रखें, बदलने के लिए स्वाइप करें",
+  "composerCaptureTapForCameraHint": "कैमरा के लिए टैप करें, बदलने के लिए स्वाइप करें",
   "composerCaptureSlideToCancelHint": "रद्द करने के लिए स्लाइड करें",
   "composerCaptureReleaseToCancelHint": "रद्द करने के लिए छोड़ें",
   "composerCaptureTapToSendHint": "भेजने के लिए टैप करें",

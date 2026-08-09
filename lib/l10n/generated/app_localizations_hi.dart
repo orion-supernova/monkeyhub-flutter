@@ -5987,6 +5987,14 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'रिकॉर्ड करने के लिए दबाकर रखें, बदलने के लिए स्वाइप करें';
+
+  @override
+  String get composerCaptureTapForCameraHint =>
+      'कैमरा के लिए टैप करें, बदलने के लिए स्वाइप करें';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'रद्द करने के लिए स्लाइड करें';
 
   @override

@@ -6048,6 +6048,13 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get composerCaptureHoldToRecordHint =>
+      'اضغط مع الاستمرار للتسجيل، واسحب للتبديل';
+
+  @override
+  String get composerCaptureTapForCameraHint => 'انقر للكاميرا، واسحب للتبديل';
+
+  @override
   String get composerCaptureSlideToCancelHint => 'اسحب للإلغاء';
 
   @override

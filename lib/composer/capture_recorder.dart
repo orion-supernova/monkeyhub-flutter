@@ -217,20 +217,52 @@ class PluginAudioRecorder implements AudioRecorderPort {
   final _rec = AudioRecorder();
 
   @override
-  Future<bool> hasPermission() => _rec.hasPermission();
+  Future<bool> hasPermission() async {
+    try {
+      return await _rec.hasPermission();
+    } catch (e) {
+      debugPrint('PluginAudioRecorder.hasPermission: $e');
+      return false;
+    }
+  }
 
   @override
-  Future<void> start(RecordConfig config, {required String path}) =>
-      _rec.start(config, path: path);
+  Future<void> start(RecordConfig config, {required String path}) async {
+    try {
+      await _rec.start(config, path: path);
+    } catch (e) {
+      debugPrint('PluginAudioRecorder.start: $e');
+      rethrow;
+    }
+  }
 
   @override
-  Future<String?> stop() => _rec.stop();
+  Future<String?> stop() async {
+    try {
+      return await _rec.stop();
+    } catch (e) {
+      debugPrint('PluginAudioRecorder.stop: $e');
+      return null;
+    }
+  }
 
   @override
-  Future<void> cancel() => _rec.cancel();
+  Future<void> cancel() async {
+    try {
+      await _rec.cancel();
+    } catch (e) {
+      debugPrint('PluginAudioRecorder.cancel: $e');
+    }
+  }
 
   @override
-  Future<void> dispose() => _rec.dispose();
+  Future<void> dispose() async {
+    try {
+      await _rec.dispose();
+    } catch (e) {
+      debugPrint('PluginAudioRecorder.dispose: $e');
+    }
+  }
 
   @override
   Stream<Amplitude> onAmplitudeChanged(Duration interval) =>
