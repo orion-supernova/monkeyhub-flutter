@@ -68,6 +68,15 @@ crons.interval(
   internal.groupCalls.gcConsumedGroupSignals,
   {},
 );
+// Day-old ended group calls, their participants, and their signals. The 1:1
+// table had this from the start (calls.gcTerminalCalls); the group tables
+// grew forever.
+crons.interval(
+  "groupCalls.gcTerminalGroupCalls",
+  { hours: 1 },
+  internal.groupCalls.gcTerminalGroupCalls,
+  {},
+);
 
 // Presence backstop: demote users who stopped heartbeating (closed tab, killed
 // app) to 'offline'. Readers already correct this on the fly via

@@ -10,11 +10,15 @@ import { v } from "convex/values";
 import { childMayReach, childPolicyOf } from "./childGuard";
 import { assertNoSystemAccount } from "./systemAccount";
 import { lensFor } from "./visibility";
-import { effectiveStatus } from "./presence";
 
 // ────────────────────────────── helpers ──────────────────────────────
 
 const CALL_RING_TIMEOUT_MS = 30 * 1000; // missed after 30s un-answered
+
+// A `ringing` row older than this is a scheduler orphan (the 30s expire
+// never fired); `initiate`'s busy check reaps it inline rather than
+// refusing with BUSY. Twice the ring timeout, well before gcStuckRinging.
+const BUSY_RINGING_STALE_MS = 60 * 1000;
 
 async function isPairBlocked(
   ctx: any,
@@ -33,24 +37,124 @@ async function isPairBlocked(
   return !!ba;
 }
 
-// Whether `targetUserId`'s native CallKit/ConnectionService card needs a
-// VoIP/FCM push to clear — i.e. whether we can NOT already trust the
-// realtime `callSignals` subscription to reach them. When they're verifiably
-// `effectiveStatus(...) === "online"` right now, that subscription is live
-// and will deliver the "bye"/"cancel" signal essentially instantly, making
-// the push redundant. Redundant is not harmless on iOS: the push still
-// arrives, still requires reporting per Apple's PushKit contract, and lands
-// after the card is already gone — producing a brief phantom
-// report-then-immediately-end flash of the system incoming-call UI (see
-// AppDelegate.swift's `reportCallEndedElsewhere` escape hatch). Erring
-// toward "send it" whenever presence is anything other than a confidently
-// fresh "online" — offline/away/unknown all still get the push — so this
-// only trims the flash for the common case (both sides foreground) without
-// reopening the orphaned-CallKit bug the push exists to fix.
-async function nativeClearNeedsPush(ctx: any, targetUserId: any) {
-  const u = await ctx.db.get(targetUserId);
-  if (!u) return true;
-  return effectiveStatus(u.status, u.lastSeen) !== "online";
+// `nativeClearNeedsPush` used to live here, gating cancel/end's "taken"
+// dismissal push on the target USER reading `effectiveStatus === "online"`.
+// Removed: the CallKit card is per-DEVICE, so a user whose laptop kept them
+// "online" got no push at all while their iPhone's card sat orphaned — and
+// worse, iOS reports `inactive` (which writes NO presence) the whole time a
+// CallKit card is up, so the exact device the push exists for is also the
+// one whose staleness the gate misread as "online" for up to 3 minutes.
+// These were the ONLY two gated paths (accept/reject/expire/gc always
+// pushed) — precisely the cancel-leaves-stale-CallKit report. The cost of
+// always sending is a report-then-immediately-end blip only on a device
+// that has no card left in-process; `reportCallEndedElsewhere` dismisses
+// cleanly whenever the mapping exists.
+
+// Shared terminal transition: mark ended, notify the peer over realtime
+// (`bye`) AND native push (`taken`), purge everything else. Used by `end`,
+// by `cancel` when it loses the race to an accept, and by the busy-check
+// reaper in `initiate`.
+async function endCallImpl(ctx: any, call: any, byUserId: any) {
+  await ctx.db.patch(call._id, {
+    status: "ended",
+    endedAt: Date.now(),
+  });
+  const peer =
+    call.callerId.toString() === byUserId.toString()
+      ? call.calleeId
+      : call.callerId;
+  const sigId = await ctx.db.insert("callSignals", {
+    callId: call._id,
+    fromUserId: byUserId,
+    toUserId: peer,
+    kind: "bye",
+    payload: "{}",
+    createdAt: Date.now(),
+    consumed: false,
+  });
+  await purgeCallSignals(ctx, call._id, sigId);
+  // Clear the peer's native CallKit/ConnectionService card too. Without
+  // this, a peer whose app is backgrounded/killed never learns the call
+  // ended — the realtime `bye` above only reaches a live subscription —
+  // and their native call UI is orphaned "active" indefinitely.
+  await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    callId: call._id,
+    targetUserId: peer,
+    excludeDeviceId: null,
+    reason: "ended",
+  });
+}
+
+// Body of `expireRingingCall`, factored so `initiate`'s busy check can
+// reap a scheduler-orphaned ringing row inline instead of refusing with
+// BUSY for a call that died a minute ago.
+async function expireRingingImpl(ctx: any, call: any) {
+  await ctx.db.patch(call._id, {
+    status: "missed",
+    endedAt: Date.now(),
+  });
+  // Notify both sides so their UI can transition out of ringing. Both
+  // signals are kept by [purgeCallSignals] so each peer sees its own.
+  const sigToCallee = await ctx.db.insert("callSignals", {
+    callId: call._id,
+    fromUserId: call.callerId,
+    toUserId: call.calleeId,
+    kind: "cancel",
+    payload: '{"reason":"timeout"}',
+    createdAt: Date.now(),
+    consumed: false,
+  });
+  const sigToCaller = await ctx.db.insert("callSignals", {
+    callId: call._id,
+    fromUserId: call.calleeId,
+    toUserId: call.callerId,
+    kind: "reject",
+    payload: '{"reason":"timeout"}',
+    createdAt: Date.now(),
+    consumed: false,
+  });
+  await purgeCallSignals(ctx, call._id, [sigToCallee, sigToCaller]);
+  // Dismiss the callee's native CallKit ringer on timeout — the realtime
+  // "cancel" signal above can't reach a locked/killed device.
+  await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+    callId: call._id,
+    targetUserId: call.calleeId,
+    excludeDeviceId: null,
+    reason: "timeout",
+  });
+}
+
+// Per-call body of `gcStuckActive`, factored for the same reason: an
+// abandoned `active` row must not BUSY-block a fresh call for the sweep
+// cadence (worst case ~8 minutes of "you can't call each other").
+async function reapActiveCall(ctx: any, call: any) {
+  await ctx.db.patch(call._id, {
+    status: "ended",
+    endedAt: Date.now(),
+  });
+  // Either side's native card could be the orphaned one (the abandoned
+  // device, or a live peer whose app never heard the other side vanish) —
+  // drop a bye signal and clear the native card for both.
+  for (const [fromUserId, toUserId] of [
+    [call.callerId, call.calleeId],
+    [call.calleeId, call.callerId],
+  ]) {
+    await ctx.db.insert("callSignals", {
+      callId: call._id,
+      fromUserId,
+      toUserId,
+      kind: "bye",
+      payload: '{"reason":"stuck"}',
+      createdAt: Date.now(),
+      consumed: false,
+    });
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId: call._id,
+      targetUserId: toUserId,
+      excludeDeviceId: null,
+      reason: "stuck",
+    });
+  }
 }
 
 async function assertCallParticipant(ctx: any, callId: any, userId: any) {
@@ -145,38 +249,58 @@ export const initiate = mutation({
       throw new Error("NOT_A_MEMBER");
     }
 
-    // Reject if either user is already in a live call (ringing / active).
+    // Reject if either user is already in a live call (ringing / active) —
+    // with a staleness allowance: a row every sweeper would agree is dead
+    // (scheduler-orphaned ring, heartbeat-silent active call) is reaped
+    // HERE instead of blocking the fresh call for the sweep cadence, which
+    // used to mean up to ~8 minutes of BUSY after a crash.
+    const busyNow = Date.now();
     for (const uid of [callerId, calleeId]) {
-      const liveAsCallee = await ctx.db
-        .query("calls")
-        .withIndex("by_callee_status", (q) =>
-          q.eq("calleeId", uid).eq("status", "ringing"),
-        )
-        .first();
-      const liveAsCalleeActive = await ctx.db
-        .query("calls")
-        .withIndex("by_callee_status", (q) =>
-          q.eq("calleeId", uid).eq("status", "active"),
-        )
-        .first();
-      const liveAsCaller = await ctx.db
-        .query("calls")
-        .withIndex("by_caller_status", (q) =>
-          q.eq("callerId", uid).eq("status", "ringing"),
-        )
-        .first();
-      const liveAsCallerActive = await ctx.db
-        .query("calls")
-        .withIndex("by_caller_status", (q) =>
-          q.eq("callerId", uid).eq("status", "active"),
-        )
-        .first();
-      if (
-        liveAsCallee ||
-        liveAsCalleeActive ||
-        liveAsCaller ||
-        liveAsCallerActive
-      ) {
+      const liveRows = [
+        await ctx.db
+          .query("calls")
+          .withIndex("by_callee_status", (q) =>
+            q.eq("calleeId", uid).eq("status", "ringing"),
+          )
+          .first(),
+        await ctx.db
+          .query("calls")
+          .withIndex("by_callee_status", (q) =>
+            q.eq("calleeId", uid).eq("status", "active"),
+          )
+          .first(),
+        await ctx.db
+          .query("calls")
+          .withIndex("by_caller_status", (q) =>
+            q.eq("callerId", uid).eq("status", "ringing"),
+          )
+          .first(),
+        await ctx.db
+          .query("calls")
+          .withIndex("by_caller_status", (q) =>
+            q.eq("callerId", uid).eq("status", "active"),
+          )
+          .first(),
+      ];
+      for (const live of liveRows) {
+        if (!live) continue;
+        if (
+          live.status === "ringing" &&
+          live.startedAt < busyNow - BUSY_RINGING_STALE_MS
+        ) {
+          // The 30s expireRingingCall never fired (backend restart, lost
+          // schedule) — twice the ring timeout gone means nobody is ringing.
+          await expireRingingImpl(ctx, live);
+          continue;
+        }
+        if (live.status === "active") {
+          const lastSeen =
+            live.lastHeartbeatAt ?? live.acceptedAt ?? live.startedAt;
+          if (lastSeen < busyNow - STUCK_ACTIVE_MS) {
+            await reapActiveCall(ctx, live);
+            continue;
+          }
+        }
         throw new Error("BUSY");
       }
     }
@@ -318,12 +442,17 @@ export const reject = mutation({
     userId: v.id("users"),
     acceptingDeviceId: v.optional(v.string()),
   },
+  // "rejected" | "not-ringing" — a late reject (cancel or a sibling accept
+  // already resolved the row) tells the client so instead of silently
+  // no-oping; the reject path needs no fallback verb, so this is
+  // informational.
+  returns: v.string(),
   handler: async (ctx, { callId, userId, acceptingDeviceId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.calleeId.toString() !== userId.toString()) {
       throw new Error("ONLY_CALLEE_CAN_REJECT");
     }
-    if (call.status !== "ringing") return; // idempotent
+    if (call.status !== "ringing") return "not-ringing"; // idempotent
     await ctx.db.patch(callId, {
       status: "rejected",
       endedAt: Date.now(),
@@ -358,17 +487,30 @@ export const reject = mutation({
       excludeDeviceId: acceptingDeviceId ?? null,
       reason: "rejected",
     });
+    return "rejected";
   },
 });
 
 export const cancel = mutation({
   args: { callId: v.id("calls"), userId: v.id("users") },
+  // "cancelled" | "ended" | "already-terminal". The middle one is the
+  // accept/cancel race resolved server-side: the callee answered inside the
+  // window, so the cancel auto-converts into a full end — the callee gets a
+  // `bye` + taken push instead of being stranded `active` on a hot mic
+  // while the caller's UI already hung up. (The old silent `return` on that
+  // race left BOTH users BUSY-locked until the stuck-active sweep, up to
+  // ~8 minutes.)
+  returns: v.string(),
   handler: async (ctx, { callId, userId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
     if (call.callerId.toString() !== userId.toString()) {
       throw new Error("ONLY_CALLER_CAN_CANCEL");
     }
-    if (call.status !== "ringing") return;
+    if (call.status === "active") {
+      await endCallImpl(ctx, call, userId);
+      return "ended";
+    }
+    if (call.status !== "ringing") return "already-terminal";
     await ctx.db.patch(callId, {
       status: "cancelled",
       endedAt: Date.now(),
@@ -383,117 +525,52 @@ export const cancel = mutation({
       consumed: false,
     });
     await purgeCallSignals(ctx, callId, sigId);
-    // Dismiss the callee's native CallKit ringer too. A locked/killed callee
-    // woken by the invite VoIP push has a suspended realtime subscription, so
-    // the "cancel" signal above never reaches it — only a "taken" VoIP push
-    // can clear the lingering ring. Fan to ALL callee devices (no exclude).
-    // Skipped when they're confidently online — see `nativeClearNeedsPush`.
-    if (await nativeClearNeedsPush(ctx, call.calleeId)) {
-      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-        callId,
-        targetUserId: call.calleeId,
-        excludeDeviceId: null,
-        reason: "cancelled",
-      });
-    }
+    // Dismiss the callee's native CallKit ringer too — unconditionally. A
+    // locked/killed callee woken by the invite VoIP push has a suspended
+    // realtime subscription, so the "cancel" signal above never reaches it;
+    // only a "taken" VoIP push can clear the lingering ring. This used to
+    // be gated on per-USER presence, but the card is per-DEVICE (a laptop
+    // keeping the user "online" starved the iPhone's dismissal) and iOS
+    // under a CallKit card reports `inactive`, which writes no presence at
+    // all — the gate misread exactly the device it existed for. Fan to ALL
+    // callee devices (no exclude).
+    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
+      callId,
+      targetUserId: call.calleeId,
+      excludeDeviceId: null,
+      reason: "cancelled",
+    });
+    return "cancelled";
   },
 });
 
 export const end = mutation({
   args: { callId: v.id("calls"), userId: v.id("users") },
+  // "ended" | "already-terminal". The guard refuses ALL terminal states now
+  // — the old one only refused ended/failed, so a late `end` (a device
+  // whose accept lost a race) could overwrite `cancelled`→`ended` and, via
+  // the purge inside, delete a sibling device's still-undelivered `cancel`
+  // row — that sibling then rang for a dead call until touched.
+  returns: v.string(),
   handler: async (ctx, { callId, userId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
-    if (call.status === "ended" || call.status === "failed") return;
-    await ctx.db.patch(callId, {
-      status: "ended",
-      endedAt: Date.now(),
-    });
-    const peer =
-      call.callerId.toString() === userId.toString()
-        ? call.calleeId
-        : call.callerId;
-    const sigId = await ctx.db.insert("callSignals", {
-      callId,
-      fromUserId: userId,
-      toUserId: peer,
-      kind: "bye",
-      payload: "{}",
-      createdAt: Date.now(),
-      consumed: false,
-    });
-    await purgeCallSignals(ctx, callId, sigId);
-    // Clear the peer's native CallKit/ConnectionService card too. Without
-    // this, a peer whose app is backgrounded/killed never learns the call
-    // ended — the realtime `bye` signal above only reaches a live
-    // subscription — and their native call UI is orphaned "active"
-    // indefinitely. `sendVoipTaken` already dismisses by callId regardless
-    // of `reason` on both platforms, so this reuses it verbatim. Skipped
-    // when the peer is confidently online (the overwhelmingly common case —
-    // both sides mid-call, foreground) — see `nativeClearNeedsPush`.
-    if (await nativeClearNeedsPush(ctx, peer)) {
-      await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-        callId,
-        targetUserId: peer,
-        excludeDeviceId: null,
-        reason: "ended",
-      });
+    if (call.status !== "active" && call.status !== "ringing") {
+      return "already-terminal";
     }
+    await endCallImpl(ctx, call, userId);
+    return "ended";
   },
 });
 
 export const expireRingingCall = internalMutation({
   args: { callId: v.id("calls") },
+  returns: v.null(),
   handler: async (ctx, { callId }) => {
     const call = await ctx.db.get(callId);
-    if (!call) return;
-    if (call.status !== "ringing") return;
-    await ctx.db.patch(callId, {
-      status: "missed",
-      endedAt: Date.now(),
-    });
-    // Notify both sides so their UI can transition out of ringing. Both
-    // signals are kept by [purgeCallSignals] so each peer sees its own.
-    const sigToCallee = await ctx.db.insert("callSignals", {
-      callId,
-      fromUserId: call.callerId,
-      toUserId: call.calleeId,
-      kind: "cancel",
-      payload: '{"reason":"timeout"}',
-      createdAt: Date.now(),
-      consumed: false,
-    });
-    const sigToCaller = await ctx.db.insert("callSignals", {
-      callId,
-      fromUserId: call.calleeId,
-      toUserId: call.callerId,
-      kind: "reject",
-      payload: '{"reason":"timeout"}',
-      createdAt: Date.now(),
-      consumed: false,
-    });
-    // Sweep everything except those two terminal notifications.
-    const rows = await ctx.db
-      .query("callSignals")
-      .withIndex("by_call", (q: any) => q.eq("callId", callId))
-      .collect();
-    for (const r of rows) {
-      if (
-        r._id.toString() === sigToCallee.toString() ||
-        r._id.toString() === sigToCaller.toString()
-      ) {
-        continue;
-      }
-      await ctx.db.delete(r._id);
-    }
-    // Dismiss the callee's native CallKit ringer on timeout — the realtime
-    // "cancel" signal above can't reach a locked/killed device, so push a
-    // "taken" VoIP payload to every callee device (see cancel mutation).
-    await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-      callId,
-      targetUserId: call.calleeId,
-      excludeDeviceId: null,
-      reason: "timeout",
-    });
+    if (!call) return null;
+    if (call.status !== "ringing") return null;
+    await expireRingingImpl(ctx, call);
+    return null;
   },
 });
 
@@ -968,10 +1045,15 @@ export const gcStuckRinging = internalMutation({
 // call with no recent heartbeat from either side is treated as abandoned.
 export const heartbeat = mutation({
   args: { callId: v.id("calls"), userId: v.id("users") },
+  // "ok" | "not-in-call" — mirrors groupCalls:heartbeat; a beat against a
+  // terminal call tells the client its call is over even if every signal
+  // was missed.
+  returns: v.string(),
   handler: async (ctx, { callId, userId }) => {
     const call = await assertCallParticipant(ctx, callId, userId);
-    if (call.status !== "active") return;
+    if (call.status !== "active") return "not-in-call";
     await ctx.db.patch(callId, { lastHeartbeatAt: Date.now() });
+    return "ok";
   },
 });
 
@@ -987,55 +1069,34 @@ const STUCK_ACTIVE_MS = 3 * 60 * 1000; // 3 min without a heartbeat
 
 export const gcStuckActive = internalMutation({
   args: {},
+  returns: v.null(),
   handler: async (ctx) => {
     const cutoff = Date.now() - STUCK_ACTIVE_MS;
-    // No range filter on the index — staleness is judged by heartbeat, not
-    // by `startedAt`, so every `active` row needs inspecting. Capped like
-    // every other sweep in this file (see the cost note atop this file):
-    // "active" calls should be a tiny live set in practice, but nothing
-    // should scan unbounded on this box.
+    // Range-filtered on `by_status_heartbeat`: Convex orders rows with an
+    // unset `lastHeartbeatAt` BEFORE any set value, so `.lt(cutoff)` covers
+    // both never-heartbeat calls (judged below by their fallback
+    // timestamps) and stale-heartbeat ones — while rows beating recently
+    // fall outside the range entirely. The old unfiltered `.take(50)` over
+    // ALL active rows could starve stale calls forever behind healthy
+    // ones once >50 calls were live at once.
     const rows = await ctx.db
       .query("calls")
-      .withIndex("by_status_started", (q) => q.eq("status", "active"))
-      .take(50);
+      .withIndex("by_status_heartbeat", (q) =>
+        q.eq("status", "active").lt("lastHeartbeatAt", cutoff),
+      )
+      .take(200);
     let rescued = 0;
     for (const call of rows) {
       const lastSeen =
         call.lastHeartbeatAt ?? call.acceptedAt ?? call.startedAt;
       if (lastSeen >= cutoff) continue;
       rescued++;
-      await ctx.db.patch(call._id, {
-        status: "ended",
-        endedAt: Date.now(),
-      });
-      // Either side's native CallKit/ConnectionService card could be the
-      // orphaned one (the abandoned device, or a live peer whose app never
-      // heard the other side vanish) — drop a bye signal and clear the
-      // native card for both.
-      for (const [fromUserId, toUserId] of [
-        [call.callerId, call.calleeId],
-        [call.calleeId, call.callerId],
-      ]) {
-        await ctx.db.insert("callSignals", {
-          callId: call._id,
-          fromUserId,
-          toUserId,
-          kind: "bye",
-          payload: '{"reason":"stuck"}',
-          createdAt: Date.now(),
-          consumed: false,
-        });
-        await ctx.scheduler.runAfter(0, internal.voipPush.sendVoipTaken, {
-          callId: call._id,
-          targetUserId: toUserId,
-          excludeDeviceId: null,
-          reason: "stuck",
-        });
-      }
+      await reapActiveCall(ctx, call);
     }
     if (rescued > 0) {
       console.log(`gcStuckActive: rescued ${rescued} call(s)`);
     }
+    return null;
   },
 });
 

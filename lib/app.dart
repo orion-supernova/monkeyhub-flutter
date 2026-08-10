@@ -875,10 +875,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         // argument at a hundred times the size.
         await AudioFileCache.instance.clear();
         await VideoFileCache.instance.clear();
-        await _signaling.stop();
+        // End the calls BEFORE stopping the signaling subscription: endCall
+        // still wants its terminal mutation on the wire, and stop() first
+        // used to leave a window where a peer's bye/cancel arrived with
+        // nobody listening.
         await _callService.endCall();
-        _callService.detachWatch();
         await _groupCallService.leaveCall();
+        await _signaling.stop();
+        _callService.detachWatch();
         // Reset landing tab so the next sign-in starts on Chat instead of
         // wherever the previous session left off (e.g. Settings, which is
         // where Sign Out is reached from).

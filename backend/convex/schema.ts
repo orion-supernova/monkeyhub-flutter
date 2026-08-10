@@ -1137,6 +1137,10 @@ export default defineSchema({
     .index("by_callee_status", ["calleeId", "status"])
     .index("by_caller_status", ["callerId", "status"])
     .index("by_status_started", ["status", "startedAt"])
+    // gcStuckActive's sweep: unset lastHeartbeatAt sorts before every set
+    // value, so `eq(status).lt(lastHeartbeatAt, cutoff)` yields exactly the
+    // never-beat + stale-beat rows without scanning healthy calls.
+    .index("by_status_heartbeat", ["status", "lastHeartbeatAt"])
     // Account teardown needs every call regardless of status; the pair above
     // is status-scoped.
     .index("by_caller", ["callerId"])

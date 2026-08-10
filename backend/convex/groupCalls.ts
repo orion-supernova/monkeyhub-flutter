@@ -304,16 +304,24 @@ export const decline = mutation({
   },
 });
 
-// Joined clients ping every 30s; gcStaleGroupParticipants reaps anything
-// silent for 90s (app killed without leave()).
+// Joined clients ping every 15s; gcStaleGroupParticipants reaps anything
+// silent past HEARTBEAT_STALE_MS (45s — app killed without leave()).
+//
+// Returns "ok" | "not-in-call". The client self-ejects on "not-in-call":
+// its roster subscription is the ONLY other thing that can end its call
+// locally, so this doubles as that subscription's liveness check — a
+// reaped-but-still-beating client (dead subscription) learns here that its
+// call is over and releases its media instead of holding the mic forever.
 export const heartbeat = mutation({
   args: { groupCallId: v.id("groupCalls"), userId: v.id("users") },
-  returns: v.null(),
+  returns: v.string(),
   handler: async (ctx, { groupCallId, userId }) => {
     const mine = await participantRow(ctx, groupCallId, userId);
-    if (mine && mine.status === "joined") {
-      await ctx.db.patch(mine._id, { lastSeenAt: Date.now() });
-    }
+    if (!mine || mine.status !== "joined") return "not-in-call";
+    const call = await ctx.db.get(groupCallId);
+    if (!call || call.status !== "active") return "not-in-call";
+    await ctx.db.patch(mine._id, { lastSeenAt: Date.now() });
+    return "ok";
   },
 });
 
@@ -585,5 +593,42 @@ export const gcConsumedGroupSignals = internalMutation({
     for (const r of rows) {
       if (r.createdAt < cutoff) await ctx.db.delete(r._id);
     }
+  },
+});
+
+// The group counterpart of calls.gcTerminalCalls, which never existed:
+// ended groupCalls rows, their participants, and any signals (consumed or
+// not — unconsumed ones are only purged by endCallIfEmpty, which several
+// end paths skip) accumulated forever. Day-old ended calls have no readers.
+export const gcTerminalGroupCalls = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const rows = await ctx.db
+      .query("groupCalls")
+      .withIndex("by_status", (q) =>
+        q.eq("status", "ended").lt("startedAt", cutoff),
+      )
+      .take(50);
+    let deleted = 0;
+    for (const call of rows) {
+      const parts = await ctx.db
+        .query("groupCallParticipants")
+        .withIndex("by_call", (q: any) => q.eq("groupCallId", call._id))
+        .collect();
+      for (const p of parts) await ctx.db.delete(p._id);
+      const sigs = await ctx.db
+        .query("groupCallSignals")
+        .withIndex("by_call", (q: any) => q.eq("groupCallId", call._id))
+        .collect();
+      for (const s of sigs) await ctx.db.delete(s._id);
+      await ctx.db.delete(call._id);
+      deleted++;
+    }
+    if (deleted > 0) {
+      console.log(`gcTerminalGroupCalls: deleted ${deleted} call(s)`);
+    }
+    return null;
   },
 });
