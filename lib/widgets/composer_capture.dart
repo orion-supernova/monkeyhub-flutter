@@ -555,7 +555,21 @@ class _ComposerCaptureHostState extends State<ComposerCaptureHost>
       } catch (e) {
         debugPrint('capture cancel failed: $e');
       }
-      if (!identical(recorder, _video)) await recorder.dispose();
+      if (!identical(recorder, _video)) {
+        await recorder.dispose();
+      } else if (recorder is VideoNoteCaptureRecorder) {
+        // A canceled video note must not keep holding the camera+microphone
+        // (the OS mic indicator stays lit) just because the button is still
+        // on video mode. Release the session — the recorder object survives,
+        // and the next hold-to-record re-warms it through start(); the cost
+        // is that warm-up latency, not a leak.
+        try {
+          await recorder.release();
+        } catch (e) {
+          debugPrint('capture release after cancel failed: $e');
+        }
+        if (mounted) setState(() {});
+      }
     }
     if (!mounted) return;
     if (!silent) {
