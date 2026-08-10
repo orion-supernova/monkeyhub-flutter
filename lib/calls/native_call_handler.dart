@@ -739,6 +739,14 @@ class NativeCallHandler {
     } catch (_) {}
   }
 
+  /// True while a GROUP call is live. Wired at bootstrap (app.dart) —
+  /// [NativeCallHandler] cannot import GroupCallService (import cycle), yet
+  /// [deactivateIosAudioSession] MUST know about it: group calls raise no
+  /// CallKit card, so AppDelegate's own no-op-while-any-card-alive guard is
+  /// blind to them, and a 1:1 ring canceled DURING a group call would
+  /// otherwise deactivate the session under the group call's live audio.
+  static bool Function() groupCallActiveProbe = () => false;
+
   /// Belt for the stale-mic bug: ask AppDelegate to `setActive(false)` the
   /// AVAudioSession, which it does only when NO call UI (plugin card or
   /// fallback-provider card) is still alive. The callkit plugin activates
@@ -750,6 +758,7 @@ class NativeCallHandler {
   /// side predates the handler (the error is swallowed).
   Future<void> deactivateIosAudioSession() async {
     if (kIsWeb || !Platform.isIOS) return;
+    if (groupCallActiveProbe()) return;
     try {
       await _voipChannel.invokeMethod('deactivateAudioSession');
     } catch (_) {}

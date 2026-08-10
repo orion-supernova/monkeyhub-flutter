@@ -54,10 +54,10 @@ class CallApi {
   }
 
   /// Returns the backend's disposition — "cancelled", "ended" (the callee
-  /// accepted inside the race window and the server auto-converted to a full
-  /// end), or "already-terminal" — or null from a backend that predates
-  /// status returns. `CallService` falls back to [endCall] on
-  /// "already-active" from a mid-rollout backend.
+  /// accepted inside the race window and the server auto-converted to a
+  /// full end), or "already-terminal" — or null from a backend that
+  /// predates status returns. Informational: the race is resolved
+  /// server-side, so the client never needs a follow-up verb.
   Future<String?> cancelCall({required String callId, required String userId}) async {
     final res = await _cv
         .mutation('calls:cancel', {'callId': callId, 'userId': userId});
@@ -73,9 +73,14 @@ class CallApi {
 
   /// Pinged periodically while a call is active so `calls:gcStuckActive` can
   /// tell a genuinely abandoned call (crash, dead battery) apart from one
-  /// that's just running long. No-op server-side once the call isn't active.
-  Future<void> heartbeat({required String callId, required String userId}) async {
-    await _cv.mutation('calls:heartbeat', {'callId': callId, 'userId': userId});
+  /// that's just running long. Returns "ok" while the call is active,
+  /// "not-in-call" once it isn't (null from an older backend) — the client
+  /// tears down on "not-in-call", which covers a dead signaling
+  /// subscription that swallowed every terminal signal.
+  Future<String?> heartbeat({required String callId, required String userId}) async {
+    final res = await _cv
+        .mutation('calls:heartbeat', {'callId': callId, 'userId': userId});
+    return res?.toString();
   }
 
   Future<void> sendCallSignal({

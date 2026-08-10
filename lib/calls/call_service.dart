@@ -659,11 +659,13 @@ class CallService extends ChangeNotifier {
 
   /// Best-effort terminal notify: bounded, retried once, and never in the
   /// mic-release path. [preferCancel] picks `calls:cancel` (caller hanging
-  /// up while still ringing); when the backend answers `already-active` —
-  /// the callee accepted inside the race window — it follows with
-  /// `calls:end` so the callee isn't stranded mid-call on a hot mic.
-  /// (Newer backends auto-convert that race server-side too; the follow-up
-  /// covers a client running ahead of the backend deploy.) Never throws.
+  /// up while still ringing). The accept/cancel race is resolved SERVER-
+  /// side: a cancel that lost to an accept auto-converts to a full end and
+  /// returns "ended" — no client fallback verb needed (and none would be
+  /// safe against a pre-returns backend, whose `end` after a successful
+  /// cancel would purge the callee's undelivered cancel signal). Backend
+  /// deploys before the app build, per the protocol-change convention.
+  /// Never throws.
   Future<void> _notifyBackendTerminal({
     required String callId,
     required String userId,
@@ -671,10 +673,10 @@ class CallService extends ChangeNotifier {
   }) async {
     Future<void> attempt() async {
       if (preferCancel) {
-        final res = await api
+        await api
             .cancelCall(callId: callId, userId: userId)
             .timeout(terminalNotifyTimeout);
-        if (res != 'already-active') return;
+        return;
       }
       await api
           .endCall(callId: callId, userId: userId)
@@ -869,17 +871,18 @@ class CallService extends ChangeNotifier {
   /// The callkit plugin re-runs its own `configureAudioSession` when CallKit
   /// activates the session AND once more ~1200ms after answer — both with
   /// mode `.default` and no `defaultToSpeaker`, clobbering whatever route we
-  /// set. [onNativeAudioSessionActivated] is supposed to be our hook for
-  /// exactly that, but its
-  /// `ACTION_CALL_TOGGLE_AUDIO_SESSION` event never survives the plugin's
-  /// own parser (see NativeCallHandler.start) — so on iOS it simply never
-  /// fires, and the plugin's config was the last writer for the rest of the
-  /// call. That is why a video call stayed pinned to the loudspeaker no
-  /// matter what the toggle said.
+  /// set. [onNativeAudioSessionActivated] is the hook for exactly that;
+  /// historically its `ACTION_CALL_TOGGLE_AUDIO_SESSION` event never
+  /// survived the plugin's own parser (an `isActivate`/`isActive` key
+  /// mismatch), so on iOS it never fired and the plugin's config was the
+  /// last writer — a video call stayed pinned to the loudspeaker no matter
+  /// what the toggle said. The vendored plugin fixes the parser (PATCH 5),
+  /// so the hook fires now.
   ///
-  /// Cheap enough to just do unconditionally: three no-op-if-unchanged
-  /// route writes bracketing the plugin's known clobber points, rather than
-  /// waiting to be told about an activation we can't hear.
+  /// These re-asserts stay anyway, deliberately: they are cheap
+  /// no-op-if-unchanged route writes bracketing the plugin's known clobber
+  /// points, and they keep working even if a future plugin bump regresses
+  /// the event again.
   void _scheduleAudioRouteReasserts() {
     for (final ms in const [400, 1500, 3000]) {
       Timer(Duration(milliseconds: ms), () {
@@ -2076,14 +2079,31 @@ class CallService extends ChangeNotifier {
   /// Idempotent — cancels any prior timer first, so an ICE-restart
   /// reconnect (which re-enters the `Connected` branch) just restarts the
   /// interval against the same callId rather than stacking timers.
+  ///
+  /// The beat also LISTENS: a "not-in-call" answer means the backend
+  /// already ended this call (peer end, cancel auto-convert, GC) and every
+  /// terminal signal was missed — the dead-subscription case, where nothing
+  /// else would ever release the mic. Same backstop the group service has.
   void _startHeartbeat(String callId) {
     _heartbeatTimer?.cancel();
     final me = _userId;
     if (me == null) return;
     _heartbeatTimer = Timer.periodic(const Duration(seconds: 20), (_) {
-      unawaited(api.heartbeat(callId: callId, userId: me).catchError((e) {
-        debugPrint('CallService heartbeat failed: $e');
-      }));
+      unawaited(() async {
+        try {
+          final res = await api.heartbeat(callId: callId, userId: me);
+          if (res == 'not-in-call' &&
+              _session?.callId == callId &&
+              inCall) {
+            debugPrint(
+              'CallService: heartbeat says not-in-call — tearing down',
+            );
+            await _teardown(CallStatus.ended);
+          }
+        } catch (e) {
+          debugPrint('CallService heartbeat failed: $e');
+        }
+      }());
     });
   }
 

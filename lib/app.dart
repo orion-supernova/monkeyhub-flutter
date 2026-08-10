@@ -730,6 +730,11 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         deviceId: deviceId,
       );
       _groupCallService.attach(userId: s.userId, deviceId: deviceId);
+      // The audio-session deactivation belt must know about group calls —
+      // they raise no CallKit card, so the native no-op-while-a-card-is-
+      // alive guard can't see them. Without this, canceling a 1:1 ring
+      // DURING a group call would cut the group call's live audio.
+      NativeCallHandler.groupCallActiveProbe = () => _groupCallService.inCall;
       await _signaling.start(s.userId, deviceId: deviceId);
       _callStackAttached = true;
       // Fire-and-forget: reconciling stale native cards must never be

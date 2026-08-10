@@ -406,7 +406,12 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         }
         if self.isFromPushKit {
             self.isFromPushKit = false
-            self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, self.data?.toJSON() ?? data.toJSON())
+            // Identify the event by the call actually being ended — with two
+            // concurrent ringing cards, serializing self.data (the LAST
+            // invite) here told Dart the WRONG call ended, tearing down a
+            // session that was still ringing.
+            let resolvedData = self.callManager.callWithUUID(uuid: uuid)?.data ?? data
+            self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, resolvedData.toJSON())
         }
         let call = Call(uuid: uuid, data: data)
 
@@ -458,6 +463,19 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             NSLog("[CallkitIncoming] saveEndCall: invalid UUID '\(uuid)' (reason=\(reason)) — ignored")
             return
         }
+        // MONKEYHUB PATCH 1 (stale mic): every branch below REPORTS the call
+        // ended, which makes CallKit drop it without ever performing a
+        // CXEndCallAction — so the CallManager entry (added on
+        // reportNewIncomingCall/CXStartCallAction) survived forever. One
+        // timed-out or answered-elsewhere card then kept
+        // deactivateAudioSessionIfIdle()'s `calls.isEmpty` guard false for
+        // the rest of the process, killing every later deactivation. Remove
+        // the bookkeeping entry here, and deactivate if that was the last
+        // call.
+        if let staleCall = self.callManager.callWithUUID(uuid: callUuid) {
+            self.callManager.removeCall(staleCall)
+        }
+        defer { deactivateAudioSessionIfIdle() }
         switch reason {
         case 1:
             self.sharedProvider?.reportCall(with: callUuid, endedAt: Date(), reason: CXCallEndedReason.failed)
@@ -497,18 +515,18 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     
     func callEndTimeout(_ data: Data) {
-        self.saveEndCall(data.uuid, 3)
-        // MONKEYHUB PATCH 1 (stale mic): the ring itself configured (and
-        // activated) the audio session; a timed-out unanswered card must
-        // release it. Runs before the early-return guard below on purpose —
-        // saveEndCall has already reported the card ended either way.
-        deactivateAudioSessionIfIdle()
         // Guard against malformed UUID — see CallManager.swift:startCall for rationale.
         guard let uuid = UUID(uuidString: data.uuid) else {
             NSLog("[CallkitIncoming] callEndTimeout: invalid UUID '\(data.uuid)' — ignored")
             return
         }
-        guard let call = self.callManager.callWithUUID(uuid: uuid) else {
+        // MONKEYHUB PATCH 1 (stale mic): capture the call BEFORE saveEndCall
+        // — it now removes the CallManager entry (and deactivates the audio
+        // session when that was the last card), so looking it up afterwards
+        // would silently skip the missed-call notification and TIMEOUT event.
+        let timedOutCall = self.callManager.callWithUUID(uuid: uuid)
+        self.saveEndCall(data.uuid, 3)
+        guard let call = timedOutCall else {
             return
         }
         self.showMissedCallNotification(data)

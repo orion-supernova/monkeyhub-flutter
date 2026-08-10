@@ -34,6 +34,9 @@ class _FakeCallApi extends Fake implements CallApi {
   /// immediately (never-completing = the wedged-socket scenario).
   Future<String?>? cancelResult;
 
+  /// Same control for `rejectCall`.
+  Future<String?>? rejectResult;
+
   @override
   Future<String> initiateCall({
     required String callerId,
@@ -63,7 +66,7 @@ class _FakeCallApi extends Fake implements CallApi {
     String? acceptingDeviceId,
   }) {
     terminalCalls.add('reject');
-    return Future.value('rejected');
+    return rejectResult ?? Future.value('rejected');
   }
 
   @override
@@ -114,7 +117,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('CallService teardown', () {
-    test('endCall releases the mic even when the cancel mutation hangs',
+    test('endCall releases the mic BEFORE the hanging cancel resolves',
         () async {
       final api = _FakeCallApi();
       // The wedged socket: cancel never completes.
@@ -134,18 +137,28 @@ void main() {
       );
       expect(service.session?.status, CallStatus.outgoingRinging);
 
-      await service.endCall();
-
-      // The mutation is still pending — and the mic is already off. This is
-      // the whole bug: the old code awaited that hang before releasing.
-      expect(api.terminalCalls, contains('cancel'));
-      expect(stream.micReleased, isTrue);
+      // Ordering, not just boundedness: the mic must be off while endCall
+      // is STILL lingering on the (hanging, not-yet-timed-out) notify — a
+      // regression that merely bounds the old wait-then-release shape must
+      // fail here, not only on an indefinite hang.
+      var endCallDone = false;
+      final ending = service.endCall().whenComplete(() => endCallDone = true);
+      await _pump();
+      expect(endCallDone, isFalse,
+          reason: 'notify timeout (20ms) must not have fired yet');
+      expect(api.terminalCalls, ['cancel'],
+          reason: 'the mutation was kicked off first');
+      expect(stream.micReleased, isTrue,
+          reason: 'mic off while the network is still wedged');
       expect(service.localStream, isNull);
+      await ending;
     });
 
-    test("cancel answered 'already-active' is followed by end", () async {
+    test("a server-converted cancel ('ended') triggers no duplicate end",
+        () async {
       final api = _FakeCallApi();
-      api.cancelResult = Future.value('already-active');
+      // The accept/cancel race, resolved server-side: cancel auto-converted.
+      api.cancelResult = Future.value('ended');
       final service = _newService(api);
       final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
       service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
@@ -162,10 +175,68 @@ void main() {
       await service.endCall();
       await _pump();
 
-      // Cancel lost the race to an accept — the client must convert to a
-      // full end so the callee isn't stranded mid-call on a hot mic.
-      expect(api.terminalCalls, ['cancel', 'end']);
+      expect(api.terminalCalls, ['cancel']);
       expect(stream.micReleased, isTrue);
+    });
+
+    test('reject releases the mic before the hanging mutation resolves',
+        () async {
+      final api = _FakeCallApi();
+      api.rejectResult = Completer<String?>().future;
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      // An incoming session mid-accept: media acquired, then decline.
+      service.debugSetLocalStreamForTest(stream);
+      service.handleRemoteSignal({
+        '_id': 's1',
+        'callId': 'call-in',
+        'fromUserId': 'peer',
+        'kind': 'invite',
+        'payload': '{"callerName":"Peer","type":"audio","roomId":"r1"}',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      });
+      await _pump();
+      expect(service.session?.status, CallStatus.incomingRinging);
+
+      var rejectDone = false;
+      final rejecting =
+          service.reject().whenComplete(() => rejectDone = true);
+      await _pump();
+      expect(rejectDone, isFalse);
+      expect(api.terminalCalls, ['reject']);
+      expect(stream.micReleased, isTrue,
+          reason: 'declining must not wait on the network to drop the mic');
+      await rejecting;
+
+      // Double-tap decline: the first pass owns the teardown.
+      await service.reject();
+      expect(api.terminalCalls, ['reject']);
+    });
+
+    test('initiate failure cancels the backend row it already created',
+        () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        throw StateError('camera exploded');
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      await expectLater(
+        service.initiate(
+          peerUserId: 'peer',
+          peerName: 'Peer',
+          roomId: 'room1',
+          kind: CallMediaKind.audio,
+        ),
+        throwsStateError,
+      );
+      await _pump();
+
+      // The row was reserved before media setup — its failure must cancel
+      // it (the callee is already ringing) rather than strand it.
+      expect(api.terminalCalls, contains('cancel'));
+      expect(service.session, isNull);
     });
 
     test('endCall is a no-op on an already-terminal session (double tap)',
@@ -191,7 +262,10 @@ void main() {
       await service.endCall();
       await _pump();
 
-      expect(api.terminalCalls.where((c) => c == 'cancel').length, 1);
+      // Exactly one terminal mutation of any verb — without the guard the
+      // second tap would send an `end` (the session reads terminal, so the
+      // preferCancel branch flips), which a cancel-only count missed.
+      expect(api.terminalCalls, ['cancel']);
       await Future<void>.delayed(const Duration(milliseconds: 80));
     });
 
@@ -331,7 +405,7 @@ void main() {
   });
 
   group('GroupCallService teardown', () {
-    test('leaveCall releases the mic even when the leave mutation hangs',
+    test('leaveCall releases the mic BEFORE the hanging leave resolves',
         () async {
       final api = _FakeGroupApi();
       api.leaveResult = Completer<void>().future;
@@ -344,12 +418,18 @@ void main() {
       await service.joinCall('gc1');
       expect(service.inCall, isTrue);
 
-      await service.leaveCall();
-
-      expect(api.leaveCalls, 1, reason: 'the mutation was still kicked off');
+      // Same ordering pin as the 1:1 test: mic off while leaveCall is
+      // still lingering on the not-yet-timed-out notify.
+      var leaveDone = false;
+      final leaving =
+          service.leaveCall().whenComplete(() => leaveDone = true);
+      await _pump();
+      expect(leaveDone, isFalse);
+      expect(api.leaveCalls, 1, reason: 'the mutation was kicked off first');
       expect(stream.micReleased, isTrue);
       expect(service.inCall, isFalse);
       expect(service.localStream, isNull);
+      await leaving;
     });
 
     test('leave during in-flight getUserMedia orphans nothing', () async {
