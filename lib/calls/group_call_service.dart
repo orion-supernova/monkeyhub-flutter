@@ -13,6 +13,7 @@ import 'call_media.dart';
 import 'call_models.dart';
 import 'call_permissions.dart';
 import 'call_recovery.dart';
+import 'native_call_handler.dart';
 
 /// Per-peer video bitrate cap for a mesh call: every phone runs one encoder
 /// per remote peer, so the budget shrinks as the call grows. [baseline] is
@@ -50,6 +51,13 @@ class GroupPeer {
   DateTime? outageStart;
   bool reconnecting = false;
 
+  /// Full from-scratch link rebuilds consumed after recovery exhaustion.
+  /// Capped: past the cap the link stays down and the roster reap (or the
+  /// peer coming back) decides its fate — an unbounded rebuild loop would
+  /// otherwise churn PCs forever without ever ending the call or releasing
+  /// anything. Reset on a successful (re)connect.
+  int rebuildCount = 0;
+
   PeerMediaState mediaState = const PeerMediaState();
   bool connected = false;
 
@@ -77,6 +85,43 @@ class GroupCallService extends ChangeNotifier {
       _instance ??= GroupCallService(api: api);
 
   final GroupCallApi api;
+
+  /// Seam for tests — same shape as `CallService.getUserMediaFn`.
+  @visibleForTesting
+  Future<MediaStream> Function(CallMediaKind kind, {VideoQualityTier tier})
+      getUserMediaFn = getCallUserMedia;
+
+  /// Seam for tests — same shape as `CallService.createPcFn`.
+  @visibleForTesting
+  Future<RTCPeerConnection> Function(
+    Map<String, dynamic> configuration,
+    Map<String, dynamic> constraints,
+  ) createPcFn = createPeerConnection;
+
+  /// Cap on the `groupCalls:leave` mutation after local teardown already
+  /// released the mic. Injectable so tests don't sit through real seconds.
+  @visibleForTesting
+  Duration leaveNotifyTimeout = const Duration(seconds: 5);
+
+  /// Heartbeat cadence/deadline — injectable for fakeAsync tests. 15s beat
+  /// against the server's 45s stale window (3 missed beats).
+  @visibleForTesting
+  Duration heartbeatInterval = const Duration(seconds: 15);
+  @visibleForTesting
+  Duration heartbeatTimeout = const Duration(seconds: 10);
+
+  /// Same pattern as `CallService._mediaEpoch`: bumped at every acquisition
+  /// start and first thing in [leaveCall], so a getUserMedia future
+  /// resolving after the call ended stops its own (otherwise ownerless)
+  /// stream instead of holding the mic forever.
+  int _mediaEpoch = 0;
+
+  /// Consecutive failed heartbeats. The roster subscription is this
+  /// service's ONLY teardown trigger for a call that ends elsewhere — if
+  /// that subscription silently dies, nothing would ever call [leaveCall].
+  /// Four straight missed beats (~1min, past the server's 45s reap window)
+  /// mean we're unreachable or already reaped: self-eject.
+  int _missedHeartbeats = 0;
 
   String? _userId;
   String? get userId => _userId;
@@ -259,7 +304,17 @@ class GroupCallService extends ChangeNotifier {
       speakerOn = kind == CallMediaKind.video;
       await applyIosCallAudioConfig(kind, speakerOn: speakerOn);
       _videoTier = SettingsStore.instance.videoQualityTier;
-      _localStream = await getCallUserMedia(kind, tier: _videoTier);
+      final epoch = ++_mediaEpoch;
+      final stream = await getUserMediaFn(kind, tier: _videoTier);
+      if (epoch != _mediaEpoch || _groupCallId != groupCallId) {
+        // [leaveCall] ran while getUserMedia was still in flight. The call
+        // is over; nothing else will ever see this stream — stop it here or
+        // the mic stays hot with no owner, and skip the rest of the setup
+        // (heartbeat, roster) that would resurrect a dead call.
+        await stopAndDisposeStream(stream);
+        return;
+      }
+      _localStream = stream;
       await applyCallAudioRoute(speaker: speakerOn);
     } catch (e, st) {
       debugPrint('GroupCallService: getUserMedia failed: $e\n$st');
@@ -267,15 +322,34 @@ class GroupCallService extends ChangeNotifier {
       rethrow;
     }
 
+    _missedHeartbeats = 0;
     _heartbeat?.cancel();
-    // 15s beat against the server's 45s stale window (3 missed beats) —
-    // keeps the room banner honest within ~a minute of an app dying.
-    _heartbeat = Timer.periodic(const Duration(seconds: 15), (_) {
+    // Keeps the room banner honest within ~a minute of an app dying — and,
+    // since the roster subscription is the only other thing that can end
+    // this call locally, doubles as the dead-subscription watchdog: a
+    // server that says we're not in the call (or four straight failures to
+    // reach it) means the call is over whether or not the roster ever
+    // manages to tell us.
+    _heartbeat = Timer.periodic(heartbeatInterval, (_) async {
       final id = _groupCallId;
       if (id == null) return;
-      unawaited(
-        api.heartbeat(groupCallId: id, userId: me).catchError((_) {}),
-      );
+      try {
+        final status = await api
+            .heartbeat(groupCallId: id, userId: me)
+            .timeout(heartbeatTimeout);
+        _missedHeartbeats = 0;
+        if (status == 'not-in-call') {
+          debugPrint('GroupCallService: server says not-in-call — ejecting');
+          unawaited(leaveCall());
+        }
+      } catch (_) {
+        _missedHeartbeats++;
+        if (_missedHeartbeats >= 4) {
+          debugPrint('GroupCallService: 4 heartbeats failed — self-ejecting');
+          _missedHeartbeats = 0;
+          unawaited(leaveCall());
+        }
+      }
     });
 
     _rosterSub?.cancel();
@@ -297,47 +371,54 @@ class GroupCallService extends ChangeNotifier {
   }
 
   /// Leave and clean up. Safe to call repeatedly.
+  ///
+  /// Local teardown — the mic release — never waits on the network. The
+  /// `leave` mutation is kicked off first (it hits the wire before any
+  /// possible rejoin, preserving server-side ordering) but is awaited only
+  /// at the end, bounded; if it never lands, our stopped heartbeat gets us
+  /// reaped server-side within ~45s anyway.
   Future<void> leaveCall() async {
     if (_ending) return;
     _ending = true;
+    // Kill any in-flight acquisition FIRST — a getUserMedia resolving after
+    // this point must see the epoch moved on and stop its own stream.
+    _mediaEpoch++;
     final me = _userId;
     final id = _groupCallId;
+    final notify = (me != null && id != null)
+        ? () async {
+            try {
+              await api
+                  .leave(groupCallId: id, userId: me)
+                  .timeout(leaveNotifyTimeout);
+            } catch (e) {
+              debugPrint('GroupCallService.leave notify failed: $e');
+            }
+          }()
+        : Future<void>.value();
     _heartbeat?.cancel();
     _heartbeat = null;
     _rosterSub?.cancel();
     _rosterSub = null;
-    if (me != null && id != null) {
-      try {
-        await api.leave(groupCallId: id, userId: me);
-      } catch (_) {}
-    }
     for (final peer in _peers.values) {
       _disposePeerLink(peer);
     }
     _peers.clear();
     rosterRows = const [];
     final ls = _localStream;
-    if (ls != null) {
-      // Per-track try/catch: one track throwing on stop() (seen on some
-      // Android OEMs for the video track specifically) used to abort the
-      // shared try block and skip stopping every track after it — leaving
-      // the mic held open even though `_localStream` was about to be
-      // dropped either way.
-      for (final t in ls.getTracks()) {
-        try {
-          await t.stop();
-        } catch (_) {}
-      }
-      try {
-        await ls.dispose();
-      } catch (_) {}
-    }
     _localStream = null;
+    if (ls != null) {
+      // Per-track stop with individual guards — see [stopAndDisposeStream].
+      await stopAndDisposeStream(ls);
+    }
     _groupCallId = null;
     _roomId = null;
     _ending = false;
-    if (_disposed) return;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
+    // Belt for iOS: with no plugin/CallKit card alive (group calls never
+    // raise one) this releases the audio session WebRTC activated.
+    unawaited(NativeCallHandler.instance.deactivateIosAudioSession());
+    await notify;
   }
 
   Future<void> declineInvite() async {
@@ -472,7 +553,7 @@ class GroupCallService extends ChangeNotifier {
 
   Future<RTCPeerConnection> _createPeerPc(GroupPeer peer, int gen) async {
     final servers = await _iceServers();
-    final pc = await createPeerConnection({
+    final pc = await createPcFn({
       'iceServers': servers,
       'sdpSemantics': 'unified-plan',
       'bundlePolicy': 'max-bundle',
@@ -533,6 +614,7 @@ class GroupCallService extends ChangeNotifier {
     peer.restartTimer?.cancel();
     peer.restartAttempt = 0;
     peer.outageStart = null;
+    peer.rebuildCount = 0;
     if (peer.reconnecting) {
       peer.reconnecting = false;
       notifyListeners();
@@ -570,12 +652,25 @@ class GroupCallService extends ChangeNotifier {
       now: DateTime.now(),
       attemptsSoFar: peer.restartAttempt,
     )) {
-      // Rebuild the link from scratch once; if the peer is truly gone the
-      // heartbeat GC removes them from the roster within ~90s and the
-      // roster diff tears this link down for good.
-      debugPrint(
-          'GroupCallService: rebuilding link to ${peer.userId} after failed recovery');
+      // Rebuild the link from scratch — with a fresh recovery budget
+      // (_disposePeerLink resets restartAttempt/outageStart; preserving
+      // them made every later rebuild abandon on its FIRST failure,
+      // producing an unbounded instant-churn loop). Capped: past the cap
+      // the link stays down and the heartbeat GC removes the peer from the
+      // roster within ~90s, which tears this down for good. Deliberately
+      // NOT leaveCall() — one unreachable peer must not end my call with
+      // everyone else.
+      peer.rebuildCount++;
       _disposePeerLink(peer, keepIdentity: true);
+      if (peer.rebuildCount > 2) {
+        debugPrint(
+            'GroupCallService: giving up on ${peer.userId} after '
+            '${peer.rebuildCount - 1} rebuilds — leaving link down');
+        return;
+      }
+      debugPrint(
+          'GroupCallService: rebuilding link to ${peer.userId} after failed '
+          'recovery (rebuild ${peer.rebuildCount})');
       unawaited(_ensureLink(peer));
       return;
     }
@@ -821,9 +916,14 @@ class GroupCallService extends ChangeNotifier {
     peer.remoteDescSet = false;
     peer.connected = false;
     peer.reconnecting = false;
+    // A fresh link always deserves a fresh recovery budget — carrying the
+    // spent one across a rebuild made the next failure abandon instantly.
+    // [keepIdentity] preserves only who the peer is (name/avatar) and the
+    // rebuild cap that spans link lifetimes.
+    peer.restartAttempt = 0;
+    peer.outageStart = null;
     if (!keepIdentity) {
-      peer.restartAttempt = 0;
-      peer.outageStart = null;
+      peer.rebuildCount = 0;
     }
     final pc = peer.pc;
     peer.pc = null;

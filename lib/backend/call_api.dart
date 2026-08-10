@@ -38,24 +38,37 @@ class CallApi {
     });
   }
 
-  Future<void> rejectCall({
+  /// Returns the backend's disposition ("rejected" | "not-ringing"), or null
+  /// from a backend that predates status returns. Callers may ignore it.
+  Future<String?> rejectCall({
     required String callId,
     required String userId,
     String? acceptingDeviceId,
   }) async {
-    await _cv.mutation('calls:reject', {
+    final res = await _cv.mutation('calls:reject', {
       'callId': callId,
       'userId': userId,
       'acceptingDeviceId': ?acceptingDeviceId,
     });
+    return res?.toString();
   }
 
-  Future<void> cancelCall({required String callId, required String userId}) async {
-    await _cv.mutation('calls:cancel', {'callId': callId, 'userId': userId});
+  /// Returns the backend's disposition — "cancelled", "ended" (the callee
+  /// accepted inside the race window and the server auto-converted to a full
+  /// end), or "already-terminal" — or null from a backend that predates
+  /// status returns. `CallService` falls back to [endCall] on
+  /// "already-active" from a mid-rollout backend.
+  Future<String?> cancelCall({required String callId, required String userId}) async {
+    final res = await _cv
+        .mutation('calls:cancel', {'callId': callId, 'userId': userId});
+    return res?.toString();
   }
 
-  Future<void> endCall({required String callId, required String userId}) async {
-    await _cv.mutation('calls:end', {'callId': callId, 'userId': userId});
+  /// Returns "ended" | "already-terminal", or null from an older backend.
+  Future<String?> endCall({required String callId, required String userId}) async {
+    final res =
+        await _cv.mutation('calls:end', {'callId': callId, 'userId': userId});
+    return res?.toString();
   }
 
   /// Pinged periodically while a call is active so `calls:gcStuckActive` can

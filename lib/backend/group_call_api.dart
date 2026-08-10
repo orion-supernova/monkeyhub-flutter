@@ -69,14 +69,21 @@ class GroupCallApi {
     });
   }
 
-  Future<void> heartbeat({
+  /// Returns "ok" while the server still counts us as joined, or
+  /// "not-in-call" when it doesn't (we were reaped, or the call ended) —
+  /// null from a backend that predates status returns. The service
+  /// self-ejects on "not-in-call": the roster subscription is its only
+  /// other teardown trigger, and this doubles as that subscription's
+  /// liveness check.
+  Future<String?> heartbeat({
     required String groupCallId,
     required String userId,
   }) async {
-    await _cv.mutation('groupCalls:heartbeat', {
+    final res = await _cv.mutation('groupCalls:heartbeat', {
       'groupCallId': groupCallId,
       'userId': userId,
     });
+    return res?.toString();
   }
 
   Future<void> sendSignal({

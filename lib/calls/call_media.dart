@@ -96,6 +96,35 @@ Map<String, dynamic> _videoConstraintsFor(VideoQualityTier tier) {
   };
 }
 
+/// Thrown by media attachment when the acquired stream resolved AFTER the
+/// call it was meant for ended (or was replaced by a newer call). The
+/// orphaned stream has already been stopped and disposed by the thrower;
+/// callers treat this as "quietly abort my remaining setup", never as a
+/// call failure — the call that superseded us owns all live state now.
+class MediaSupersededException implements Exception {
+  @override
+  String toString() => 'MediaSupersededException';
+}
+
+/// Stop every track, then dispose the stream — with a per-track try/catch,
+/// because a single throwing `stop()` (seen on some Android OEMs) must never
+/// skip the remaining tracks or the dispose. A skipped audio-track stop is a
+/// live microphone with no owner: the iOS orange-dot bug.
+Future<void> stopAndDisposeStream(MediaStream stream) async {
+  for (final t in stream.getTracks()) {
+    try {
+      await t.stop();
+    } catch (e) {
+      debugPrint('stopAndDisposeStream: track ${t.id} stop failed: $e');
+    }
+  }
+  try {
+    await stream.dispose();
+  } catch (e) {
+    debugPrint('stopAndDisposeStream: dispose failed: $e');
+  }
+}
+
 /// getUserMedia with production constraints; falls back once to the legacy
 /// `mandatory` form on devices that reject the ideal/min/max map.
 Future<MediaStream> getCallUserMedia(

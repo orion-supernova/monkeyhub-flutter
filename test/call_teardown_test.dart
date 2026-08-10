@@ -1,0 +1,575 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:monkeyhub/backend/call_api.dart';
+import 'package:monkeyhub/backend/convex_client.dart';
+import 'package:monkeyhub/backend/group_call_api.dart';
+import 'package:monkeyhub/calls/call_models.dart';
+import 'package:monkeyhub/calls/call_service.dart';
+import 'package:monkeyhub/calls/group_call_service.dart';
+
+import 'fakes/fake_webrtc.dart';
+
+/// The stale-mic (iOS orange dot) regression suite: every test here pins one
+/// of the audited leak paths — teardown ordering (L1), the getUserMedia
+/// races (L2/L3/L6), the no-session cleanup branch (L4), the throwing-track
+/// release (L7), the group rebuild cap (B8) and the heartbeat self-eject.
+/// The WebRTC boundary is faked through `getUserMediaFn`/`createPcFn`; the
+/// backend through recording [_FakeCallApi]/[_FakeGroupApi]. No real device,
+/// no real timers beyond microseconds.
+
+class _FakeSubscription extends Fake implements Subscription {
+  @override
+  void cancel() {}
+}
+
+class _FakeCallApi extends Fake implements CallApi {
+  /// Ordered log of terminal-mutation invocations: 'cancel' | 'end' |
+  /// 'reject'.
+  final List<String> terminalCalls = [];
+
+  /// When set, `cancelCall` returns this future instead of completing
+  /// immediately (never-completing = the wedged-socket scenario).
+  Future<String?>? cancelResult;
+
+  @override
+  Future<String> initiateCall({
+    required String callerId,
+    required String calleeId,
+    required String roomId,
+    required String type,
+  }) async =>
+      'call-${terminalCalls.length}-$type-$roomId';
+
+  @override
+  Future<String?> cancelCall(
+      {required String callId, required String userId}) {
+    terminalCalls.add('cancel');
+    return cancelResult ?? Future.value('cancelled');
+  }
+
+  @override
+  Future<String?> endCall({required String callId, required String userId}) {
+    terminalCalls.add('end');
+    return Future.value('ended');
+  }
+
+  @override
+  Future<String?> rejectCall({
+    required String callId,
+    required String userId,
+    String? acceptingDeviceId,
+  }) {
+    terminalCalls.add('reject');
+    return Future.value('rejected');
+  }
+
+  @override
+  Future<void> sendCallSignal({
+    required String callId,
+    required String fromUserId,
+    required String toUserId,
+    required String kind,
+    required String payload,
+    String? fromDeviceId,
+    String? targetDeviceId,
+  }) async {}
+
+  @override
+  Future<List<Map<String, dynamic>>> getIceConfig(String userId) async =>
+      const [];
+
+  @override
+  Future<Subscription> subscribeActiveCall({
+    required String userId,
+    required void Function(Map<String, dynamic>? call) onCall,
+    void Function(Object error)? onError,
+  }) async =>
+      _FakeSubscription();
+}
+
+Future<void> _pump([int rounds = 12]) async {
+  for (var i = 0; i < rounds; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
+}
+
+CallService _newService(_FakeCallApi api) {
+  final service = CallService(api: api)
+    ..terminalNotifyTimeout = const Duration(milliseconds: 20)
+    ..terminalNotifyRetryDelay = const Duration(milliseconds: 1)
+    ..teardownUiHold = Duration.zero
+    ..endNativeTimeout = const Duration(milliseconds: 20);
+  service.attach(userId: 'me', displayName: 'Me');
+  return service;
+}
+
+void main() {
+  // flutter_webrtc's NativeLogsListener singleton wires an EventChannel the
+  // first time the plugin's top-level helpers run (preferH264Codec) — it
+  // needs a binary messenger even though the platform call itself just
+  // MissingPluginExceptions its way into the helper's catch.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('CallService teardown', () {
+    test('endCall releases the mic even when the cancel mutation hangs',
+        () async {
+      final api = _FakeCallApi();
+      // The wedged socket: cancel never completes.
+      api.cancelResult = Completer<String?>().future;
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      expect(service.session?.status, CallStatus.outgoingRinging);
+
+      await service.endCall();
+
+      // The mutation is still pending — and the mic is already off. This is
+      // the whole bug: the old code awaited that hang before releasing.
+      expect(api.terminalCalls, contains('cancel'));
+      expect(stream.micReleased, isTrue);
+      expect(service.localStream, isNull);
+    });
+
+    test("cancel answered 'already-active' is followed by end", () async {
+      final api = _FakeCallApi();
+      api.cancelResult = Future.value('already-active');
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await service.endCall();
+      await _pump();
+
+      // Cancel lost the race to an accept — the client must convert to a
+      // full end so the callee isn't stranded mid-call on a hot mic.
+      expect(api.terminalCalls, ['cancel', 'end']);
+      expect(stream.micReleased, isTrue);
+    });
+
+    test('endCall is a no-op on an already-terminal session (double tap)',
+        () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+      // Non-zero hold so the terminal session is still visible to the
+      // second tap.
+      service.teardownUiHold = const Duration(milliseconds: 50);
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await service.endCall();
+      await service.endCall();
+      await _pump();
+
+      expect(api.terminalCalls.where((c) => c == 'cancel').length, 1);
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+    });
+
+    test('a stream resolving after endCall is stopped and never attached',
+        () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final gate = Completer<void>();
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      final pc = FakePeerConnection();
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        await gate.future;
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => pc;
+
+      final initiated = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      expect(service.session?.status, CallStatus.outgoingRinging);
+
+      // Cancel while getUserMedia is still in flight…
+      await service.endCall();
+      // …then the acquisition lands, late.
+      gate.complete();
+      await initiated;
+
+      expect(stream.micReleased, isTrue,
+          reason: 'the late stream must be stopped at the acquisition site');
+      expect(service.localStream, isNull);
+      expect(pc.addedTracks, isEmpty,
+          reason: 'a dead call must never receive tracks');
+    });
+
+    test('cancel → instant redial never leaks the first call\'s stream',
+        () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final gate1 = Completer<void>();
+      final stream1 = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')],
+          id: 'stream1');
+      final stream2 = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')],
+          id: 'stream2');
+      final pcs = <FakePeerConnection>[];
+      var acquisition = 0;
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        acquisition++;
+        if (acquisition == 1) {
+          await gate1.future;
+          return stream1;
+        }
+        return stream2;
+      };
+      service.createPcFn = (config, constraints) async {
+        final pc = FakePeerConnection();
+        pcs.add(pc);
+        return pc;
+      };
+
+      // Call #1: cancel while its getUserMedia is in flight.
+      final first = service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+      await _pump();
+      await service.endCall();
+      await _pump();
+
+      // Call #2: redial immediately; completes normally.
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.audio,
+      );
+
+      // Call #1's acquisition finally lands.
+      gate1.complete();
+      await first;
+      await _pump();
+
+      expect(stream1.micReleased, isTrue,
+          reason: 'the superseded stream must be stopped, not clobbered over');
+      expect(stream2.disposed, isFalse,
+          reason: 'the live call must keep its media');
+      expect(service.localStream, same(stream2));
+      expect(pcs, hasLength(2));
+      // The new call's PC saw only the new call's stream.
+      expect(pcs[1].addedStreams.toSet(), {stream2});
+      expect(pcs[1].addedStreams, isNot(contains(stream1)));
+    });
+
+    test('endCall with no session still disposes straggler media', () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.debugSetLocalStreamForTest(stream);
+
+      await service.endCall();
+
+      expect(stream.micReleased, isTrue);
+      expect(service.localStream, isNull);
+    });
+
+    test('one throwing track never skips the rest of the release', () async {
+      final api = _FakeCallApi();
+      final service = _newService(api);
+      final audio = FakeMediaStreamTrack(kind: 'audio');
+      final stream = FakeMediaStream([
+        // Video first — its stop() throws, like the Android OEM bug. The
+        // audio track after it must still be stopped.
+        FakeMediaStreamTrack(kind: 'video', throwOnStop: StateError('boom')),
+        audio,
+      ]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+      service.createPcFn = (config, constraints) async => FakePeerConnection();
+
+      await service.initiate(
+        peerUserId: 'peer',
+        peerName: 'Peer',
+        roomId: 'room1',
+        kind: CallMediaKind.video,
+      );
+      await service.endCall();
+
+      expect(audio.stopped, isTrue);
+      expect(stream.disposed, isTrue);
+    });
+  });
+
+  group('GroupCallService teardown', () {
+    test('leaveCall releases the mic even when the leave mutation hangs',
+        () async {
+      final api = _FakeGroupApi();
+      api.leaveResult = Completer<void>().future;
+      final service = _newGroupService(api);
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        return stream;
+      };
+
+      await service.joinCall('gc1');
+      expect(service.inCall, isTrue);
+
+      await service.leaveCall();
+
+      expect(api.leaveCalls, 1, reason: 'the mutation was still kicked off');
+      expect(stream.micReleased, isTrue);
+      expect(service.inCall, isFalse);
+      expect(service.localStream, isNull);
+    });
+
+    test('leave during in-flight getUserMedia orphans nothing', () async {
+      final api = _FakeGroupApi();
+      final service = _newGroupService(api);
+      final gate = Completer<void>();
+      final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+      service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+        await gate.future;
+        return stream;
+      };
+
+      final joined = service.joinCall('gc1');
+      await _pump();
+      await service.leaveCall();
+      gate.complete();
+      await joined;
+      await _pump();
+
+      expect(stream.micReleased, isTrue,
+          reason: 'the late stream must be stopped at the acquisition site');
+      expect(service.inCall, isFalse);
+      expect(service.localStream, isNull);
+    });
+
+    test('peer link rebuilds are capped with a fresh budget each time', () {
+      fakeAsync((async) {
+        final api = _FakeGroupApi();
+        final service = _newGroupService(api);
+        final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+        service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+          return stream;
+        };
+        final pcs = <FakePeerConnection>[];
+        service.createPcFn = (config, constraints) async {
+          final pc = FakePeerConnection();
+          pcs.add(pc);
+          return pc;
+        };
+
+        unawaited(service.joinCall('gc1'));
+        async.flushMicrotasks();
+        // Roster delivers one remote peer → a link is built.
+        api.roster!({
+          'groupCallId': 'gc1',
+          'status': 'active',
+          'participants': [
+            {'userId': 'me', 'status': 'joined', 'name': 'Me'},
+            {'userId': 'zz-peer', 'status': 'joined', 'name': 'Peer'},
+          ],
+        });
+        async.flushMicrotasks();
+        expect(pcs, hasLength(1));
+        final peer = service.peers['zz-peer']!;
+
+        // Drive every link this peer ever gets to Failed, forever.
+        void failCurrentLink() {
+          final pc = pcs.last;
+          pc.onConnectionState
+              ?.call(RTCPeerConnectionState.RTCPeerConnectionStateFailed);
+        }
+
+        // Each recovery cycle: 3 restart attempts (0s, 4s, 10s, +8s final
+        // pass) then abandon → rebuild. Fail the fresh link immediately.
+        var lastCount = 0;
+        for (var cycle = 0; cycle < 6; cycle++) {
+          if (pcs.length != lastCount) {
+            lastCount = pcs.length;
+            failCurrentLink();
+          }
+          async.elapse(const Duration(seconds: 30));
+          async.flushMicrotasks();
+        }
+
+        // Initial link + 2 rebuilds, then the cap: the link stays down
+        // rather than churning forever — and the call itself survives.
+        expect(pcs, hasLength(3));
+        expect(peer.pc, isNull);
+        expect(service.inCall, isTrue);
+        // Each rebuild got a fresh recovery budget (the instant-abandon
+        // loop would have burned through dozens of PCs by now).
+        expect(peer.rebuildCount, greaterThan(2));
+
+        unawaited(service.leaveCall());
+        async.flushMicrotasks();
+      });
+    });
+
+    test('four failed heartbeats self-eject and release the mic', () {
+      fakeAsync((async) {
+        final api = _FakeGroupApi();
+        api.heartbeatError = StateError('backend unreachable');
+        final service = _newGroupService(api);
+        final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+        service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+          return stream;
+        };
+
+        unawaited(service.joinCall('gc1'));
+        async.flushMicrotasks();
+        expect(service.inCall, isTrue);
+
+        // 4 beats × 15s. The roster subscription is silent (dead) — the
+        // heartbeat is the only thing left that can notice.
+        async.elapse(const Duration(seconds: 61));
+        async.flushMicrotasks();
+
+        expect(service.inCall, isFalse);
+        expect(stream.micReleased, isTrue);
+      });
+    });
+
+    test("heartbeat answering 'not-in-call' ejects immediately", () {
+      fakeAsync((async) {
+        final api = _FakeGroupApi();
+        api.heartbeatStatus = 'not-in-call';
+        final service = _newGroupService(api);
+        final stream = FakeMediaStream([FakeMediaStreamTrack(kind: 'audio')]);
+        service.getUserMediaFn = (kind, {tier = VideoQualityTier.auto}) async {
+          return stream;
+        };
+
+        unawaited(service.joinCall('gc1'));
+        async.flushMicrotasks();
+        expect(service.inCall, isTrue);
+
+        async.elapse(const Duration(seconds: 16));
+        async.flushMicrotasks();
+
+        expect(service.inCall, isFalse);
+        expect(stream.micReleased, isTrue);
+      });
+    });
+  });
+}
+
+GroupCallService _newGroupService(_FakeGroupApi api) {
+  final service = GroupCallService(api: api)
+    ..leaveNotifyTimeout = const Duration(milliseconds: 20);
+  service.attach(userId: 'me');
+  return service;
+}
+
+class _FakeGroupApi extends Fake implements GroupCallApi {
+  int leaveCalls = 0;
+  Future<void>? leaveResult;
+  Object? heartbeatError;
+  String heartbeatStatus = 'ok';
+
+  /// Captured roster callback — tests drive membership through it.
+  void Function(Map<String, dynamic>? roster)? roster;
+
+  @override
+  Future<({String type, String roomId})> join({
+    required String groupCallId,
+    required String userId,
+    String? deviceId,
+  }) async =>
+      (type: 'audio', roomId: 'room1');
+
+  @override
+  Future<void> leave({
+    required String groupCallId,
+    required String userId,
+  }) {
+    leaveCalls++;
+    return leaveResult ?? Future.value();
+  }
+
+  @override
+  Future<String?> heartbeat({
+    required String groupCallId,
+    required String userId,
+  }) async {
+    final e = heartbeatError;
+    if (e != null) throw e;
+    return heartbeatStatus;
+  }
+
+  @override
+  Future<void> sendSignal({
+    required String groupCallId,
+    required String fromUserId,
+    required String toUserId,
+    required String kind,
+    required String payload,
+    String? fromDeviceId,
+    String? targetDeviceId,
+  }) async {}
+
+  @override
+  Future<void> consumeSignals({
+    required List<String> signalIds,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<Subscription> subscribeSignals({
+    required String userId,
+    required void Function(List<Map<String, dynamic>> signals) onSignals,
+    void Function(Object error)? onError,
+  }) async =>
+      _FakeSubscription();
+
+  @override
+  Future<Subscription> subscribeRoster({
+    required String groupCallId,
+    required String userId,
+    required void Function(Map<String, dynamic>? roster) onRoster,
+    void Function(Object error)? onError,
+  }) async {
+    roster = onRoster;
+    return _FakeSubscription();
+  }
+
+  @override
+  Future<Subscription> subscribePendingInvite({
+    required String userId,
+    required void Function(Map<String, dynamic>? invite) onInvite,
+    void Function(Object error)? onError,
+  }) async =>
+      _FakeSubscription();
+}

@@ -40,6 +40,45 @@ class CallService extends ChangeNotifier {
 
   final CallApi api;
 
+  /// Seam for tests: the function behind [_attachLocalMedia]'s acquisition.
+  /// Production value is [getCallUserMedia]; tests inject a Completer-gated
+  /// fake to reproduce the cancel-during-acquisition races deterministically.
+  @visibleForTesting
+  Future<MediaStream> Function(CallMediaKind kind, {VideoQualityTier tier})
+      getUserMediaFn = getCallUserMedia;
+
+  /// Seam for tests: the flutter_webrtc factory behind
+  /// [_createPeerConnection].
+  @visibleForTesting
+  Future<RTCPeerConnection> Function(
+    Map<String, dynamic> configuration,
+    Map<String, dynamic> constraints,
+  ) createPcFn = createPeerConnection;
+
+  /// Cap on how long a terminal backend notify (cancel/end/reject) may run.
+  /// Local teardown — the mic release — no longer waits on it at all; this
+  /// only bounds how long [endCall]/[reject] linger afterwards.
+  @visibleForTesting
+  Duration terminalNotifyTimeout = const Duration(seconds: 5);
+
+  /// Delay before the single fire-and-forget retry of a failed terminal
+  /// notify. The backend's stuck-call GC converges regardless; the retry
+  /// just shortens the peer's wait after a transient blip.
+  @visibleForTesting
+  Duration terminalNotifyRetryDelay = const Duration(seconds: 2);
+
+  /// How long [_teardown] holds the terminal session so the UI can render
+  /// "ended" before the screen pops itself.
+  @visibleForTesting
+  Duration teardownUiHold = const Duration(milliseconds: 400);
+
+  /// Cap on the native end-call round-trip inside [_teardown] — it runs
+  /// before WebRTC teardown (so a racing CallKit `didActivate` has nothing
+  /// left to re-activate) but a wedged platform channel must never hold up
+  /// the mic release behind it.
+  @visibleForTesting
+  Duration endNativeTimeout = const Duration(seconds: 2);
+
   /// Real mobile hardware, where flutter_webrtc's native `Helper` audio APIs
   /// (setSpeakerphoneOn, switchCamera) exist. On web/desktop those channels
   /// have no implementation and throw MissingPluginException — the browser/OS
@@ -161,6 +200,14 @@ class CallService extends ChangeNotifier {
   /// on its successor's call.
   int _pcGeneration = 0;
 
+  /// Same pattern as [_pcGeneration], for media acquisition: bumped at every
+  /// [_attachLocalMedia] start and in [_disposePc]. A getUserMedia future
+  /// that resolves after its epoch moved on belongs to a call that no longer
+  /// exists (canceled mid-acquire, or replaced by an instant redial) — the
+  /// resolver stops the orphaned stream on the spot and aborts, because
+  /// nothing else will ever see it.
+  int _mediaEpoch = 0;
+
   /// Owned backstop for the disconnected/closed grace window — cancelled on
   /// teardown and invalidated by generation, unlike the old anonymous Timer.
   Timer? _disconnectTimer;
@@ -198,6 +245,14 @@ class CallService extends ChangeNotifier {
   MediaStream? _remoteStream;
   MediaStream? get localStream => _localStream;
   MediaStream? get remoteStream => _remoteStream;
+
+  /// Test-only: seed a stream as if an acquisition had just landed — for
+  /// exercising the no-session cleanup branch of [endCall] without
+  /// choreographing the full race that produces it.
+  @visibleForTesting
+  void debugSetLocalStreamForTest(MediaStream? stream) {
+    _localStream = stream;
+  }
 
   /// Increments every time a remote track is delivered. Consumers use this to
   /// detect "same stream reference, new track inside it" — the audio track
@@ -260,7 +315,14 @@ class CallService extends ChangeNotifier {
         'treating call as dead (callId=${s?.callId})',
       );
       if (s != null) {
-        await _teardown(CallStatus.failed, errorMessage: 'Call unavailable');
+        // notifyBackend: the accept mutation never ran (no PC → the early
+        // latch return), so the row still rings server-side; end it so the
+        // caller learns now instead of at the 30s timeout.
+        await _teardown(
+          CallStatus.failed,
+          errorMessage: 'Call unavailable',
+          notifyBackend: true,
+        );
       } else {
         // No session of ours, so there is nothing here to tear down — and
         // crucially nothing to justify `endAllCalls()`. That is a
@@ -361,17 +423,18 @@ class CallService extends ChangeNotifier {
     // explains the refusal itself, so bailing silently here is correct.
     if (!await CallPermissions.ensure(kind)) return;
 
+    // 1. Reserve the call row first so we have a callId for every signal
+    //    that follows. ICE starts gathering the moment setLocalDescription
+    //    resolves, and onIceCandidate needs the callId to route — so the
+    //    session must be alive before any of that fires. Outside the try:
+    //    if the reservation itself fails there is nothing to clean up yet.
+    final callId = await api.initiateCall(
+      callerId: me,
+      calleeId: peerUserId,
+      roomId: roomId,
+      type: kind.wire,
+    );
     try {
-      // 1. Reserve the call row first so we have a callId for every signal
-      //    that follows. ICE starts gathering the moment setLocalDescription
-      //    resolves, and onIceCandidate needs the callId to route — so the
-      //    session must be alive before any of that fires.
-      final callId = await api.initiateCall(
-        callerId: me,
-        calleeId: peerUserId,
-        roomId: roomId,
-        type: kind.wire,
-      );
       _rememberLocalCall(callId);
       _session = CallSession(
         callId: callId,
@@ -446,10 +509,29 @@ class CallService extends ChangeNotifier {
         }),
       );
     } catch (e, st) {
+      if (e is MediaSupersededException) {
+        // A cancel (or instant redial) won the race mid-setup. Whoever
+        // superseded us owns all live state now — including having already
+        // dismissed the native card and notified the backend. Stand down
+        // without touching anything.
+        return;
+      }
       debugPrint('CallService.initiate failed: $e\n$st');
+      // The native outgoing card is already up and the backend row already
+      // rings — a failure here (getUserMedia denied, PC construction, the
+      // offer send) must kill BOTH, or the callee rings for a call that can
+      // never connect while CallKit holds an active audio session forever.
+      unawaited(NativeCallHandler.instance.endNative(callId));
+      unawaited(_notifyBackendTerminal(
+        callId: callId,
+        userId: me,
+        preferCancel: true,
+      ));
       await _disposePc();
-      _session = null;
-      notifyListeners();
+      if (_session?.callId == callId) {
+        _session = null;
+        notifyListeners();
+      }
       rethrow;
     }
   }
@@ -500,6 +582,12 @@ class CallService extends ChangeNotifier {
       _acceptWatchdog?.cancel();
       notifyListeners();
     } catch (e, st) {
+      if (e is MediaSupersededException) {
+        // The call ended (remote cancel/bye) while getUserMedia was still in
+        // flight; the teardown that superseded us already cleaned up — and
+        // the orphaned stream was stopped at the acquisition site.
+        return;
+      }
       debugPrint('CallService.acceptIncoming failed: $e\n$st');
       await endCall(errorMessage: 'Could not start call');
     }
@@ -509,33 +597,103 @@ class CallService extends ChangeNotifier {
     final me = _userId;
     final s = _session;
     if (me == null || s == null) return;
-    try {
-      await api.rejectCall(
-        callId: s.callId,
-        userId: me,
-        acceptingDeviceId: _deviceId,
-      );
-    } catch (_) {}
+    if (s.status == CallStatus.ended || s.status == CallStatus.failed) return;
+    // Same shape as [endCall]: kick the mutation off now, tear down locally
+    // without waiting on it, then linger (bounded) only for the send. A late
+    // reject needs no `end` fallback — being late means a cancel or a
+    // sibling-device accept already resolved the row.
+    final callId = s.callId;
+    final notify = () async {
+      try {
+        await api
+            .rejectCall(
+              callId: callId,
+              userId: me,
+              acceptingDeviceId: _deviceId,
+            )
+            .timeout(terminalNotifyTimeout);
+      } catch (e) {
+        debugPrint('CallService.reject notify failed: $e');
+      }
+    }();
     await _teardown(CallStatus.ended);
+    await notify;
   }
 
   /// End the call from either side. If still ringing as the caller, this
   /// sends a `cancel`; otherwise a normal `end`.
+  ///
+  /// Local teardown — the mic release — runs immediately and never waits on
+  /// the network. The backend notify is kicked off first (so the peer's
+  /// "call ended" latency doesn't regress), bounded by
+  /// [terminalNotifyTimeout] and retried once; past that the server-side
+  /// stuck-call GC is the backstop. The old shape awaited the bare mutation
+  /// BEFORE teardown, so a wedged socket held the microphone hostage
+  /// indefinitely — the iOS orange-dot-after-cancel bug.
   Future<void> endCall({String? errorMessage}) async {
     final me = _userId;
     final s = _session;
-    if (me == null || s == null) return;
-    try {
-      if (s.status == CallStatus.outgoingRinging && s.isCaller) {
-        await api.cancelCall(callId: s.callId, userId: me);
-      } else {
-        await api.endCall(callId: s.callId, userId: me);
-      }
-    } catch (_) {}
+    if (me == null || s == null) {
+      // Session already gone (e.g. cleared inside the terminal UI hold) but
+      // an in-flight acquisition may have landed media since — never leave
+      // straggler tracks behind.
+      if (_localStream != null || _pc != null) await _disposePc();
+      return;
+    }
+    if (s.status == CallStatus.ended || s.status == CallStatus.failed) {
+      // Double-tap on the end button, or a native ENDED echo racing the
+      // in-app one — the first pass owns the teardown.
+      return;
+    }
+    final notify = _notifyBackendTerminal(
+      callId: s.callId,
+      userId: me,
+      preferCancel: s.status == CallStatus.outgoingRinging && s.isCaller,
+    );
     await _teardown(
       errorMessage != null ? CallStatus.failed : CallStatus.ended,
       errorMessage: errorMessage,
     );
+    await notify;
+  }
+
+  /// Best-effort terminal notify: bounded, retried once, and never in the
+  /// mic-release path. [preferCancel] picks `calls:cancel` (caller hanging
+  /// up while still ringing); when the backend answers `already-active` —
+  /// the callee accepted inside the race window — it follows with
+  /// `calls:end` so the callee isn't stranded mid-call on a hot mic.
+  /// (Newer backends auto-convert that race server-side too; the follow-up
+  /// covers a client running ahead of the backend deploy.) Never throws.
+  Future<void> _notifyBackendTerminal({
+    required String callId,
+    required String userId,
+    required bool preferCancel,
+  }) async {
+    Future<void> attempt() async {
+      if (preferCancel) {
+        final res = await api
+            .cancelCall(callId: callId, userId: userId)
+            .timeout(terminalNotifyTimeout);
+        if (res != 'already-active') return;
+      }
+      await api
+          .endCall(callId: callId, userId: userId)
+          .timeout(terminalNotifyTimeout);
+    }
+
+    try {
+      await attempt();
+    } catch (e) {
+      debugPrint('CallService: terminal notify failed ($e) — retrying once');
+      unawaited(Future.delayed(terminalNotifyRetryDelay, () async {
+        try {
+          await attempt();
+        } catch (e2) {
+          // Give up — gcStuckRinging/gcStuckActive converge server-side.
+          debugPrint('CallService: terminal notify retry failed: $e2');
+        }
+      }));
+    }
   }
 
   // ───────── live controls ─────────
@@ -816,9 +974,13 @@ class CallService extends ChangeNotifier {
           unawaited(NativeCallHandler.instance.endNativeByCallId(callId));
           return;
         }
-        try {
-          await api.cancelCall(callId: cur.callId, userId: me);
-        } catch (_) {}
+        // Bounded fire-and-forget: an unresponsive socket must not keep the
+        // loser's mic hot or block ringing for the winner's invite.
+        unawaited(_notifyBackendTerminal(
+          callId: cur.callId,
+          userId: me,
+          preferCancel: true,
+        ));
         await _teardown(CallStatus.ended);
         // Fall through: ring for the winner's invite below.
       } else if (cur != null) {
@@ -909,7 +1071,17 @@ class CallService extends ChangeNotifier {
 
     // For all other signals the callId must match my current session.
     final s = _session;
-    if (s == null || s.callId != callId) return;
+    if (s == null || s.callId != callId) {
+      // Terminal signals for a call we hold no session for must still clear
+      // any native UI raised for it — CallKit from the invite VoIP push can
+      // outlive the session on a device whose subscription snapshot landed
+      // after a fast cancel purged the `invite` row (so no session was ever
+      // created here). Mirrors the no-session fallback `taken` already has.
+      if (kind == 'bye' || kind == 'reject' || kind == 'cancel') {
+        unawaited(NativeCallHandler.instance.endNative(callId));
+      }
+      return;
+    }
 
     switch (kind) {
       case 'answer':
@@ -1100,6 +1272,11 @@ class CallService extends ChangeNotifier {
     );
     notifyListeners();
 
+    // Whether `handoffCall` committed server-side decides what a failure
+    // below means: before it, the call still lives happily on the old
+    // device (ending it would hang up the peer's working call); after it,
+    // the old device has already torn down and a failure strands the row.
+    var handoffCommitted = false;
     try {
       // 1. Tell the backend so it can write handoff-takeover and
       //    handoff-prepare signals. The mutation also flips
@@ -1109,6 +1286,7 @@ class CallService extends ChangeNotifier {
         userId: me,
         newDeviceId: myDevice,
       );
+      handoffCommitted = true;
 
       // 2. Spin up a fresh PC + media on this device.
       _pc = await _createPeerConnection();
@@ -1139,8 +1317,13 @@ class CallService extends ChangeNotifier {
       //    surface a friendly error rather than hanging in `switching`.
       _armHandoffWatchdog(callId);
     } catch (e, st) {
+      if (e is MediaSupersededException) return;
       debugPrint('CallService.handoffToHere failed: $e\n$st');
-      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+      await _teardown(
+        CallStatus.failed,
+        errorMessage: 'Switch failed',
+        notifyBackend: handoffCommitted,
+      );
     }
   }
 
@@ -1152,7 +1335,14 @@ class CallService extends ChangeNotifier {
       if (s == null || s.callId != callId) return;
       if (s.status == CallStatus.switching) {
         debugPrint('CallService: handoff watchdog tripped');
-        await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+        // notifyBackend: the handoff already committed server-side (that is
+        // what put us in `switching`), so with the takeover dead the row is
+        // active with nobody on it — end it for everyone.
+        await _teardown(
+          CallStatus.failed,
+          errorMessage: 'Switch failed',
+          notifyBackend: true,
+        );
       }
     });
   }
@@ -1185,6 +1375,11 @@ class CallService extends ChangeNotifier {
     _remoteStream = null;
     _session = s.copyWith(status: CallStatus.switching);
     notifyListeners();
+    // The new device may die before ever sending `handoff-offer`. Without a
+    // watchdog on THIS side too, we'd sit in `switching` holding a live
+    // local stream (a hot mic) forever — the initiator's watchdog can't
+    // help us, it only runs over there.
+    _armHandoffWatchdog(callId);
   }
 
   Future<void> _onHandoffOffer({
@@ -1234,8 +1429,13 @@ class CallService extends ChangeNotifier {
       );
       notifyListeners();
     } catch (e, st) {
+      if (e is MediaSupersededException) return;
       debugPrint('CallService._onHandoffOffer failed: $e\n$st');
-      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+      await _teardown(
+        CallStatus.failed,
+        errorMessage: 'Switch failed',
+        notifyBackend: true,
+      );
     }
   }
 
@@ -1259,7 +1459,11 @@ class CallService extends ChangeNotifier {
       notifyListeners();
     } catch (e, st) {
       debugPrint('CallService._onHandoffAnswer failed: $e\n$st');
-      await _teardown(CallStatus.failed, errorMessage: 'Switch failed');
+      await _teardown(
+        CallStatus.failed,
+        errorMessage: 'Switch failed',
+        notifyBackend: true,
+      );
     }
   }
 
@@ -1531,7 +1735,7 @@ class CallService extends ChangeNotifier {
       // Local Network prompt; kAllowLanCandidates=false filters those out
       // instead of forcing relay for everything.
     };
-    final pc = await createPeerConnection(config, {});
+    final pc = await createPcFn(config, {});
 
     pc.onIceCandidate = (cand) async {
       if (gen != _pcGeneration) return;
@@ -1620,8 +1824,11 @@ class CallService extends ChangeNotifier {
           final st = pc2.connectionState;
           if (st == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected ||
               st == RTCPeerConnectionState.RTCPeerConnectionStateClosed) {
-            await _teardown(CallStatus.failed,
-                errorMessage: 'Connection lost');
+            await _teardown(
+              CallStatus.failed,
+              errorMessage: 'Connection lost',
+              notifyBackend: true,
+            );
           }
         });
       }
@@ -1689,7 +1896,11 @@ class CallService extends ChangeNotifier {
       now: DateTime.now(),
       attemptsSoFar: _restartAttempt,
     )) {
-      await _teardown(CallStatus.failed, errorMessage: 'Connection lost');
+      await _teardown(
+        CallStatus.failed,
+        errorMessage: 'Connection lost',
+        notifyBackend: true,
+      );
       return;
     }
     _restartAttempt++;
@@ -1796,15 +2007,23 @@ class CallService extends ChangeNotifier {
     final speakerOn = _session?.speakerOn ?? (kind == CallMediaKind.video);
     await _applyIosAudioConfig(kind, speakerOn: speakerOn);
     final tier = SettingsStore.instance.videoQualityTier;
-    _localStream = await getCallUserMedia(kind, tier: tier);
-    final localKinds =
-        _localStream!.getTracks().map((t) => t.kind).join(',');
+    final epoch = ++_mediaEpoch;
+    final stream = await getUserMediaFn(kind, tier: tier);
+    if (epoch != _mediaEpoch || _pc == null) {
+      // The call this acquisition belonged to ended mid-acquire (cancel) or
+      // was replaced under us (instant redial). Nothing else will ever see
+      // this stream — stop it NOW, or the mic stays hot with no owner.
+      await stopAndDisposeStream(stream);
+      throw MediaSupersededException();
+    }
+    _localStream = stream;
+    final localKinds = stream.getTracks().map((t) => t.kind).join(',');
     debugPrint(
       'CallService._attachLocalMedia: requested=${kind.wire} '
       'tier=${tier.wire} got=[$localKinds]',
     );
-    for (final track in _localStream!.getTracks()) {
-      await _pc!.addTrack(track, _localStream!);
+    for (final track in stream.getTracks()) {
+      await _pc!.addTrack(track, stream);
     }
     await configureVideoSenders(
       _pc!,
@@ -1868,7 +2087,17 @@ class CallService extends ChangeNotifier {
     });
   }
 
-  Future<void> _teardown(CallStatus terminal, {String? errorMessage}) async {
+  /// [notifyBackend] is set ONLY by the locally-detected abandonment paths
+  /// (ICE recovery exhausted, watchdogs) — the ones that used to leave the
+  /// backend row `active` until the stuck-call GC noticed, keeping both
+  /// users BUSY for minutes. Remote-initiated teardowns (bye/cancel/reject/
+  /// taken) must never set it: the backend is already terminal and an echo
+  /// would race other devices' signals.
+  Future<void> _teardown(
+    CallStatus terminal, {
+    String? errorMessage,
+    bool notifyBackend = false,
+  }) async {
     _acceptWatchdog?.cancel();
     _acceptWatchdog = null;
     _handoffWatchdog?.cancel();
@@ -1886,13 +2115,39 @@ class CallService extends ChangeNotifier {
     if (s != null) {
       _session = s.copyWith(status: terminal, errorMessage: errorMessage);
       notifyListeners();
-      unawaited(NativeCallHandler.instance.endNative(s.callId));
+      // Dismiss CallKit/ConnectionService BEFORE dropping WebRTC — the
+      // CXEndCallAction must land while the plugin still owns a live call so
+      // its end-of-call bookkeeping (incl. the vendored plugin's
+      // audio-session deactivation) runs against reality, and so a CallKit
+      // `didActivate` racing this teardown finds no call left to
+      // re-activate the session for. Bounded: a wedged platform channel
+      // must never hold the mic release behind it.
+      try {
+        await NativeCallHandler.instance
+            .endNative(s.callId)
+            .timeout(endNativeTimeout);
+      } catch (e) {
+        debugPrint('CallService._teardown: endNative failed: $e');
+      }
     }
     await _disposePc();
+    // Belt to the plugin's deactivate-on-end: a no-op natively whenever any
+    // call UI (plugin or fallback provider) is still alive.
+    unawaited(NativeCallHandler.instance.deactivateIosAudioSession());
+    if (notifyBackend && s != null) {
+      final me = _userId;
+      if (me != null) {
+        unawaited(_notifyBackendTerminal(
+          callId: s.callId,
+          userId: me,
+          preferCancel: false,
+        ));
+      }
+    }
     // Hold the terminal state for a moment so the UI can render "ended" /
     // toast the error before the screen pops itself.
     final endedCallId = s?.callId;
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(teardownUiHold, () {
       // A new call may have started inside this window — leave it alone.
       final now = _session;
       if (now != null && now.callId != endedCallId) return;
@@ -1904,8 +2159,10 @@ class CallService extends ChangeNotifier {
   }
 
   Future<void> _disposePc() async {
-    // Invalidate every callback/timer captured against the dying PC.
+    // Invalidate every callback/timer captured against the dying PC — and
+    // every in-flight media acquisition (see [_mediaEpoch]).
     _pcGeneration++;
+    _mediaEpoch++;
     _disconnectTimer?.cancel();
     _restartTimer?.cancel();
     _heartbeatTimer?.cancel();
@@ -1917,16 +2174,14 @@ class CallService extends ChangeNotifier {
     _iceFlushTimer?.cancel();
     _iceFlushTimer = null;
     _iceOutBuffer.clear();
-    try {
-      final ls = _localStream;
-      if (ls != null) {
-        for (final t in ls.getTracks()) {
-          await t.stop();
-        }
-        await ls.dispose();
-      }
-    } catch (_) {}
+    final ls = _localStream;
     _localStream = null;
+    if (ls != null) {
+      // Per-track stop with individual guards — one throwing track (video,
+      // typically, on some Android OEMs) must never skip the audio track's
+      // stop or the dispose. That skip was a live mic with no owner.
+      await stopAndDisposeStream(ls);
+    }
     try {
       await _pc?.close();
     } catch (_) {}

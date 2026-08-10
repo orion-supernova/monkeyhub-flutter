@@ -716,6 +716,22 @@ class NativeCallHandler {
     } catch (_) {}
   }
 
+  /// Belt for the stale-mic bug: ask AppDelegate to `setActive(false)` the
+  /// AVAudioSession, which it does only when NO call UI (plugin card or
+  /// fallback-provider card) is still alive. The callkit plugin activates
+  /// the session on every dial/answer/ring and historically nothing
+  /// deactivated it — flutter_webrtc's own deactivation is gated on
+  /// conditions the cancel path can never satisfy (see the vendored
+  /// plugin's PATCHES.md). Called after every local teardown; harmless
+  /// no-op mid-call, on Android/web/desktop, and on an app whose native
+  /// side predates the handler (the error is swallowed).
+  Future<void> deactivateIosAudioSession() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    try {
+      await _voipChannel.invokeMethod('deactivateAudioSession');
+    } catch (_) {}
+  }
+
   /// Pull fallback-card answer/decline actions that fired before any Dart
   /// handler existed (cold background launch — AppDelegate queues them).
   /// Also flips AppDelegate to direct delivery for future ones. Runs at the
