@@ -271,6 +271,15 @@ class NativeCallHandler {
       case CallEventActionCallToggleHold():
         // Not implemented — we don't expose hold yet.
         break;
+      case CallEventActionCallProviderDidReset():
+        // CallKit died under us: the system already tore down every card,
+        // so nothing native is left to protect — but the WebRTC session
+        // (and the mic) would live on headless without a full teardown.
+        // endCall also notifies the backend; no-op without a session.
+        debugPrint('NativeCallHandler: CallKit provider reset — ending call');
+        service.clearNativeAccept();
+        await service.endCall();
+        break;
       default:
         // Ignore the lifecycle bookkeeping events (start, callback, etc.).
         break;
@@ -288,7 +297,7 @@ class NativeCallHandler {
     final uuid = params.id;
     final callId = params.extra?['callId']?.toString();
     if (uuid.isNotEmpty && callId != null && callId.isNotEmpty) {
-      _uuidByCallId[callId] = uuid;
+      _rememberUuid(callId, uuid);
     }
   }
 
@@ -298,7 +307,21 @@ class NativeCallHandler {
     final extra = body['extra'];
     final callId = extra is Map ? extra['callId']?.toString() : null;
     if (uuid != null && uuid.isNotEmpty && callId != null && callId.isNotEmpty) {
-      _uuidByCallId[callId] = uuid;
+      _rememberUuid(callId, uuid);
+    }
+  }
+
+  /// Insert with a size cap. Entries are consumed by [endNativeByCallId]
+  /// (which removes on use), but a call that ends through any native-first
+  /// path never gets that removal — unbounded growth over a long-lived
+  /// process, and stale mappings shadowing nothing useful. Eight is far
+  /// beyond any plausible set of concurrently-relevant calls; insertion
+  /// order (LinkedHashMap) makes `keys.first` the oldest.
+  void _rememberUuid(String callId, String uuid) {
+    _uuidByCallId.remove(callId);
+    _uuidByCallId[callId] = uuid;
+    while (_uuidByCallId.length > 8) {
+      _uuidByCallId.remove(_uuidByCallId.keys.first);
     }
   }
 
@@ -760,6 +783,17 @@ class NativeCallHandler {
           break;
       }
     }
+  }
+
+  /// AppDelegate's fallback CXProvider was reset by the system — same
+  /// contract as the plugin's `ACTION_CALL_PROVIDER_DID_RESET`: every
+  /// native card is gone, so any live Dart call must fully tear down.
+  Future<void> handleProviderReset() async {
+    final service = CallService.maybeInstance;
+    if (service == null) return;
+    debugPrint('NativeCallHandler: fallback provider reset — ending call');
+    service.clearNativeAccept();
+    await service.endCall();
   }
 
   /// Mirror the WebRTC "active" state to CallKit so the system call timer

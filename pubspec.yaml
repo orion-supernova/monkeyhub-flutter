@@ -244,6 +244,29 @@ dependency_overrides:
   convex_flutter:
     path: third_party/convex_flutter
 
+  # flutter_callkit_incoming 3.1.3 with five iOS/Dart patches, each marked
+  # `MONKEYHUB PATCH n` in-source. See
+  # third_party/flutter_callkit_incoming/PATCHES.md for the complete list.
+  #
+  # The load-bearing one: upstream activates the shared AVAudioSession on
+  # every dial/answer/ring and NOTHING ever deactivates it — a canceled call
+  # left `.playAndRecord` active and the iOS orange mic indicator lit on a
+  # dead call (the "stale mic" bug). Also fixed here: the never-cleared
+  # `outgoingCall` global that turned every incoming DECLINE after the
+  # process's first outgoing call into ENDED (reject never sent — the caller
+  # rang out the full 30s), the endCall path that targeted the LAST invite
+  # push's UUID instead of the requested one, unguarded audio-session
+  # re-activation ~1.2s after answer, and two Dart parser gaps (the
+  # audio-session event's key mismatch; provider resets dropped entirely).
+  #
+  # Android and everything else are byte-identical to pub.dev 3.1.3 (modulo
+  # stripping NUL bytes / CRLF that pub's own archive ships inside
+  # SwiftFlutterCallkitIncomingPlugin.swift). When bumping the plugin,
+  # re-apply the marked patches against the new version — pub will otherwise
+  # silently take them away, and the symptom is the orange dot coming back.
+  flutter_callkit_incoming:
+    path: third_party/flutter_callkit_incoming
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

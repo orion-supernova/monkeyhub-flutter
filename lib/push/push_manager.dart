@@ -177,6 +177,13 @@ class PushManager {
           }
           return null;
         }
+        if (call.method == 'onProviderReset') {
+          // The system reset AppDelegate's fallback CXProvider — every
+          // native card is gone; tear any live call fully down so the
+          // WebRTC session (and mic) doesn't survive headless.
+          await NativeCallHandler.instance.handleProviderReset();
+          return null;
+        }
         return null;
       });
       _initialized = true;

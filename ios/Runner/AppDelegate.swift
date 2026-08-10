@@ -264,13 +264,16 @@ import flutter_callkit_incoming
     let token = pushCredentials.token.map { String(format: "%02x", $0) }.joined()
     cachedVoipToken = token
     NSLog("[voip] PushKit token: \(token)")
-    voipChannel?.invokeMethod("onTokenUpdated", arguments: ["token": token])
+    // Queue-until-Dart-ready like every other voip event — a raw invoke
+    // that raced Dart's setMethodCallHandler was silently dropped (Dart's
+    // getToken-on-resume papered over it, but rotation mid-session lost).
+    invokeVoipOrQueue("onTokenUpdated", args: ["token": token])
   }
 
   func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
     guard type == .voIP else { return }
     cachedVoipToken = nil
-    voipChannel?.invokeMethod("onTokenUpdated", arguments: ["token": NSNull()])
+    invokeVoipOrQueue("onTokenUpdated", args: ["token": NSNull()])
   }
 
   func pushRegistry(
@@ -321,6 +324,17 @@ import flutter_callkit_incoming
     // specific call with `.answeredElsewhere`. Persisted too, because the
     // "taken" may land in a fresh process after this one is killed.
     if !convexCallId.isEmpty {
+      // Prune before insert: entries used to be removed ONLY when a "taken"
+      // push consumed them, so normal answer/decline/timeout left them
+      // forever — unbounded growth plus stale mappings for later lookups.
+      // Anything not in the plugin's live call list is a dead card.
+      if callKitUuidByCallId.count > 4 {
+        let live = Set(
+          (SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? [])
+            .compactMap { ($0["id"] as? String).flatMap(UUID.init(uuidString:)) }
+        )
+        callKitUuidByCallId = callKitUuidByCallId.filter { live.contains($0.value) }
+      }
       callKitUuidByCallId[convexCallId] = callUuid
       UserDefaults.standard.set(convexCallId, forKey: Self.lastInviteCallIdKey)
       UserDefaults.standard.set(callUuid.uuidString, forKey: Self.lastInviteUuidKey)
@@ -564,6 +578,10 @@ import flutter_callkit_incoming
 
   func providerDidReset(_ provider: CXProvider) {
     fallbackCallIdByUuid.removeAll()
+    // A provider reset means the system tore down every call UI — without
+    // telling Dart, the WebRTC session (and the microphone) lived on
+    // headless. Dart answers with a full local teardown.
+    invokeVoipOrQueue("onProviderReset", args: [:])
   }
 
   func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
@@ -804,6 +822,28 @@ import flutter_callkit_incoming
               )
             }
             self.fallbackCallIdByUuid.removeAll()
+          }
+          result(nil)
+        case "deactivateAudioSession":
+          // Belt to the vendored plugin's deactivate-on-end (PATCH 1 in
+          // third_party/flutter_callkit_incoming): Dart calls this after
+          // every local teardown. Strictly a no-op while ANY call UI is
+          // alive — the plugin's cards or our fallback provider's — so it
+          // can never yank the session out from under a real call. Covers
+          // the activation orderings the plugin can't see (e.g. WebRTC
+          // activated the raw session before any CallKit call existed, as
+          // in group calls, which never raise a card at all).
+          if let self = self {
+            let pluginBusy =
+              !(SwiftFlutterCallkitIncomingPlugin.sharedInstance?.activeCalls() ?? []).isEmpty
+            if !pluginBusy && self.fallbackCallIdByUuid.isEmpty {
+              do {
+                try AVAudioSession.sharedInstance()
+                  .setActive(false, options: [.notifyOthersOnDeactivation])
+              } catch {
+                NSLog("[voip] deactivateAudioSession failed: \(error)")
+              }
+            }
           }
           result(nil)
         case "getApnsEnvironment":
