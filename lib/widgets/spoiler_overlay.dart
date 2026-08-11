@@ -1,14 +1,13 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' show BoxHeightStyle;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../data/spoiler_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
+import 'paragraph_geometry.dart';
 
 /// The dust veil over a message's spoiler text, and the finger-wipe that
 /// clears it.
@@ -69,8 +68,21 @@ class SpoilerOverlay extends StatefulWidget {
 }
 
 class _SpoilerOverlayState extends State<SpoilerOverlay>
-    with TickerProviderStateMixin {
-  /// Veil rectangles in this overlay's coordinates. Empty until first layout.
+    with TickerProviderStateMixin, ParagraphMeasured<SpoilerOverlay> {
+  @override
+  GlobalKey get paragraphKey => widget.paragraphKey;
+
+  @override
+  List<({int start, int end})> get measuredRanges => widget.ranges;
+
+  /// Grown by 1.5px on both axes so the plate covers the glyphs' own
+  /// antialiasing rather than stopping exactly at it.
+  @override
+  double get measureInsetX => -1.5;
+  @override
+  double get measureInsetY => -1.5;
+
+  /// [rects] flattened — the veil doesn't care which range a line came from.
   List<Rect> _rects = const [];
 
   /// Drives the dust drift. Created only outside calm motion.
@@ -93,17 +105,9 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   Offset? _lastWipePoint;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
-  }
-
-  @override
   void didUpdateWidget(SpoilerOverlay old) {
     super.didUpdateWidget(old);
-    if (old.ranges != widget.ranges) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
-    }
+    if (old.ranges != widget.ranges) scheduleMeasure();
   }
 
   @override
@@ -113,36 +117,16 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     super.dispose();
   }
 
-  /// Walks from the paragraph key's element to its [RenderParagraph]. The key
-  /// sits on a `Text.rich`, whose render object IS the paragraph.
-  RenderParagraph? _paragraph() {
-    final ro = widget.paragraphKey.currentContext?.findRenderObject();
-    return ro is RenderParagraph ? ro : null;
-  }
-
-  void _measure() {
-    if (!mounted) return;
-    final p = _paragraph();
-    final box = context.findRenderObject() as RenderBox?;
-    if (p == null || box == null || !box.hasSize) return;
-    final toLocal = (Offset o) => box.globalToLocal(p.localToGlobal(o));
-    final rects = <Rect>[];
-    for (final r in widget.ranges) {
-      for (final tb in p.getBoxesForSelection(
-        TextSelection(baseOffset: r.start, extentOffset: r.end),
-        boxHeightStyle: BoxHeightStyle.max,
-      )) {
-        final rect = tb.toRect();
-        rects.add(
-          Rect.fromPoints(toLocal(rect.topLeft), toLocal(rect.bottomRight))
-              .inflate(1.5),
-        );
-      }
-    }
-    if (rects.isEmpty) return;
+  /// A fresh mask per measurement. Re-measuring mid-wipe therefore re-veils
+  /// what had been wiped — consistent with partial state being disposable
+  /// (see the class doc), and a rotation is not a subtle event to lose it to.
+  @override
+  void onMeasured(List<List<Rect>> value) {
+    final flat = [for (final group in value) ...group];
+    if (flat.isEmpty) return;
     setState(() {
-      _rects = rects;
-      _mask = _WipeMask.covering(rects);
+      _rects = flat;
+      _mask = _WipeMask.covering(flat);
     });
   }
 
@@ -189,7 +173,12 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
 
   @override
   Widget build(BuildContext context) {
-    if (_rects.isEmpty) return const SizedBox.shrink();
+    // Still armed with nothing to paint: the notifier has to be mounted even
+    // in the empty state, or a first measurement that lands before the
+    // paragraph is ready has nothing to retry it.
+    if (_rects.isEmpty) {
+      return watchLayout(child: const SizedBox.expand());
+    }
     final motion = MotionScope.of(context);
 
     // Calm is a code path: no ticker, no particles, no wipe tracking — a
@@ -205,25 +194,27 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
       )..repeat();
     }
 
-    final semantics = Semantics(
-      button: true,
-      label: AppLocalizations.of(context).spoilerRevealHint,
-      onTap: _revealWhole,
-      child: AnimatedBuilder(
-        animation: _dissolve,
-        builder: (_, _) => AnimatedBuilder(
-          // Merged rather than nested when the drift exists; under calm the
-          // dissolve alone drives repaints.
-          animation: _drift ?? _dissolve,
-          builder: (_, _) => CustomPaint(
-            painter: _SpoilerDustPainter(
-              rects: _rects,
-              cover: widget.cover,
-              mask: motion.calm ? null : _mask,
-              phase: _drift?.value ?? 0,
-              dissolve: Curves.easeOut.transform(_dissolve.value),
-              seed: widget.contextId.hashCode,
-              calm: motion.calm,
+    final semantics = watchLayout(
+      child: Semantics(
+        button: true,
+        label: AppLocalizations.of(context).spoilerRevealHint,
+        onTap: _revealWhole,
+        child: AnimatedBuilder(
+          animation: _dissolve,
+          builder: (_, _) => AnimatedBuilder(
+            // Merged rather than nested when the drift exists; under calm the
+            // dissolve alone drives repaints.
+            animation: _drift ?? _dissolve,
+            builder: (_, _) => CustomPaint(
+              painter: _SpoilerDustPainter(
+                rects: _rects,
+                cover: widget.cover,
+                mask: motion.calm ? null : _mask,
+                phase: _drift?.value ?? 0,
+                dissolve: Curves.easeOut.transform(_dissolve.value),
+                seed: widget.contextId.hashCode,
+                calm: motion.calm,
+              ),
             ),
           ),
         ),
