@@ -41,9 +41,11 @@ class LinkifiedText extends StatefulWidget {
     this.formatting = const [],
     this.codeStyle,
     this.codeBackground,
+    this.codeBorder,
     this.onLinkEntityTap,
     this.spoilerContextId,
     this.spoilerCover,
+    this.spoilerDust,
   });
 
   /// The ORIGINAL message content. Never pre-stripped or pre-trimmed by the
@@ -100,11 +102,24 @@ class LinkifiedText extends StatefulWidget {
   /// (a caller that has no theme in reach, like a bare test).
   final TextStyle? codeStyle;
 
-  /// The chip wash behind an inline-code run, painted with
-  /// `TextStyle.background` — a paint, not a WidgetSpan, per the bubble's
-  /// standing rule that the paragraph carries exactly one placeholder (the
-  /// stamp spacer) whose sizing is load-bearing.
+  /// Fill of the chip behind an inline-code run (see
+  /// `FormattingSurface.codeBackground`). Null paints no chip at all — a
+  /// caller with no theme in reach, like a bare test.
+  ///
+  /// Painted by `InlineCodeUnderlay`, a sibling BENEATH the paragraph, rather
+  /// than by a WidgetSpan pill. The bubble's standing rule that the paragraph
+  /// carries exactly one placeholder — the stamp spacer, whose sizing is
+  /// load-bearing — is intact and is the reason for the underlay: nothing is
+  /// added to the paragraph at all. It used to be a `TextStyle.background`
+  /// paint, which honoured the same rule but could not do padding, a corner
+  /// radius or an edge, and so painted a flush smear the height of the line
+  /// box.
   final Color? codeBackground;
+
+  /// Hairline around the inline-code chip (see
+  /// `FormattingSurface.codeBorder`). Null draws fill only. On dark themes
+  /// this edge, not the fill, is what makes the chip readable.
+  final Color? codeBorder;
 
   /// Tap handler for link ENTITIES — text whose visible words differ from
   /// their destination. Separate from [onLinkTap] so the bubble can route
@@ -119,10 +134,16 @@ class LinkifiedText extends StatefulWidget {
   /// wherever a message id exists.
   final String? spoilerContextId;
 
-  /// Veil ink (see `FormattingSurface.spoilerCover`). Falls back to the body
-  /// style's own colour, so a spoiler is never accidentally legible just
-  /// because a caller forgot the theme plumbing.
+  /// The opaque plate under the spoiler's dust (see
+  /// `FormattingSurface.spoilerCover`). Falls back to the body style's own
+  /// colour, so a spoiler is never accidentally legible just because a caller
+  /// forgot the theme plumbing.
   final Color? spoilerCover;
+
+  /// Ink of the spoiler's dust motes (see `FormattingSurface.spoilerDust`).
+  /// Falls back to [spoilerCover]'s own resolution, which yields a plate with
+  /// invisible dust — concealment intact, effect absent.
+  final Color? spoilerDust;
 
   @override
   State<LinkifiedText> createState() => _LinkifiedTextState();
