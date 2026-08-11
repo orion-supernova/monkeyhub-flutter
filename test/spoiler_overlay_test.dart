@@ -7,8 +7,12 @@ import 'package:monkeyhub/widgets/linkified_text.dart';
 import 'package:monkeyhub/widgets/spoiler_overlay.dart';
 
 /// The veil's contract: spoiler text is covered until interacted with, a
-/// partial wipe reveals only what was wiped, a full wipe (or calm-mode tap)
-/// reveals everything and records it for the session.
+/// partial wipe reveals only what was wiped, and a tap or a full wipe reveals
+/// everything and records it for the session.
+///
+/// Never reach for `pumpAndSettle` in a `calm: false` test here — the drift
+/// controller repeats forever, so it will spin to the timeout rather than
+/// fail. Every wait below is an explicit duration for that reason.
 void main() {
   const messageId = 'm1';
   const text = 'the secret is hidden in here somewhere';
@@ -74,7 +78,7 @@ void main() {
     // Tap the middle of the overlay — inside the veiled stretch.
     await tester.tap(find.byType(SpoilerOverlay), warnIfMissed: false);
     await tester.pump(); // first tick establishes the dissolve's baseline
-    await tester.pump(const Duration(milliseconds: 300)); // dissolve completes
+    await tester.pump(const Duration(milliseconds: 500)); // dissolve completes
     await tester.pump(); // host rebuilds without the overlay
 
     expect(SpoilerStore.instance.isRevealed(messageId), isTrue);
@@ -118,10 +122,44 @@ void main() {
     }
     await gesture.up();
     await tester.pump(); // dissolve baseline tick
-    await tester.pump(const Duration(milliseconds: 300)); // dissolve completes
+    await tester.pump(const Duration(milliseconds: 500)); // dissolve completes
     await tester.pump();
 
     expect(SpoilerStore.instance.isRevealed(messageId), isTrue);
     expect(find.byType(SpoilerOverlay), findsNothing);
+  });
+
+  testWidgets('full motion: a tap on the veil reveals the whole spoiler',
+      (tester) async {
+    // The wipe recognizer claims the pointer on down, so a tap has to be
+    // recognised inside the pan rather than by a recognizer beside it. Before
+    // that, a tap deposited one brush dot and did nothing visible.
+    await tester.pumpWidget(host(calm: false));
+    await tester.pump();
+    await tester.pump();
+
+    await tester.tap(find.byType(SpoilerOverlay), warnIfMissed: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    expect(SpoilerStore.instance.isRevealed(messageId), isTrue);
+    expect(find.byType(SpoilerOverlay), findsNothing);
+  });
+
+  testWidgets('calm motion runs no ticker', (tester) async {
+    // The MotionScope contract is "calm is a code path, not a shorter
+    // duration" — no looping controller, and no particle buffers behind it.
+    await tester.pumpWidget(host(calm: true));
+    await tester.pump();
+    await tester.pump();
+    expect(tester.binding.transientCallbackCount, 0);
+  });
+
+  testWidgets('full motion runs exactly one ticker', (tester) async {
+    await tester.pumpWidget(host(calm: false));
+    await tester.pump();
+    await tester.pump();
+    expect(tester.binding.transientCallbackCount, 1);
   });
 }
