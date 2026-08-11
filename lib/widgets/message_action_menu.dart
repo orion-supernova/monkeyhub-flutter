@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../models/message_capabilities.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../keyboard/overlay_modal_scope.dart';
@@ -21,6 +22,11 @@ import 'glass_surface.dart';
 /// ever offered, chosen by `isPinned`.
 enum MessageAction {
   reply,
+
+  /// Reopens the viewer's own text message in the composer for rewriting —
+  /// offered only inside the server's 15-minute window. See
+  /// [MessageCapabilities.canEdit].
+  edit,
   forward,
   viewThread,
   copy,
@@ -82,16 +88,22 @@ Future<MessageActionResult?> showMessageActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
   required WidgetBuilder bubbleBuilder,
+
+  /// Geometry only — which side the bubble hangs from, so the pill and list
+  /// anchor to its leading edge. Which ROWS appear is entirely
+  /// [capabilities]'s business.
   required bool isMine,
-  required bool canCopy,
-  bool canReply = false,
-  bool hasParent = false,
-  bool canPin = false,
+
+  /// Which rows this menu offers. Resolved by
+  /// `ChatRepository.capabilitiesForMessage` rather than assembled at the call
+  /// site — this parameter is what replaced eleven independent booleans that
+  /// two screens each derived by hand.
+  required MessageCapabilities capabilities,
+
+  /// State, not affordance: which of the pin/save pairs' two labels is
+  /// showing. The affordance itself is [capabilities].
   bool isPinned = false,
-  bool canSave = false,
   bool isSaved = false,
-  bool canForward = false,
-  bool canSelect = false,
 
   /// A document's full filename, when this bubble is one.
   ///
@@ -132,15 +144,9 @@ Future<MessageActionResult?> showMessageActionMenu({
       metrics: metrics,
       bubbleBuilder: bubbleBuilder,
       isMine: isMine,
-      canCopy: canCopy,
-      canReply: canReply,
-      hasParent: hasParent,
-      canPin: canPin,
+      capabilities: capabilities,
       isPinned: isPinned,
-      canSave: canSave,
       isSaved: isSaved,
-      canForward: canForward,
-      canSelect: canSelect,
       fileName: fileName,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
@@ -162,15 +168,9 @@ class _MessageActionMenuOverlay extends StatefulWidget {
     required this.metrics,
     required this.bubbleBuilder,
     required this.isMine,
-    required this.canCopy,
-    required this.canReply,
-    required this.hasParent,
-    required this.canPin,
+    required this.capabilities,
     required this.isPinned,
-    required this.canSave,
     required this.isSaved,
-    required this.canForward,
-    required this.canSelect,
     required this.fileName,
     required this.onResolve,
   });
@@ -182,15 +182,9 @@ class _MessageActionMenuOverlay extends StatefulWidget {
   final ChatMetrics? metrics;
   final WidgetBuilder bubbleBuilder;
   final bool isMine;
-  final bool canCopy;
-  final bool canReply;
-  final bool hasParent;
-  final bool canPin;
+  final MessageCapabilities capabilities;
   final bool isPinned;
-  final bool canSave;
   final bool isSaved;
-  final bool canForward;
-  final bool canSelect;
 
   /// Non-null only for a document bubble — see [showMessageActionMenu].
   final String? fileName;
@@ -228,26 +222,6 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     await _ctrl.reverse();
     if (!mounted) return;
     widget.onResolve(result);
-  }
-
-  int _actionCount() {
-    var n = 0;
-    if (widget.canReply) n++;
-    if (widget.canForward) n++;
-    if (widget.hasParent) n++; // view thread
-    if (widget.canCopy) n++;
-    if (widget.fileName != null) n++; // copy name
-    // Load-bearing, not bookkeeping: this drives `menuH` below, which decides
-    // whether the list flips above or below the bubble. A row missing from this
-    // count mispositions the whole menu by 48pt, silently, and only near the
-    // top and bottom edges of the screen.
-    if (widget.canPin) n++;
-    if (widget.canSave) n++;
-    if (widget.canSelect) n++;
-    if (!widget.isMine) n++; // view profile
-    if (widget.isMine) n++; // delete
-    if (!widget.isMine) n++; // report
-    return n;
   }
 
   /// How tall the filename header will lay out, measured rather than guessed.
@@ -308,6 +282,19 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     final media = MediaQuery.of(context);
     final screen = media.size;
 
+    // Built ONCE per layout, here, and handed to `_ActionList` verbatim. The
+    // row count used to be a second, hand-synced copy of the list's if-chain
+    // (`_actionCount()`), whose comment warned that a missed row mispositions
+    // the whole menu by 48pt near a screen edge. Now the count is
+    // `specs.length` by construction and there is nothing to keep in step.
+    final specs = messageActionSpecs(
+      l10n: AppLocalizations.of(context),
+      capabilities: widget.capabilities,
+      isPinned: widget.isPinned,
+      isSaved: widget.isSaved,
+      hasFileName: widget.fileName != null,
+    );
+
     final bubble = widget.bubbleRect;
     const gap = 8.0;
     const pillH = 50.0;
@@ -336,7 +323,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
     // and when the clamp bites, `_ActionList` scrolls inside it rather than
     // running off the screen.
     final wantedMenuH =
-        (_actionCount() * rowH) + 12 + _headerHeight(context, theme);
+        (specs.length * rowH) + 12 + _headerHeight(context, theme);
     final menuH = math.min(wantedMenuH, maxMenuH);
     final menuScrolls = menuH < wantedMenuH;
 
@@ -463,16 +450,7 @@ class _MessageActionMenuOverlayState extends State<_MessageActionMenuOverlay>
             delay: 0.08,
             alignment: widget.isMine ? Alignment.topRight : Alignment.topLeft,
             child: _ActionList(
-              isMine: widget.isMine,
-              canCopy: widget.canCopy,
-              canReply: widget.canReply,
-              hasParent: widget.hasParent,
-              canPin: widget.canPin,
-              isPinned: widget.isPinned,
-              canSave: widget.canSave,
-              isSaved: widget.isSaved,
-              canForward: widget.canForward,
-              canSelect: widget.canSelect,
+              specs: specs,
               fileName: widget.fileName,
               // Null unless the band forced a clamp — an unconstrained list
               // shrink-wraps exactly as it always has.
@@ -726,16 +704,7 @@ class _PillMoreState extends State<_PillMore> {
 
 class _ActionList extends StatelessWidget {
   const _ActionList({
-    required this.isMine,
-    required this.canCopy,
-    required this.canReply,
-    required this.hasParent,
-    required this.canPin,
-    required this.isPinned,
-    required this.canSave,
-    required this.isSaved,
-    required this.canForward,
-    required this.canSelect,
+    required this.specs,
     required this.onAction,
     this.fileName,
     this.maxHeight,
@@ -745,16 +714,11 @@ class _ActionList extends StatelessWidget {
   /// measure the header against exactly the width it will get.
   static const double maxWidth = 240;
 
-  final bool isMine;
-  final bool canCopy;
-  final bool canReply;
-  final bool hasParent;
-  final bool canPin;
-  final bool isPinned;
-  final bool canSave;
-  final bool isSaved;
-  final bool canForward;
-  final bool canSelect;
+  /// The rows, in order — built by [messageActionSpecs], which is also where
+  /// the overlay took the count it laid this list out with. Handing the same
+  /// list to both is the invariant; building a second one here would be the
+  /// 48pt misposition bug growing back.
+  final List<MessageActionSpec> specs;
   final ValueChanged<MessageAction> onAction;
 
   /// Non-null for a document bubble, whose name the transcript row can only
@@ -769,126 +733,19 @@ class _ActionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
     final rows = <Widget>[];
-    void add(_ActionRowSpec spec) {
+
+    // Ahead of every action: this is the thing the user long-pressed to read.
+    // Seeded into `rows` first, so the between-rows divider below separates it
+    // from the first action without a special case.
+    final name = fileName;
+    if (name != null) rows.add(_FileNameHeader(name: name, theme: theme));
+
+    for (final spec in specs) {
       if (rows.isNotEmpty) {
         rows.add(Container(height: 1, color: theme.divider.withValues(alpha: 0.5)));
       }
       rows.add(_ActionRow(spec: spec, onTap: () => onAction(spec.action)));
-    }
-
-    // Ahead of every action: this is the thing the user long-pressed to read.
-    // Seeded into `rows` rather than prepended after, so `add`'s own
-    // between-rows divider separates it from REPLY without a special case.
-    final name = fileName;
-    if (name != null) rows.add(_FileNameHeader(name: name, theme: theme));
-
-    if (canReply) {
-      add(_ActionRowSpec(
-        action: MessageAction.reply,
-        icon: CupertinoIcons.arrowshape_turn_up_left,
-        label: l10n.messageActionMenuReplyLabel,
-        destructive: false,
-      ));
-    }
-    // Right after REPLY: both are "send this somewhere", and forwarding one
-    // message is the single-item case of what the selection bar does for many.
-    if (canForward) {
-      add(_ActionRowSpec(
-        action: MessageAction.forward,
-        icon: CupertinoIcons.arrowshape_turn_up_right,
-        label: l10n.messageActionMenuForwardLabel,
-        destructive: false,
-      ));
-    }
-    if (hasParent) {
-      add(_ActionRowSpec(
-        action: MessageAction.viewThread,
-        icon: CupertinoIcons.arrow_branch,
-        label: l10n.messageActionMenuViewThreadLabel,
-        destructive: false,
-      ));
-    }
-    if (canCopy) {
-      add(_ActionRowSpec(
-        action: MessageAction.copy,
-        icon: CupertinoIcons.doc_on_doc,
-        label: l10n.messageActionMenuCopyLabel,
-        destructive: false,
-      ));
-    }
-    // Takes COPY's slot rather than sitting beside it: `canCopy` is a text
-    // message with a body, and a document has neither. Reading the name off the
-    // header above is one thing; getting it into a search field is another.
-    if (name != null) {
-      add(_ActionRowSpec(
-        action: MessageAction.copyName,
-        icon: CupertinoIcons.doc_on_doc,
-        label: l10n.messageActionMenuCopyNameLabel,
-        destructive: false,
-      ));
-    }
-    // Beside COPY rather than next to the destructive pair: the list runs
-    // constructive → neutral → destructive, and a pin is shared room state, not
-    // something done TO the message. Unpinning is reversible, so neither is
-    // marked destructive — red would overstate it.
-    if (canPin) {
-      add(_ActionRowSpec(
-        action: isPinned ? MessageAction.unpin : MessageAction.pin,
-        icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
-        label: isPinned ? l10n.messageActionMenuUnpinLabel : l10n.messageActionMenuPinLabel,
-        destructive: false,
-      ));
-    }
-    // Directly after PIN, because the two are the same gesture aimed at
-    // different audiences — "everyone here should see this" and "I want this
-    // later" — and reading them together is what makes the difference legible.
-    // Neither is destructive; both undo in one tap.
-    if (canSave) {
-      add(_ActionRowSpec(
-        action: isSaved ? MessageAction.unsave : MessageAction.save,
-        icon: isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
-        label: isSaved
-            ? l10n.messageActionMenuUnsaveLabel
-            : l10n.messageActionMenuSaveLabel,
-        destructive: false,
-      ));
-    }
-    // Last of the neutral rows, because it is the only one that does nothing to
-    // this message: it hands the transcript over to multi-select with this one
-    // already picked, and everything after that happens in the selection bar.
-    if (canSelect) {
-      add(_ActionRowSpec(
-        action: MessageAction.select,
-        icon: CupertinoIcons.checkmark_circle,
-        label: l10n.messageActionMenuSelectLabel,
-        destructive: false,
-      ));
-    }
-    if (!isMine) {
-      add(_ActionRowSpec(
-        action: MessageAction.viewProfile,
-        icon: CupertinoIcons.person_circle,
-        label: l10n.messageActionMenuProfileLabel,
-        destructive: false,
-      ));
-    }
-    if (isMine) {
-      add(_ActionRowSpec(
-        action: MessageAction.delete,
-        icon: CupertinoIcons.trash,
-        label: l10n.messageActionMenuDeleteLabel,
-        destructive: true,
-      ));
-    }
-    if (!isMine) {
-      add(_ActionRowSpec(
-        action: MessageAction.report,
-        icon: CupertinoIcons.flag,
-        label: l10n.messageActionMenuReportLabel,
-        destructive: true,
-      ));
     }
 
     final column = Column(
@@ -999,8 +856,11 @@ class _FileNameHeader extends StatelessWidget {
   }
 }
 
-class _ActionRowSpec {
-  const _ActionRowSpec({
+/// One row of the action list: what it does, what it looks like, and whether
+/// it paints in the danger colour. Public (with [messageActionSpecs]) so a
+/// test can assert the ordering rule without pumping the whole overlay.
+class MessageActionSpec {
+  const MessageActionSpec({
     required this.action,
     required this.icon,
     required this.label,
@@ -1012,9 +872,134 @@ class _ActionRowSpec {
   final bool destructive;
 }
 
+/// The menu's rows for [capabilities], in display order. THE single source:
+/// the overlay's height math uses this list's length and `_ActionList` renders
+/// this exact list, which is what retired the hand-synced `_actionCount()`
+/// whose drift used to misposition the menu by 48pt.
+///
+/// Ordering rule: constructive → neutral → destructive.
+List<MessageActionSpec> messageActionSpecs({
+  required AppLocalizations l10n,
+  required MessageCapabilities capabilities,
+  required bool isPinned,
+  required bool isSaved,
+  required bool hasFileName,
+}) {
+  final caps = capabilities;
+  return [
+    if (caps.canReply)
+      MessageActionSpec(
+        action: MessageAction.reply,
+        icon: CupertinoIcons.arrowshape_turn_up_left,
+        label: l10n.messageActionMenuReplyLabel,
+        destructive: false,
+      ),
+    // Directly after REPLY: both reopen the composer around this message —
+    // one to answer it, one to rewrite it — and EDIT ahead of the send-it-
+    // somewhere rows keeps the "changes this conversation" actions together.
+    if (caps.canEdit)
+      MessageActionSpec(
+        action: MessageAction.edit,
+        icon: CupertinoIcons.pencil,
+        label: l10n.messageActionMenuEditLabel,
+        destructive: false,
+      ),
+    // Both are "send this somewhere", and forwarding one message is the
+    // single-item case of what the selection bar does for many.
+    if (caps.canForward)
+      MessageActionSpec(
+        action: MessageAction.forward,
+        icon: CupertinoIcons.arrowshape_turn_up_right,
+        label: l10n.messageActionMenuForwardLabel,
+        destructive: false,
+      ),
+    if (caps.canViewThread)
+      MessageActionSpec(
+        action: MessageAction.viewThread,
+        icon: CupertinoIcons.arrow_branch,
+        label: l10n.messageActionMenuViewThreadLabel,
+        destructive: false,
+      ),
+    if (caps.canCopy)
+      MessageActionSpec(
+        action: MessageAction.copy,
+        icon: CupertinoIcons.doc_on_doc,
+        label: l10n.messageActionMenuCopyLabel,
+        destructive: false,
+      ),
+    // Takes COPY's slot rather than sitting beside it: `canCopy` is a text
+    // message with a body, and a document has neither. Reading the name off
+    // the header is one thing; getting it into a search field is another.
+    if (caps.canCopyName && hasFileName)
+      MessageActionSpec(
+        action: MessageAction.copyName,
+        icon: CupertinoIcons.doc_on_doc,
+        label: l10n.messageActionMenuCopyNameLabel,
+        destructive: false,
+      ),
+    // Beside COPY rather than next to the destructive pair: a pin is shared
+    // room state, not something done TO the message. Unpinning is reversible,
+    // so neither is marked destructive — red would overstate it.
+    if (caps.canPin)
+      MessageActionSpec(
+        action: isPinned ? MessageAction.unpin : MessageAction.pin,
+        icon: isPinned ? CupertinoIcons.pin_slash : CupertinoIcons.pin,
+        label: isPinned
+            ? l10n.messageActionMenuUnpinLabel
+            : l10n.messageActionMenuPinLabel,
+        destructive: false,
+      ),
+    // Directly after PIN, because the two are the same gesture aimed at
+    // different audiences — "everyone here should see this" and "I want this
+    // later" — and reading them together is what makes the difference
+    // legible. Neither is destructive; both undo in one tap.
+    if (caps.canSave)
+      MessageActionSpec(
+        action: isSaved ? MessageAction.unsave : MessageAction.save,
+        icon: isSaved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+        label: isSaved
+            ? l10n.messageActionMenuUnsaveLabel
+            : l10n.messageActionMenuSaveLabel,
+        destructive: false,
+      ),
+    // Last of the neutral rows, because it is the only one that does nothing
+    // to this message: it hands the transcript over to multi-select with this
+    // one already picked, and everything after that happens in the selection
+    // bar.
+    if (caps.canSelect)
+      MessageActionSpec(
+        action: MessageAction.select,
+        icon: CupertinoIcons.checkmark_circle,
+        label: l10n.messageActionMenuSelectLabel,
+        destructive: false,
+      ),
+    if (caps.canViewProfile)
+      MessageActionSpec(
+        action: MessageAction.viewProfile,
+        icon: CupertinoIcons.person_circle,
+        label: l10n.messageActionMenuProfileLabel,
+        destructive: false,
+      ),
+    if (caps.canDelete)
+      MessageActionSpec(
+        action: MessageAction.delete,
+        icon: CupertinoIcons.trash,
+        label: l10n.messageActionMenuDeleteLabel,
+        destructive: true,
+      ),
+    if (caps.canReport)
+      MessageActionSpec(
+        action: MessageAction.report,
+        icon: CupertinoIcons.flag,
+        label: l10n.messageActionMenuReportLabel,
+        destructive: true,
+      ),
+  ];
+}
+
 class _ActionRow extends StatefulWidget {
   const _ActionRow({required this.spec, required this.onTap});
-  final _ActionRowSpec spec;
+  final MessageActionSpec spec;
   final VoidCallback onTap;
 
   @override

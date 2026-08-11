@@ -1443,6 +1443,76 @@ class AppLocalizationsTr extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'YANITLA';
 
   @override
+  String get messageActionMenuEditLabel => 'DÜZENLE';
+
+  @override
+  String get messageStampEditedLabel => 'düzenlendi';
+
+  @override
+  String get composerEditCardTitle => 'MESAJI DÜZENLE';
+
+  @override
+  String get spoilerRevealHint =>
+      'Spoiler — gizli metni göstermek için etkinleştir';
+
+  @override
+  String get formatToolbarFormatLabel => 'Biçim';
+
+  @override
+  String get formatToolbarBoldLabel => 'Kalın';
+
+  @override
+  String get formatToolbarItalicLabel => 'İtalik';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'Üstü çizili';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'Altı çizili';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'Spoiler';
+
+  @override
+  String get formatToolbarLinkLabel => 'Bağlantı';
+
+  @override
+  String get formatToolbarCodeLabel => 'Kod';
+
+  @override
+  String get linkInputSheetTitle => 'BAĞLANTI';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'BAĞLANTIYI UYGULA';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'Seçili metne dokunulduğunda bu adres açılır';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'BAĞLANTIYI KALDIR';
+
+  @override
+  String get linkConfirmSheetTitle => 'BU BAĞLANTI AÇILSIN MI?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'BAĞLANTIYI AÇ';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'İPTAL';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'Düzenlemek için çok geç — mesajlar yalnızca 15 dakika içinde düzenlenebilir.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'Düzenleme kaydedilemedi. Bağlantını kontrol edip tekrar dene.';
+
+  @override
   String get messageActionMenuForwardLabel => 'İLET';
 
   @override

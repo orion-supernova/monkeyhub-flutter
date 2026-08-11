@@ -2583,6 +2583,138 @@ abstract class AppLocalizations {
   /// **'REPLY'**
   String get messageActionMenuReplyLabel;
 
+  /// All-caps row label in the long-press message action menu; shown only on the viewer's own text messages inside the 15-minute edit window. Reopens the message in the composer so its text can be rewritten.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT'**
+  String get messageActionMenuEditLabel;
+
+  /// Lowercase word shown inside a chat bubble's timestamp cluster, directly before the time (as in 'edited 14:32'), on messages whose author rewrote them after sending. Keep it short — it shares a line with the message text.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get messageStampEditedLabel;
+
+  /// All-caps title of the banner that sits above the composer while the user is rewriting one of their own messages; the line under it shows the message's original text.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT MESSAGE'**
+  String get composerEditCardTitle;
+
+  /// Accessibility label on the dust veil covering spoiler text in a chat bubble. Sighted users wipe the veil with a finger; screen-reader activation reveals the whole hidden text at once.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler — activate to reveal the hidden text'**
+  String get spoilerRevealHint;
+
+  /// Item added to the composer's native text-selection toolbar (next to Copy/Paste); tapping it swaps the toolbar for a row of text-formatting chips (bold, italic, spoiler, link...). Match the platform's toolbar capitalization style, like Copy/Paste.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get formatToolbarFormatLabel;
+
+  /// Accessibility label of the bold chip in the composer's formatting toolbar; the chip itself shows a bold letter.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get formatToolbarBoldLabel;
+
+  /// Accessibility label of the italic chip in the composer's formatting toolbar; the chip itself shows an italic letter.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get formatToolbarItalicLabel;
+
+  /// Accessibility label of the strikethrough chip in the composer's formatting toolbar; the chip itself shows a struck-through letter.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough'**
+  String get formatToolbarStrikethroughLabel;
+
+  /// Accessibility label of the underline chip in the composer's formatting toolbar; the chip itself shows an underlined letter.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get formatToolbarUnderlineLabel;
+
+  /// Accessibility label of the spoiler chip in the composer's formatting toolbar. A spoiler hides the selected text behind an animated dust veil that readers wipe away with a finger to reveal.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler'**
+  String get formatToolbarSpoilerLabel;
+
+  /// Accessibility label of the link chip in the composer's formatting toolbar; opens a small sheet asking for the URL the selected text should open when tapped.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get formatToolbarLinkLabel;
+
+  /// Accessibility label of the code chip in the composer's formatting toolbar; renders the selected text in a monospace font on a subtle chip background, like code in Slack.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get formatToolbarCodeLabel;
+
+  /// All-caps headline of the sheet that asks which URL the selected composer text should carry as a tappable link.
+  ///
+  /// In en, this message translates to:
+  /// **'LINK'**
+  String get linkInputSheetTitle;
+
+  /// Placeholder inside the URL text field of the link sheet. Usually kept as a literal example URL; translate only if the locale conventionally localizes example.com.
+  ///
+  /// In en, this message translates to:
+  /// **'https://example.com'**
+  String get linkInputSheetHint;
+
+  /// All-caps confirm button of the link sheet; attaches the entered URL to the selected composer text.
+  ///
+  /// In en, this message translates to:
+  /// **'APPLY LINK'**
+  String get linkInputSheetApplyLabel;
+
+  /// One-line explanation under the APPLY LINK button in the link sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected text will open this address when tapped'**
+  String get linkInputSheetApplySub;
+
+  /// All-caps destructive button of the link sheet, shown only when the selection already carries a link; detaches the URL from the text (the text itself stays).
+  ///
+  /// In en, this message translates to:
+  /// **'REMOVE LINK'**
+  String get linkInputSheetRemoveLabel;
+
+  /// All-caps headline of the confirmation sheet shown when tapping text that carries a hidden link (formatted link text, where the visible words differ from the URL). The sheet shows the real destination before opening it.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN THIS LINK?'**
+  String get linkConfirmSheetTitle;
+
+  /// All-caps confirm button in the link confirmation sheet; opens the shown URL in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN LINK'**
+  String get linkConfirmSheetOpenLabel;
+
+  /// All-caps cancel button in the link confirmation sheet; closes the sheet without opening the URL.
+  ///
+  /// In en, this message translates to:
+  /// **'CANCEL'**
+  String get linkConfirmSheetCancelLabel;
+
+  /// Snackbar shown when an edit is refused because the server's 15-minute edit window closed while the user was typing.
+  ///
+  /// In en, this message translates to:
+  /// **'Too late to edit — messages can only be edited for 15 minutes.'**
+  String get roomScreenEditExpiredSnack;
+
+  /// Snackbar shown when saving a message edit fails for a transient reason (usually network); the edit is restored in the composer so the user can retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the edit. Check your connection and try again.'**
+  String get roomScreenEditFailedSnack;
+
   /// All-caps row label in the long-press message action menu; forwards the selected message to another chat/room.
   ///
   /// In en, this message translates to:

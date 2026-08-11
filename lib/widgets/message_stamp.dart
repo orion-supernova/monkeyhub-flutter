@@ -117,11 +117,25 @@ class MessageStamp extends StatelessWidget {
     this.receipt,
     this.countdown,
     this.saved = false,
+    this.edited = false,
   });
 
   final DateTime createdAt;
   final MessageStatus status;
   final StampTone tone;
+
+  /// Whether the author rewrote this message after sending it.
+  ///
+  /// The one WORD this row allows itself, against its own "status is a glyph"
+  /// rule, and deliberately: a pencil glyph reads as "draft" or "editable"
+  /// (an affordance) where this is a disclosure — the text you are reading is
+  /// not the text that first arrived — and a disclosure that needs decoding
+  /// isn't one. Every neighbouring chat app made the same call, so the word
+  /// is also the convention readers already know. It costs width only on
+  /// messages that were actually edited, and the invisible twin
+  /// ([StampSpacer] is this same widget) reserves the wider hole
+  /// automatically.
+  final bool edited;
 
   /// How far this message got, for the tick ladder. Null on anything that isn't
   /// mine — see [MessageReceipt].
@@ -198,6 +212,12 @@ class MessageStamp extends StatelessWidget {
           const SizedBox(width: 3),
           Text(_fmtCountdown(left, l10n), style: style.copyWith(color: loud)),
           const SizedBox(width: 6),
+        ],
+        // Ahead of the clock, so the pair reads as a sentence: "edited 14:32".
+        // In the quiet ink — it is a footnote, not a status.
+        if (edited) ...[
+          Text(l10n.messageStampEditedLabel, style: style),
+          const SizedBox(width: 4),
         ],
         Text(formatClockTime(createdAt), style: style),
         // One chain, in this order, and the order is the point. The outbox's

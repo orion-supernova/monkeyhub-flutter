@@ -1395,6 +1395,73 @@ class AppLocalizationsJa extends AppLocalizations {
   String get messageActionMenuReplyLabel => '返信';
 
   @override
+  String get messageActionMenuEditLabel => '編集';
+
+  @override
+  String get messageStampEditedLabel => '編集済み';
+
+  @override
+  String get composerEditCardTitle => 'メッセージを編集';
+
+  @override
+  String get spoilerRevealHint => 'スポイラー。有効にすると隠されたテキストが表示されます';
+
+  @override
+  String get formatToolbarFormatLabel => 'フォーマット';
+
+  @override
+  String get formatToolbarBoldLabel => '太字';
+
+  @override
+  String get formatToolbarItalicLabel => '斜体';
+
+  @override
+  String get formatToolbarStrikethroughLabel => '取り消し線';
+
+  @override
+  String get formatToolbarUnderlineLabel => '下線';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'スポイラー';
+
+  @override
+  String get formatToolbarLinkLabel => 'リンク';
+
+  @override
+  String get formatToolbarCodeLabel => 'コード';
+
+  @override
+  String get linkInputSheetTitle => 'リンク';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'リンクを適用';
+
+  @override
+  String get linkInputSheetApplySub => '選択したテキストをタップするとこのアドレスが開きます';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'リンクを削除';
+
+  @override
+  String get linkConfirmSheetTitle => 'このリンクを開きますか？';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'リンクを開く';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'キャンセル';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      '編集できる時間を過ぎました。メッセージを編集できるのは15分以内です。';
+
+  @override
+  String get roomScreenEditFailedSnack => '編集を保存できませんでした。接続を確認してもう一度お試しください。';
+
+  @override
   String get messageActionMenuForwardLabel => '転送';
 
   @override

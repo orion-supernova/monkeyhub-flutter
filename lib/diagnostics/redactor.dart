@@ -85,7 +85,12 @@ class Redactor {
     // ---- Children's message content. ----
     'messages:send': ArgPolicy.drop,
     'messages:forwardToRoom': ArgPolicy.drop,
+    // Both spellings: `messages:edit` predates the mutation (it was written
+    // speculatively, and the mutation shipped as `editMessage`). The stale
+    // name stays because deleting a deny-rule to tidy a table is how a
+    // rename quietly starts logging message text.
     'messages:edit': ArgPolicy.drop,
+    'messages:editMessage': ArgPolicy.drop,
     'friends:createDirectRequest': ArgPolicy.drop,
     'friends:appendDirectRequestMessage': ArgPolicy.drop,
 

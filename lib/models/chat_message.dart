@@ -1,5 +1,6 @@
 import 'enums.dart';
 import 'location_share.dart';
+import 'message_formatting.dart';
 import 'message_reaction.dart';
 import 'pending_upload.dart';
 
@@ -94,6 +95,8 @@ class ChatMessage {
     this.expiresAt,
     this.status = MessageStatus.sent,
     this.edited = false,
+    this.editedAt,
+    List<FormattingEntity>? formatting,
     List<MessageReaction>? reactions,
     this.replyToId,
     this.replyToPreview,
@@ -113,6 +116,7 @@ class ChatMessage {
     this.liveEndedAt,
     this.liveShareDurationMs,
   })  : reactions = reactions ?? [],
+        formatting = formatting ?? const [],
         mentions = mentions ?? const [];
 
   final String id;
@@ -204,6 +208,17 @@ class ChatMessage {
   /// back, which is the case where the ack is the thing that got lost.
   final String? clientId;
   bool edited;
+
+  /// When the author last edited this message, server-minted. Null on
+  /// anything never edited and on rows from a deployment that predates the
+  /// field. [edited] stays the flag the stamp renders; this exists for any
+  /// surface that wants to say *when*.
+  final DateTime? editedAt;
+
+  /// Rich-text runs over [content] — see `message_formatting.dart` for the
+  /// model and for why these are stored offsets while [mentions] are not.
+  /// Empty on the overwhelming majority of messages.
+  final List<FormattingEntity> formatting;
   List<MessageReaction> reactions;
 
   /// Everyone this message named with an `@`, resolved by the server at send
@@ -394,6 +409,8 @@ class ChatMessage {
       posterStorageId: j['posterStorageId'] as String?,
       expiresAt: ex is num ? DateTime.fromMillisecondsSinceEpoch(ex.toInt()) : null,
       edited: (j['edited'] ?? false) as bool,
+      editedAt: _epochMs(j['editedAt']),
+      formatting: FormattingEntity.parseList(j['formatting']),
       reactions: (j['reactions'] as List?)
               ?.map((r) => MessageReaction.fromJson(r as Map<String, dynamic>))
               .toList() ??
@@ -459,6 +476,13 @@ class ChatMessage {
         if (posterStorageId != null) 'posterStorageId': posterStorageId,
         if (expiresAt != null) 'expiresAt': expiresAt!.millisecondsSinceEpoch,
         'edited': edited,
+        if (editedAt != null) 'editedAt': editedAt!.millisecondsSinceEpoch,
+        // Has to round-trip through the disk cache like `mentions` below:
+        // this map is the cache's whole record of a message, so dropping it
+        // would strip every bold word and re-seal nothing — a cold boot would
+        // just render the styled text flat until the subscription lands.
+        if (formatting.isNotEmpty)
+          'formatting': formatting.map((f) => f.toJson()).toList(),
         'reactions': reactions.map((r) => r.toJson()).toList(),
         if (replyToId != null) 'replyToId': replyToId,
         if (replyToPreview != null) 'replyToPreview': replyToPreview!.toJson(),
@@ -501,6 +525,15 @@ class ChatMessage {
     String? id,
     MessageStatus? status,
     String? content,
+    // The optimistic-edit set: `ChatRepository.editMessage` patches its
+    // in-memory copy with the new text, flag, spans and re-resolved mentions
+    // while the mutation is in flight, then lets the subscription overwrite
+    // it with the authoritative row. Nothing else passes these.
+    bool? edited,
+    DateTime? editedAt,
+    List<FormattingEntity>? formatting,
+    List<MessageMention>? mentions,
+    bool? mentionsEveryone,
     List<MessageReaction>? reactions,
     String? replyToId,
     ReplyPreview? replyToPreview,
@@ -528,7 +561,9 @@ class ChatMessage {
         posterStorageId: posterStorageId,
         expiresAt: expiresAt,
         status: status ?? this.status,
-        edited: edited,
+        edited: edited ?? this.edited,
+        editedAt: editedAt ?? this.editedAt,
+        formatting: formatting ?? this.formatting,
         reactions: reactions ?? this.reactions,
         replyToId: replyToId ?? this.replyToId,
         replyToPreview: replyToPreview ?? this.replyToPreview,
@@ -544,8 +579,9 @@ class ChatMessage {
         // bubble whose text says "@bob" and whose highlighting says nothing,
         // with nothing at the call site to hint at why. `copyWith` runs on the
         // reaction and view-once paths, neither of which knows mentions exist.
-        mentions: mentions,
-        mentionsEveryone: mentionsEveryone,
+        // Overridable only for the optimistic-edit path above.
+        mentions: mentions ?? this.mentions,
+        mentionsEveryone: mentionsEveryone ?? this.mentionsEveryone,
         // Carried for the same reason as everything else in this list, and with
         // the sharpest consequence: `copyWith` runs on the reaction path, so a
         // thumbs-up on a live share that dropped these would replace a moving

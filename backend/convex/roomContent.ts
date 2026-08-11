@@ -110,6 +110,11 @@ export const listBucket = query({
  * so the client re-derives them from `content` with the same `UrlDetector` the
  * bubbles linkify with. That also means one message can produce several rows on
  * screen, and the client is what decides that.
+ *
+ * `formatting` link entities ride along the same way: the row already carries
+ * the spans, `hasLink` is set for them at send/edit time, and the client's
+ * links tab reads `formatting` off the returned document — nothing extra to
+ * return here.
  */
 export const listLinks = query({
   args: {

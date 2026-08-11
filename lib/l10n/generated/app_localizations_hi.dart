@@ -1459,6 +1459,76 @@ class AppLocalizationsHi extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'जवाब दें';
 
   @override
+  String get messageActionMenuEditLabel => 'एडिट करें';
+
+  @override
+  String get messageStampEditedLabel => 'एडिट किया गया';
+
+  @override
+  String get composerEditCardTitle => 'मैसेज एडिट करें';
+
+  @override
+  String get spoilerRevealHint =>
+      'स्पॉइलर — छिपा टेक्स्ट दिखाने के लिए सक्रिय करें';
+
+  @override
+  String get formatToolbarFormatLabel => 'फ़ॉर्मैट करें';
+
+  @override
+  String get formatToolbarBoldLabel => 'बोल्ड';
+
+  @override
+  String get formatToolbarItalicLabel => 'इटैलिक';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'स्ट्राइकथ्रू';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'अंडरलाइन';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'स्पॉइलर';
+
+  @override
+  String get formatToolbarLinkLabel => 'लिंक';
+
+  @override
+  String get formatToolbarCodeLabel => 'कोड';
+
+  @override
+  String get linkInputSheetTitle => 'लिंक';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'लिंक लागू करें';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'टैप करने पर चुना गया टेक्स्ट यह पता खोलेगा';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'लिंक हटाएं';
+
+  @override
+  String get linkConfirmSheetTitle => 'यह लिंक खोलें?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'लिंक खोलें';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'रद्द करें';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'एडिट करने में देर हो गई — मैसेज सिर्फ़ 15 मिनट तक ही एडिट किए जा सकते हैं।';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'एडिट सेव नहीं हो सका। अपना कनेक्शन जाँचकर दोबारा कोशिश करें।';
+
+  @override
   String get messageActionMenuForwardLabel => 'फ़ॉरवर्ड करें';
 
   @override

@@ -1451,6 +1451,76 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'REPLY';
 
   @override
+  String get messageActionMenuEditLabel => 'EDIT';
+
+  @override
+  String get messageStampEditedLabel => 'edited';
+
+  @override
+  String get composerEditCardTitle => 'EDIT MESSAGE';
+
+  @override
+  String get spoilerRevealHint =>
+      'Spoiler — activate to reveal the hidden text';
+
+  @override
+  String get formatToolbarFormatLabel => 'Format';
+
+  @override
+  String get formatToolbarBoldLabel => 'Bold';
+
+  @override
+  String get formatToolbarItalicLabel => 'Italic';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'Strikethrough';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'Underline';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'Spoiler';
+
+  @override
+  String get formatToolbarLinkLabel => 'Link';
+
+  @override
+  String get formatToolbarCodeLabel => 'Code';
+
+  @override
+  String get linkInputSheetTitle => 'LINK';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'APPLY LINK';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'The selected text will open this address when tapped';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'REMOVE LINK';
+
+  @override
+  String get linkConfirmSheetTitle => 'OPEN THIS LINK?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'OPEN LINK';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'CANCEL';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'Too late to edit — messages can only be edited for 15 minutes.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'Couldn\'t save the edit. Check your connection and try again.';
+
+  @override
   String get messageActionMenuForwardLabel => 'FORWARD';
 
   @override

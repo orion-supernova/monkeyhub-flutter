@@ -1494,6 +1494,76 @@ class AppLocalizationsFr extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'RÉPONDRE';
 
   @override
+  String get messageActionMenuEditLabel => 'MODIFIER';
+
+  @override
+  String get messageStampEditedLabel => 'modifié';
+
+  @override
+  String get composerEditCardTitle => 'MODIFIER LE MESSAGE';
+
+  @override
+  String get spoilerRevealHint =>
+      'Spoiler — activer pour révéler le texte masqué';
+
+  @override
+  String get formatToolbarFormatLabel => 'Format';
+
+  @override
+  String get formatToolbarBoldLabel => 'Gras';
+
+  @override
+  String get formatToolbarItalicLabel => 'Italique';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'Barré';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'Souligné';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'Spoiler';
+
+  @override
+  String get formatToolbarLinkLabel => 'Lien';
+
+  @override
+  String get formatToolbarCodeLabel => 'Code';
+
+  @override
+  String get linkInputSheetTitle => 'LIEN';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'APPLIQUER LE LIEN';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'Le texte sélectionné ouvrira cette adresse quand on le touche';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'RETIRER LE LIEN';
+
+  @override
+  String get linkConfirmSheetTitle => 'OUVRIR CE LIEN ?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'OUVRIR LE LIEN';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'ANNULER';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'Trop tard pour modifier — les messages ne peuvent être modifiés que pendant 15 minutes.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'Impossible d\'enregistrer la modification. Vérifie ta connexion et réessaie.';
+
+  @override
   String get messageActionMenuForwardLabel => 'TRANSFÉRER';
 
   @override

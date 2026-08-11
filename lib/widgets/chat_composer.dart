@@ -7,6 +7,7 @@ import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
+import 'composer_format_toolbar.dart';
 import 'liquid_glass.dart';
 
 class _SendButton extends StatelessWidget {
@@ -195,6 +196,11 @@ class ChatComposerClassic extends StatelessWidget {
                     cursorColor: theme.accent,
                     minLines: 1,
                     maxLines: 4,
+                    // The native toolbar plus the FORMAT entry — mirrored in
+                    // the liquid variant below; the two are intentionally
+                    // duplicated widgets and must be kept in step by hand.
+                    contextMenuBuilder: (ctx, state) =>
+                        buildComposerContextMenu(ctx, state, controller),
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
@@ -362,6 +368,10 @@ class ChatComposerLiquid extends StatelessWidget {
                     cursorColor: theme.accent,
                     minLines: 1,
                     maxLines: 5,
+                    // Kept in step with the classic variant above by hand —
+                    // see the note there.
+                    contextMenuBuilder: (ctx, state) =>
+                        buildComposerContextMenu(ctx, state, controller),
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,

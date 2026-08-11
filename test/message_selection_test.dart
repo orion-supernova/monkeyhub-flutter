@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:monkeyhub/models/message_capabilities.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/bulk_action_bar.dart';
@@ -130,10 +131,15 @@ void main() {
         anchorKey: anchor,
         bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
         isMine: isMine,
-        canCopy: true,
-        canReply: true,
-        canForward: canForward,
-        canSelect: canSelect,
+        capabilities: MessageCapabilities.none.copyWith(
+          canReply: true,
+          canForward: canForward,
+          canCopy: true,
+          canSelect: canSelect,
+          canViewProfile: !isMine,
+          canDelete: isMine,
+          canReport: !isMine,
+        ),
       );
       await tester.pumpAndSettle();
       return result;

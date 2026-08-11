@@ -467,6 +467,35 @@ export default defineSchema({
     content: v.string(),
     createdAt: v.number(),
     edited: v.optional(v.boolean()),
+    // When the author last edited this message (see `messages.editMessage`).
+    // Server-minted like `createdAt`, and separate from it on purpose:
+    // `createdAt` orders the transcript and anchors the edit window, so
+    // overwriting it would let a message drift down the room and re-open its
+    // own window. `edited` stays a plain boolean beside it because every
+    // pre-edit client already round-trips that field and renders nothing for
+    // it — the timestamp is for the long-press detail view, the boolean is
+    // for the stamp.
+    editedAt: v.optional(v.number()),
+    // Rich-text runs over `content` — bold, italic, spoiler, an explicit
+    // link, and friends. A sidecar array of {start, end, type, url?} spans
+    // (UTF-16 code-unit offsets into `content`) rather than markup in the
+    // string, for the same reasons `mentions` below stores ids beside the
+    // text instead of `<@id>` tokens: `content` is reused verbatim as the
+    // push body, as `rooms.lastMessage` and as `replyToPreview.contentPreview`,
+    // and markup would leak syntax into all three. A client that predates the
+    // feature renders the plain text untouched — unknown fields afford
+    // nothing. Validated and clamped server-side by `sanitizeFormatting`;
+    // present or absent, never `[]` (the sparse-field rule below).
+    formatting: v.optional(
+      v.array(
+        v.object({
+          start: v.number(),
+          end: v.number(),
+          type: v.string(),
+          url: v.optional(v.string()),
+        })
+      )
+    ),
     // New fields
     // "text" | "image" | "video" | "videoNote" | "audio" | "file" | "url"
     // | "system" | "location" | "liveLocation"
@@ -514,8 +543,9 @@ export default defineSchema({
     // somebody has to remember to write.
     galleryBucket: v.optional(v.string()),
 
-    // Whether `content` contains at least one URL, decided by the server at
-    // send time (see `LINK_PATTERN` in messages.ts) so the LINKS tab can range
+    // Whether this message carries at least one URL — in `content` itself
+    // (see `LINK_PATTERN` in messages.ts) or as a `formatting` link entity —
+    // decided by the server at send and edit time so the LINKS tab can range
     // over history instead of re-parsing every message it has never loaded.
     //
     // Set to `true` or left absent, never written `false` — for the index
