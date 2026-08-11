@@ -9,20 +9,24 @@ const TYPING_TTL_MS = 8000; // safety net — clearTyping fires after 3s inactiv
  * `ChatUser.fromJson` reads on the client, so the indicator can render a real
  * `UserAvatar` without a bespoke model.
  *
- * The avatar goes through the viewer's lens. This used to be unfiltered on the
- * same reasoning `rooms.getMembers` used — everyone here is in a room with the
- * viewer — and that reasoning was wrong in both places: sharing a room is not
- * consent to show your face, or the setting means nothing in any public room.
+ * Built entirely off the denormalized row — never `ctx.db.get(userId)` — so
+ * neither query subscribes to the typist's `users` document. See the
+ * `userName`/`avatarStorageId`/`avatarVisibility` comment in schema.ts for
+ * why: `getTypingForUser` is a global, whole-session subscription, and a
+ * users-doc read there used to refire on every typist's presence heartbeat.
+ * The avatar still goes through the viewer's lens — `canSee` only reads
+ * `subject._id`/`subject.visibility`, both of which a synthetic subject built
+ * from the row supplies, so this reuses the one real privacy check in
+ * `visibility.ts` rather than re-deriving it.
  */
-async function typistOf(ctx: any, lens: any, userId: any) {
-  const user = await ctx.db.get(userId);
-  if (!user) return null;
+function typistOf(lens: any, row: any) {
+  const subject = { _id: row.userId, visibility: { avatar: row.avatarVisibility } };
   return {
-    _id: user._id,
-    username: user.username ?? "",
-    name: user.name ?? user.username ?? "",
-    avatarStorageId: lens.canSee(user, "avatar")
-      ? user.avatarStorageId
+    _id: row.userId,
+    username: "",
+    name: row.userName ?? "",
+    avatarStorageId: lens.canSee(subject, "avatar")
+      ? row.avatarStorageId
       : undefined,
   };
 }
@@ -38,13 +42,21 @@ export const setTyping = mutation({
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
 
+    const user = await ctx.db.get(userId);
+    const stamp = {
+      userName: user?.name ?? user?.username ?? "",
+      avatarStorageId: user?.avatarStorageId,
+      avatarVisibility: user?.visibility?.avatar,
+    };
+
     if (existing) {
-      await ctx.db.patch(existing._id, { updatedAt: Date.now() });
+      await ctx.db.patch(existing._id, { updatedAt: Date.now(), ...stamp });
     } else {
       await ctx.db.insert("typingIndicators", {
         roomId,
         userId,
         updatedAt: Date.now(),
+        ...stamp,
       });
     }
   },
@@ -84,7 +96,7 @@ export const getTypingForUser = query({
     for (const m of memberships) {
       const indicators = await ctx.db
         .query("typingIndicators")
-        .withIndex("by_room", (q) => q.eq("roomId", m.roomId))
+        .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
         .collect();
 
       const active = indicators.filter(
@@ -94,14 +106,12 @@ export const getTypingForUser = query({
       );
 
       if (active.length > 0) {
-        const names = (
-          await Promise.all(
-            active.map(async (t) => {
-              const user = await ctx.db.get(t.userId);
-              return user?.name ?? user?.username ?? null;
-            })
-          )
-        ).filter(Boolean) as string[];
+        // Legacy rows written a moment before this field existed have no
+        // `userName` yet — they age out of the TTL within seconds, same as
+        // any other stale row, rather than being resolved with a users read.
+        const names = active
+          .map((t) => t.userName)
+          .filter((n): n is string => Boolean(n));
         if (names.length > 0) result[m.roomId.toString()] = names;
       }
     }
@@ -115,7 +125,7 @@ export const getTypingUsers = query({
     const now = Date.now();
     const indicators = await ctx.db
       .query("typingIndicators")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
 
     // Filter out stale entries and self
@@ -126,9 +136,11 @@ export const getTypingUsers = query({
     );
 
     const lens = await lensFor(ctx, currentUserId);
-    const enriched = await Promise.all(
-      active.map((t) => typistOf(ctx, lens, t.userId))
-    );
-    return enriched.filter(Boolean);
+    // Legacy rows written a moment before this field existed have no
+    // `userName` yet — they age out of the TTL within seconds, same as any
+    // other stale row, rather than being resolved with a users read.
+    return active
+      .filter((t) => t.userName != null)
+      .map((t) => typistOf(lens, t));
   },
 });

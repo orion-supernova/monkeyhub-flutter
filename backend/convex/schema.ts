@@ -308,8 +308,20 @@ export default defineSchema({
     muteNotifications: v.optional(v.boolean()),
     muteBadges: v.optional(v.boolean()),
     mutedUntil: v.optional(v.number()),
+    // Denormalized copy of this member's `users.visibility.seen`, the ONLY
+    // field `messages:getReadState` needs from the full `users` row it used
+    // to read per member. Reading the row for one near-static field meant
+    // that query re-fired on every member's presence heartbeat too, since
+    // Convex subscribes at document granularity. Stamped at membership
+    // creation (`visibility.seenVisibilityOf`) and kept current by
+    // `users.updateVisibility`'s fan-out whenever the owner changes the
+    // setting. Absent on every row written before this field existed —
+    // resolves through `DEFAULT_LEVEL.seen` ("nobody") until the one-time
+    // backfill migration runs; see `migrations.backfillSeenVisibility`.
+    seenVisibility: v.optional(v.string()),
   })
-    .index("by_room", ["roomId"])
+    // No standalone `by_room` — `by_room_user` alone serves every "all
+    // members of this room" read as a prefix scan on `roomId`.
     .index("by_user", ["userId"])
     .index("by_room_user", ["roomId", "userId"]),
 
@@ -758,7 +770,9 @@ export default defineSchema({
     // above — see `by_liveLocation_live_expiry`.
     liveShareLive: v.optional(v.boolean()),
   })
-    .index("by_room", ["roomId"])
+    // No standalone `by_room` — every call site ranges by time too, so
+    // `by_room_time` alone serves both as a prefix scan on `roomId` and as
+    // the time-ordered read; a narrower index would only add write cost.
     .index("by_room_time", ["roomId", "createdAt"])
     // The dedupe lookup. Scoped by sender as well as room so a client can only
     // ever collide with — or discover — its own keys.
@@ -1128,8 +1142,28 @@ export default defineSchema({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     updatedAt: v.number(),
+    // Denormalized at write time (`typing:setTyping`), same reason
+    // `messages.senderName`/`moments.authorName` are: `getTypingForUser` is a
+    // GLOBAL subscription held for the whole signed-in session, so a
+    // `ctx.db.get(userId)` here would subscribe it to every typist's full
+    // `users` document — including `status`/`lastSeen`, patched by that
+    // typist's presence heartbeat — and refire continuously for anyone
+    // sharing a room with an active typist, regardless of what screen they're
+    // on. Re-stamped every 2s while composing (the same cadence that patches
+    // `updatedAt`), so it is at most ~2s stale — tighter than the 8s TTL that
+    // already governs the whole feature. Optional rather than required: a row
+    // written a moment before this field existed would otherwise fail schema
+    // validation at deploy time instead of just aging out within its own
+    // 2s/8s lifecycle like every other row.
+    userName: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")),
+    // The raw `visibility.avatar` level, not a resolved boolean — so readers
+    // can still run it through `visibility.ts`'s one real `canSee` check
+    // instead of a second copy of that logic.
+    avatarVisibility: v.optional(v.string()),
   })
-    .index("by_room", ["roomId"])
+    // No standalone `by_room` — `by_room_user` alone serves every
+    // "typing indicators in this room" read as a prefix scan on `roomId`.
     .index("by_room_user", ["roomId", "userId"])
     // Account teardown clears every room this user was typing in.
     .index("by_user", ["userId"]),

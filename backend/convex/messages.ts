@@ -272,7 +272,7 @@ async function guardOutgoing(
   const roster = async () =>
     (rosterCache ??= await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
       .collect());
 
   // Child guard. Membership alone isn't enough: a grant can be revoked while
@@ -1330,12 +1330,6 @@ async function removeMessageAndFanout(ctx: any, msg: any, messageId: any) {
   });
 }
 
-/** Existence probe for `sendMessagePush`, which can't touch the db directly. */
-export const stillExists = internalQuery({
-  args: { messageId: v.id("messages") },
-  handler: async (ctx, { messageId }) => (await ctx.db.get(messageId)) !== null,
-});
-
 export const deleteMessage = mutation({
   args: {
     messageId: v.id("messages"),
@@ -1428,7 +1422,7 @@ export const editMessage = mutation({
     const roster = async () =>
       (rosterCache ??= await ctx.db
         .query("roomMembers")
-        .withIndex("by_room", (q: any) => q.eq("roomId", msg.roomId))
+        .withIndex("by_room_user", (q: any) => q.eq("roomId", msg.roomId))
         .collect());
     const { resolvedMentions, everyone } = await resolveMentions(
       ctx,
@@ -2393,7 +2387,7 @@ export const recountViewOnceRecipients = internalMutation({
   handler: async (ctx, { roomId }) => {
     const roster = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const memberIds = new Set(roster.map((m) => m.userId.toString()));
 
@@ -2579,7 +2573,7 @@ export const getReadState = query({
   handler: async (ctx, { roomId, viewerUserId }) => {
     const members = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
 
     // One lens for the whole room instead of a friendship pair-lookup per
@@ -2603,11 +2597,15 @@ export const getReadState = query({
         });
         continue;
       }
-      const reader = await ctx.db.get(m.userId);
-      if (!reader) continue;
-      // One gate for both cursors: see the header. Read through the same
-      // `canSee` call rather than two, so the two can never drift apart.
-      const shares = lens.canSee(reader, "seen");
+      // Built from the row's own denormalized `seenVisibility`, never
+      // `ctx.db.get(m.userId)` — this query used to read every other
+      // member's full `users` document just for this one near-static field,
+      // which subscribed it to their `status`/`lastSeen` too and refired it
+      // on every presence heartbeat in the room. See schema.ts's
+      // `roomMembers.seenVisibility` comment. Still routed through the one
+      // real `canSee` check so the gate can't drift from every other surface.
+      const subject = { _id: m.userId, visibility: { seen: m.seenVisibility } };
+      const shares = lens.canSee(subject, "seen");
       const read = shares ? (m.lastReadAt ?? 0) : null;
       const delivered = shares ? (m.lastDeliveredAt ?? 0) : null;
       if (read === null && delivered === null) continue;

@@ -59,7 +59,7 @@ export const getProfile = query({
     const isGuardian = !isSelf && lens.isGuardian(userId);
 
     const vis = user.visibility ?? {};
-    const identity = lens.identity(user);
+    const identity = lens.identity(user, Date.now());
     return {
       _id: user._id,
       username: user.username,
@@ -311,6 +311,22 @@ export const updateVisibility = mutation({
         : {}),
     };
     await ctx.db.patch(userId, { visibility: next });
+
+    // Keep `roomMembers.seenVisibility` — the denormalized copy
+    // `messages:getReadState` reads instead of the full `users` row, see
+    // schema.ts — in sync whenever the setting that owns it actually changes.
+    // Fans out over every room this user is in; rare (a settings screen edit)
+    // and self-scoped, unlike the presence heartbeat this denormalization
+    // exists to stop coupling `getReadState` to.
+    if (seen !== undefined) {
+      const memberships = await ctx.db
+        .query("roomMembers")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      for (const m of memberships) {
+        await ctx.db.patch(m._id, { seenVisibility: next.seen as string | undefined });
+      }
+    }
   },
 });
 
@@ -540,124 +556,146 @@ export const updateAvatar = mutation({
   },
 });
 
+/**
+ * The one scan behind both `users.searchUsers` and `friends.searchUsers`.
+ *
+ * These used to be two independent copies of the same `.collect()`-and-filter
+ * over `users`, and had already drifted: only this one applied the blocking
+ * filter and the child-safe reachability restriction, so a build calling the
+ * other copy could surface a blocked account, or let a supervised child
+ * enumerate strangers by fuzzy match — exactly the "one copy gets fixed and
+ * the other quietly does not" trap a comment on this function used to warn
+ * about while still doing nothing about it. There is now exactly one
+ * implementation; `[limit]` is the only thing callers vary.
+ *
+ * Full, unbounded `.collect()` over `users` is deliberate, not an oversight:
+ * this is a small, invite-only friends/family app, not internet-scale, so
+ * it sits inside Convex's own stated exception for `.collect()` ("unless
+ * potentially unbounded, 1000+" — see the Best Practices guide). Revisit with
+ * a `.searchIndex` (token/prefix search — note it would narrow the current
+ * true-substring match, a real UX change, not just a perf one) if the `users`
+ * table ever approaches that range.
+ */
+export async function searchUsersCore(
+  ctx: any,
+  currentUserId: any,
+  rawQuery: string,
+  limit: number
+) {
+  // Collect ids that should be hidden: anyone *I* have blocked OR who has
+  // blocked *me* (in both directions — invisibility is symmetric).
+  const blockedByMe = await ctx.db
+    .query("blocks")
+    .withIndex("by_user", (qb: any) => qb.eq("userId", currentUserId))
+    .collect();
+  const blockingMe = await ctx.db
+    .query("blocks")
+    .withIndex("by_blocked", (qb: any) => qb.eq("blockedUserId", currentUserId))
+    .collect();
+  const hidden = new Set<string>();
+  for (const b of blockedByMe) hidden.add(b.blockedUserId.toString());
+  for (const b of blockingMe) {
+    if (b.blockedUserId.toString() === currentUserId.toString()) {
+      hidden.add(b.userId.toString());
+    }
+  }
+
+  // A child searching gets a nearly-closed world: their family and their
+  // approved contacts match as they type, exactly like an adult's search.
+  // Anyone else surfaces ONLY on a complete, exact username — so a child
+  // can reach someone whose handle they were given in person, but can't
+  // browse, guess, or enumerate their way to a stranger.
+  let reachable: Set<string> | null = null;
+  if (await isChild(ctx, currentUserId)) {
+    reachable = await familyOf(ctx, currentUserId);
+    const mine = await ctx.db
+      .query("friendships")
+      .withIndex("by_user", (qf: any) => qf.eq("userId", currentUserId))
+      .collect();
+    for (const f of mine) {
+      if (f.status === "accepted") reachable.add(f.friendId.toString());
+    }
+    const theirs = await ctx.db
+      .query("friendships")
+      .withIndex("by_friend", (qf: any) => qf.eq("friendId", currentUserId))
+      .collect();
+    for (const f of theirs) {
+      if (f.status === "accepted") reachable.add(f.userId.toString());
+    }
+  }
+
+  const lens = await lensFor(ctx, currentUserId);
+  const now = Date.now();
+  const needle = rawQuery.trim().toLowerCase();
+  const users = await ctx.db.query("users").collect();
+  const filtered = users
+    .filter((u: any) => {
+      if (u._id === currentUserId) return false;
+      if (hidden.has(u._id.toString())) return false;
+      // System accounts are not people and cannot be addressed — see
+      // `systemAccount.ts`. Search is the main way one could be found at all,
+      // so this filter is most of what "private" means for that row: it sends
+      // no friend requests, joins no public rooms, and appears in no roster
+      // except the single DM it writes to.
+      if (isSystemAccount(u)) return false;
+      const handle = u.username.toLowerCase();
+      const fuzzy =
+        handle.includes(needle) ||
+        (u.name ?? "").toLowerCase().includes(needle);
+      if (reachable === null) return fuzzy; // adult — unchanged
+      // Child: fuzzy within the people they already have, exact anywhere.
+      if (reachable.has(u._id.toString())) return fuzzy;
+      return needle.length > 0 && handle === needle;
+    })
+    .slice(0, limit);
+
+  return Promise.all(
+    filtered.map(async (u: any) => {
+      const outgoing = await ctx.db
+        .query("friendships")
+        .withIndex("by_pair", (query: any) =>
+          query.eq("userId", currentUserId).eq("friendId", u._id)
+        )
+        .first();
+      const incoming = await ctx.db
+        .query("friendships")
+        .withIndex("by_pair", (query: any) =>
+          query.eq("userId", u._id).eq("friendId", currentUserId)
+        )
+        .first();
+
+      let friendshipStatus = "none";
+      let requestId = undefined;
+      if (outgoing?.status === "accepted" || incoming?.status === "accepted") {
+        friendshipStatus = "friend";
+      } else if (outgoing?.status === "pending") {
+        friendshipStatus = "outgoingPending";
+        requestId = outgoing._id;
+      } else if (incoming?.status === "pending") {
+        friendshipStatus = "incomingPending";
+        requestId = incoming._id;
+      }
+
+      return {
+        _id: u._id,
+        username: u.username,
+        name: u.name ?? u.username,
+        // Discover is the surface a stranger reaches you through, so it is
+        // the LAST place that may ignore the setting. Someone at "avatar:
+        // friends" is searchable by handle and still faceless until they
+        // accept you.
+        ...lens.identity(u, now),
+        friendshipStatus,
+        requestId,
+      };
+    })
+  );
+}
+
 export const searchUsers = query({
   args: { query: v.string(), currentUserId: v.id("users") },
-  handler: async (ctx, { query: q, currentUserId }) => {
-    // Collect ids that should be hidden: anyone *I* have blocked OR who has
-    // blocked *me* (in both directions — invisibility is symmetric).
-    const blockedByMe = await ctx.db
-      .query("blocks")
-      .withIndex("by_user", (qb) => qb.eq("userId", currentUserId))
-      .collect();
-    const blockingMe = await ctx.db
-      .query("blocks")
-      .collect();
-    const hidden = new Set<string>();
-    for (const b of blockedByMe) hidden.add(b.blockedUserId.toString());
-    for (const b of blockingMe) {
-      if (b.blockedUserId.toString() === currentUserId.toString()) {
-        hidden.add(b.userId.toString());
-      }
-    }
-
-    // A child searching gets a nearly-closed world: their family and their
-    // approved contacts match as they type, exactly like an adult's search.
-    // Anyone else surfaces ONLY on a complete, exact username — so a child
-    // can reach someone whose handle they were given in person, but can't
-    // browse, guess, or enumerate their way to a stranger.
-    let reachable: Set<string> | null = null;
-    if (await isChild(ctx, currentUserId)) {
-      reachable = await familyOf(ctx, currentUserId);
-      const mine = await ctx.db
-        .query("friendships")
-        .withIndex("by_user", (qf) => qf.eq("userId", currentUserId))
-        .collect();
-      for (const f of mine) {
-        if (f.status === "accepted") reachable.add(f.friendId.toString());
-      }
-      const theirs = await ctx.db
-        .query("friendships")
-        .withIndex("by_friend", (qf) => qf.eq("friendId", currentUserId))
-        .collect();
-      for (const f of theirs) {
-        if (f.status === "accepted") reachable.add(f.userId.toString());
-      }
-    }
-
-    const lens = await lensFor(ctx, currentUserId);
-    const needle = q.trim().toLowerCase();
-    const users = await ctx.db.query("users").collect();
-    const filtered = users
-      .filter((u) => {
-        if (u._id === currentUserId) return false;
-        if (hidden.has(u._id.toString())) return false;
-        // System accounts are not people and cannot be addressed — see
-        // `systemAccount.ts`. Search is the main way one could be found at all,
-        // so this filter is most of what "private" means for that row: it sends
-        // no friend requests, joins no public rooms, and appears in no roster
-        // except the single DM it writes to.
-        //
-        // Matched on the row's marker rather than its username so a second system
-        // account added later is covered without touching this line. `friends.ts`
-        // has its own `searchUsers`, filtered the same way — this is exactly the
-        // kind of duplicated read path where one copy gets fixed and the other
-        // quietly does not.
-        if (isSystemAccount(u)) return false;
-        const handle = u.username.toLowerCase();
-        const fuzzy =
-          handle.includes(needle) ||
-          (u.name ?? "").toLowerCase().includes(needle);
-        if (reachable === null) return fuzzy; // adult — unchanged
-        // Child: fuzzy within the people they already have, exact anywhere.
-        if (reachable.has(u._id.toString())) return fuzzy;
-        return needle.length > 0 && handle === needle;
-      })
-      .slice(0, 20);
-
-    const enriched = await Promise.all(
-      filtered.map(async (u) => {
-        const outgoing = await ctx.db
-          .query("friendships")
-          .withIndex("by_pair", (query) =>
-            query.eq("userId", currentUserId).eq("friendId", u._id)
-          )
-          .first();
-        const incoming = await ctx.db
-          .query("friendships")
-          .withIndex("by_pair", (query) =>
-            query.eq("userId", u._id).eq("friendId", currentUserId)
-          )
-          .first();
-
-        let friendshipStatus = "none";
-        let requestId = undefined;
-        if (outgoing?.status === "accepted" || incoming?.status === "accepted") {
-          friendshipStatus = "friend";
-        } else if (outgoing?.status === "pending") {
-          friendshipStatus = "outgoingPending";
-          requestId = outgoing._id;
-        } else if (incoming?.status === "pending") {
-          friendshipStatus = "incomingPending";
-          requestId = incoming._id;
-        }
-
-        return {
-          _id: u._id,
-          username: u.username,
-          name: u.name ?? u.username,
-          // Discover is the surface a stranger reaches you through, so it is
-          // the LAST place that may ignore the setting. Someone at "avatar:
-          // friends" is searchable by handle and still faceless until they
-          // accept you.
-          ...lens.identity(u),
-          friendshipStatus,
-          requestId,
-        };
-      })
-    );
-
-    return enriched;
-  },
+  handler: async (ctx, { query: q, currentUserId }) =>
+    searchUsersCore(ctx, currentUserId, q, 20),
 });
 
 // ─────────────────────────────── Blocking ───────────────────────────────

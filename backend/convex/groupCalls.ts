@@ -121,7 +121,7 @@ export const start = mutation({
       ...(
         await ctx.db
           .query("roomMembers")
-          .withIndex("by_room", (q) => q.eq("roomId", roomId))
+          .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
           .collect()
       ).map((m) => m.userId),
     );
@@ -157,7 +157,7 @@ export const start = mutation({
     // Resolve the invite list against actual room membership.
     const members = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const memberIds = new Set(members.map((m) => m.userId.toString()));
     const requested =

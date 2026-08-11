@@ -67,24 +67,26 @@ export const sendMessagePush = internalAction({
   ) => {
     // Cheapest possible guard against the "typed it, sent it, deleted it"
     // race: `send` schedules us with runAfter(0), but under load this action
-    // can start after the message is already gone. One read saves a push that
-    // would immediately need taking back.
-    const stillThere = await ctx.runQuery(internal.messages.stillExists, {
+    // can start after the message is already gone. Folded into the member
+    // fetch below as one `runQuery` rather than two sequential ones — `send`
+    // schedules this action, under load, for every message, so a second
+    // round trip here was a fixed cost on the hottest push path in the app.
+    const { exists, members: allMembers }: {
+      exists: boolean;
+      members: Array<{
+        userId: string;
+        mutesNotifications: boolean;
+        mutesBadges: boolean;
+      }>;
+    } = await ctx.runQuery(internal.rooms.getMemberIds, {
+      roomId,
+      excludeUserId: senderId,
       messageId,
     });
-    if (!stillThere) {
+    if (!exists) {
       console.log("sendMessagePush: message deleted before send — skipped.");
       return;
     }
-
-    const allMembers: Array<{
-      userId: string;
-      mutesNotifications: boolean;
-      mutesBadges: boolean;
-    }> = await ctx.runQuery(internal.rooms.getMemberIds, {
-      roomId,
-      excludeUserId: senderId,
-    });
     if (allMembers.length === 0) return;
 
     // The room's mute sorts recipients into three buckets, and this is the
@@ -229,10 +231,11 @@ export const revokeMessagePushes = internalAction({
     senderId: v.id("users"),
   },
   handler: async (ctx, { messageId, roomId, senderId }) => {
-    const members: Array<{ userId: string }> = await ctx.runQuery(
-      internal.rooms.getMemberIds,
-      { roomId, excludeUserId: senderId },
-    );
+    const { members }: { members: Array<{ userId: string }> } =
+      await ctx.runQuery(internal.rooms.getMemberIds, {
+        roomId,
+        excludeUserId: senderId,
+      });
     if (members.length === 0) return;
     await ctx.runAction(internal.notifications.dismissAndSync, {
       userIds: members.map((m) => m.userId) as any,

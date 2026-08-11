@@ -25,7 +25,7 @@ async function wipeRoomContents(ctx: any, roomId: any) {
   // Messages → reactions + media + row
   const msgs = await ctx.db
     .query("messages")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const msg of msgs) {
     const reactions = await ctx.db
@@ -47,7 +47,7 @@ async function wipeRoomContents(ctx: any, roomId: any) {
   // Memberships
   const members = await ctx.db
     .query("roomMembers")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const m of members) await ctx.db.delete(m._id);
   // Pins. Swept by room rather than inside the per-message loop above,
@@ -70,7 +70,7 @@ async function wipeRoomContents(ctx: any, roomId: any) {
   // Typing indicators
   const typing = await ctx.db
     .query("typingIndicators")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const t of typing) await ctx.db.delete(t._id);
   // Nothing to clean up for notifications: there is no server-side record of
@@ -155,7 +155,7 @@ export const listOrphanedRoomMemberships = internalQuery({
     for (const roomId of orphanedRoomIds) {
       const msgs = await ctx.db
         .query("messages")
-        .withIndex("by_room", (q: any) => q.eq("roomId", roomId as any))
+        .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId as any))
         .take(100000);
       orphanRoomsWithMessageCount.push({
         roomId,
@@ -264,7 +264,7 @@ export async function summariseRooms(
   for (const roomId of roomIds) {
     const msgs = await ctx.db
       .query("messages")
-      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .withIndex("by_room_time", (q: any) => q.eq("roomId", roomId))
       .collect();
     messageCount += msgs.length;
     for (const m of msgs) {

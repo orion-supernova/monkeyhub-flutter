@@ -271,6 +271,73 @@ export const stripDeviceTokens = internalMutation({
 });
 
 /**
+ * One-off backfill for `roomMembers.seenVisibility` (see the field comment in
+ * schema.ts).
+ *
+ * Every `roomMembers` row created after the `messages:getReadState` bandwidth
+ * fix carries this already, stamped from the joining user's current
+ * `visibility.seen` at insert time. This walks existing rows and fills it in
+ * for memberships written before the field existed, so read receipts don't
+ * silently go dark (missing ⇒ "nobody" per `visibility.ts`'s `DEFAULT_LEVEL`)
+ * for a member who actually shares them, until they next touch the setting.
+ *
+ * Only patches rows where the owning user has an explicit, non-default
+ * `visibility.seen` — a row left with `seenVisibility` absent resolves through
+ * `DEFAULT_LEVEL.seen` exactly the way an absent `users.visibility.seen`
+ * already does, so there's nothing to backfill for the common case.
+ *
+ * Self-chains through the scheduler until the table is exhausted. Kick it off
+ * with:
+ *
+ *     npx convex run migrations:backfillSeenVisibility '{}'
+ *
+ * and watch the returned/logged counts. Re-running after completion is a
+ * no-op.
+ */
+export const backfillSeenVisibility = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+    scanned: v.optional(v.number()),
+    patched: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, batchSize, scanned, patched }) => {
+    const numItems = Math.min(batchSize ?? 200, 500);
+    const page = await ctx.db
+      .query("roomMembers")
+      .paginate({ numItems, cursor: cursor ?? null });
+
+    let totalScanned = scanned ?? 0;
+    let totalPatched = patched ?? 0;
+
+    for (const m of page.page) {
+      totalScanned++;
+      if (m.seenVisibility !== undefined) continue;
+      const user = await ctx.db.get(m.userId);
+      const seen = user?.visibility?.seen;
+      if (seen === undefined) continue;
+      await ctx.db.patch(m._id, { seenVisibility: seen });
+      totalPatched++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.migrations.backfillSeenVisibility, {
+        cursor: page.continueCursor,
+        batchSize: numItems,
+        scanned: totalScanned,
+        patched: totalPatched,
+      });
+      return { done: false, scanned: totalScanned, patched: totalPatched };
+    }
+
+    console.log(
+      `backfillSeenVisibility complete: scanned ${totalScanned}, patched ${totalPatched}`
+    );
+    return { done: true, scanned: totalScanned, patched: totalPatched };
+  },
+});
+
+/**
  * How many user rows still carry `deviceTokens`. Must read 0 before step 3.
  *
  *     npx convex run migrations:countDeviceTokens '{}'

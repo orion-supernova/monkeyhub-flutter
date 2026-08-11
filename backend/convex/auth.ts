@@ -359,7 +359,7 @@ async function purgeUser(ctx: any, userId: any) {
 
     const remaining = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
       .collect();
 
     if (remaining.length === 0) {

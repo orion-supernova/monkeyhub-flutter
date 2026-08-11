@@ -9,7 +9,7 @@ import {
   isChild,
 } from "./childGuard";
 import { assertNoSystemAccount, assertNotSystemRoom } from "./systemAccount";
-import { lensFor, publicUserView } from "./visibility";
+import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
 import { unreadForRoom } from "./badges";
 import { MUTE_ALWAYS, resolveMute } from "./mute";
 import { deleteStored } from "./files";
@@ -55,6 +55,7 @@ export const create = mutation({
       userId,
       joinedAt: Date.now(),
       role: "owner",
+      seenVisibility: await seenVisibilityOf(ctx, userId),
     });
     return roomId;
   },
@@ -95,6 +96,7 @@ export const join = mutation({
       userId,
       joinedAt: Date.now(),
       role: "member",
+      seenVisibility: await seenVisibilityOf(ctx, userId),
     });
     await ctx.db.patch(roomId, { memberCount: room.memberCount + 1 });
   },
@@ -139,7 +141,7 @@ export const leave = mutation({
     // Auto-delete room if now empty
     const remaining = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     if (remaining.length === 0) {
       await wipeRoomCompletely(ctx, roomId);
@@ -332,7 +334,7 @@ export const listUserRooms = query({
         // Include participant IDs for the iOS app
         const members = await ctx.db
           .query("roomMembers")
-          .withIndex("by_room", (q) => q.eq("roomId", m.roomId))
+          .withIndex("by_room_user", (q) => q.eq("roomId", m.roomId))
           .collect();
         const participantIds = members.map((mem) => mem.userId.toString());
         const { passwordHash, ...rest } = room;
@@ -557,9 +559,10 @@ export const getMembers = query({
   handler: async (ctx, { roomId, viewerUserId }) => {
     const members = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const lens = await lensFor(ctx, viewerUserId);
+    const now = Date.now();
     const users = await Promise.all(
       members.map(async (m) => {
         const user = await ctx.db.get(m.userId);
@@ -568,7 +571,7 @@ export const getMembers = query({
           // No `email`. Sharing a room with someone is not consent to hand
           // them your address — a public room would have leaked it to every
           // member. users.getProfile serves it to self only.
-          ...publicUserView(lens, user),
+          ...publicUserView(lens, user, now),
           role: m.role,
         };
       })
@@ -590,24 +593,42 @@ export const getMembers = query({
 // Callers that only want the roster (`revokeMessagePushes`) can ignore the two
 // flags — a dismiss push must reach a muted member anyway, since it is silent
 // and its whole job is correcting a badge.
+//
+// `messageId` is optional and, when passed, folds in the existence probe
+// `sendMessagePush` used to make as a separate `runQuery` first: two
+// sequential reads with no side effect between them are one wasted round trip
+// on the hottest push path in the app. `revokeMessagePushes` deliberately
+// omits it — it operates on an already-deleted message and must not
+// short-circuit on that fact.
 export const getMemberIds = internalQuery({
-  args: { roomId: v.id("rooms"), excludeUserId: v.id("users") },
-  handler: async (ctx, { roomId, excludeUserId }) => {
+  args: {
+    roomId: v.id("rooms"),
+    excludeUserId: v.id("users"),
+    messageId: v.optional(v.id("messages")),
+  },
+  handler: async (ctx, { roomId, excludeUserId, messageId }) => {
+    if (messageId !== undefined) {
+      const msg = await ctx.db.get(messageId);
+      if (!msg) return { exists: false, members: [] };
+    }
     const members = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const now = Date.now();
-    return members
-      .filter((m) => m.userId.toString() !== excludeUserId.toString())
-      .map((m) => {
-        const mute = resolveMute(m, now);
-        return {
-          userId: m.userId,
-          mutesNotifications: mute.notifications,
-          mutesBadges: mute.badges,
-        };
-      });
+    return {
+      exists: true,
+      members: members
+        .filter((m) => m.userId.toString() !== excludeUserId.toString())
+        .map((m) => {
+          const mute = resolveMute(m, now);
+          return {
+            userId: m.userId,
+            mutesNotifications: mute.notifications,
+            mutesBadges: mute.badges,
+          };
+        }),
+    };
   },
 });
 
@@ -618,7 +639,7 @@ export const getRoom = query({
     if (!room) return null;
     const members = await ctx.db
       .query("roomMembers")
-      .withIndex("by_room", (q) => q.eq("roomId", roomId))
+      .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const { passwordHash, ...rest } = room;
     return { ...rest, participantIds: members.map((m) => m.userId.toString()), hasPassword: !!passwordHash };
@@ -699,8 +720,20 @@ export const getOrCreateDM = mutation({
       messageLifetime,
     });
 
-    await ctx.db.insert("roomMembers", { roomId, userId, joinedAt: Date.now(), role: "owner" });
-    await ctx.db.insert("roomMembers", { roomId, userId: friendId, joinedAt: Date.now(), role: "member" });
+    await ctx.db.insert("roomMembers", {
+      roomId,
+      userId,
+      joinedAt: Date.now(),
+      role: "owner",
+      seenVisibility: await seenVisibilityOf(ctx, userId),
+    });
+    await ctx.db.insert("roomMembers", {
+      roomId,
+      userId: friendId,
+      joinedAt: Date.now(),
+      role: "member",
+      seenVisibility: await seenVisibilityOf(ctx, friendId),
+    });
 
     return roomId;
   },
@@ -752,6 +785,7 @@ export const ensureSavedMessagesRoom = mutation({
       userId,
       joinedAt: Date.now(),
       role: "owner",
+      seenVisibility: await seenVisibilityOf(ctx, userId),
       // Pinned on day one so it opens at the top of the list, but it's an
       // ordinary per-viewer membership flag from here on: pinRoom/unpinRoom
       // and archiveRoom/unarchiveRoom all accept this room like any other,

@@ -278,7 +278,7 @@ export async function childMayUseRoom(
 ): Promise<boolean> {
   const members = await ctx.db
     .query("roomMembers")
-    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   const others = members
     .map((m: any) => m.userId.toString())

@@ -87,8 +87,13 @@ export type PrivacyLens = {
    * rather than nulled or zeroed: the client renders the gradient-initials
    * fallback for a missing avatar and no status dot for a missing status, so
    * "hidden" and "not set" land on the same, already-correct UI.
+   *
+   * `now` has no default — see `presence.effectiveStatus`, which this calls
+   * into for the `status` field. Pass one `Date.now()` computed at the top of
+   * the calling handler so every subject resolved in the same query is
+   * judged against the same instant.
    */
-  identity(subject: any): {
+  identity(subject: any, now: number): {
     avatarStorageId?: any;
     status?: string;
     lastSeen?: number;
@@ -157,7 +162,7 @@ export async function lensFor(
       if (level === "friends") return lens.isFriend(id);
       return false; // "nobody"
     },
-    identity(subject) {
+    identity(subject, now) {
       return {
         // `undefined`, not the raw id — Convex ships whatever the handler
         // returns, so omitting the key IS the redaction.
@@ -167,7 +172,7 @@ export async function lensFor(
         // Staleness-corrected on the way out, so no caller has to remember to
         // do it and none can forget. See presence.ts.
         status: lens.canSee(subject, "status")
-          ? effectiveStatus(subject?.status, subject?.lastSeen)
+          ? effectiveStatus(subject?.status, subject?.lastSeen, now)
           : undefined,
         lastSeen: lens.canSee(subject, "lastSeen")
           ? subject?.lastSeen
@@ -180,6 +185,22 @@ export async function lensFor(
 }
 
 /**
+ * The `visibility.seen` snapshot a new `roomMembers` row should be inserted
+ * with, so `messages:getReadState` never has to fall back to `users`.
+ *
+ * A one-time read at membership-creation time, not a query — cheap, and
+ * every one of the half-dozen `roomMembers` insert sites across the codebase
+ * needs the exact same value, which is the duplicated-read-path trap this
+ * file's own header comment warns about. `updateVisibility` keeps existing
+ * rows in sync when the setting later changes; this only handles the
+ * membership's first write.
+ */
+export async function seenVisibilityOf(ctx: any, userId: any): Promise<string | undefined> {
+  const user = await ctx.db.get(userId);
+  return user?.visibility?.seen;
+}
+
+/**
  * The fields of a `users` row any other user may see, already redacted.
  *
  * Spreading a user document is a data leak — a row carries `passwordHash`,
@@ -189,7 +210,7 @@ export async function lensFor(
  * access-control boundary, so add a field here only after asking whether every
  * stranger who can address a friend request to you should have it.
  */
-export function publicUserView(lens: PrivacyLens, user: any) {
+export function publicUserView(lens: PrivacyLens, user: any, now: number) {
   return {
     _id: user._id,
     username: user.username,
@@ -197,7 +218,7 @@ export function publicUserView(lens: PrivacyLens, user: any) {
     // No `email`. It used to be here, and it failed the test above: a stranger
     // who can address a friend request to you should not learn your address.
     // `users.getProfile` serves it to self and guardians only.
-    ...lens.identity(user),
+    ...lens.identity(user, now),
     // Passes the test above trivially: it is not a fact ABOUT anyone, it is the
     // statement that this row is the app rather than a person. Only ever true
     // for a row `problemReports.ensureLogAccount` wrote, so it discloses

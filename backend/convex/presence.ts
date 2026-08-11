@@ -39,11 +39,17 @@ export const PRESENCE_WRITE_INTERVAL_MS = 90_000; // 1.5 minutes
  * The effective presence status accounting for heartbeat staleness. Returns
  * "offline" when the stored status is already offline, or when `lastSeen` is
  * older than the offline window; otherwise the stored status.
+ *
+ * `now` has no default, deliberately — the same discipline `mute.ts`'s
+ * `resolveMute(row, now)` follows. Callers compute one `Date.now()` at the
+ * top of their query handler and pass it through, so every subject resolved
+ * in the same call is judged against the same instant (see the identical
+ * reasoning in `rooms.getMemberIds`).
  */
 export function effectiveStatus(
   status: string | undefined,
   lastSeen: number | undefined,
-  now: number = Date.now(),
+  now: number,
 ): string {
   if (status === "offline") return "offline";
   if (lastSeen == null) return status ?? "offline";

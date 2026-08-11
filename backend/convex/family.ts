@@ -5,7 +5,7 @@ import {
   ERR_USERNAME_RESERVED,
   isReservedName,
 } from "./systemAccount";
-import { lensFor } from "./visibility";
+import { lensFor, seenVisibilityOf } from "./visibility";
 import { v } from "convex/values";
 import {
   ACCOUNT_ADULT,
@@ -781,6 +781,7 @@ export const decideApproval = mutation({
           userId: req.childId,
           joinedAt: Date.now(),
           role: "member",
+          seenVisibility: await seenVisibilityOf(ctx, req.childId),
         });
         await ctx.db.patch(targetRoomId, { memberCount: room.memberCount + 1 });
       }

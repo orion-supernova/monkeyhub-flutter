@@ -11,9 +11,9 @@ import {
   initialStageFor,
   isReleasedToRecipient,
 } from "./childGuard";
-import { effectiveStatus } from "./presence";
 import { ERR_SYSTEM_ACCOUNT, isSystemAccount } from "./systemAccount";
-import { lensFor, publicUserView } from "./visibility";
+import { lensFor, publicUserView, seenVisibilityOf } from "./visibility";
+import { searchUsersCore } from "./users";
 
 /**
  * Pings whoever now holds a request.
@@ -131,12 +131,14 @@ async function createDirectRoom(ctx: any, requesterId: any, receiverId: any, roo
     userId: requesterId,
     joinedAt: Date.now(),
     role: "owner",
+    seenVisibility: await seenVisibilityOf(ctx, requesterId),
   });
   await ctx.db.insert("roomMembers", {
     roomId,
     userId: receiverId,
     joinedAt: Date.now(),
     role: "member",
+    seenVisibility: await seenVisibilityOf(ctx, receiverId),
   });
 
   return roomId;
@@ -265,7 +267,8 @@ export const listFriends = query({
     // "nobody" setting redacts — but the lens is still what decides that, not
     // an assumption made in this handler.
     const lens = await lensFor(ctx, userId);
-    return friends.filter(Boolean).map((u) => publicUserView(lens, u!));
+    const now = Date.now();
+    return friends.filter(Boolean).map((u) => publicUserView(lens, u!, now));
   },
 });
 
@@ -289,11 +292,12 @@ export const listPendingRequests = query({
     );
 
     const lens = await lensFor(ctx, userId);
+    const now = Date.now();
     const requesters = await Promise.all(
       incoming.map(async (f) => {
         const user = await ctx.db.get(f.userId);
         return user
-          ? { ...publicUserView(lens, user), friendshipId: f._id }
+          ? { ...publicUserView(lens, user, now), friendshipId: f._id }
           : null;
       })
     );
@@ -583,6 +587,7 @@ export const listIncomingDirectRequests = query({
     );
 
     const lens = await lensFor(ctx, userId);
+    const now = Date.now();
     const requests = await Promise.all(
       incoming.map(async (request) => {
         const requester = await ctx.db.get(request.userId);
@@ -604,7 +609,7 @@ export const listIncomingDirectRequests = query({
           // "avatar: friends" arrives faceless — which is the setting working,
           // not a bug. Their handle and name still identify them well enough
           // to decide.
-          user: publicUserView(lens, requester),
+          user: publicUserView(lens, requester, now),
         };
       })
     );
@@ -623,6 +628,7 @@ export const listOutgoingDirectRequests = query({
     const outgoing = rows.filter((f) => f.status === "pending");
 
     const lens = await lensFor(ctx, userId);
+    const now = Date.now();
     const requests = await Promise.all(
       outgoing.map(async (request) => {
         const receiver = await ctx.db.get(request.friendId);
@@ -645,7 +651,7 @@ export const listOutgoingDirectRequests = query({
           stage: request.stage ?? null,
           // Same as the incoming list: sending someone a request doesn't
           // unlock their profile while it's still pending.
-          user: publicUserView(lens, receiver),
+          user: publicUserView(lens, receiver, now),
         };
       })
     );
@@ -670,30 +676,21 @@ export const removeFriend = mutation({
   },
 });
 
+/**
+ * No current caller — `users:searchUsers` is the one the client actually
+ * calls (`chat_api.dart`); kept and fixed rather than deleted for the same
+ * reason `listPendingRequests` above is, since it stays callable by any build
+ * already in users' hands. "Fixed" is the operative word: this used to be an
+ * independent copy of the scan in `users.searchUsers` that had already
+ * drifted — no blocking filter, no child-safe reachability restriction — the
+ * exact duplicated-read-path trap `users.searchUsersCore`'s header comment
+ * describes. It now calls that one implementation and narrows the shape
+ * afterward, so there is nothing left here that can drift again.
+ */
 export const searchUsers = query({
   args: { query: v.string(), currentUserId: v.id("users") },
   handler: async (ctx, { query, currentUserId }) => {
-    const lens = await lensFor(ctx, currentUserId);
-    const users = await ctx.db.query("users").collect();
-    return users
-      .filter(
-        (u) =>
-          u._id !== currentUserId &&
-          // Same filter as `users.searchUsers`, and it has to be in both: this
-          // is a second, near-identical search over the same table, and a system
-          // account hidden from one of them is not hidden. See systemAccount.ts.
-          !isSystemAccount(u) &&
-          u.username.toLowerCase().includes(query.toLowerCase())
-      )
-      .slice(0, 10)
-      .map((u) => ({
-        _id: u._id,
-        username: u.username,
-        // Presence obeys the setting here too — a search result is the
-        // thinnest possible relationship, not a reason to leak "online now".
-        status: lens.canSee(u, "status")
-          ? effectiveStatus(u.status, u.lastSeen)
-          : undefined,
-      }));
+    const results = await searchUsersCore(ctx, currentUserId, query, 10);
+    return results.map((u) => ({ _id: u._id, username: u.username, status: u.status }));
   },
 });

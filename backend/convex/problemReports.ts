@@ -2,6 +2,7 @@ import { internalMutation, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { galleryBucketFor } from "./messages";
+import { seenVisibilityOf } from "./visibility";
 import {
   LOG_DISPLAY_NAME,
   LOG_USERNAME,
@@ -173,12 +174,14 @@ async function ensureReportRoom(ctx: any, logUserId: any, inboxUserId: any) {
     userId: logUserId,
     joinedAt: Date.now(),
     role: "owner",
+    seenVisibility: await seenVisibilityOf(ctx, logUserId),
   });
   await ctx.db.insert("roomMembers", {
     roomId,
     userId: inboxUserId,
     joinedAt: Date.now(),
     role: "member",
+    seenVisibility: await seenVisibilityOf(ctx, inboxUserId),
   });
   return roomId;
 }
