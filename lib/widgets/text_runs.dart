@@ -214,6 +214,7 @@ class FoldedText {
     required this.runs,
     required this.owners,
     required this.spoilerRanges,
+    this.codeRanges = const [],
   });
 
   final String displayText;
@@ -223,6 +224,10 @@ class FoldedText {
   /// Maximal contiguous spoiler stretches in display coordinates — what the
   /// dust overlay covers, one entry per visually continuous veil.
   final List<({int start, int end})> spoilerRanges;
+
+  /// Maximal contiguous inline-code stretches in display coordinates — one
+  /// entry per chip the underlay draws, NOT one per atomic run.
+  final List<({int start, int end})> codeRanges;
 
   /// Nothing to enrich: one plain run and no owners. The fast path that keeps
   /// the overwhelmingly common unformatted message on `Text` instead of
@@ -388,10 +393,25 @@ FoldedText foldRuns({
     }
   }
 
+  // Same merge for inline code, and it is load-bearing rather than symmetric:
+  // the cuts above split a run at EVERY boundary, so `**bold**` or a spoiler
+  // inside a code entity leaves two atomic code runs that must still paint as
+  // one chip. Two chips would put a border down the middle of one word.
+  final chips = <({int start, int end})>[];
+  for (final r in runs) {
+    if (!r.styles.contains(FormattingType.code)) continue;
+    if (chips.isNotEmpty && chips.last.end == r.start) {
+      chips[chips.length - 1] = (start: chips.last.start, end: r.end);
+    } else {
+      chips.add((start: r.start, end: r.end));
+    }
+  }
+
   return FoldedText(
     displayText: display,
     runs: runs,
     owners: owners,
     spoilerRanges: veils,
+    codeRanges: chips,
   );
 }

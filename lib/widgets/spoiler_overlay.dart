@@ -41,6 +41,7 @@ class SpoilerOverlay extends StatefulWidget {
     required this.ranges,
     required this.contextId,
     required this.cover,
+    required this.dust,
     required this.onRevealed,
   });
 
@@ -56,8 +57,15 @@ class SpoilerOverlay extends StatefulWidget {
   /// What keys the session reveal — the message id.
   final String contextId;
 
-  /// Base ink of the veil (see `FormattingSurface.spoilerCover`).
+  /// The opaque plate under the dust (see `FormattingSurface.spoilerCover`) —
+  /// near enough the bubble's own colour to read as a blank patch of it.
   final Color cover;
+
+  /// Ink of the dust motes (see `FormattingSurface.spoilerDust`) — the text's
+  /// own colour, so the field reads as the hidden words ground to powder.
+  /// Cannot be derived from [cover] any more: the plate IS the bubble now, so
+  /// a cover-derived mote would be invisible against it.
+  final Color dust;
 
   /// Fired once, after the veil has fully dissolved — the host rebuilds and
   /// stops mounting this overlay.
@@ -209,6 +217,7 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
               painter: _SpoilerDustPainter(
                 rects: _rects,
                 cover: widget.cover,
+                dust: widget.dust,
                 mask: motion.calm ? null : _mask,
                 phase: _drift?.value ?? 0,
                 dissolve: Curves.easeOut.transform(_dissolve.value),
@@ -410,6 +419,7 @@ class _SpoilerDustPainter extends CustomPainter {
   _SpoilerDustPainter({
     required this.rects,
     required this.cover,
+    required this.dust,
     required this.mask,
     required this.phase,
     required this.dissolve,
@@ -419,6 +429,7 @@ class _SpoilerDustPainter extends CustomPainter {
 
   final List<Rect> rects;
   final Color cover;
+  final Color dust;
   final _WipeMask? mask;
   final double phase;
   final double dissolve;
@@ -450,7 +461,7 @@ class _SpoilerDustPainter extends CustomPainter {
     //    entirely under calm — the static veil is the whole effect there.
     if (!calm) {
       final rand = math.Random(seed);
-      final dust = Paint();
+      final mote = Paint();
       for (final r in rects) {
         final count =
             math.min(60, math.max(8, (r.width * r.height / 110).round()));
@@ -462,12 +473,11 @@ class _SpoilerDustPainter extends CustomPainter {
           final drift = Offset(math.cos(t + own * 9), math.sin(t)) *
               (1.2 + own * 1.4);
           final twinkle = 0.35 + 0.5 * (0.5 + 0.5 * math.sin(t * 2 + own * 7));
-          dust.color = Color.lerp(cover, const Color(0xFFFFFFFF), 0.35)!
-              .withValues(alpha: twinkle);
+          mote.color = dust.withValues(alpha: twinkle);
           canvas.drawCircle(
             Offset(baseX, baseY) + drift,
             0.6 + own * 0.9,
-            dust,
+            mote,
           );
         }
       }
@@ -505,5 +515,6 @@ class _SpoilerDustPainter extends CustomPainter {
       old.dissolve != dissolve ||
       old.rects != rects ||
       old.cover != cover ||
+      old.dust != dust ||
       old.calm != calm;
 }

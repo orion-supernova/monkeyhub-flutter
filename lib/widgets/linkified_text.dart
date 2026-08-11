@@ -5,6 +5,7 @@ import '../data/spoiler_store.dart';
 import '../models/mention.dart';
 import '../models/message_formatting.dart';
 import '../services/link_preview_service.dart';
+import 'code_chip_underlay.dart';
 import 'spoiler_overlay.dart';
 import 'text_runs.dart';
 
@@ -252,32 +253,54 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     // A veil goes up whenever unrevealed spoiler runs exist. The paragraph
     // still renders the real text underneath — layout must be true so the
     // bubble is the right size and the wipe uncovers words that were always
-    // exactly there; the overlay's near-opaque fill is the concealment.
+    // exactly there; the overlay's opaque plate is the concealment.
     final contextId = widget.spoilerContextId;
     final veiled = fold.spoilerRanges.isNotEmpty &&
         !(contextId != null && SpoilerStore.instance.isRevealed(contextId));
+    final chipped =
+        widget.codeBackground != null && fold.codeRanges.isNotEmpty;
 
+    // The key is what both overlays measure against, so it goes on only when
+    // one of them is mounted. Kept conditional rather than always-on because
+    // flipping it null↔non-null remounts the Text element: acceptable once, at
+    // reveal, and pure waste on every plain paragraph in a long transcript.
     final paragraph = Text.rich(
       TextSpan(children: spans, style: widget.style),
-      key: veiled ? _paragraphKey : null,
+      key: veiled || chipped ? _paragraphKey : null,
     );
-    if (!veiled) return paragraph;
+    if (!veiled && !chipped) return paragraph;
 
+    // The paragraph stays the only non-positioned child, so the Stack keeps
+    // hugging the text exactly as it did before either overlay existed.
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        paragraph,
-        Positioned.fill(
-          child: SpoilerOverlay(
-            paragraphKey: _paragraphKey,
-            ranges: fold.spoilerRanges,
-            contextId: contextId ?? '',
-            cover: widget.spoilerCover ?? widget.style.color ?? Colors.black,
-            onRevealed: () {
-              if (mounted) setState(() {});
-            },
+        if (chipped)
+          Positioned.fill(
+            child: InlineCodeUnderlay(
+              paragraphKey: _paragraphKey,
+              ranges: fold.codeRanges,
+              fill: widget.codeBackground!,
+              border: widget.codeBorder,
+            ),
           ),
-        ),
+        paragraph,
+        if (veiled)
+          Positioned.fill(
+            child: SpoilerOverlay(
+              paragraphKey: _paragraphKey,
+              ranges: fold.spoilerRanges,
+              contextId: contextId ?? '',
+              cover: widget.spoilerCover ?? widget.style.color ?? Colors.black,
+              dust: widget.spoilerDust ??
+                  widget.spoilerCover ??
+                  widget.style.color ??
+                  Colors.black,
+              onRevealed: () {
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
       ],
     );
   }
@@ -303,11 +326,9 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     if (run.styles.contains(FormattingType.code)) {
       final code = widget.codeStyle;
       if (code != null) style = style?.merge(code) ?? code;
-      final wash = widget.codeBackground;
-      if (wash != null) {
-        style = (style ?? const TextStyle())
-            .copyWith(background: Paint()..color = wash);
-      }
+      // No `background:` here. The chip is drawn by InlineCodeUnderlay, and a
+      // paint drawn as well would put square corners out past the rounded
+      // ones.
     }
     if (run.styles.contains(FormattingType.bold)) {
       style = (style ?? const TextStyle()).copyWith(fontWeight: FontWeight.w700);
