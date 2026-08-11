@@ -7,6 +7,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/message_formatting.dart';
 import '../models/pending_upload.dart';
 import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
@@ -21,9 +22,11 @@ import '../screens/fullscreen_video_viewer.dart';
 import '../services/link_opener.dart';
 import 'audio_message.dart';
 import 'file_message.dart';
+import 'link_confirm_sheet.dart';
 import 'link_preview_card.dart';
 import 'linkified_text.dart';
 import 'location_bubble.dart';
+import 'text_runs.dart';
 import 'message_stamp.dart';
 import 'photo_chrome.dart';
 import 'reaction_bubble.dart';
@@ -890,8 +893,12 @@ bool messageStampsInline(ChatMessage message, {required bool showLinkUrls}) {
 /// it can never disagree about which of them owns the timestamp.
 bool _isStandaloneLinkCard(ChatMessage message, bool showLinkUrls) {
   if (showLinkUrls) return false;
-  if (UrlDetector.extract(message.content).isEmpty) return false;
-  return _LinkAwareBubble._stripUrls(message.content).trim().isEmpty;
+  final matches = UrlDetector.matches(message.content);
+  if (matches.isEmpty) return false;
+  return DisplayTransform.of(message.content, hidden: matches)
+      .text
+      .trim()
+      .isEmpty;
 }
 
 /// Builds the inner "bubble body" widget for any message type, applying the
@@ -1001,6 +1008,7 @@ Widget buildMessageContent({
             seenByOthers: seenByOthers,
           ),
           saved: saved,
+          edited: message.edited,
           tone: tone,
         )
       : null;
@@ -1090,7 +1098,9 @@ Widget buildMessageContent({
                 mentionHandles: message.mentionHandles,
                 mentionsEveryone: message.mentionsEveryone,
                 currentUserId: currentUserId,
-                onMentionTap: onMentionTap),
+                onMentionTap: onMentionTap,
+                formatting: message.formatting,
+                spoilerContextId: message.id),
           ),
         ],
       );
@@ -1205,7 +1215,9 @@ Widget buildMessageContent({
                 mentionHandles: message.mentionHandles,
                 mentionsEveryone: message.mentionsEveryone,
                 currentUserId: currentUserId,
-                onMentionTap: onMentionTap),
+                onMentionTap: onMentionTap,
+                formatting: message.formatting,
+                spoilerContextId: message.id),
           ),
         ],
       );
@@ -1291,7 +1303,9 @@ Widget buildMessageContent({
                 mentionHandles: message.mentionHandles,
                 mentionsEveryone: message.mentionsEveryone,
                 currentUserId: currentUserId,
-                onMentionTap: onMentionTap),
+                onMentionTap: onMentionTap,
+                formatting: message.formatting,
+                spoilerContextId: message.id),
           ),
         ],
       );
@@ -1397,19 +1411,19 @@ Widget _captionBody(
   bool mentionsEveryone = false,
   String? currentUserId,
   void Function(String userId)? onMentionTap,
+  List<FormattingEntity> formatting = const [],
+  String? spoilerContextId,
 }) {
   const pad = EdgeInsets.fromLTRB(14, 10, 14, 10);
   final style = theme.body.copyWith(color: isMine ? theme.accentInk : theme.ink);
-  final mentionInk = isMine
-      ? theme.accentInk
-      : (theme.accent.computeLuminance() < 0.2 ? theme.accent : theme.ink);
-  final mentionStyle =
-      style.copyWith(color: mentionInk, fontWeight: FontWeight.w600);
+  final mentionStyle = style.copyWith(
+      color: theme.linkInk(isMine: isMine), fontWeight: FontWeight.w600);
   final body = LinkifiedText(
+    text: text,
     // trimRight so a caption ending in a newline doesn't push the stamp onto
     // a line of its own. Only when there IS a stamp — an unstamped caption kept
     // its trailing whitespace before and has no reason to stop.
-    text: stamp == null ? text : text.trimRight(),
+    trimRight: stamp != null,
     style: style,
     linkifyUrls: false,
     // Unreachable with linkifyUrls false, but the parameters are required.
@@ -1427,6 +1441,11 @@ Widget _captionBody(
             : theme.accentSoft,
     ),
     onMentionTap: onMentionTap,
+    formatting: formatting,
+    codeStyle: theme.codeStyle(style),
+    codeBackground: theme.codeBackground(isMine: isMine),
+    spoilerContextId: spoilerContextId,
+    spoilerCover: theme.spoilerCover(isMine: isMine),
   );
   if (stamp == null) return Padding(padding: pad, child: body);
   return StampedTextBlock(stamp: stamp, padding: pad, child: body);
@@ -2300,10 +2319,17 @@ class _LinkAwareBubble extends StatelessWidget {
 
         // What text do we actually render? When the user has kept URLs
         // hidden, strip them out of the inline body — otherwise mixed
-        // messages read with awkward gaps where the URL used to be.
+        // messages read with awkward gaps where the URL used to be. The
+        // rewrite itself lives in `DisplayTransform` (text_runs.dart) so the
+        // message's stored formatting offsets are MAPPED through it rather
+        // than broken by it; this call only answers "is there any text left",
+        // which decides the card-only branch below.
         final displayText = showUrls
             ? message.content
-            : _stripUrls(message.content);
+            : DisplayTransform.of(
+                message.content,
+                hidden: UrlDetector.matches(message.content),
+              ).text;
         final hasText = displayText.trim().isNotEmpty;
 
         if (hasUrls && !hasText) {
@@ -2344,11 +2370,10 @@ class _LinkAwareBubble extends StatelessWidget {
         // Mixed (text + maybe URLs) — normal bubble with optional inline
         // previews stacked beneath the text.
         final inkColor = isMine ? theme.accentInk : theme.ink;
-        final linkAccent = isMine
-            ? theme.accentInk
-            : (theme.accent.computeLuminance() < 0.2
-                ? theme.accent
-                : theme.ink);
+        // Lifted into FormattingSurface.linkInk so the formatting layer draws
+        // links with the exact same derivation; see the extension for the
+        // accent-on-accent history.
+        final linkAccent = theme.linkInk(isMine: isMine);
 
         final stamp = this.stamp;
         final textPad = EdgeInsets.fromLTRB(14, 10, 14, hasUrls ? 8 : 10);
@@ -2379,16 +2404,25 @@ class _LinkAwareBubble extends StatelessWidget {
                 ? theme.accentInk.withValues(alpha: 0.22)
                 : theme.accentSoft,
         );
+        final baseStyle = theme.body.copyWith(color: inkColor);
         final body = LinkifiedText(
-          // Trailing whitespace would push the stamp onto a line of its own.
-          text: displayText.trimRight(),
-          style: theme.body.copyWith(color: inkColor),
+          // The ORIGINAL content — the fold owns both rewrites (URL hiding
+          // and the trailing-whitespace trim that keeps the stamp off a line
+          // of its own), because the formatting offsets index this string.
+          text: message.content,
+          hideAutoUrls: !showUrls,
+          trimRight: true,
+          style: baseStyle,
           linkStyle: theme.body.copyWith(
             color: linkAccent,
             decoration: TextDecoration.underline,
             decorationColor: linkAccent.withValues(alpha: 0.7),
           ),
           onLinkTap: (url) => LinkOpener.open(context, url),
+          // A link ENTITY's visible words say nothing about its destination,
+          // so it confirms before opening; bare URLs above keep their direct
+          // open because their text IS the destination.
+          onLinkEntityTap: (url) => _confirmAndOpenEntityLink(context, url),
           trailing: stamp == null ? null : stampSpacerSpan(stamp),
           mentionHandles: message.mentionHandles,
           mentionsEveryone: message.mentionsEveryone,
@@ -2396,6 +2430,11 @@ class _LinkAwareBubble extends StatelessWidget {
           mentionStyle: mentionStyle,
           selfMentionStyle: selfMentionStyle,
           onMentionTap: onMentionTap,
+          formatting: message.formatting,
+          codeStyle: theme.codeStyle(baseStyle),
+          codeBackground: theme.codeBackground(isMine: isMine),
+          spoilerContextId: message.id,
+          spoilerCover: theme.spoilerCover(isMine: isMine),
         );
 
         return Container(
@@ -2437,24 +2476,15 @@ class _LinkAwareBubble extends StatelessWidget {
     );
   }
 
-  /// Removes every URL match from [text] and tidies up the whitespace
-  /// left in its wake (collapsing runs of spaces, trimming spaces around
-  /// surviving newlines).
-  static String _stripUrls(String text) {
-    final matches = UrlDetector.matches(text);
-    if (matches.isEmpty) return text;
-    final buf = StringBuffer();
-    var cursor = 0;
-    for (final m in matches) {
-      if (m.start > cursor) buf.write(text.substring(cursor, m.start));
-      cursor = m.end;
-    }
-    if (cursor < text.length) buf.write(text.substring(cursor));
-    return buf
-        .toString()
-        .replaceAll(RegExp(r'[ \t]+'), ' ')
-        .replaceAll(RegExp(r' *\n *'), '\n')
-        .trim();
+  /// Show the destination, then open only on an explicit yes. Extracted so
+  /// the async gap has one owner and one `mounted` check.
+  static Future<void> _confirmAndOpenEntityLink(
+    BuildContext context,
+    String url,
+  ) async {
+    final ok = await showLinkConfirmSheet(context, url: url);
+    if (!ok || !context.mounted) return;
+    LinkOpener.open(context, url);
   }
 }
 
@@ -2615,6 +2645,7 @@ class _MetaRow extends StatelessWidget {
           seenByOthers: seenByOthers,
         ),
         saved: saved,
+        edited: message.edited,
         tone: StampTone.onSurface,
       ),
     );

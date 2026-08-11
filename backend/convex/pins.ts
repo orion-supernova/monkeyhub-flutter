@@ -110,10 +110,12 @@ export const unpin = mutation({
  * pin on every room open, with no liveness and a loading state in the banner.
  *
  * The cost of that is this subscription refiring whenever a pinned document is
- * patched. In practice that is rare: there is no edit mutation (`edited` is
- * declared in the schema and never written), and the patches a message does
- * receive land on its *children*, not on it. When it does fire it re-sends at
- * most MAX_PINS_PER_ROOM rows for one room, not a transcript.
+ * patched. In practice that is rare: only `messages.editMessage` patches a
+ * message's own row (inside its 15-minute window), and the other patches a
+ * message receives land on its *children*, not on it. When it does fire it
+ * re-sends at most MAX_PINS_PER_ROOM rows for one room, not a transcript —
+ * and an edited pinned message updating in the banner is the behaviour a
+ * reader would call correct anyway.
  *
  * Deliberately does NOT check room membership. Reading `roomMembers` from a
  * subscribed query makes it refire on every `markRoomRead` patch — the cascade

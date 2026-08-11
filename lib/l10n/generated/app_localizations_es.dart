@@ -1473,6 +1473,76 @@ class AppLocalizationsEs extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'RESPONDER';
 
   @override
+  String get messageActionMenuEditLabel => 'EDITAR';
+
+  @override
+  String get messageStampEditedLabel => 'editado';
+
+  @override
+  String get composerEditCardTitle => 'EDITAR MENSAJE';
+
+  @override
+  String get spoilerRevealHint =>
+      'Spoiler — actívalo para mostrar el texto oculto';
+
+  @override
+  String get formatToolbarFormatLabel => 'Formato';
+
+  @override
+  String get formatToolbarBoldLabel => 'Negrita';
+
+  @override
+  String get formatToolbarItalicLabel => 'Cursiva';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'Tachado';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'Subrayado';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'Spoiler';
+
+  @override
+  String get formatToolbarLinkLabel => 'Enlace';
+
+  @override
+  String get formatToolbarCodeLabel => 'Código';
+
+  @override
+  String get linkInputSheetTitle => 'ENLACE';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'APLICAR ENLACE';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'El texto seleccionado abrirá esta dirección al tocarlo';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'QUITAR ENLACE';
+
+  @override
+  String get linkConfirmSheetTitle => '¿ABRIR ESTE ENLACE?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'ABRIR ENLACE';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'CANCELAR';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'Demasiado tarde para editar — los mensajes solo se pueden editar durante 15 minutos.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'No se ha podido guardar la edición. Comprueba tu conexión e inténtalo de nuevo.';
+
+  @override
   String get messageActionMenuForwardLabel => 'REENVIAR';
 
   @override

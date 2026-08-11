@@ -1375,6 +1375,72 @@ class AppLocalizationsZh extends AppLocalizations {
   String get messageActionMenuReplyLabel => '回复';
 
   @override
+  String get messageActionMenuEditLabel => '编辑';
+
+  @override
+  String get messageStampEditedLabel => '已编辑';
+
+  @override
+  String get composerEditCardTitle => '编辑消息';
+
+  @override
+  String get spoilerRevealHint => '剧透，激活后可显示隐藏的文字';
+
+  @override
+  String get formatToolbarFormatLabel => '格式';
+
+  @override
+  String get formatToolbarBoldLabel => '粗体';
+
+  @override
+  String get formatToolbarItalicLabel => '斜体';
+
+  @override
+  String get formatToolbarStrikethroughLabel => '删除线';
+
+  @override
+  String get formatToolbarUnderlineLabel => '下划线';
+
+  @override
+  String get formatToolbarSpoilerLabel => '剧透';
+
+  @override
+  String get formatToolbarLinkLabel => '链接';
+
+  @override
+  String get formatToolbarCodeLabel => '代码';
+
+  @override
+  String get linkInputSheetTitle => '链接';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => '应用链接';
+
+  @override
+  String get linkInputSheetApplySub => '点按所选文字将打开此地址';
+
+  @override
+  String get linkInputSheetRemoveLabel => '移除链接';
+
+  @override
+  String get linkConfirmSheetTitle => '打开此链接？';
+
+  @override
+  String get linkConfirmSheetOpenLabel => '打开链接';
+
+  @override
+  String get linkConfirmSheetCancelLabel => '取消';
+
+  @override
+  String get roomScreenEditExpiredSnack => '来不及编辑了，消息只能在 15 分钟内编辑。';
+
+  @override
+  String get roomScreenEditFailedSnack => '无法保存编辑。请检查网络连接后重试。';
+
+  @override
   String get messageActionMenuForwardLabel => '转发';
 
   @override

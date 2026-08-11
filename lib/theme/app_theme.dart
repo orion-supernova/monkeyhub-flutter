@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'bubble_shape.dart';
 
@@ -179,4 +180,62 @@ extension TooltipSurface on AppTheme {
           ),
         ],
       );
+}
+
+/// The inks and surfaces message-body formatting draws with — inline code,
+/// link entities, the spoiler veil.
+///
+/// Derived rather than authored per theme, for the reason [BubbleGeometry]
+/// spells out: every theme *implements* [AppTheme], so a new abstract member
+/// breaks all of them at once, where a derivation breaks none and can still
+/// be promoted to a real member later if some theme earns an override.
+///
+/// Everything here takes `isMine`, because a bubble's ground truth is its
+/// fill: an outgoing bubble is FILLED with [accent], so any accent-coloured
+/// treatment inside one is invisible — the exact trap the link ink below was
+/// originally written to dodge.
+extension FormattingSurface on AppTheme {
+  /// Ink for tappable link text — both bare URLs and link entities.
+  ///
+  /// Lifted verbatim from `_LinkAwareBubble`, history included: on the
+  /// viewer's own (accent-filled) bubble only [accentInk] is guaranteed to
+  /// read; on everyone else's, a dark accent is used as-is and a light one
+  /// falls back to [ink] so the link never washes out against the surface.
+  Color linkInk({required bool isMine}) => isMine
+      ? accentInk
+      : (accent.computeLuminance() < 0.2 ? accent : ink);
+
+  /// The wash behind an inline-code run — a chip painted by
+  /// `TextStyle.background` (never a WidgetSpan; see `_LinkAwareBubble`'s
+  /// self-mention note for why placeholders are banned in the paragraph).
+  /// Ink-derived on both fills so it reads on every one of the themes' bubble
+  /// colours without any theme having to say so.
+  Color codeBackground({required bool isMine}) => isMine
+      ? accentInk.withValues(alpha: 0.14)
+      : ink.withValues(alpha: 0.08);
+
+  /// The monospace face for inline code, over whatever [base] the bubble was
+  /// already using.
+  ///
+  /// NOT [mono]: several themes deliberately keep that slot on the
+  /// proportional system face with tabular figures (see `BasicTheme`), and
+  /// code that isn't monospaced is just text with a background. JetBrains
+  /// Mono ships in the bundle (`assets/google_fonts/`, runtime fetching off),
+  /// subset to Latin — CJK code falls back to the platform face, which is
+  /// accepted. Slightly under the body size and with the body's height kept,
+  /// so a code word doesn't breathe the line box it sits in.
+  TextStyle codeStyle(TextStyle base) => GoogleFonts.jetBrainsMono(
+        textStyle: base,
+        fontSize: (base.fontSize ?? 15) * 0.92,
+        height: base.height,
+        letterSpacing: 0,
+      );
+
+  /// Base colour of the spoiler veil over this bubble. The veil paints it
+  /// near-opaque (the opacity IS the privacy guarantee — dust is garnish) and
+  /// derives its particle alphas from the same colour, so the whole effect
+  /// stays one ink. The text's own ink, deliberately: a veil in the ink the
+  /// hidden words would have used reads as "text, redacted" on every theme,
+  /// which no bubble-coloured bar manages.
+  Color spoilerCover({required bool isMine}) => isMine ? accentInk : ink;
 }

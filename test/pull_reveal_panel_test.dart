@@ -40,6 +40,7 @@ void main() {
               dragging: false,
               open: open,
               searchCtrl: TextEditingController(),
+              searchFocus: FocusNode(),
               onSearchChanged: (_) {},
               onClearSearch: () {},
               archivedCount: archivedCount,

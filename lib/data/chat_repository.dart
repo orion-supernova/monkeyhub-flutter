@@ -13,6 +13,8 @@ import '../models/family.dart';
 import '../models/friend_request.dart';
 import '../models/location_share.dart';
 import '../models/message_bookmark.dart';
+import '../models/message_capabilities.dart';
+import '../models/message_formatting.dart';
 import '../models/pending_upload.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_mute.dart';
@@ -120,6 +122,29 @@ class ChatRepository extends ChangeNotifier {
   /// ordinary DM.
   RoomCapabilities capabilitiesFor(ChatRoom room) =>
       roomCapabilitiesFor(room, peer: otherUserFor(room));
+
+  /// What [message] affords in the long-press menu. See
+  /// `lib/models/message_capabilities.dart` for the table and its history.
+  ///
+  /// The entry point every menu call site should use, because it resolves the
+  /// three inputs a widget holding only a message cannot: whose message it is,
+  /// what the room affords, and what time the SERVER thinks it is (the edit
+  /// window is measured against [serverNow], not the device clock).
+  ///
+  /// [room] is nullable for `ThreadOverlay`, which holds only a room id that
+  /// [roomById] may fail to resolve — an unresolvable room affords the
+  /// locked-down floor, which drops SAVE/FORWARD rather than offering rows
+  /// that would throw.
+  MessageCapabilities capabilitiesForMessage(ChatMessage message, ChatRoom? room) {
+    final me = _userId;
+    return messageCapabilitiesFor(
+      message: message,
+      isMine: me != null && message.senderId == me,
+      room: room == null ? RoomCapabilities.system : capabilitiesFor(room),
+      roomIsEphemeral: room?.isEphemeral ?? true,
+      serverNow: serverNow,
+    );
+  }
 
   List<ChatUser> _friends = [];
   List<ChatUser> get friends => List.unmodifiable(_friends);
@@ -322,6 +347,10 @@ class ChatRepository extends ChangeNotifier {
     // chat screen rebuilds and the SEEN indicator appears/disappears live.
     SettingsStore.instance.removeListener(_onSettingsChanged);
     SettingsStore.instance.addListener(_onSettingsChanged);
+    // Fire-and-forget: nothing below depends on it, and [attach] re-runs on
+    // every reconnect, so a sample lost to a dead socket is retaken by the
+    // reconnect that revives it.
+    unawaited(_sampleServerClock());
     // 1) Hydrate from disk so the first frame already shows last-known state
     //    even if we're cold-booting offline. This is cheap (~ms) and the
     //    live subscriptions will overwrite as they connect.
@@ -1444,6 +1473,7 @@ class ChatRepository extends ChangeNotifier {
     String? replyToId,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
   }) async {
     return _send(
       roomId: roomId,
@@ -1452,6 +1482,7 @@ class ChatRepository extends ChangeNotifier {
       replyToId: replyToId,
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
+      formatting: formatting,
     );
   }
 
@@ -1958,6 +1989,7 @@ class ChatRepository extends ChangeNotifier {
     bool viewOnce = false,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
     double? latitude,
     double? longitude,
     double? locationAccuracyM,
@@ -1973,6 +2005,7 @@ class ChatRepository extends ChangeNotifier {
       viewOnce: viewOnce,
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
+      formatting: formatting,
       latitude: latitude,
       longitude: longitude,
       locationAccuracyM: locationAccuracyM,
@@ -2006,6 +2039,7 @@ class ChatRepository extends ChangeNotifier {
     PendingUpload? upload,
     List<MessageMention> mentions = const [],
     bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
     double? latitude,
     double? longitude,
     double? locationAccuracyM,
@@ -2082,6 +2116,11 @@ class ChatRepository extends ChangeNotifier {
       // still drop one it refuses; the echo replaces this copy with the truth.
       mentions: mentions,
       mentionsEveryone: mentionsEveryone,
+      // Same story: the bold the sender applied must render bold on their own
+      // pending bubble, and both reconnect sweepers re-post from this object
+      // alone — a retry that dropped the spans would deliver the text
+      // unformatted.
+      formatting: formatting,
       latitude: latitude,
       longitude: longitude,
       locationAccuracyM: locationAccuracyM,
@@ -2131,6 +2170,9 @@ class ChatRepository extends ChangeNotifier {
         // sweepers this for free.
         mentionedUserIds: [for (final m in optimistic.mentions) m.userId],
         mentionsEveryone: optimistic.mentionsEveryone,
+        // Read off the message like the mentions above, and for the same
+        // reason: the spans must survive a reconnect retry.
+        formatting: optimistic.formatting,
         // The bubble's own local id, which is stable across every retry of this
         // message — that stability is the entire mechanism. Two attempts at the
         // same send carry the same key and collapse to one row; two genuinely
@@ -2441,6 +2483,99 @@ class ChatRepository extends ChangeNotifier {
     final id = _userId;
     if (id == null) return;
     await api.deleteMessage(messageId: messageId, userId: id);
+  }
+
+  // ───────────── editing ─────────────
+
+  /// How far this device's clock is from the server's, sampled by
+  /// [_sampleServerClock]. Zero until the first sample lands, which fails
+  /// safe in both directions: the mutation re-checks the window with the
+  /// server's own clock regardless, so the worst an unsampled offset can do
+  /// is offer an Edit row the server refuses (surfaced as the expired snack)
+  /// or hide one a minute early.
+  Duration _serverSkew = Duration.zero;
+
+  /// The current moment as the SERVER understands it. What every edit-window
+  /// question must be asked against — `DateTime.now()` on a device that
+  /// drifted five minutes would offer edits the server refuses, or withhold
+  /// ones it would take.
+  DateTime get serverNow => DateTime.now().add(_serverSkew);
+
+  /// One-shot skew sample, the `feed.serverNow` pattern. Half the round-trip
+  /// is deliberately NOT compensated for: the window is fifteen minutes and
+  /// the affordance already keeps a client-side grace besides, so NTP-grade
+  /// precision buys nothing a comment has to justify.
+  Future<void> _sampleServerClock() async {
+    try {
+      final server = await api.serverNow();
+      _serverSkew = server.difference(DateTime.now());
+    } catch (_) {/* offline — zero skew remains, and the server re-checks */}
+  }
+
+  /// Rewrites [message]'s text (the caller's own, inside the 15-minute
+  /// window). Returns null on success, or an error code the caller must
+  /// surface — the [pinMessage] shape, because a menu row that silently does
+  /// nothing reads as broken.
+  ///
+  /// Optimistic: the in-memory row is patched before the mutation is awaited,
+  /// so the sender's own transcript shows the new text immediately, and
+  /// reverted if the server refuses. On success nothing further happens here —
+  /// `messages:list` re-fires with the authoritative row and overwrites the
+  /// guess (the mark-read dedupe keys on the newest id, so an edit never
+  /// triggers a spurious markRoomRead).
+  ///
+  /// Online-only by design: there is no pending-edit sweeper. A queued edit
+  /// against a fifteen-minute window is mostly a way to fail later instead of
+  /// now, with the composer long since torn down and nowhere to put the text
+  /// back.
+  Future<String?> editMessage({
+    required String roomId,
+    required ChatMessage message,
+    required String content,
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+  }) async {
+    final id = _userId;
+    if (id == null) return null;
+
+    // Patch the live copy in place, remembering how to undo it. The list
+    // entry is swapped for a copy rather than mutated so the revert is one
+    // assignment of the untouched original.
+    final list = _messages[roomId];
+    final idx = list?.indexWhere((m) => m.id == message.id) ?? -1;
+    final ChatMessage? snapshot = idx >= 0 ? list![idx] : null;
+    if (snapshot != null) {
+      list![idx] = snapshot.copyWith(
+        content: content,
+        edited: true,
+        mentions: mentions,
+        mentionsEveryone: mentionsEveryone,
+        formatting: formatting,
+      );
+      notifyListeners();
+    }
+
+    final err = await api.editMessage(
+      messageId: message.id,
+      userId: id,
+      content: content,
+      mentionedUserIds: [for (final m in mentions) m.userId],
+      mentionsEveryone: mentionsEveryone,
+      formatting: formatting,
+    );
+    if (err != null && snapshot != null) {
+      // Refused: put the original back — unless the subscription has already
+      // replaced the whole list, in which case whatever it delivered IS the
+      // authoritative state and overwriting it would resurrect the failure.
+      final cur = _messages[roomId];
+      final curIdx = cur?.indexWhere((m) => m.id == message.id) ?? -1;
+      if (curIdx >= 0 && cur![curIdx].edited && !snapshot.edited) {
+        cur[curIdx] = snapshot;
+        notifyListeners();
+      }
+    }
+    return err;
   }
 
   // ───────────── pins ─────────────

@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
+import 'package:monkeyhub/models/message_capabilities.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/glass_surface.dart';
@@ -35,6 +36,19 @@ void main() {
   const islandTop = 59.0;
   const homeIndicator = 34.0;
   const keyboard = 336.0;
+
+  // The row set every menu in this file opens with: someone else's ordinary
+  // message — REPLY / FORWARD / COPY / PIN / SELECT / VIEW PROFILE / REPORT,
+  // the same seven rows the flat booleans used to produce.
+  final caps = MessageCapabilities.none.copyWith(
+    canReply: true,
+    canForward: true,
+    canCopy: true,
+    canPin: true,
+    canSelect: true,
+    canViewProfile: true,
+    canReport: true,
+  );
 
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
@@ -173,11 +187,7 @@ void main() {
           anchorKey: anchor,
           bubbleBuilder: (_) => const SizedBox(width: 220, height: 60),
           isMine: false,
-          canCopy: true,
-          canReply: true,
-          canForward: true,
-          canPin: true,
-          canSelect: true,
+          capabilities: caps,
         );
         if (result?.openFullReactionPicker ?? false) {
           pickedEmoji = await showReactionPicker(roomContext);
@@ -240,11 +250,7 @@ void main() {
           anchorKey: anchor,
           bubbleBuilder: (_) => const SizedBox(width: 220, height: 60),
           isMine: false,
-          canCopy: true,
-          canReply: true,
-          canForward: true,
-          canPin: true,
-          canSelect: true,
+          capabilities: caps,
         );
         if (result?.openFullReactionPicker ?? false) {
           await showReactionPicker(roomContext);
@@ -323,11 +329,7 @@ void main() {
                               bubbleBuilder: (_) =>
                                   const SizedBox(width: 220, height: 60),
                               isMine: false,
-                              canCopy: true,
-                              canReply: true,
-                              canForward: true,
-                              canPin: true,
-                              canSelect: true,
+                              capabilities: caps,
                             );
                           },
                           child: SizedBox(key: anchor, width: 220, height: 60),
@@ -396,11 +398,7 @@ void main() {
         anchorKey: anchor,
         bubbleBuilder: (_) => const SizedBox(width: 220, height: 60),
         isMine: false,
-        canCopy: true,
-        canReply: true,
-        canForward: true,
-        canPin: true,
-        canSelect: true,
+        capabilities: caps,
       ),
     ));
     roomContext = tester.element(find.byKey(anchor));

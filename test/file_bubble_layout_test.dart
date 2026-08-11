@@ -6,6 +6,7 @@ import 'package:monkeyhub/backend/convex_client.dart';
 import 'package:monkeyhub/models/chat_message.dart';
 import 'package:monkeyhub/models/chat_user.dart';
 import 'package:monkeyhub/models/enums.dart';
+import 'package:monkeyhub/models/message_capabilities.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/layout.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
@@ -211,7 +212,11 @@ void main() {
                     bubbleBuilder: (_) =>
                         const SizedBox(width: 200, height: 60),
                     isMine: false,
-                    canCopy: false,
+                    capabilities: MessageCapabilities.none.copyWith(
+                      canCopyName: true,
+                      canViewProfile: true,
+                      canReport: true,
+                    ),
                     fileName: long,
                   );
                 },
@@ -260,7 +265,11 @@ void main() {
                   anchorKey: anchor,
                   bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
                   isMine: false,
-                  canCopy: true,
+                  capabilities: MessageCapabilities.none.copyWith(
+                    canCopy: true,
+                    canViewProfile: true,
+                    canReport: true,
+                  ),
                 ),
                 child: SizedBox(key: anchor, width: 200, height: 60),
               ),
@@ -310,11 +319,15 @@ void main() {
                   anchorKey: anchor,
                   bubbleBuilder: (_) => const SizedBox(width: 200, height: 60),
                   isMine: false,
-                  canCopy: false,
-                  canReply: true,
-                  canForward: true,
-                  canPin: true,
-                  canSelect: true,
+                  capabilities: MessageCapabilities.none.copyWith(
+                    canReply: true,
+                    canForward: true,
+                    canCopyName: true,
+                    canPin: true,
+                    canSelect: true,
+                    canViewProfile: true,
+                    canReport: true,
+                  ),
                   fileName:
                       'The Long Book Title That Someone Actually Sent.epub',
                 ),

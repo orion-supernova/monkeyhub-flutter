@@ -10,6 +10,7 @@ import '../models/enums.dart';
 import '../models/friend_request.dart';
 import '../models/family.dart';
 import '../models/friend_request_message.dart';
+import '../models/message_formatting.dart';
 import '../models/room_content_item.dart';
 import 'convex_client.dart';
 import 'hashing.dart';
@@ -745,6 +746,11 @@ class ChatApi {
     /// server refuses makes the message a static location, not an unbounded
     /// share.
     int? liveDurationMs,
+
+    /// Rich-text spans over [content] — see `message_formatting.dart`. The
+    /// server clamps them against the text; a span it refuses just renders
+    /// plain on every device.
+    List<FormattingEntity> formatting = const [],
   }) async {
     final res = await _cv.mutation('messages:send', {
       'roomId': roomId,
@@ -767,6 +773,8 @@ class ChatApi {
       // message mentions nobody and shouldn't widen the wire to say so.
       if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
       if (mentionsEveryone) 'mentionsEveryone': true,
+      if (formatting.isNotEmpty)
+        'formatting': [for (final f in formatting) f.toJson()],
       'latitude': ?latitude,
       'longitude': ?longitude,
       'locationAccuracyM': ?locationAccuracyM,
@@ -909,6 +917,55 @@ class ChatApi {
 
   Future<void> deleteMessage({required String messageId, required String userId}) async {
     await _cv.mutation('messages:deleteMessage', {'messageId': messageId, 'userId': userId});
+  }
+
+  /// Rewrites the text of the caller's own message, inside the server's
+  /// 15-minute window.
+  ///
+  /// Returns null on success, else an error-code string for the caller to
+  /// surface — the `pinMessage` shape, because Edit is a menu row and a menu
+  /// row that silently does nothing reads as broken. `EDIT_WINDOW_EXPIRED` is
+  /// the one refusal the UI can genuinely race into; anything the server
+  /// throws (not the sender, not a text message, gone) flattens to
+  /// `EDIT_FAILED`, since none of it is distinguishable to the person holding
+  /// the phone from "it didn't work".
+  ///
+  /// Mentions and formatting are re-sent in full: the server re-resolves both
+  /// against the NEW text, so an `@bob` the edit deleted drops its mention
+  /// and a span the edit outgrew is clamped.
+  Future<String?> editMessage({
+    required String messageId,
+    required String userId,
+    required String content,
+    List<String> mentionedUserIds = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+  }) async {
+    try {
+      final res = await _cv.mutation('messages:editMessage', {
+        'messageId': messageId,
+        'userId': userId,
+        'content': content,
+        if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+        if (mentionsEveryone) 'mentionsEveryone': true,
+        if (formatting.isNotEmpty)
+          'formatting': [for (final f in formatting) f.toJson()],
+      });
+      final code = res.toString();
+      return code == 'OK' ? null : code;
+    } catch (_) {
+      return 'EDIT_FAILED';
+    }
+  }
+
+  /// The server's clock. One-shot, not subscribed — `ChatRepository` samples
+  /// it to compute a skew offset and gates the Edit affordance with that, so
+  /// a device whose clock is minutes wrong doesn't offer an edit the server
+  /// will only refuse (or hide one it would accept). The mutation re-checks
+  /// with its own clock regardless.
+  Future<DateTime> serverNow() async {
+    final res = await _cv.query('messages:now', const {});
+    return DateTime.fromMillisecondsSinceEpoch((res as num).toInt());
   }
 
   /// [viewerUserId] doesn't filter anything — it only lets the server say

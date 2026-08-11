@@ -92,7 +92,14 @@ class _LocationBubbleState extends State<LocationBubble>
 
   /// Read once per build and threaded down, so the countdown, the state and the
   /// staleness in a single frame can never disagree about what time it is.
-  DateTime _now = DateTime.now();
+  ///
+  /// Seeded from the INJECTED clock, not `DateTime.now()`. The first build
+  /// after [_syncClock] has started the ticker reads this field before the
+  /// ticker has ever fired, and a wall-clock seed there rendered one frame of
+  /// the wrong state whenever the injected clock disagreed with the wall —
+  /// which is every test with a fixed clock, from the day after it was
+  /// written.
+  late DateTime _now = widget.clock();
 
   @override
   void initState() {

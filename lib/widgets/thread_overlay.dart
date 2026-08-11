@@ -443,17 +443,6 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   // ───────────── composing ─────────────
 
-  /// Whether this overlay's room affords saving a message at all.
-  ///
-  /// A helper rather than an inline expression because the room has to be
-  /// resolved first and may not be: this overlay only ever holds a `roomId`.
-  /// An unresolvable room answers false, which drops the SAVE row rather than
-  /// offering one that would throw.
-  bool _canSaveHere() {
-    final room = widget.repo.roomById(widget.roomId);
-    return room != null && widget.repo.capabilitiesFor(room).canSaveMessages;
-  }
-
   void _showToast(String message) {
     _toastTimer?.cancel();
     setState(() => _toast = message);
@@ -584,7 +573,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
     }
     final mentions = _composer.mentions;
     final everyone = _composer.everyone;
+    final formatting = _composer.formatting;
     _composer.clearMentions();
+    _composer.clearFormatting();
     _composer.clear();
     // Disarm: the reply is sent, so an explicit target has nothing left to
     // say. Falling back to null means the next send goes to the tail — which
@@ -597,6 +588,7 @@ class _ThreadSheetState extends State<_ThreadSheet>
       replyToId: target.id,
       mentions: mentions,
       mentionsEveryone: everyone,
+      formatting: formatting,
     );
 
     // Read-and-clear, immediately after the send, exactly as the room screen
@@ -677,11 +669,26 @@ class _ThreadSheetState extends State<_ThreadSheet>
 
   Future<void> _onLongPressBubble(ChatMessage m, ChatUser? author) async {
     final isMine = m.senderId == widget.repo.userId;
-    final isPending = m.id.startsWith('tmp_');
-    final canReply =
-        !isPending &&
-        m.status == MessageStatus.sent &&
-        m.type != MessageType.system;
+    // The shared table, then this overlay's deliberate subtractions:
+    //  * VIEW THREAD would recurse — the user already sees the thread.
+    //  * FORWARD and SELECT belong to the transcript, which owns the
+    //    selection bar and the target sheet — an overlay with its own
+    //    composer and its own scroll position is not where a bulk action
+    //    should start.
+    //  * EDIT is off until this overlay grows its own edit-mode composer
+    //    state; offering the row and dumping the user back into the room's
+    //    composer would be worse than not offering it here yet.
+    // An unresolvable room (this overlay only ever holds a `roomId`) affords
+    // the locked-down floor inside `capabilitiesForMessage`, which drops the
+    // SAVE row rather than offering one that would throw.
+    final caps = widget.repo
+        .capabilitiesForMessage(m, widget.repo.roomById(widget.roomId))
+        .copyWith(
+          canViewThread: false,
+          canForward: false,
+          canSelect: false,
+          canEdit: false,
+        );
     final anchor = _keys[m.id];
     if (anchor == null) return;
     HapticFeedback.mediumImpact();
@@ -701,27 +708,8 @@ class _ThreadSheetState extends State<_ThreadSheet>
       context: context,
       anchorKey: anchor,
       isMine: isMine,
-      canCopy: m.type == MessageType.text && m.content.isNotEmpty,
-      canReply: canReply,
-      // hasParent: false — even when the message has a parent we
-      // intentionally suppress the View Thread row inside this overlay to
-      // prevent recursion. The user already sees the thread.
-      hasParent: false,
-      // Unlike View Thread above, pinning from in here is real: it is the same
-      // message, and a thread is exactly where a reply worth keeping turns up.
-      canPin:
-          !m.id.startsWith('tmp_') &&
-          m.status == MessageStatus.sent &&
-          m.type != MessageType.system,
+      capabilities: caps,
       isPinned: widget.repo.isMessagePinned(widget.roomId, m.id),
-      // Same reasoning as pinning from in here, and the same gates — a thread
-      // is exactly where a reply worth keeping turns up. The capability lookup
-      // matches `RoomScreen`'s; a room this overlay cannot resolve gets no SAVE
-      // row, which is the safe direction.
-      canSave: !m.id.startsWith('tmp_') &&
-          m.status == MessageStatus.sent &&
-          m.type != MessageType.system &&
-          _canSaveHere(),
       isSaved: widget.repo.isMessageSaved(widget.roomId, m.id),
       // Same reason as in the room: a document's row can only afford one line
       // of its name, and this is where the whole thing is legible.
@@ -828,11 +816,9 @@ class _ThreadSheetState extends State<_ThreadSheet>
       case MessageAction.viewThread:
       case MessageAction.forward:
       case MessageAction.select:
-        // None of these rows are offered in here. VIEW THREAD would recurse
-        // (see `hasParent: false` above); FORWARD and SELECT belong to the
-        // transcript, which owns the selection bar and the target sheet — an
-        // overlay with its own composer and its own scroll position is not
-        // where a bulk action should start. The switch must still be
+      case MessageAction.edit:
+        // None of these rows are offered in here — see the `copyWith`
+        // subtractions where `caps` is built above. The switch must still be
         // exhaustive.
         break;
     }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../backend/chat_api.dart';
 import '../models/chat_message.dart';
+import '../models/message_formatting.dart';
 import '../models/room_content_item.dart';
 import '../services/link_preview_service.dart';
 import 'chat_repository.dart';
@@ -108,12 +109,23 @@ class RoomContentController extends ChangeNotifier {
   ///
   /// A message can hold several links and the server only recorded that it
   /// holds one, so this is where the count is actually decided. Ordering
-  /// follows the message, then the order the URLs appear in its text.
+  /// follows the message: bare URLs in the order they appear in its text,
+  /// then link ENTITIES (formatted text carrying a URL) in span order — the
+  /// row already holds the spans, so "check this" carrying a destination
+  /// lands in the tab exactly as the bare URL would have. De-duplicated per
+  /// message, matching `UrlDetector.extract`'s own rule.
   List<RoomLink> get links {
     final out = <RoomLink>[];
     for (final m in items) {
+      final seen = <String>{};
       for (final url in UrlDetector.extract(m.content)) {
-        out.add(RoomLink(url: url, message: m));
+        if (seen.add(url)) out.add(RoomLink(url: url, message: m));
+      }
+      for (final f in m.formatting) {
+        final url = f.url;
+        if (f.type == FormattingType.link && url != null && seen.add(url)) {
+          out.add(RoomLink(url: url, message: m));
+        }
       }
     }
     return out;

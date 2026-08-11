@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'package:camera/camera.dart' show CameraLensDirection;
 import 'package:file_selector/file_selector.dart' show openFile;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +33,7 @@ import '../services/live_location_platform.dart';
 import '../services/live_share_resume_store.dart';
 import '../services/location_service.dart';
 import '../models/chat_message.dart';
+import '../models/message_formatting.dart';
 import '../models/location_share.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -62,6 +63,7 @@ import '../widgets/glass_pill.dart';
 import '../widgets/jump_back.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/location_share_sheet.dart';
+import '../widgets/composer_edit_card.dart';
 import '../widgets/composer_reply_card.dart';
 import '../widgets/mention_picker.dart';
 import '../widgets/pinned_banner.dart';
@@ -168,6 +170,23 @@ class _RoomScreenState extends State<RoomScreen>
   // The message the composer is currently replying to. Cleared on cancel or
   // after a successful send. Set by the swipe gesture or the action menu.
   ChatMessage? _replyingTo;
+
+  // ──── edit state ────
+  // The viewer's own message the composer is currently rewriting — the EDIT
+  // row's counterpart to [_replyingTo], and mutually exclusive with it (and
+  // with selection): the composer's banner slot says what a send will DO, and
+  // it can only say one thing.
+  ChatMessage? _editing;
+
+  // Whatever was in the composer when EDIT was armed, so cancelling the edit
+  // puts the half-typed message back instead of eating it. Null when nothing
+  // was stashed (the composer was empty) AND while no edit is in progress.
+  ({
+    String text,
+    List<MessageMention> mentions,
+    bool everyone,
+    List<FormattingEntity> formatting,
+  })? _draftBeforeEdit;
 
   // The message currently pulsing under the scroll-to-parent highlight. The
   // pulse drives a 0→1→0 accent halo via [_highlightCtrl] over ~1s and then
@@ -678,16 +697,25 @@ class _RoomScreenState extends State<RoomScreen>
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
+    // An armed edit takes the whole send: the composer's contents are the
+    // message's NEW text, not a new message.
+    final editing = _editing;
+    if (editing != null) {
+      await _sendEdit(editing, text);
+      return;
+    }
     // Snapshot the reply target BEFORE the async send, then disarm: the reply
     // is sent, so the card has nothing left to say. It stays armed only when
     // the send is refused below, since then there's still a pending reply.
     final replyTarget = _replyingTo;
-    // Same snapshot-then-clear for the mentions, and for the same reason —
-    // the refusal path below has to be able to put them back.
+    // Same snapshot-then-clear for the mentions and formatting, and for the
+    // same reason — the refusal path below has to be able to put them back.
     final mentions = _composer.mentions;
     final everyone = _composer.everyone;
+    final formatting = _composer.formatting;
     setState(() => _replyingTo = null);
     _composer.clearMentions();
+    _composer.clearFormatting();
     _composer.clear();
     // Sending while reading old history: the optimistic bubble lands on the
     // live tail, so come back to it rather than leaving the sender staring at
@@ -699,6 +727,7 @@ class _RoomScreenState extends State<RoomScreen>
       replyToId: replyTarget?.id,
       mentions: mentions,
       mentionsEveryone: everyone,
+      formatting: formatting,
     );
     // A child guard rejection drops the optimistic bubble rather than leaving
     // it in the retry queue, so say why instead of letting the message just
@@ -712,6 +741,7 @@ class _RoomScreenState extends State<RoomScreen>
       setState(() {
         _composer.text = text;
         _composer.restoreMentions(mentions, everyone: everyone);
+        _composer.restoreFormatting(formatting);
         _replyingTo = replyTarget;
       });
       _keepComposerFocus();
@@ -768,11 +798,128 @@ class _RoomScreenState extends State<RoomScreen>
     // crossed the threshold, and now that the reply arms on release the two
     // would land on the same beat and read as one muddy buzz.
     if (haptic) HapticFeedback.heavyImpact();
+    // Mutual exclusion, the [_beginSelection] precedent: an edit in progress
+    // hands the composer back (draft included) before the reply takes it.
+    if (_editing != null) _cancelEdit();
     setState(() => _replyingTo = m);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _composerFocus.requestFocus();
     });
+  }
+
+  /// Arm an edit of [m]: the composer takes the message's current text and a
+  /// banner says whose words these are. Whatever WAS being typed is stashed
+  /// first and comes back when the edit is sent or cancelled — an edit must
+  /// not eat a half-written message.
+  void _armEdit(ChatMessage m) {
+    HapticFeedback.heavyImpact();
+    _draftBeforeEdit = (
+      text: _composer.text,
+      mentions: _composer.mentions,
+      everyone: _composer.everyone,
+      formatting: _composer.formatting,
+    );
+    setState(() {
+      _replyingTo = null;
+      _editing = m;
+      // Formatting cleared BEFORE the text swap: the swap runs the remap, and
+      // the draft's ranges have no business being remapped onto the message's
+      // text. Restored (against the new text) after.
+      _composer.clearFormatting();
+      _composer.text = m.content;
+      // The message's own mentions come along, or the restored "@bob" would
+      // read as a tag and send as prose — the same rule the gate-refusal
+      // restore path follows. Its formatting comes along for the same reason:
+      // an edit that silently dropped the bold would save the words plain.
+      _composer.restoreMentions(m.mentions, everyone: m.mentionsEveryone);
+      _composer.restoreFormatting(m.formatting);
+    });
+    // Caret at the end: editing almost always means appending or fixing the
+    // tail, and a caret at position 0 makes every edit start with a scroll.
+    _composer.selection =
+        TextSelection.collapsed(offset: _composer.text.length);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _composerFocus.requestFocus();
+    });
+  }
+
+  /// Leave edit mode and put the stashed draft back in the composer.
+  void _cancelEdit() {
+    final draft = _draftBeforeEdit;
+    _draftBeforeEdit = null;
+    setState(() {
+      _editing = null;
+      _composer.clearFormatting();
+      _composer.text = draft?.text ?? '';
+      _composer.restoreMentions(
+        draft?.mentions ?? const [],
+        everyone: draft?.everyone ?? false,
+      );
+      _composer.restoreFormatting(draft?.formatting ?? const []);
+    });
+  }
+
+  /// The edit-mode half of [_send], split out so the ordinary path reads as
+  /// it always has. Follows the same snapshot → clear → restore-on-refusal
+  /// contract.
+  Future<void> _sendEdit(ChatMessage editing, String text) async {
+    final mentions = _composer.mentions;
+    final everyone = _composer.everyone;
+    final formatting = _composer.formatting;
+    // An edit that changed nothing is a cancel: leave quietly rather than
+    // asking the server to stamp "edited" over a no-op. Formatting counts as
+    // a change — re-bolding a word IS an edit even when the words stand.
+    if (text == editing.content &&
+        listEquals(formatting, editing.formatting)) {
+      _cancelEdit();
+      return;
+    }
+    final draft = _draftBeforeEdit;
+    _draftBeforeEdit = null;
+    setState(() {
+      _editing = null;
+      _composer.clearFormatting();
+      _composer.text = draft?.text ?? '';
+      _composer.restoreMentions(
+        draft?.mentions ?? const [],
+        everyone: draft?.everyone ?? false,
+      );
+      _composer.restoreFormatting(draft?.formatting ?? const []);
+    });
+    final err = await widget.repo.editMessage(
+      roomId: widget.roomId,
+      message: editing,
+      content: text,
+      mentions: mentions,
+      mentionsEveryone: everyone,
+      formatting: formatting,
+    );
+    if (err == null || !mounted) {
+      _keepComposerFocus();
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(err == 'EDIT_WINDOW_EXPIRED'
+          ? l10n.roomScreenEditExpiredSnack
+          : l10n.roomScreenEditFailedSnack),
+    ));
+    // A transient failure gets the whole session back for a retry. An expired
+    // window does NOT: re-arming an edit the server can only refuse again
+    // would turn the snack into a loop.
+    if (err != 'EDIT_WINDOW_EXPIRED') {
+      setState(() {
+        _draftBeforeEdit = draft;
+        _editing = editing;
+        _composer.clearFormatting();
+        _composer.text = text;
+        _composer.restoreMentions(mentions, everyone: everyone);
+        _composer.restoreFormatting(formatting);
+      });
+    }
+    _keepComposerFocus();
   }
 
   // ───────────────────────── multi-select ─────────────────────────
@@ -791,6 +938,9 @@ class _RoomScreenState extends State<RoomScreen>
     // The composer is about to be replaced by the selection bar, and a keyboard
     // left standing over it would cover the actions it was opened for.
     FocusManager.instance.primaryFocus?.unfocus();
+    // Same mutual exclusion as replies: the bar replaces the composer, so an
+    // edit in progress hands the draft back first.
+    if (_editing != null) _cancelEdit();
     setState(() => _replyingTo = null);
     _selection.begin(m.id);
   }
@@ -2045,7 +2195,17 @@ class _RoomScreenState extends State<RoomScreen>
                   : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_replyingTo != null)
+                // `else if` rather than a sibling `if`: the two banners are
+                // mutually exclusive by state construction (see [_armEdit] /
+                // [_armReply]), and spelling that here means a bug in that
+                // invariant renders ONE wrong banner instead of two stacked
+                // ones.
+                if (_editing != null)
+                  ComposerEditCard(
+                    message: _editing!,
+                    onCancel: _cancelEdit,
+                  )
+                else if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
                     api: widget.api,
@@ -2159,7 +2319,13 @@ class _RoomScreenState extends State<RoomScreen>
                     : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (_replyingTo != null)
+                // Mirrors the classic column above — see the comment there.
+                if (_editing != null)
+                  ComposerEditCard(
+                    message: _editing!,
+                    onCancel: _cancelEdit,
+                  )
+                else if (_replyingTo != null)
                   ComposerReplyCard(
                     parent: _replyingTo!,
                     api: widget.api,
@@ -2399,16 +2565,11 @@ class _RoomScreenState extends State<RoomScreen>
                 final saved = widget.repo.isMessageSaved(room.id, m.id);
                 final isPending = m.id.startsWith('tmp_');
                 final selecting = _selection.active;
-                // Same rule the selection bar applies to a whole batch, asked
-                // of one message — see [_canForward].
-                final canForwardOne =
-                    !isPending && !room.isEphemeral && !m.viewOnce &&
-                        m.type != MessageType.system &&
-                        m.status == MessageStatus.sent;
-                final canReply = !isPending &&
-                    m.status == MessageStatus.sent &&
-                    m.type != MessageType.system;
-                final hasParent = m.isReply;
+                // Every menu gate in one object — the predicates that used to
+                // be derived inline here (and re-derived, by hand, in
+                // ThreadOverlay) live in `message_capabilities.dart` now.
+                final caps = widget.repo.capabilitiesForMessage(m, room);
+                final canReply = caps.canReply;
                 // Only a failed send gets handed live retry/discard callbacks.
                 // The tile draws the pair when it has them, so gating here is
                 // what keeps a healthy bubble from offering to resend itself.
@@ -2430,31 +2591,9 @@ class _RoomScreenState extends State<RoomScreen>
                     context: context,
                     anchorKey: anchor,
                     isMine: isMine,
-                    canCopy: m.type == MessageType.text && m.content.isNotEmpty,
-                    canReply: canReply,
-                    hasParent: hasParent,
-                    // An optimistic bubble has no server id to pin, and a
-                    // system notice is not something anyone means to keep.
-                    canPin: !isPending &&
-                        m.status == MessageStatus.sent &&
-                        m.type != MessageType.system,
+                    capabilities: caps,
                     isPinned: widget.repo.isMessagePinned(room.id, m.id),
-                    // Same three gates as pinning — no server id, no system
-                    // notice — plus the capability, which is what keeps Saved
-                    // Messages from offering to save into itself. Routed
-                    // through the table rather than an `isSavedMessages` check
-                    // here, per `room_capabilities.dart`.
-                    canSave: !isPending &&
-                        m.status == MessageStatus.sent &&
-                        m.type != MessageType.system &&
-                        widget.repo.capabilitiesFor(room).canSaveMessages,
                     isSaved: widget.repo.isMessageSaved(room.id, m.id),
-                    canForward: canForwardOne,
-                    // Offered on anything the transcript will let you long-press
-                    // — including messages that aren't yours and can't be
-                    // forwarded, because SELECT is how you reach the bar that
-                    // says which of the two actions apply.
-                    canSelect: !isPending,
                     // The transcript row holds a document's name to one line;
                     // this is where the whole thing is legible.
                     fileName:
@@ -2519,6 +2658,9 @@ class _RoomScreenState extends State<RoomScreen>
                   switch (result.action!) {
                     case MessageAction.reply:
                       _armReply(m);
+                      break;
+                    case MessageAction.edit:
+                      _armEdit(m);
                       break;
                     case MessageAction.forward:
                       await _forwardMessages([m]);

@@ -1476,6 +1476,75 @@ class AppLocalizationsAr extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'رد';
 
   @override
+  String get messageActionMenuEditLabel => 'تعديل';
+
+  @override
+  String get messageStampEditedLabel => 'معدّلة';
+
+  @override
+  String get composerEditCardTitle => 'تعديل الرسالة';
+
+  @override
+  String get spoilerRevealHint => 'سبويلر — فعِّل لإظهار النص المخفي';
+
+  @override
+  String get formatToolbarFormatLabel => 'تنسيق';
+
+  @override
+  String get formatToolbarBoldLabel => 'عريض';
+
+  @override
+  String get formatToolbarItalicLabel => 'مائل';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'يتوسطه خط';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'تسطير';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'سبويلر';
+
+  @override
+  String get formatToolbarLinkLabel => 'رابط';
+
+  @override
+  String get formatToolbarCodeLabel => 'كود';
+
+  @override
+  String get linkInputSheetTitle => 'رابط';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'تطبيق الرابط';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'سيفتح النص المحدد هذا العنوان عند النقر عليه';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'إزالة الرابط';
+
+  @override
+  String get linkConfirmSheetTitle => 'فتح هذا الرابط؟';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'فتح الرابط';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'إلغاء';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'فات أوان التعديل — لا يمكن تعديل الرسائل إلا خلال 15 دقيقة.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'لم نتمكّن من حفظ التعديل. تحقّق من اتصالك وحاول مرة أخرى.';
+
+  @override
   String get messageActionMenuForwardLabel => 'إعادة توجيه';
 
   @override

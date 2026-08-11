@@ -427,6 +427,154 @@ async function endLiveShare(ctx: any, msg: any, endedAt: number) {
   return true;
 }
 
+/**
+ * Resolve @-mentions for a message body. The client sends ids; everything
+ * else is decided here, because the client is not in a position to be trusted
+ * about who may be pinged.
+ *
+ * Extracted so `send` and `editMessage` cannot disagree about who may be
+ * named — the same reasoning as `guardOutgoing` above. An edit that resolved
+ * mentions under looser rules than the send would be a way to ping people the
+ * original message was not allowed to.
+ *
+ * Five guards, each closing something different:
+ *
+ *  * The cap is applied BEFORE any `ctx.db.get`, so a hostile client can't
+ *    buy an unbounded read set (or an unbounded push fan-out) by sending a
+ *    huge array. Truncating silently rather than throwing is deliberate —
+ *    the client caps too, and a disagreement must never fail a send the
+ *    user has already made.
+ *  * De-duplication, because the array answers "who", not "how many".
+ *  * The sender's own id is dropped: `unreadForRoom` already skips your own
+ *    messages, so a self-mention could only ever be dead weight.
+ *  * Membership, which IS the authorization model here — without it any
+ *    client could ping any account on the deployment.
+ *  * The handle must actually appear in `content`. Otherwise "hi" could
+ *    notify twenty people, and the text would disagree with the badge.
+ */
+async function resolveMentions(
+  ctx: any,
+  content: string,
+  userId: any,
+  roster: () => Promise<any[]>,
+  room: any,
+  mentionedUserIds: any[] | undefined,
+  mentionsEveryone: boolean | undefined
+): Promise<{
+  resolvedMentions: Array<{ userId: any; username: string }> | undefined;
+  everyone: boolean;
+}> {
+  const MAX_MENTIONS = 20;
+  let resolvedMentions:
+    | Array<{ userId: any; username: string }>
+    | undefined;
+  if (mentionedUserIds && mentionedUserIds.length > 0) {
+    const wanted = [
+      ...new Set(mentionedUserIds.slice(0, MAX_MENTIONS).map(String)),
+    ].filter((id) => id !== userId.toString());
+    if (wanted.length > 0) {
+      const memberIds = new Set(
+        (await roster()).map((m: any) => m.userId.toString())
+      );
+      const out: Array<{ userId: any; username: string }> = [];
+      for (const id of wanted) {
+        if (!memberIds.has(id)) continue;
+        const u = await ctx.db.get(id as any);
+        const handle = (u as any)?.username;
+        if (!handle) continue;
+        if (!content.includes(`@${handle}`)) continue;
+        out.push({ userId: (u as any)._id, username: handle });
+      }
+      // Never store an empty array — the field is meant to be sparse.
+      if (out.length > 0) resolvedMentions = out;
+    }
+  }
+  // `@everyone` is only meaningful where there is a crowd to address, and a
+  // DM already has the other person's full attention.
+  const everyone =
+    mentionsEveryone === true &&
+    !room?.name?.startsWith("dm:") &&
+    content.includes("@everyone");
+  return { resolvedMentions, everyone };
+}
+
+/** The formatting span types a message may carry. A closed set validated
+ * server-side: an unrecognized type is dropped rather than stored, so a
+ * hostile or future client cannot park arbitrary strings on a row every
+ * member subscribes to. Must match `FormattingType` in the Dart model. */
+const FORMATTING_TYPES = new Set([
+  "bold",
+  "italic",
+  "strikethrough",
+  "underline",
+  "spoiler",
+  "link",
+  "code",
+]);
+
+/** Most formatting spans one message may carry. A guarantee about the row's
+ * size (the row is re-sent to every member on every reaction change), not an
+ * expectation about real use — the composer can't produce anywhere near this
+ * many. Truncating silently rather than throwing, for the same reason the
+ * mention cap does: the client caps too, and a disagreement must never fail
+ * a send the user has already made. */
+const MAX_FORMATTING_ENTITIES = 50;
+
+/**
+ * Validate client-supplied formatting spans against the content they claim
+ * to describe. Returns `undefined` when nothing survives — the field is
+ * sparse, never `[]`.
+ *
+ * Every span must lie inside the string (`0 <= start < end <= length`,
+ * integers only — a fractional or out-of-range offset would make clients
+ * substring past the end of the text) and a link span must carry a URL the
+ * same `LINK_PATTERN` the linkifier trusts would accept. Overlaps are NOT
+ * rejected: bold-inside-italic is legitimate nesting and the renderer folds
+ * styles per character range.
+ */
+function sanitizeFormatting(
+  content: string,
+  raw?: Array<{ start: number; end: number; type: string; url?: string }>
+): Array<{ start: number; end: number; type: string; url?: string }> | undefined {
+  if (!raw || raw.length === 0) return undefined;
+  const out = raw
+    .filter((f) => FORMATTING_TYPES.has(f.type))
+    .filter(
+      (f) =>
+        Number.isInteger(f.start) &&
+        Number.isInteger(f.end) &&
+        f.start >= 0 &&
+        f.start < f.end &&
+        f.end <= content.length
+    )
+    .filter(
+      (f) =>
+        f.type !== "link" ||
+        (typeof f.url === "string" && LINK_PATTERN.test(f.url))
+    )
+    .slice(0, MAX_FORMATTING_ENTITIES)
+    .map((f) => ({
+      start: f.start,
+      end: f.end,
+      type: f.type,
+      ...(f.type === "link" ? { url: f.url } : {}),
+    }));
+  return out.length > 0 ? out : undefined;
+}
+
+/** The wire shape of one formatting span, shared by `send` and `editMessage`
+ * so the two cannot drift. */
+const formattingArg = v.optional(
+  v.array(
+    v.object({
+      start: v.number(),
+      end: v.number(),
+      type: v.string(),
+      url: v.optional(v.string()),
+    })
+  )
+);
+
 export const send = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -474,8 +622,12 @@ export const send = mutation({
     // `LIVE_SHARE_DURATIONS_MS` — see the note there on why this is a closed
     // set validated here and not just a client-side picker.
     liveDurationMs: v.optional(v.number()),
+    // Rich-text spans over `content`. Validated by `sanitizeFormatting` —
+    // the client says where the runs are, this mutation decides whether they
+    // fit the text at all.
+    formatting: formattingArg,
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs }) => {
+  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting }) => {
     // Idempotency, checked before anything else has a chance to happen twice.
     //
     // Everything below this line has side effects that must not be repeated:
@@ -649,55 +801,24 @@ export const send = mutation({
       }
     }
 
-    // Resolve @-mentions. The client sends ids; everything else is decided
-    // here, because the client is not in a position to be trusted about who
-    // may be pinged.
-    //
-    // Five guards, each closing something different:
-    //
-    //  * The cap is applied BEFORE any `ctx.db.get`, so a hostile client can't
-    //    buy an unbounded read set (or an unbounded push fan-out) by sending a
-    //    huge array. Truncating silently rather than throwing is deliberate —
-    //    the client caps too, and a disagreement must never fail a send the
-    //    user has already made.
-    //  * De-duplication, because the array answers "who", not "how many".
-    //  * The sender's own id is dropped: `unreadForRoom` already skips your own
-    //    messages, so a self-mention could only ever be dead weight.
-    //  * Membership, which IS the authorization model here — without it any
-    //    client could ping any account on the deployment.
-    //  * The handle must actually appear in `content`. Otherwise "hi" could
-    //    notify twenty people, and the text would disagree with the badge.
-    const MAX_MENTIONS = 20;
-    let resolvedMentions:
-      | Array<{ userId: any; username: string }>
-      | undefined;
-    if (mentionedUserIds && mentionedUserIds.length > 0) {
-      const wanted = [
-        ...new Set(mentionedUserIds.slice(0, MAX_MENTIONS).map(String)),
-      ].filter((id) => id !== userId.toString());
-      if (wanted.length > 0) {
-        const memberIds = new Set(
-          (await roster()).map((m: any) => m.userId.toString())
-        );
-        const out: Array<{ userId: any; username: string }> = [];
-        for (const id of wanted) {
-          if (!memberIds.has(id)) continue;
-          const u = await ctx.db.get(id as any);
-          const handle = (u as any)?.username;
-          if (!handle) continue;
-          if (!content.includes(`@${handle}`)) continue;
-          out.push({ userId: (u as any)._id, username: handle });
-        }
-        // Never store an empty array — the field is meant to be sparse.
-        if (out.length > 0) resolvedMentions = out;
-      }
-    }
-    // `@everyone` is only meaningful where there is a crowd to address, and a
-    // DM already has the other person's full attention.
-    const everyone =
-      mentionsEveryone === true &&
-      !room?.name?.startsWith("dm:") &&
-      content.includes("@everyone");
+    // Resolve @-mentions — see `resolveMentions` for the five guards and why
+    // it is shared with `editMessage`.
+    const { resolvedMentions, everyone } = await resolveMentions(
+      ctx,
+      content,
+      userId,
+      roster,
+      room,
+      mentionedUserIds,
+      mentionsEveryone
+    );
+
+    // Formatting spans, clamped to the text they describe. Dropped entirely
+    // on an armed send for the reason the caption's `hasLink` is below: a
+    // sealed photo's caption is content the row must not describe before it
+    // is opened, and span offsets are a partial description (they say where
+    // the interesting parts are).
+    const fmt = armed ? undefined : sanitizeFormatting(content, formatting);
 
     const messageId = await ctx.db.insert("messages", {
       roomId,
@@ -736,8 +857,14 @@ export const send = mutation({
       // Left absent rather than written `false`, so the LINKS index holds only
       // rows that belong in it. Armed messages are excluded for the same
       // reason they get no bucket: a sealed photo's caption is not shared
-      // content anybody may browse.
-      ...(!armed && LINK_PATTERN.test(content) ? { hasLink: true } : {}),
+      // content anybody may browse. A `formatting` link entity counts too —
+      // "check this out" carrying a URL belongs in the LINKS tab exactly as
+      // much as the bare URL would have.
+      ...(!armed &&
+      (LINK_PATTERN.test(content) || (fmt?.some((f) => f.type === "link") ?? false))
+        ? { hasLink: true }
+        : {}),
+      ...(fmt ? { formatting: fmt } : {}),
       senderName: resolvedSenderName,
       expiresAt,
       // Stored so the retry that arrives after this one commits can find it.
@@ -1234,6 +1361,145 @@ export const deleteMessage = mutation({
 
     await removeMessageAndFanout(ctx, msg, messageId);
   },
+});
+
+/** How long after sending a message its author may still edit it.
+ *
+ * Enforced HERE, against this server's clock, and nowhere else. The client
+ * hides its Edit row from the same window (via `messages.now`, skew-corrected)
+ * but that is presentation — a device whose clock runs fast could otherwise
+ * offer an edit this mutation must then be trusted to refuse. */
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+export const editMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    content: v.string(),
+    // Re-declared rather than inherited from the original row: an edit that
+    // deletes an `@bob` must drop bob's mention, and one that adds it must
+    // pass the same five guards a send does. See `resolveMentions`.
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    mentionsEveryone: v.optional(v.boolean()),
+    formatting: formattingArg,
+  },
+  // "OK", or an error-code string for the one refusal the UI can genuinely
+  // race into: the window closing between the menu opening and the send.
+  // Everything else throws, because nothing the client renders can reach it —
+  // the same split `pins.pinMessage` draws between a full room and a missing
+  // one.
+  returns: v.string(),
+  handler: async (
+    ctx,
+    { messageId, userId, content, mentionedUserIds, mentionsEveryone, formatting }
+  ) => {
+    const msg = await ctx.db.get(messageId);
+    if (!msg) throw new Error("MESSAGE_NOT_FOUND");
+
+    // Sender only — the same scope as `deleteMessage` above, for the same
+    // reason: rewriting what somebody said is a strictly stronger power than
+    // removing it, so it gets no wider an audience.
+    if (msg.userId.toString() !== userId.toString()) {
+      throw new Error("NOT_AUTHORIZED");
+    }
+
+    // Text only. A caption edit is a different feature (it has to reconcile
+    // with the gallery and the sealed-tile rules), and a view-once message is
+    // sealed content whose whole contract is that it never changes after
+    // arming. `url` is grandfathered wire vocabulary for a text message that
+    // is mostly a link — same renderer, same rules.
+    const msgType = msg.type ?? "text";
+    if (msgType !== "text" && msgType !== "url") throw new Error("NOT_AUTHORIZED");
+    if (msg.viewOnce === true) throw new Error("NOT_AUTHORIZED");
+
+    // The composer refuses an empty send, so an empty edit can only be a bug
+    // or a forged call. "Edit to nothing" is deleteMessage with extra steps,
+    // and it should be spelled that way.
+    if (content.trim().length === 0) throw new Error("EMPTY_CONTENT");
+
+    if (Date.now() - msg.createdAt > EDIT_WINDOW_MS) {
+      return "EDIT_WINDOW_EXPIRED";
+    }
+
+    const room = await ctx.db.get(msg.roomId);
+    // Lazy for the same reason `guardOutgoing`'s is: most edits carry no
+    // mentions, and those must not pay for a roster collect.
+    let rosterCache: any[] | null = null;
+    const roster = async () =>
+      (rosterCache ??= await ctx.db
+        .query("roomMembers")
+        .withIndex("by_room", (q: any) => q.eq("roomId", msg.roomId))
+        .collect());
+    const { resolvedMentions, everyone } = await resolveMentions(
+      ctx,
+      content,
+      userId,
+      roster,
+      room,
+      mentionedUserIds,
+      mentionsEveryone
+    );
+
+    const fmt = sanitizeFormatting(content, formatting);
+    const hasLink =
+      LINK_PATTERN.test(content) ||
+      (fmt?.some((f) => f.type === "link") ?? false);
+
+    // `undefined` on a patch REMOVES the field (the `backfillRoomContent`
+    // idiom), which is exactly right for every sparse field here: an edit
+    // that deletes the last URL must take the row out of the LINKS index,
+    // not leave it there with `hasLink: false` matching nothing.
+    await ctx.db.patch(messageId, {
+      content,
+      edited: true,
+      editedAt: Date.now(),
+      mentions: resolvedMentions,
+      mentionsEveryone: everyone ? true : undefined,
+      hasLink: hasLink ? true : undefined,
+      formatting: fmt,
+    });
+
+    // Repair the room card, but only when this message is what it shows —
+    // the `removeMessageAndFanout` guard. A mid-history edit re-writing the
+    // room doc would needlessly invalidate every member's listUserRooms
+    // subscription. `lastMessageTime` is left alone: an edit must not float
+    // the room to the top of anybody's chat list.
+    if (room && room.lastMessageTime === msg.createdAt) {
+      await ctx.db.patch(msg.roomId, {
+        lastMessage: roomPreviewFor({
+          type: msgType,
+          content,
+          fileName: msg.fileName,
+          viewOnce: msg.viewOnce,
+        }),
+      });
+    }
+
+    // Deliberately NO push. A typo fix must not re-ring anyone's phone. The
+    // shade may keep showing the pre-edit text until it is next dismissed —
+    // if that ever matters, `notifications.revokeMessagePushes` plus a fresh
+    // alert on the same collapse id is the machinery to replace a banner
+    // in place. Consequence accepted alongside: a mention ADDED by an edit
+    // never notifies its target.
+    //
+    // Children's `replyToPreview` snapshots are also left frozen on purpose:
+    // a reply quoted what was actually said at the time, and rewriting the
+    // quote under it would change what the reply meant.
+    return "OK";
+  },
+});
+
+/** The server's clock, for the client's edit-window gate.
+ *
+ * The `feed.serverNow` pattern as its own query: the client computes a skew
+ * offset once per session and uses it to decide whether to OFFER the Edit
+ * row. The mutation above re-checks with its own `Date.now()` either way —
+ * this exists so a device that is minutes wrong doesn't render a menu item
+ * the server will only ever refuse. */
+export const now = query({
+  args: {},
+  returns: v.number(),
+  handler: async () => Date.now(),
 });
 
 /** Most messages one forward may carry. See `forwardToRoom`. */

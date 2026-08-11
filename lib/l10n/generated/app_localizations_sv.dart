@@ -1464,6 +1464,76 @@ class AppLocalizationsSv extends AppLocalizations {
   String get messageActionMenuReplyLabel => 'SVARA';
 
   @override
+  String get messageActionMenuEditLabel => 'REDIGERA';
+
+  @override
+  String get messageStampEditedLabel => 'redigerat';
+
+  @override
+  String get composerEditCardTitle => 'REDIGERA MEDDELANDE';
+
+  @override
+  String get spoilerRevealHint =>
+      'Spoiler — aktivera för att visa den dolda texten';
+
+  @override
+  String get formatToolbarFormatLabel => 'Formatera';
+
+  @override
+  String get formatToolbarBoldLabel => 'Fet';
+
+  @override
+  String get formatToolbarItalicLabel => 'Kursiv';
+
+  @override
+  String get formatToolbarStrikethroughLabel => 'Genomstruken';
+
+  @override
+  String get formatToolbarUnderlineLabel => 'Understruken';
+
+  @override
+  String get formatToolbarSpoilerLabel => 'Spoiler';
+
+  @override
+  String get formatToolbarLinkLabel => 'Länk';
+
+  @override
+  String get formatToolbarCodeLabel => 'Kod';
+
+  @override
+  String get linkInputSheetTitle => 'LÄNK';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => 'ANVÄND LÄNK';
+
+  @override
+  String get linkInputSheetApplySub =>
+      'Den markerade texten öppnar den här adressen när du trycker på den';
+
+  @override
+  String get linkInputSheetRemoveLabel => 'TA BORT LÄNK';
+
+  @override
+  String get linkConfirmSheetTitle => 'ÖPPNA DEN HÄR LÄNKEN?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => 'ÖPPNA LÄNK';
+
+  @override
+  String get linkConfirmSheetCancelLabel => 'AVBRYT';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      'För sent att redigera — meddelanden kan bara redigeras i 15 minuter.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      'Ändringen kunde inte sparas. Kontrollera din anslutning och försök igen.';
+
+  @override
   String get messageActionMenuForwardLabel => 'VIDAREBEFORDRA';
 
   @override

@@ -1397,6 +1397,74 @@ class AppLocalizationsKo extends AppLocalizations {
   String get messageActionMenuReplyLabel => '답장';
 
   @override
+  String get messageActionMenuEditLabel => '수정';
+
+  @override
+  String get messageStampEditedLabel => '수정됨';
+
+  @override
+  String get composerEditCardTitle => '메시지 수정';
+
+  @override
+  String get spoilerRevealHint => '스포일러 — 활성화하면 숨겨진 텍스트가 표시돼요';
+
+  @override
+  String get formatToolbarFormatLabel => '서식';
+
+  @override
+  String get formatToolbarBoldLabel => '굵게';
+
+  @override
+  String get formatToolbarItalicLabel => '기울임';
+
+  @override
+  String get formatToolbarStrikethroughLabel => '취소선';
+
+  @override
+  String get formatToolbarUnderlineLabel => '밑줄';
+
+  @override
+  String get formatToolbarSpoilerLabel => '스포일러';
+
+  @override
+  String get formatToolbarLinkLabel => '링크';
+
+  @override
+  String get formatToolbarCodeLabel => '코드';
+
+  @override
+  String get linkInputSheetTitle => '링크';
+
+  @override
+  String get linkInputSheetHint => 'https://example.com';
+
+  @override
+  String get linkInputSheetApplyLabel => '링크 적용';
+
+  @override
+  String get linkInputSheetApplySub => '선택한 텍스트를 탭하면 이 주소가 열려요';
+
+  @override
+  String get linkInputSheetRemoveLabel => '링크 제거';
+
+  @override
+  String get linkConfirmSheetTitle => '이 링크를 열까요?';
+
+  @override
+  String get linkConfirmSheetOpenLabel => '링크 열기';
+
+  @override
+  String get linkConfirmSheetCancelLabel => '취소';
+
+  @override
+  String get roomScreenEditExpiredSnack =>
+      '수정하기엔 너무 늦었어요 — 메시지는 15분 동안만 수정할 수 있어요.';
+
+  @override
+  String get roomScreenEditFailedSnack =>
+      '수정 내용을 저장하지 못했어요. 연결을 확인하고 다시 시도해 주세요.';
+
+  @override
   String get messageActionMenuForwardLabel => '전달';
 
   @override
