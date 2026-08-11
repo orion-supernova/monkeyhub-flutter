@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' show PointMode;
@@ -10,39 +11,41 @@ import '../l10n/generated/app_localizations.dart';
 import '../theme/motion.dart';
 import 'paragraph_geometry.dart';
 
-/// The dust veil over a message's spoiler text, and the two ways to clear it.
+/// The dust veil over a message's spoiler text, and everything that happens
+/// when a finger touches it.
 ///
 /// Sits as a `Positioned.fill` sibling ABOVE the paragraph (which renders the
 /// hidden text normally — layout must be real so the bubble is the right size,
 /// and so the reveal uncovers words that were always exactly there).
 ///
-/// **What it looks like, and why.** An opaque plate roughly the bubble's own
-/// colour, under a dense field of sub-pixel motes in the text's ink. The plate
-/// is the concealment; the dust is what says there is something under here.
-/// This is the inverse of what it was: the plate used to be the text INK, so
-/// on a dark theme a spoiler was a glowing white slab — the brightest thing on
-/// screen, pointing straight at the one thing the sender asked to hide — with
-/// a few dozen fat dots on it. Telegram and iMessage both go the other way,
-/// and the reason is legible once you see the two side by side.
+/// **The plate is the bubble.** Exactly [cover], which callers set to the
+/// bubble's own painted fill, so there is no rectangle, no edge and no corner
+/// to see — only a stretch of bubble where words should be, with dust moving
+/// over it. It used to be the text INK, i.e. a glowing white slab on a dark
+/// theme, and then briefly a measured step off the bubble, which still read as
+/// a box. Opaque, and the opacity is the concealment: the dust is texture, not
+/// privacy.
 ///
-/// **Reveal.** A tap dissolves the whole thing, dust scattering away from the
-/// finger. A drag erases a soft-brush stroke from a low-res alpha mask instead,
-/// so a half-hearted smudge reveals a half-readable secret — which is the
-/// point; once ~85% of the veiled area is clear the remainder goes on its own.
-/// Both record the reveal (session-only) in [SpoilerStore]. Tap is detected
-/// inside the pan rather than by a second recognizer: [_WipeGestureRecognizer]
-/// claims the pointer on down, so a sibling tap recognizer could never win the
-/// arena.
+/// **The finger pushes the dust.** Motes inside [_repelRadius] of a moving
+/// touch take an impulse away from it and carry it with momentum, so the dust
+/// parts around a fingertip and drifts back after it leaves. This is separate
+/// from the wipe: pushing dust aside does not reveal anything.
+///
+/// **Reveal is a wavefront.** A tap opens a disc of clear text from the touch
+/// point outward, dust blowing ahead of its edge. A drag instead erases a
+/// soft-brush stroke from a low-res alpha mask, so a partial swipe reveals
+/// exactly what it touched and no more; a drag is never mistaken for a tap.
+///
+/// **Nothing stays open.** A full reveal holds for [_holdFor] and then runs
+/// the wavefront backwards — the dust closes over the words again. A partial
+/// wipe heals the same way. Leaving the room re-veils everything (see
+/// [SpoilerStore]).
 ///
 /// **Calm motion** builds a different thing entirely, per the MotionScope
 /// contract: no ticker, no particle buffers allocated at all — a static plate
-/// that a single tap fades away. Screen readers get the same tap-reveal
-/// through [Semantics] in both modes, because a wipe is not an accessible
-/// gesture.
-///
-/// **Partial state is disposable.** The mask lives in this State and dies with
-/// it; scrolling a half-wiped spoiler away re-veils it. Only the full reveal
-/// outlives the widget, via the store.
+/// that a single tap fades away, and that heals on the same timer. Screen
+/// readers get the same tap-reveal through [Semantics] in both modes, because
+/// a wipe is not an accessible gesture.
 class SpoilerOverlay extends StatefulWidget {
   const SpoilerOverlay({
     super.key,
@@ -51,7 +54,6 @@ class SpoilerOverlay extends StatefulWidget {
     required this.contextId,
     required this.cover,
     required this.dust,
-    required this.onRevealed,
   });
 
   /// Key on the paragraph this overlay covers — resolved to a
@@ -63,22 +65,17 @@ class SpoilerOverlay extends StatefulWidget {
   /// `spoilerRanges`).
   final List<({int start, int end})> ranges;
 
-  /// What keys the session reveal — the message id.
+  /// What keys the open state in the session store — the message id.
   final String contextId;
 
-  /// The opaque plate under the dust (see `FormattingSurface.spoilerCover`) —
-  /// near enough the bubble's own colour to read as a blank patch of it.
+  /// The plate, painted opaque. The bubble's own fill (see
+  /// `FormattingSurface.spoilerCover`), so the veiled stretch is invisible as
+  /// a shape and legible only as an absence of words.
   final Color cover;
 
   /// Ink of the dust motes (see `FormattingSurface.spoilerDust`) — the text's
   /// own colour, so the field reads as the hidden words ground to powder.
-  /// Cannot be derived from [cover] any more: the plate IS the bubble now, so
-  /// a cover-derived mote would be invisible against it.
   final Color dust;
-
-  /// Fired once, after the veil has fully dissolved — the host rebuilds and
-  /// stops mounting this overlay.
-  final VoidCallback onRevealed;
 
   @override
   State<SpoilerOverlay> createState() => _SpoilerOverlayState();
@@ -99,6 +96,26 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   @override
   double get measureInsetY => -1.5;
 
+  /// How long a reveal stands before the dust closes back over it. Scaled by
+  /// how much there is to read — a two-word spoiler does not need the window a
+  /// paragraph does — and floored at something you cannot miss.
+  Duration get _holdFor {
+    var chars = 0;
+    for (final r in widget.ranges) {
+      chars += r.end - r.start;
+    }
+    return Duration(
+      milliseconds: (2500 + chars * 60).clamp(5000, 18000),
+    );
+  }
+
+  /// How far a moving touch pushes dust around itself.
+  static const double _repelRadius = 52;
+
+  static const _revealIn = Duration(milliseconds: 420);
+  static const _revealOut = Duration(milliseconds: 760);
+  static const _healOut = Duration(milliseconds: 700);
+
   /// [rects] flattened — the veil doesn't care which range a line came from.
   List<Rect> _rects = const [];
 
@@ -109,42 +126,67 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   /// Drives the dust drift. Created only outside calm motion.
   AnimationController? _drift;
 
-  /// Drives the reveal — the scatter and the plate's fade. 0 = veil fully
-  /// present, 1 = gone. Duration is set per build because calm has no
-  /// particles to give travel time to.
-  late final AnimationController _dissolve = AnimationController(
+  /// The reveal wavefront. 0 = veiled, 1 = fully open. Runs forward on a tap
+  /// and backwards when the hold expires.
+  late final AnimationController _reveal = AnimationController(
     vsync: this,
-    duration: _dissolveFull,
-  )..addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        SpoilerStore.instance.reveal(widget.contextId);
-        widget.onRevealed();
-      }
+    duration: _revealIn,
+    reverseDuration: _revealOut,
+  )..addStatusListener(_onRevealStatus);
+
+  /// Fades a partial wipe's holes back to nothing. 0 = holes intact.
+  late final AnimationController _heal = AnimationController(
+    vsync: this,
+    duration: _healOut,
+  )..addStatusListener((s) {
+      if (s != AnimationStatus.completed) return;
+      _mask?.reset();
+      _heal.value = 0;
+      _maskRevision.value++;
     });
 
-  static const _dissolveFull = Duration(milliseconds: 380);
-  static const _dissolveCalm = Duration(milliseconds: 220);
-
-  /// Bumped on every wipe stamp. The painter listens to this instead of the
-  /// State calling setState sixty times a second during a drag.
+  /// Bumped whenever the mask or the touch moves. The painter listens to this
+  /// instead of the State calling setState sixty times a second during a drag.
   final ValueNotifier<int> _maskRevision = ValueNotifier<int>(0);
 
+  /// Where the finger is, in local coordinates, or null when it is not down.
+  final ValueNotifier<Offset?> _touch = ValueNotifier<Offset?>(null);
+
   _WipeMask? _mask;
-  bool _dissolving = false;
   Offset? _lastWipePoint;
 
-  /// Where the scatter blows away from — the finger, or the veil's centre for
-  /// a reveal that had no touch behind it (the semantics action, or crossing
-  /// the wipe threshold).
-  Offset _scatterOrigin = Offset.zero;
+  /// Pending re-veil, for a full reveal or a partial wipe.
+  Timer? _healTimer;
+
+  /// Centre of the reveal wavefront.
+  Offset _waveOrigin = Offset.zero;
 
   /// Tap-vs-drag bookkeeping for the single pan recognizer.
-  Offset? _panStart;
   double _panDistance = 0;
+
+  /// A pointer that moves more than this is a wipe, full stop. Well under
+  /// `kTouchSlop`, because a deliberate short swipe over two words must stay a
+  /// partial reveal — treating it as a tap would blow the whole spoiler open,
+  /// which is the opposite of what the gesture asked for.
+  static const double _tapSlop = 6;
 
   /// Last resolved motion budget. Cached from build so gesture callbacks can
   /// read it without registering an inherited-widget dependency mid-event.
   bool _calm = false;
+
+  bool get _open => _reveal.value >= 1;
+
+  @override
+  void initState() {
+    super.initState();
+    // Mounting onto an already-open message (a rebuild in place, or a row
+    // recycled while the text was showing) picks the state up and restarts the
+    // hold, so an entry in the store can never strand a spoiler readable.
+    if (SpoilerStore.instance.isRevealed(widget.contextId)) {
+      _reveal.value = 1;
+      _scheduleHeal();
+    }
+  }
 
   @override
   void didUpdateWidget(SpoilerOverlay old) {
@@ -154,16 +196,19 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
 
   @override
   void dispose() {
+    _healTimer?.cancel();
     _drift?.dispose();
-    _dissolve.dispose();
+    _reveal.dispose();
+    _heal.dispose();
     _maskRevision.dispose();
+    _touch.dispose();
     super.dispose();
   }
 
   /// A fresh mask and a fresh particle field per measurement. Re-measuring
   /// mid-wipe therefore re-veils what had been wiped — consistent with partial
-  /// state being disposable (see the class doc), and a rotation is not a
-  /// subtle event to lose it to.
+  /// state being disposable, and a rotation is not a subtle event to lose it
+  /// to.
   @override
   void onMeasured(List<List<Rect>> value) {
     final flat = [for (final group in value) ...group];
@@ -175,9 +220,42 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     });
   }
 
+  void _onRevealStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      SpoilerStore.instance.reveal(widget.contextId);
+      // Nothing to animate while the words are simply readable.
+      _drift?.stop();
+      _scheduleHeal();
+    } else if (status == AnimationStatus.dismissed) {
+      SpoilerStore.instance.conceal(widget.contextId);
+      if (!_calm) _drift?.repeat();
+    }
+  }
+
+  /// Arms the re-veil. Any new interaction cancels and re-arms it.
+  void _scheduleHeal() {
+    _healTimer?.cancel();
+    _healTimer = Timer(_holdFor, () {
+      if (!mounted) return;
+      if (_open) {
+        if (!_calm) _drift?.repeat();
+        _reveal.reverse();
+      } else if (_mask != null && !_mask!.clean) {
+        _heal.forward(from: 0);
+      }
+    });
+  }
+
   void _wipeAt(Offset point) {
     final mask = _mask;
-    if (mask == null || _dissolving) return;
+    if (mask == null || _reveal.value > 0) return;
+    // A stroke onto healing holes takes them over rather than fighting the
+    // fade.
+    if (_heal.isAnimating) {
+      _heal
+        ..stop()
+        ..value = 0;
+    }
     final last = _lastWipePoint;
     // Interpolate between move events so a fast swipe leaves a stroke, not a
     // dotted line of brush stamps.
@@ -195,13 +273,9 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   }
 
   void _revealWhole({Offset? origin}) {
-    if (_dissolving) return;
-    _dissolving = true;
-    _scatterOrigin = origin ?? _veilCentre();
-    // Calm has no particles to give travel time to, so it keeps the shorter
-    // fade the veil always had.
-    _dissolve.duration = _calm ? _dissolveCalm : _dissolveFull;
-    _dissolve.forward();
+    if (_reveal.value > 0 || _reveal.isAnimating) return;
+    _waveOrigin = origin ?? _veilCentre();
+    _reveal.forward();
   }
 
   Offset _veilCentre() {
@@ -214,7 +288,7 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   }
 
   bool _hitsVeil(Offset localPoint) {
-    if (_dissolving) return false;
+    if (_reveal.value > 0) return false;
     final mask = _mask;
     for (final r in _rects) {
       if (r.inflate(4).contains(localPoint)) {
@@ -235,20 +309,20 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final motion = MotionScope.of(context);
+    // Cached before the early return: a spoiler that mounts already open
+    // heals without ever having had geometry, and the heal reads this.
+    _calm = motion.calm;
+
     // Still armed with nothing to paint: the notifier has to be mounted even
     // in the empty state, or a first measurement that lands before the
     // paragraph is ready has nothing to retry it.
     if (_rects.isEmpty) {
       return watchLayout(child: const SizedBox.expand());
     }
-    final motion = MotionScope.of(context);
-    _calm = motion.calm;
 
     // Calm is a code path: no ticker, no particles, no buffers. The
     // controller and the fields for the full effect are simply never created.
-    // (Assigning in build mirrors how the drift controller was already
-    // managed; build runs on measurement and dependency changes, not per
-    // frame — the painter drives itself from `repaint:`.)
     if (motion.calm) {
       _drift?.dispose();
       _drift = null;
@@ -260,27 +334,34 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
         // widths per period — see [_DustField]. A short loop would make that
         // return-to-start visible as a pulse.
         duration: const Duration(seconds: 20),
-      )..repeat();
+      );
       if (_fields.isEmpty) _fields = _buildFields();
+      // Not while the words are simply readable.
+      if (!_open && !_drift!.isAnimating) _drift!.repeat();
     }
 
     final painter = RepaintBoundary(
       child: CustomPaint(
         // Every per-frame input arrives through this Listenable, so neither
-        // this widget nor its subtree rebuilds for drift, wipe or dissolve.
+        // this widget nor its subtree rebuilds for drift, wipe, touch or
+        // reveal.
         painter: _SpoilerDustPainter(
           repaint: Listenable.merge([
             _drift,
-            _dissolve,
+            _reveal,
+            _heal,
             _maskRevision,
+            _touch,
             rects,
           ]),
           rectsOf: () => _rects,
           fieldsOf: () => _fields,
           maskOf: () => _mask,
           phaseOf: () => _drift?.value ?? 0,
-          dissolveOf: () => _dissolve.value,
-          originOf: () => _scatterOrigin,
+          revealOf: () => _reveal.value,
+          healOf: () => _heal.value,
+          touchOf: () => _touch.value,
+          originOf: () => _waveOrigin,
           cover: widget.cover,
           dust: widget.dust,
           calm: motion.calm,
@@ -327,8 +408,10 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
           (r) {
             r.onStart = (d) {
               _lastWipePoint = null;
-              _panStart = d.localPosition;
               _panDistance = 0;
+              _healTimer?.cancel();
+              _mask?.lift();
+              _touch.value = d.localPosition;
               _wipeAt(d.localPosition);
             };
             r.onUpdate = (d) {
@@ -336,23 +419,29 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
               if (last != null) {
                 _panDistance += (d.localPosition - last).distance;
               }
+              _touch.value = d.localPosition;
               _wipeAt(d.localPosition);
             };
             r.onEnd = (_) {
-              final start = _panStart;
-              _panStart = null;
+              final moved = _panDistance;
+              final liftedAt = _touch.value ?? _lastWipePoint;
               _lastWipePoint = null;
+              _touch.value = null;
               // A pointer that went down on dust and came up without
-              // travelling is a tap, and a tap reveals the lot. Detected here
-              // rather than by a second recognizer because the pan claims the
-              // pointer on down and would starve one.
-              if (start != null && _panDistance <= kTouchSlop) {
-                _revealWhole(origin: start);
+              // travelling is a tap, and a tap opens the lot. Anything that
+              // MOVED is a wipe, however short — a swipe over two words is a
+              // request to see those two words, so it keeps exactly the
+              // partial reveal it earned and then heals.
+              if (moved <= _tapSlop) {
+                _revealWhole(origin: liftedAt);
+              } else {
+                _scheduleHeal();
               }
             };
             r.onCancel = () {
-              _panStart = null;
               _lastWipePoint = null;
+              _touch.value = null;
+              _scheduleHeal();
             };
           },
         ),
@@ -375,7 +464,13 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     final seed = widget.contextId.hashCode;
     return [
       for (var i = 0; i < _rects.length; i++)
-        _DustField.forRect(_rects[i], seed ^ (i * 0x9E3779B1), scale),
+        // Motes roam a little outside the plate, so the field's edge is a
+        // fuzz of grain rather than a ruled line. The plate stays exact.
+        _DustField.forRect(
+          _rects[i].inflate(2.5),
+          seed ^ (i * 0x9E3779B1),
+          scale,
+        ),
     ];
   }
 }
@@ -437,8 +532,8 @@ class _DustTier {
       : xy = Float32List(count * 2),
         home = Float32List(count * 2),
         vel = Float32List(count * 2),
-        jitter = Float32List(count * 2),
-        push = Float32List(count);
+        shove = Float32List(count * 2),
+        blast = Float32List(count * 2);
 
   final int count;
 
@@ -452,8 +547,7 @@ class _DustTier {
   final int cycles;
   final double offset;
 
-  /// Live positions. The ONLY buffer written per frame, and the one handed
-  /// straight to `drawRawPoints`.
+  /// Live positions. The ONLY buffer handed to `drawRawPoints`.
   final Float32List xy;
 
   /// Resting position relative to the rect's origin, so wrapping is a compare
@@ -463,11 +557,13 @@ class _DustTier {
   /// Travel per full period, always an integer number of rect widths/heights.
   final Float32List vel;
 
-  /// Per-mote randomness in the scatter, so the blast isn't a clean radial.
-  final Float32List jitter;
+  /// Live displacement from being pushed by a finger. Integrated across
+  /// frames and decayed, which is what gives the dust momentum instead of
+  /// snapping to an offset.
+  final Float32List shove;
 
-  /// How hard the scatter throws this mote away from the reveal's origin.
-  final Float32List push;
+  /// Per-mote randomness in the reveal, so the wavefront isn't a clean ring.
+  final Float32List blast;
 }
 
 /// The particle field over one line rect.
@@ -526,9 +622,8 @@ class _DustField {
         // Vertical is always a single rect-height: dust drifts sideways, and
         // a line rect is short enough that more reads as jitter.
         tier.vel[2 * i + 1] = dirY * h;
-        tier.jitter[2 * i] = (rand.nextDouble() - 0.5) * 16;
-        tier.jitter[2 * i + 1] = (rand.nextDouble() - 0.5) * 16;
-        tier.push[i] = 10 + rand.nextDouble() * 26;
+        tier.blast[2 * i] = (rand.nextDouble() - 0.5) * 26;
+        tier.blast[2 * i + 1] = (rand.nextDouble() - 0.5) * 20 - 8;
       }
       tiers.add(tier);
     }
@@ -537,16 +632,27 @@ class _DustField {
 
   /// Writes this frame's positions into every tier's [_DustTier.xy].
   ///
-  /// [scatter] is 0 for a veil at rest and rises to 1 through the reveal;
-  /// above 0 the wrap is abandoned and motes fly away from [origin].
-  void update(double phase, double scatter, Offset origin) {
+  /// [touch] pushes motes away from a fingertip with momentum. [wave] is the
+  /// reveal's radius, and motes within reach of its edge are thrown outward
+  /// ahead of it.
+  void update({
+    required double phase,
+    required Offset? touch,
+    required Offset waveOrigin,
+    required double wave,
+    required double repelRadius,
+  }) {
     final w = rect.width;
     final h = rect.height;
-    final s = scatter * scatter;
+    final tx = touch?.dx ?? 0;
+    final ty = touch?.dy ?? 0;
+    final r2 = repelRadius * repelRadius;
+
     for (final tier in tiers) {
       final xy = tier.xy;
       final home = tier.home;
       final vel = tier.vel;
+      final shove = tier.shove;
       for (var i = 0; i < tier.count; i++) {
         final ix = 2 * i;
         final iy = ix + 1;
@@ -566,39 +672,68 @@ class _DustField {
         while (uy >= h) {
           uy -= h;
         }
-        final px = rect.left + ux;
-        final py = rect.top + uy;
-        if (s <= 0) {
-          xy[ix] = px;
-          xy[iy] = py;
-          continue;
+        var px = rect.left + ux;
+        var py = rect.top + uy;
+
+        // The finger. An impulse each frame it is near, then a decay, so the
+        // dust keeps moving after the touch passes and eases back rather than
+        // snapping home.
+        if (touch != null) {
+          final dx = px + shove[ix] - tx;
+          final dy = py + shove[iy] - ty;
+          final d2 = dx * dx + dy * dy;
+          if (d2 < r2) {
+            final d = math.sqrt(d2);
+            final falloff = 1 - d / repelRadius;
+            final k = falloff * falloff * 5.5;
+            if (d > 0.001) {
+              shove[ix] += dx / d * k;
+              shove[iy] += dy / d * k;
+            } else {
+              shove[iy] -= k;
+            }
+          }
         }
-        var dx = px - origin.dx;
-        var dy = py - origin.dy;
-        final dist = math.sqrt(dx * dx + dy * dy);
-        if (dist > 0.001) {
-          dx /= dist;
-          dy /= dist;
-        } else {
-          dx = 0;
-          dy = -1;
+        shove[ix] *= 0.87;
+        shove[iy] *= 0.87;
+        px += shove[ix];
+        py += shove[iy];
+
+        // The reveal. Motes ahead of the wavefront are thrown outward so the
+        // dust looks blown aside by the clearing, not simply erased by it.
+        if (wave > 0) {
+          final dx = px - waveOrigin.dx;
+          final dy = py - waveOrigin.dy;
+          final dist = math.sqrt(dx * dx + dy * dy);
+          final lead = (1 - ((dist - wave) / 34)).clamp(0.0, 1.0);
+          if (lead > 0) {
+            final nx = dist > 0.001 ? dx / dist : 0.0;
+            final ny = dist > 0.001 ? dy / dist : -1.0;
+            final throwBy = lead * lead * 30;
+            px += nx * throwBy + tier.blast[ix] * lead;
+            py += ny * throwBy + tier.blast[iy] * lead;
+          }
         }
-        final shove = tier.push[i];
-        xy[ix] = px + (dx * shove + tier.jitter[ix]) * s;
-        // A touch of updraft, so the field lifts as it thins instead of
-        // simply expanding.
-        xy[iy] = py + (dy * shove + tier.jitter[iy]) * s - 14 * s;
+
+        xy[ix] = px;
+        xy[iy] = py;
       }
     }
   }
 }
 
-/// The wipe's memory: a low-res alpha grid over the veiled area.
+/// The wipe's memory, kept twice over: a [Path] of where the finger actually
+/// went, which is what gets painted, and a low-res alpha grid, which is what
+/// gets asked questions.
 ///
-/// ~7-logical-px cells are far below glyph size, so the wiped hole follows
-/// the finger convincingly while the whole mask for a long spoiler stays a
-/// few kilobytes. Values are 0 (veiled) to 1 (clear); the brush writes a
-/// soft falloff so stroke edges feather instead of stair-stepping.
+/// The two exist for different reasons. The grid answers "how much of this is
+/// open" and "is this point already clear" in constant time, at ~7-logical-px
+/// cells — far below glyph size, and a few kilobytes for a long spoiler. But
+/// it must not be what you SEE: rasterising it as one rect per cell drew the
+/// grid itself, a staircase of 7px squares along every feathered edge, which
+/// is exactly the boxes-and-corners look the plate was flattened to avoid.
+/// The path is stroked once with a round cap and a blur instead, so the hole
+/// has a fingertip's soft edge for a single draw call.
 class _WipeMask {
   _WipeMask._(this.bounds, this.cols, this.rows, this.values, this.weights)
       : _totalWeight = weights.fold(0, (a, b) => a + b);
@@ -620,17 +755,21 @@ class _WipeMask {
   final Float32List weights;
   final double _totalWeight;
 
-  /// Cell-index bounds of everything ever stamped, so the painter iterates
-  /// the wiped region rather than the whole grid every frame. Inverted while
-  /// nothing has been touched, which is also how [clean] is answered.
-  int dirtyMinX = 1 << 30;
-  int dirtyMaxX = -1;
-  int dirtyMinY = 1 << 30;
-  int dirtyMaxY = -1;
+  /// Where the finger went. Stroked, not filled — this is the hole.
+  final Path path = Path();
+
+  /// Whether the current subpath has been opened.
+  bool _drawing = false;
+  bool _any = false;
 
   /// Nothing has been wiped — the overwhelmingly common state, and the one
   /// where the painter can skip its offscreen layer entirely.
-  bool get clean => dirtyMaxX < dirtyMinX;
+  bool get clean => !_any;
+
+  /// The stroke width the [path] is meant to be drawn at: the brush's own
+  /// diameter, less the blur that will soften it back out.
+  static const double strokeWidth = brush * 1.7;
+  static const double strokeBlur = 7;
 
   factory _WipeMask.covering(List<Rect> rects) {
     var bounds = rects.first;
@@ -655,7 +794,23 @@ class _WipeMask {
     return _WipeMask._(bounds, cols, rows, values, weights);
   }
 
+  /// Begins a new stroke. Called on pointer-down so a second touch does not
+  /// draw a line from wherever the last one ended.
+  void lift() => _drawing = false;
+
   void stamp(Offset point) {
+    if (_drawing) {
+      path.lineTo(point.dx, point.dy);
+    } else {
+      path
+        ..moveTo(point.dx, point.dy)
+        // A zero-length subpath is not reliably capped, and a pointer that
+        // goes down and stops still owes the finger a dot.
+        ..lineTo(point.dx + 0.01, point.dy);
+      _drawing = true;
+    }
+    _any = true;
+
     final minX = ((point.dx - brush - bounds.left) / cell).floor();
     final maxX = ((point.dx + brush - bounds.left) / cell).ceil();
     final minY = ((point.dy - brush - bounds.top) / cell).floor();
@@ -671,12 +826,16 @@ class _WipeMask {
         final fall = 1 - (d / brush);
         final i = y * cols + x;
         values[i] = math.min(1, values[i] + fall * fall * 1.6);
-        if (x < dirtyMinX) dirtyMinX = x;
-        if (x > dirtyMaxX) dirtyMaxX = x;
-        if (y < dirtyMinY) dirtyMinY = y;
-        if (y > dirtyMaxY) dirtyMaxY = y;
       }
     }
+  }
+
+  /// Back to full dust, after a partial wipe has healed.
+  void reset() {
+    values.fillRange(0, values.length, 0);
+    path.reset();
+    _drawing = false;
+    _any = false;
   }
 
   bool isCleared(Offset point) {
@@ -696,12 +855,12 @@ class _WipeMask {
   }
 }
 
-/// Paints the veil: the plate, the dust over it, and the wipe holes punched
-/// through both.
+/// Paints the veil: the plate, the dust over it, and every hole punched
+/// through both — the wipe's brush strokes and the reveal's wavefront.
 ///
 /// Every per-frame value arrives through a getter closure and the whole thing
 /// is scheduled by `repaint:`, so nothing above this rebuilds for an
-/// animation frame or a pan event.
+/// animation frame, a pan event or a fingertip moving.
 class _SpoilerDustPainter extends CustomPainter {
   _SpoilerDustPainter({
     required Listenable repaint,
@@ -709,7 +868,9 @@ class _SpoilerDustPainter extends CustomPainter {
     required this.fieldsOf,
     required this.maskOf,
     required this.phaseOf,
-    required this.dissolveOf,
+    required this.revealOf,
+    required this.healOf,
+    required this.touchOf,
     required this.originOf,
     required this.cover,
     required this.dust,
@@ -720,42 +881,78 @@ class _SpoilerDustPainter extends CustomPainter {
   final List<_DustField> Function() fieldsOf;
   final _WipeMask? Function() maskOf;
   final double Function() phaseOf;
-  final double Function() dissolveOf;
+  final double Function() revealOf;
+  final double Function() healOf;
+  final Offset? Function() touchOf;
   final Offset Function() originOf;
   final Color cover;
   final Color dust;
   final bool calm;
 
+  /// How far past the furthest corner the wavefront travels, so the last mote
+  /// is well clear before the animation ends.
+  static const double _waveOvershoot = 46;
+
+  /// Room around the overlay's own box for everything that paints outside it:
+  /// the plate's outset, roaming motes, and the wipe stroke's blur.
+  static const double _layerSlack = 28;
+
   @override
   void paint(Canvas canvas, Size size) {
     final rects = rectsOf();
     if (rects.isEmpty) return;
-    final dissolve = dissolveOf();
-    if (dissolve >= 1) return;
+    final reveal = revealOf();
+    if (reveal >= 1) return;
 
     final mask = maskOf();
-    final holed = mask != null && !mask.clean;
+    final heal = healOf();
+    final wiped = mask != null && !mask.clean && heal < 1;
+    final origin = originOf();
+
+    // The wavefront's radius in pixels. Eased so it leaves fast and settles,
+    // which is what makes the clearing feel like it was thrown outward rather
+    // than inflated.
+    var waveR = 0.0;
+    if (reveal > 0) {
+      var far = 0.0;
+      for (final r in rects) {
+        for (final c in [r.topLeft, r.topRight, r.bottomLeft, r.bottomRight]) {
+          far = math.max(far, (c - origin).distance);
+        }
+      }
+      waveR = Curves.easeOutCubic.transform(reveal) * (far + _waveOvershoot);
+    }
 
     // The offscreen exists only so `dstOut` can erase this painter's own
-    // pixels without touching the text underneath. Untouched veils — almost
-    // all of them, almost all of the time — skip it entirely; the old painter
-    // allocated one every frame forever.
-    if (holed) canvas.saveLayer(Offset.zero & size, Paint());
+    // pixels without touching the text underneath. An untouched, unrevealed
+    // veil — almost all of them, almost all of the time — skips it entirely.
+    //
+    // The bounds are the overlay's box GROWN, and that is load-bearing rather
+    // than defensive: saveLayer clips to them, the plate is outset past the
+    // paragraph so it covers the glyphs' antialiasing, and clipping that
+    // outset away leaves a hairline of legible text around the whole veil —
+    // visible only while a wipe or reveal is in flight, which is exactly when
+    // nobody is looking for a rendering bug. Motes roam outside too, and the
+    // wipe's blur spreads further still.
+    final holed = wiped || reveal > 0;
+    if (holed) {
+      canvas.saveLayer((Offset.zero & size).inflate(_layerSlack), Paint());
+    }
 
-    // 1. The plate. Fully opaque, and the opacity IS the concealment: with
-    //    the plate now the bubble's own colour rather than a bar of ink,
-    //    there is nothing to gain from the 4% that used to leak through.
-    //    Fading it faster than the dust lets the words surface first.
-    final plateAlpha =
-        1 - Curves.easeIn.transform((dissolve / 0.55).clamp(0, 1));
-    if (plateAlpha > 0.004) {
-      final fill = Paint()..color = cover.withValues(alpha: plateAlpha);
-      for (final r in rects) {
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(r, const Radius.circular(4)),
-          fill,
-        );
-      }
+    // 1. The plate. Opaque, and exactly the bubble's own colour, so there is
+    //    no rectangle to see — only an absence of words. It is never faded:
+    //    every pixel of it leaves through a hole, which is what keeps the
+    //    reveal a wavefront instead of a dissolve.
+    //
+    //    Square, not rounded. A radius is invisible on a plate that matches
+    //    its bubble, but it is NOT free: consecutive line rects stack, and
+    //    rounding leaves an uncovered notch at each seam where the corners
+    //    curve away from each other — a row of little nicks of text showing
+    //    through, which is precisely the corner the flat plate exists to
+    //    avoid. Square rects tile exactly.
+    final fill = Paint()..color = cover;
+    for (final r in rects) {
+      canvas.drawRect(r, fill);
     }
 
     // 2. The dust. One draw call per tier per line — thousands of motes for
@@ -763,54 +960,78 @@ class _SpoilerDustPainter extends CustomPainter {
     //    the static plate is the whole effect there.
     if (!calm) {
       final phase = phaseOf();
-      final origin = originOf();
-      final fade = math.pow(1 - dissolve, 1.6).toDouble();
+      final touch = touchOf();
       final mote = Paint()..strokeCap = StrokeCap.round;
       for (final field in fieldsOf()) {
-        field.update(phase, dissolve, origin);
+        field.update(
+          phase: phase,
+          touch: touch,
+          waveOrigin: origin,
+          wave: waveR,
+          repelRadius: _SpoilerOverlayState._repelRadius,
+        );
         for (final tier in field.tiers) {
           final twinkle = 0.78 +
               0.22 *
-                  math.sin(2 *
-                      math.pi *
-                      (phase * tier.cycles + tier.offset));
-          final alpha = (tier.baseAlpha * twinkle * fade).clamp(0.0, 1.0);
-          if (alpha <= 0.004) continue;
+                  math.sin(
+                      2 * math.pi * (phase * tier.cycles + tier.offset));
+          final alpha = (tier.baseAlpha * twinkle).clamp(0.0, 1.0);
           mote
             ..color = dust.withValues(alpha: alpha)
-            ..strokeWidth = tier.size * (1 + 0.5 * dissolve);
+            ..strokeWidth = tier.size;
           canvas.drawRawPoints(PointMode.points, tier.xy, mote);
         }
       }
     }
 
-    // 3. The holes. Each cleared cell erases this layer's pixels by its own
-    //    alpha, so the reveal has the brush's feathered edge.
+    if (!holed) return;
+
+    // 3. The holes. `dstOut` removes what is already in the layer, so running
+    //    it after the dust takes plate and motes together. Motes drawn after
+    //    would float over text the reader has already uncovered.
     //
-    //    Order matters and is not cosmetic: `dstOut` removes what is already
-    //    in the layer, so running it AFTER the dust deletes plate and motes
-    //    together. Motes drawn after the holes would float over text the user
-    //    has already uncovered.
-    if (holed) {
-      final hole = Paint()..blendMode = BlendMode.dstOut;
-      for (var y = mask.dirtyMinY; y <= mask.dirtyMaxY; y++) {
-        for (var x = mask.dirtyMinX; x <= mask.dirtyMaxX; x++) {
-          final v = mask.values[y * mask.cols + x];
-          if (v <= 0.01) continue;
-          hole.color = Color.fromRGBO(0, 0, 0, math.min(1, v));
-          canvas.drawRect(
-            Rect.fromLTWH(
-              mask.bounds.left + x * _WipeMask.cell,
-              mask.bounds.top + y * _WipeMask.cell,
-              _WipeMask.cell + 0.5,
-              _WipeMask.cell + 0.5,
-            ),
-            hole,
-          );
-        }
-      }
-      canvas.restore();
+    //    The wipe's stroke first — one blurred path, so the hole has a
+    //    fingertip's soft edge and no trace of the bookkeeping grid. Faded
+    //    out as a whole while a partial reveal heals.
+    if (wiped) {
+      canvas.drawPath(
+        mask.path,
+        Paint()
+          ..blendMode = BlendMode.dstOut
+          ..color = Color.fromRGBO(0, 0, 0, 1 - heal)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _WipeMask.strokeWidth
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..maskFilter = const MaskFilter.blur(
+            BlurStyle.normal,
+            _WipeMask.strokeBlur,
+          ),
+      );
     }
+
+    // 4. The reveal, as one expanding disc from wherever the finger was, with
+    //    a soft rim so the words fade in at its edge rather than snapping.
+    //    Running it in reverse closes the dust back over them.
+    if (waveR > 0) {
+      const rim = 0.72;
+      canvas.drawCircle(
+        origin,
+        waveR,
+        Paint()
+          ..blendMode = BlendMode.dstOut
+          ..shader = RadialGradient(
+            colors: const [
+              Color(0xFF000000),
+              Color(0xFF000000),
+              Color(0x00000000),
+            ],
+            stops: const [0, rim, 1],
+          ).createShader(Rect.fromCircle(center: origin, radius: waveR)),
+      );
+    }
+
+    canvas.restore();
   }
 
   /// Everything that changes per frame is scheduled by `repaint:`; this only

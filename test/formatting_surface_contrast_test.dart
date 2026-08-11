@@ -74,14 +74,13 @@ void main() {
         final plate = theme.spoilerCover(isMine: isMine);
         final dust = theme.spoilerDust(isMine: isMine);
 
-        // The whole thesis of the redesign: the plate is the BUBBLE, not a bar
-        // of ink. A high ratio here means someone reinstated the white slab.
+        // The whole thesis of the redesign: the plate IS the bubble. Not
+        // nearly — exactly, or its corners show as a box drawn over the words.
         expect(
-          contrast(plate, bubble),
-          lessThan(1.35),
-          reason: 'spoiler plate ${hex(plate)} on bubble ${hex(bubble)} — a '
-              'plate that contrasts with its own bubble is a redaction bar, '
-              'which is what this replaced',
+          plate,
+          bubble,
+          reason: 'spoiler plate ${hex(plate)} must equal bubble ${hex(bubble)}'
+              ' exactly; anything else is a rectangle the reader can see',
         );
         expect(
           contrast(dust, plate),

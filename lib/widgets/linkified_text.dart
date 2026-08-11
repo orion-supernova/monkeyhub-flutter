@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../data/spoiler_store.dart';
 import '../models/mention.dart';
 import '../models/message_formatting.dart';
 import '../services/link_preview_service.dart';
@@ -250,13 +249,17 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     }
     if (widget.trailing != null) spans.add(widget.trailing!);
 
-    // A veil goes up whenever unrevealed spoiler runs exist. The paragraph
-    // still renders the real text underneath — layout must be true so the
-    // bubble is the right size and the wipe uncovers words that were always
-    // exactly there; the overlay's opaque plate is the concealment.
+    // The overlay mounts whenever spoiler runs exist, revealed or not, and
+    // owns the whole veiled/open cycle itself — because a revealed spoiler
+    // heals back to dust after a hold, and a widget that had been unmounted
+    // on reveal would have nothing left to do the healing. It paints nothing
+    // and runs no ticker while the words are simply readable.
+    //
+    // The paragraph renders the real text underneath either way: layout must
+    // be true so the bubble is the right size and the reveal uncovers words
+    // that were always exactly there.
     final contextId = widget.spoilerContextId;
-    final veiled = fold.spoilerRanges.isNotEmpty &&
-        !(contextId != null && SpoilerStore.instance.isRevealed(contextId));
+    final veiled = fold.spoilerRanges.isNotEmpty;
     final chipped =
         widget.codeBackground != null && fold.codeRanges.isNotEmpty;
 
@@ -296,9 +299,6 @@ class _LinkifiedTextState extends State<LinkifiedText> {
                   widget.spoilerCover ??
                   widget.style.color ??
                   Colors.black,
-              onRevealed: () {
-                if (mounted) setState(() {});
-              },
             ),
           ),
       ],

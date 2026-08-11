@@ -279,15 +279,6 @@ Color _nudgeAlong(
   return result;
 }
 
-/// [_nudgeAlong] down whichever side is cheaper — for a lone colour with no
-/// sibling to stay consistent with.
-Color _nudge(Color base, {required double target, required double maxAlpha}) =>
-    _nudgeAlong(
-      base,
-      _cheaperPole(base, target: target, maxAlpha: maxAlpha),
-      target: target,
-      maxAlpha: maxAlpha,
-    );
 
 /// Test seam for the contrast floors in [FormattingSurface].
 @visibleForTesting
@@ -409,18 +400,22 @@ extension FormattingSurface on AppTheme {
   /// glowing white slab in a dark transcript — the single brightest object on
   /// the screen, drawing the eye to the one thing the sender asked to hide.
   ///
-  /// It is now a barely-there step off [bubbleFill] (~1.12:1) — enough to say
-  /// "this patch is blank", not enough to shout — with [spoilerDust] carrying
-  /// the whole read. That is what Telegram and iMessage do, and the inversion
-  /// is the entire fix. Do not reinstate an ink-coloured bar without looking
-  /// at one on Midnight first.
+  /// It is now EXACTLY [bubbleFill], with [spoilerDust] carrying the whole
+  /// read. Exactly, not nearly: a plate even 1.12:1 off its bubble still reads
+  /// as a rectangle with corners sitting inside the message, and a spoiler
+  /// should look like a stretch of bubble where words should be — not like a
+  /// box drawn over them. Matching the fill also means the plate's shape,
+  /// radius and edges are all unobservable, which is why the veil can stay a
+  /// plain rounded rect and still have nothing visible to give it away.
+  ///
+  /// Do not reinstate a contrasting plate, and do not reinstate an
+  /// ink-coloured one without looking at it on Midnight first.
   ///
   /// [onMedia] is for captions, where the veil sits on a photograph instead of
-  /// a bubble: no palette colour is the ground there, so a fixed neutral is
-  /// the honest answer.
-  Color spoilerCover({required bool isMine, bool onMedia = false}) => onMedia
-      ? const Color(0xFF16181C)
-      : _nudge(bubbleFill(isMine: isMine), target: 1.12, maxAlpha: 0.12);
+  /// a bubble: nothing can match that ground, so a fixed neutral is the honest
+  /// answer.
+  Color spoilerCover({required bool isMine, bool onMedia = false}) =>
+      onMedia ? const Color(0xFF16181C) : bubbleFill(isMine: isMine);
 
   /// The ink of the spoiler's dust motes — the layer that actually conceals.
   ///
