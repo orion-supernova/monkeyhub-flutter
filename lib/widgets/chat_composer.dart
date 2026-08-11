@@ -199,8 +199,11 @@ class ChatComposerClassic extends StatelessWidget {
                     // The native toolbar plus the FORMAT entry — mirrored in
                     // the liquid variant below; the two are intentionally
                     // duplicated widgets and must be kept in step by hand.
-                    contextMenuBuilder: (ctx, state) =>
-                        buildComposerContextMenu(ctx, state, controller),
+                    // Keep this function identity stable. EditableText
+                    // recreates its selection overlay when this callback
+                    // changes; an inline closure here made the handles and
+                    // toolbar flicker whenever the room rebuilt.
+                    contextMenuBuilder: buildComposerContextMenu,
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
@@ -370,8 +373,9 @@ class ChatComposerLiquid extends StatelessWidget {
                     maxLines: 5,
                     // Kept in step with the classic variant above by hand —
                     // see the note there.
-                    contextMenuBuilder: (ctx, state) =>
-                        buildComposerContextMenu(ctx, state, controller),
+                    // See the classic composer: the stable callback prevents
+                    // selection-overlay churn during ordinary room rebuilds.
+                    contextMenuBuilder: buildComposerContextMenu,
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,

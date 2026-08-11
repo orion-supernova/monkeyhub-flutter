@@ -21,8 +21,8 @@ import 'mention_text_controller.dart';
 Widget buildComposerContextMenu(
   BuildContext context,
   EditableTextState state,
-  TextEditingController controller,
 ) {
+  final controller = state.widget.controller;
   final c = controller;
   if (c is! MentionTextController) {
     return AdaptiveTextSelectionToolbar.editableText(editableTextState: state);
