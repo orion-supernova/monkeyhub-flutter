@@ -47,6 +47,17 @@ List<List<Rect>> paragraphRectsFor({
 
   Offset toLocal(Offset o) => host.globalToLocal(p.localToGlobal(o));
 
+  // A selection box that ends at a soft wrap includes the space the line
+  // broke on, and that space is laid out PAST the paragraph's own width — a
+  // 392px paragraph hands back boxes ending at 408. Painted as-is, the veil
+  // runs out through the bubble's padding to its edge, which reads as a bar
+  // across the bubble rather than a patch over the words. Clamp before
+  // coalescing, so the caller's outset still applies on top.
+  final bounds = Rect.fromPoints(
+    toLocal(Offset.zero),
+    toLocal(Offset(p.size.width, p.size.height)),
+  );
+
   final out = <List<Rect>>[];
   for (final range in ranges) {
     final raw = <Rect>[];
@@ -59,8 +70,8 @@ List<List<Rect>> paragraphRectsFor({
       boxHeightStyle: BoxHeightStyle.max,
     )) {
       final r = box.toRect();
-      final mapped =
-          Rect.fromPoints(toLocal(r.topLeft), toLocal(r.bottomRight));
+      final mapped = Rect.fromPoints(toLocal(r.topLeft), toLocal(r.bottomRight))
+          .intersect(bounds);
       if (mapped.width <= 0 || mapped.height <= 0) continue;
       raw.add(mapped);
     }

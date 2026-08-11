@@ -141,6 +141,34 @@ void main() {
     expect(grown.single.single.height, closeTo(plain.single.single.height + 2, 0.01));
   });
 
+  testWidgets('a wrapped range never reaches past the paragraph',
+      (tester) async {
+    // A selection box that ends at a soft wrap includes the space the line
+    // broke on, and that space is laid out PAST the paragraph's width: a
+    // 392px paragraph handed back boxes ending at 408. Unclamped, the spoiler
+    // plate ran out through the bubble's padding to its edge and read as a bar
+    // across the bubble rather than a patch over the words.
+    const width = 200.0;
+    final out = await measure(
+      tester,
+      width: width,
+      span: const TextSpan(
+        text: 'several words that must wrap more than once here',
+        style: style,
+      ),
+      ranges: const [(start: 0, end: 48)],
+    );
+
+    expect(out.single.length, greaterThanOrEqualTo(2));
+    for (final r in out.single) {
+      expect(
+        r.right,
+        lessThanOrEqualTo(width + 0.01),
+        reason: 'rect $r overflows a ${width}px paragraph',
+      );
+    }
+  });
+
   testWidgets('a positive inset that would invert a rect drops it',
       (tester) async {
     final out = await measure(
