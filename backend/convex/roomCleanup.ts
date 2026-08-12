@@ -12,6 +12,7 @@
  */
 
 import { deleteStored, releaseMessageBlobs } from "./files";
+import { purgeScheduledForRoom } from "./scheduledMessages";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -73,6 +74,12 @@ async function wipeRoomContents(ctx: any, roomId: any) {
     .withIndex("by_room_user", (q: any) => q.eq("roomId", roomId))
     .collect();
   for (const t of typing) await ctx.db.delete(t._id);
+  // Messages staged for a room that is about to stop existing — every member's,
+  // not just the caller's. Left behind, each would wake up on its own schedule,
+  // fail `guardOutgoing` against a room with no memberships, and settle as a
+  // permanent error in its author's list for a conversation they can no longer
+  // open. Their scheduler jobs go too; see `purgeScheduledForRoom`.
+  await purgeScheduledForRoom(ctx, roomId);
   // Nothing to clean up for notifications: there is no server-side record of
   // one. Any banner still on a device for this room is already moot, and the
   // badge corrects on the recipient's next push or foreground.

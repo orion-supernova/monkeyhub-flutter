@@ -6257,4 +6257,170 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get cameraScreenVideoFailedSnack =>
       'Impossible d\'enregistrer cette vidéo.';
+
+  @override
+  String get scheduleSheetTitle => 'PROGRAMMER LE MESSAGE';
+
+  @override
+  String get scheduleSheetSubtitle =>
+      'Écrivez-le maintenant. Il partira quand vous voudrez.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'QUAND';
+
+  @override
+  String get schedulePresetInAnHour => 'Dans 1 heure';
+
+  @override
+  String get schedulePresetInEightHours => 'Dans 8 heures';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Demain matin';
+
+  @override
+  String get schedulePresetThisMorning => 'Ce matin';
+
+  @override
+  String get schedulePresetInAWeek => 'Dans 1 semaine';
+
+  @override
+  String get scheduleSheetCustomChip => 'Choisir une date';
+
+  @override
+  String get scheduleSheetConfirmButton => 'PROGRAMMER';
+
+  @override
+  String get scheduleSheetSaveButton => 'ENREGISTRER';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Envoi $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'aujourd’hui à $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'demain à $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return 'le $date à $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'CHOISIR LA DATE ET L’HEURE';
+
+  @override
+  String get scheduleTimePickerBack => 'Choix rapides';
+
+  @override
+  String get scheduleTimePickerToday => 'Aujourd’hui';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Demain';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count PROGRAMMÉS',
+      one: '1 PROGRAMMÉ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages en attente d’envoi. Touchez pour les voir.',
+      one: '1 message en attente d’envoi. Touchez pour le voir.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'À VÉRIFIER';
+
+  @override
+  String get scheduledListTitle => 'PROGRAMMÉS';
+
+  @override
+  String get scheduledListSubtitle => 'Vous seul les voyez jusqu’à leur envoi.';
+
+  @override
+  String get scheduledListEmpty => 'Rien en attente d’envoi ici.';
+
+  @override
+  String get scheduledListSendNow => 'Envoyer maintenant';
+
+  @override
+  String get scheduledListChangeTime => 'Changer l’heure';
+
+  @override
+  String get scheduledListEdit => 'Modifier le texte';
+
+  @override
+  String get scheduledListDelete => 'Supprimer';
+
+  @override
+  String get scheduledListSending => 'Envoi…';
+
+  @override
+  String get scheduledListFailedTitle => 'Envoi impossible';
+
+  @override
+  String get scheduledListRetry => 'Réessayer';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Choisissez une heure comprise entre deux minutes et un an à partir de maintenant.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Trop de messages en attente ici. Envoyez-en ou supprimez-en d’abord.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'Les messages de cette conversation s’effacent d’eux-mêmes : impossible de les programmer.';
+
+  @override
+  String get scheduleErrorNotMember =>
+      'Vous ne faites plus partie de cette conversation.';
+
+  @override
+  String get scheduleErrorBlocked =>
+      'Vous devez d’abord débloquer cette personne.';
+
+  @override
+  String get scheduleErrorGeneric => 'Ça n’a pas marché. Réessayez.';
+
+  @override
+  String get scheduleEditTitle => 'MODIFIER LE MESSAGE';
+
+  @override
+  String get composerScheduleAction => 'Programmer ce message';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages en attente d’envoi',
+      one: '1 message en attente d’envoi',
+    );
+    return '$_temp0';
+  }
 }

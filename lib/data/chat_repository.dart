@@ -19,6 +19,7 @@ import '../models/pending_upload.dart';
 import '../models/room_capabilities.dart';
 import '../models/room_mute.dart';
 import '../models/room_pin.dart';
+import '../models/scheduled_message.dart';
 import '../push/push_manager.dart';
 import '../services/live_location_permission.dart';
 import '../services/live_location_platform.dart';
@@ -237,6 +238,7 @@ class ChatRepository extends ChangeNotifier {
   Subscription? _readStateSub;
   Subscription? _pinsSub;
   Subscription? _bookmarksSub;
+  Subscription? _scheduledSub;
 
   /// Pinned messages, keyed by room.
   ///
@@ -254,6 +256,12 @@ class ChatRepository extends ChangeNotifier {
   /// menu. [detach] still clears it, because the next account's rooms are not
   /// this one's.
   final Map<String, List<MessageBookmark>> _bookmarks = {};
+
+  /// This viewer's queued messages, keyed by room. Room-keyed for the same
+  /// reason [_pins] is, and holding only the signed-in user's rows for the same
+  /// reason [_bookmarks] does — the query is keyed by (room, author), and a
+  /// scheduled message is private to its author until it sends.
+  final Map<String, List<ScheduledMessage>> _scheduled = {};
   Timer? _typingHeartbeat;
   bool _typingActive = false;
 
@@ -614,6 +622,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _scheduledSub?.cancel();
     _typingHeartbeat?.cancel();
     _roomsSub = null;
     _friendsSub = null;
@@ -625,6 +634,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _scheduledSub = null;
     _typingHeartbeat = null;
     _activeRoomId = null;
     _openOwner = null;
@@ -642,6 +652,10 @@ class ChatRepository extends ChangeNotifier {
     // And these are the previous account's PRIVATE room state, so if anything
     // the case for dropping them is stronger.
     _bookmarks.clear();
+    // Same argument again, and one step further: these are messages the
+    // departing account has not sent yet. Leaving them cached would show the
+    // next person on this device a pill counting somebody else's unsent words.
+    _scheduled.clear();
     // Room ids are per-account, so a stale entry could only ever suppress a
     // delivery report the next account genuinely owed. The pending timer has to
     // go with it: it closes over the departing user's id.
@@ -849,6 +863,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _scheduledSub?.cancel();
     // Nulled immediately, not just reassigned at the end: this open can now
     // bail at any of the `gen` checks below, and [closeRoom] would otherwise
     // find and re-cancel a handle that is already dead.
@@ -857,6 +872,7 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _scheduledSub = null;
     // Dropped here rather than beside the new subscription below: several
     // awaits separate the two, and until then the old room would keep serving
     // whoever was typing in it when we left.
@@ -997,6 +1013,40 @@ class ChatRepository extends ChangeNotifier {
       _bookmarksSub = bookmarksSub;
     }
 
+    // This viewer's queued messages for this room. Gated on `me` for the same
+    // reason the bookmarks above are: the server's `userId` is required, and a
+    // scheduled message is private to its author, so there is nothing to
+    // subscribe to for a reader who is not one.
+    //
+    // Room-scoped rather than account-wide on purpose. The pill and the list
+    // only ever ask about the room on screen, and a whole-account subscription
+    // would re-fire this room's UI whenever anything was queued in any other.
+    if (me != null) {
+      final scheduledSub = await cv.subscribe(
+        'scheduledMessages:listForRoom',
+        {'roomId': roomId, 'userId': me},
+        onData: (data) {
+          final list = (data as List?) ?? const [];
+          final parsed = list
+              .whereType<Map>()
+              .map((e) => ScheduledMessage.fromJson(e.cast<String, dynamic>()))
+              .toList()
+            // The index already returns these in `sendAt` order, but the sort
+            // is what keeps the list stable after an optimistic local insert
+            // (see [scheduleText]) that has not been echoed by the server yet.
+            ..sort((a, b) => a.sendAt.compareTo(b.sendAt));
+          _scheduled[roomId] = parsed;
+          notifyListeners();
+        },
+        onError: (err) => debugPrint('scheduled sub error: $err'),
+      );
+      if (gen != _openGen) {
+        scheduledSub.cancel();
+        return;
+      }
+      _scheduledSub = scheduledSub;
+    }
+
     if (me != null) {
       final readStateSub = await cv.subscribe(
         'messages:getReadState',
@@ -1100,11 +1150,13 @@ class ChatRepository extends ChangeNotifier {
     _readStateSub?.cancel();
     _pinsSub?.cancel();
     _bookmarksSub?.cancel();
+    _scheduledSub?.cancel();
     _messagesSub = null;
     _activeTypingSub = null;
     _readStateSub = null;
     _pinsSub = null;
     _bookmarksSub = null;
+    _scheduledSub = null;
     _activeRoomId = null;
     // Hand the room back to the global stream's name-only entry.
     _openTypingRoomId = null;
@@ -2613,6 +2665,181 @@ class ChatRepository extends ChangeNotifier {
     try {
       await api.unpinMessage(messageId: messageId, userId: id);
     } catch (_) {/* swallow — live subscription will reconcile */}
+  }
+
+  // ───────────── scheduled messages ─────────────
+
+  /// This viewer's queued messages for [roomId], soonest first. Empty until the
+  /// subscription lands, and offline.
+  ///
+  /// Includes rows whose release FAILED — they keep their place in the order,
+  /// because the user last saw them at that position and a failure moving them
+  /// would read as a second thing having happened. Callers that want only the
+  /// live ones filter on [ScheduledMessage.pending]; [pendingScheduledCount]
+  /// is the one that matters for the pill.
+  List<ScheduledMessage> scheduledFor(String roomId) =>
+      _scheduled[roomId] ?? const [];
+
+  /// How many messages are still waiting to go out in [roomId].
+  ///
+  /// What the composer's badge and the pill both count, and deliberately NOT
+  /// `scheduledFor(...).length`: a failed row is something to deal with, not
+  /// something that is going to be sent, and counting it would make the pill
+  /// promise a delivery that is not coming.
+  int pendingScheduledCount(String roomId) =>
+      scheduledFor(roomId).where((s) => s.pending).length;
+
+  /// Whether any queued message in [roomId] needs the sender's attention.
+  bool hasFailedScheduled(String roomId) =>
+      scheduledFor(roomId).any((s) => s.hasFailed);
+
+  /// Queues [text] for [sendAt] (absolute) or [delayMs] (a length). Returns
+  /// null on success, or an error code the caller must surface.
+  ///
+  /// Follows [pinMessage]'s report-don't-swallow contract rather than
+  /// [unpinMessage]'s, and for a sharper version of the same reason: every way
+  /// this fails is a refusal the user has to see, and the whole point of the
+  /// feature is that nothing happens now — so a silently dropped schedule looks
+  /// exactly like a successful one until the day it doesn't arrive.
+  ///
+  /// The child-gate codes are passed through unwrapped so the room screen can
+  /// route them into `showApprovalGate` the way a live send's refusal already
+  /// goes (see `_RoomScreenState._handleSendGate`).
+  Future<String?> scheduleText(
+    String roomId,
+    String text, {
+    int? delayMs,
+    int? sendAt,
+    String? replyToId,
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+  }) async {
+    final id = _userId;
+    if (id == null) return 'SCHEDULE_FAILED';
+    try {
+      await api.scheduleMessage(
+        roomId: roomId,
+        userId: id,
+        content: text,
+        delayMs: delayMs,
+        sendAt: sendAt,
+        replyToId: replyToId,
+        mentionedUserIds: [for (final m in mentions) m.userId],
+        mentionsEveryone: mentionsEveryone,
+        formatting: formatting,
+        // The local id shape `_buildOptimistic` already uses, for the same
+        // purpose: one key that survives every retry of this one message.
+        clientId: 'sch_${DateTime.now().microsecondsSinceEpoch}',
+      );
+      return null;
+    } catch (e) {
+      return _scheduleErrorCode(e);
+    }
+  }
+
+  /// Moves a queued message to a new time, or retries a failed one.
+  Future<String?> rescheduleMessage(
+    String id, {
+    int? delayMs,
+    int? sendAt,
+  }) async {
+    final me = _userId;
+    if (me == null) return 'SCHEDULE_FAILED';
+    try {
+      await api.rescheduleMessage(
+        id: id,
+        userId: me,
+        delayMs: delayMs,
+        sendAt: sendAt,
+      );
+      return null;
+    } catch (e) {
+      return _scheduleErrorCode(e);
+    }
+  }
+
+  /// Rewrites a queued message's text, leaving its time alone.
+  Future<String?> updateScheduledText(
+    String id,
+    String text, {
+    List<MessageMention> mentions = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+  }) async {
+    final me = _userId;
+    if (me == null) return 'SCHEDULE_FAILED';
+    try {
+      await api.updateScheduledText(
+        id: id,
+        userId: me,
+        content: text,
+        mentionedUserIds: [for (final m in mentions) m.userId],
+        mentionsEveryone: mentionsEveryone,
+        formatting: formatting,
+      );
+      return null;
+    } catch (e) {
+      return _scheduleErrorCode(e);
+    }
+  }
+
+  /// Drops a queued message.
+  ///
+  /// The one call here that swallows, [unpinMessage]-style: the row vanishing
+  /// from the live subscription is the confirmation, and a delete that failed
+  /// leaves the row visibly still there, which says so without a message.
+  Future<void> cancelScheduledMessage(String id) async {
+    final me = _userId;
+    if (me == null) return;
+    try {
+      await api.cancelScheduledMessage(id: id, userId: me);
+    } catch (_) {/* swallow — live subscription will reconcile */}
+  }
+
+  /// Sends a queued message now.
+  Future<String?> sendScheduledNow(String id) async {
+    final me = _userId;
+    if (me == null) return 'SCHEDULE_FAILED';
+    try {
+      await api.sendScheduledNow(id: id, userId: me);
+      return null;
+    } catch (e) {
+      return _scheduleErrorCode(e);
+    }
+  }
+
+  /// Narrows a thrown Convex error to the code the UI knows how to say.
+  ///
+  /// Substring matching rather than parsing, matching [pinMessage]: the wire
+  /// carries the server's `Error.message` wrapped in framing that differs by
+  /// platform, so the code is looked for inside it rather than expected to BE
+  /// it. An unrecognised failure becomes the generic code rather than leaking
+  /// a stack trace into a sheet.
+  ///
+  /// The child-gate strings deliberately pass through verbatim: the room screen
+  /// tests them with `isChildBlockedOutright` and routes them into the approval
+  /// sheet, exactly as it does for a refused live send.
+  String _scheduleErrorCode(Object e) {
+    final s = e.toString();
+    for (final code in const [
+      'SCHEDULE_OUT_OF_RANGE',
+      'SCHEDULE_NOT_IN_EPHEMERAL',
+      'TOO_MANY_SCHEDULED',
+      'SCHEDULE_EMPTY',
+      'SCHEDULE_GONE',
+      'NOT_YOURS',
+      'UNBLOCK_FIRST',
+      'NOT_A_MEMBER',
+    ]) {
+      if (s.contains(code)) return code;
+    }
+    // The two child-guard codes, returned verbatim so the caller can put them
+    // straight through `isChildBlockedOutright` — the same value a refused live
+    // send leaves in `takeChildGateError`.
+    if (s.contains(kChildNotAllowed)) return kChildNotAllowed;
+    if (s.contains(kChildApprovalRequired)) return kChildApprovalRequired;
+    return 'SCHEDULE_FAILED';
   }
 
   // ───────────── saved messages (per-reader bookmarks) ─────────────

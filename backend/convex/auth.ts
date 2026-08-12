@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { ACCOUNT_CHILD, ERR_MUST_PAIR, ERR_NOT_ALLOWED } from "./childGuard";
 import { SOCIAL_ONLY_PASSWORD_SENTINEL, ERR_USE_SOCIAL } from "./socialAuth";
 import { wipeRoomCompletely } from "./roomCleanup";
+import { purgeScheduledForUser } from "./scheduledMessages";
 import {
   ERR_DISPLAY_NAME_RESERVED,
   ERR_USERNAME_RESERVED,
@@ -482,6 +483,15 @@ async function purgeUser(ctx: any, userId: any) {
       .withIndex("by_user", byUser(userId))
       .collect(),
   );
+
+  // Messages this account had queued for later, in every room — including the
+  // rooms that survived it above, which the room pass never touched. Not merely
+  // a dangling row: each one still holds a live scheduler job that would wake up
+  // days or months from now and post in a deleted person's name.
+  //
+  // Not `deleteRows`, because these carry a job that has to be cancelled with
+  // them. See `purgeScheduledForUser`.
+  await purgeScheduledForUser(ctx, userId);
 
   // ── Social graph ─────────────────────────────────────────────────────────
   await deleteRows(

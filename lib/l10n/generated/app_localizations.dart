@@ -10582,6 +10582,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t record that video.'**
   String get cameraScreenVideoFailedSnack;
+
+  /// Title of the sheet that opens on a long press of the composer's send button, where a message is queued for later delivery.
+  ///
+  /// In en, this message translates to:
+  /// **'SCHEDULE MESSAGE'**
+  String get scheduleSheetTitle;
+
+  /// One-line explanation under the schedule sheet's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Write it now. It goes out when you say.'**
+  String get scheduleSheetSubtitle;
+
+  /// Section label above the row of one-tap delay choices in the schedule sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN'**
+  String get scheduleSheetWhenLabel;
+
+  /// Quick choice in the schedule sheet: send one hour from now.
+  ///
+  /// In en, this message translates to:
+  /// **'In 1 hour'**
+  String get schedulePresetInAnHour;
+
+  /// Quick choice in the schedule sheet: send eight hours from now.
+  ///
+  /// In en, this message translates to:
+  /// **'In 8 hours'**
+  String get schedulePresetInEightHours;
+
+  /// Quick choice in the schedule sheet: send at 9am tomorrow. Shown when the next 9am falls on the following day.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow morning'**
+  String get schedulePresetTomorrowMorning;
+
+  /// The same quick choice as schedulePresetTomorrowMorning, worded for the case where the next 9am is still today — the user is up before 9am. Never shown at the same time as the "tomorrow" wording.
+  ///
+  /// In en, this message translates to:
+  /// **'This morning'**
+  String get schedulePresetThisMorning;
+
+  /// Quick choice in the schedule sheet: send one week from now.
+  ///
+  /// In en, this message translates to:
+  /// **'In 1 week'**
+  String get schedulePresetInAWeek;
+
+  /// Choice in the schedule sheet that opens the date and time picker instead of using one of the quick delays.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a date'**
+  String get scheduleSheetCustomChip;
+
+  /// Primary button of the schedule sheet, which queues the message. Upper case in languages that have it, matching the app's other sheet buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'SCHEDULE'**
+  String get scheduleSheetConfirmButton;
+
+  /// Primary button of the schedule sheet when it was opened to change an already-queued message's time rather than to queue a new one.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE'**
+  String get scheduleSheetSaveButton;
+
+  /// Running confirmation line in the schedule sheet stating when the message will go out. {when} is one of scheduleWhenToday, scheduleWhenTomorrow or scheduleWhenDated, already assembled and already localized.
+  ///
+  /// In en, this message translates to:
+  /// **'Sends {when}.'**
+  String scheduleSendsAtSentence(String when);
+
+  /// Says a send time that falls later today. {time} is the platform-formatted clock time, which already honours the reader's 12/24-hour setting — translate only the wording around it.
+  ///
+  /// In en, this message translates to:
+  /// **'today at {time}'**
+  String scheduleWhenToday(String time);
+
+  /// Says a send time that falls tomorrow. {time} is the platform-formatted clock time.
+  ///
+  /// In en, this message translates to:
+  /// **'tomorrow at {time}'**
+  String scheduleWhenTomorrow(String time);
+
+  /// Says a send time further out than tomorrow. Both parts are already formatted by the platform in the reader's locale; translate only the wording that joins them.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} at {time}'**
+  String scheduleWhenDated(String date, String time);
+
+  /// Title shown when the schedule sheet switches from its quick choices to the full date and time picker.
+  ///
+  /// In en, this message translates to:
+  /// **'PICK A DATE & TIME'**
+  String get scheduleTimePickerTitle;
+
+  /// Button that returns from the date and time picker to the sheet's quick choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick picks'**
+  String get scheduleTimePickerBack;
+
+  /// Label on the first card of the picker's horizontal day strip, in place of a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get scheduleTimePickerToday;
+
+  /// Label on the second card of the picker's horizontal day strip, in place of a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get scheduleTimePickerTomorrow;
+
+  /// Text of the small pill above the composer telling the user this chat has messages of theirs waiting to send. Upper case in languages that have it, matching the app's other floating pills.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 SCHEDULED} other{{count} SCHEDULED}}'**
+  String scheduledPillLabel(int count);
+
+  /// Joins the pill's count to the time the next message goes out. {label} is scheduledPillLabel, already assembled and already localized; {time} is the platform-formatted clock time. The separator is the only translatable part.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} · {time}'**
+  String scheduledPillJoin(String label, String time);
+
+  /// Screen-reader description of the pill above the composer. Says what it is and what tapping does, because the visible label is abbreviated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 message waiting to send. Tap to see it.} other{{count} messages waiting to send. Tap to see them.}}'**
+  String scheduledPillSemantics(int count);
+
+  /// Replaces the time in the pill when one of the waiting messages failed to send and needs the user to do something. Short — it has to fit a pill.
+  ///
+  /// In en, this message translates to:
+  /// **'NEEDS YOU'**
+  String get scheduledPillAttention;
+
+  /// Title of the sheet listing this chat's messages that are waiting to send.
+  ///
+  /// In en, this message translates to:
+  /// **'SCHEDULED'**
+  String get scheduledListTitle;
+
+  /// Reassurance under the scheduled list's title: nobody else in the chat can see a message before it sends.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see these until they send.'**
+  String get scheduledListSubtitle;
+
+  /// Shown in place of the list when nothing is waiting to send in this chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing waiting to send here.'**
+  String get scheduledListEmpty;
+
+  /// Action on a waiting message: send it immediately instead of at its time.
+  ///
+  /// In en, this message translates to:
+  /// **'Send now'**
+  String get scheduledListSendNow;
+
+  /// Action on a waiting message: pick a different send time.
+  ///
+  /// In en, this message translates to:
+  /// **'Change time'**
+  String get scheduledListChangeTime;
+
+  /// Action on a waiting message: change its wording, leaving the send time alone.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit text'**
+  String get scheduledListEdit;
+
+  /// Action on a waiting message: drop it without ever sending it.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get scheduledListDelete;
+
+  /// Shown in place of the countdown on a message whose send time has just passed, while it is going out.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get scheduledListSending;
+
+  /// Heading on a waiting message whose send was refused — the reason follows on the next line.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t send'**
+  String get scheduledListFailedTitle;
+
+  /// Action on a message whose send was refused: try sending it again.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get scheduledListRetry;
+
+  /// Shown when the chosen send time is too close to now or further off than the one-year limit.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a time between two minutes and a year from now.'**
+  String get scheduleErrorOutOfRange;
+
+  /// Shown when the user already has as many messages queued as this chat allows.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many messages waiting here. Send or delete some first.'**
+  String get scheduleErrorTooMany;
+
+  /// Shown when the user tries to schedule a message in a chat whose messages delete themselves after a set time. Scheduling is not offered there, so this is a safety net.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages here fade on their own, so they can’t be scheduled.'**
+  String get scheduleErrorNotInEphemeral;
+
+  /// Reason a queued message could not be sent: the user has left, or been removed from, the chat since queueing it.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re not in this chat any more.'**
+  String get scheduleErrorNotMember;
+
+  /// Reason a queued message could not be sent: the user has blocked the person they queued it for. Deliberately vague about the other direction — never reveal that someone has blocked the reader.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ll need to unblock them first.'**
+  String get scheduleErrorBlocked;
+
+  /// Fallback shown when scheduling or sending a queued message failed for a reason the app has no specific sentence for.
+  ///
+  /// In en, this message translates to:
+  /// **'That didn’t work. Try again.'**
+  String get scheduleErrorGeneric;
+
+  /// Title of the sheet that edits the wording of a message already waiting to send.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT MESSAGE'**
+  String get scheduleEditTitle;
+
+  /// Screen-reader and keyboard action name for the long press on the composer's send button that opens the schedule sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule this message'**
+  String get composerScheduleAction;
+
+  /// Screen-reader description of the small clock badge on the send button, which appears when this chat has messages waiting to send.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 message waiting to send} other{{count} messages waiting to send}}'**
+  String composerScheduledBadgeSemantics(int count);
 }
 
 class _AppLocalizationsDelegate

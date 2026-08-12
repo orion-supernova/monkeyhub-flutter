@@ -73,6 +73,9 @@ import '../widgets/mention_text_controller.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reaction_details_sheet.dart';
 import '../widgets/reaction_picker_sheet.dart';
+import '../widgets/schedule_message_sheet.dart';
+import '../widgets/scheduled_list_sheet.dart';
+import '../widgets/scheduled_pill.dart';
 import '../widgets/scroll_to_latest.dart';
 import '../widgets/selection_check.dart';
 import '../widgets/typing_indicator.dart';
@@ -756,6 +759,105 @@ class _RoomScreenState extends State<RoomScreen>
     }
     _keepComposerFocus();
     _scrollToBottom();
+  }
+
+  /// Hold-Send: queue what is in the composer for later instead of sending it.
+  ///
+  /// Deliberately mirrors [_send]'s snapshot → clear → restore-on-refusal
+  /// contract rather than inventing a second one. Every reason that shape
+  /// exists applies here with more force: a scheduled send can be refused by
+  /// exactly the same child guard, and a restore that dropped the mentions
+  /// would leave a retry that reads like a tag and notifies nobody.
+  ///
+  /// An armed EDIT takes precedence and is not schedulable — editing an
+  /// existing message is a change to something already sent, and "send this
+  /// change next Tuesday" is a different feature nobody asked for. The sheet is
+  /// simply not offered while an edit is armed (see [_composerSchedule]).
+  Future<void> _scheduleSend() async {
+    final text = _composer.text.trim();
+    if (text.isEmpty) return;
+
+    // Chamber of Secrets: the hold fires and SAYS WHY rather than doing
+    // nothing. Making the gesture absent here was the first shape of this, and
+    // it was wrong in the way a dead control always is — the user holds, feels
+    // the button not respond, and learns nothing except that the app is broken.
+    // `scheduledMessages:schedule` refuses this server-side too; this is the
+    // half that explains it.
+    if (_room?.isEphemeral ?? false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).scheduleErrorNotInEphemeral),
+        ),
+      );
+      return;
+    }
+
+    final at = await showScheduleMessageSheet(context, preview: text);
+    if (at == null || !mounted) return;
+
+    final replyTarget = _replyingTo;
+    final mentions = _composer.mentions;
+    final everyone = _composer.everyone;
+    final formatting = _composer.formatting;
+    setState(() => _replyingTo = null);
+    _composer.clearMentions();
+    _composer.clearFormatting();
+    _composer.clear();
+
+    final code = await widget.repo.scheduleText(
+      widget.roomId,
+      text,
+      // An absolute instant, not a length: the sheet resolved a wall-clock
+      // intent in this device's timezone, which the server cannot re-derive.
+      // See `SchedulePreset` for why the two forms both exist.
+      sendAt: at.millisecondsSinceEpoch,
+      replyToId: replyTarget?.id,
+      mentions: mentions,
+      mentionsEveryone: everyone,
+      formatting: formatting,
+    );
+    if (code == null || !mounted) return;
+
+    // Nothing was queued — put the user back exactly where they were, the same
+    // way a refused live send does.
+    setState(() {
+      _composer.text = text;
+      _composer.restoreMentions(mentions, everyone: everyone);
+      _composer.restoreFormatting(formatting);
+      _replyingTo = replyTarget;
+    });
+    _keepComposerFocus();
+    // A child-guard refusal wants the approval flow, not a sentence — the same
+    // routing [_send] gives it.
+    if (code == kChildApprovalRequired || code == kChildNotAllowed) {
+      await _handleSendGate(code);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(scheduleErrorSentence(context, code))),
+    );
+  }
+
+  /// The hold-to-schedule callback for the composer, or null where the gesture
+  /// must not exist at all.
+  ///
+  /// Null ONLY while an edit is armed. A Chamber of Secrets room keeps the
+  /// gesture and refuses it with a sentence — see [_scheduleSend] — because a
+  /// hold that does nothing is indistinguishable from a bug, and this one is a
+  /// deliberate rule the user deserves to hear.
+  ///
+  /// An edit is different: it is a transient mode the user armed a moment ago
+  /// and can cancel, so the absent gesture reads as "not now" rather than as a
+  /// broken button.
+  VoidCallback? _composerSchedule(ChatRoom room) =>
+      _editing != null ? null : _scheduleSend;
+
+  void _openScheduledList() {
+    showScheduledListSheet(
+      context,
+      repo: widget.repo,
+      roomId: widget.roomId,
+    );
   }
 
   /// Keep the caret in the composer after an Enter-send so the user can keep
@@ -2219,11 +2321,22 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 if (_mention.isOpen)
                   MentionPicker(session: _mention, api: widget.api),
+                // Below the reply/edit cards and above the composer: those
+                // describe the message being written right now, this describes
+                // messages already written, so it belongs further from the
+                // field. Zero-height when the room has none queued.
+                if (widget.repo.scheduledFor(room.id).isNotEmpty)
+                  ScheduledPill(
+                    scheduled: widget.repo.scheduledFor(room.id),
+                    onTap: _openScheduledList,
+                  ),
                 ChatComposerClassic(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
                   onSend: _send,
+                  onSchedule: _composerSchedule(room),
+                  scheduledCount: widget.repo.pendingScheduledCount(room.id),
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
@@ -2254,7 +2367,20 @@ class _RoomScreenState extends State<RoomScreen>
     // padding too and left a gap above the composer.
     final pins = widget.repo.pinsFor(room.id);
     final topChromeH = 60.0 + (pins.isEmpty ? 0.0 : kPinnedBannerHeight);
-    const bottomChromeH = 60.0;
+    // The scheduled pill grows only the BOTTOM chrome — the exact case the
+    // split above exists for. In the classic style the composer stack sits in a
+    // real Column above an `Expanded` transcript, so a pill pushes the list and
+    // covers nothing; here the chrome FLOATS over a `Positioned.fill`
+    // transcript and this constant is the only thing holding the newest bubble
+    // clear of it. Left at 60 the pill would sit on top of the last message.
+    //
+    // The reply card and the mention picker beside it are deliberately NOT
+    // reserved: both are transient and keyboard-adjacent, and reserving them
+    // would leave a permanent gap above the composer for chrome that is usually
+    // absent. The pill is persistent, so it owns its space.
+    final scheduled = widget.repo.scheduledFor(room.id);
+    final bottomChromeH =
+        60.0 + (scheduled.isEmpty ? 0.0 : kScheduledPillHeight);
     final listPadding = EdgeInsets.fromLTRB(
       20,
       topSafe + topChromeH + 12,
@@ -2339,11 +2465,21 @@ class _RoomScreenState extends State<RoomScreen>
                   ),
                 if (_mention.isOpen)
                   MentionPicker(session: _mention, api: widget.api),
+                // Mirrors the classic column above. Unlike the reply card and
+                // the mention picker beside it, this one has its space reserved
+                // in `bottomChromeH` — see the note there.
+                if (scheduled.isNotEmpty)
+                  ScheduledPill(
+                    scheduled: scheduled,
+                    onTap: _openScheduledList,
+                  ),
                 ChatComposerLiquid(
                   controller: _composer,
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
                   onSend: _send,
+                  onSchedule: _composerSchedule(room),
+                  scheduledCount: widget.repo.pendingScheduledCount(room.id),
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,

@@ -6175,4 +6175,168 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get cameraScreenVideoFailedSnack =>
       'Det gick inte att spela in videon.';
+
+  @override
+  String get scheduleSheetTitle => 'SCHEMALÄGG MEDDELANDE';
+
+  @override
+  String get scheduleSheetSubtitle =>
+      'Skriv det nu. Det går iväg när du säger till.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'NÄR';
+
+  @override
+  String get schedulePresetInAnHour => 'Om 1 timme';
+
+  @override
+  String get schedulePresetInEightHours => 'Om 8 timmar';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'I morgon bitti';
+
+  @override
+  String get schedulePresetThisMorning => 'I morse';
+
+  @override
+  String get schedulePresetInAWeek => 'Om 1 vecka';
+
+  @override
+  String get scheduleSheetCustomChip => 'Välj datum';
+
+  @override
+  String get scheduleSheetConfirmButton => 'SCHEMALÄGG';
+
+  @override
+  String get scheduleSheetSaveButton => 'SPARA';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Skickas $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'i dag $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'i morgon $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'VÄLJ DATUM OCH TID';
+
+  @override
+  String get scheduleTimePickerBack => 'Snabbval';
+
+  @override
+  String get scheduleTimePickerToday => 'I dag';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'I morgon';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count SCHEMALAGDA',
+      one: '1 SCHEMALAGT',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count meddelanden väntar på att skickas. Tryck för att se dem.',
+      one: '1 meddelande väntar på att skickas. Tryck för att se det.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'SE HÄR';
+
+  @override
+  String get scheduledListTitle => 'SCHEMALAGDA';
+
+  @override
+  String get scheduledListSubtitle => 'Bara du ser dem tills de skickas.';
+
+  @override
+  String get scheduledListEmpty => 'Inget väntar på att skickas här.';
+
+  @override
+  String get scheduledListSendNow => 'Skicka nu';
+
+  @override
+  String get scheduledListChangeTime => 'Ändra tid';
+
+  @override
+  String get scheduledListEdit => 'Ändra texten';
+
+  @override
+  String get scheduledListDelete => 'Ta bort';
+
+  @override
+  String get scheduledListSending => 'Skickar…';
+
+  @override
+  String get scheduledListFailedTitle => 'Kunde inte skickas';
+
+  @override
+  String get scheduledListRetry => 'Försök igen';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Välj en tid mellan två minuter och ett år från nu.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'För många meddelanden väntar här. Skicka eller ta bort några först.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'Meddelanden här försvinner av sig själva, så de går inte att schemalägga.';
+
+  @override
+  String get scheduleErrorNotMember => 'Du är inte kvar i den här chatten.';
+
+  @override
+  String get scheduleErrorBlocked => 'Du behöver häva blockeringen först.';
+
+  @override
+  String get scheduleErrorGeneric => 'Det gick inte. Försök igen.';
+
+  @override
+  String get scheduleEditTitle => 'ÄNDRA MEDDELANDE';
+
+  @override
+  String get composerScheduleAction => 'Schemalägg det här meddelandet';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count meddelanden väntar på att skickas',
+      one: '1 meddelande väntar på att skickas',
+    );
+    return '$_temp0';
+  }
 }
