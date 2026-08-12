@@ -6140,4 +6140,167 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => 'Couldn\'t record that video.';
+
+  @override
+  String get scheduleSheetTitle => 'SCHEDULE MESSAGE';
+
+  @override
+  String get scheduleSheetSubtitle => 'Write it now. It goes out when you say.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'WHEN';
+
+  @override
+  String get schedulePresetInAnHour => 'In 1 hour';
+
+  @override
+  String get schedulePresetInEightHours => 'In 8 hours';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Tomorrow morning';
+
+  @override
+  String get schedulePresetThisMorning => 'This morning';
+
+  @override
+  String get schedulePresetInAWeek => 'In 1 week';
+
+  @override
+  String get scheduleSheetCustomChip => 'Pick a date';
+
+  @override
+  String get scheduleSheetConfirmButton => 'SCHEDULE';
+
+  @override
+  String get scheduleSheetSaveButton => 'SAVE';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Sends $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'today at $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'tomorrow at $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$date at $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'PICK A DATE & TIME';
+
+  @override
+  String get scheduleTimePickerBack => 'Quick picks';
+
+  @override
+  String get scheduleTimePickerToday => 'Today';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Tomorrow';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count SCHEDULED',
+      one: '1 SCHEDULED',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages waiting to send. Tap to see them.',
+      one: '1 message waiting to send. Tap to see it.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'NEEDS YOU';
+
+  @override
+  String get scheduledListTitle => 'SCHEDULED';
+
+  @override
+  String get scheduledListSubtitle => 'Only you can see these until they send.';
+
+  @override
+  String get scheduledListEmpty => 'Nothing waiting to send here.';
+
+  @override
+  String get scheduledListSendNow => 'Send now';
+
+  @override
+  String get scheduledListChangeTime => 'Change time';
+
+  @override
+  String get scheduledListEdit => 'Edit text';
+
+  @override
+  String get scheduledListDelete => 'Delete';
+
+  @override
+  String get scheduledListSending => 'Sending…';
+
+  @override
+  String get scheduledListFailedTitle => 'Couldn’t send';
+
+  @override
+  String get scheduledListRetry => 'Try again';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Pick a time between two minutes and a year from now.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Too many messages waiting here. Send or delete some first.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'Messages here fade on their own, so they can’t be scheduled.';
+
+  @override
+  String get scheduleErrorNotMember => 'You’re not in this chat any more.';
+
+  @override
+  String get scheduleErrorBlocked => 'You’ll need to unblock them first.';
+
+  @override
+  String get scheduleErrorGeneric => 'That didn’t work. Try again.';
+
+  @override
+  String get scheduleEditTitle => 'EDIT MESSAGE';
+
+  @override
+  String get composerScheduleAction => 'Schedule this message';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages waiting to send',
+      one: '1 message waiting to send',
+    );
+    return '$_temp0';
+  }
 }

@@ -1110,6 +1110,122 @@ class ChatApi {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Scheduled messages
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Queues [content] for delivery at a later time. Returns the staged row's id.
+  ///
+  /// Exactly one of [delayMs] and [sendAt] — the server refuses both and
+  /// neither. See `SchedulePreset` for which presets use which and why the two
+  /// forms are not interchangeable.
+  ///
+  /// Throws the server's own strings, which the caller is expected to map to a
+  /// sentence: `SCHEDULE_OUT_OF_RANGE`, `TOO_MANY_SCHEDULED`,
+  /// `SCHEDULE_NOT_IN_EPHEMERAL`, plus everything `guardOutgoing` can throw —
+  /// the child-gate codes especially, which reach the same sheet a live send's
+  /// refusal does.
+  Future<String> scheduleMessage({
+    required String roomId,
+    required String userId,
+    required String content,
+    int? delayMs,
+    int? sendAt,
+    String? replyToId,
+
+    /// Ids only. The server resolves each to a handle at RELEASE time, not now,
+    /// so a member who leaves the room in the meantime is dropped rather than
+    /// notified — the same rule a live send follows, applied at the moment the
+    /// message actually exists.
+    List<String> mentionedUserIds = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+
+    /// Idempotency key, so a `schedule` that times out on the wire and is
+    /// retried stages one row rather than two. Carried all the way into the
+    /// eventual `messages:send` insert.
+    required String clientId,
+  }) async {
+    final res = await _cv.mutation('scheduledMessages:schedule', {
+      'roomId': roomId,
+      'userId': userId,
+      'content': content,
+      'delayMs': ?delayMs,
+      'sendAt': ?sendAt,
+      'replyToId': ?replyToId,
+      if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+      if (mentionsEveryone) 'mentionsEveryone': true,
+      if (formatting.isNotEmpty)
+        'formatting': [for (final f in formatting) f.toJson()],
+      'clientId': clientId,
+    });
+    return res.toString();
+  }
+
+  /// Moves a queued message to a new time. Same [delayMs]/[sendAt] contract as
+  /// [scheduleMessage]. Also the retry path for a failed one — the server puts
+  /// it back in the pending bucket and clears the failure.
+  Future<void> rescheduleMessage({
+    required String id,
+    required String userId,
+    int? delayMs,
+    int? sendAt,
+  }) async {
+    await _cv.mutation('scheduledMessages:reschedule', {
+      'id': id,
+      'userId': userId,
+      'delayMs': ?delayMs,
+      'sendAt': ?sendAt,
+    });
+  }
+
+  /// Rewrites a queued message's text. Leaves its send time alone.
+  ///
+  /// The mention and formatting sets travel with the text rather than being
+  /// preserved server-side: spans are offsets into the OLD string, and mentions
+  /// name people the new words may no longer mention.
+  Future<void> updateScheduledText({
+    required String id,
+    required String userId,
+    required String content,
+    List<String> mentionedUserIds = const [],
+    bool mentionsEveryone = false,
+    List<FormattingEntity> formatting = const [],
+  }) async {
+    await _cv.mutation('scheduledMessages:updateText', {
+      'id': id,
+      'userId': userId,
+      'content': content,
+      if (mentionedUserIds.isNotEmpty) 'mentionedUserIds': mentionedUserIds,
+      if (mentionsEveryone) 'mentionsEveryone': true,
+      if (formatting.isNotEmpty)
+        'formatting': [for (final f in formatting) f.toJson()],
+    });
+  }
+
+  Future<void> cancelScheduledMessage({
+    required String id,
+    required String userId,
+  }) async {
+    await _cv.mutation('scheduledMessages:cancel', {
+      'id': id,
+      'userId': userId,
+    });
+  }
+
+  /// Sends a queued message immediately, inline — not by rescheduling it to
+  /// now. Returns the real message's id.
+  Future<String> sendScheduledNow({
+    required String id,
+    required String userId,
+  }) async {
+    final res = await _cv.mutation('scheduledMessages:sendNow', {
+      'id': id,
+      'userId': userId,
+    });
+    return res.toString();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Reactions
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -814,6 +814,102 @@ export default defineSchema({
     // The LINKS tab. Same shape, same reasoning.
     .index("by_room_link_time", ["roomId", "hasLink", "createdAt"]),
 
+  // ── Scheduled messages ────────────────────────────────────────────────────
+  //
+  // Messages the sender wrote now and asked to be delivered later. A STAGING
+  // table rather than a `visible: false` flag on `messages`, and that is the
+  // load-bearing decision: `messages:list` is a live subscription that hands
+  // every row it finds to every member of the room, and the ten-odd other read
+  // paths (`listBefore`, `listAround`, the shared-content buckets, the LINKS
+  // tab, `getReadState`, `badges.unreadForRoom`, search) each range over the
+  // same table. A hidden-row flag would have to be learned by all of them, and
+  // every one that forgot it would publish the message early — to the one
+  // person it must not reach yet.
+  //
+  // Nothing here is written into `messages` until `scheduledMessages:release`
+  // fires, at which point the row is built by the ordinary `send` core with a
+  // release-time `createdAt`. Stamping compose time instead would land the
+  // message BELOW every recipient's `lastReadAt` cursor — silently already
+  // read, and buried mid-transcript (see `badges.unreadForRoom`).
+  //
+  // Text only, on purpose. An attachment would mean a blob sitting in storage
+  // referenced by nothing `files.gcOrphanedFiles` knows how to see, for up to a
+  // year; the sweep would reclaim it and the message would send with a dead id.
+  scheduledMessages: defineTable({
+    roomId: v.id("rooms"),
+    userId: v.id("users"),
+    content: v.string(),
+    // Absolute instant, ms since epoch, ALWAYS resolved server-side —
+    // `schedule` takes either a `delayMs` (which it adds to its own clock) or a
+    // wall-clock `sendAt` it range-checks. The stored value is the single
+    // source of truth for both the scheduler job and the client's countdown.
+    sendAt: v.number(),
+    // When the user asked for it, not when it sends. Only used to order the
+    // list sheet's ties and to show "scheduled 3 days ago".
+    createdAt: v.number(),
+    // Whether this row is still waiting to be sent.
+    //
+    // UNSET rather than written `false` once it leaves the bucket, which is the
+    // `viewOnceLive` / `liveShareLive` idiom above and for exactly the same
+    // reason: Convex has no sparse indexes and orders `undefined` before every
+    // number, so `by_pending_due` can only be scanned cheaply as
+    // `q.eq("pending", true).lt("sendAt", now)`. A `false` here would keep
+    // every failed row inside the sweep's range forever.
+    //
+    // Successful releases delete the row outright, so in practice this only
+    // ever goes from `true` to absent on a row that FAILED — which is the state
+    // the list sheet renders as a retry affordance.
+    pending: v.optional(v.boolean()),
+    // The composer's context, carried verbatim so the released message is
+    // indistinguishable from one sent by hand at that moment. Re-validated at
+    // release (the parent may have been deleted, a mentioned member may have
+    // left), never trusted from here.
+    replyToId: v.optional(v.id("messages")),
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    mentionsEveryone: v.optional(v.boolean()),
+    formatting: v.optional(
+      v.array(
+        v.object({
+          start: v.number(),
+          end: v.number(),
+          type: v.string(),
+          url: v.optional(v.string()),
+        })
+      )
+    ),
+    // Idempotency key, minted at schedule time and carried into the insert.
+    // Required rather than optional: a release job that runs twice — the
+    // deployment restarted between the insert and the commit — must find its
+    // own row through `messages.by_room_user_client` and return it, exactly as
+    // a retried hand-send does. See the head of `messages:send`.
+    clientId: v.string(),
+    // The `runAt` job this row is waiting on, so `reschedule` and `cancel` can
+    // tidy it away. NOT the correctness mechanism — `release` re-reads the row
+    // and bails unless `pending` is still true AND `sendAt` still matches what
+    // the job was created for, which is what makes a lost `cancel` harmless.
+    // Stored because a one-year horizon otherwise accumulates dead jobs.
+    jobId: v.optional(v.id("_scheduled_functions")),
+    // Why the release was refused, when it was: one of `guardOutgoing`'s thrown
+    // strings (a revoked child grant, a room the sender was removed from, a DM
+    // block raised after scheduling). There is no client on the line at release
+    // time to throw at, so the reason is stored and the row is kept.
+    failedReason: v.optional(v.string()),
+    failedAt: v.optional(v.number()),
+  })
+    // The room's own list, and the only index the interactive path uses.
+    // Scoped by sender as well as room because a scheduled message is private
+    // to its author until it sends — nobody else may enumerate them.
+    .index("by_room_user_due", ["roomId", "userId", "sendAt"])
+    // The overdue repair sweep. `pending` MUST lead, for the reason spelled out
+    // on `by_viewOnce_live_deadline` above. Scanned as
+    // `q.eq("pending", true).lt("sendAt", now)`, which stops at the first row
+    // that is not yet due — so an idle deployment pays one index probe.
+    .index("by_pending_due", ["pending", "sendAt"])
+    // Account teardown, and the room teardown's per-sender pass.
+    .index("by_user", ["userId"])
+    // Room teardown: everything staged for a room that no longer exists.
+    .index("by_room", ["roomId"]),
+
   // Who has opened which view-once message. A side table rather than a
   // `readBy` array on `messages`, for the reason the roomMembers comment gives:
   // O(messages × members) fan-out is what this schema deliberately avoids. It

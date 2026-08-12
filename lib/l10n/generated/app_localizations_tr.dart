@@ -6127,4 +6127,166 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => 'Bu video kaydedilemedi.';
+
+  @override
+  String get scheduleSheetTitle => 'MESAJI ZAMANLA';
+
+  @override
+  String get scheduleSheetSubtitle =>
+      'Şimdi yaz. Sen ne zaman dersen o zaman gitsin.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'NE ZAMAN';
+
+  @override
+  String get schedulePresetInAnHour => '1 saat sonra';
+
+  @override
+  String get schedulePresetInEightHours => '8 saat sonra';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Yarın sabah';
+
+  @override
+  String get schedulePresetThisMorning => 'Bu sabah';
+
+  @override
+  String get schedulePresetInAWeek => '1 hafta sonra';
+
+  @override
+  String get scheduleSheetCustomChip => 'Tarih seç';
+
+  @override
+  String get scheduleSheetConfirmButton => 'ZAMANLA';
+
+  @override
+  String get scheduleSheetSaveButton => 'KAYDET';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return '$when gönderilecek.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'bugün saat $time’te';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'yarın saat $time’te';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$date saat $time’te';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'TARİH VE SAAT SEÇ';
+
+  @override
+  String get scheduleTimePickerBack => 'Hızlı seçenekler';
+
+  @override
+  String get scheduleTimePickerToday => 'Bugün';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Yarın';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ZAMANLANMIŞ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gönderilmeyi bekleyen $count mesaj. Görmek için dokun.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'SANA BAKIYOR';
+
+  @override
+  String get scheduledListTitle => 'ZAMANLANMIŞ';
+
+  @override
+  String get scheduledListSubtitle =>
+      'Gönderilene kadar bunları yalnızca sen görürsün.';
+
+  @override
+  String get scheduledListEmpty => 'Burada gönderilmeyi bekleyen bir şey yok.';
+
+  @override
+  String get scheduledListSendNow => 'Şimdi gönder';
+
+  @override
+  String get scheduledListChangeTime => 'Saati değiştir';
+
+  @override
+  String get scheduledListEdit => 'Metni düzenle';
+
+  @override
+  String get scheduledListDelete => 'Sil';
+
+  @override
+  String get scheduledListSending => 'Gönderiliyor…';
+
+  @override
+  String get scheduledListFailedTitle => 'Gönderilemedi';
+
+  @override
+  String get scheduledListRetry => 'Tekrar dene';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Şu andan itibaren iki dakika ile bir yıl arasında bir zaman seç.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Burada bekleyen çok fazla mesaj var. Önce birkaçını gönder ya da sil.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'Buradaki mesajlar kendiliğinden siliniyor, bu yüzden zamanlanamaz.';
+
+  @override
+  String get scheduleErrorNotMember => 'Artık bu sohbette değilsin.';
+
+  @override
+  String get scheduleErrorBlocked => 'Önce engeli kaldırman gerekiyor.';
+
+  @override
+  String get scheduleErrorGeneric => 'Olmadı. Tekrar dene.';
+
+  @override
+  String get scheduleEditTitle => 'MESAJI DÜZENLE';
+
+  @override
+  String get composerScheduleAction => 'Bu mesajı zamanla';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Gönderilmeyi bekleyen $count mesaj',
+    );
+    return '$_temp0';
+  }
 }

@@ -7031,5 +7031,229 @@
   "cameraScreenVideoFailedSnack": "Couldn't record that video.",
   "@cameraScreenVideoFailedSnack": {
     "description": "Message shown when the in-app camera's video recording could not be started or produced nothing usable."
+  },
+  "scheduleSheetTitle": "SCHEDULE MESSAGE",
+  "@scheduleSheetTitle": {
+    "description": "Title of the sheet that opens on a long press of the composer's send button, where a message is queued for later delivery."
+  },
+  "scheduleSheetSubtitle": "Write it now. It goes out when you say.",
+  "@scheduleSheetSubtitle": {
+    "description": "One-line explanation under the schedule sheet's title."
+  },
+  "scheduleSheetWhenLabel": "WHEN",
+  "@scheduleSheetWhenLabel": {
+    "description": "Section label above the row of one-tap delay choices in the schedule sheet."
+  },
+  "schedulePresetInAnHour": "In 1 hour",
+  "@schedulePresetInAnHour": {
+    "description": "Quick choice in the schedule sheet: send one hour from now."
+  },
+  "schedulePresetInEightHours": "In 8 hours",
+  "@schedulePresetInEightHours": {
+    "description": "Quick choice in the schedule sheet: send eight hours from now."
+  },
+  "schedulePresetTomorrowMorning": "Tomorrow morning",
+  "@schedulePresetTomorrowMorning": {
+    "description": "Quick choice in the schedule sheet: send at 9am tomorrow. Shown when the next 9am falls on the following day."
+  },
+  "schedulePresetThisMorning": "This morning",
+  "@schedulePresetThisMorning": {
+    "description": "The same quick choice as schedulePresetTomorrowMorning, worded for the case where the next 9am is still today — the user is up before 9am. Never shown at the same time as the \"tomorrow\" wording."
+  },
+  "schedulePresetInAWeek": "In 1 week",
+  "@schedulePresetInAWeek": {
+    "description": "Quick choice in the schedule sheet: send one week from now."
+  },
+  "scheduleSheetCustomChip": "Pick a date",
+  "@scheduleSheetCustomChip": {
+    "description": "Choice in the schedule sheet that opens the date and time picker instead of using one of the quick delays."
+  },
+  "scheduleSheetConfirmButton": "SCHEDULE",
+  "@scheduleSheetConfirmButton": {
+    "description": "Primary button of the schedule sheet, which queues the message. Upper case in languages that have it, matching the app's other sheet buttons."
+  },
+  "scheduleSheetSaveButton": "SAVE",
+  "@scheduleSheetSaveButton": {
+    "description": "Primary button of the schedule sheet when it was opened to change an already-queued message's time rather than to queue a new one."
+  },
+  "scheduleSendsAtSentence": "Sends {when}.",
+  "@scheduleSendsAtSentence": {
+    "description": "Running confirmation line in the schedule sheet stating when the message will go out. {when} is one of scheduleWhenToday, scheduleWhenTomorrow or scheduleWhenDated, already assembled and already localized.",
+    "placeholders": {
+      "when": {
+        "type": "String",
+        "description": "The formatted send time, as a phrase."
+      }
+    }
+  },
+  "scheduleWhenToday": "today at {time}",
+  "@scheduleWhenToday": {
+    "description": "Says a send time that falls later today. {time} is the platform-formatted clock time, which already honours the reader's 12/24-hour setting — translate only the wording around it.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "description": "The platform-formatted clock time."
+      }
+    }
+  },
+  "scheduleWhenTomorrow": "tomorrow at {time}",
+  "@scheduleWhenTomorrow": {
+    "description": "Says a send time that falls tomorrow. {time} is the platform-formatted clock time.",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "description": "The platform-formatted clock time."
+      }
+    }
+  },
+  "scheduleWhenDated": "{date} at {time}",
+  "@scheduleWhenDated": {
+    "description": "Says a send time further out than tomorrow. Both parts are already formatted by the platform in the reader's locale; translate only the wording that joins them.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "description": "The platform-formatted date."
+      },
+      "time": {
+        "type": "String",
+        "description": "The platform-formatted clock time."
+      }
+    }
+  },
+  "scheduleTimePickerTitle": "PICK A DATE & TIME",
+  "@scheduleTimePickerTitle": {
+    "description": "Title shown when the schedule sheet switches from its quick choices to the full date and time picker."
+  },
+  "scheduleTimePickerBack": "Quick picks",
+  "@scheduleTimePickerBack": {
+    "description": "Button that returns from the date and time picker to the sheet's quick choices."
+  },
+  "scheduleTimePickerToday": "Today",
+  "@scheduleTimePickerToday": {
+    "description": "Label on the first card of the picker's horizontal day strip, in place of a date."
+  },
+  "scheduleTimePickerTomorrow": "Tomorrow",
+  "@scheduleTimePickerTomorrow": {
+    "description": "Label on the second card of the picker's horizontal day strip, in place of a date."
+  },
+  "scheduledPillLabel": "{count, plural, one{1 SCHEDULED} other{{count} SCHEDULED}}",
+  "@scheduledPillLabel": {
+    "description": "Text of the small pill above the composer telling the user this chat has messages of theirs waiting to send. Upper case in languages that have it, matching the app's other floating pills.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many messages are waiting."
+      }
+    }
+  },
+  "scheduledPillJoin": "{label} · {time}",
+  "@scheduledPillJoin": {
+    "description": "Joins the pill's count to the time the next message goes out. {label} is scheduledPillLabel, already assembled and already localized; {time} is the platform-formatted clock time. The separator is the only translatable part.",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "description": "The already-formatted count phrase."
+      },
+      "time": {
+        "type": "String",
+        "description": "The platform-formatted clock time of the next send."
+      }
+    }
+  },
+  "scheduledPillSemantics": "{count, plural, one{1 message waiting to send. Tap to see it.} other{{count} messages waiting to send. Tap to see them.}}",
+  "@scheduledPillSemantics": {
+    "description": "Screen-reader description of the pill above the composer. Says what it is and what tapping does, because the visible label is abbreviated.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many messages are waiting."
+      }
+    }
+  },
+  "scheduledPillAttention": "NEEDS YOU",
+  "@scheduledPillAttention": {
+    "description": "Replaces the time in the pill when one of the waiting messages failed to send and needs the user to do something. Short — it has to fit a pill."
+  },
+  "scheduledListTitle": "SCHEDULED",
+  "@scheduledListTitle": {
+    "description": "Title of the sheet listing this chat's messages that are waiting to send."
+  },
+  "scheduledListSubtitle": "Only you can see these until they send.",
+  "@scheduledListSubtitle": {
+    "description": "Reassurance under the scheduled list's title: nobody else in the chat can see a message before it sends."
+  },
+  "scheduledListEmpty": "Nothing waiting to send here.",
+  "@scheduledListEmpty": {
+    "description": "Shown in place of the list when nothing is waiting to send in this chat."
+  },
+  "scheduledListSendNow": "Send now",
+  "@scheduledListSendNow": {
+    "description": "Action on a waiting message: send it immediately instead of at its time."
+  },
+  "scheduledListChangeTime": "Change time",
+  "@scheduledListChangeTime": {
+    "description": "Action on a waiting message: pick a different send time."
+  },
+  "scheduledListEdit": "Edit text",
+  "@scheduledListEdit": {
+    "description": "Action on a waiting message: change its wording, leaving the send time alone."
+  },
+  "scheduledListDelete": "Delete",
+  "@scheduledListDelete": {
+    "description": "Action on a waiting message: drop it without ever sending it."
+  },
+  "scheduledListSending": "Sending…",
+  "@scheduledListSending": {
+    "description": "Shown in place of the countdown on a message whose send time has just passed, while it is going out."
+  },
+  "scheduledListFailedTitle": "Couldn’t send",
+  "@scheduledListFailedTitle": {
+    "description": "Heading on a waiting message whose send was refused — the reason follows on the next line."
+  },
+  "scheduledListRetry": "Try again",
+  "@scheduledListRetry": {
+    "description": "Action on a message whose send was refused: try sending it again."
+  },
+  "scheduleErrorOutOfRange": "Pick a time between two minutes and a year from now.",
+  "@scheduleErrorOutOfRange": {
+    "description": "Shown when the chosen send time is too close to now or further off than the one-year limit."
+  },
+  "scheduleErrorTooMany": "Too many messages waiting here. Send or delete some first.",
+  "@scheduleErrorTooMany": {
+    "description": "Shown when the user already has as many messages queued as this chat allows."
+  },
+  "scheduleErrorNotInEphemeral": "Messages here fade on their own, so they can’t be scheduled.",
+  "@scheduleErrorNotInEphemeral": {
+    "description": "Shown when the user tries to schedule a message in a chat whose messages delete themselves after a set time. Scheduling is not offered there, so this is a safety net."
+  },
+  "scheduleErrorNotMember": "You’re not in this chat any more.",
+  "@scheduleErrorNotMember": {
+    "description": "Reason a queued message could not be sent: the user has left, or been removed from, the chat since queueing it."
+  },
+  "scheduleErrorBlocked": "You’ll need to unblock them first.",
+  "@scheduleErrorBlocked": {
+    "description": "Reason a queued message could not be sent: the user has blocked the person they queued it for. Deliberately vague about the other direction — never reveal that someone has blocked the reader."
+  },
+  "scheduleErrorGeneric": "That didn’t work. Try again.",
+  "@scheduleErrorGeneric": {
+    "description": "Fallback shown when scheduling or sending a queued message failed for a reason the app has no specific sentence for."
+  },
+  "scheduleEditTitle": "EDIT MESSAGE",
+  "@scheduleEditTitle": {
+    "description": "Title of the sheet that edits the wording of a message already waiting to send."
+  },
+  "composerScheduleAction": "Schedule this message",
+  "@composerScheduleAction": {
+    "description": "Screen-reader and keyboard action name for the long press on the composer's send button that opens the schedule sheet."
+  },
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 message waiting to send} other{{count} messages waiting to send}}",
+  "@composerScheduledBadgeSemantics": {
+    "description": "Screen-reader description of the small clock badge on the send button, which appears when this chat has messages waiting to send.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "description": "How many messages are waiting."
+      }
+    }
   }
 }

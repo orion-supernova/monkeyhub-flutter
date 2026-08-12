@@ -6231,6 +6231,170 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get cameraScreenVideoFailedSnack =>
       'Não foi possível gravar esse vídeo.';
+
+  @override
+  String get scheduleSheetTitle => 'AGENDAR MENSAGEM';
+
+  @override
+  String get scheduleSheetSubtitle => 'Escreva agora. Sai quando você disser.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'QUANDO';
+
+  @override
+  String get schedulePresetInAnHour => 'Daqui a 1 hora';
+
+  @override
+  String get schedulePresetInEightHours => 'Daqui a 8 horas';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Amanhã de manhã';
+
+  @override
+  String get schedulePresetThisMorning => 'Esta manhã';
+
+  @override
+  String get schedulePresetInAWeek => 'Daqui a 1 semana';
+
+  @override
+  String get scheduleSheetCustomChip => 'Escolher data';
+
+  @override
+  String get scheduleSheetConfirmButton => 'AGENDAR';
+
+  @override
+  String get scheduleSheetSaveButton => 'GUARDAR';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Envia $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'hoje às $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'amanhã às $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return 'a $date às $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'ESCOLHER DATA E HORA';
+
+  @override
+  String get scheduleTimePickerBack => 'Opções rápidas';
+
+  @override
+  String get scheduleTimePickerToday => 'Hoje';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Amanhã';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count AGENDADAS',
+      one: '1 AGENDADA',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens à espera de envio. Toque para as ver.',
+      one: '1 mensagem à espera de envio. Toque para a ver.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'VEJA ISTO';
+
+  @override
+  String get scheduledListTitle => 'AGENDADAS';
+
+  @override
+  String get scheduledListSubtitle => 'Só você as vê até serem enviadas.';
+
+  @override
+  String get scheduledListEmpty => 'Nada à espera de envio aqui.';
+
+  @override
+  String get scheduledListSendNow => 'Enviar agora';
+
+  @override
+  String get scheduledListChangeTime => 'Mudar a hora';
+
+  @override
+  String get scheduledListEdit => 'Editar texto';
+
+  @override
+  String get scheduledListDelete => 'Eliminar';
+
+  @override
+  String get scheduledListSending => 'A enviar…';
+
+  @override
+  String get scheduledListFailedTitle => 'Não foi possível enviar';
+
+  @override
+  String get scheduledListRetry => 'Tentar de novo';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Escolha uma hora entre dois minutos e um ano a partir de agora.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Demasiadas mensagens à espera aqui. Envie ou elimine algumas primeiro.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'As mensagens desta conversa desaparecem sozinhas, por isso não podem ser agendadas.';
+
+  @override
+  String get scheduleErrorNotMember => 'Já não está nesta conversa.';
+
+  @override
+  String get scheduleErrorBlocked =>
+      'Primeiro terá de desbloquear esta pessoa.';
+
+  @override
+  String get scheduleErrorGeneric => 'Não resultou. Tente de novo.';
+
+  @override
+  String get scheduleEditTitle => 'EDITAR MENSAGEM';
+
+  @override
+  String get composerScheduleAction => 'Agendar esta mensagem';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens à espera de envio',
+      one: '1 mensagem à espera de envio',
+    );
+    return '$_temp0';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -12455,4 +12619,170 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get cameraScreenVideoFailedSnack =>
       'Não foi possível gravar esse vídeo.';
+
+  @override
+  String get scheduleSheetTitle => 'AGENDAR MENSAGEM';
+
+  @override
+  String get scheduleSheetSubtitle => 'Escreva agora. Sai quando você disser.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'QUANDO';
+
+  @override
+  String get schedulePresetInAnHour => 'Daqui a 1 hora';
+
+  @override
+  String get schedulePresetInEightHours => 'Daqui a 8 horas';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Amanhã de manhã';
+
+  @override
+  String get schedulePresetThisMorning => 'Esta manhã';
+
+  @override
+  String get schedulePresetInAWeek => 'Daqui a 1 semana';
+
+  @override
+  String get scheduleSheetCustomChip => 'Escolher data';
+
+  @override
+  String get scheduleSheetConfirmButton => 'AGENDAR';
+
+  @override
+  String get scheduleSheetSaveButton => 'SALVAR';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Envia $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'hoje às $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'amanhã às $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return 'em $date às $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'ESCOLHER DATA E HORA';
+
+  @override
+  String get scheduleTimePickerBack => 'Opções rápidas';
+
+  @override
+  String get scheduleTimePickerToday => 'Hoje';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Amanhã';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count AGENDADAS',
+      one: '1 AGENDADA',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count mensagens esperando para serem enviadas. Toque para vê-las.',
+      one: '1 mensagem esperando para ser enviada. Toque para vê-la.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'VEJA ISTO';
+
+  @override
+  String get scheduledListTitle => 'AGENDADAS';
+
+  @override
+  String get scheduledListSubtitle =>
+      'Só você vê essas mensagens até elas serem enviadas.';
+
+  @override
+  String get scheduledListEmpty => 'Nada esperando para ser enviado aqui.';
+
+  @override
+  String get scheduledListSendNow => 'Enviar agora';
+
+  @override
+  String get scheduledListChangeTime => 'Mudar a hora';
+
+  @override
+  String get scheduledListEdit => 'Editar texto';
+
+  @override
+  String get scheduledListDelete => 'Excluir';
+
+  @override
+  String get scheduledListSending => 'Enviando…';
+
+  @override
+  String get scheduledListFailedTitle => 'Não foi possível enviar';
+
+  @override
+  String get scheduledListRetry => 'Tentar de novo';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Escolha uma hora entre dois minutos e um ano a partir de agora.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Mensagens demais esperando aqui. Envie ou exclua algumas primeiro.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'As mensagens desta conversa desaparecem sozinhas, por isso não podem ser agendadas.';
+
+  @override
+  String get scheduleErrorNotMember => 'Você não está mais nesta conversa.';
+
+  @override
+  String get scheduleErrorBlocked =>
+      'Você precisa desbloquear essa pessoa primeiro.';
+
+  @override
+  String get scheduleErrorGeneric => 'Não deu certo. Tente de novo.';
+
+  @override
+  String get scheduleEditTitle => 'EDITAR MENSAGEM';
+
+  @override
+  String get composerScheduleAction => 'Agendar esta mensagem';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens esperando para serem enviadas',
+      one: '1 mensagem esperando para ser enviada',
+    );
+    return '$_temp0';
+  }
 }

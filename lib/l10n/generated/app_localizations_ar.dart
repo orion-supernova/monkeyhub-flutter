@@ -6219,4 +6219,179 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => 'تعذّر تسجيل هذا الفيديو.';
+
+  @override
+  String get scheduleSheetTitle => 'جدولة الرسالة';
+
+  @override
+  String get scheduleSheetSubtitle =>
+      'اكتبها الآن، وتُرسَل في الوقت الذي تختاره.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'متى';
+
+  @override
+  String get schedulePresetInAnHour => 'بعد ساعة';
+
+  @override
+  String get schedulePresetInEightHours => 'بعد 8 ساعات';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'صباح الغد';
+
+  @override
+  String get schedulePresetThisMorning => 'هذا الصباح';
+
+  @override
+  String get schedulePresetInAWeek => 'بعد أسبوع';
+
+  @override
+  String get scheduleSheetCustomChip => 'اختيار تاريخ';
+
+  @override
+  String get scheduleSheetConfirmButton => 'جدولة';
+
+  @override
+  String get scheduleSheetSaveButton => 'حفظ';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'تُرسَل $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'اليوم في $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'غدًا في $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return 'في $date الساعة $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'اختيار التاريخ والوقت';
+
+  @override
+  String get scheduleTimePickerBack => 'خيارات سريعة';
+
+  @override
+  String get scheduleTimePickerToday => 'اليوم';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'غدًا';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة مجدولة',
+      many: '$count رسالة مجدولة',
+      few: '$count رسائل مجدولة',
+      two: 'رسالتان مجدولتان',
+      one: 'رسالة مجدولة',
+      zero: 'لا شيء مجدول',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة بانتظار الإرسال. اضغط لعرضها.',
+      many: '$count رسالة بانتظار الإرسال. اضغط لعرضها.',
+      few: '$count رسائل بانتظار الإرسال. اضغط لعرضها.',
+      two: 'رسالتان بانتظار الإرسال. اضغط لعرضهما.',
+      one: 'رسالة واحدة بانتظار الإرسال. اضغط لعرضها.',
+      zero: 'لا توجد رسائل بانتظار الإرسال.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'تحتاج إليك';
+
+  @override
+  String get scheduledListTitle => 'المجدولة';
+
+  @override
+  String get scheduledListSubtitle => 'لا يراها أحد غيرك حتى تُرسَل.';
+
+  @override
+  String get scheduledListEmpty => 'لا شيء بانتظار الإرسال هنا.';
+
+  @override
+  String get scheduledListSendNow => 'إرسال الآن';
+
+  @override
+  String get scheduledListChangeTime => 'تغيير الوقت';
+
+  @override
+  String get scheduledListEdit => 'تعديل النص';
+
+  @override
+  String get scheduledListDelete => 'حذف';
+
+  @override
+  String get scheduledListSending => 'جارٍ الإرسال…';
+
+  @override
+  String get scheduledListFailedTitle => 'تعذّر الإرسال';
+
+  @override
+  String get scheduledListRetry => 'إعادة المحاولة';
+
+  @override
+  String get scheduleErrorOutOfRange => 'اختر وقتًا بين دقيقتين وسنة من الآن.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'هناك رسائل كثيرة بانتظار الإرسال هنا. أرسل بعضها أو احذفها أولًا.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'رسائل هذه المحادثة تختفي من تلقاء نفسها، لذا لا يمكن جدولتها.';
+
+  @override
+  String get scheduleErrorNotMember => 'لم تعد في هذه المحادثة.';
+
+  @override
+  String get scheduleErrorBlocked => 'عليك إلغاء الحظر أولًا.';
+
+  @override
+  String get scheduleErrorGeneric => 'لم ينجح ذلك. حاول مرة أخرى.';
+
+  @override
+  String get scheduleEditTitle => 'تعديل الرسالة';
+
+  @override
+  String get composerScheduleAction => 'جدولة هذه الرسالة';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة بانتظار الإرسال',
+      many: '$count رسالة بانتظار الإرسال',
+      few: '$count رسائل بانتظار الإرسال',
+      two: 'رسالتان بانتظار الإرسال',
+      one: 'رسالة واحدة بانتظار الإرسال',
+      zero: 'لا رسائل بانتظار الإرسال',
+    );
+    return '$_temp0';
+  }
 }

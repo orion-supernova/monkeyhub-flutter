@@ -1,41 +1,123 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 
 import '../data/mention_session.dart';
 import '../keyboard/focusable_tap.dart';
 import '../keyboard/mention_keyboard_nav.dart';
 import '../keyboard/submit_on_enter.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../theme/interaction.dart';
+import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
 import 'liquid_glass.dart';
 
-class _SendButton extends StatelessWidget {
+/// The composer's send button.
+///
+/// Tap sends. Hold opens the schedule sheet, if the host offered one — the
+/// affordance is absent rather than inert where scheduling does not apply
+/// (a self-destructing room, the thread overlay), because a hold that visibly
+/// charges and then does nothing is worse than one that never starts.
+///
+/// A small clock badge appears while the room is holding queued messages. It is
+/// deliberately the SECONDARY indicator: this button only exists while the
+/// composer has text (see the `AnimatedSwitcher`s below), so with an empty
+/// composer there is nothing here to badge. `ScheduledPill` above the composer
+/// is what carries that state persistently.
+class _SendButton extends StatefulWidget {
   const _SendButton({
     super.key,
     required this.onSend,
     required this.semanticLabel,
     this.classic = true,
+    this.onSchedule,
+    this.scheduledCount = 0,
   });
 
   final VoidCallback onSend;
   final String semanticLabel;
   final bool classic;
 
+  /// Null hides the hold gesture entirely — no recognizer, no ring, no rotor
+  /// action.
+  final VoidCallback? onSchedule;
+
+  /// How many messages this room already has waiting. Zero hides the badge.
+  final int scheduledCount;
+
+  @override
+  State<_SendButton> createState() => _SendButtonState();
+}
+
+class _SendButtonState extends State<_SendButton>
+    with SingleTickerProviderStateMixin {
+  /// Drives the ring that sweeps around the button while it is held.
+  ///
+  /// The whole point is that a hold has to LOOK like it is going somewhere.
+  /// Without it the button sits there for 400ms and the user either lets go
+  /// (thinking it is broken) or is surprised by a sheet. The ring is the
+  /// mechanism iOS uses for the same gesture, rather than a fade or a wobble
+  /// tuned until it feels long enough.
+  late final AnimationController _hold;
+
+  /// Kept across the `AnimatedSwitcher` rebuild that fires on every keystroke.
+  ///
+  /// Load-bearing: this button is rebuilt whenever `controller.text` changes,
+  /// and a recognizer holding a live pointer whose element is re-created loses
+  /// the gesture mid-hold. The same reparenting problem `ComposerCaptureHost`
+  /// documents on its own mode button.
+  final GlobalKey _key = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _hold = AnimationController(
+      vsync: this,
+      // The recognizer's own threshold, not a theme duration: the ring must
+      // close exactly as the gesture fires. A longer one promises a moment that
+      // has already passed; a shorter one sits full while nothing happens.
+      duration: kActionMenuLongPress,
+    );
+  }
+
+  @override
+  void dispose() {
+    _hold.dispose();
+    super.dispose();
+  }
+
+  void _startHold() {
+    if (widget.onSchedule == null) return;
+    if (MotionScope.of(context).calm) return;
+    _hold.forward(from: 0);
+  }
+
+  void _endHold() {
+    if (_hold.value == 0) return;
+    _hold.reverse();
+  }
+
+  void _fire() {
+    final schedule = widget.onSchedule;
+    if (schedule == null) return;
+    HapticFeedback.mediumImpact();
+    _hold.value = 0;
+    schedule();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final size = widget.classic ? 38.0 : 44.0;
 
-    if (classic) {
-      return FocusableTap(
-        onTap: onSend,
-        semanticLabel: semanticLabel,
-        shape: FocusRingShape.circle,
-        child: GestureDetector(
-          onTap: onSend,
-          child: Container(
-            width: 38,
-            height: 38,
+    Widget core = widget.classic
+        ? Container(
+            width: size,
+            height: size,
             decoration: BoxDecoration(
               color: theme.accent,
               shape: BoxShape.circle,
@@ -48,19 +130,203 @@ class _SendButton extends StatelessWidget {
               ],
             ),
             child: Icon(Icons.north_east, color: theme.accentInk, size: 16),
+          )
+        : LiquidGlass(
+            shape: LiquidGlassShape.circle,
+            size: Size(size, size),
+            tinted: true,
+            child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+          );
+
+    if (widget.scheduledCount > 0) {
+      core = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          core,
+          Positioned(
+            right: -1,
+            bottom: -1,
+            child: _ScheduledBadge(
+              // Announced by the button's own semantic label below instead —
+              // a screen reader meeting both reads the count twice.
+              count: widget.scheduledCount,
+            ),
           ),
-        ),
-      );
-    } else {
-      return LiquidGlass(
-        shape: LiquidGlassShape.circle,
-        size: const Size(44, 44),
-        tinted: true,
-        onTap: onSend,
-        child: Icon(Icons.arrow_upward, size: 18, color: theme.accentInk),
+        ],
       );
     }
+
+    // The ring, painted outside the button's own bounds so it adds nothing to
+    // layout — the FocusableTap focus-ring trick, for the same reason.
+    if (widget.onSchedule != null) {
+      core = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          core,
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _hold,
+                builder: (context, _) => _hold.value == 0
+                    ? const SizedBox.shrink()
+                    : CustomPaint(
+                        painter: _HoldRingPainter(
+                          progress: _hold.value,
+                          color: theme.accentInk,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Scale-down on press, so the hold reads as a press before the ring even
+    // starts. Drives from the same controller rather than a second one.
+    core = AnimatedBuilder(
+      animation: _hold,
+      builder: (context, child) => Transform.scale(
+        scale: 1 - (_hold.value * 0.06),
+        child: child,
+      ),
+      child: core,
+    );
+
+    // RawGestureDetector, not GestureDetector: a plain one's long press is
+    // fixed at Flutter's half-second with no way to shorten it, and this app
+    // has already settled on `kActionMenuLongPress` for "hold reveals options"
+    // everywhere else. Two recognizers in one arena so a tap still sends.
+    Widget body = widget.onSchedule == null
+        ? GestureDetector(onTap: widget.onSend, child: core)
+        : RawGestureDetector(
+            key: _key,
+            behavior: HitTestBehavior.opaque,
+            gestures: {
+              TapGestureRecognizer:
+                  GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+                () => TapGestureRecognizer(),
+                (instance) {
+                  instance.onTap = widget.onSend;
+                  instance.onTapCancel = _endHold;
+                },
+              ),
+              LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<
+                  LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(
+                  duration: kActionMenuLongPress,
+                ),
+                (instance) {
+                  instance.onLongPressDown = (_) => _startHold();
+                  instance.onLongPress = _fire;
+                  instance.onLongPressCancel = _endHold;
+                  instance.onLongPressUp = _endHold;
+                },
+              ),
+            },
+            child: core,
+          );
+
+    body = FocusableTap(
+      onTap: widget.onSend,
+      semanticLabel: widget.scheduledCount > 0
+          ? '${widget.semanticLabel}, '
+              '${l10n.composerScheduledBadgeSemantics(widget.scheduledCount)}'
+          : widget.semanticLabel,
+      shape: FocusRingShape.circle,
+      child: body,
+    );
+
+    if (widget.onSchedule != null) {
+      // The keyboard route to the sheet, bound outside FocusableTap so it fires
+      // while the button's own node holds focus. Cmd/Ctrl+Enter is what every
+      // mail client already uses for "send with options".
+      body = CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.enter, meta: true): _fire,
+          const SingleActivator(LogicalKeyboardKey.enter, control: true): _fire,
+        },
+        child: body,
+      );
+      // The screen-reader route. A hold is a gesture a VoiceOver user cannot
+      // perform on a target they cannot see, so it gets a rotor action —
+      // `ComposerCaptureHost` ships both routes for its hold and so does this.
+      body = Semantics(
+        customSemanticsActions: {
+          CustomSemanticsAction(label: l10n.composerScheduleAction): _fire,
+        },
+        child: body,
+      );
+    }
+
+    return body;
   }
+}
+
+/// The small clock on the corner of the send button.
+class _ScheduledBadge extends StatelessWidget {
+  const _ScheduledBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+        constraints: const BoxConstraints(minWidth: 15),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: theme.accent, width: 1.2),
+        ),
+        child: Text(
+          // Past nine the number stops being the point and the badge is just
+          // saying "several" — which is what the pill above spells out.
+          count > 9 ? '9+' : '$count',
+          style: theme.monoTiny.copyWith(
+            color: theme.accent,
+            fontSize: 9,
+            letterSpacing: 0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The arc that sweeps around the send button while it is held.
+class _HoldRingPainter extends CustomPainter {
+  const _HoldRingPainter({required this.progress, required this.color});
+
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0) return;
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      // Fades in over the first fifth of the sweep, so a tap that happens to
+      // register a few milliseconds of hold does not flash a stub of arc.
+      ..color = color.withValues(alpha: (progress * 5).clamp(0.0, 1.0) * 0.9);
+    canvas.drawArc(
+      rect.deflate(2),
+      -1.5707963267948966, // 12 o'clock
+      progress * 6.283185307179586,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HoldRingPainter old) =>
+      old.progress != progress || old.color != color;
 }
 
 /// The two message composers, lifted verbatim out of `room_screen.dart` so
@@ -100,6 +366,8 @@ class ChatComposerClassic extends StatelessWidget {
     this.padding,
     this.mention,
     this.capture,
+    this.onSchedule,
+    this.scheduledCount = 0,
   });
 
   final TextEditingController controller;
@@ -140,6 +408,18 @@ class ChatComposerClassic extends StatelessWidget {
   /// and the two recorders are not, so a host with nowhere to push a route can
   /// still offer both of them.
   final ComposerCapture? capture;
+
+  /// Opens the schedule sheet on a HOLD of the send button.
+  ///
+  /// Nullable, and null means the gesture does not exist rather than that it
+  /// does nothing: the hold visibly charges a ring, so a host that cannot
+  /// schedule (the thread overlay, a self-destructing room) must not offer the
+  /// animation and then swallow it.
+  final VoidCallback? onSchedule;
+
+  /// How many messages this room is already holding for later, for the badge on
+  /// the send button. Zero hides it.
+  final int scheduledCount;
 
   @override
   Widget build(BuildContext context) {
@@ -237,6 +517,8 @@ class ChatComposerClassic extends StatelessWidget {
                     onSend: onSend,
                     semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
                     classic: true,
+                    onSchedule: onSchedule,
+                    scheduledCount: scheduledCount,
                   )
                 : modeButton != null
                     ? SizedBox(
@@ -297,6 +579,8 @@ class ChatComposerLiquid extends StatelessWidget {
     this.padding,
     this.mention,
     this.capture,
+    this.onSchedule,
+    this.scheduledCount = 0,
   });
 
   final TextEditingController controller;
@@ -326,6 +610,12 @@ class ChatComposerLiquid extends StatelessWidget {
 
   /// See [ChatComposerClassic.capture].
   final ComposerCapture? capture;
+
+  /// See [ChatComposerClassic.onSchedule].
+  final VoidCallback? onSchedule;
+
+  /// See [ChatComposerClassic.scheduledCount].
+  final int scheduledCount;
 
   @override
   Widget build(BuildContext context) {
@@ -408,6 +698,8 @@ class ChatComposerLiquid extends StatelessWidget {
                     onSend: onSend,
                     semanticLabel: AppLocalizations.of(context).deepOceanThemeSendButtonLabel,
                     classic: false,
+                    onSchedule: onSchedule,
+                    scheduledCount: scheduledCount,
                   )
                 : modeButton != null
                     ? SizedBox(

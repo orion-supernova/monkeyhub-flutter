@@ -6161,4 +6161,169 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => 'वह वीडियो रिकॉर्ड नहीं हो सका।';
+
+  @override
+  String get scheduleSheetTitle => 'संदेश शेड्यूल करें';
+
+  @override
+  String get scheduleSheetSubtitle => 'अभी लिखें। जब आप कहें, तब जाएगा।';
+
+  @override
+  String get scheduleSheetWhenLabel => 'कब';
+
+  @override
+  String get schedulePresetInAnHour => '1 घंटे में';
+
+  @override
+  String get schedulePresetInEightHours => '8 घंटे में';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'कल सुबह';
+
+  @override
+  String get schedulePresetThisMorning => 'आज सुबह';
+
+  @override
+  String get schedulePresetInAWeek => '1 हफ़्ते में';
+
+  @override
+  String get scheduleSheetCustomChip => 'तारीख़ चुनें';
+
+  @override
+  String get scheduleSheetConfirmButton => 'शेड्यूल करें';
+
+  @override
+  String get scheduleSheetSaveButton => 'सहेजें';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return '$when भेजा जाएगा।';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'आज $time बजे';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'कल $time बजे';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$date को $time बजे';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'तारीख़ और समय चुनें';
+
+  @override
+  String get scheduleTimePickerBack => 'झटपट विकल्प';
+
+  @override
+  String get scheduleTimePickerToday => 'आज';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'कल';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count शेड्यूल किए',
+      one: '1 शेड्यूल किया',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count संदेश भेजे जाने का इंतज़ार कर रहे हैं। देखने के लिए टैप करें।',
+      one: '1 संदेश भेजे जाने का इंतज़ार कर रहा है। देखने के लिए टैप करें।',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'ध्यान दें';
+
+  @override
+  String get scheduledListTitle => 'शेड्यूल किए गए';
+
+  @override
+  String get scheduledListSubtitle =>
+      'भेजे जाने तक इन्हें सिर्फ़ आप देख सकते हैं।';
+
+  @override
+  String get scheduledListEmpty => 'यहाँ भेजे जाने के इंतज़ार में कुछ नहीं है।';
+
+  @override
+  String get scheduledListSendNow => 'अभी भेजें';
+
+  @override
+  String get scheduledListChangeTime => 'समय बदलें';
+
+  @override
+  String get scheduledListEdit => 'लिखा हुआ बदलें';
+
+  @override
+  String get scheduledListDelete => 'हटाएँ';
+
+  @override
+  String get scheduledListSending => 'भेजा जा रहा है…';
+
+  @override
+  String get scheduledListFailedTitle => 'भेजा नहीं जा सका';
+
+  @override
+  String get scheduledListRetry => 'फिर कोशिश करें';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'अभी से दो मिनट और एक साल के बीच का कोई समय चुनें।';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'यहाँ बहुत सारे संदेश इंतज़ार में हैं। पहले कुछ भेजें या हटाएँ।';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'यहाँ के संदेश अपने आप मिट जाते हैं, इसलिए इन्हें शेड्यूल नहीं किया जा सकता।';
+
+  @override
+  String get scheduleErrorNotMember => 'आप अब इस चैट में नहीं हैं।';
+
+  @override
+  String get scheduleErrorBlocked => 'पहले उन्हें अनब्लॉक करना होगा।';
+
+  @override
+  String get scheduleErrorGeneric => 'यह नहीं हो पाया। फिर कोशिश करें।';
+
+  @override
+  String get scheduleEditTitle => 'संदेश बदलें';
+
+  @override
+  String get composerScheduleAction => 'यह संदेश शेड्यूल करें';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count संदेश भेजे जाने के इंतज़ार में',
+      one: '1 संदेश भेजे जाने के इंतज़ार में',
+    );
+    return '$_temp0';
+  }
 }

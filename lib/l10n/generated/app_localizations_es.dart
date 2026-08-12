@@ -6218,4 +6218,168 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => 'No se pudo grabar ese vídeo.';
+
+  @override
+  String get scheduleSheetTitle => 'PROGRAMAR MENSAJE';
+
+  @override
+  String get scheduleSheetSubtitle => 'Escríbelo ahora. Sale cuando tú digas.';
+
+  @override
+  String get scheduleSheetWhenLabel => 'CUÁNDO';
+
+  @override
+  String get schedulePresetInAnHour => 'En 1 hora';
+
+  @override
+  String get schedulePresetInEightHours => 'En 8 horas';
+
+  @override
+  String get schedulePresetTomorrowMorning => 'Mañana por la mañana';
+
+  @override
+  String get schedulePresetThisMorning => 'Esta mañana';
+
+  @override
+  String get schedulePresetInAWeek => 'En 1 semana';
+
+  @override
+  String get scheduleSheetCustomChip => 'Elegir fecha';
+
+  @override
+  String get scheduleSheetConfirmButton => 'PROGRAMAR';
+
+  @override
+  String get scheduleSheetSaveButton => 'GUARDAR';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return 'Se envía $when.';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return 'hoy a las $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return 'mañana a las $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return 'el $date a las $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => 'ELIGE FECHA Y HORA';
+
+  @override
+  String get scheduleTimePickerBack => 'Opciones rápidas';
+
+  @override
+  String get scheduleTimePickerToday => 'Hoy';
+
+  @override
+  String get scheduleTimePickerTomorrow => 'Mañana';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count PROGRAMADOS',
+      one: '1 PROGRAMADO',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensajes pendientes de enviar. Toca para verlos.',
+      one: '1 mensaje pendiente de enviar. Toca para verlo.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => 'REVÍSALO';
+
+  @override
+  String get scheduledListTitle => 'PROGRAMADOS';
+
+  @override
+  String get scheduledListSubtitle => 'Solo tú los ves hasta que se envíen.';
+
+  @override
+  String get scheduledListEmpty => 'Aquí no hay nada pendiente de enviar.';
+
+  @override
+  String get scheduledListSendNow => 'Enviar ahora';
+
+  @override
+  String get scheduledListChangeTime => 'Cambiar la hora';
+
+  @override
+  String get scheduledListEdit => 'Editar texto';
+
+  @override
+  String get scheduledListDelete => 'Eliminar';
+
+  @override
+  String get scheduledListSending => 'Enviando…';
+
+  @override
+  String get scheduledListFailedTitle => 'No se pudo enviar';
+
+  @override
+  String get scheduledListRetry => 'Reintentar';
+
+  @override
+  String get scheduleErrorOutOfRange =>
+      'Elige una hora entre dos minutos y un año a partir de ahora.';
+
+  @override
+  String get scheduleErrorTooMany =>
+      'Hay demasiados mensajes pendientes aquí. Envía o elimina algunos primero.';
+
+  @override
+  String get scheduleErrorNotInEphemeral =>
+      'Los mensajes de este chat se desvanecen solos, así que no se pueden programar.';
+
+  @override
+  String get scheduleErrorNotMember => 'Ya no estás en este chat.';
+
+  @override
+  String get scheduleErrorBlocked =>
+      'Primero tendrás que desbloquear a esta persona.';
+
+  @override
+  String get scheduleErrorGeneric => 'No ha funcionado. Inténtalo de nuevo.';
+
+  @override
+  String get scheduleEditTitle => 'EDITAR MENSAJE';
+
+  @override
+  String get composerScheduleAction => 'Programar este mensaje';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensajes pendientes de enviar',
+      one: '1 mensaje pendiente de enviar',
+    );
+    return '$_temp0';
+  }
 }

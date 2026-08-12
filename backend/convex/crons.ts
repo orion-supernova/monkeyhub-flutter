@@ -147,6 +147,29 @@ crons.interval(
   {},
 );
 
+// Release scheduled messages whose time passed and whose `runAt` never came.
+//
+// The one job in this file that is neither a garbage collector nor a tidiness
+// pass, and the interval says so: five minutes rather than six hours. Every
+// other sweep here repairs a stale ROW, which costs disk and nothing else. This
+// one repairs a message the user was told would be sent and was not — the same
+// category as calls.gcStuckRinging above, and the same interval for the same
+// reason.
+//
+// Affordable at that rate despite the header's warning because
+// `by_pending_due` leads with the boolean and the range stops at the first row
+// that is not yet due: a deployment with nothing overdue pays a single index
+// probe and writes nothing at all. The per-pass cap keeps a genuine backlog
+// (the scheduler lost jobs wholesale) from turning into one mutation that
+// exceeds the 1s limit and therefore never drains any of it.
+// See scheduledMessages.gcOverdue.
+crons.interval(
+  "scheduledMessages.gcOverdue",
+  { minutes: 5 },
+  internal.scheduledMessages.gcOverdue,
+  {},
+);
+
 // Reap failed-login counters nobody has touched in a day. Pure tidiness —
 // assertNotLocked already treats a closed window as clean, so a backlog here
 // costs disk and nothing else. See rateLimit.gcAuthAttempts.

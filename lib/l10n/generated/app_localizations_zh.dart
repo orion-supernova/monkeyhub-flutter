@@ -5842,4 +5842,161 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => '无法录制该视频。';
+
+  @override
+  String get scheduleSheetTitle => '定时发送';
+
+  @override
+  String get scheduleSheetSubtitle => '现在写好，到点再发。';
+
+  @override
+  String get scheduleSheetWhenLabel => '什么时候发';
+
+  @override
+  String get schedulePresetInAnHour => '1 小时后';
+
+  @override
+  String get schedulePresetInEightHours => '8 小时后';
+
+  @override
+  String get schedulePresetTomorrowMorning => '明天早上';
+
+  @override
+  String get schedulePresetThisMorning => '今天早上';
+
+  @override
+  String get schedulePresetInAWeek => '1 周后';
+
+  @override
+  String get scheduleSheetCustomChip => '选择日期';
+
+  @override
+  String get scheduleSheetConfirmButton => '定时发送';
+
+  @override
+  String get scheduleSheetSaveButton => '保存';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return '将在$when发送。';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return '今天 $time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return '明天 $time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$date $time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => '选择日期和时间';
+
+  @override
+  String get scheduleTimePickerBack => '快捷选项';
+
+  @override
+  String get scheduleTimePickerToday => '今天';
+
+  @override
+  String get scheduleTimePickerTomorrow => '明天';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条待发',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '有 $count 条消息等待发送。点按查看。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => '需要处理';
+
+  @override
+  String get scheduledListTitle => '待发送';
+
+  @override
+  String get scheduledListSubtitle => '发送之前，只有你能看到它们。';
+
+  @override
+  String get scheduledListEmpty => '这里没有等待发送的消息。';
+
+  @override
+  String get scheduledListSendNow => '立即发送';
+
+  @override
+  String get scheduledListChangeTime => '修改时间';
+
+  @override
+  String get scheduledListEdit => '修改内容';
+
+  @override
+  String get scheduledListDelete => '删除';
+
+  @override
+  String get scheduledListSending => '正在发送…';
+
+  @override
+  String get scheduledListFailedTitle => '没能发出去';
+
+  @override
+  String get scheduledListRetry => '重试';
+
+  @override
+  String get scheduleErrorOutOfRange => '请选择从现在起两分钟到一年之间的时间。';
+
+  @override
+  String get scheduleErrorTooMany => '这里等待发送的消息太多了。请先发送或删除一些。';
+
+  @override
+  String get scheduleErrorNotInEphemeral => '这个聊天里的消息会自动消失，所以不能定时发送。';
+
+  @override
+  String get scheduleErrorNotMember => '你已经不在这个聊天里了。';
+
+  @override
+  String get scheduleErrorBlocked => '你需要先解除拉黑。';
+
+  @override
+  String get scheduleErrorGeneric => '没成功，请再试一次。';
+
+  @override
+  String get scheduleEditTitle => '修改消息';
+
+  @override
+  String get composerScheduleAction => '定时发送这条消息';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '有 $count 条消息等待发送',
+    );
+    return '$_temp0';
+  }
 }

@@ -5915,4 +5915,161 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get cameraScreenVideoFailedSnack => '動画を録画できませんでした。';
+
+  @override
+  String get scheduleSheetTitle => 'メッセージを予約';
+
+  @override
+  String get scheduleSheetSubtitle => '今書いて、送るのは好きなときに。';
+
+  @override
+  String get scheduleSheetWhenLabel => 'いつ送る';
+
+  @override
+  String get schedulePresetInAnHour => '1時間後';
+
+  @override
+  String get schedulePresetInEightHours => '8時間後';
+
+  @override
+  String get schedulePresetTomorrowMorning => '明日の朝';
+
+  @override
+  String get schedulePresetThisMorning => '今朝';
+
+  @override
+  String get schedulePresetInAWeek => '1週間後';
+
+  @override
+  String get scheduleSheetCustomChip => '日付を選ぶ';
+
+  @override
+  String get scheduleSheetConfirmButton => '予約する';
+
+  @override
+  String get scheduleSheetSaveButton => '保存';
+
+  @override
+  String scheduleSendsAtSentence(String when) {
+    return '$whenに送信されます。';
+  }
+
+  @override
+  String scheduleWhenToday(String time) {
+    return '今日の$time';
+  }
+
+  @override
+  String scheduleWhenTomorrow(String time) {
+    return '明日の$time';
+  }
+
+  @override
+  String scheduleWhenDated(String date, String time) {
+    return '$dateの$time';
+  }
+
+  @override
+  String get scheduleTimePickerTitle => '日付と時刻を選ぶ';
+
+  @override
+  String get scheduleTimePickerBack => 'かんたん選択';
+
+  @override
+  String get scheduleTimePickerToday => '今日';
+
+  @override
+  String get scheduleTimePickerTomorrow => '明日';
+
+  @override
+  String scheduledPillLabel(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '予約 $count 件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String scheduledPillJoin(String label, String time) {
+    return '$label · $time';
+  }
+
+  @override
+  String scheduledPillSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '送信待ちのメッセージが$count件あります。タップして表示します。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledPillAttention => '要確認';
+
+  @override
+  String get scheduledListTitle => '予約済み';
+
+  @override
+  String get scheduledListSubtitle => '送信されるまで、これらはあなたにしか見えません。';
+
+  @override
+  String get scheduledListEmpty => 'ここに送信待ちのものはありません。';
+
+  @override
+  String get scheduledListSendNow => '今すぐ送る';
+
+  @override
+  String get scheduledListChangeTime => '時刻を変える';
+
+  @override
+  String get scheduledListEdit => '本文を編集';
+
+  @override
+  String get scheduledListDelete => '削除';
+
+  @override
+  String get scheduledListSending => '送信中…';
+
+  @override
+  String get scheduledListFailedTitle => '送信できませんでした';
+
+  @override
+  String get scheduledListRetry => 'もう一度試す';
+
+  @override
+  String get scheduleErrorOutOfRange => '今から2分後〜1年後の間で時刻を選んでください。';
+
+  @override
+  String get scheduleErrorTooMany => 'ここで待っているメッセージが多すぎます。まずいくつか送るか削除してください。';
+
+  @override
+  String get scheduleErrorNotInEphemeral => 'このチャットのメッセージは自動で消えるため、予約できません。';
+
+  @override
+  String get scheduleErrorNotMember => 'あなたはもうこのチャットにいません。';
+
+  @override
+  String get scheduleErrorBlocked => 'まずブロックを解除してください。';
+
+  @override
+  String get scheduleErrorGeneric => 'うまくいきませんでした。もう一度試してください。';
+
+  @override
+  String get scheduleEditTitle => 'メッセージを編集';
+
+  @override
+  String get composerScheduleAction => 'このメッセージを予約';
+
+  @override
+  String composerScheduledBadgeSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '送信待ちのメッセージ$count件',
+    );
+    return '$_temp0';
+  }
 }

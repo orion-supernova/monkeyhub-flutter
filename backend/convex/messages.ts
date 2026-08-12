@@ -212,7 +212,7 @@ export function galleryBucketFor(
  * Keyed on [hasBlob] rather than on the type for exactly that second reason: an
  * attachment is an attachment whatever the message calls itself.
  */
-function permissionsFor(type: string, hasBlob: boolean) {
+export function permissionsFor(type: string, hasBlob: boolean) {
   const location = type === "location" || type === "liveLocation";
   return {
     location,
@@ -248,7 +248,7 @@ function permissionsFor(type: string, hasBlob: boolean) {
  * [permissionsFor] for the argument, and for the two holes the type-string
  * version had.
  */
-async function guardOutgoing(
+export async function guardOutgoing(
   ctx: any,
   roomId: any,
   userId: any,
@@ -575,6 +575,26 @@ const formattingArg = v.optional(
   )
 );
 
+/**
+ * Everything `messages:send` does, as a plain function.
+ *
+ * Split out so `scheduledMessages:release` can post a staged message through
+ * the exact same path a hand-typed one takes — the membership and child-guard
+ * checks, the reply-preview snapshot, mention resolution, the Chamber-of-
+ * Secrets `expiresAt` schedule, the `rooms.lastMessage` patch and the push.
+ *
+ * A shared core rather than a second implementation, following the precedent
+ * this file already sets three times over: `guardOutgoing` (shared with
+ * `forwardToRoom`), `roomPreviewFor` (see its header — it exists precisely
+ * because two copies of the preview logic had already drifted) and
+ * `endLiveShare`. A scheduled send that re-derived any of this would be a
+ * second place for the child guard to be forgotten, which is the one kind of
+ * drift this file cannot afford.
+ *
+ * `ctx` is a mutation context in both cases, so nothing here changes: the
+ * insert, the three `scheduler` calls and the room patch all run in the same
+ * transaction as the caller.
+ */
 export const send = mutation({
   args: {
     roomId: v.id("rooms"),
@@ -627,354 +647,377 @@ export const send = mutation({
     // fit the text at all.
     formatting: formattingArg,
   },
-  handler: async (ctx, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting }) => {
-    // Idempotency, checked before anything else has a chance to happen twice.
-    //
-    // Everything below this line has side effects that must not be repeated:
-    // a second row, a second `rooms.lastMessage` bump, a second push, a second
-    // pair of view-once burn schedules. Returning the original id makes a retry
-    // indistinguishable from the send having succeeded the first time, which is
-    // exactly what the caller believes when it retries.
-    if (clientId !== undefined) {
-      const existing = await ctx.db
-        .query("messages")
-        .withIndex("by_room_user_client", (q) =>
-          q.eq("roomId", roomId).eq("userId", userId).eq("clientId", clientId)
-        )
-        .first();
-      if (existing) return existing._id;
-    }
+  handler: async (ctx, args) => await sendCore(ctx, args),
+});
 
-    // `let`, because the location block below downgrades a malformed
-    // `location`/`liveLocation` send rather than refusing it. Everything that
-    // reads this after that point — the insert, the gallery bucket, the room
-    // preview, the push body — must see the type actually written.
-    let msgType = type ?? "text";
+/**
+ * Everything `send` does, as a plain function.
+ *
+ * Split out so `scheduledMessages:release` can post a staged message down the
+ * exact path a hand-typed one takes: the membership and child-guard checks,
+ * the DM-block check, the reply-preview snapshot, mention resolution and
+ * formatting sanitation, the Chamber-of-Secrets `expiresAt` schedule, the
+ * `rooms.lastMessage` patch and the push fan-out.
+ *
+ * A shared core rather than a second implementation, following the precedent
+ * this file already sets three times: `guardOutgoing` (shared with
+ * `forwardToRoom`), `roomPreviewFor` — read its header, it exists precisely
+ * because two copies of the preview logic had already drifted — and
+ * `endLiveShare`. A scheduled send that re-derived any of this would be a
+ * second place for the child guard to be forgotten, and the guard is the one
+ * thing in here that must never be forgotten twice.
+ *
+ * `ctx` is a mutation context either way, so nothing about the body changes:
+ * the insert, the `scheduler` calls and the room patch all commit in the same
+ * transaction as whoever called this.
+ */
+export async function sendCore(ctx: any, { roomId, userId, content, type, mediaStorageId, mediaWidth, mediaHeight, fileName, fileSize, mimeType, mediaDurationMs, posterStorageId, senderName, replyToId, viewOnce, clientId, mentionedUserIds, mentionsEveryone, latitude, longitude, locationAccuracyM, liveDurationMs, formatting }: any) {
+  // Idempotency, checked before anything else has a chance to happen twice.
+  //
+  // Everything below this line has side effects that must not be repeated:
+  // a second row, a second `rooms.lastMessage` bump, a second push, a second
+  // pair of view-once burn schedules. Returning the original id makes a retry
+  // indistinguishable from the send having succeeded the first time, which is
+  // exactly what the caller believes when it retries.
+  if (clientId !== undefined) {
+    const existing = await ctx.db
+      .query("messages")
+      .withIndex("by_room_user_client", (q: any) =>
+        q.eq("roomId", roomId).eq("userId", userId).eq("clientId", clientId)
+      )
+      .first();
+    if (existing) return existing._id;
+  }
 
-    // Membership, the child guard, DM blocks, the sender's display name and the
-    // room's message lifetime — all of it, in the order it has always run. See
-    // `guardOutgoing`, which `forwardToRoom` shares so the two cannot disagree
-    // about who may write where.
-    const { room, roster, resolvedSenderName, expiresAt } = await guardOutgoing(
-      ctx,
-      roomId,
-      userId,
-      // `mediaStorageId !== undefined` and not the type: a blob attached to a
-      // `location`-typed send is still an attachment, and used to skip the media
-      // gate by taking the location branch. See `permissionsFor`.
-      permissionsFor(msgType, mediaStorageId !== undefined),
-      senderName
-    );
+  // `let`, because the location block below downgrades a malformed
+  // `location`/`liveLocation` send rather than refusing it. Everything that
+  // reads this after that point — the insert, the gallery bucket, the room
+  // preview, the push body — must see the type actually written.
+  let msgType = type ?? "text";
 
-    // Build a denormalized snapshot of the parent at send time. Survives the
-    // parent's later deletion so the inline reply tether keeps rendering. We
-    // intentionally drop both replyToId AND replyToPreview together if the
-    // parent isn't reachable from the same room — never store a dangling id.
-    let replyToPreview: {
-      senderId: any;
-      senderName: string;
-      contentPreview: string;
-      type: string;
-      mediaStorageId?: any;
-    } | undefined;
-    let resolvedReplyToId: any | undefined;
-    // Thread root, derived from the *resolved* parent. Computing it from the
-    // raw `replyToId` arg would let a cross-room parent produce a message
-    // that belongs to a thread but has no tether — it'd render in the thread
-    // with nothing above it. Written only alongside replyToId/replyToPreview.
-    let resolvedRootId: any | undefined;
-    if (replyToId) {
-      const parent = await ctx.db.get(replyToId);
-      if (parent && parent.roomId.toString() === roomId.toString()) {
-        const parentContent = parent.content ?? "";
-        // Quoting a view-once photo must not re-publish it. The preview is a
-        // permanent, un-burnable copy of the parent, so carrying the parent's
-        // `mediaStorageId` here would hand every reader the storage id the
-        // read path works so hard to withhold — and would keep the blob
-        // looking referenced to `files.gcOrphanedFiles` after the burn.
-        // Sentinel mirrors the "__DELETED__" one used by the fanout below.
-        const parentIsViewOnce = parent.viewOnce === true;
-        replyToPreview = {
-          senderId: parent.userId,
-          senderName: parent.senderName ?? "unknown",
-          contentPreview: parentIsViewOnce
-            ? "__VIEW_ONCE__"
-            : parentContent.slice(0, 140),
-          type: parent.type ?? "text",
-          mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
-        };
-        resolvedReplyToId = replyToId;
-        resolvedRootId = parent.rootId ?? parent._id;
-      }
-    }
+  // Membership, the child guard, DM blocks, the sender's display name and the
+  // room's message lifetime — all of it, in the order it has always run. See
+  // `guardOutgoing`, which `forwardToRoom` shares so the two cannot disagree
+  // about who may write where.
+  const { room, roster, resolvedSenderName, expiresAt } = await guardOutgoing(
+    ctx,
+    roomId,
+    userId,
+    // `mediaStorageId !== undefined` and not the type: a blob attached to a
+    // `location`-typed send is still an attachment, and used to skip the media
+    // gate by taking the location branch. See `permissionsFor`.
+    permissionsFor(msgType, mediaStorageId !== undefined),
+    senderName
+  );
 
-    // View-once bookkeeping, done once here rather than once per open. The
-    // roster walk is O(members), but only on an armed send.
-    const armed = viewOnce === true && mediaStorageId !== undefined;
-    let viewOnceFields: Record<string, any> = {};
-    if (armed) {
-      const recipients = (await roster()).filter(
-        (m: any) => m.userId.toString() !== userId.toString()
-      ).length;
-      viewOnceFields = {
-        viewOnce: true,
-        viewOnceLive: true,
-        viewOnceRecipients: recipients,
-        viewOnceViewCount: 0,
-        viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
+  // Build a denormalized snapshot of the parent at send time. Survives the
+  // parent's later deletion so the inline reply tether keeps rendering. We
+  // intentionally drop both replyToId AND replyToPreview together if the
+  // parent isn't reachable from the same room — never store a dangling id.
+  let replyToPreview: {
+    senderId: any;
+    senderName: string;
+    contentPreview: string;
+    type: string;
+    mediaStorageId?: any;
+  } | undefined;
+  let resolvedReplyToId: any | undefined;
+  // Thread root, derived from the *resolved* parent. Computing it from the
+  // raw `replyToId` arg would let a cross-room parent produce a message
+  // that belongs to a thread but has no tether — it'd render in the thread
+  // with nothing above it. Written only alongside replyToId/replyToPreview.
+  let resolvedRootId: any | undefined;
+  if (replyToId) {
+    const parent = await ctx.db.get(replyToId);
+    if (parent && parent.roomId.toString() === roomId.toString()) {
+      const parentContent = parent.content ?? "";
+      // Quoting a view-once photo must not re-publish it. The preview is a
+      // permanent, un-burnable copy of the parent, so carrying the parent's
+      // `mediaStorageId` here would hand every reader the storage id the
+      // read path works so hard to withhold — and would keep the blob
+      // looking referenced to `files.gcOrphanedFiles` after the burn.
+      // Sentinel mirrors the "__DELETED__" one used by the fanout below.
+      const parentIsViewOnce = parent.viewOnce === true;
+      replyToPreview = {
+        senderId: parent.userId,
+        senderName: parent.senderName ?? "unknown",
+        contentPreview: parentIsViewOnce
+          ? "__VIEW_ONCE__"
+          : parentContent.slice(0, 140),
+        type: parent.type ?? "text",
+        mediaStorageId: parentIsViewOnce ? undefined : parent.mediaStorageId,
       };
+      resolvedReplyToId = replyToId;
+      resolvedRootId = parent.rootId ?? parent._id;
     }
+  }
 
-    // ── Location ────────────────────────────────────────────────────────────
-    //
-    // Validated here rather than believed, for two different reasons that both
-    // end in the same code. A malformed pair (NaN, a longitude of 4000, a
-    // latitude the client computed from an uninitialised variable) produces a
-    // bubble that points at nowhere and cannot be repaired, only deleted. And
-    // an out-of-set `liveDurationMs` is the whole safety property of the
-    // feature: `liveExpiresAt` is what makes a share stop, so a client able to
-    // name its own deadline is a client able to share its position forever.
-    //
-    // A location-typed message whose coordinates don't survive this is
-    // downgraded to `text` rather than refused. Refusing would strand a
-    // retry-forever bubble in the sender's pending list for a message no retry
-    // can fix — the same reasoning as the child-gate branch in
-    // `ChatRepository._postMessage`.
-    const wantsLocation = msgType === "location" || msgType === "liveLocation";
-    const validCoords =
-      wantsLocation &&
-      typeof latitude === "number" &&
-      typeof longitude === "number" &&
-      Number.isFinite(latitude) &&
-      Number.isFinite(longitude) &&
-      latitude >= -90 &&
-      latitude <= 90 &&
-      longitude >= -180 &&
-      longitude <= 180;
-    if (wantsLocation && !validCoords) msgType = "text";
+  // View-once bookkeeping, done once here rather than once per open. The
+  // roster walk is O(members), but only on an armed send.
+  const armed = viewOnce === true && mediaStorageId !== undefined;
+  let viewOnceFields: Record<string, any> = {};
+  if (armed) {
+    const recipients = (await roster()).filter(
+      (m: any) => m.userId.toString() !== userId.toString()
+    ).length;
+    viewOnceFields = {
+      viewOnce: true,
+      viewOnceLive: true,
+      viewOnceRecipients: recipients,
+      viewOnceViewCount: 0,
+      viewOnceDeadline: Date.now() + VIEW_ONCE_DEADLINE_MS,
+    };
+  }
 
-    let locationFields: Record<string, any> = {};
-    if (validCoords) {
-      locationFields = {
-        latitude,
-        longitude,
-        // Dropped rather than clamped when it is nonsense. The bubble draws no
-        // ring when this is absent, which is the honest rendering of "the
-        // device did not say how sure it was".
-        locationAccuracyM:
-          typeof locationAccuracyM === "number" &&
-          Number.isFinite(locationAccuracyM) &&
-          locationAccuracyM > 0
-            ? Math.min(locationAccuracyM, 100_000)
-            : undefined,
+  // ── Location ────────────────────────────────────────────────────────────
+  //
+  // Validated here rather than believed, for two different reasons that both
+  // end in the same code. A malformed pair (NaN, a longitude of 4000, a
+  // latitude the client computed from an uninitialised variable) produces a
+  // bubble that points at nowhere and cannot be repaired, only deleted. And
+  // an out-of-set `liveDurationMs` is the whole safety property of the
+  // feature: `liveExpiresAt` is what makes a share stop, so a client able to
+  // name its own deadline is a client able to share its position forever.
+  //
+  // A location-typed message whose coordinates don't survive this is
+  // downgraded to `text` rather than refused. Refusing would strand a
+  // retry-forever bubble in the sender's pending list for a message no retry
+  // can fix — the same reasoning as the child-gate branch in
+  // `ChatRepository._postMessage`.
+  const wantsLocation = msgType === "location" || msgType === "liveLocation";
+  const validCoords =
+    wantsLocation &&
+    typeof latitude === "number" &&
+    typeof longitude === "number" &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    longitude >= -180 &&
+    longitude <= 180;
+  if (wantsLocation && !validCoords) msgType = "text";
+
+  let locationFields: Record<string, any> = {};
+  if (validCoords) {
+    locationFields = {
+      latitude,
+      longitude,
+      // Dropped rather than clamped when it is nonsense. The bubble draws no
+      // ring when this is absent, which is the honest rendering of "the
+      // device did not say how sure it was".
+      locationAccuracyM:
+        typeof locationAccuracyM === "number" &&
+        Number.isFinite(locationAccuracyM) &&
+        locationAccuracyM > 0
+          ? Math.min(locationAccuracyM, 100_000)
+          : undefined,
+    };
+  }
+
+  // Live shares: the deadline, and the flag that puts the row in the sweep's
+  // bucket. A `liveLocation` send whose duration is refused becomes an
+  // ordinary static `location` — the position the sender chose to share is
+  // still shared, it simply does not move. Silently downgrading beats
+  // throwing for the reason above, and beats accepting an unbounded share by
+  // a much wider margin.
+  let liveFields: Record<string, any> = {};
+  if (msgType === "liveLocation") {
+    if (
+      typeof liveDurationMs === "number" &&
+      LIVE_SHARE_DURATIONS_MS.includes(liveDurationMs) &&
+      // Refused in a Chamber of Secrets room, where `expiresAt` is set. Two
+      // self-destruct clocks on one row is a promise the app cannot keep: a
+      // 60-second room lifetime deletes an 8-hour share after a minute, and
+      // the sharer is told nothing — their publisher simply starts getting
+      // "gone" back. Downgraded to a static pin, which the room's own
+      // lifetime then governs, exactly as it governs every other message
+      // there. The client hides the live options in such a room, so reaching
+      // this is a stale screen rather than the normal path.
+      expiresAt === undefined
+    ) {
+      liveFields = {
+        liveExpiresAt: Date.now() + liveDurationMs,
+        liveUpdatedAt: Date.now(),
+        liveShareLive: true,
       };
+    } else {
+      msgType = "location";
     }
+  }
 
-    // Live shares: the deadline, and the flag that puts the row in the sweep's
-    // bucket. A `liveLocation` send whose duration is refused becomes an
-    // ordinary static `location` — the position the sender chose to share is
-    // still shared, it simply does not move. Silently downgrading beats
-    // throwing for the reason above, and beats accepting an unbounded share by
-    // a much wider margin.
-    let liveFields: Record<string, any> = {};
-    if (msgType === "liveLocation") {
-      if (
-        typeof liveDurationMs === "number" &&
-        LIVE_SHARE_DURATIONS_MS.includes(liveDurationMs) &&
-        // Refused in a Chamber of Secrets room, where `expiresAt` is set. Two
-        // self-destruct clocks on one row is a promise the app cannot keep: a
-        // 60-second room lifetime deletes an 8-hour share after a minute, and
-        // the sharer is told nothing — their publisher simply starts getting
-        // "gone" back. Downgraded to a static pin, which the room's own
-        // lifetime then governs, exactly as it governs every other message
-        // there. The client hides the live options in such a room, so reaching
-        // this is a stale screen rather than the normal path.
-        expiresAt === undefined
-      ) {
-        liveFields = {
-          liveExpiresAt: Date.now() + liveDurationMs,
-          liveUpdatedAt: Date.now(),
-          liveShareLive: true,
-        };
-      } else {
-        msgType = "location";
-      }
-    }
+  // Resolve @-mentions — see `resolveMentions` for the five guards and why
+  // it is shared with `editMessage`.
+  const { resolvedMentions, everyone } = await resolveMentions(
+    ctx,
+    content,
+    userId,
+    roster,
+    room,
+    mentionedUserIds,
+    mentionsEveryone
+  );
 
-    // Resolve @-mentions — see `resolveMentions` for the five guards and why
-    // it is shared with `editMessage`.
-    const { resolvedMentions, everyone } = await resolveMentions(
-      ctx,
-      content,
-      userId,
-      roster,
-      room,
-      mentionedUserIds,
-      mentionsEveryone
+  // Formatting spans, clamped to the text they describe. Dropped entirely
+  // on an armed send for the reason the caption's `hasLink` is below: a
+  // sealed photo's caption is content the row must not describe before it
+  // is opened, and span offsets are a partial description (they say where
+  // the interesting parts are).
+  const fmt = armed ? undefined : sanitizeFormatting(content, formatting);
+
+  const messageId = await ctx.db.insert("messages", {
+    roomId,
+    userId,
+    content,
+    createdAt: Date.now(),
+    type: msgType,
+    mediaStorageId,
+    // Deliberately dropped on an armed send. The sealed tile is a fixed size,
+    // so the picture's true aspect ratio buys the receiver nothing and is one
+    // more thing leaking out of a message whose whole point is to leak
+    // nothing until it's opened.
+    mediaWidth: armed ? undefined : mediaWidth,
+    mediaHeight: armed ? undefined : mediaHeight,
+    // Dropped on an armed send for the same reason, and for one more: a
+    // filename is content. No UI can arm a document today, so this is
+    // defence in depth rather than a live case — but it is the sort of
+    // thing that stops being true quietly.
+    fileName: armed ? undefined : fileName,
+    fileSize: armed ? undefined : fileSize,
+    mimeType: armed ? undefined : mimeType,
+    mediaDurationMs: armed ? undefined : mediaDurationMs,
+    // THE guard, not a redundancy. `sanitizeViewOnce` lists this field too,
+    // but that is a hardcoded list on the read path; the poster must never
+    // reach storage in the first place, because `files:getFileUrl` refuses a
+    // view-once blob via `by_media` — an index that cannot see this id.
+    posterStorageId: armed ? undefined : posterStorageId,
+    // Which shared-content tab this belongs in, or nothing. Passing
+    // `mediaStorageId !== undefined` rather than `msgType` alone is what
+    // keeps a failed upload out of the grid — see `galleryBucketFor`.
+    galleryBucket: galleryBucketFor(
+      msgType,
+      mediaStorageId !== undefined,
+      armed
+    ),
+    // Left absent rather than written `false`, so the LINKS index holds only
+    // rows that belong in it. Armed messages are excluded for the same
+    // reason they get no bucket: a sealed photo's caption is not shared
+    // content anybody may browse. A `formatting` link entity counts too —
+    // "check this out" carrying a URL belongs in the LINKS tab exactly as
+    // much as the bare URL would have.
+    ...(!armed &&
+    (LINK_PATTERN.test(content) || (fmt?.some((f) => f.type === "link") ?? false))
+      ? { hasLink: true }
+      : {}),
+    ...(fmt ? { formatting: fmt } : {}),
+    senderName: resolvedSenderName,
+    expiresAt,
+    // Stored so the retry that arrives after this one commits can find it.
+    clientId,
+    ...viewOnceFields,
+    ...locationFields,
+    ...liveFields,
+    ...(replyToPreview
+      ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
+      : {}),
+    ...(resolvedMentions ? { mentions: resolvedMentions } : {}),
+    ...(everyone ? { mentionsEveryone: true } : {}),
+  });
+
+  // Schedule server-side deletion for self-destructing messages
+  if (expiresAt !== undefined) {
+    await ctx.scheduler.runAt(
+      new Date(expiresAt),
+      internal.messages.expireMessage,
+      { messageId }
     );
+  }
 
-    // Formatting spans, clamped to the text they describe. Dropped entirely
-    // on an armed send for the reason the caption's `hasLink` is below: a
-    // sealed photo's caption is content the row must not describe before it
-    // is opened, and span offsets are a partial description (they say where
-    // the interesting parts are).
-    const fmt = armed ? undefined : sanitizeFormatting(content, formatting);
-
-    const messageId = await ctx.db.insert("messages", {
-      roomId,
-      userId,
-      content,
-      createdAt: Date.now(),
-      type: msgType,
-      mediaStorageId,
-      // Deliberately dropped on an armed send. The sealed tile is a fixed size,
-      // so the picture's true aspect ratio buys the receiver nothing and is one
-      // more thing leaking out of a message whose whole point is to leak
-      // nothing until it's opened.
-      mediaWidth: armed ? undefined : mediaWidth,
-      mediaHeight: armed ? undefined : mediaHeight,
-      // Dropped on an armed send for the same reason, and for one more: a
-      // filename is content. No UI can arm a document today, so this is
-      // defence in depth rather than a live case — but it is the sort of
-      // thing that stops being true quietly.
-      fileName: armed ? undefined : fileName,
-      fileSize: armed ? undefined : fileSize,
-      mimeType: armed ? undefined : mimeType,
-      mediaDurationMs: armed ? undefined : mediaDurationMs,
-      // THE guard, not a redundancy. `sanitizeViewOnce` lists this field too,
-      // but that is a hardcoded list on the read path; the poster must never
-      // reach storage in the first place, because `files:getFileUrl` refuses a
-      // view-once blob via `by_media` — an index that cannot see this id.
-      posterStorageId: armed ? undefined : posterStorageId,
-      // Which shared-content tab this belongs in, or nothing. Passing
-      // `mediaStorageId !== undefined` rather than `msgType` alone is what
-      // keeps a failed upload out of the grid — see `galleryBucketFor`.
-      galleryBucket: galleryBucketFor(
-        msgType,
-        mediaStorageId !== undefined,
-        armed
-      ),
-      // Left absent rather than written `false`, so the LINKS index holds only
-      // rows that belong in it. Armed messages are excluded for the same
-      // reason they get no bucket: a sealed photo's caption is not shared
-      // content anybody may browse. A `formatting` link entity counts too —
-      // "check this out" carrying a URL belongs in the LINKS tab exactly as
-      // much as the bare URL would have.
-      ...(!armed &&
-      (LINK_PATTERN.test(content) || (fmt?.some((f) => f.type === "link") ?? false))
-        ? { hasLink: true }
-        : {}),
-      ...(fmt ? { formatting: fmt } : {}),
-      senderName: resolvedSenderName,
-      expiresAt,
-      // Stored so the retry that arrives after this one commits can find it.
-      clientId,
-      ...viewOnceFields,
-      ...locationFields,
-      ...liveFields,
-      ...(replyToPreview
-        ? { replyToId: resolvedReplyToId, replyToPreview, rootId: resolvedRootId }
-        : {}),
-      ...(resolvedMentions ? { mentions: resolvedMentions } : {}),
-      ...(everyone ? { mentionsEveryone: true } : {}),
-    });
-
-    // Schedule server-side deletion for self-destructing messages
-    if (expiresAt !== undefined) {
-      await ctx.scheduler.runAt(
-        new Date(expiresAt),
-        internal.messages.expireMessage,
-        { messageId }
-      );
-    }
-
-    // Hard deadline for an armed photo nobody ever opens. The per-message
-    // schedule is the primary mechanism — `gcExpiredViewOnce` is only a repair
-    // sweep for anything the scheduler dropped.
-    if (armed) {
+  // Hard deadline for an armed photo nobody ever opens. The per-message
+  // schedule is the primary mechanism — `gcExpiredViewOnce` is only a repair
+  // sweep for anything the scheduler dropped.
+  if (armed) {
+    await ctx.scheduler.runAfter(
+      VIEW_ONCE_DEADLINE_MS,
+      internal.messages.burnViewOnce,
+      { messageId }
+    );
+    // A room with exactly one member has no recipients at all, so the
+    // "everyone has seen it" condition is already true on arrival. Without
+    // this the blob would idle for the full deadline.
+    if ((viewOnceFields.viewOnceRecipients ?? 0) === 0) {
       await ctx.scheduler.runAfter(
-        VIEW_ONCE_DEADLINE_MS,
+        VIEW_ONCE_BURN_GRACE_MS,
         internal.messages.burnViewOnce,
         { messageId }
       );
-      // A room with exactly one member has no recipients at all, so the
-      // "everyone has seen it" condition is already true on arrival. Without
-      // this the blob would idle for the full deadline.
-      if ((viewOnceFields.viewOnceRecipients ?? 0) === 0) {
-        await ctx.scheduler.runAfter(
-          VIEW_ONCE_BURN_GRACE_MS,
-          internal.messages.burnViewOnce,
-          { messageId }
-        );
-      }
     }
+  }
 
-    // The share's own deadline. THE mechanism, not a backstop: nothing else
-    // stops a live share, because the client that started it may be force-quit,
-    // out of battery, or in a tunnel when its time is up. `gcExpiredLiveShares`
-    // exists only for the case where this schedule is lost.
-    if (liveFields.liveExpiresAt !== undefined) {
-      await ctx.scheduler.runAt(
-        new Date(liveFields.liveExpiresAt),
-        internal.messages.expireLiveLocation,
-        { messageId }
-      );
+  // The share's own deadline. THE mechanism, not a backstop: nothing else
+  // stops a live share, because the client that started it may be force-quit,
+  // out of battery, or in a tunnel when its time is up. `gcExpiredLiveShares`
+  // exists only for the case where this schedule is lost.
+  if (liveFields.liveExpiresAt !== undefined) {
+    await ctx.scheduler.runAt(
+      new Date(liveFields.liveExpiresAt),
+      internal.messages.expireLiveLocation,
+      { messageId }
+    );
 
-      // Starting a share supersedes the sender's previous one in this room.
-      // Two live bubbles in one transcript is a UI nobody can read — which of
-      // them is you? — and only one of them can be fed anyway, because the
-      // client runs a single publisher. Ending the old one here rather than
-      // client-side means it also happens when the new share is started from a
-      // second device.
-      //
-      // Bounded by `.take()` and scoped to the currently-live bucket, which is
-      // the whole deployment's concurrent shares rather than this room's
-      // history — a set measured in tens, not in messages. The cap is a
-      // guarantee about the read set, not an expectation about the data: if it
-      // is ever hit, the extra share still expires on its own schedule.
-      const otherLive = await ctx.db
-        .query("messages")
-        .withIndex("by_liveLocation_live_expiry", (q) =>
-          q.eq("liveShareLive", true)
-        )
-        .take(LIVE_SHARE_SUPERSEDE_SCAN_LIMIT);
-      for (const other of otherLive) {
-        if (other._id === messageId) continue;
-        if (other.roomId.toString() !== roomId.toString()) continue;
-        if (other.userId.toString() !== userId.toString()) continue;
-        await endLiveShare(ctx, other, Date.now());
-      }
+    // Starting a share supersedes the sender's previous one in this room.
+    // Two live bubbles in one transcript is a UI nobody can read — which of
+    // them is you? — and only one of them can be fed anyway, because the
+    // client runs a single publisher. Ending the old one here rather than
+    // client-side means it also happens when the new share is started from a
+    // second device.
+    //
+    // Bounded by `.take()` and scoped to the currently-live bucket, which is
+    // the whole deployment's concurrent shares rather than this room's
+    // history — a set measured in tens, not in messages. The cap is a
+    // guarantee about the read set, not an expectation about the data: if it
+    // is ever hit, the extra share still expires on its own schedule.
+    const otherLive = await ctx.db
+      .query("messages")
+      .withIndex("by_liveLocation_live_expiry", (q: any) =>
+        q.eq("liveShareLive", true)
+      )
+      .take(LIVE_SHARE_SUPERSEDE_SCAN_LIMIT);
+    for (const other of otherLive) {
+      if (other._id === messageId) continue;
+      if (other.roomId.toString() !== roomId.toString()) continue;
+      if (other.userId.toString() !== userId.toString()) continue;
+      await endLiveShare(ctx, other, Date.now());
     }
+  }
 
-    // Update room's last message preview
-    const preview = roomPreviewFor({
-      type: msgType,
-      content,
-      fileName,
-      viewOnce: armed,
-    });
-    await ctx.db.patch(roomId, {
-      lastMessage: preview,
-      lastMessageTime: Date.now(),
-    });
+  // Update room's last message preview
+  const preview = roomPreviewFor({
+    type: msgType,
+    content,
+    fileName,
+    viewOnce: armed,
+  });
+  await ctx.db.patch(roomId, {
+    lastMessage: preview,
+    lastMessageTime: Date.now(),
+  });
 
-    // Fire push notifications in background (non-blocking)
-    await ctx.scheduler.runAfter(0, internal.notifications.sendMessagePush, {
-      roomId,
-      messageId,
-      senderId: userId,
-      senderName: resolvedSenderName,
-      content: preview,
-      type: msgType,
-      // Post-validation, so nobody gets a "mentioned you" banner for a mention
-      // that was rejected above and isn't on the stored row.
-      mentionedUserIds: resolvedMentions?.map((m) => m.userId),
-      mentionsEveryone: everyone ? true : undefined,
-    });
+  // Fire push notifications in background (non-blocking)
+  await ctx.scheduler.runAfter(0, internal.notifications.sendMessagePush, {
+    roomId,
+    messageId,
+    senderId: userId,
+    senderName: resolvedSenderName,
+    content: preview,
+    type: msgType,
+    // Post-validation, so nobody gets a "mentioned you" banner for a mention
+    // that was rejected above and isn't on the stored row.
+    mentionedUserIds: resolvedMentions?.map((m) => m.userId),
+    mentionsEveryone: everyone ? true : undefined,
+  });
 
-    return messageId;
-  },
-});
+  return messageId;
+}
 
 // ── Live location ───────────────────────────────────────────────────────────
 //
