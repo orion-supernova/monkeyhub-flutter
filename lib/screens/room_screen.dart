@@ -792,8 +792,21 @@ class _RoomScreenState extends State<RoomScreen>
       return;
     }
 
-    final at = await showScheduleMessageSheet(context, preview: text);
-    if (at == null || !mounted) return;
+    final choice = await showScheduleMessageSheet(
+      context,
+      preview: text,
+      queuedCount: widget.repo.pendingScheduledCount(widget.roomId),
+    );
+    if (!mounted) return;
+    // The queue row is the only way into the list when the pill is switched
+    // off, so it lands here rather than opening a second sheet over this one.
+    // The composer is left exactly as it was — nothing was scheduled.
+    if (choice is ScheduleShowQueued) {
+      _openScheduledList();
+      return;
+    }
+    if (choice is! ScheduleAt) return;
+    final at = choice.at;
 
     final replyTarget = _replyingTo;
     final mentions = _composer.mentions;
@@ -849,8 +862,7 @@ class _RoomScreenState extends State<RoomScreen>
   /// An edit is different: it is a transient mode the user armed a moment ago
   /// and can cancel, so the absent gesture reads as "not now" rather than as a
   /// broken button.
-  VoidCallback? _composerSchedule(ChatRoom room) =>
-      _editing != null ? null : _scheduleSend;
+  VoidCallback? get _composerSchedule => _editing != null ? null : _scheduleSend;
 
   void _openScheduledList() {
     showScheduledListSheet(
@@ -2241,6 +2253,10 @@ class _RoomScreenState extends State<RoomScreen>
 
   Widget _buildClassic(BuildContext context, ChatRoom room, List<ChatMessage> messages, List<RoomItem> items, String me) {
     final theme = ThemeScope.of(context);
+    // Read once, not once per reference — this branch used to call
+    // `scheduledFor` twice in the same build while the liquid one cached it.
+    final scheduled = widget.repo.scheduledFor(room.id);
+    final indicator = SettingsStore.instance.scheduledIndicator;
     return SafeArea(
       child: Column(
         children: [
@@ -2325,9 +2341,9 @@ class _RoomScreenState extends State<RoomScreen>
                 // describe the message being written right now, this describes
                 // messages already written, so it belongs further from the
                 // field. Zero-height when the room has none queued.
-                if (widget.repo.scheduledFor(room.id).isNotEmpty)
+                if (indicator.showsPill && scheduled.isNotEmpty)
                   ScheduledPill(
-                    scheduled: widget.repo.scheduledFor(room.id),
+                    scheduled: scheduled,
                     onTap: _openScheduledList,
                   ),
                 ChatComposerClassic(
@@ -2335,8 +2351,10 @@ class _RoomScreenState extends State<RoomScreen>
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
                   onSend: _send,
-                  onSchedule: _composerSchedule(room),
-                  scheduledCount: widget.repo.pendingScheduledCount(room.id),
+                  onSchedule: _composerSchedule,
+                  scheduledCount: indicator.showsBadge
+                      ? widget.repo.pendingScheduledCount(room.id)
+                      : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,
@@ -2379,8 +2397,13 @@ class _RoomScreenState extends State<RoomScreen>
     // would leave a permanent gap above the composer for chrome that is usually
     // absent. The pill is persistent, so it owns its space.
     final scheduled = widget.repo.scheduledFor(room.id);
-    final bottomChromeH =
-        60.0 + (scheduled.isEmpty ? 0.0 : kScheduledPillHeight);
+    final indicator = SettingsStore.instance.scheduledIndicator;
+    // The SAME condition the pill itself is built under, deliberately spelled
+    // once into a local both read. Reserving for a pill that is switched off
+    // leaves a permanent gap; building one whose space is not reserved puts it
+    // on top of the newest message.
+    final bottomChromeH = 60.0 +
+        (indicator.showsPill && scheduled.isNotEmpty ? kScheduledPillHeight : 0.0);
     final listPadding = EdgeInsets.fromLTRB(
       20,
       topSafe + topChromeH + 12,
@@ -2468,7 +2491,7 @@ class _RoomScreenState extends State<RoomScreen>
                 // Mirrors the classic column above. Unlike the reply card and
                 // the mention picker beside it, this one has its space reserved
                 // in `bottomChromeH` — see the note there.
-                if (scheduled.isNotEmpty)
+                if (indicator.showsPill && scheduled.isNotEmpty)
                   ScheduledPill(
                     scheduled: scheduled,
                     onTap: _openScheduledList,
@@ -2478,8 +2501,10 @@ class _RoomScreenState extends State<RoomScreen>
                   focusNode: _composerFocus,
                   ephemeral: room.isEphemeral,
                   onSend: _send,
-                  onSchedule: _composerSchedule(room),
-                  scheduledCount: widget.repo.pendingScheduledCount(room.id),
+                  onSchedule: _composerSchedule,
+                  scheduledCount: indicator.showsBadge
+                      ? widget.repo.pendingScheduledCount(room.id)
+                      : 0,
                   onChanged: (_) => widget.repo.noteTyping(),
                   onAttach: _onAttach,
                   onCamera: _onCamera,

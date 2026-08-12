@@ -6011,8 +6011,8 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6092,4 +6092,43 @@ class AppLocalizationsKo extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => '표시 방법';
+
+  @override
+  String get scheduledIndicatorPill => '바';
+
+  @override
+  String get scheduledIndicatorBadge => '배지';
+
+  @override
+  String get scheduledIndicatorBoth => '둘 다';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '이미 기다리는 메시지 $count개',
+      zero: '보내기를 기다리는 게 없어요',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => '어떻게 보여줄까요';
+
+  @override
+  String get scheduledIndicatorPillSub => '입력창 위의 바. 탭하면 목록이 열려요.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      '보내기 버튼의 숫자. 입력을 시작하기 전에는 아무것도 보이지 않아요.';
+
+  @override
+  String get scheduledIndicatorBothSub => '바와, 입력 중에 보이는 숫자까지.';
+
+  @override
+  String get scheduledBack => '뒤로';
 }

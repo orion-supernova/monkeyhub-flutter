@@ -138,6 +138,62 @@ void main() {
         expect(sends, 0, reason: 'the hold must not also send the message');
       });
 
+      testWidgets('a tap never starts the hold ring', (tester) async {
+        // The regression this exists for: `onLongPressDown` fires on
+        // POINTER-DOWN, before the recognizer knows whether this is a tap or a
+        // hold. Starting the sweep there made every ordinary send flash a stub
+        // of arc and then spend up to 400ms reversing it. A lead-in timer, not
+        // an opacity threshold — with a threshold the animation is still
+        // running and the only question is how much of it you can see.
+        await tester.pumpWidget(host(build(onSchedule: () {})));
+        await tester.pumpAndSettle();
+
+        // The ring's painter is private, and the liquid button paints its own
+        // glass, so this counts CustomPaints rather than naming one: at rest is
+        // the baseline, and the ring is the only thing that can add to it.
+        int paints() => find.byType(CustomPaint).evaluate().length;
+        final atRest = paints();
+
+        final gesture = await tester.startGesture(tester.getCenter(send));
+        // A brisk tap: well inside the lead-in.
+        await tester.pump(const Duration(milliseconds: 60));
+        expect(
+          paints(),
+          atRest,
+          reason: 'the ring must not appear during an ordinary tap',
+        );
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(paints(), atRest);
+      });
+
+      testWidgets('a deliberate hold does show the ring', (tester) async {
+        // The other half: the lead-in must not have disabled the affordance.
+        await tester.pumpWidget(host(build(onSchedule: () {})));
+        await tester.pumpAndSettle();
+
+        int paints() => find.byType(CustomPaint).evaluate().length;
+        final atRest = paints();
+
+        final gesture = await tester.startGesture(tester.getCenter(send));
+        // Two pumps, not one. The first advances the clock past the lead-in so
+        // the timer fires and calls `forward` — but the controller is still at
+        // zero for that frame. The second is the tick that actually moves it.
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump(const Duration(milliseconds: 60));
+        expect(
+          paints(),
+          greaterThan(atRest),
+          reason: 'past the lead-in, a hold has to show it is going somewhere',
+        );
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        // Withdrawn instantly on release, not reversed over the full duration.
+        expect(paints(), atRest);
+      });
+
       testWidgets('a tap still sends', (tester) async {
         var sends = 0;
         var schedules = 0;

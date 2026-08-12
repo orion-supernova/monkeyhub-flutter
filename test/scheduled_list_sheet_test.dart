@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:monkeyhub/data/chat_repository.dart';
+import 'package:monkeyhub/data/settings_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations_en.dart';
 import 'package:monkeyhub/models/scheduled_message.dart';
@@ -67,7 +69,18 @@ void main() {
         ),
       );
 
+  /// A phone, not the 800x600 default. Both views are bounded and scrollable,
+  /// so on the default surface the lower half sits below the fold and every
+  /// `tap` misses — which says nothing about the sheet and everything about the
+  /// viewport.
+  void phone(WidgetTester tester) {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
+
   Future<void> open(WidgetTester tester, List<ScheduledMessage> rows) async {
+    phone(tester);
     await tester.pumpWidget(host(rows));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -138,6 +151,7 @@ void main() {
     tester,
   ) async {
     final repo = _FakeRepo([msg('s1', 'bye')]);
+    phone(tester);
     await tester.pumpWidget(MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -187,6 +201,70 @@ void main() {
           en.scheduleErrorGeneric);
     });
   });
+
+  group('indicator preference', () {
+    testWidgets('offers all three and persists the choice', (tester) async {
+      // The control lives in this sheet rather than in Settings, so this is the
+      // only place it can be exercised. Both halves matter: `showsPill` and
+      // `showsBadge` are what `room_screen` builds its chrome from, and the
+      // liquid style's transcript padding follows `showsPill` — get the mapping
+      // wrong and the newest bubble hides under the composer.
+      // `SettingsStore`'s setters await `FlutterSecureStorage.write`, and with
+      // no platform behind it that future never completes — the first version
+      // of this test sat there for the full ten-minute timeout. An in-memory
+      // double, the `device_identity_test.dart` pattern.
+      FlutterSecureStoragePlatform.instance = _MemoryStorage();
+      await open(tester, [msg('s1', 'later')]);
+
+      // The choice lives behind a row now, as its own view — one tap in.
+      await tester.tap(find.text(en.scheduledListShowAsRow));
+      await tester.pumpAndSettle();
+
+      expect(find.text(en.scheduledIndicatorPill), findsOneWidget);
+      expect(find.text(en.scheduledIndicatorBadge), findsOneWidget);
+      expect(find.text(en.scheduledIndicatorBoth), findsOneWidget);
+      // Each choice explains itself and draws what it does; three words could
+      // not say that the badge is invisible until you type.
+      expect(find.text(en.scheduledIndicatorBadgeSub), findsOneWidget);
+
+      await tester.tap(find.text(en.scheduledIndicatorBadge));
+      await tester.pumpAndSettle();
+      expect(SettingsStore.instance.scheduledIndicator,
+          ScheduledIndicator.badge);
+
+      await tester.tap(find.text(en.scheduledIndicatorBoth));
+      await tester.pumpAndSettle();
+      expect(SettingsStore.instance.scheduledIndicator,
+          ScheduledIndicator.both);
+
+      // Back returns to the list rather than closing the sheet.
+      await tester.tap(find.text(en.scheduledBack));
+      await tester.pumpAndSettle();
+      expect(find.text(en.scheduledListTitle), findsOneWidget);
+
+      // Put it back, so this test cannot leak into another through the
+      // singleton.
+      await SettingsStore.instance
+          .setScheduledIndicator(ScheduledIndicator.pill);
+    });
+
+    test('each choice maps to the chrome it names', () {
+      expect(ScheduledIndicator.pill.showsPill, isTrue);
+      expect(ScheduledIndicator.pill.showsBadge, isFalse);
+      expect(ScheduledIndicator.badge.showsPill, isFalse);
+      expect(ScheduledIndicator.badge.showsBadge, isTrue);
+      expect(ScheduledIndicator.both.showsPill, isTrue);
+      expect(ScheduledIndicator.both.showsBadge, isTrue);
+    });
+
+    test('an unknown or absent stored name falls back to the pill', () {
+      // The only choice that stands alone — the badge rides on the send button,
+      // which does not exist while the composer is empty.
+      expect(ScheduledIndicator.parse(null), ScheduledIndicator.pill);
+      expect(ScheduledIndicator.parse('nonsense'), ScheduledIndicator.pill);
+      expect(ScheduledIndicator.parse('both'), ScheduledIndicator.both);
+    });
+  });
 }
 
 /// Real enough to drive the sheet: it is a `ChangeNotifier` because the sheet
@@ -209,4 +287,50 @@ class _FakeRepo extends ChangeNotifier implements ChatRepository {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+}
+
+/// In-memory stand-in for the keychain, so `SettingsStore`'s writes complete.
+class _MemoryStorage extends FlutterSecureStoragePlatform {
+  final Map<String, String> _values = {};
+
+  @override
+  Future<bool> containsKey({
+    required String key,
+    required Map<String, String> options,
+  }) async =>
+      _values.containsKey(key);
+
+  @override
+  Future<void> delete({
+    required String key,
+    required Map<String, String> options,
+  }) async =>
+      _values.remove(key);
+
+  @override
+  Future<void> deleteAll({required Map<String, String> options}) async =>
+      _values.clear();
+
+  @override
+  Future<String?> read({
+    required String key,
+    required Map<String, String> options,
+  }) async =>
+      _values[key];
+
+  @override
+  Future<Map<String, String>> readAll({
+    required Map<String, String> options,
+  }) async =>
+      Map.of(_values);
+
+  @override
+  Future<void> write({
+    required String key,
+    required String value,
+    required Map<String, String> options,
+  }) async {
+    _values[key] = value;
+  }
 }

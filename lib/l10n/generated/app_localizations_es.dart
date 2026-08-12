@@ -6296,8 +6296,8 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6382,4 +6382,46 @@ class AppLocalizationsEs extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'MOSTRAR COMO';
+
+  @override
+  String get scheduledIndicatorPill => 'Píldora';
+
+  @override
+  String get scheduledIndicatorBadge => 'Insignia';
+
+  @override
+  String get scheduledIndicatorBoth => 'Ambos';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensajes ya en espera',
+      one: '1 mensaje ya en espera',
+      zero: 'Nada pendiente de enviar',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Cómo se muestran';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'Una barra sobre el cuadro de texto. Tócala para verlos.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'Un número en el botón de enviar. No se ve nada hasta que empiezas a escribir.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'La barra, más el número mientras escribes.';
+
+  @override
+  String get scheduledBack => 'Atrás';
 }

@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "Hoy",
   "scheduleTimePickerTomorrow": "Mañana",
   "scheduledPillLabel": "{count, plural, one{1 PROGRAMADO} other{{count} PROGRAMADOS}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, one{1 mensaje pendiente de enviar. Toca para verlo.} other{{count} mensajes pendientes de enviar. Toca para verlos.}}",
   "scheduledPillAttention": "REVÍSALO",
   "scheduledListTitle": "PROGRAMADOS",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "No ha funcionado. Inténtalo de nuevo.",
   "scheduleEditTitle": "EDITAR MENSAJE",
   "composerScheduleAction": "Programar este mensaje",
-  "composerScheduledBadgeSemantics": "{count, plural, one{1 mensaje pendiente de enviar} other{{count} mensajes pendientes de enviar}}"
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 mensaje pendiente de enviar} other{{count} mensajes pendientes de enviar}}",
+  "scheduledListShowAs": "MOSTRAR COMO",
+  "scheduledIndicatorPill": "Píldora",
+  "scheduledIndicatorBadge": "Insignia",
+  "scheduledIndicatorBoth": "Ambos",
+  "scheduleSheetQueuedRow": "{count, plural, zero{Nada pendiente de enviar} one{1 mensaje ya en espera} other{{count} mensajes ya en espera}}",
+  "scheduledListShowAsRow": "Cómo se muestran",
+  "scheduledIndicatorPillSub": "Una barra sobre el cuadro de texto. Tócala para verlos.",
+  "scheduledIndicatorBadgeSub": "Un número en el botón de enviar. No se ve nada hasta que empiezas a escribir.",
+  "scheduledIndicatorBothSub": "La barra, más el número mientras escribes.",
+  "scheduledBack": "Atrás"
 }

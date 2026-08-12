@@ -6336,8 +6336,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6423,4 +6423,46 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'AFFICHER COMME';
+
+  @override
+  String get scheduledIndicatorPill => 'Pastille';
+
+  @override
+  String get scheduledIndicatorBadge => 'Badge';
+
+  @override
+  String get scheduledIndicatorBoth => 'Les deux';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages déjà en attente',
+      one: '1 message déjà en attente',
+      zero: 'Rien en attente d’envoi',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Comment ils apparaissent';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'Une barre au-dessus de la zone de texte. Touchez-la pour les voir.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'Un compteur sur le bouton d’envoi. Rien ne s’affiche tant que vous n’écrivez pas.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'La barre, plus le compteur pendant que vous écrivez.';
+
+  @override
+  String get scheduledBack => 'Retour';
 }

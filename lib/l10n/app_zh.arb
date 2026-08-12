@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "今天",
   "scheduleTimePickerTomorrow": "明天",
   "scheduledPillLabel": "{count, plural, other{{count} 条待发}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, other{有 {count} 条消息等待发送。点按查看。}}",
   "scheduledPillAttention": "需要处理",
   "scheduledListTitle": "待发送",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "没成功，请再试一次。",
   "scheduleEditTitle": "修改消息",
   "composerScheduleAction": "定时发送这条消息",
-  "composerScheduledBadgeSemantics": "{count, plural, other{有 {count} 条消息等待发送}}"
+  "composerScheduledBadgeSemantics": "{count, plural, other{有 {count} 条消息等待发送}}",
+  "scheduledListShowAs": "显示方式",
+  "scheduledIndicatorPill": "横条",
+  "scheduledIndicatorBadge": "角标",
+  "scheduledIndicatorBoth": "两者",
+  "scheduleSheetQueuedRow": "{count, plural, zero{没有等待发送的消息} other{已有 {count} 条在等待}}",
+  "scheduledListShowAsRow": "如何显示",
+  "scheduledIndicatorPillSub": "输入框上方的横条。点按即可查看。",
+  "scheduledIndicatorBadgeSub": "发送按钮上的数字。开始输入前不会显示任何内容。",
+  "scheduledIndicatorBothSub": "横条，加上输入时的数字。",
+  "scheduledBack": "返回"
 }

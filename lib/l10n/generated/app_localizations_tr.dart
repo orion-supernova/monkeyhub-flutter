@@ -6205,8 +6205,8 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6289,4 +6289,44 @@ class AppLocalizationsTr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'NASIL GÖSTERİLSİN';
+
+  @override
+  String get scheduledIndicatorPill => 'Şerit';
+
+  @override
+  String get scheduledIndicatorBadge => 'Rozet';
+
+  @override
+  String get scheduledIndicatorBoth => 'İkisi de';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zaten bekleyen $count mesaj',
+      zero: 'Gönderilmeyi bekleyen bir şey yok',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Nasıl görünsünler';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'Yazma kutusunun üstünde bir şerit. Görmek için dokun.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'Gönder düğmesinde bir sayı. Yazmaya başlayana kadar hiçbir şey görünmez.';
+
+  @override
+  String get scheduledIndicatorBothSub => 'Şerit ve yazarken görünen sayı.';
+
+  @override
+  String get scheduledBack => 'Geri';
 }

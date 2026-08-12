@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "आज",
   "scheduleTimePickerTomorrow": "कल",
   "scheduledPillLabel": "{count, plural, one{1 शेड्यूल किया} other{{count} शेड्यूल किए}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, one{1 संदेश भेजे जाने का इंतज़ार कर रहा है। देखने के लिए टैप करें।} other{{count} संदेश भेजे जाने का इंतज़ार कर रहे हैं। देखने के लिए टैप करें।}}",
   "scheduledPillAttention": "ध्यान दें",
   "scheduledListTitle": "शेड्यूल किए गए",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "यह नहीं हो पाया। फिर कोशिश करें।",
   "scheduleEditTitle": "संदेश बदलें",
   "composerScheduleAction": "यह संदेश शेड्यूल करें",
-  "composerScheduledBadgeSemantics": "{count, plural, one{1 संदेश भेजे जाने के इंतज़ार में} other{{count} संदेश भेजे जाने के इंतज़ार में}}"
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 संदेश भेजे जाने के इंतज़ार में} other{{count} संदेश भेजे जाने के इंतज़ार में}}",
+  "scheduledListShowAs": "कैसे दिखाएँ",
+  "scheduledIndicatorPill": "पट्टी",
+  "scheduledIndicatorBadge": "बैज",
+  "scheduledIndicatorBoth": "दोनों",
+  "scheduleSheetQueuedRow": "{count, plural, zero{भेजे जाने के इंतज़ार में कुछ नहीं} one{1 संदेश पहले से इंतज़ार में} other{{count} संदेश पहले से इंतज़ार में}}",
+  "scheduledListShowAsRow": "ये कैसे दिखें",
+  "scheduledIndicatorPillSub": "लिखने के बॉक्स के ऊपर एक पट्टी। देखने के लिए टैप करें।",
+  "scheduledIndicatorBadgeSub": "भेजें बटन पर एक संख्या। जब तक आप लिखना शुरू न करें, कुछ नहीं दिखता।",
+  "scheduledIndicatorBothSub": "पट्टी, और लिखते समय संख्या भी।",
+  "scheduledBack": "वापस"
 }

@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "I dag",
   "scheduleTimePickerTomorrow": "I morgon",
   "scheduledPillLabel": "{count, plural, one{1 SCHEMALAGT} other{{count} SCHEMALAGDA}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, one{1 meddelande väntar på att skickas. Tryck för att se det.} other{{count} meddelanden väntar på att skickas. Tryck för att se dem.}}",
   "scheduledPillAttention": "SE HÄR",
   "scheduledListTitle": "SCHEMALAGDA",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "Det gick inte. Försök igen.",
   "scheduleEditTitle": "ÄNDRA MEDDELANDE",
   "composerScheduleAction": "Schemalägg det här meddelandet",
-  "composerScheduledBadgeSemantics": "{count, plural, one{1 meddelande väntar på att skickas} other{{count} meddelanden väntar på att skickas}}"
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 meddelande väntar på att skickas} other{{count} meddelanden väntar på att skickas}}",
+  "scheduledListShowAs": "VISA SOM",
+  "scheduledIndicatorPill": "Pillerknapp",
+  "scheduledIndicatorBadge": "Bricka",
+  "scheduledIndicatorBoth": "Båda",
+  "scheduleSheetQueuedRow": "{count, plural, zero{Inget väntar på att skickas} one{1 meddelande väntar redan} other{{count} meddelanden väntar redan}}",
+  "scheduledListShowAsRow": "Hur de visas",
+  "scheduledIndicatorPillSub": "En rad ovanför skrivfältet. Tryck för att se dem.",
+  "scheduledIndicatorBadgeSub": "En siffra på skicka-knappen. Inget syns förrän du börjar skriva.",
+  "scheduledIndicatorBothSub": "Raden, plus siffran medan du skriver.",
+  "scheduledBack": "Tillbaka"
 }

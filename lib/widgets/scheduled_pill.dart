@@ -55,25 +55,14 @@ class ScheduledPill extends StatelessWidget {
     final count = pending.length;
     final label = l10n.scheduledPillLabel(count);
 
-    // The trailing half: normally the next send time, but a failure outranks it.
-    // Somebody whose message could not go out needs to know that before they
-    // need to know when the next one is due.
+    // The trailing half: a failure outranks the normal display.
+    // Somebody whose message could not go out needs to know that.
     final String text;
     if (failed && count == 0) {
-      // Nothing left in flight, only the wreckage. "0 SCHEDULED · NEEDS YOU"
-      // is a count of nothing followed by a demand; the demand alone is the
-      // whole message.
+      // Nothing left in flight, only the wreckage.
       text = l10n.scheduledPillAttention;
     } else if (failed) {
       text = l10n.scheduledPillJoin(label, l10n.scheduledPillAttention);
-    } else if (pending.isNotEmpty) {
-      text = l10n.scheduledPillJoin(
-        label,
-        MaterialLocalizations.of(context).formatTimeOfDay(
-          TimeOfDay.fromDateTime(pending.first.sendAt),
-          alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-        ),
-      );
     } else {
       text = label;
     }

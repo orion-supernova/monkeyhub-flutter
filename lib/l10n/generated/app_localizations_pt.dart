@@ -6309,8 +6309,8 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6395,6 +6395,48 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'MOSTRAR COMO';
+
+  @override
+  String get scheduledIndicatorPill => 'Cápsula';
+
+  @override
+  String get scheduledIndicatorBadge => 'Emblema';
+
+  @override
+  String get scheduledIndicatorBoth => 'Ambos';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens já à espera',
+      one: '1 mensagem já à espera',
+      zero: 'Nada à espera de envio',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Como aparecem';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'Uma barra acima da caixa de texto. Toque para as ver.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'Um número no botão de enviar. Não aparece nada até começar a escrever.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'A barra, mais o número enquanto escreve.';
+
+  @override
+  String get scheduledBack => 'Voltar';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -12697,8 +12739,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -12785,4 +12827,46 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'MOSTRAR COMO';
+
+  @override
+  String get scheduledIndicatorPill => 'Cápsula';
+
+  @override
+  String get scheduledIndicatorBadge => 'Selo';
+
+  @override
+  String get scheduledIndicatorBoth => 'Ambos';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensagens já esperando',
+      one: '1 mensagem já esperando',
+      zero: 'Nada esperando para ser enviado',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Como aparecem';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'Uma barra acima da caixa de texto. Toque para vê-las.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'Um número no botão de enviar. Nada aparece até você começar a digitar.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'A barra, mais o número enquanto você digita.';
+
+  @override
+  String get scheduledBack => 'Voltar';
 }

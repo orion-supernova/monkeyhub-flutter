@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "今日",
   "scheduleTimePickerTomorrow": "明日",
   "scheduledPillLabel": "{count, plural, other{予約 {count} 件}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, other{送信待ちのメッセージが{count}件あります。タップして表示します。}}",
   "scheduledPillAttention": "要確認",
   "scheduledListTitle": "予約済み",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "うまくいきませんでした。もう一度試してください。",
   "scheduleEditTitle": "メッセージを編集",
   "composerScheduleAction": "このメッセージを予約",
-  "composerScheduledBadgeSemantics": "{count, plural, other{送信待ちのメッセージ{count}件}}"
+  "composerScheduledBadgeSemantics": "{count, plural, other{送信待ちのメッセージ{count}件}}",
+  "scheduledListShowAs": "表示方法",
+  "scheduledIndicatorPill": "バー",
+  "scheduledIndicatorBadge": "バッジ",
+  "scheduledIndicatorBoth": "両方",
+  "scheduleSheetQueuedRow": "{count, plural, zero{送信待ちのものはありません} other{すでに{count}件が送信待ち}}",
+  "scheduledListShowAsRow": "表示のしかた",
+  "scheduledIndicatorPillSub": "入力欄の上のバー。タップすると一覧が開きます。",
+  "scheduledIndicatorBadgeSub": "送信ボタンの数字。入力を始めるまで何も表示されません。",
+  "scheduledIndicatorBothSub": "バーと、入力中に出る数字の両方。",
+  "scheduledBack": "戻る"
 }

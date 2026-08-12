@@ -6302,8 +6302,8 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6394,4 +6394,49 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'طريقة العرض';
+
+  @override
+  String get scheduledIndicatorPill => 'شريط';
+
+  @override
+  String get scheduledIndicatorBadge => 'شارة';
+
+  @override
+  String get scheduledIndicatorBoth => 'كلاهما';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة بانتظار الإرسال',
+      many: '$count رسالة بانتظار الإرسال',
+      few: '$count رسائل بانتظار الإرسال',
+      two: 'رسالتان بانتظار الإرسال',
+      one: 'رسالة واحدة بانتظار الإرسال',
+      zero: 'لا شيء بانتظار الإرسال',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'كيف تظهر';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'شريط فوق مربع الكتابة. اضغط عليه لعرضها.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'رقم على زر الإرسال. لا يظهر شيء حتى تبدأ الكتابة.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'الشريط، بالإضافة إلى الرقم أثناء الكتابة.';
+
+  @override
+  String get scheduledBack => 'رجوع';
 }

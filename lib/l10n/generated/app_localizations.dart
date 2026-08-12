@@ -10703,11 +10703,11 @@ abstract class AppLocalizations {
   /// **'{count, plural, one{1 SCHEDULED} other{{count} SCHEDULED}}'**
   String scheduledPillLabel(int count);
 
-  /// Joins the pill's count to the time the next message goes out. {label} is scheduledPillLabel, already assembled and already localized; {time} is the platform-formatted clock time. The separator is the only translatable part.
+  /// Joins the pill's count to whatever qualifies it. {label} is scheduledPillLabel, already assembled and already localized; {detail} is either a formatted clock time or scheduledPillAttention. The separator is the only translatable part.
   ///
   /// In en, this message translates to:
-  /// **'{label} · {time}'**
-  String scheduledPillJoin(String label, String time);
+  /// **'{label} · {detail}'**
+  String scheduledPillJoin(String label, String detail);
 
   /// Screen-reader description of the pill above the composer. Says what it is and what tapping does, because the visible label is abbreviated.
   ///
@@ -10834,6 +10834,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, one{1 message waiting to send} other{{count} messages waiting to send}}'**
   String composerScheduledBadgeSemantics(int count);
+
+  /// Label above the control in the scheduled-messages sheet that chooses how a room announces it is holding messages waiting to send.
+  ///
+  /// In en, this message translates to:
+  /// **'SHOW AS'**
+  String get scheduledListShowAs;
+
+  /// One choice of that control: a tappable pill above the message box.
+  ///
+  /// In en, this message translates to:
+  /// **'Pill'**
+  String get scheduledIndicatorPill;
+
+  /// One choice of that control: a small count on the send button.
+  ///
+  /// In en, this message translates to:
+  /// **'Badge'**
+  String get scheduledIndicatorBadge;
+
+  /// One choice of that control: show both the pill and the count on the send button.
+  ///
+  /// In en, this message translates to:
+  /// **'Both'**
+  String get scheduledIndicatorBoth;
+
+  /// Row at the top of the schedule sheet that opens the list of messages already waiting to send in this chat. It is the only route to that list when the user has turned the pill off, so it is shown even when nothing is waiting.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, zero{Nothing waiting to send} one{1 message already waiting} other{{count} messages already waiting}}'**
+  String scheduleSheetQueuedRow(int count);
+
+  /// Row at the bottom of the scheduled-messages sheet that opens the view for choosing how a chat announces waiting messages. The current choice is shown to its right.
+  ///
+  /// In en, this message translates to:
+  /// **'How these show up'**
+  String get scheduledListShowAsRow;
+
+  /// Explanation under the 'Pill' choice.
+  ///
+  /// In en, this message translates to:
+  /// **'A bar above the message box. Tap it to see them.'**
+  String get scheduledIndicatorPillSub;
+
+  /// Explanation under the 'Badge' choice. Says plainly that nothing shows until you start typing, because that is the trade-off.
+  ///
+  /// In en, this message translates to:
+  /// **'A count on the send button. Nothing shows until you start typing.'**
+  String get scheduledIndicatorBadgeSub;
+
+  /// Explanation under the 'Both' choice.
+  ///
+  /// In en, this message translates to:
+  /// **'The bar, plus the count while you type.'**
+  String get scheduledIndicatorBothSub;
+
+  /// Back button inside the scheduled-messages sheet, returning from the display-choice view to the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get scheduledBack;
 }
 
 class _AppLocalizationsDelegate

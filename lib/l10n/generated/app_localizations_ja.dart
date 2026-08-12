@@ -5992,8 +5992,8 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6072,4 +6072,42 @@ class AppLocalizationsJa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => '表示方法';
+
+  @override
+  String get scheduledIndicatorPill => 'バー';
+
+  @override
+  String get scheduledIndicatorBadge => 'バッジ';
+
+  @override
+  String get scheduledIndicatorBoth => '両方';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'すでに$count件が送信待ち',
+      zero: '送信待ちのものはありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => '表示のしかた';
+
+  @override
+  String get scheduledIndicatorPillSub => '入力欄の上のバー。タップすると一覧が開きます。';
+
+  @override
+  String get scheduledIndicatorBadgeSub => '送信ボタンの数字。入力を始めるまで何も表示されません。';
+
+  @override
+  String get scheduledIndicatorBothSub => 'バーと、入力中に出る数字の両方。';
+
+  @override
+  String get scheduledBack => '戻る';
 }

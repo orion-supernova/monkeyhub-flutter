@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "Aujourd’hui",
   "scheduleTimePickerTomorrow": "Demain",
   "scheduledPillLabel": "{count, plural, one{1 PROGRAMMÉ} other{{count} PROGRAMMÉS}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, one{1 message en attente d’envoi. Touchez pour le voir.} other{{count} messages en attente d’envoi. Touchez pour les voir.}}",
   "scheduledPillAttention": "À VÉRIFIER",
   "scheduledListTitle": "PROGRAMMÉS",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "Ça n’a pas marché. Réessayez.",
   "scheduleEditTitle": "MODIFIER LE MESSAGE",
   "composerScheduleAction": "Programmer ce message",
-  "composerScheduledBadgeSemantics": "{count, plural, one{1 message en attente d’envoi} other{{count} messages en attente d’envoi}}"
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 message en attente d’envoi} other{{count} messages en attente d’envoi}}",
+  "scheduledListShowAs": "AFFICHER COMME",
+  "scheduledIndicatorPill": "Pastille",
+  "scheduledIndicatorBadge": "Badge",
+  "scheduledIndicatorBoth": "Les deux",
+  "scheduleSheetQueuedRow": "{count, plural, zero{Rien en attente d’envoi} one{1 message déjà en attente} other{{count} messages déjà en attente}}",
+  "scheduledListShowAsRow": "Comment ils apparaissent",
+  "scheduledIndicatorPillSub": "Une barre au-dessus de la zone de texte. Touchez-la pour les voir.",
+  "scheduledIndicatorBadgeSub": "Un compteur sur le bouton d’envoi. Rien ne s’affiche tant que vous n’écrivez pas.",
+  "scheduledIndicatorBothSub": "La barre, plus le compteur pendant que vous écrivez.",
+  "scheduledBack": "Retour"
 }

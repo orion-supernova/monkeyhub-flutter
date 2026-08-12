@@ -5919,8 +5919,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -5999,4 +5999,42 @@ class AppLocalizationsZh extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => '显示方式';
+
+  @override
+  String get scheduledIndicatorPill => '横条';
+
+  @override
+  String get scheduledIndicatorBadge => '角标';
+
+  @override
+  String get scheduledIndicatorBoth => '两者';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已有 $count 条在等待',
+      zero: '没有等待发送的消息',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => '如何显示';
+
+  @override
+  String get scheduledIndicatorPillSub => '输入框上方的横条。点按即可查看。';
+
+  @override
+  String get scheduledIndicatorBadgeSub => '发送按钮上的数字。开始输入前不会显示任何内容。';
+
+  @override
+  String get scheduledIndicatorBothSub => '横条，加上输入时的数字。';
+
+  @override
+  String get scheduledBack => '返回';
 }

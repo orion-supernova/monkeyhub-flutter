@@ -49,6 +49,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kGlassPreset = 'mh.glass.preset';
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
+  static const _kScheduledIndicator = 'mh.schedule.indicator';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -88,6 +89,7 @@ class SettingsStore extends ChangeNotifier {
 
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
+  ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -158,6 +160,12 @@ class SettingsStore extends ChangeNotifier {
   /// Resolve it with [MotionScope.of] — never read this getter directly in a
   /// widget, or the OS half of the contract is lost.
   MotionLevel? get motionLevel => _motionLevel;
+
+  /// How a room announces that it is holding messages you have not sent yet.
+  ///
+  /// Non-nullable, unlike [motionLevel]: there is no OS preference to defer to,
+  /// so "not chosen" is simply the default rather than a third state.
+  ScheduledIndicator get scheduledIndicator => _scheduledIndicator;
 
   /// Which control the chat list uses to filter rooms. Defaults to
   /// [FilterStyle.chips] — the filters are worth a permanent row, and a control
@@ -304,6 +312,9 @@ class SettingsStore extends ChangeNotifier {
       // is the default every fresh install wants. Parsing cannot throw, so its
       // position at the tail of this try block costs nothing.
       _motionLevel = MotionLevel.parse(await _storage.read(key: _kMotionLevel));
+      _scheduledIndicator = ScheduledIndicator.parse(
+        await _storage.read(key: _kScheduledIndicator),
+      );
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -355,6 +366,13 @@ class SettingsStore extends ChangeNotifier {
   /// Sets (or clears) the motion override. Passing null returns to "follow the
   /// OS", and deletes the key rather than writing a sentinel — the same shape
   /// [setLocaleCode] uses for its nullable preference.
+  Future<void> setScheduledIndicator(ScheduledIndicator v) async {
+    if (_scheduledIndicator == v) return;
+    _scheduledIndicator = v;
+    notifyListeners();
+    await _storage.write(key: _kScheduledIndicator, value: v.name);
+  }
+
   Future<void> setMotionLevel(MotionLevel? m) async {
     if (_motionLevel == m) return;
     _motionLevel = m;
@@ -736,6 +754,39 @@ enum MotionLevel {
   /// [HomeSection.parse]: the switch form compiles cleanly when a member is
   /// added and silently dumps everyone onto the fallback.
   static MotionLevel? parse(String? s) => s == null ? null : _byName[s];
+}
+
+/// Which affordance tells you a room is holding scheduled messages.
+///
+/// The two are not equivalent, which is why this exists rather than a bool.
+///
+/// * `pill` — a tappable pill above the composer. The only one that stands
+///   alone: it is visible whenever the room has something queued, and it is the
+///   sole route into the list.
+/// * `badge` — a count on the send button. Quieter, but the send button only
+///   exists while the composer has text, so an idle room shows nothing at all,
+///   and tapping it sends rather than opening anything.
+/// * `both` — the pill, plus the count while you are composing.
+enum ScheduledIndicator {
+  pill,
+  badge,
+  both;
+
+  /// Whether the pill above the composer should be built.
+  bool get showsPill => this != ScheduledIndicator.badge;
+
+  /// Whether the send button should carry a count.
+  bool get showsBadge => this != ScheduledIndicator.pill;
+
+  static final Map<String, ScheduledIndicator> _byName = values.asNameMap();
+
+  /// Resolves a persisted name, falling back to [pill].
+  ///
+  /// Derived from [values] rather than a `switch` with a `default:`, matching
+  /// [MotionLevel.parse] and [HomeSection.parse] — the switch form compiles
+  /// cleanly when a member is added and silently dumps everyone onto the
+  /// fallback.
+  static ScheduledIndicator parse(String? s) => _byName[s] ?? ScheduledIndicator.pill;
 }
 
 /// Top-level shell destinations, in nav order.

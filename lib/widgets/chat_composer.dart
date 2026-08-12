@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -14,6 +16,15 @@ import '../theme/theme_scope.dart';
 import 'composer_capture.dart';
 import 'composer_format_toolbar.dart';
 import 'liquid_glass.dart';
+
+/// How long a press has to last before the hold ring is allowed to appear.
+///
+/// A tap is over in well under this; a hold is only a third of the way through
+/// it. So the ring never shows on a send, and a user who genuinely means to
+/// hold sees it come up almost at once. Below roughly 100ms it starts catching
+/// deliberate taps again, and much above 150ms the hold feels unresponsive
+/// before anything happens — this is the window between those.
+const Duration _kHoldRingLead = Duration(milliseconds: 130);
 
 /// The composer's send button.
 ///
@@ -63,6 +74,16 @@ class _SendButtonState extends State<_SendButton>
   /// tuned until it feels long enough.
   late final AnimationController _hold;
 
+  /// Waits out [_kHoldRingLead] before the ring is allowed to start.
+  ///
+  /// This is the whole fix for the ring flashing on an ordinary tap.
+  /// `onLongPressDown` fires on POINTER-DOWN — the recognizer has no idea yet
+  /// whether this will become a tap or a hold — so starting the sweep there
+  /// meant every send flashed a stub of arc and then spent up to 400ms
+  /// reversing it. No opacity threshold fixes that: the animation is running,
+  /// and the only question is how much of it you can see.
+  Timer? _leadIn;
+
   /// Kept across the `AnimatedSwitcher` rebuild that fires on every keystroke.
   ///
   /// Load-bearing: this button is rebuilt whenever `controller.text` changes,
@@ -76,15 +97,17 @@ class _SendButtonState extends State<_SendButton>
     super.initState();
     _hold = AnimationController(
       vsync: this,
-      // The recognizer's own threshold, not a theme duration: the ring must
-      // close exactly as the gesture fires. A longer one promises a moment that
-      // has already passed; a shorter one sits full while nothing happens.
-      duration: kActionMenuLongPress,
+      // What is LEFT of the gesture once the lead-in has passed, so the ring
+      // still closes at the exact instant the recognizer fires. Using the full
+      // threshold here would leave it a lead-in short of complete at the moment
+      // the sheet opens — a progress indicator that never reaches its end.
+      duration: kActionMenuLongPress - _kHoldRingLead,
     );
   }
 
   @override
   void dispose() {
+    _leadIn?.cancel();
     _hold.dispose();
     super.dispose();
   }
@@ -92,19 +115,29 @@ class _SendButtonState extends State<_SendButton>
   void _startHold() {
     if (widget.onSchedule == null) return;
     if (MotionScope.of(context).calm) return;
-    _hold.forward(from: 0);
+    _leadIn?.cancel();
+    _leadIn = Timer(_kHoldRingLead, () {
+      if (mounted) _hold.forward(from: 0);
+    });
   }
 
+  /// Withdraws the ring, instantly.
+  ///
+  /// Snapped rather than reversed. A reverse reads as the button finishing
+  /// something; the user has just let go, and the honest rendering of an
+  /// abandoned gesture is that it is gone. It also means a press that ends a
+  /// millisecond after the lead-in leaves nothing lingering on screen.
   void _endHold() {
-    if (_hold.value == 0) return;
-    _hold.reverse();
+    _leadIn?.cancel();
+    _leadIn = null;
+    if (_hold.value != 0) _hold.value = 0;
   }
 
   void _fire() {
     final schedule = widget.onSchedule;
     if (schedule == null) return;
     HapticFeedback.mediumImpact();
-    _hold.value = 0;
+    _endHold();
     schedule();
   }
 
@@ -167,6 +200,9 @@ class _SendButtonState extends State<_SendButton>
             child: IgnorePointer(
               child: AnimatedBuilder(
                 animation: _hold,
+                // A plain `== 0` check is enough now that the lead-in timer
+                // keeps the controller at rest through every tap: while it is
+                // moving at all, the user is deliberately holding.
                 builder: (context, _) => _hold.value == 0
                     ? const SizedBox.shrink()
                     : CustomPaint(
@@ -182,16 +218,24 @@ class _SendButtonState extends State<_SendButton>
       );
     }
 
-    // Scale-down on press, so the hold reads as a press before the ring even
-    // starts. Drives from the same controller rather than a second one.
-    core = AnimatedBuilder(
-      animation: _hold,
-      builder: (context, child) => Transform.scale(
-        scale: 1 - (_hold.value * 0.06),
-        child: child,
-      ),
-      child: core,
-    );
+    // The button shrinks slightly as the ring fills, so the hold reads as one
+    // gesture gathering rather than a decoration spinning on a static button.
+    //
+    // Driven by the same controller on purpose, now that the controller only
+    // ever leaves zero during a real hold. Its earlier form scaled on
+    // pointer-down and was the other half of the tap glitch: every send
+    // twitched. There is deliberately no press-down scale any more — the
+    // classic button never had one, and the ring is the feedback.
+    if (widget.onSchedule != null) {
+      core = AnimatedBuilder(
+        animation: _hold,
+        builder: (context, child) => Transform.scale(
+          scale: 1 - (_hold.value * 0.06),
+          child: child,
+        ),
+        child: core,
+      );
+    }
 
     // RawGestureDetector, not GestureDetector: a plain one's long press is
     // fixed at Flutter's half-second with no way to shorten it, and this app

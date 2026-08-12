@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "Bugün",
   "scheduleTimePickerTomorrow": "Yarın",
   "scheduledPillLabel": "{count, plural, other{{count} ZAMANLANMIŞ}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, other{Gönderilmeyi bekleyen {count} mesaj. Görmek için dokun.}}",
   "scheduledPillAttention": "SANA BAKIYOR",
   "scheduledListTitle": "ZAMANLANMIŞ",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "Olmadı. Tekrar dene.",
   "scheduleEditTitle": "MESAJI DÜZENLE",
   "composerScheduleAction": "Bu mesajı zamanla",
-  "composerScheduledBadgeSemantics": "{count, plural, other{Gönderilmeyi bekleyen {count} mesaj}}"
+  "composerScheduledBadgeSemantics": "{count, plural, other{Gönderilmeyi bekleyen {count} mesaj}}",
+  "scheduledListShowAs": "NASIL GÖSTERİLSİN",
+  "scheduledIndicatorPill": "Şerit",
+  "scheduledIndicatorBadge": "Rozet",
+  "scheduledIndicatorBoth": "İkisi de",
+  "scheduleSheetQueuedRow": "{count, plural, zero{Gönderilmeyi bekleyen bir şey yok} other{Zaten bekleyen {count} mesaj}}",
+  "scheduledListShowAsRow": "Nasıl görünsünler",
+  "scheduledIndicatorPillSub": "Yazma kutusunun üstünde bir şerit. Görmek için dokun.",
+  "scheduledIndicatorBadgeSub": "Gönder düğmesinde bir sayı. Yazmaya başlayana kadar hiçbir şey görünmez.",
+  "scheduledIndicatorBothSub": "Şerit ve yazarken görünen sayı.",
+  "scheduledBack": "Geri"
 }

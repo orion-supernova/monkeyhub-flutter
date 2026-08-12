@@ -31,6 +31,15 @@ void main() {
   // a scope nested inside `home` is not an ancestor of the sheet, and the sheet
   // asserts on the missing scope the moment it builds. `builder` wraps the
   // Navigator itself, so every route it pushes is a descendant.
+  /// A phone, not the 800x600 default. The sheet is bounded and scrollable, so
+  /// on the default surface its CTAs sit below the fold and every `tap` misses
+  /// — which says nothing about the sheet and everything about the viewport.
+  void phone(WidgetTester tester) {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+  }
+
   Widget host(Widget child) => MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -43,18 +52,19 @@ void main() {
 
   /// A context inside the open sheet, for the platform date/time formatters.
   BuildContext sheetContext(WidgetTester tester) =>
-      tester.element(find.byType(Wrap).first);
+      tester.element(find.text(en.scheduleSheetSubtitle));
 
   /// Opens the real sheet through the real `showAdaptiveSheet` route, so the
   /// test exercises what ships rather than the private widget behind it.
-  Future<DateTime?> open(
+  Future<ScheduleChoice?> open(
     WidgetTester tester, {
     String? preview,
     DateTime? initial,
     ScheduleSheetMode mode = ScheduleSheetMode.create,
   }) async {
-    DateTime? result;
+    ScheduleChoice? result;
     var opened = false;
+    phone(tester);
     await tester.pumpWidget(host(Builder(
       builder: (context) => TextButton(
         onPressed: () async {
@@ -82,6 +92,9 @@ void main() {
     expect(find.text(en.schedulePresetInEightHours), findsOneWidget);
     expect(find.text(en.schedulePresetInAWeek), findsOneWidget);
     expect(find.text(en.scheduleSheetCustomChip), findsOneWidget);
+    // One grouped card, not a ragged Wrap of chips — the whole point of the
+    // redesign. Aligned trailing times are what a Wrap could not give.
+    expect(find.byType(Wrap), findsNothing);
     // Exactly one of the two morning wordings, never both.
     final morning = find.text(en.schedulePresetTomorrowMorning).evaluate().length +
         find.text(en.schedulePresetThisMorning).evaluate().length;
@@ -129,7 +142,8 @@ void main() {
   });
 
   testWidgets('confirming returns the resolved instant', (tester) async {
-    DateTime? got;
+    ScheduleChoice? got;
+    phone(tester);
     await tester.pumpWidget(host(Builder(
       builder: (context) => TextButton(
         onPressed: () async {
@@ -145,15 +159,16 @@ void main() {
     await tester.tap(find.text(en.scheduleSheetConfirmButton));
     await tester.pumpAndSettle();
 
-    expect(got, isNotNull);
-    // The default chip is one hour out; allow a minute of slack for the pump.
-    final delta = got!.difference(before);
+    expect(got, isA<ScheduleAt>());
+    // The default row is one hour out; allow a minute of slack for the pump.
+    final delta = (got! as ScheduleAt).at.difference(before);
     expect(delta.inMinutes, closeTo(60, 1));
   });
 
   testWidgets('cancelling returns nothing at all', (tester) async {
-    DateTime? got;
+    ScheduleChoice? got;
     var completed = false;
+    phone(tester);
     await tester.pumpWidget(host(Builder(
       builder: (context) => TextButton(
         onPressed: () async {
@@ -218,7 +233,8 @@ void main() {
     // that kept the impossible date would render a picker sitting on a legal
     // one while the summary underneath called it out of range, and the user
     // would be looking at two contradictory answers to the same question.
-    DateTime? got;
+    ScheduleChoice? got;
+    phone(tester);
     await tester.pumpWidget(host(Builder(
       builder: (context) => TextButton(
         onPressed: () async {
@@ -240,15 +256,59 @@ void main() {
     await tester.tap(find.text(en.scheduleSheetSaveButton).last);
     await tester.pumpAndSettle();
 
-    expect(got, isNotNull);
+    expect(got, isA<ScheduleAt>());
+    final at = (got! as ScheduleAt).at;
     expect(
-      got!.isBefore(DateTime.now().add(kScheduleMaxHorizon)),
+      at.isBefore(DateTime.now().add(kScheduleMaxHorizon)),
       isTrue,
       reason: 'the sheet must never return an instant the server would refuse',
     );
-    expect(
-      got!.isAfter(DateTime.now().add(kScheduleMinLead)),
-      isTrue,
+    expect(at.isAfter(DateTime.now().add(kScheduleMinLead)), isTrue);
+  });
+
+  testWidgets('the queue is reachable even with nothing queued', (
+    tester,
+  ) async {
+    // The regression this guards: the pill was the only route to the queued
+    // list, so choosing "badge" hid the list AND the setting that would bring
+    // the pill back — a one-way door out of the feature. This row is the way
+    // in, and it is shown at zero precisely so it is also the way back.
+    ScheduleChoice? got;
+    phone(tester);
+    await tester.pumpWidget(host(Builder(
+      builder: (context) => TextButton(
+        onPressed: () async {
+          got = await showScheduleMessageSheet(context, queuedCount: 0);
+        },
+        child: const Text('open'),
+      ),
+    )));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final row = find.text(en.scheduleSheetQueuedRow(0));
+    expect(row, findsOneWidget);
+
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(got, isA<ScheduleShowQueued>());
+  });
+
+  testWidgets('the queue row counts what is waiting', (tester) async {
+    phone(tester);
+    await open(tester);
+    expect(find.text(en.scheduleSheetQueuedRow(0)), findsOneWidget);
+  });
+
+  testWidgets('reschedule mode offers no way back into the queue', (
+    tester,
+  ) async {
+    // It is reached FROM the queue, so a row leading back to it is a loop.
+    await open(
+      tester,
+      mode: ScheduleSheetMode.reschedule,
+      initial: DateTime.now().add(const Duration(days: 2)),
     );
+    expect(find.text(en.scheduleSheetQueuedRow(0)), findsNothing);
   });
 }

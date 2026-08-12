@@ -6239,8 +6239,8 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6326,4 +6326,45 @@ class AppLocalizationsHi extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'कैसे दिखाएँ';
+
+  @override
+  String get scheduledIndicatorPill => 'पट्टी';
+
+  @override
+  String get scheduledIndicatorBadge => 'बैज';
+
+  @override
+  String get scheduledIndicatorBoth => 'दोनों';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count संदेश पहले से इंतज़ार में',
+      one: '1 संदेश पहले से इंतज़ार में',
+      zero: 'भेजे जाने के इंतज़ार में कुछ नहीं',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'ये कैसे दिखें';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'लिखने के बॉक्स के ऊपर एक पट्टी। देखने के लिए टैप करें।';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'भेजें बटन पर एक संख्या। जब तक आप लिखना शुरू न करें, कुछ नहीं दिखता।';
+
+  @override
+  String get scheduledIndicatorBothSub => 'पट्टी, और लिखते समय संख्या भी।';
+
+  @override
+  String get scheduledBack => 'वापस';
 }

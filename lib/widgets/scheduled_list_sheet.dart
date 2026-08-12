@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/chat_repository.dart';
+import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/family.dart';
@@ -11,6 +12,7 @@ import '../theme/theme_scope.dart';
 import 'adaptive_sheet.dart';
 import 'destructive_sheet.dart' show SheetGrabber;
 import 'schedule_message_sheet.dart';
+import 'sheet_buttons.dart';
 
 /// Turns one of the repository's schedule error codes into a sentence.
 ///
@@ -52,32 +54,96 @@ Future<void> showScheduledListSheet(
   );
 }
 
-class _ScheduledListSheet extends StatelessWidget {
+class _ScheduledListSheet extends StatefulWidget {
   const _ScheduledListSheet({required this.repo, required this.roomId});
 
   final ChatRepository repo;
   final String roomId;
 
   @override
+  State<_ScheduledListSheet> createState() => _ScheduledListSheetState();
+}
+
+/// Two views in one sheet, with its own back button.
+///
+/// A nested route rather than a footer control, because "how should this be
+/// shown to me" is a different question from "what is waiting to go out" and
+/// the second is what the sheet is for. Squeezed in underneath the list it was
+/// chrome competing with the content; behind a row it is one tap away and the
+/// list gets the whole sheet back.
+///
+/// Not a real `Navigator` route: pushing a second sheet over this one would
+/// stack two surfaces and two dismiss gestures for what is a page turn inside
+/// one panel.
+class _ScheduledListSheetState extends State<_ScheduledListSheet> {
+  bool _choosing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    // Bounded and scrollable, like its sibling. The display-choice view is
+    // three cards each carrying a drawn preview, which is taller than a small
+    // phone — and a bottom sheet does not scroll its own contents, so without
+    // this the bottom silently overflows on exactly the devices least able to
+    // spare the room. The `ConstrainedBox` is also what keeps this legal inside
+    // the desktop popover, which wraps sheet content in a scroll view of its
+    // own: an unbounded scrollable inside another one throws.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+      ),
+      child: Container(
+        decoration: theme.sheetDecoration(),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          20 + MediaQuery.of(context).padding.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: AnimatedSize(
+            duration: motion.d(theme.motionMed),
+            curve: motion.c(theme.motionEntrance),
+            alignment: Alignment.bottomCenter,
+            child: _choosing
+                ? _IndicatorView(
+                    key: const ValueKey('choose'),
+                    onBack: () => setState(() => _choosing = false),
+                  )
+                : _ListView(
+                    key: const ValueKey('list'),
+                    repo: widget.repo,
+                    roomId: widget.roomId,
+                    onChooseIndicator: () => setState(() => _choosing = true),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ListView extends StatelessWidget {
+  const _ListView({
+    super.key,
+    required this.repo,
+    required this.roomId,
+    required this.onChooseIndicator,
+  });
+
+  final ChatRepository repo;
+  final String roomId;
+  final VoidCallback onChooseIndicator;
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        12,
-        20,
-        20 + MediaQuery.of(context).padding.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
           const SheetGrabber(),
           Text(l10n.scheduledListTitle, style: theme.label),
           const SizedBox(height: 8),
@@ -121,13 +187,420 @@ class _ScheduledListSheet extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 16),
-          _SecondaryButton(
+          const SizedBox(height: 14),
+          _ShowAsRow(onTap: onChooseIndicator),
+          const SizedBox(height: 14),
+          SheetSecondaryButton(
             label: l10n.destructiveSheetCancelButtonLabel,
             color: theme.inkMuted,
             onTap: () => Navigator.of(context).pop(),
           ),
-        ],
+      ],
+    );
+  }
+}
+
+/// The row that opens the display-choice view.
+class _ShowAsRow extends StatelessWidget {
+  const _ShowAsRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final current = SettingsStore.instance.scheduledIndicator;
+        return FocusableTap(
+          onTap: onTap,
+          semanticLabel:
+              '${l10n.scheduledListShowAsRow}, ${_indicatorLabel(l10n, current)}',
+          radius: theme.radiusMd,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+              decoration: BoxDecoration(
+                color: theme.surfaceRaised,
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+                border: Border.all(color: theme.divider),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.tune, size: 16, color: theme.inkSoft),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      l10n.scheduledListShowAsRow,
+                      style: theme.body.copyWith(color: theme.ink),
+                    ),
+                  ),
+                  Text(
+                    _indicatorLabel(l10n, current),
+                    style: theme.monoTiny.copyWith(color: theme.accent),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String _indicatorLabel(AppLocalizations l10n, ScheduledIndicator i) =>
+    switch (i) {
+      ScheduledIndicator.pill => l10n.scheduledIndicatorPill,
+      ScheduledIndicator.badge => l10n.scheduledIndicatorBadge,
+      ScheduledIndicator.both => l10n.scheduledIndicatorBoth,
+    };
+
+String _indicatorSub(AppLocalizations l10n, ScheduledIndicator i) =>
+    switch (i) {
+      ScheduledIndicator.pill => l10n.scheduledIndicatorPillSub,
+      ScheduledIndicator.badge => l10n.scheduledIndicatorBadgeSub,
+      ScheduledIndicator.both => l10n.scheduledIndicatorBothSub,
+    };
+
+/// The second view: how a room should announce that it is holding messages.
+///
+/// Every choice carries a drawn miniature of the composer showing exactly what
+/// it does. Three words could not carry this — "pill" and "badge" are our
+/// names for our own furniture, and the difference that actually matters
+/// (the badge is invisible until you start typing) is a thing you have to see.
+class _IndicatorView extends StatelessWidget {
+  const _IndicatorView({super.key, required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final motion = MotionScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    return AnimatedBuilder(
+      animation: SettingsStore.instance,
+      builder: (context, _) {
+        final current = SettingsStore.instance.scheduledIndicator;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SheetGrabber(),
+            // The sheet's own back affordance. Left-aligned with the title
+            // centred on it, so the header reads as a navigation bar rather
+            // than as a button that happens to sit above a title.
+            Row(
+              children: [
+                _BackButton(onTap: onBack),
+                Expanded(
+                  child: Text(
+                    l10n.scheduledListShowAs,
+                    style: theme.label,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                // Balances the back button so the title is optically centred.
+                const SizedBox(width: 36),
+              ],
+            ),
+            const SizedBox(height: 16),
+            for (var i = 0; i < ScheduledIndicator.values.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _IndicatorCard(
+                index: i,
+                motion: motion,
+                indicator: ScheduledIndicator.values[i],
+                label: _indicatorLabel(l10n, ScheduledIndicator.values[i]),
+                sub: _indicatorSub(l10n, ScheduledIndicator.values[i]),
+                active: current == ScheduledIndicator.values[i],
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  SettingsStore.instance
+                      .setScheduledIndicator(ScheduledIndicator.values[i]);
+                },
+              ),
+            ],
+            const SizedBox(height: 16),
+            SheetSecondaryButton(
+              label: l10n.scheduledBack,
+              color: theme.inkSoft,
+              onTap: onBack,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return FocusableTap(
+      onTap: onTap,
+      shape: FocusRingShape.circle,
+      semanticLabel: AppLocalizations.of(context).scheduledBack,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 36,
+          height: 28,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Icon(Icons.chevron_left, size: 22, color: theme.accent),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One choice, with a picture of what it does.
+///
+/// The card shape follows `_MotionCard` in `motion_screen.dart` — border
+/// thickens and an accent glow appears when active, and a live preview box sits
+/// under the words. That screen made the same argument this one does: the
+/// difference between the options is visual, so the option has to show it.
+class _IndicatorCard extends StatelessWidget {
+  const _IndicatorCard({
+    required this.index,
+    required this.motion,
+    required this.indicator,
+    required this.label,
+    required this.sub,
+    required this.active,
+    required this.onTap,
+  });
+
+  final int index;
+  final MotionScope motion;
+  final ScheduledIndicator indicator;
+  final String label;
+  final String sub;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: motion.stagger(theme.motionMed, index, strideMs: 45),
+      curve: motion.c(theme.motionEntrance),
+      builder: (context, v, child) => Transform.translate(
+        offset: Offset(0, (1 - v) * 8),
+        child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+      ),
+      child: FocusableTap(
+        onTap: onTap,
+        selected: active,
+        semanticLabel: '$label. $sub',
+        radius: theme.radiusLg,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: motion.d(theme.motionFast),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.surface,
+              borderRadius: BorderRadius.circular(theme.radiusLg),
+              border: Border.all(
+                color: active ? theme.accent : theme.divider,
+                // Constant width across states: switching between 1 and 1.6
+                // shifts the card's contents by 0.6px on every toggle, which
+                // reads as a twitch. The room-info segments make the same note.
+                width: 1.6,
+              ),
+              boxShadow: active
+                  ? [
+                      BoxShadow(
+                        color: theme.accent.withValues(alpha: 0.22),
+                        blurRadius: 18,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      label,
+                      style: theme.label.copyWith(
+                        color: active ? theme.accent : theme.ink,
+                      ),
+                    ),
+                    const Spacer(),
+                    _SelectionDot(active: active, motion: motion),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(sub, style: theme.monoTiny),
+                const SizedBox(height: 12),
+                _IndicatorPreview(indicator: indicator),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionDot extends StatelessWidget {
+  const _SelectionDot({required this.active, required this.motion});
+
+  final bool active;
+  final MotionScope motion;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return SizedBox(
+      width: 18,
+      height: 18,
+      child: AnimatedScale(
+        scale: active ? 1 : 0.4,
+        duration: motion.d(theme.motionFast),
+        curve: motion.c(Curves.easeOutBack),
+        child: AnimatedOpacity(
+          opacity: active ? 1 : 0,
+          // Overshoot drives the scale only — easeOutBack on a fade asserts.
+          duration: motion.d(theme.motionFast),
+          curve: motion.c(theme.motionEntrance),
+          child: Container(
+            decoration:
+                BoxDecoration(color: theme.accent, shape: BoxShape.circle),
+            child: Icon(Icons.check, size: 12, color: theme.accentInk),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A miniature of the composer, drawn to scale, showing where this choice puts
+/// its mark.
+///
+/// Drawn rather than screenshotted for the reason `LocationMapPreview` is: a
+/// picture would need re-cutting for eleven other themes and would be wrong the
+/// day the accent colour changes. This is built from the same tokens the real
+/// chrome is, so it cannot drift from what it depicts.
+class _IndicatorPreview extends StatelessWidget {
+  const _IndicatorPreview({required this.indicator});
+
+  final ScheduledIndicator indicator;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    return Container(
+      height: 66,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: theme.surfaceSunken,
+        borderRadius: BorderRadius.circular(theme.radiusMd),
+        border: Border.all(color: theme.divider),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The pill, above the composer, exactly where the real one sits.
+            if (indicator.showsPill)
+              Align(
+                alignment: Alignment.center,
+                child: Container(
+                  height: 12,
+                  width: 78,
+                  decoration: BoxDecoration(
+                    color: theme.accentSoft,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: theme.divider),
+                  ),
+                ),
+              ),
+            if (indicator.showsPill) const SizedBox(height: 7),
+            Row(
+              children: [
+                // The attach button and the text field, greyed — they are
+                // scenery, not the subject.
+                Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: theme.surfaceRaised,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: theme.divider),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Container(
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: theme.surfaceRaised,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: theme.divider),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // The send button, and its badge when this choice has one.
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: theme.accent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      if (indicator.showsBadge)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: theme.surface,
+                              shape: BoxShape.circle,
+                              border:
+                                  Border.all(color: theme.accent, width: 1.2),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -178,16 +651,18 @@ class _ScheduledRowState extends State<_ScheduledRow> {
   }
 
   Future<void> _changeTime() async {
-    final at = await showScheduleMessageSheet(
+    final choice = await showScheduleMessageSheet(
       context,
       mode: ScheduleSheetMode.reschedule,
       preview: widget.message.content,
       initial: widget.message.sendAt,
     );
-    if (at == null || !mounted) return;
+    // Reschedule mode never offers the queue row — we are already looking at
+    // the queue — so anything but an instant means the user backed out.
+    if (choice is! ScheduleAt || !mounted) return;
     await _run(() => widget.repo.rescheduleMessage(
           widget.message.id,
-          sendAt: at.millisecondsSinceEpoch,
+          sendAt: choice.at.millisecondsSinceEpoch,
         ));
   }
 
@@ -292,11 +767,19 @@ class _ScheduledRowState extends State<_ScheduledRow> {
                 _RowAction(
                   label: l10n.scheduledListDelete,
                   danger: true,
+                  // Through `_run` like its three siblings. On its own it had
+                  // no `_busy` guard, so a double-tap fired two cancels, and no
+                  // error path at all. `cancelScheduledMessage` swallows its
+                  // own failures and returns null, so this surfaces nothing in
+                  // the ordinary case — it is the re-entry guard that matters.
                   onTap: _busy
                       ? null
                       : () {
                           HapticFeedback.mediumImpact();
-                          widget.repo.cancelScheduledMessage(m.id);
+                          _run(() async {
+                            await widget.repo.cancelScheduledMessage(m.id);
+                            return null;
+                          });
                         },
                 ),
               ],
@@ -370,6 +853,9 @@ Future<String?> showScheduledEditSheet(
 }) {
   return showAdaptiveSheet<String>(
     context,
+    // Matches its two siblings. Without it, a tall keyboard pushes this sheet
+    // up under the status bar.
+    useSafeArea: true,
     builder: (_) => _ScheduledEditSheet(initial: initial),
   );
 }
@@ -411,11 +897,7 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
       // add for itself.
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Container(
-        decoration: BoxDecoration(
-          color: theme.surface,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
-        ),
+        decoration: theme.sheetDecoration(),
         padding: EdgeInsets.fromLTRB(
           20,
           12,
@@ -447,103 +929,20 @@ class _ScheduledEditSheetState extends State<_ScheduledEditSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            _PrimaryButton(
+            SheetPrimaryButton(
               label: l10n.scheduleSheetSaveButton,
               onTap: _controller.text.trim().isEmpty
                   ? null
                   : () => Navigator.of(context).pop(_controller.text.trim()),
             ),
             const SizedBox(height: 4),
-            _SecondaryButton(
+            SheetSecondaryButton(
               label: l10n.destructiveSheetCancelButtonLabel,
               color: theme.inkMuted,
               bordered: false,
               onTap: () => Navigator.of(context).pop(),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Kept in step with `schedule_message_sheet.dart`'s copies by hand — they are
-/// private there, and lifting them into a shared file would put two sheets'
-/// worth of chrome in a third place for no caller's benefit.
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final enabled = onTap != null;
-    return FocusableTap(
-      onTap: onTap,
-      enabled: enabled,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: enabled ? theme.accent : theme.accentSoft,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.label.copyWith(
-              color: enabled ? theme.accentInk : theme.inkMuted,
-              letterSpacing: 2.2,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({
-    required this.label,
-    required this.color,
-    required this.onTap,
-    this.bordered = true,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  final bool bordered;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: label,
-      radius: theme.radiusMd,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: bordered
-                ? Border.all(color: color.withValues(alpha: 0.55), width: 1.2)
-                : null,
-            borderRadius: BorderRadius.circular(theme.radiusMd),
-          ),
-          child: Text(
-            label,
-            style: theme.label.copyWith(color: color, letterSpacing: 2),
-          ),
         ),
       ),
     );

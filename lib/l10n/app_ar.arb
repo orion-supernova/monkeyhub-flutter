@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "اليوم",
   "scheduleTimePickerTomorrow": "غدًا",
   "scheduledPillLabel": "{count, plural, zero{لا شيء مجدول} one{رسالة مجدولة} two{رسالتان مجدولتان} few{{count} رسائل مجدولة} many{{count} رسالة مجدولة} other{{count} رسالة مجدولة}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, zero{لا توجد رسائل بانتظار الإرسال.} one{رسالة واحدة بانتظار الإرسال. اضغط لعرضها.} two{رسالتان بانتظار الإرسال. اضغط لعرضهما.} few{{count} رسائل بانتظار الإرسال. اضغط لعرضها.} many{{count} رسالة بانتظار الإرسال. اضغط لعرضها.} other{{count} رسالة بانتظار الإرسال. اضغط لعرضها.}}",
   "scheduledPillAttention": "تحتاج إليك",
   "scheduledListTitle": "المجدولة",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "لم ينجح ذلك. حاول مرة أخرى.",
   "scheduleEditTitle": "تعديل الرسالة",
   "composerScheduleAction": "جدولة هذه الرسالة",
-  "composerScheduledBadgeSemantics": "{count, plural, zero{لا رسائل بانتظار الإرسال} one{رسالة واحدة بانتظار الإرسال} two{رسالتان بانتظار الإرسال} few{{count} رسائل بانتظار الإرسال} many{{count} رسالة بانتظار الإرسال} other{{count} رسالة بانتظار الإرسال}}"
+  "composerScheduledBadgeSemantics": "{count, plural, zero{لا رسائل بانتظار الإرسال} one{رسالة واحدة بانتظار الإرسال} two{رسالتان بانتظار الإرسال} few{{count} رسائل بانتظار الإرسال} many{{count} رسالة بانتظار الإرسال} other{{count} رسالة بانتظار الإرسال}}",
+  "scheduledListShowAs": "طريقة العرض",
+  "scheduledIndicatorPill": "شريط",
+  "scheduledIndicatorBadge": "شارة",
+  "scheduledIndicatorBoth": "كلاهما",
+  "scheduleSheetQueuedRow": "{count, plural, zero{لا شيء بانتظار الإرسال} one{رسالة واحدة بانتظار الإرسال} two{رسالتان بانتظار الإرسال} few{{count} رسائل بانتظار الإرسال} many{{count} رسالة بانتظار الإرسال} other{{count} رسالة بانتظار الإرسال}}",
+  "scheduledListShowAsRow": "كيف تظهر",
+  "scheduledIndicatorPillSub": "شريط فوق مربع الكتابة. اضغط عليه لعرضها.",
+  "scheduledIndicatorBadgeSub": "رقم على زر الإرسال. لا يظهر شيء حتى تبدأ الكتابة.",
+  "scheduledIndicatorBothSub": "الشريط، بالإضافة إلى الرقم أثناء الكتابة.",
+  "scheduledBack": "رجوع"
 }

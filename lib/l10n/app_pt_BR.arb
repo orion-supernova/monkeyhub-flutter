@@ -1760,7 +1760,7 @@
   "scheduleTimePickerToday": "Hoje",
   "scheduleTimePickerTomorrow": "Amanhã",
   "scheduledPillLabel": "{count, plural, one{1 AGENDADA} other{{count} AGENDADAS}}",
-  "scheduledPillJoin": "{label} · {time}",
+  "scheduledPillJoin": "{label} · {detail}",
   "scheduledPillSemantics": "{count, plural, one{1 mensagem esperando para ser enviada. Toque para vê-la.} other{{count} mensagens esperando para serem enviadas. Toque para vê-las.}}",
   "scheduledPillAttention": "VEJA ISTO",
   "scheduledListTitle": "AGENDADAS",
@@ -1781,5 +1781,15 @@
   "scheduleErrorGeneric": "Não deu certo. Tente de novo.",
   "scheduleEditTitle": "EDITAR MENSAGEM",
   "composerScheduleAction": "Agendar esta mensagem",
-  "composerScheduledBadgeSemantics": "{count, plural, one{1 mensagem esperando para ser enviada} other{{count} mensagens esperando para serem enviadas}}"
+  "composerScheduledBadgeSemantics": "{count, plural, one{1 mensagem esperando para ser enviada} other{{count} mensagens esperando para serem enviadas}}",
+  "scheduledListShowAs": "MOSTRAR COMO",
+  "scheduledIndicatorPill": "Cápsula",
+  "scheduledIndicatorBadge": "Selo",
+  "scheduledIndicatorBoth": "Ambos",
+  "scheduleSheetQueuedRow": "{count, plural, zero{Nada esperando para ser enviado} one{1 mensagem já esperando} other{{count} mensagens já esperando}}",
+  "scheduledListShowAsRow": "Como aparecem",
+  "scheduledIndicatorPillSub": "Uma barra acima da caixa de texto. Toque para vê-las.",
+  "scheduledIndicatorBadgeSub": "Um número no botão de enviar. Nada aparece até você começar a digitar.",
+  "scheduledIndicatorBothSub": "A barra, mais o número enquanto você digita.",
+  "scheduledBack": "Voltar"
 }

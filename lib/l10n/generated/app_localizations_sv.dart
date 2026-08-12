@@ -6254,8 +6254,8 @@ class AppLocalizationsSv extends AppLocalizations {
   }
 
   @override
-  String scheduledPillJoin(String label, String time) {
-    return '$label · $time';
+  String scheduledPillJoin(String label, String detail) {
+    return '$label · $detail';
   }
 
   @override
@@ -6339,4 +6339,46 @@ class AppLocalizationsSv extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get scheduledListShowAs => 'VISA SOM';
+
+  @override
+  String get scheduledIndicatorPill => 'Pillerknapp';
+
+  @override
+  String get scheduledIndicatorBadge => 'Bricka';
+
+  @override
+  String get scheduledIndicatorBoth => 'Båda';
+
+  @override
+  String scheduleSheetQueuedRow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count meddelanden väntar redan',
+      one: '1 meddelande väntar redan',
+      zero: 'Inget väntar på att skickas',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get scheduledListShowAsRow => 'Hur de visas';
+
+  @override
+  String get scheduledIndicatorPillSub =>
+      'En rad ovanför skrivfältet. Tryck för att se dem.';
+
+  @override
+  String get scheduledIndicatorBadgeSub =>
+      'En siffra på skicka-knappen. Inget syns förrän du börjar skriva.';
+
+  @override
+  String get scheduledIndicatorBothSub =>
+      'Raden, plus siffran medan du skriver.';
+
+  @override
+  String get scheduledBack => 'Tillbaka';
 }
