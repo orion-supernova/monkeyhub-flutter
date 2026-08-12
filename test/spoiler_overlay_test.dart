@@ -20,7 +20,11 @@ void main() {
   /// The spoiler is 26 characters, so the hold floors at 5s. These wait past
   /// it rather than encoding the formula.
   const pastHold = Duration(seconds: 6);
-  const pastAnimation = Duration(milliseconds: 900);
+
+  /// Past the longest of them: the settle, at 1150ms, is the slow one — the
+  /// dust has to drift in from upwind, which cannot take the time the reveal
+  /// took or it reads as a rewind.
+  const pastAnimation = Duration(milliseconds: 1500);
 
   // `builder` rather than an outer MediaQuery: MaterialApp installs its own
   // MediaQuery from the view, which would silently discard an ancestor's
