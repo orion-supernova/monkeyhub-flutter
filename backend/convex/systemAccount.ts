@@ -141,7 +141,7 @@ export const REPORT_INBOX_USERNAME = "muratcankoc";
  * rebuild of the deployment — and a system account listed here is skipped too:
  * this is where the humans go, and the room already has its bot.
  */
-export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oaunlu"];
+export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oau"];
 
 /**
  * Words no human account's username may contain.
