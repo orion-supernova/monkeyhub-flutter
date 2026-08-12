@@ -223,6 +223,15 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   void _onRevealStatus(AnimationStatus status) {
     if (status == AnimationStatus.completed) {
       SpoilerStore.instance.reveal(widget.contextId);
+      // Drop the wipe. Every gesture that opens a spoiler leaves marks on the
+      // mask — even a tap, whose pointer-down stamps one brush dot before
+      // `onEnd` decides it was a tap — and the whole plate is transparent
+      // right now, so clearing it is invisible. Leaving it would punch those
+      // marks straight back through the dust when it closes over again: the
+      // spot you tapped would come back permanently bare.
+      _mask?.reset();
+      _heal.value = 0;
+      _maskRevision.value++;
       // Nothing to animate while the words are simply readable.
       _drift?.stop();
       _scheduleHeal();
@@ -330,10 +339,12 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     } else {
       _drift ??= AnimationController(
         vsync: this,
-        // Long, because every mote's velocity is an integer number of rect
-        // widths per period — see [_DustField]. A short loop would make that
-        // return-to-start visible as a pulse.
-        duration: const Duration(seconds: 20),
+        // The period every mote's wander and twinkle divides into a whole
+        // number of times, so the repeat lands exactly on itself. Nine
+        // seconds puts the fastest wander harmonic around 1.5s and the
+        // quickest twinkle around a quarter of that — shimmer rather than
+        // flicker, and far too long to read as a loop.
+        duration: const Duration(seconds: 9),
       );
       if (_fields.isEmpty) _fields = _buildFields();
       // Not while the words are simply readable.
@@ -531,7 +542,9 @@ class _DustTier {
   _DustTier(this.count, this.size, this.baseAlpha, this.cycles, this.offset)
       : xy = Float32List(count * 2),
         home = Float32List(count * 2),
-        vel = Float32List(count * 2),
+        amp = Float32List(count * 4),
+        freq = Float32List(count * 4),
+        phase = Float32List(count * 4),
         shove = Float32List(count * 2),
         blast = Float32List(count * 2);
 
@@ -541,21 +554,25 @@ class _DustTier {
   final double size;
   final double baseAlpha;
 
-  /// Whole twinkle cycles per drift period — integral so the loop stays
-  /// seamless, and mutually near-coprime across tiers so the field never
-  /// pulses as one.
+  /// Whole twinkle cycles per period — integral so the loop stays seamless,
+  /// and mutually coprime across tiers so the field never pulses as one.
   final int cycles;
   final double offset;
 
   /// Live positions. The ONLY buffer handed to `drawRawPoints`.
   final Float32List xy;
 
-  /// Resting position relative to the rect's origin, so wrapping is a compare
-  /// against the rect's own width with no subtraction.
+  /// Where this mote hangs about, absolute.
   final Float32List home;
 
-  /// Travel per full period, always an integer number of rect widths/heights.
-  final Float32List vel;
+  /// Two wander amplitudes per axis: `[x1, x2, y1, y2]`.
+  final Float32List amp;
+
+  /// Their frequencies, in whole cycles per period: `[x1, x2, y1, y2]`.
+  final Float32List freq;
+
+  /// Their phase offsets, in turns: `[x1, x2, y1, y2]`.
+  final Float32List phase;
 
   /// Live displacement from being pushed by a finger. Integrated across
   /// frames and decayed, which is what gives the dust momentum instead of
@@ -564,6 +581,29 @@ class _DustTier {
 
   /// Per-mote randomness in the reveal, so the wavefront isn't a clean ring.
   final Float32List blast;
+}
+
+/// A sine table, because the field costs four of them per mote per frame.
+///
+/// 2048 entries puts the worst quantisation error at about a hundredth of a
+/// pixel at these amplitudes — invisible, and a fraction of the cost of
+/// `math.sin` two thousand motes at a time.
+class _Trig {
+  static const int _n = 2048;
+  static final Float32List _table = () {
+    final t = Float32List(_n);
+    for (var i = 0; i < _n; i++) {
+      t[i] = math.sin(2 * math.pi * i / _n);
+    }
+    return t;
+  }();
+
+  /// sin(2π · [turns]).
+  static double sin(double turns) {
+    var i = (turns * _n).toInt() & (_n - 1);
+    if (i < 0) i += _n;
+    return _table[i];
+  }
 }
 
 /// The particle field over one line rect.
@@ -583,47 +623,75 @@ class _DustField {
 
   static const int globalCap = 5000;
 
-  /// share, strokeWidth, base alpha, |drift| in rect-widths, twinkle cycles.
-  static const _spec = <(double, double, double, int, int)>[
-    (0.46, 0.7, 0.30, 1, 17),
-    (0.30, 1.0, 0.45, 2, 23),
-    (0.18, 1.4, 0.62, 2, 29),
-    (0.06, 2.0, 0.85, 3, 37),
+  /// share, strokeWidth, base alpha, twinkle cycles per period.
+  ///
+  /// Eight tiers rather than four, and the reason is brightness, not size:
+  /// `drawRawPoints` takes one [Paint] for a whole buffer, so a tier is the
+  /// finest grain at which a mote can twinkle. Four of them made the field
+  /// pulse in four visible groups. Eight, on coprime cycle counts, never
+  /// resolves into a beat.
+  static const _spec = <(double, double, double, int)>[
+    (0.22, 0.6, 0.20, 11),
+    (0.18, 0.7, 0.27, 13),
+    (0.15, 0.9, 0.34, 17),
+    (0.13, 1.1, 0.42, 19),
+    (0.11, 1.3, 0.50, 23),
+    (0.09, 1.5, 0.60, 29),
+    (0.07, 1.8, 0.71, 31),
+    (0.05, 2.2, 0.86, 37),
   ];
 
   factory _DustField.forRect(Rect rect, int seed, double scale) {
     final rand = math.Random(seed);
     final total = (wantedFor(rect) * scale).round().clamp(8, 1600);
-    final w = rect.width;
-    final h = rect.height;
 
     final tiers = <_DustTier>[];
     var assigned = 0;
     for (var t = 0; t < _spec.length; t++) {
-      final (share, size, alpha, drift, cycles) = _spec[t];
+      final (share, size, alpha, cycles) = _spec[t];
       // The last tier takes the remainder so rounding can't lose motes — or
-      // go negative on a field small enough for three roundings to overshoot.
+      // go negative on a field small enough for the roundings to overshoot.
       final count = t == _spec.length - 1
           ? math.max(0, total - assigned)
           : (total * share).round();
       assigned += count;
       if (count <= 0) continue;
 
-      final tier = _DustTier(count, size, alpha, cycles, 0.19 + t * 0.21);
+      final tier = _DustTier(count, size, alpha, cycles, rand.nextDouble());
       for (var i = 0; i < count; i++) {
-        tier.home[2 * i] = rand.nextDouble() * w;
-        tier.home[2 * i + 1] = rand.nextDouble() * h;
-        // Integer multiples, so every mote is exactly home again at phase 1
-        // and the repeat has no seam. Sign is random; magnitude grows with
-        // the tier, so the brighter motes read as nearer.
-        final dirX = rand.nextBool() ? 1 : -1;
-        final dirY = rand.nextBool() ? 1 : -1;
-        tier.vel[2 * i] = dirX * drift * w;
-        // Vertical is always a single rect-height: dust drifts sideways, and
-        // a line rect is short enough that more reads as jitter.
-        tier.vel[2 * i + 1] = dirY * h;
-        tier.blast[2 * i] = (rand.nextDouble() - 0.5) * 26;
-        tier.blast[2 * i + 1] = (rand.nextDouble() - 0.5) * 20 - 8;
+        final ix = 2 * i;
+        final iy = ix + 1;
+        tier.home[ix] = rect.left + rand.nextDouble() * rect.width;
+        tier.home[iy] = rect.top + rand.nextDouble() * rect.height;
+
+        // Two harmonics per axis, at their own whole-number rates. A mote
+        // therefore traces a small Lissajous wander rather than a straight
+        // line, and no two motes trace the same one.
+        //
+        // This is the fix for the field reading as machinery. It used to be
+        // constant velocity with a wrap at the rect edge: every mote in a
+        // tier moved at one of two speeds, in one of two directions, forever,
+        // which is a conveyor belt — and a conveyor belt seen through a slot
+        // is a turbine. Nothing here has a net direction, so there is no
+        // current to see, and nothing wraps, so there are no motes streaming
+        // off one edge and reappearing at the other.
+        //
+        // Whole-number rates keep the loop seamless: at phase 1 every
+        // harmonic is exactly back where it started.
+        for (var k = 0; k < 4; k++) {
+          tier.freq[4 * i + k] = (1 + rand.nextInt(6)).toDouble();
+          tier.phase[4 * i + k] = rand.nextDouble();
+        }
+        // Wider horizontally than vertically: a line rect is only so tall,
+        // and dust that wanders more than a couple of pixels up and down
+        // starts to look like it is falling.
+        tier.amp[4 * i] = 1.6 + rand.nextDouble() * 3.6;
+        tier.amp[4 * i + 1] = 0.5 + rand.nextDouble() * 1.6;
+        tier.amp[4 * i + 2] = 0.7 + rand.nextDouble() * 1.9;
+        tier.amp[4 * i + 3] = 0.3 + rand.nextDouble() * 0.9;
+
+        tier.blast[ix] = (rand.nextDouble() - 0.5) * 26;
+        tier.blast[iy] = (rand.nextDouble() - 0.5) * 20 - 8;
       }
       tiers.add(tier);
     }
@@ -642,8 +710,6 @@ class _DustField {
     required double wave,
     required double repelRadius,
   }) {
-    final w = rect.width;
-    final h = rect.height;
     final tx = touch?.dx ?? 0;
     final ty = touch?.dy ?? 0;
     final r2 = repelRadius * repelRadius;
@@ -651,29 +717,23 @@ class _DustField {
     for (final tier in tiers) {
       final xy = tier.xy;
       final home = tier.home;
-      final vel = tier.vel;
+      final amp = tier.amp;
+      final freq = tier.freq;
+      final off = tier.phase;
       final shove = tier.shove;
       for (var i = 0; i < tier.count; i++) {
         final ix = 2 * i;
         final iy = ix + 1;
-        // |vel| is at most 3 rect-widths, so these loops run at most 4 times
-        // and beat a `%` on both clarity and the sign question.
-        var ux = home[ix] + vel[ix] * phase;
-        while (ux < 0) {
-          ux += w;
-        }
-        while (ux >= w) {
-          ux -= w;
-        }
-        var uy = home[iy] + vel[iy] * phase;
-        while (uy < 0) {
-          uy += h;
-        }
-        while (uy >= h) {
-          uy -= h;
-        }
-        var px = rect.left + ux;
-        var py = rect.top + uy;
+        final h4 = 4 * i;
+
+        // Two harmonics per axis. Bounded, so the mote stays where it lives;
+        // incommensurate between motes, so the field has no grain to it.
+        var px = home[ix] +
+            amp[h4] * _Trig.sin(freq[h4] * phase + off[h4]) +
+            amp[h4 + 1] * _Trig.sin(freq[h4 + 1] * phase + off[h4 + 1]);
+        var py = home[iy] +
+            amp[h4 + 2] * _Trig.sin(freq[h4 + 2] * phase + off[h4 + 2]) +
+            amp[h4 + 3] * _Trig.sin(freq[h4 + 3] * phase + off[h4 + 3]);
 
         // The finger. An impulse each frame it is near, then a decay, so the
         // dust keeps moving after the touch passes and eases back rather than
@@ -685,7 +745,7 @@ class _DustField {
           if (d2 < r2) {
             final d = math.sqrt(d2);
             final falloff = 1 - d / repelRadius;
-            final k = falloff * falloff * 5.5;
+            final k = falloff * falloff * 6.5;
             if (d > 0.001) {
               shove[ix] += dx / d * k;
               shove[iy] += dy / d * k;
@@ -694,8 +754,11 @@ class _DustField {
             }
           }
         }
-        shove[ix] *= 0.87;
-        shove[iy] *= 0.87;
+        // Slow enough that dust visibly heaps at the edges of a stroke and
+        // takes a moment to settle back, rather than snapping shut behind
+        // the fingertip.
+        shove[ix] *= 0.93;
+        shove[iy] *= 0.93;
         px += shove[ix];
         py += shove[iy];
 
@@ -755,21 +818,40 @@ class _WipeMask {
   final Float32List weights;
   final double _totalWeight;
 
-  /// Where the finger went. Stroked, not filled — this is the hole.
+  /// The hole, as a heap of overlapping discs along the finger's path.
+  ///
+  /// Filled, not stroked. A stroke is one constant width with one smooth
+  /// gradient down both sides, which is a paint stroke — it looked like
+  /// wiping a window with a squeegee, and no amount of blur fixes the shape.
+  /// Discs of varying size, jittered off the path and flecked with smaller
+  /// satellites, give a boundary that crumbles instead of ruling, which is
+  /// what rubbing dust away actually looks like. Non-zero fill unions them
+  /// for free, so it is still one draw call.
   final Path path = Path();
 
-  /// Whether the current subpath has been opened.
-  bool _drawing = false;
+  /// Deterministic per mask, so a rebuild of the same wipe looks the same.
+  final math.Random _rand = math.Random(0x5EED);
+
+  Offset? _lastStamp;
+  int _discs = 0;
   bool _any = false;
 
   /// Nothing has been wiped — the overwhelmingly common state, and the one
   /// where the painter can skip its offscreen layer entirely.
   bool get clean => !_any;
 
-  /// The stroke width the [path] is meant to be drawn at: the brush's own
-  /// diameter, less the blur that will soften it back out.
-  static const double strokeWidth = brush * 1.7;
-  static const double strokeBlur = 7;
+  /// Distance the finger must travel before another disc is laid down.
+  static const double _stampSpacing = 3.5;
+
+  /// Past this many discs the satellites stop, so a marathon scrub cannot
+  /// grow a path that costs real time to rasterise and blur every frame. The
+  /// core discs keep coming; by then the edge has all the variety it needs,
+  /// and a wipe this long is about to cross the reveal threshold anyway.
+  static const int _satelliteBudget = 220;
+
+  /// Just enough to take the hard edge off the discs without returning the
+  /// whole thing to a smooth gradient.
+  static const double stampBlur = 3.2;
 
   factory _WipeMask.covering(List<Rect> rects) {
     var bounds = rects.first;
@@ -794,22 +876,39 @@ class _WipeMask {
     return _WipeMask._(bounds, cols, rows, values, weights);
   }
 
-  /// Begins a new stroke. Called on pointer-down so a second touch does not
-  /// draw a line from wherever the last one ended.
-  void lift() => _drawing = false;
+  /// Begins a new stroke, so the next disc is judged on its own rather than
+  /// against wherever the last touch ended.
+  void lift() => _lastStamp = null;
 
   void stamp(Offset point) {
-    if (_drawing) {
-      path.lineTo(point.dx, point.dy);
-    } else {
-      path
-        ..moveTo(point.dx, point.dy)
-        // A zero-length subpath is not reliably capped, and a pointer that
-        // goes down and stops still owes the finger a dot.
-        ..lineTo(point.dx + 0.01, point.dy);
-      _drawing = true;
+    final last = _lastStamp;
+    final travelled = last == null ? double.infinity : (point - last).distance;
+    if (travelled >= _stampSpacing) {
+      // A slow finger presses wider than a fast one — the same reason a
+      // pencil eraser leaves a fat mark where you linger. Plus a little
+      // per-disc variation, so no two are the same size.
+      final speed = travelled.isFinite ? travelled : 0.0;
+      final r = brush *
+          (1.18 - speed / 70).clamp(0.78, 1.18) *
+          (0.86 + _rand.nextDouble() * 0.3);
+      path.addOval(Rect.fromCircle(center: point, radius: r));
+      _discs++;
+
+      // Flecks around the rim. These are what stop the boundary reading as a
+      // shape at all.
+      if (_discs < _satelliteBudget) {
+        for (var s = 0; s < 2; s++) {
+          final a = _rand.nextDouble() * 2 * math.pi;
+          final d = r * (0.6 + _rand.nextDouble() * 0.45);
+          path.addOval(Rect.fromCircle(
+            center: point + Offset(math.cos(a) * d, math.sin(a) * d * 0.7),
+            radius: r * (0.16 + _rand.nextDouble() * 0.2),
+          ));
+        }
+      }
+      _lastStamp = point;
+      _any = true;
     }
-    _any = true;
 
     final minX = ((point.dx - brush - bounds.left) / cell).floor();
     final maxX = ((point.dx + brush - bounds.left) / cell).ceil();
@@ -834,7 +933,8 @@ class _WipeMask {
   void reset() {
     values.fillRange(0, values.length, 0);
     path.reset();
-    _drawing = false;
+    _lastStamp = null;
+    _discs = 0;
     _any = false;
   }
 
@@ -971,10 +1071,8 @@ class _SpoilerDustPainter extends CustomPainter {
           repelRadius: _SpoilerOverlayState._repelRadius,
         );
         for (final tier in field.tiers) {
-          final twinkle = 0.78 +
-              0.22 *
-                  math.sin(
-                      2 * math.pi * (phase * tier.cycles + tier.offset));
+          final twinkle =
+              0.84 + 0.16 * _Trig.sin(phase * tier.cycles + tier.offset);
           final alpha = (tier.baseAlpha * twinkle).clamp(0.0, 1.0);
           mote
             ..color = dust.withValues(alpha: alpha)
@@ -990,22 +1088,18 @@ class _SpoilerDustPainter extends CustomPainter {
     //    it after the dust takes plate and motes together. Motes drawn after
     //    would float over text the reader has already uncovered.
     //
-    //    The wipe's stroke first — one blurred path, so the hole has a
-    //    fingertip's soft edge and no trace of the bookkeeping grid. Faded
-    //    out as a whole while a partial reveal heals.
+    //    The wipe's rub first — one filled heap of discs, so the hole has a
+    //    crumbling edge and no trace of the bookkeeping grid. Faded out as a
+    //    whole while a partial reveal heals.
     if (wiped) {
       canvas.drawPath(
         mask.path,
         Paint()
           ..blendMode = BlendMode.dstOut
           ..color = Color.fromRGBO(0, 0, 0, 1 - heal)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = _WipeMask.strokeWidth
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
           ..maskFilter = const MaskFilter.blur(
             BlurStyle.normal,
-            _WipeMask.strokeBlur,
+            _WipeMask.stampBlur,
           ),
       );
     }

@@ -122,6 +122,38 @@ void main() {
     expect(find.byType(SpoilerOverlay), findsOneWidget);
   });
 
+  testWidgets('the spot you tapped is covered again after it heals',
+      (tester) async {
+    // The pan claims the pointer on down, so a tap's pointer-down stamps one
+    // brush dot on the wipe mask before `onEnd` decides it was a tap. Left
+    // there, that dot punched straight back through the dust when it closed
+    // over: the exact spot you touched came back permanently bare.
+    await tester.pumpWidget(host(calm: false));
+    await settleVeil(tester);
+    final spot = tester.getRect(find.byType(SpoilerOverlay)).center;
+
+    await tester.tapAt(spot);
+    await tester.pump();
+    await tester.pump(pastAnimation);
+    expect(SpoilerStore.instance.isRevealed(messageId), isTrue);
+
+    await tester.pump(pastHold);
+    await tester.pump(pastAnimation);
+    expect(SpoilerStore.instance.isRevealed(messageId), isFalse);
+
+    // If the tap's dot survived, this point still counts as an open window
+    // and the recognizer refuses the pointer — so a second tap does nothing.
+    await tester.tapAt(spot);
+    await tester.pump();
+    await tester.pump(pastAnimation);
+    expect(
+      SpoilerStore.instance.isRevealed(messageId),
+      isTrue,
+      reason: 'the tapped spot never re-veiled — its wipe dot outlived the '
+          'reveal',
+    );
+  });
+
   testWidgets('a message that mounts already open heals on its own',
       (tester) async {
     // A row recycled while its text was showing, or a rebuild in place. The
