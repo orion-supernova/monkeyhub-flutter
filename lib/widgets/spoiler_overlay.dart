@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' as ui show Gradient, PointMode;
+import 'dart:ui' as ui show PointMode;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/scheduler.dart';
@@ -110,18 +110,21 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     );
   }
 
-  /// Reach of the draught around a fingertip. Wider than the brush that
-  /// actually clears, so dust is moving well outside the part being uncovered
-  /// — the air arrives before the erasing does.
-  static const double _repelRadius = 66;
+  /// Nominal reach of the draught around a fingertip.
+  ///
+  /// Small on purpose, and never actually used as-is: each mote scales it by
+  /// its own factor (see [_DustField.update]) so the disturbed area has a
+  /// ragged edge. A single shared radius draws a clean circle around the
+  /// finger, which is what a magnifier looks like.
+  static const double _repelRadius = 34;
 
   static const _revealIn = Duration(milliseconds: 420);
 
-  /// Longer than the reveal, and deliberately so: the dust has to travel in
-  /// from upwind and settle, and a drift that arrives in the time it took to
-  /// blow away reads as a rewind.
-  static const _revealOut = Duration(milliseconds: 1150);
-  static const _healOut = Duration(milliseconds: 700);
+  /// Six times the reveal, and deliberately so. Uncovering is one gesture and
+  /// can be quick; covering is an accumulation, and an accumulation you can
+  /// follow has to be slow enough to watch specks arrive one at a time.
+  static const _revealOut = Duration(milliseconds: 2600);
+  static const _healOut = Duration(milliseconds: 1500);
 
   /// [rects] flattened — the veil doesn't care which range a line came from.
   List<Rect> _rects = const [];
@@ -173,14 +176,8 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
   /// out of the plate, closing is dust blowing back in over the words.
   bool _gathering = false;
 
-  /// Which way the dust drifts back in, fixed per message so a spoiler always
-  /// re-forms the same way. Mostly sideways, tilted a little, and pointing
-  /// one way or the other depending on the id.
-  late final Offset _wind = () {
-    final r = math.Random(widget.contextId.hashCode ^ 0x51D3);
-    final a = (r.nextBool() ? 0.0 : math.pi) + (r.nextDouble() - 0.5) * 0.7;
-    return Offset(math.cos(a), math.sin(a) * 0.45);
-  }();
+  /// Where the concealment re-forms from, rebuilt with the geometry.
+  List<_Blob> _blobs = const [];
 
   /// Real time between paints, for the integrated part of the field.
   final _FrameClock _clock = _FrameClock();
@@ -241,7 +238,46 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
       _rects = flat;
       _mask = _WipeMask.covering(flat);
       _fields = const [];
+      _blobs = _buildBlobs(flat);
     });
+  }
+
+  /// Seeds the patches the concealment grows back from — several per line,
+  /// each opening at its own moment, each wide enough that the neighbours it
+  /// has to meet are within reach.
+  List<_Blob> _buildBlobs(List<Rect> rects) {
+    final rand = math.Random(widget.contextId.hashCode ^ 0x51D3);
+    final out = <_Blob>[];
+    for (final r in rects) {
+      final n = math.max(4, (r.width / 21).round());
+      for (var i = 0; i < n; i++) {
+        final centre = Offset(
+          r.left + (i + rand.nextDouble()) * r.width / n,
+          r.top + rand.nextDouble() * r.height,
+        );
+        // Rooted, not cubed, so the thresholds bunch up LATE: one or two
+        // patches early, the bulk arriving near the end. Cubing them put two
+        // thirds of the veil back before the dust had managed thirty specks,
+        // which is coverage racing the effect it is meant to be following.
+        final at = math.pow(rand.nextDouble(), 0.38).toDouble() * 0.82;
+        final radius = r.height * (0.62 + rand.nextDouble() * 0.55);
+        out.add(_Blob(centre, at, radius));
+        // Grains around it, arriving with it. A patch that is one clean disc
+        // draws a circular arc wherever it crosses a letter, which is the
+        // same hard curve the finger's draught was called out for; broken up
+        // like this the boundary reads as settling grit.
+        for (var s = 0; s < 3; s++) {
+          final a = rand.nextDouble() * 2 * math.pi;
+          final d = radius * (0.55 + rand.nextDouble() * 0.7);
+          out.add(_Blob(
+            centre + Offset(math.cos(a) * d, math.sin(a) * d * 0.55),
+            at + rand.nextDouble() * 0.05,
+            radius * (0.3 + rand.nextDouble() * 0.35),
+          ));
+        }
+      }
+    }
+    return out;
   }
 
   void _onRevealStatus(AnimationStatus status) {
@@ -402,8 +438,8 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
           healOf: () => _heal.value,
           touchOf: () => _touch.value,
           originOf: () => _waveOrigin,
+          blobsOf: () => _blobs,
           clock: _clock,
-          wind: _wind,
           cover: widget.cover,
           dust: widget.dust,
           calm: motion.calm,
@@ -629,6 +665,15 @@ class _DustTier {
   final Float32List blast;
 }
 
+/// One patch of returning concealment: where it opens, when, and how wide it
+/// eventually spreads.
+class _Blob {
+  const _Blob(this.centre, this.at, this.radius);
+  final Offset centre;
+  final double at;
+  final double radius;
+}
+
 /// Real elapsed time between paints.
 ///
 /// The dust is integrated, not interpolated — motes carry velocity — so it
@@ -793,11 +838,17 @@ class _DustField {
 
   /// Writes this frame's positions into every tier's [_DustTier.xy].
   ///
+  /// How many motes-worth of a tier are mid-entry at any moment during the
+  /// settle. Small, so arrival reads as individual specks landing.
+  static const double entryRun = 26;
+
+  /// Writes this frame's positions into every tier's [_DustTier.xy].
+  ///
   /// [touch] is a source of moving air, not a repulsion field: it accelerates
-  /// motes outward, curls them around itself, and lets them coast. [wave] is
-  /// the reveal's radius, and motes within reach of its edge are thrown ahead
-  /// of it. [gather] runs the whole thing backwards — 0 while a spoiler is
-  /// veiled or opening, rising to 1 as the dust blows back in along [wind].
+  /// motes outward in scattered directions and lets them coast. [wave] is the
+  /// reveal's radius, and motes within reach of its edge are thrown ahead of
+  /// it. [density] is the fraction of each tier currently allowed on screen —
+  /// 1 normally, and climbing from nearly nothing during the settle.
   void update({
     required double phase,
     required double dt,
@@ -806,14 +857,15 @@ class _DustField {
     required Offset waveOrigin,
     required double wave,
     required double repelRadius,
-    required double gather,
-    required Offset wind,
+    required double density,
   }) {
     final tx = touch?.dx ?? 0;
     final ty = touch?.dy ?? 0;
-    final r2 = repelRadius * repelRadius;
 
     for (final tier in tiers) {
+      // Index of the most recently admitted mote; -1 when every one of them
+      // is long since home.
+      final arrived = density >= 1 ? -1.0 : density * tier.count;
       final xy = tier.xy;
       final home = tier.home;
       final amp = tier.amp;
@@ -842,31 +894,45 @@ class _DustField {
         var ay = -_springK * shove[iy] - _springC * shoveVel[iy];
 
         if (touch != null) {
+          // Each mote answers to its own radius, so the disturbed patch has a
+          // ragged outline instead of the clean circle a shared one draws.
+          final reach = repelRadius * (0.55 + 0.9 * off[h4]);
           final dx = px + shove[ix] - tx;
           final dy = py + shove[iy] - ty;
           final d2 = dx * dx + dy * dy;
-          if (d2 < r2) {
+          if (d2 < reach * reach) {
             final d = math.sqrt(d2);
-            final falloff = 1 - d / repelRadius;
+            final falloff = 1 - d / reach;
             final f = falloff * falloff;
-            // Straight out from the fingertip. Motes at the very centre have
-            // no direction to be pushed in, so they get shoved upward and
-            // the field sorts itself out within a frame or two.
-            final nx = d > 0.001 ? dx / d : 0.0;
-            final ny = d > 0.001 ? dy / d : -1.0;
-            ax += nx * _blowAccel * f;
-            ay += ny * _blowAccel * f;
-            // A curl around the finger, wandering in strength and direction.
-            // Without it a held finger is a static bubble — the "magnifier"
-            // read — and with it the dust keeps circulating for as long as
-            // the finger is down, which is what a held draught looks like.
-            final swirl = _Trig.sin(time * 0.42 + off[h4] * 3) * 0.55 +
-                _Trig.sin(time * 1.13 + off[h4 + 1] * 5) * 0.25;
-            ax += -ny * _blowAccel * f * swirl;
-            ay += nx * _blowAccel * f * swirl;
-            // Turbulence, so no two motes take the same line out.
-            ax += _Trig.sin(time * 1.9 + off[h4 + 2] * 7) * _blowAccel * f * 0.3;
-            ay += _Trig.sin(time * 2.3 + off[h4 + 3] * 11) * _blowAccel * f * 0.3;
+            // Away from the fingertip, then knocked well off that line by a
+            // fixed direction of the mote's own. The bias is outward but the
+            // spread is wide, so motes leave every which way — right-hand
+            // ones mostly rightward, and so on, but scattered.
+            //
+            // There is deliberately NO tangential term. A curl made the field
+            // orbit the fingertip, which reads as a turbine, and orbiting
+            // dust never actually leaves.
+            var ex = d > 0.001 ? dx / d : 0.0;
+            var ey = d > 0.001 ? dy / d : -1.0;
+            ex += _Trig.sin(off[h4 + 1] + 0.25) * 0.95;
+            ey += _Trig.sin(off[h4 + 1]) * 0.95;
+            final el = math.sqrt(ex * ex + ey * ey);
+            if (el > 0.001) {
+              ex /= el;
+              ey /= el;
+            }
+            ax += ex * _blowAccel * f;
+            ay += ey * _blowAccel * f;
+            // Turbulence on top, wandering in time, so the scatter keeps
+            // changing for as long as the finger is down.
+            ax += _Trig.sin(time * 2.7 + off[h4 + 2] * 13) *
+                _blowAccel *
+                f *
+                0.5;
+            ay += _Trig.sin(time * 3.1 + off[h4 + 3] * 17) *
+                _blowAccel *
+                f *
+                0.5;
           }
         }
 
@@ -883,19 +949,17 @@ class _DustField {
         px += shove[ix];
         py += shove[iy];
 
-        // Blowing back in. Each mote starts its own distance upwind and
-        // arrives on its own beat, so the veil re-forms as a drift settling
-        // over the words rather than an opacity ramp.
-        if (gather > 0) {
-          final st = tier.stagger[i];
-          final t = ((gather - st) / (1 - st)).clamp(0.0, 1.0);
-          final remaining = 1 - Curves.easeOutCubic.transform(t);
-          if (remaining > 0) {
-            final reach = tier.gust[i] * remaining;
-            px += wind.dx * reach;
-            // A little lift on the way in, so motes arc down into place
-            // instead of sliding along a rail.
-            py += wind.dy * reach - 7 * remaining * (1 - remaining) * 4;
+        // Drifting back in. A mote's index IS its arrival order (the painter
+        // draws a growing prefix of the buffer), so this only has to handle
+        // the last moments of the journey: the ones that have just been let
+        // in slide the last of the way from a direction of their own.
+        if (arrived >= 0) {
+          final a = ((arrived - i) / entryRun).clamp(0.0, 1.0);
+          if (a < 1) {
+            final ease = 1 - Curves.easeOutCubic.transform(a);
+            final reach = tier.gust[i] * ease;
+            px += _Trig.sin(off[h4 + 1] + 0.25) * reach;
+            py += _Trig.sin(off[h4 + 1]) * reach * 0.5;
           }
         }
 
@@ -969,6 +1033,15 @@ class _WipeMask {
   /// Deterministic per mask, so a rebuild of the same wipe looks the same.
   final math.Random _rand = math.Random(0x5EED);
 
+  /// Every disc, kept alongside [path] so the hole can be rebuilt without
+  /// some of them while it heals.
+  final List<double> _cx = [];
+  final List<double> _cy = [];
+  final List<double> _cr = [];
+
+  /// Each disc's place in the queue to disappear, 0..1.
+  final List<double> _order = [];
+
   Offset? _lastStamp;
   int _discs = 0;
   bool _any = false;
@@ -1028,7 +1101,7 @@ class _WipeMask {
       final r = brush *
           (1.18 - speed / 70).clamp(0.78, 1.18) *
           (0.86 + _rand.nextDouble() * 0.3);
-      path.addOval(Rect.fromCircle(center: point, radius: r));
+      _addDisc(point, r);
       _discs++;
 
       // Flecks around the rim. These are what stop the boundary reading as a
@@ -1037,10 +1110,10 @@ class _WipeMask {
         for (var s = 0; s < 2; s++) {
           final a = _rand.nextDouble() * 2 * math.pi;
           final d = r * (0.6 + _rand.nextDouble() * 0.45);
-          path.addOval(Rect.fromCircle(
-            center: point + Offset(math.cos(a) * d, math.sin(a) * d * 0.7),
-            radius: r * (0.16 + _rand.nextDouble() * 0.2),
-          ));
+          _addDisc(
+            point + Offset(math.cos(a) * d, math.sin(a) * d * 0.7),
+            r * (0.16 + _rand.nextDouble() * 0.2),
+          );
         }
       }
       _lastStamp = point;
@@ -1066,10 +1139,38 @@ class _WipeMask {
     }
   }
 
+  void _addDisc(Offset c, double r) {
+    path.addOval(Rect.fromCircle(center: c, radius: r));
+    _cx.add(c.dx);
+    _cy.add(c.dy);
+    _cr.add(r);
+    _order.add(_rand.nextDouble());
+  }
+
+  /// The hole rebuilt from only the discs that have not yet crumbled shut, so
+  /// a healing wipe closes in specks rather than dimming out.
+  ///
+  /// Rebuilt per frame, which is only ever for the second or so a heal lasts,
+  /// and a few hundred ovals is nothing next to the blur that follows it.
+  Path pathSurviving(double heal) {
+    final p = Path();
+    for (var j = 0; j < _cx.length; j++) {
+      if (_order[j] <= heal) continue;
+      p.addOval(
+        Rect.fromCircle(center: Offset(_cx[j], _cy[j]), radius: _cr[j]),
+      );
+    }
+    return p;
+  }
+
   /// Back to full dust, after a partial wipe has healed.
   void reset() {
     values.fillRange(0, values.length, 0);
     path.reset();
+    _cx.clear();
+    _cy.clear();
+    _cr.clear();
+    _order.clear();
     _lastStamp = null;
     _discs = 0;
     _any = false;
@@ -1110,8 +1211,8 @@ class _SpoilerDustPainter extends CustomPainter {
     required this.healOf,
     required this.touchOf,
     required this.originOf,
+    required this.blobsOf,
     required this.clock,
-    required this.wind,
     required this.cover,
     required this.dust,
     required this.calm,
@@ -1126,8 +1227,8 @@ class _SpoilerDustPainter extends CustomPainter {
   final double Function() healOf;
   final Offset? Function() touchOf;
   final Offset Function() originOf;
+  final List<_Blob> Function() blobsOf;
   final _FrameClock clock;
-  final Offset wind;
   final Color cover;
   final Color dust;
   final bool calm;
@@ -1140,39 +1241,62 @@ class _SpoilerDustPainter extends CustomPainter {
   /// the plate's outset, roaming motes, and the wipe stroke's blur.
   static const double _layerSlack = 28;
 
-  /// Half-width of the settling front's soft edge, as a fraction of the
-  /// veil's extent along the wind.
-  static const double _frontBand = 0.16;
-
-  /// A `dstOut` shader that erases only DOWNWIND of a front at [progress],
-  /// which is how every re-veil in here is drawn: dust reclaims the words
-  /// from one side instead of an opacity ramp taking them everywhere at once.
+  /// Paints the concealment as it ACCUMULATES, for both the settle and a
+  /// healing wipe.
   ///
-  /// [progress] 0 means the front has not arrived and everything is still
-  /// erased; 1 means it has swept the whole span. Returns null at the extreme
-  /// where a flat erase is equivalent, so the caller can skip the shader.
-  ui.Gradient? _windFront(Rect bounds, double progress) {
-    final front =
-        (1 + _frontBand) - Curves.easeInOut.transform(progress) * (1 + 2 * _frontBand);
-    if (front >= 1 + _frontBand) return null;
-    final n = wind / wind.distance;
-    final half = (bounds.width * n.dx.abs() + bounds.height * n.dy.abs()) / 2;
-    return ui.Gradient.linear(
-      bounds.center - n * half,
-      bounds.center + n * half,
-      const [
-        Color(0xFF000000),
-        Color(0xFF000000),
-        Color(0x00000000),
-        Color(0x00000000),
-      ],
-      [
-        0,
-        (front - _frontBand).clamp(0.0, 1.0),
-        (front + _frontBand).clamp(0.0, 1.0),
-        1,
-      ],
-    );
+  /// Patches open at their own moments and spread until they meet, so
+  /// coverage arrives the way frost does. The alternative — one alpha over
+  /// the whole veil — is a dimmer, and no amount of dust flying about on top
+  /// disguises it; that is what made every earlier version of the comeback
+  /// read as a fade.
+  ///
+  /// [progress] 0 covers nothing, 1 covers everything. Completeness at 1 is
+  /// guaranteed by the flat top-up, not by the patches: a patch that opened
+  /// at 0.99 has barely any radius, and a spoiler that ends up 98% covered is
+  /// not covered.
+  void _paintCoverage(Canvas canvas, List<Rect> rects, double progress) {
+    canvas.save();
+    final clip = Path();
+    for (final r in rects) {
+      clip.addRect(r);
+    }
+    canvas.clipPath(clip);
+
+    final patches = Path();
+    var any = false;
+    for (final b in blobsOf()) {
+      if (b.at >= progress) continue;
+      final grown = Curves.easeOutCubic
+          .transform(((progress - b.at) / 0.26).clamp(0.0, 1.0));
+      final r = b.radius * grown;
+      if (r <= 0.3) continue;
+      patches.addOval(Rect.fromCircle(center: b.centre, radius: r));
+      any = true;
+    }
+    if (any) {
+      canvas.drawPath(
+        patches,
+        Paint()
+          ..color = cover
+          // Softens the rims so a patch fades into the words rather than
+          // cutting them. The ghosting this leaves at the edge is transient
+          // and the top-up below closes it.
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+      );
+    }
+
+    // Only the last stretch, and only to close whatever the patches left —
+    // start it earlier and it becomes the animation instead of the backstop.
+    final topUp = Curves.easeInOut
+        .transform(((progress - 0.84) / 0.16).clamp(0.0, 1.0));
+    if (topUp > 0.004) {
+      final paint = Paint()
+        ..color = topUp >= 1 ? cover : cover.withValues(alpha: topUp);
+      for (final r in rects) {
+        canvas.drawRect(r, paint);
+      }
+    }
+    canvas.restore();
   }
 
   @override
@@ -1219,23 +1343,13 @@ class _SpoilerDustPainter extends CustomPainter {
     // visible only while a wipe or reveal is in flight, which is exactly when
     // nobody is looking for a rendering bug. Motes roam outside too, and the
     // wipe's blur spreads further still.
-    // Where the veil's leading edge has got to, as a fraction along the wind
-    // axis, running from just past the far end (nothing covered) to just past
-    // the near end (all covered).
-    final front = gathering
-        ? (1 + _frontBand) -
-            Curves.easeInOut.transform(gather) * (1 + 2 * _frontBand)
-        : double.negativeInfinity;
-    final plateHidden = front >= 1 + _frontBand;
-    final fronted = gathering && !plateHidden && front > -_frontBand;
+    // How much of the field is allowed on screen. Steeply curved, so the
+    // settle opens with a handful of specks and the rest pile in later —
+    // "two or three, then more and more" is the whole shape of it.
+    final density =
+        gathering ? math.pow(gather, 2.6).toDouble().clamp(0.0, 1.0) : 1.0;
 
-    var veilBounds = rects.first;
-    for (final r in rects.skip(1)) {
-      veilBounds = veilBounds.expandToInclude(r);
-    }
-    veilBounds = veilBounds.inflate(_layerSlack);
-
-    final holed = wiped || waveR > 0 || fronted;
+    final holed = wiped || waveR > 0;
     if (holed) {
       canvas.saveLayer((Offset.zero & size).inflate(_layerSlack), Paint());
     }
@@ -1252,27 +1366,14 @@ class _SpoilerDustPainter extends CustomPainter {
     //    through, which is precisely the corner the flat plate exists to
     //    avoid. Square rects tile exactly.
     //
-    //    On the way back in it arrives as a FRONT, never as an alpha ramp.
-    //    Fading it in was the whole reason the settle read as a dissolve: an
-    //    even wash of opacity over the words is a dimmer, whatever is flying
-    //    about on top of it. Instead the plate is drawn solid and then cut
-    //    back to a line that sweeps downwind, so the words go out behind a
-    //    drift that is visibly arriving from one side.
-    if (!plateHidden) {
+    //    On the way back in it does not fade — it ACCUMULATES, in patches
+    //    that open and spread until they meet. See [_paintCoverage].
+    if (gathering) {
+      _paintCoverage(canvas, rects, gather);
+    } else {
       final fill = Paint()..color = cover;
       for (final r in rects) {
         canvas.drawRect(r, fill);
-      }
-    }
-    if (fronted) {
-      final shader = _windFront(veilBounds, gather);
-      if (shader != null) {
-        canvas.drawRect(
-          veilBounds,
-          Paint()
-            ..blendMode = BlendMode.dstOut
-            ..shader = shader,
-        );
       }
     }
 
@@ -1292,17 +1393,36 @@ class _SpoilerDustPainter extends CustomPainter {
           waveOrigin: origin,
           wave: waveR,
           repelRadius: _SpoilerOverlayState._repelRadius,
-          gather: gather,
-          wind: wind,
+          density: density,
         );
-        for (final tier in field.tiers) {
+        for (var t = 0; t < field.tiers.length; t++) {
+          final tier = field.tiers[t];
+          // A prefix of the buffer, so the settle admits motes a few at a
+          // time. Buffer order is arrival order and the homes were seeded at
+          // random, so a prefix is a scattering rather than a patch. The
+          // brightest tier rounds UP, so the first thing to appear is a
+          // couple of bright specks rather than nothing at all.
+          var count = tier.count;
+          if (density < 1) {
+            final exact = tier.count * density;
+            count = (t == field.tiers.length - 1 ? exact.ceil() : exact.floor())
+                .clamp(0, tier.count);
+            if (count == 0) continue;
+          }
           final twinkle =
               0.84 + 0.16 * _Trig.sin(phase * tier.cycles + tier.offset);
           final alpha = (tier.baseAlpha * twinkle).clamp(0.0, 1.0);
           mote
             ..color = dust.withValues(alpha: alpha)
             ..strokeWidth = tier.size;
-          canvas.drawRawPoints(ui.PointMode.points, tier.xy, mote);
+          canvas.drawRawPoints(
+            ui.PointMode.points,
+            count == tier.count
+                ? tier.xy
+                : Float32List.view(
+                    tier.xy.buffer, tier.xy.offsetInBytes, count * 2),
+            mote,
+          );
         }
       }
     }
@@ -1316,25 +1436,25 @@ class _SpoilerDustPainter extends CustomPainter {
     //    runs BEFORE the dust, for the opposite reason: motes blowing in
     //    ahead of it have to survive it.)
     //
-    //    The wipe's rub first — one filled heap of discs, so the hole has a
-    //    crumbling edge and no trace of the bookkeeping grid. Healing sweeps
-    //    the same wind across it rather than dimming it: a hole that fades
-    //    out uniformly is the dissolve this whole effect exists not to be,
-    //    just at a smaller scale.
+    //    The wipe's rub — one filled heap of discs, so the hole has a
+    //    crumbling edge and no trace of the bookkeeping grid.
+    //    Healing drops those discs one by one instead of dimming the whole
+    //    hole: the opening crumbles shut in specks, which is the same idea as
+    //    the settle and for the same reason — a hole that fades out
+    //    uniformly is a dissolve, just a small one. It also keeps the paint
+    //    order honest, since re-covering by drawing over the top here would
+    //    bury the dust.
     if (wiped) {
-      final paint = Paint()
-        ..blendMode = BlendMode.dstOut
-        ..maskFilter = const MaskFilter.blur(
-          BlurStyle.normal,
-          _WipeMask.stampBlur,
-        );
-      final shader = heal > 0 ? _windFront(veilBounds, heal) : null;
-      if (shader != null) {
-        paint.shader = shader;
-      } else {
-        paint.color = const Color(0xFF000000);
-      }
-      canvas.drawPath(mask.path, paint);
+      canvas.drawPath(
+        heal > 0 ? mask.pathSurviving(heal) : mask.path,
+        Paint()
+          ..blendMode = BlendMode.dstOut
+          ..color = const Color(0xFF000000)
+          ..maskFilter = const MaskFilter.blur(
+            BlurStyle.normal,
+            _WipeMask.stampBlur,
+          ),
+      );
     }
 
     // 4. The reveal, as one expanding disc from wherever the finger was, with

@@ -21,10 +21,10 @@ void main() {
   /// it rather than encoding the formula.
   const pastHold = Duration(seconds: 6);
 
-  /// Past the longest of them: the settle, at 1150ms, is the slow one — the
-  /// dust has to drift in from upwind, which cannot take the time the reveal
-  /// took or it reads as a rewind.
-  const pastAnimation = Duration(milliseconds: 1500);
+  /// Past the longest of them. The settle, at 2600ms, is much the slowest:
+  /// covering is an accumulation, and one you can follow has to be slow
+  /// enough to watch specks arrive.
+  const pastAnimation = Duration(milliseconds: 3000);
 
   // `builder` rather than an outer MediaQuery: MaterialApp installs its own
   // MediaQuery from the view, which would silently discard an ancestor's
