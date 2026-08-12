@@ -24,9 +24,19 @@ ChatRoom _dm({String? systemRole}) =>
 
 ChatRoom _savedMessages() => _room(id: 's1', name: 'dm:self:u0');
 
-/// The `MonkeyHub Logs` room as it actually arrives: a DM by name, stamped
-/// `system: "logs"` by `problemReports.ensureReportRoom`.
-ChatRoom _logsRoom() => _dm(systemRole: 'logs');
+/// The `MonkeyHub Logs` room as it arrives today: a named group stamped
+/// `system: "logs"` by `problemReports.ensureReportRoom`, with the bot and the
+/// staff who read the reports in it.
+ChatRoom _logsRoom() => _room(
+      id: 'l1',
+      name: 'MonkeyHub Logs',
+      systemRole: 'logs',
+    );
+
+/// The same room before `problemReports.repairLogRoom` renamed it — still a
+/// `dm:` name, because the room predates the staff room it became. Any install
+/// that has not filed a report since the rename sees this.
+ChatRoom _legacyLogsDm() => _dm(systemRole: 'logs');
 
 ChatUser _user({bool isSystem = false}) => ChatUser(
       id: 'u1',
@@ -44,9 +54,19 @@ void main() {
     });
 
     test('the system stamp beats the dm: name prefix', () {
-      // The whole trap: the report room IS a DM, so a kind resolved from the
-      // name alone would hand it the full DM affordance set.
-      expect(_logsRoom().isDm, isTrue);
+      // The whole trap: the report room WAS a DM, and on any deployment that
+      // has not filed a report since the rename it still is one by name. A kind
+      // resolved from the name alone would hand it the full DM affordance set.
+      expect(_legacyLogsDm().isDm, isTrue);
+      expect(roomKindOf(_legacyLogsDm()), RoomKind.system);
+    });
+
+    test('the stamp is also what survives the rename to a group', () {
+      // The other half of the same guarantee, and the one that matters now:
+      // once the room is a plain named group, nothing about its NAME says
+      // "system" any more. Only the slug does.
+      expect(_logsRoom().isDm, isFalse);
+      expect(_logsRoom().isSavedMessages, isFalse);
       expect(roomKindOf(_logsRoom()), RoomKind.system);
     });
 
@@ -66,16 +86,47 @@ void main() {
 
   group('capabilities', () {
     test('a system room affords nothing a bot cannot answer', () {
-      final caps = roomCapabilitiesFor(_logsRoom());
+      final caps = roomCapabilitiesFor(_room(systemRole: 'support-2027'));
       expect(caps.canCall, isFalse);
       expect(caps.canDelete, isFalse);
       expect(caps.canLeave, isFalse);
       expect(caps.hasDescription, isFalse);
       expect(caps.hasMembers, isFalse);
+      expect(caps.hasPeerHandle, isFalse);
       expect(caps.canEditSettings, isFalse);
       expect(caps.canOpenPeerProfile, isFalse);
       expect(caps.canReceiveForwards, isFalse);
       expect(caps.canSaveMessages, isFalse);
+    });
+
+    test('the logs room gets its roster back, and nothing else', () {
+      // It stopped being "you and a bot" the day a second staff account was
+      // added, so the roster went from saying nothing to answering the only
+      // question anybody asks of that room: who else can see the reports.
+      final caps = roomCapabilitiesFor(_logsRoom());
+      expect(caps.hasMembers, isTrue);
+      // The opt-in is one flag. Everything else still tracks the locked-down
+      // floor — a room the app writes into is not one anybody renames, leaves,
+      // deletes, calls or forwards into.
+      expect(caps.canCall, isFalse);
+      expect(caps.canLeave, isFalse);
+      expect(caps.canDelete, isFalse);
+      expect(caps.canEditSettings, isFalse);
+      expect(caps.hasDescription, isFalse);
+      expect(caps.hasPeerHandle, isFalse);
+      expect(caps.canReceiveForwards, isFalse);
+      expect(caps.canSaveMessages, isFalse);
+      expect(caps.canMute, isTrue);
+    });
+
+    test('an install that predates the rename gets the same table', () {
+      // The override is keyed off the slug, not the name, so the room a stale
+      // deployment still calls `dm:regular:…` affords exactly what the renamed
+      // one does.
+      expect(
+        roomCapabilitiesFor(_legacyLogsDm()).hasMembers,
+        roomCapabilitiesFor(_logsRoom()).hasMembers,
+      );
     });
 
     test('an unknown slug falls back to the most restricted set', () {
@@ -105,8 +156,37 @@ void main() {
       expect(dm.canDelete, isTrue, reason: 'either side may end a DM');
       expect(dm.canLeave, isFalse, reason: 'leaving a DM strands you');
       expect(dm.canEditSettings, isFalse);
-      expect(dm.hasDescription, isTrue);
       expect(dm.canOpenPeerProfile, isTrue);
+    });
+
+    test('a DM has no description and no roster', () {
+      final dm = roomCapabilitiesFor(_dm(), peer: _user());
+      expect(
+        dm.hasDescription,
+        isFalse,
+        reason: 'a description is a notice to people who arrive later, and '
+            'a pair has no later',
+      );
+      expect(
+        dm.hasMembers,
+        isFalse,
+        reason: '"you and the person this screen is titled after" is not a list',
+      );
+    });
+
+    test('a DM still names the other person, though', () {
+      // The trap in taking the roster away: `@handle` used to ride on
+      // hasMembers, and it is the one thing the display name above it leaves
+      // out — it is how you tell two people called "Sam" apart.
+      expect(roomCapabilitiesFor(_dm(), peer: _user()).hasPeerHandle, isTrue);
+      // A group counts its members instead; there is no single peer to name.
+      expect(roomCapabilitiesFor(_room()).hasPeerHandle, isFalse);
+      expect(roomCapabilitiesFor(_room()).hasMembers, isTrue);
+      // And a bot DM says neither, which is the case that makes these two
+      // separate flags rather than one renamed one.
+      final bot = roomCapabilitiesFor(_dm(), peer: _user(isSystem: true));
+      expect(bot.hasPeerHandle, isFalse);
+      expect(bot.hasMembers, isFalse);
     });
 
     test('Saved Messages keeps its one affordance: being forwarded to', () {

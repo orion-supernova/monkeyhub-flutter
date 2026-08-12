@@ -34,13 +34,19 @@ enum RoomKind {
 /// forward sheet — nine sites, each of which had independently worked out that
 /// a chat with only yourself in it has nobody to call and nothing to describe.
 /// That is fine for one special room and completely unworkable for the second,
-/// because the second one is not special in the SAME ways: `MonkeyHub Logs` has
-/// a member list that is technically real (you and the bot) and a peer profile
-/// that technically loads, and both are still dead ends.
+/// because the second one is not special in the SAME ways: `MonkeyHub Logs` had
+/// a member list that was technically real (you and the bot) and a peer profile
+/// that technically loaded, and both were still dead ends.
 ///
 /// So the question each site asks changed from "which room is this?" to "may I
 /// draw this?". Adding a kind of room is now one row in the table below rather
 /// than a hunt through the widget tree for the checks somebody forgot.
+///
+/// The logs room since grew a third member and got its roster back
+/// ([_systemRoomOverrides]), which is the argument for this shape landing
+/// rather than against it: one row changed, and the header, the intro card and
+/// the info screen all followed. Under the old scheme that was three separate
+/// `if (!isLogsRoom)` to find.
 ///
 /// ── Adding a system room ───────────────────────────────────────────────────
 ///
@@ -57,6 +63,7 @@ class RoomCapabilities {
     required this.canDelete,
     required this.hasDescription,
     required this.hasMembers,
+    required this.hasPeerHandle,
     required this.canEditSettings,
     required this.canOpenPeerProfile,
     required this.canReceiveForwards,
@@ -81,11 +88,34 @@ class RoomCapabilities {
 
   /// Whether the room has a description worth editing or showing. False when
   /// there is nobody to describe it to.
+  ///
+  /// Off for a DM, and that is not the same reason Saved Messages is off. A DM
+  /// has two people who could both read a description, so the field WORKS — it
+  /// is just answering a question nobody asks. A description is a room's
+  /// standing notice to people who arrive later and were not part of agreeing
+  /// it; a DM has no later, and no arrivals. Whatever one party wrote there is
+  /// a message they could have sent, sitting in a slot the other party never
+  /// looks at, above a transcript where it would actually have been read.
   final bool hasDescription;
 
   /// Whether a member list says anything. "Members (1): you" is not
-  /// information, and neither is "Members (2): you and a bot".
+  /// information, and neither is "Members (2): you and a bot" — nor, for the
+  /// same reason, "Members (2): you and the person whose name is already the
+  /// title of this screen".
   final bool hasMembers;
+
+  /// Whether the chat header names the other party by `@handle`.
+  ///
+  /// Split out of [hasMembers] rather than folded into it, because the header's
+  /// subtitle line and a roster are the same widget slot answering two
+  /// different questions. A group says "PRIVATE · 12 members" there — a count,
+  /// which is what [hasMembers] is about. A DM says `@handle`, which is not a
+  /// count of anything: it is the one fact the display name above it leaves
+  /// out, and it is how you tell two people called "Sam" apart.
+  ///
+  /// So a DM turning [hasMembers] off must not take the handle with it, and a
+  /// bot room turning the handle off must not be read as having members.
+  final bool hasPeerHandle;
 
   /// Whether name, visibility, password and avatar are the viewer's to change.
   /// True for group rooms only — a DM is just the two people, and a system
@@ -143,6 +173,7 @@ class RoomCapabilities {
     canDelete: true,
     hasDescription: true,
     hasMembers: true,
+    hasPeerHandle: false, // no single peer to name
     canEditSettings: true,
     canOpenPeerProfile: false, // no single peer to open
     canReceiveForwards: true,
@@ -153,12 +184,17 @@ class RoomCapabilities {
   /// A two-person conversation. No leaving and no settings — the room is the
   /// pair, so there is nothing to rename and nowhere to leave to. Either side
   /// may end it outright.
+  ///
+  /// No description and no roster either, for the reasons those two fields
+  /// give: both are chrome a group needs and a pair cannot use. What survives
+  /// is [hasPeerHandle] — the header still says who you are talking to.
   static const dm = RoomCapabilities(
     canCall: true,
     canLeave: false,
     canDelete: true,
-    hasDescription: true,
-    hasMembers: true,
+    hasDescription: false,
+    hasMembers: false,
+    hasPeerHandle: true,
     canEditSettings: false,
     canOpenPeerProfile: true,
     canReceiveForwards: true,
@@ -179,6 +215,7 @@ class RoomCapabilities {
     canDelete: false,
     hasDescription: false,
     hasMembers: false,
+    hasPeerHandle: false,
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: true,
@@ -201,6 +238,7 @@ class RoomCapabilities {
     canDelete: false,
     hasDescription: false,
     hasMembers: false,
+    hasPeerHandle: false,
     canEditSettings: false,
     canOpenPeerProfile: false,
     canReceiveForwards: false,
@@ -215,6 +253,7 @@ class RoomCapabilities {
     bool? canDelete,
     bool? hasDescription,
     bool? hasMembers,
+    bool? hasPeerHandle,
     bool? canEditSettings,
     bool? canOpenPeerProfile,
     bool? canReceiveForwards,
@@ -227,6 +266,7 @@ class RoomCapabilities {
         canDelete: canDelete ?? this.canDelete,
         hasDescription: hasDescription ?? this.hasDescription,
         hasMembers: hasMembers ?? this.hasMembers,
+        hasPeerHandle: hasPeerHandle ?? this.hasPeerHandle,
         canEditSettings: canEditSettings ?? this.canEditSettings,
         canOpenPeerProfile: canOpenPeerProfile ?? this.canOpenPeerProfile,
         canReceiveForwards: canReceiveForwards ?? this.canReceiveForwards,
@@ -237,14 +277,24 @@ class RoomCapabilities {
 
 /// Per-slug departures from [RoomCapabilities.system].
 ///
-/// Empty today, and that is the correct starting state rather than an oversight:
-/// `logs` wants exactly the locked-down default. It exists as the seam for the
-/// bot rooms that are coming — a support room, say, would want
-/// `RoomCapabilities.system.copyWith(canReceiveForwards: true)` so a user can
-/// forward the message they are complaining about into it.
+/// The seam for bot rooms that want an affordance back — a support room, say,
+/// would want `canReceiveForwards: true` so a user can forward the message they
+/// are complaining about into it.
 ///
 /// Keys are the `rooms.system` slugs from `backend/convex/systemAccount.ts`.
-const Map<String, RoomCapabilities> _systemRoomOverrides = <String, RoomCapabilities>{};
+///
+/// Values are spelled as `copyWith` off the locked-down default rather than as
+/// literals, so an affordance a bot room does NOT ask for keeps tracking that
+/// default when it changes — the whole point of the fallback being a floor.
+final Map<String, RoomCapabilities> _systemRoomOverrides = <String, RoomCapabilities>{
+  // `MonkeyHub Logs` stopped being a DM between the bot and one maintainer and
+  // became a staff room the bot posts into, so its roster went from "you and a
+  // bot" — the example [RoomCapabilities.hasMembers] cites as saying nothing —
+  // to the answer to a question that now has one: which of us can see the
+  // reports. Everything else stays locked down; a room the app writes to is
+  // still not a room anybody renames, leaves or deletes.
+  'logs': RoomCapabilities.system.copyWith(hasMembers: true),
+};
 
 /// Which [RoomKind] [room] is.
 ///
@@ -254,8 +304,10 @@ const Map<String, RoomCapabilities> _systemRoomOverrides = <String, RoomCapabili
 /// omitting it is safe, just less complete.
 RoomKind roomKindOf(ChatRoom room, {ChatUser? peer}) {
   // Checked before [ChatRoom.isSavedMessages] and [ChatRoom.isDm], both of
-  // which a system room can also satisfy: the report room is a real DM, and a
-  // future system room might be seeded as a self-room. The stamp wins.
+  // which a system room can also satisfy: the report room was a real DM until
+  // it became a staff group, installs that predate the rename still hold the
+  // `dm:` name, and a future system room might be seeded as a self-room. The
+  // stamp wins.
   if (room.isSystemRoom || (peer?.isSystem ?? false)) return RoomKind.system;
   if (room.isSavedMessages) return RoomKind.savedMessages;
   if (room.isDm) return RoomKind.dm;

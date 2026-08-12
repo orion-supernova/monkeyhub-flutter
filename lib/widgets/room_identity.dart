@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
+import '../models/room_capabilities.dart';
 import '../theme/theme_scope.dart';
 
 /// What a room card can say about itself when the conversation hasn't started.
@@ -30,7 +31,13 @@ RoomSubtitle roomSubtitle(BuildContext context, ChatRoom room) {
   if (last != null && last.isNotEmpty) {
     return (text: last, kind: RoomSubtitleKind.message);
   }
-  final description = room.description?.trim();
+  // Gated on the same capability the chat header and room info ask, so a room
+  // whose description is hidden everywhere else cannot reappear here — which is
+  // exactly what a DM would do, since a DM with no messages yet is the one
+  // state this rung exists for. `peer` is not in hand on the room list and is
+  // not needed: a DM is recognised by its name.
+  final description =
+      roomCapabilitiesFor(room).hasDescription ? room.description?.trim() : null;
   if (description != null && description.isNotEmpty) {
     return (text: description, kind: RoomSubtitleKind.description);
   }

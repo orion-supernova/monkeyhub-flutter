@@ -8,8 +8,14 @@
  * a friend request nobody will ever accept, a DM nobody will ever read, a call
  * that rings nothing.
  *
+ * Note the account and the ROOM it writes into are separate things, and only the
+ * account is a dead end. The room grew a second human reader
+ * ([LOG_ROOM_STAFF_USERNAMES]) and stopped being a DM at all — see
+ * [LOG_ROOM_NAME]. Staff talking to each other in there is a live conversation;
+ * it is only the bot in the corner that never answers.
+ *
  * So the rule is one line: **a system account is reachable in exactly one
- * direction, and only by the maintainer it writes to.** It writes; nobody
+ * direction, and only by the staff it writes to.** It writes; nobody
  * addresses it, and nobody else can see it at all.
  *
  * Not merely unaddressable — *invisible*. It is filtered out of both user
@@ -24,7 +30,7 @@
  * `name` unconditionally, for every user, and narrowing that is a change to the
  * shape every friend-request and room-member read depends on. The protection is
  * that the id cannot be obtained — the account appears in no search, no public
- * room, and no roster but the single DM it writes to.
+ * room, and no roster but the single private room it writes to.
  *
  * ── Why this module exists at all ──────────────────────────────────────────
  *
@@ -85,16 +91,57 @@ export const SYSTEM_ROOM_LOGS = "logs";
  */
 export const SYSTEM_ROOM_FALLBACK_BEHAVIOUR = "most-restricted" as const;
 
-/** Its display name — the one the maintainer's room list renders. */
+/** Its display name — the one that signs each report. */
 export const LOG_DISPLAY_NAME = "MonkeyHub Logs";
+
+/**
+ * The report room's display name.
+ *
+ * It has one because the room is a GROUP now. It began as a DM between the log
+ * account and the one maintainer, and a DM has no name of its own — it borrows
+ * the other party's, which is why the row used to be called
+ * `dm:regular:<a>:<b>` on the wire and "MonkeyHub Logs" on screen. A second
+ * reader ended that: with three people in the room there is no "other party" to
+ * borrow from, so the room has to say what it is itself.
+ *
+ * The same words as [LOG_DISPLAY_NAME], and a separate constant rather than a
+ * reference to it, because they name two different rows. Renaming the account
+ * is not automatically the day every staff room list re-titles itself.
+ *
+ * Nothing may look the room up by this string. Room names are not reserved the
+ * way user names are — [isReservedName] guards `users`, not `rooms` — so any
+ * user can create a group called "MonkeyHub Logs", and a `by_name` lookup would
+ * happily return theirs. See `problemReports.findLogRoom` for the key that does
+ * hold.
+ */
+export const LOG_ROOM_NAME = "MonkeyHub Logs";
 
 /**
  * The account problem reports are posted TO, by handle.
  *
  * A username rather than an id so it survives a rebuild of the deployment, and
  * so pointing reports at a different maintainer is a one-line change.
+ *
+ * Still singular, and still the one that must exist: it is the account
+ * `ERR_NO_INBOX` is about. [LOG_ROOM_STAFF_USERNAMES] is the softer list.
  */
 export const REPORT_INBOX_USERNAME = "muratcankoc";
+
+/**
+ * The other people admitted to the report room, by handle.
+ *
+ * Optional in a way [REPORT_INBOX_USERNAME] is not: a handle here that names
+ * nobody is skipped, silently, and the report is still delivered. The asymmetry
+ * is deliberate. An empty inbox means the report reaches no one, which is the
+ * failure this whole module exists to make loud; a missing staff handle means it
+ * reaches one fewer person than intended, and refusing the report over that
+ * would trade a real bug report for a typo in this array.
+ *
+ * Handles rather than ids for the same reason as the inbox — they survive a
+ * rebuild of the deployment — and a system account listed here is skipped too:
+ * this is where the humans go, and the room already has its bot.
+ */
+export const LOG_ROOM_STAFF_USERNAMES: readonly string[] = ["oaunlu"];
 
 /**
  * Words no human account's username may contain.
@@ -219,8 +266,11 @@ export const ERR_SYSTEM_ACCOUNT = "SYSTEM_ACCOUNT";
 /**
  * The `users.visibility` block every system account is created with.
  *
- * `avatar: "friends"` rather than `"public"`: the face has to reach the one
- * person the account writes to, and nobody else. Presence is `"nobody"` outright
+ * `avatar: "friends"` rather than `"public"`: the face has to reach the people
+ * the account writes to, and nobody else — which is why `problemReports` makes
+ * every reader of the log room an accepted contact of this account rather than
+ * widening this to `"public"`. The set stays exactly the room's roster, and it
+ * stays that way when the roster grows. Presence is `"nobody"` outright
  * — there is no last time this account was seen and no meaningful status, so the
  * honest answer is to render no dot rather than a permanent grey one.
  *

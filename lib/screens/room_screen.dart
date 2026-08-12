@@ -3320,24 +3320,23 @@ class _Header extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      // No username, no meaningful member count — a chat with
-                      // only yourself, or with the app itself, has nothing
-                      // useful to say here.
-                      if (caps.hasMembers) ...[
-                        if (dmUser != null)
-                          Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
-                        else ...[
-                          VisibilityBadge(isPublic: room.isPublic, dense: true),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                            decoration: theme.chipDecoration(),
-                            child: Text(
-                              AppLocalizations.of(context)
-                                  .roomScreenMemberCountBadge(room.memberCount),
-                              style: theme.monoTiny,
-                            ),
+                      // Two different lines, asked for separately: a DM names
+                      // the person (`@handle` is what tells two people called
+                      // "Sam" apart), a group counts them. A chat with only
+                      // yourself, or with the app itself, says neither.
+                      if (caps.hasPeerHandle && dmUser != null)
+                        Text('@${dmUser!.username}', style: theme.monoTiny.copyWith(color: theme.inkMuted))
+                      else if (caps.hasMembers) ...[
+                        VisibilityBadge(isPublic: room.isPublic, dense: true),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: theme.chipDecoration(),
+                          child: Text(
+                            AppLocalizations.of(context)
+                                .roomScreenMemberCountBadge(room.memberCount),
+                            style: theme.monoTiny,
                           ),
-                        ],
+                        ),
                       ],
                       if (room.isEphemeral && room.messageLifetime != null)
                         EphemeralBadge(ttl: room.messageLifetime!, dense: true),
@@ -3416,10 +3415,11 @@ class _RoomIntro extends StatelessWidget {
         room.description!.isNotEmpty;
     final showEphemeral = room.isEphemeral && room.messageLifetime != null;
     final showMembers = caps.hasMembers && members.isNotEmpty;
-    // A system bot room or Saved Messages has nothing here worth a card for —
+    // A DM, Saved Messages or a bot room has nothing here worth a card for —
     // no description, no member list, nothing but empty padding floating
     // above the first message. `caps` already zeroes hasDescription/hasMembers
-    // for both, so once ephemeral is also off there is nothing left to show.
+    // for all three, so once ephemeral is also off there is nothing left to
+    // show, and a DM with no expiry now opens straight onto the transcript.
     if (!showDescription && !showEphemeral && !showMembers) {
       return const SizedBox.shrink();
     }

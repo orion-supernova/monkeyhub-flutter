@@ -504,8 +504,11 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     // solve that problem, and the peer is half the answer for a bot DM.
     final caps = roomCapabilitiesFor(r, peer: peer);
     // The save button's own condition: is there a single editable field above
-    // it. A DM has exactly one — its description — which is why this is not
-    // just [RoomCapabilities.canEditSettings].
+    // it. Kept as its own expression rather than collapsed to
+    // [RoomCapabilities.canEditSettings] — the two say different things, and
+    // the room that made them different (a DM, editable description only) has
+    // since had its description taken away. The next room with one editable
+    // field and no settings will find this already correct.
     final canSaveAnything = caps.canEditSettings || caps.hasDescription;
 
     return Scaffold(
@@ -537,7 +540,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           const SizedBox(height: 18),
                         ],
                         // Nothing to describe about a chat with only yourself
-                        // in it, or one the app writes to you.
+                        // in it, one the app writes to you, or one with exactly
+                        // one other person — see [RoomCapabilities.hasDescription].
                         if (caps.hasDescription) ...[
                           LabeledField(
                             label: AppLocalizations.of(context).roomInfoScreenDescriptionLabel,
@@ -693,7 +697,8 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           ),
                         ],
                         // "Members (1): you" is not information — and neither
-                        // is "Members (2): you and a bot".
+                        // is "Members (2): you and a bot", or "you and the
+                        // person this screen is already titled after".
                         if (caps.hasMembers) ...[
                           const SizedBox(height: 28),
                           FieldLabel(AppLocalizations.of(context).roomInfoScreenMembersLabel(_members.length)),
@@ -705,10 +710,9 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
                           Text(_error!, style: theme.body.copyWith(color: theme.danger)),
                           const SizedBox(height: 14),
                         ],
-                        // Nothing above is editable for Saved Messages or a
-                        // system room (name, description and visibility are all
-                        // hidden for them), so there is nothing to save. A DM
-                        // keeps the button for its description alone.
+                        // Nothing above is editable for a DM, Saved Messages or
+                        // a system room (name, description and visibility are
+                        // all hidden for them), so there is nothing to save.
                         if (canSaveAnything) ...[
                           _saveButton(theme, busy),
                           const SizedBox(height: 14),
@@ -1020,51 +1024,59 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     });
     final me = widget.repo.userId;
     return Column(
-      children: [
-        for (final m in ordered)
-          GestureDetector(
-            onTap: m.id == me
-                ? null
-                : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ProfileScreen(
-                          user: m,
-                          repo: widget.repo,
-                          api: widget.api,
-                        ),
-                      ),
-                    ),
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  UserAvatar(user: m, size: 32, api: widget.api),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(m.displayName, style: theme.body),
-                        Text('@${m.username}', style: theme.monoTiny),
-                      ],
-                    ),
+      children: [for (final m in ordered) _memberRow(theme, r, m, me)],
+    );
+  }
+
+  Widget _memberRow(AppTheme theme, ChatRoom r, ChatUser m, String? me) {
+    // Two members lead nowhere: yourself, and the app's own account. The second
+    // is the same guard `RoomScreen._openProfile` makes, and for the same
+    // reason — a bot's profile is a friend request `friends.ts` refuses above a
+    // call `calls.ts` refuses. It matters HERE now that a system room can have
+    // a member list at all: this is the only row in the app that would draw the
+    // bot next to a chevron.
+    final opensProfile = m.id != me && !m.isSystem;
+    return GestureDetector(
+      onTap: !opensProfile
+          ? null
+          : () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(
+                    user: m,
+                    repo: widget.repo,
+                    api: widget.api,
                   ),
-                  if (m.id == r.createdBy)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                      decoration: theme.chipDecoration(filled: true),
-                      child: Text(AppLocalizations.of(context).roomInfoScreenOwnerBadge, style: theme.monoTiny.copyWith(color: theme.accentInk)),
-                    ),
-                  if (m.id != me) ...[
-                    const SizedBox(width: 6),
-                    Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-                  ],
+                ),
+              ),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            UserAvatar(user: m, size: 32, api: widget.api),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(m.displayName, style: theme.body),
+                  Text('@${m.username}', style: theme.monoTiny),
                 ],
               ),
             ),
-          ),
-      ],
+            if (m.id == r.createdBy)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: theme.chipDecoration(filled: true),
+                child: Text(AppLocalizations.of(context).roomInfoScreenOwnerBadge, style: theme.monoTiny.copyWith(color: theme.accentInk)),
+              ),
+            if (opensProfile) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
