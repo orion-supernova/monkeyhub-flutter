@@ -12,6 +12,17 @@ class Env {
     return dotenv.maybeGet(key, fallback: '') ?? '';
   }
 
+  /// The deployment this build SHIPS pointed at — the default, and not
+  /// necessarily the one in use.
+  ///
+  /// Read this only to answer "what did the build come with". Anything asking
+  /// "which server is the app actually talking to" must go through
+  /// `ServerStore.deploymentUrl`, which layers a self-hosting choice over the
+  /// top. The two differ on every self-hosted install.
+  ///
+  /// May legitimately be empty: a source build with no bundled backend is what
+  /// a self-hoster-only distribution looks like, and the app opens on the
+  /// server screen rather than failing to start. See [missing].
   static String get convexUrl => _get('CONVEX_URL');
 
   /// VAPID application server key for Web Push, base64url — the public half of
@@ -57,11 +68,20 @@ class Env {
   static const String clientId = 'monkeyhub-flutter';
 
   /// Returns missing required keys so the app can surface a clean error.
-  static List<String> missing() {
-    final m = <String>[];
-    if (convexUrl.isEmpty) m.add('CONVEX_URL');
-    return m;
-  }
+  ///
+  /// Now empty in every case. `CONVEX_URL` used to be listed here and it was
+  /// what stopped a build with an unfilled `env.local` at a red screen — a
+  /// good trade when the bundled deployment was the ONLY deployment. It is the
+  /// wrong one now: an install with no bundled URL and a self-hosted server
+  /// saved in [ServerStore] is a completely healthy install, and the check
+  /// could not tell it apart from a broken one because it never looked at the
+  /// store. `_bootstrap` asks the store directly instead, and routes "no
+  /// server anywhere" to the server screen — a screen that can fix it — rather
+  /// than to an error that says copy a file the user may not have.
+  ///
+  /// Kept rather than deleted: it is the hook for the next required key, and
+  /// the boot path that consumes it is worth keeping warm.
+  static List<String> missing() => const [];
 }
 
 class EnvMissingError extends Error {

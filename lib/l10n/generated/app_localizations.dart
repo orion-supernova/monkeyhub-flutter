@@ -10894,6 +10894,372 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get scheduledBack;
+
+  /// Lowercase display heading at the top of the server screen, matching the app's other settings sub-screen headings (e.g. 'theme.', 'language.'). Keep the trailing full stop.
+  ///
+  /// In en, this message translates to:
+  /// **'server.'**
+  String get serverScreenTitle;
+
+  /// Small caption under the server screen heading, saying what the setting decides.
+  ///
+  /// In en, this message translates to:
+  /// **'where your account and messages live'**
+  String get serverScreenSubtitle;
+
+  /// Heading shown at first launch on a build that ships without a server configured. Lowercase with a trailing full stop, like the other headings.
+  ///
+  /// In en, this message translates to:
+  /// **'pick a server.'**
+  String get serverOnboardingTitle;
+
+  /// Caption under the onboarding heading, explaining that this build has no bundled server.
+  ///
+  /// In en, this message translates to:
+  /// **'this build didn\'t come with one — point it at yours'**
+  String get serverOnboardingSubtitle;
+
+  /// All-caps status label on the server screen when the app is connected to the server.
+  ///
+  /// In en, this message translates to:
+  /// **'CONNECTED'**
+  String get serverStatusConnected;
+
+  /// All-caps status label on the server screen when the app is not connected to the server.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT CONNECTED'**
+  String get serverStatusDisconnected;
+
+  /// All-caps tag on the server card meaning the app is using the server it shipped with.
+  ///
+  /// In en, this message translates to:
+  /// **'DEFAULT'**
+  String get serverBadgeDefault;
+
+  /// All-caps tag meaning the app is using a server the user runs themselves. Also the text on the corner ribbon.
+  ///
+  /// In en, this message translates to:
+  /// **'SELF-HOSTED'**
+  String get serverBadgeSelfHosted;
+
+  /// Shown in place of a server address when none has been chosen yet.
+  ///
+  /// In en, this message translates to:
+  /// **'No server yet'**
+  String get serverNoneConfigured;
+
+  /// All-caps tag on whichever of the two server choices is the one currently in use.
+  ///
+  /// In en, this message translates to:
+  /// **'IN USE'**
+  String get serverActiveNowLabel;
+
+  /// Name of the first server choice: the deployment the app ships pointed at. 'MonkeyHub' is the app's proper noun — do not translate it.
+  ///
+  /// In en, this message translates to:
+  /// **'MonkeyHub'**
+  String get serverChoiceCloud;
+
+  /// One-line explanation under the default server choice.
+  ///
+  /// In en, this message translates to:
+  /// **'The server this app came with.'**
+  String get serverChoiceCloudSub;
+
+  /// Name of the second server choice: a backend the user runs themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own server'**
+  String get serverChoiceOwn;
+
+  /// One-line explanation under the self-hosted choice. 'Convex' is the backend platform's proper noun — keep it untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'A Convex backend you run yourself.'**
+  String get serverChoiceOwnSub;
+
+  /// Placeholder in the server address field. An example URL — keep it as a URL; do not translate example.com.
+  ///
+  /// In en, this message translates to:
+  /// **'https://chat.example.com'**
+  String get serverAddressHint;
+
+  /// Small all-caps button inside the address field that pastes the clipboard into it.
+  ///
+  /// In en, this message translates to:
+  /// **'PASTE'**
+  String get serverAddressPaste;
+
+  /// Error under the address field when the text cannot be read as a web address at all.
+  ///
+  /// In en, this message translates to:
+  /// **'That isn\'t a web address.'**
+  String get serverProblemMalformed;
+
+  /// Error under the address field when the URL uses a scheme other than http or https. Keep the two schemes literal.
+  ///
+  /// In en, this message translates to:
+  /// **'Start it with https:// or http://.'**
+  String get serverProblemBadScheme;
+
+  /// Error under the address field when a scheme was typed but no host followed it.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your server\'s address after https://.'**
+  String get serverProblemNoHost;
+
+  /// Error under the address field when the pasted URL embeds a username and password. Refused rather than stripped, because it is usually a mis-pasted admin key.
+  ///
+  /// In en, this message translates to:
+  /// **'Take the username and password out of the address.'**
+  String get serverProblemCredentials;
+
+  /// All-caps warning label shown when the typed address uses plain http.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT ENCRYPTED'**
+  String get serverInsecureTitle;
+
+  /// Body of the plain-http warning. States the platform fact (iOS and Android block cleartext by default) rather than refusing the address.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones block plain http, so this address won\'t connect on iOS or Android. Use https, or reach your server through a tunnel.'**
+  String get serverInsecureBody;
+
+  /// All-caps button that checks the typed address before anything is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'TEST CONNECTION'**
+  String get serverTestCta;
+
+  /// Label on the test button while the check is running.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing…'**
+  String get serverTestingLabel;
+
+  /// First rung of the connection-test ladder: whether anything answered at that address.
+  ///
+  /// In en, this message translates to:
+  /// **'Something answered'**
+  String get serverCheckReachable;
+
+  /// Second rung of the connection-test ladder: whether the thing that answered is a Convex deployment. 'Convex' is a proper noun — keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s a Convex server'**
+  String get serverCheckConvex;
+
+  /// Third rung of the connection-test ladder: whether this app's backend is deployed on it. 'MonkeyHub' is a proper noun — keep it.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s running MonkeyHub'**
+  String get serverCheckApp;
+
+  /// Verdict when the connection test got no answer at all.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing answered at that address.'**
+  String get serverResultUnreachable;
+
+  /// Verdict when something answered but it is not a Convex deployment.
+  ///
+  /// In en, this message translates to:
+  /// **'Something answered, but it isn\'t a Convex server.'**
+  String get serverResultNotConvex;
+
+  /// Verdict when the address is a Convex deployment running some other app.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s a Convex server, but MonkeyHub isn\'t deployed on it.'**
+  String get serverResultNotThisApp;
+
+  /// Verdict when the deployment answered the health check with an error of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'The server answered, but with an error.'**
+  String get serverResultServerError;
+
+  /// Verdict when the connection test passed.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to connect.'**
+  String get serverResultReady;
+
+  /// All-caps primary button that switches the app to the typed server.
+  ///
+  /// In en, this message translates to:
+  /// **'CONNECT'**
+  String get serverConnectCta;
+
+  /// Label the primary button takes when the connection test failed but the user may still insist.
+  ///
+  /// In en, this message translates to:
+  /// **'CONNECT ANYWAY'**
+  String get serverConnectAnywayCta;
+
+  /// Label the primary button takes when the typed address is the server already in use, so there is nothing to do.
+  ///
+  /// In en, this message translates to:
+  /// **'ALREADY CONNECTED'**
+  String get serverAlreadyConnectedCta;
+
+  /// All-caps button that returns the app to the server it shipped with.
+  ///
+  /// In en, this message translates to:
+  /// **'GO BACK TO THE DEFAULT'**
+  String get serverUseDefaultCta;
+
+  /// All-caps button on the boot-error screen that opens the server screen — the escape hatch when a bad address stops the app connecting at all.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE SERVER'**
+  String get serverChangeCta;
+
+  /// All-caps disclosure toggle on the server screen that reveals the HTTP-actions address override.
+  ///
+  /// In en, this message translates to:
+  /// **'ADVANCED'**
+  String get serverAdvancedLabel;
+
+  /// Explanation above the optional second address field. 'HTTP actions' is a Convex term for endpoints served over plain HTTP.
+  ///
+  /// In en, this message translates to:
+  /// **'Most servers answer everything on one address. Fill this in only if yours serves HTTP actions somewhere else.'**
+  String get serverSiteUrlExplain;
+
+  /// Placeholder in the optional HTTP-actions address field, shown before a main address has been typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as above'**
+  String get serverSiteUrlHint;
+
+  /// All-caps section header above the list of servers this device has used before.
+  ///
+  /// In en, this message translates to:
+  /// **'RECENT'**
+  String get serverSectionRecent;
+
+  /// Accessibility label for the button that removes one entry from the recent-servers list.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget this server'**
+  String get serverRecentForget;
+
+  /// All-caps section header above the choice of how the self-hosted marker looks.
+  ///
+  /// In en, this message translates to:
+  /// **'BADGE'**
+  String get serverSectionBadge;
+
+  /// Name of the corner-band style for the self-hosted marker.
+  ///
+  /// In en, this message translates to:
+  /// **'Ribbon'**
+  String get serverBadgeStyleRibbon;
+
+  /// One-line description of the ribbon badge style.
+  ///
+  /// In en, this message translates to:
+  /// **'A band across the top corner. Hard to miss.'**
+  String get serverBadgeStyleRibbonSub;
+
+  /// Name of the small-chip style for the self-hosted marker.
+  ///
+  /// In en, this message translates to:
+  /// **'Pill'**
+  String get serverBadgeStylePill;
+
+  /// One-line description of the pill badge style.
+  ///
+  /// In en, this message translates to:
+  /// **'A small chip with your server\'s name.'**
+  String get serverBadgeStylePillSub;
+
+  /// All-caps heading of the notice explaining what changing servers costs.
+  ///
+  /// In en, this message translates to:
+  /// **'SWITCHING SIGNS YOU OUT'**
+  String get serverSwitchWarningTitle;
+
+  /// Body of the switch warning. Says plainly what is lost locally and what is not lost remotely.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh on the new one. Nothing is deleted on either server.'**
+  String get serverSwitchWarningBody;
+
+  /// Progress line while the app unwinds from the server it is leaving.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing out of the old server…'**
+  String get serverSwitchPhaseDetaching;
+
+  /// Progress line while the new server choice is written to storage.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get serverSwitchPhaseSaving;
+
+  /// Progress line while the app opens a connection to the new server.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get serverSwitchPhaseConnecting;
+
+  /// Progress line while the app returns to the previous server after the new one failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Putting the old server back…'**
+  String get serverSwitchPhaseRollingBack;
+
+  /// All-caps heading shown after a switch failed and the app returned to the previous server.
+  ///
+  /// In en, this message translates to:
+  /// **'COULDN\'T CONNECT'**
+  String get serverSwitchRolledBackTitle;
+
+  /// Body shown after a failed switch. {host} is the address that did not answer. Says the session is gone regardless, because sign-out already happened.
+  ///
+  /// In en, this message translates to:
+  /// **'{host} didn\'t answer, so you\'re back on the server you were using. You\'ll need to sign in again.'**
+  String serverSwitchRolledBackBody(String host);
+
+  /// Body shown in the rare case where neither the new server nor the previous one would connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Neither server would connect. Check the address and try again.'**
+  String get serverSwitchStrandedBody;
+
+  /// Body shown when a supervised (child) device tries to change servers. It cannot sign itself out, so it cannot move.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is set up for a child and can\'t change servers.'**
+  String get serverSwitchRefusedBody;
+
+  /// Accessibility label for the server chip at the foot of the login screen. {server} is the current server address.
+  ///
+  /// In en, this message translates to:
+  /// **'Change server. Currently {server}.'**
+  String serverChipSemantics(String server);
+
+  /// Value shown on the Settings server row when the app is on the deployment it shipped with.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get serverValueDefault;
+
+  /// All-caps row label in Settings > Advanced that opens the server screen.
+  ///
+  /// In en, this message translates to:
+  /// **'SERVER'**
+  String get settingsScreenRowServer;
+
+  /// All-caps section header in Settings, above the server row.
+  ///
+  /// In en, this message translates to:
+  /// **'ADVANCED'**
+  String get settingsScreenSectionAdvanced;
 }
 
 class _AppLocalizationsDelegate

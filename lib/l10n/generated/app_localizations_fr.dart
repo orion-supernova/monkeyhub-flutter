@@ -6465,4 +6465,206 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get scheduledBack => 'Retour';
+
+  @override
+  String get serverScreenTitle => 'serveur.';
+
+  @override
+  String get serverScreenSubtitle => 'où vivent votre compte et vos messages';
+
+  @override
+  String get serverOnboardingTitle => 'choisissez un serveur.';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'cette version n\'en fournit aucun — indiquez le vôtre';
+
+  @override
+  String get serverStatusConnected => 'CONNECTÉ';
+
+  @override
+  String get serverStatusDisconnected => 'NON CONNECTÉ';
+
+  @override
+  String get serverBadgeDefault => 'PAR DÉFAUT';
+
+  @override
+  String get serverBadgeSelfHosted => 'AUTO-HÉBERGÉ';
+
+  @override
+  String get serverNoneConfigured => 'Pas encore de serveur';
+
+  @override
+  String get serverActiveNowLabel => 'UTILISÉ';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'Le serveur fourni avec l\'application.';
+
+  @override
+  String get serverChoiceOwn => 'Votre propre serveur';
+
+  @override
+  String get serverChoiceOwnSub =>
+      'Un backend Convex que vous gérez vous-même.';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => 'COLLER';
+
+  @override
+  String get serverProblemMalformed => 'Ce n\'est pas une adresse web.';
+
+  @override
+  String get serverProblemBadScheme => 'Commencez par https:// ou http://.';
+
+  @override
+  String get serverProblemNoHost =>
+      'Ajoutez l\'adresse de votre serveur après https://.';
+
+  @override
+  String get serverProblemCredentials =>
+      'Retirez le nom d\'utilisateur et le mot de passe de l\'adresse.';
+
+  @override
+  String get serverInsecureTitle => 'NON CHIFFRÉ';
+
+  @override
+  String get serverInsecureBody =>
+      'Les téléphones bloquent le http non chiffré : cette adresse ne se connectera pas sur iOS ni Android. Utilisez https, ou passez par un tunnel.';
+
+  @override
+  String get serverTestCta => 'TESTER LA CONNEXION';
+
+  @override
+  String get serverTestingLabel => 'Test en cours…';
+
+  @override
+  String get serverCheckReachable => 'Quelque chose a répondu';
+
+  @override
+  String get serverCheckConvex => 'C\'est un serveur Convex';
+
+  @override
+  String get serverCheckApp => 'MonkeyHub y est déployé';
+
+  @override
+  String get serverResultUnreachable => 'Rien n\'a répondu à cette adresse.';
+
+  @override
+  String get serverResultNotConvex =>
+      'Quelque chose a répondu, mais ce n\'est pas un serveur Convex.';
+
+  @override
+  String get serverResultNotThisApp =>
+      'C\'est un serveur Convex, mais MonkeyHub n\'y est pas déployé.';
+
+  @override
+  String get serverResultServerError =>
+      'Le serveur a répondu, mais par une erreur.';
+
+  @override
+  String get serverResultReady => 'Prêt à se connecter.';
+
+  @override
+  String get serverConnectCta => 'SE CONNECTER';
+
+  @override
+  String get serverConnectAnywayCta => 'SE CONNECTER QUAND MÊME';
+
+  @override
+  String get serverAlreadyConnectedCta => 'DÉJÀ CONNECTÉ';
+
+  @override
+  String get serverUseDefaultCta => 'REVENIR AU SERVEUR PAR DÉFAUT';
+
+  @override
+  String get serverChangeCta => 'CHANGER DE SERVEUR';
+
+  @override
+  String get serverAdvancedLabel => 'AVANCÉ';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'La plupart des serveurs répondent à tout sur une seule adresse. Ne remplissez ceci que si le vôtre sert les actions HTTP ailleurs.';
+
+  @override
+  String get serverSiteUrlHint => 'Comme ci-dessus';
+
+  @override
+  String get serverSectionRecent => 'RÉCENTS';
+
+  @override
+  String get serverRecentForget => 'Oublier ce serveur';
+
+  @override
+  String get serverSectionBadge => 'MARQUEUR';
+
+  @override
+  String get serverBadgeStyleRibbon => 'Bandeau';
+
+  @override
+  String get serverBadgeStyleRibbonSub =>
+      'Un bandeau dans le coin supérieur. Difficile à manquer.';
+
+  @override
+  String get serverBadgeStylePill => 'Pastille';
+
+  @override
+  String get serverBadgeStylePillSub =>
+      'Une petite étiquette avec le nom de votre serveur.';
+
+  @override
+  String get serverSwitchWarningTitle => 'CHANGER VOUS DÉCONNECTE';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'Les comptes et les conversations appartiennent à un seul serveur. Cet appareil se déconnecte, efface ce qu\'il a téléchargé et repart de zéro sur le nouveau. Rien n\'est supprimé sur l\'un ou l\'autre serveur.';
+
+  @override
+  String get serverSwitchPhaseDetaching => 'Déconnexion de l\'ancien serveur…';
+
+  @override
+  String get serverSwitchPhaseSaving => 'Enregistrement…';
+
+  @override
+  String get serverSwitchPhaseConnecting => 'Connexion…';
+
+  @override
+  String get serverSwitchPhaseRollingBack =>
+      'Restauration de l\'ancien serveur…';
+
+  @override
+  String get serverSwitchRolledBackTitle => 'CONNEXION IMPOSSIBLE';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host n\'a pas répondu ; vous êtes revenu au serveur précédent. Vous devrez vous reconnecter.';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'Aucun des deux serveurs n\'a pu se connecter. Vérifiez l\'adresse et réessayez.';
+
+  @override
+  String get serverSwitchRefusedBody =>
+      'Cet appareil est configuré pour un enfant et ne peut pas changer de serveur.';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'Changer de serveur. Actuellement $server.';
+  }
+
+  @override
+  String get serverValueDefault => 'Par défaut';
+
+  @override
+  String get settingsScreenRowServer => 'SERVEUR';
+
+  @override
+  String get settingsScreenSectionAdvanced => 'AVANCÉ';
 }

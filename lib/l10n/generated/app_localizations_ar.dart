@@ -6439,4 +6439,201 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get scheduledBack => 'رجوع';
+
+  @override
+  String get serverScreenTitle => 'الخادم.';
+
+  @override
+  String get serverScreenSubtitle => 'حيث يوجد حسابك ورسائلك';
+
+  @override
+  String get serverOnboardingTitle => 'اختر خادمًا.';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'لم يأتِ هذا الإصدار بخادم — وجّهه إلى خادمك';
+
+  @override
+  String get serverStatusConnected => 'متصل';
+
+  @override
+  String get serverStatusDisconnected => 'غير متصل';
+
+  @override
+  String get serverBadgeDefault => 'الافتراضي';
+
+  @override
+  String get serverBadgeSelfHosted => 'استضافة ذاتية';
+
+  @override
+  String get serverNoneConfigured => 'لا يوجد خادم بعد';
+
+  @override
+  String get serverActiveNowLabel => 'قيد الاستخدام';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'الخادم الذي جاء مع هذا التطبيق.';
+
+  @override
+  String get serverChoiceOwn => 'خادمك الخاص';
+
+  @override
+  String get serverChoiceOwnSub => 'خادم Convex تديره بنفسك.';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => 'لصق';
+
+  @override
+  String get serverProblemMalformed => 'هذا ليس عنوان ويب.';
+
+  @override
+  String get serverProblemBadScheme => 'ابدأه بـ https:// أو http://.';
+
+  @override
+  String get serverProblemNoHost => 'أضف عنوان خادمك بعد https://.';
+
+  @override
+  String get serverProblemCredentials =>
+      'أزل اسم المستخدم وكلمة المرور من العنوان.';
+
+  @override
+  String get serverInsecureTitle => 'غير مُشفّر';
+
+  @override
+  String get serverInsecureBody =>
+      'تحجب الهواتف بروتوكول http العادي، لذا لن يتصل هذا العنوان على iOS أو Android. استخدم https أو صِل إلى خادمك عبر نفق.';
+
+  @override
+  String get serverTestCta => 'اختبر الاتصال';
+
+  @override
+  String get serverTestingLabel => 'جارٍ الاختبار…';
+
+  @override
+  String get serverCheckReachable => 'استجاب شيء ما';
+
+  @override
+  String get serverCheckConvex => 'إنه خادم Convex';
+
+  @override
+  String get serverCheckApp => 'يشغّل MonkeyHub';
+
+  @override
+  String get serverResultUnreachable => 'لم يستجب شيء على هذا العنوان.';
+
+  @override
+  String get serverResultNotConvex => 'استجاب شيء ما، لكنه ليس خادم Convex.';
+
+  @override
+  String get serverResultNotThisApp =>
+      'هذا خادم Convex، لكن MonkeyHub غير منشور عليه.';
+
+  @override
+  String get serverResultServerError => 'استجاب الخادم، لكن بخطأ.';
+
+  @override
+  String get serverResultReady => 'جاهز للاتصال.';
+
+  @override
+  String get serverConnectCta => 'اتصل';
+
+  @override
+  String get serverConnectAnywayCta => 'اتصل على أي حال';
+
+  @override
+  String get serverAlreadyConnectedCta => 'متصل بالفعل';
+
+  @override
+  String get serverUseDefaultCta => 'العودة إلى الافتراضي';
+
+  @override
+  String get serverChangeCta => 'تغيير الخادم';
+
+  @override
+  String get serverAdvancedLabel => 'خيارات متقدمة';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'معظم الخوادم تجيب على كل شيء من عنوان واحد. املأ هذا فقط إذا كان خادمك يقدّم إجراءات HTTP من مكان آخر.';
+
+  @override
+  String get serverSiteUrlHint => 'نفس ما سبق';
+
+  @override
+  String get serverSectionRecent => 'الأخيرة';
+
+  @override
+  String get serverRecentForget => 'انسَ هذا الخادم';
+
+  @override
+  String get serverSectionBadge => 'الشارة';
+
+  @override
+  String get serverBadgeStyleRibbon => 'شريط';
+
+  @override
+  String get serverBadgeStyleRibbonSub =>
+      'شريط عبر الزاوية العلوية. يصعب تفويته.';
+
+  @override
+  String get serverBadgeStylePill => 'كبسولة';
+
+  @override
+  String get serverBadgeStylePillSub => 'رقعة صغيرة تحمل اسم خادمك.';
+
+  @override
+  String get serverSwitchWarningTitle => 'التبديل يسجّل خروجك';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'الحسابات والمحادثات تخصّ خادمًا واحدًا. سيسجّل هذا الجهاز الخروج، ويمسح ما نزّله، ويبدأ من جديد على الخادم الآخر. ولن يُحذف أي شيء على أي من الخادمين.';
+
+  @override
+  String get serverSwitchPhaseDetaching =>
+      'جارٍ تسجيل الخروج من الخادم القديم…';
+
+  @override
+  String get serverSwitchPhaseSaving => 'جارٍ الحفظ…';
+
+  @override
+  String get serverSwitchPhaseConnecting => 'جارٍ الاتصال…';
+
+  @override
+  String get serverSwitchPhaseRollingBack => 'جارٍ إعادة الخادم القديم…';
+
+  @override
+  String get serverSwitchRolledBackTitle => 'تعذّر الاتصال';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return 'لم يستجب $host، لذا عدت إلى الخادم الذي كنت تستخدمه. عليك تسجيل الدخول من جديد.';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'لم يتصل أي من الخادمين. تحقّق من العنوان وحاول مرة أخرى.';
+
+  @override
+  String get serverSwitchRefusedBody =>
+      'هذا الجهاز مُعدّ لطفل ولا يمكنه تغيير الخادم.';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'تغيير الخادم. الحالي $server.';
+  }
+
+  @override
+  String get serverValueDefault => 'الافتراضي';
+
+  @override
+  String get settingsScreenRowServer => 'الخادم';
+
+  @override
+  String get settingsScreenSectionAdvanced => 'خيارات متقدمة';
 }

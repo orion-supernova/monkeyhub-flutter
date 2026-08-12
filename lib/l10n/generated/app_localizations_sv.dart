@@ -6381,4 +6381,203 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get scheduledBack => 'Tillbaka';
+
+  @override
+  String get serverScreenTitle => 'server.';
+
+  @override
+  String get serverScreenSubtitle =>
+      'där ditt konto och dina meddelanden finns';
+
+  @override
+  String get serverOnboardingTitle => 'välj en server.';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'den här versionen kom utan server – peka den mot din';
+
+  @override
+  String get serverStatusConnected => 'ANSLUTEN';
+
+  @override
+  String get serverStatusDisconnected => 'EJ ANSLUTEN';
+
+  @override
+  String get serverBadgeDefault => 'STANDARD';
+
+  @override
+  String get serverBadgeSelfHosted => 'EGEN SERVER';
+
+  @override
+  String get serverNoneConfigured => 'Ingen server ännu';
+
+  @override
+  String get serverActiveNowLabel => 'ANVÄNDS';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'Servern som följde med appen.';
+
+  @override
+  String get serverChoiceOwn => 'Din egen server';
+
+  @override
+  String get serverChoiceOwnSub => 'En Convex-backend som du kör själv.';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => 'KLISTRA IN';
+
+  @override
+  String get serverProblemMalformed => 'Det där är ingen webbadress.';
+
+  @override
+  String get serverProblemBadScheme => 'Börja med https:// eller http://.';
+
+  @override
+  String get serverProblemNoHost =>
+      'Lägg till din servers adress efter https://.';
+
+  @override
+  String get serverProblemCredentials =>
+      'Ta bort användarnamnet och lösenordet ur adressen.';
+
+  @override
+  String get serverInsecureTitle => 'OKRYPTERAD';
+
+  @override
+  String get serverInsecureBody =>
+      'Telefoner blockerar okrypterad http, så den här adressen ansluter inte på iOS eller Android. Använd https, eller nå din server via en tunnel.';
+
+  @override
+  String get serverTestCta => 'TESTA ANSLUTNINGEN';
+
+  @override
+  String get serverTestingLabel => 'Testar…';
+
+  @override
+  String get serverCheckReachable => 'Något svarade';
+
+  @override
+  String get serverCheckConvex => 'Det är en Convex-server';
+
+  @override
+  String get serverCheckApp => 'MonkeyHub körs där';
+
+  @override
+  String get serverResultUnreachable => 'Ingenting svarade på den adressen.';
+
+  @override
+  String get serverResultNotConvex =>
+      'Något svarade, men det är ingen Convex-server.';
+
+  @override
+  String get serverResultNotThisApp =>
+      'Det är en Convex-server, men MonkeyHub finns inte där.';
+
+  @override
+  String get serverResultServerError => 'Servern svarade, men med ett fel.';
+
+  @override
+  String get serverResultReady => 'Redo att ansluta.';
+
+  @override
+  String get serverConnectCta => 'ANSLUT';
+
+  @override
+  String get serverConnectAnywayCta => 'ANSLUT ÄNDÅ';
+
+  @override
+  String get serverAlreadyConnectedCta => 'REDAN ANSLUTEN';
+
+  @override
+  String get serverUseDefaultCta => 'TILLBAKA TILL STANDARD';
+
+  @override
+  String get serverChangeCta => 'BYT SERVER';
+
+  @override
+  String get serverAdvancedLabel => 'AVANCERAT';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'De flesta servrar svarar på allt via en adress. Fyll bara i det här om din levererar HTTP-actions någon annanstans.';
+
+  @override
+  String get serverSiteUrlHint => 'Samma som ovan';
+
+  @override
+  String get serverSectionRecent => 'SENASTE';
+
+  @override
+  String get serverRecentForget => 'Glöm den här servern';
+
+  @override
+  String get serverSectionBadge => 'MÄRKE';
+
+  @override
+  String get serverBadgeStyleRibbon => 'Banderoll';
+
+  @override
+  String get serverBadgeStyleRibbonSub =>
+      'En banderoll i övre hörnet. Svår att missa.';
+
+  @override
+  String get serverBadgeStylePill => 'Kapsel';
+
+  @override
+  String get serverBadgeStylePillSub => 'En liten bricka med serverns namn.';
+
+  @override
+  String get serverSwitchWarningTitle => 'BYTE LOGGAR UT DIG';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'Konton och chattar hör till en enda server. Den här enheten loggas ut, rensar det den laddat ner och börjar om på den nya. Inget raderas på någon av servrarna.';
+
+  @override
+  String get serverSwitchPhaseDetaching => 'Loggar ut från den gamla servern…';
+
+  @override
+  String get serverSwitchPhaseSaving => 'Sparar…';
+
+  @override
+  String get serverSwitchPhaseConnecting => 'Ansluter…';
+
+  @override
+  String get serverSwitchPhaseRollingBack => 'Återställer den gamla servern…';
+
+  @override
+  String get serverSwitchRolledBackTitle => 'KUNDE INTE ANSLUTA';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host svarade inte, så du är tillbaka på servern du använde. Du behöver logga in igen.';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'Ingen av servrarna gick att ansluta till. Kontrollera adressen och försök igen.';
+
+  @override
+  String get serverSwitchRefusedBody =>
+      'Den här enheten är inställd för ett barn och kan inte byta server.';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'Byt server. Just nu $server.';
+  }
+
+  @override
+  String get serverValueDefault => 'Standard';
+
+  @override
+  String get settingsScreenRowServer => 'SERVER';
+
+  @override
+  String get settingsScreenSectionAdvanced => 'AVANCERAT';
 }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
+import 'backend/server_store.dart';
 import 'calls/native_call_handler.dart';
 import 'data/settings_store.dart';
 import 'diagnostics/diag_boot.dart';
@@ -74,6 +75,17 @@ Future<void> main() async {
     FileUrlCache.instance.load(),
     MediaAspectCache.instance.load(),
   ]);
+
+  // Strictly AFTER dotenv, and strictly before runApp. After, because a store
+  // with no saved override falls through to `Env.convexUrl` and would read an
+  // unloaded dotenv as "no server configured". Before, because the Convex
+  // client is built from this during the first bootstrap — an override that
+  // arrived one frame late would open a socket to the wrong deployment and
+  // need tearing down again.
+  //
+  // Its own await rather than a fifth entry above for exactly that ordering;
+  // one extra secure-storage read on the boot path is the whole cost.
+  await ServerStore.instance.load();
 
   PaintingBinding.instance.imageCache.maximumSize = 1500;
 

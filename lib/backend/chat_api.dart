@@ -2,7 +2,6 @@ import 'dart:async';
 
 import '../auth/recovery_phrase.dart';
 import '../auth/social_sign_in.dart';
-import '../env.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
@@ -14,6 +13,7 @@ import '../models/message_formatting.dart';
 import '../models/room_content_item.dart';
 import 'convex_client.dart';
 import 'hashing.dart';
+import 'server_store.dart';
 
 export 'hashing.dart' show sha256Hash;
 
@@ -866,7 +866,11 @@ class ChatApi {
     required String userId,
     required String nonce,
   }) {
-    final base = Env.convexSiteUrl.replaceAll(RegExp(r'/+$'), '');
+    // From the store, not from Env: on a self-hosted install this has to point
+    // at the user's own backend, or the ticket minted a line above is presented
+    // to a deployment that never issued it. `siteUrl` already resolves the
+    // cloud/self-host split — see [ServerEndpoint.siteUrl].
+    final base = ServerStore.instance.siteUrl.replaceAll(RegExp(r'/+$'), '');
     return Uri.parse('$base/viewOnce').replace(queryParameters: {
       'm': messageId,
       'u': userId,

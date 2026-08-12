@@ -6037,4 +6037,194 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scheduledBack => '返回';
+
+  @override
+  String get serverScreenTitle => '服务器。';
+
+  @override
+  String get serverScreenSubtitle => '你的账号和消息所在的地方';
+
+  @override
+  String get serverOnboardingTitle => '选择一个服务器。';
+
+  @override
+  String get serverOnboardingSubtitle => '此版本未附带服务器 — 请指向你自己的服务器';
+
+  @override
+  String get serverStatusConnected => '已连接';
+
+  @override
+  String get serverStatusDisconnected => '未连接';
+
+  @override
+  String get serverBadgeDefault => '默认';
+
+  @override
+  String get serverBadgeSelfHosted => '自托管';
+
+  @override
+  String get serverNoneConfigured => '尚未选择服务器';
+
+  @override
+  String get serverActiveNowLabel => '使用中';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => '本应用自带的服务器。';
+
+  @override
+  String get serverChoiceOwn => '你自己的服务器';
+
+  @override
+  String get serverChoiceOwnSub => '由你自己运行的 Convex 后端。';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => '粘贴';
+
+  @override
+  String get serverProblemMalformed => '这不是一个网址。';
+
+  @override
+  String get serverProblemBadScheme => '请以 https:// 或 http:// 开头。';
+
+  @override
+  String get serverProblemNoHost => '请在 https:// 后面填写服务器地址。';
+
+  @override
+  String get serverProblemCredentials => '请从地址中去掉用户名和密码。';
+
+  @override
+  String get serverInsecureTitle => '未加密';
+
+  @override
+  String get serverInsecureBody =>
+      '手机会阻止明文 http，因此该地址在 iOS 和 Android 上无法连接。请使用 https，或通过隧道访问你的服务器。';
+
+  @override
+  String get serverTestCta => '测试连接';
+
+  @override
+  String get serverTestingLabel => '正在测试…';
+
+  @override
+  String get serverCheckReachable => '有响应';
+
+  @override
+  String get serverCheckConvex => '这是 Convex 服务器';
+
+  @override
+  String get serverCheckApp => '正在运行 MonkeyHub';
+
+  @override
+  String get serverResultUnreachable => '该地址没有任何响应。';
+
+  @override
+  String get serverResultNotConvex => '有响应，但那不是 Convex 服务器。';
+
+  @override
+  String get serverResultNotThisApp => '这是 Convex 服务器，但上面没有部署 MonkeyHub。';
+
+  @override
+  String get serverResultServerError => '服务器有响应，但返回了错误。';
+
+  @override
+  String get serverResultReady => '可以连接。';
+
+  @override
+  String get serverConnectCta => '连接';
+
+  @override
+  String get serverConnectAnywayCta => '仍然连接';
+
+  @override
+  String get serverAlreadyConnectedCta => '已连接';
+
+  @override
+  String get serverUseDefaultCta => '返回默认服务器';
+
+  @override
+  String get serverChangeCta => '更换服务器';
+
+  @override
+  String get serverAdvancedLabel => '高级';
+
+  @override
+  String get serverSiteUrlExplain =>
+      '大多数服务器在同一个地址上处理所有请求。只有当你的服务器把 HTTP actions 放在别处时才需要填写。';
+
+  @override
+  String get serverSiteUrlHint => '与上面相同';
+
+  @override
+  String get serverSectionRecent => '最近使用';
+
+  @override
+  String get serverRecentForget => '忘记此服务器';
+
+  @override
+  String get serverSectionBadge => '标记';
+
+  @override
+  String get serverBadgeStyleRibbon => '角标';
+
+  @override
+  String get serverBadgeStyleRibbonSub => '横跨右上角的一条带子，很难忽略。';
+
+  @override
+  String get serverBadgeStylePill => '胶囊';
+
+  @override
+  String get serverBadgeStylePillSub => '带有服务器名称的小标签。';
+
+  @override
+  String get serverSwitchWarningTitle => '切换会退出登录';
+
+  @override
+  String get serverSwitchWarningBody =>
+      '账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并在新服务器上重新开始。两台服务器上的数据都不会被删除。';
+
+  @override
+  String get serverSwitchPhaseDetaching => '正在退出旧服务器…';
+
+  @override
+  String get serverSwitchPhaseSaving => '正在保存…';
+
+  @override
+  String get serverSwitchPhaseConnecting => '正在连接…';
+
+  @override
+  String get serverSwitchPhaseRollingBack => '正在恢复旧服务器…';
+
+  @override
+  String get serverSwitchRolledBackTitle => '无法连接';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host 没有响应，因此已回到你之前使用的服务器。你需要重新登录。';
+  }
+
+  @override
+  String get serverSwitchStrandedBody => '两台服务器都无法连接。请检查地址后重试。';
+
+  @override
+  String get serverSwitchRefusedBody => '此设备已设置为儿童使用，无法更换服务器。';
+
+  @override
+  String serverChipSemantics(String server) {
+    return '更换服务器。当前为 $server。';
+  }
+
+  @override
+  String get serverValueDefault => '默认';
+
+  @override
+  String get settingsScreenRowServer => '服务器';
+
+  @override
+  String get settingsScreenSectionAdvanced => '高级';
 }

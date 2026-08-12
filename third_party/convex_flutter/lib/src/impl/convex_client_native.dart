@@ -47,6 +47,10 @@ class NativeConvexClient implements IConvexClient {
   /// Lifecycle observer for app state changes
   late final AppLifecycleObserver _lifecycleObserver;
 
+  /// monkeyhub patch: set by [dispose], read by the callbacks the Rust side
+  /// still holds. See [_setupConnectionStateListener].
+  bool _disposed = false;
+
   /// Private constructor
   NativeConvexClient._(this._rustClient, this.config);
 
@@ -57,8 +61,15 @@ class NativeConvexClient implements IConvexClient {
   /// - WebSocket state listener setup
   /// - Lifecycle observer setup
   static Future<NativeConvexClient> create(ConvexConfig config) async {
-    // Initialize Rust FFI library
-    await RustLib.init();
+    // ── monkeyhub patch ──────────────────────────────────────────────────────
+    // Guarded. `RustLib.init()` throws `Should not initialize
+    // flutter_rust_bridge twice` on its second call, which never mattered while
+    // a process built exactly one client. It builds a second one when the user
+    // repoints the app at their own deployment (see `ConvexClient.shutdown`),
+    // and the FFI layer is process-wide — the replacement client shares the
+    // already-loaded library rather than wanting one of its own.
+    if (!RustLib.instance.initialized) await RustLib.init();
+    // ── end monkeyhub patch ──────────────────────────────────────────────────
 
     // Create Rust client instance
     final rustClient = MobileConvexClient(
@@ -93,6 +104,14 @@ class NativeConvexClient implements IConvexClient {
     try {
       await _rustClient.onWebsocketStateChange(
         onStateChange: (state) async {
+          // monkeyhub patch: the Rust side holds this callback for as long as
+          // its client lives, which outlasts `dispose()` — the Rust object is
+          // only released when Dart's finalizer runs. Adding to a controller
+          // this class has already closed throws `Bad state: Cannot add event
+          // after closing` out of an FFI callback, where nothing can catch it.
+          // Only reachable once a second client exists (a self-host switch),
+          // because before that nothing ever disposed the first one.
+          if (_disposed || _connectionStateController.isClosed) return;
           debugPrint('=== [NativeConvexClient] State changed: ${state.name} ===');
           _currentConnectionState = state;
           _connectionStateController.add(state);
@@ -273,6 +292,11 @@ class NativeConvexClient implements IConvexClient {
 
   @override
   void dispose() {
+    // monkeyhub patch: idempotent, and the flag is raised FIRST so an FFI
+    // callback that fires mid-teardown finds a client that has already said it
+    // is gone rather than a half-closed set of controllers.
+    if (_disposed) return;
+    _disposed = true;
     _currentAuthHandle?.dispose();
     _lifecycleObserver.dispose();
     _authStateController.close();

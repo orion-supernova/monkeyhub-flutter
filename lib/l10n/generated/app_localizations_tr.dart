@@ -6329,4 +6329,204 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get scheduledBack => 'Geri';
+
+  @override
+  String get serverScreenTitle => 'sunucu.';
+
+  @override
+  String get serverScreenSubtitle =>
+      'hesabınızın ve mesajlarınızın bulunduğu yer';
+
+  @override
+  String get serverOnboardingTitle => 'bir sunucu seçin.';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'bu sürüm sunucusuz geldi — kendi sunucunuzu gösterin';
+
+  @override
+  String get serverStatusConnected => 'BAĞLI';
+
+  @override
+  String get serverStatusDisconnected => 'BAĞLI DEĞİL';
+
+  @override
+  String get serverBadgeDefault => 'VARSAYILAN';
+
+  @override
+  String get serverBadgeSelfHosted => 'KENDİ SUNUCUNUZ';
+
+  @override
+  String get serverNoneConfigured => 'Henüz sunucu yok';
+
+  @override
+  String get serverActiveNowLabel => 'KULLANIMDA';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'Bu uygulamayla birlikte gelen sunucu.';
+
+  @override
+  String get serverChoiceOwn => 'Kendi sunucunuz';
+
+  @override
+  String get serverChoiceOwnSub => 'Kendi işlettiğiniz bir Convex arka ucu.';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => 'YAPIŞTIR';
+
+  @override
+  String get serverProblemMalformed => 'Bu bir web adresi değil.';
+
+  @override
+  String get serverProblemBadScheme => 'https:// veya http:// ile başlatın.';
+
+  @override
+  String get serverProblemNoHost =>
+      'https:// sonrasına sunucunuzun adresini yazın.';
+
+  @override
+  String get serverProblemCredentials =>
+      'Adresteki kullanıcı adı ve parolayı çıkarın.';
+
+  @override
+  String get serverInsecureTitle => 'ŞİFRELENMEMİŞ';
+
+  @override
+  String get serverInsecureBody =>
+      'Telefonlar düz http’yi engeller; bu adres iOS’ta da Android’de de bağlanmaz. https kullanın ya da sunucunuza bir tünel üzerinden ulaşın.';
+
+  @override
+  String get serverTestCta => 'BAĞLANTIYI SINA';
+
+  @override
+  String get serverTestingLabel => 'Sınanıyor…';
+
+  @override
+  String get serverCheckReachable => 'Bir yanıt geldi';
+
+  @override
+  String get serverCheckConvex => 'Bir Convex sunucusu';
+
+  @override
+  String get serverCheckApp => 'MonkeyHub çalışıyor';
+
+  @override
+  String get serverResultUnreachable => 'Bu adreste hiçbir yanıt yok.';
+
+  @override
+  String get serverResultNotConvex =>
+      'Bir yanıt geldi ama bu bir Convex sunucusu değil.';
+
+  @override
+  String get serverResultNotThisApp =>
+      'Bu bir Convex sunucusu ama üzerinde MonkeyHub yok.';
+
+  @override
+  String get serverResultServerError => 'Sunucu yanıt verdi ama hata döndürdü.';
+
+  @override
+  String get serverResultReady => 'Bağlanmaya hazır.';
+
+  @override
+  String get serverConnectCta => 'BAĞLAN';
+
+  @override
+  String get serverConnectAnywayCta => 'YİNE DE BAĞLAN';
+
+  @override
+  String get serverAlreadyConnectedCta => 'ZATEN BAĞLI';
+
+  @override
+  String get serverUseDefaultCta => 'VARSAYILANA DÖN';
+
+  @override
+  String get serverChangeCta => 'SUNUCUYU DEĞİŞTİR';
+
+  @override
+  String get serverAdvancedLabel => 'GELİŞMİŞ';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'Çoğu sunucu her şeyi tek adresten yanıtlar. Bunu yalnızca sunucunuz HTTP eylemlerini başka bir adreste sunuyorsa doldurun.';
+
+  @override
+  String get serverSiteUrlHint => 'Yukarıdakiyle aynı';
+
+  @override
+  String get serverSectionRecent => 'SON KULLANILANLAR';
+
+  @override
+  String get serverRecentForget => 'Bu sunucuyu unut';
+
+  @override
+  String get serverSectionBadge => 'ROZET';
+
+  @override
+  String get serverBadgeStyleRibbon => 'Şerit';
+
+  @override
+  String get serverBadgeStyleRibbonSub =>
+      'Üst köşeyi çaprazlayan bir şerit. Gözden kaçmaz.';
+
+  @override
+  String get serverBadgeStylePill => 'Hap';
+
+  @override
+  String get serverBadgeStylePillSub =>
+      'Sunucunuzun adını taşıyan küçük bir etiket.';
+
+  @override
+  String get serverSwitchWarningTitle => 'DEĞİŞTİRMEK OTURUMU KAPATIR';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'Hesaplar ve sohbetler tek bir sunucuya aittir. Bu cihaz oturumu kapatır, indirdiklerini siler ve yeni sunucuda sıfırdan başlar. İki sunucuda da hiçbir şey silinmez.';
+
+  @override
+  String get serverSwitchPhaseDetaching => 'Eski sunucudan çıkılıyor…';
+
+  @override
+  String get serverSwitchPhaseSaving => 'Kaydediliyor…';
+
+  @override
+  String get serverSwitchPhaseConnecting => 'Bağlanılıyor…';
+
+  @override
+  String get serverSwitchPhaseRollingBack => 'Eski sunucu geri alınıyor…';
+
+  @override
+  String get serverSwitchRolledBackTitle => 'BAĞLANILAMADI';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host yanıt vermedi, bu yüzden kullandığınız sunucuya döndünüz. Yeniden giriş yapmanız gerekecek.';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'Hiçbir sunucuya bağlanılamadı. Adresi kontrol edip yeniden deneyin.';
+
+  @override
+  String get serverSwitchRefusedBody =>
+      'Bu cihaz bir çocuk için ayarlanmış; sunucu değiştiremez.';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'Sunucuyu değiştir. Şu an $server.';
+  }
+
+  @override
+  String get serverValueDefault => 'Varsayılan';
+
+  @override
+  String get settingsScreenRowServer => 'SUNUCU';
+
+  @override
+  String get settingsScreenSectionAdvanced => 'GELİŞMİŞ';
 }

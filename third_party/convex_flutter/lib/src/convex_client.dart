@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import 'package:convex_flutter/src/impl/convex_client_interface.dart';
 import 'package:convex_flutter/src/impl/convex_client_factory.dart';
 import 'package:convex_flutter/src/rust/lib.dart' show WebSocketConnectionState, SubscriptionHandle, AuthHandle;
@@ -413,6 +415,43 @@ class ConvexClient {
   /// Note: This is typically not needed as the client is a singleton,
   /// but can be useful in testing scenarios.
   void dispose() => _impl.dispose();
+
+  // ── monkeyhub patch ────────────────────────────────────────────────────────
+  /// Dispose the live client AND release the singleton slot, so a later
+  /// [initialize] can build a new one — against a different `deploymentUrl`.
+  ///
+  /// Exists for one feature: letting a user point the app at their own Convex
+  /// deployment without relaunching it. Upstream's [initialize] throws on a
+  /// second call and [dispose] leaves `_instance` populated, so between them
+  /// there is no way to change the URL a running app talks to. Every
+  /// alternative was worse — asking someone to force-quit the app to finish a
+  /// settings change, or holding two live clients and hoping the right one is
+  /// read.
+  ///
+  /// Idempotent, and a no-op before the first [initialize]. Safe to await and
+  /// then call [initialize] again immediately; on native the underlying Rust
+  /// client is released by its own finalizer once this instance is unreachable,
+  /// and nothing in the new client shares state with it.
+  ///
+  /// Callers are responsible for cancelling their subscriptions FIRST — the
+  /// handles held against the old client are meaningless afterwards.
+  static Future<void> shutdown() async {
+    final live = _instance;
+    if (live == null) return;
+    _instance = null;
+    try {
+      live.dispose();
+    } catch (e) {
+      // Never rethrow. The slot is already released, so the caller can build a
+      // replacement; a noisy teardown must not be able to prevent that.
+      debugPrint('ERROR: [ConvexClient] shutdown: dispose threw: $e');
+    }
+  }
+
+  /// Whether a client currently exists. Lets a caller tell "not built yet" from
+  /// "built and healthy" without provoking the [instance] StateError.
+  static bool get isInitialized => _instance != null;
+  // ── end monkeyhub patch ────────────────────────────────────────────────────
 }
 
 /// Wrapper for auth handle providing Dart-friendly API.

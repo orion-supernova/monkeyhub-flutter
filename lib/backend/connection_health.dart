@@ -159,7 +159,22 @@ class ConnectionHealth extends ChangeNotifier {
        _isActive = isActive,
        _now = now,
        _connectivity = connectivity,
-       _watchConnectivity = watchConnectivity;
+       _watchConnectivity = watchConnectivity {
+    // Last constructed wins. The app builds exactly one (in `_MonkeyHubAppState`)
+    // and tests build throwaways, so "last" is "the app's" everywhere it is read.
+    maybeInstance = this;
+  }
+
+  /// The live monitor, for code that needs the app's connection verdict but has
+  /// no route to app.dart's private field — currently just the server screen,
+  /// which is reachable from Settings, from the login screen and from the boot
+  /// error, none of which are handed one.
+  ///
+  /// Nullable and named `maybe` for the same reason [CallService.maybeInstance]
+  /// is: before `_bootstrap` runs there genuinely is no monitor, and a getter
+  /// that threw there would make the boot screens harder to write than the
+  /// fallback they need is worth.
+  static ConnectionHealth? maybeInstance;
 
   final ConnectionProbe _backend;
 
@@ -412,6 +427,9 @@ class ConnectionHealth extends ChangeNotifier {
   void dispose() {
     if (_disposed) return; // idempotent: the loop may race a widget teardown
     _disposed = true;
+    // Only clear the pointer if it still names us — a test that built a second
+    // monitor must not blank out the one the app is using.
+    if (identical(maybeInstance, this)) maybeInstance = null;
     _healing = false;
     _socketSub?.cancel();
     _connectivitySub?.cancel();

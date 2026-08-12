@@ -12,6 +12,8 @@ import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
 import 'backend/feed_api.dart';
 import 'backend/group_call_api.dart';
+import 'backend/server_store.dart';
+import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
 import 'calls/call_models.dart';
 import 'calls/call_screen.dart';
@@ -54,6 +56,7 @@ import 'platform.dart';
 import 'screens/home_shell.dart';
 import 'screens/room_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/server_screen.dart';
 import 'theme/app_theme.dart';
 import 'theme/layout.dart';
 import 'theme/theme_scope.dart';
@@ -61,6 +64,7 @@ import 'update/update_checker.dart';
 import 'widgets/app_brand_mark.dart';
 import 'widgets/capture_shield.dart';
 import 'widgets/connection_banner.dart';
+import 'widgets/self_host_badge.dart';
 import 'widgets/shake_to_report.dart';
 
 /// The presence status a lifecycle state implies, or null for "says nothing —
@@ -200,6 +204,14 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
   bool _bootstrapped = false;
   Object? _bootError;
+
+  /// No deployment to connect to at all — `env.local` carries no `CONVEX_URL`
+  /// and no server has been chosen. Its own flag rather than a [_bootError],
+  /// because it is not an error: nothing is broken, the app simply has not been
+  /// told where to go. The screen it deserves is the one that can answer that,
+  /// not a red box whose RETRY would fail identically every time.
+  bool _needsServer = false;
+
   // When a notification fires before auth / navigator are ready (cold start
   // from a tap), stash the target room here and consume it once the app
   // finishes booting and a signed-in session exists.
@@ -372,7 +384,51 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             .catchError((_) {});
       }
     });
+    // Everything a server switch needs that only this class holds: the session
+    // to unwind, the transition to wait on, and the health monitor to restart.
+    // [ServerSwitch] owns the ordering; this hands it the three verbs.
+    ServerSwitch.instance.install(
+      detach: _detachForServerSwitch,
+      onRebound: _onServerRebound,
+      canSwitch: () => !_auth.isChild,
+    );
     _bootstrap();
+  }
+
+  /// Unwind this device from the deployment it is leaving, while that
+  /// deployment is still reachable.
+  ///
+  /// Sign-out already does every piece of this — deleting the push row so
+  /// nothing addressed to the old account can reach the handset again,
+  /// cancelling every subscription, ending calls, clearing the media caches —
+  /// so this method's whole job is to run it and, crucially, to WAIT for it.
+  ///
+  /// [AuthService.signOut] returns as soon as the local session is gone; the
+  /// teardown it kicks off runs inside [_onAuthChange], which is a listener
+  /// callback nobody can await. [_authTransition] exists for exactly this: it
+  /// is the handle on that work, and skipping it would tear the socket down
+  /// mid-`PushManager.logout` and leave a device row on the old server pointed
+  /// at a handset that has moved on.
+  Future<void> _detachForServerSwitch() async {
+    if (_auth.session != null) await _auth.signOut();
+    await _authTransition;
+  }
+
+  /// A new transport exists. Clear whatever boot state was standing in the way
+  /// and start watching the new socket.
+  ///
+  /// Deliberately does NOT call `_auth.restore()`. The stored session — if the
+  /// keychain still held one — was minted by the deployment we just left, and
+  /// presenting its userId to a different backend is precisely the thing this
+  /// whole sequence exists to prevent.
+  void _onServerRebound() {
+    if (!mounted) return;
+    setState(() {
+      _bootError = null;
+      _needsServer = false;
+      _bootstrapped = true;
+    });
+    _health.start();
   }
 
   /// Land a friend-request / approval notification tap on the requests list.
@@ -620,6 +676,22 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       SettingsStore.instance.captureProtection,
     );
     await CaptureProtection.instance.ensureListening();
+
+    // Before anything touches the client: is there a server at all? A build
+    // whose `env.local` carries no CONVEX_URL, on a device that has not chosen
+    // one, has nothing to connect to and nothing to apologise for. Sending it
+    // through `initialize()` would produce a red boot error offering a RETRY
+    // that cannot succeed; the server screen can actually fix it.
+    if (ServerStore.instance.deploymentUrl.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _needsServer = true;
+          _bootstrapped = true;
+        });
+      }
+      return;
+    }
+
     final initErr = await _cv.initialize();
     if (initErr == null) _health.start();
     if (initErr != null) {
@@ -748,7 +820,20 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     }
   }
 
-  void _onAuthChange() async {
+  /// The in-flight attach or teardown kicked off by the last auth change.
+  ///
+  /// [AuthService] notifies synchronously and the work below is asynchronous,
+  /// so between the two there was nothing anyone could wait on — fine while the
+  /// only caller was the framework, wrong the moment a server switch needed to
+  /// know that sign-out had finished unwinding before the socket went away.
+  /// See [_detachForServerSwitch].
+  Future<void>? _authTransition;
+
+  void _onAuthChange() {
+    _authTransition = _applyAuthChange();
+  }
+
+  Future<void> _applyAuthChange() async {
     final s = _auth.session;
     try {
       if (s != null && _repo.userId != s.userId) {
@@ -1065,6 +1150,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                         // form over a half-built tree.
                         if (_bootstrapped && _bootError == null)
                           ShakeToReport(auth: _auth, api: _api),
+                        // Which server this install talks to, permanently on
+                        // screen while that is not the bundled one. Ungated by
+                        // bootstrap state on purpose: the boot error is exactly
+                        // where knowing you are on a self-hosted address matters
+                        // most. Renders nothing at all on the default server,
+                        // and never takes a tap — see [SelfHostBadge].
+                        const SelfHostBadge(),
                         // Sits above every other layer so it covers banners +
                         // overlays during a screen recording.
                         const CaptureShield(),
@@ -1113,12 +1205,26 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               themeController: _themeController,
               bootstrapped: _bootstrapped,
               bootError: _bootError,
+              needsServer: _needsServer,
               onRetryBoot: () {
                 setState(() {
                   _bootError = null;
                   _bootstrapped = false;
                 });
                 _bootstrap();
+              },
+              // Pushed on the root navigator rather than swapped into `home`,
+              // so BACK returns to the boot error if the user changes their
+              // mind. `_onServerRebound` clears `_bootError` on success, and
+              // `_AppHome` rebuilds under the pushed route — which is why the
+              // screen pops itself once the switch lands.
+              onChangeServer: () {
+                rootNavigatorKey.currentState?.push(
+                  MaterialPageRoute(
+                    fullscreenDialog: true,
+                    builder: (_) => const ServerScreen(),
+                  ),
+                );
               },
             ),
           );
@@ -1430,10 +1536,23 @@ class _Splash extends StatelessWidget {
   }
 }
 
+/// The screen a failed [ConvexBackend.initialize] lands on.
+///
+/// Carries a route to the server screen as well as a RETRY, and that second
+/// button is not a convenience — it is what keeps a self-hosted install from
+/// bricking itself. Every other way into the server settings sits behind a
+/// signed-in shell or a login screen, and neither is reachable when the client
+/// cannot build a socket. Without this, one typo'd address plus one uninstall
+/// would be the whole recovery procedure.
 class _BootError extends StatelessWidget {
-  const _BootError({required this.error, required this.onRetry});
+  const _BootError({
+    required this.error,
+    required this.onRetry,
+    required this.onChangeServer,
+  });
   final Object error;
   final VoidCallback onRetry;
+  final VoidCallback onChangeServer;
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
@@ -1480,25 +1599,72 @@ class _BootError extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      GestureDetector(
-                        onTap: onRetry,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 14,
-                            horizontal: 22,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.accent,
-                            borderRadius: BorderRadius.circular(theme.radiusMd),
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context).bootErrorRetry,
-                            style: theme.label.copyWith(
-                              color: theme.accentInk,
-                              letterSpacing: 2.4,
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: onRetry,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                                horizontal: 22,
+                              ),
+                              decoration: BoxDecoration(
+                                color: theme.accent,
+                                borderRadius: BorderRadius.circular(
+                                  theme.radiusMd,
+                                ),
+                              ),
+                              child: Text(
+                                AppLocalizations.of(context).bootErrorRetry,
+                                style: theme.label.copyWith(
+                                  color: theme.accentInk,
+                                  letterSpacing: 2.4,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          // Quieter than RETRY on purpose: a transient outage is
+                          // the likelier cause, and this button signs the user
+                          // out. It has to be here, but it should not be the
+                          // first thing a hand reaches for.
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: onChangeServer,
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                  horizontal: 16,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: theme.divider),
+                                  borderRadius: BorderRadius.circular(
+                                    theme.radiusMd,
+                                  ),
+                                ),
+                                child: Text(
+                                  AppLocalizations.of(context).serverChangeCta,
+                                  style: theme.label.copyWith(
+                                    color: theme.inkSoft,
+                                    letterSpacing: 2.4,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      // The one fact that turns "can't reach server" from a
+                      // shrug into something actionable, and the only place it
+                      // appears when the app cannot get past this screen.
+                      Text(
+                        ServerStore.instance.host,
+                        style: theme.monoTiny.copyWith(color: theme.inkMuted),
                       ),
                     ],
                   ),
@@ -1607,7 +1773,9 @@ class _AppHome extends StatefulWidget {
     required this.themeController,
     required this.bootstrapped,
     required this.bootError,
+    required this.needsServer,
     required this.onRetryBoot,
+    required this.onChangeServer,
   });
 
   final AuthService auth;
@@ -1618,7 +1786,11 @@ class _AppHome extends StatefulWidget {
   final ThemeController themeController;
   final bool bootstrapped;
   final Object? bootError;
+
+  /// No deployment configured at all — see `_MonkeyHubAppState._needsServer`.
+  final bool needsServer;
   final VoidCallback onRetryBoot;
+  final VoidCallback onChangeServer;
 
   @override
   State<_AppHome> createState() => _AppHomeState();
@@ -1654,8 +1826,16 @@ class _AppHomeState extends State<_AppHome> {
   @override
   Widget build(BuildContext context) {
     if (!widget.bootstrapped) return const _Splash();
+    // Ahead of the error branch: "nowhere to connect" is a state the server
+    // screen resolves outright, and dressing it as a failure first would make
+    // the app look broken on a build that is merely unconfigured.
+    if (widget.needsServer) return const ServerScreen(onboarding: true);
     if (widget.bootError != null) {
-      return _BootError(error: widget.bootError!, onRetry: widget.onRetryBoot);
+      return _BootError(
+        error: widget.bootError!,
+        onRetry: widget.onRetryBoot,
+        onChangeServer: widget.onChangeServer,
+      );
     }
     final theme = widget.themeController.theme;
     final signedIn = widget.auth.isSignedIn;

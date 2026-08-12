@@ -8,6 +8,7 @@ import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
+import '../backend/server_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../legal_links.dart';
@@ -19,10 +20,12 @@ import '../theme/theme_scope.dart';
 import '../data/username_availability_controller.dart';
 import '../widgets/labeled_field.dart';
 import '../widgets/password_field.dart';
+import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/username_status_label.dart';
 import 'child_pair_screen.dart';
 import 'recovery_phrase_screen.dart';
+import 'server_screen.dart';
 import 'social_username_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -511,8 +514,89 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 14),
             _LegalNote(theme: ThemeScope.of(context)),
           ],
+          // Which server the credentials above are about to be sent to.
+          //
+          // On this screen rather than only in Settings, because this is where
+          // the answer is actionable: signing in is the moment an account gets
+          // bound to a deployment, and Settings sits behind having one. It is
+          // also what makes self-hosting reachable at all on a handset that has
+          // never signed in — otherwise the feature would need an account on
+          // the very server you were trying not to use.
+          const SizedBox(height: 16),
+          const _ServerChip(),
         ],
       ),
+    );
+  }
+}
+
+/// The quiet line at the foot of the login screen naming the deployment.
+///
+/// Deliberately understated on the default server and accented on a
+/// self-hosted one — a stock install should not be nagged about a setting it
+/// has never touched, while a repointed one should say so on the screen where
+/// a password is about to be typed.
+class _ServerChip extends StatelessWidget {
+  const _ServerChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: ServerStore.instance,
+      builder: (context, _) {
+        final theme = ThemeScope.of(context);
+        final l10n = AppLocalizations.of(context);
+        final store = ServerStore.instance;
+        final custom = store.isCustom;
+        final tone = custom ? theme.accent : theme.inkMuted;
+        final label = store.host.isEmpty
+            ? l10n.serverNoneConfigured
+            : shortHost(store.host, max: 28);
+        void open() => Navigator.of(context).push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => const ServerScreen(),
+          ),
+        );
+        return Center(
+          child: FocusableTap(
+            onTap: open,
+            radius: 999,
+            shape: FocusRingShape.capsule,
+            semanticLabel: l10n.serverChipSemantics(label),
+            child: GestureDetector(
+              onTap: open,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
+                decoration: BoxDecoration(
+                  color: custom
+                      ? theme.accent.withValues(alpha: 0.10)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: custom
+                        ? theme.accent.withValues(alpha: 0.45)
+                        : theme.divider,
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.dns_outlined, size: 12, color: tone),
+                    const SizedBox(width: 7),
+                    Text(
+                      label,
+                      style: theme.monoTiny.copyWith(color: tone),
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

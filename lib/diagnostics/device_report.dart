@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../backend/server_store.dart';
 import '../data/settings_store.dart';
-import '../env.dart';
 import '../push/device_identity.dart';
 
 /// The snapshot printed at the top of every export and as line one of every
@@ -133,7 +133,15 @@ class DeviceReport {
       // HOST ONLY. The full URL is not a secret, but it is the one field where
       // a careless change could start exporting a deployment key, so the shape
       // of this line is deliberately incapable of carrying one.
-      out['convexHost'] = Uri.tryParse(Env.convexUrl)?.host;
+      //
+      // Reads the LIVE server rather than the bundled one: on a self-hosted
+      // install those differ, and a report naming the deployment the app is not
+      // talking to would send every reader in the wrong direction.
+      out['convexHost'] = Uri.tryParse(ServerStore.instance.deploymentUrl)?.host;
+      // The single most load-bearing fact about a self-hosted install, and one
+      // no other field implies — a private host is unremarkable on its own, and
+      // a self-hoster can perfectly well be running on a cloud URL shape.
+      out['selfHosted'] = ServerStore.instance.isCustom;
     } catch (_) {}
 
     _cached = out;

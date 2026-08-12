@@ -8,6 +8,7 @@ import '../diagnostics/diag_event.dart' show DiagSev;
 import '../diagnostics/diag_log.dart';
 import '../env.dart';
 import 'connection_health.dart' show ConnectionProbe;
+import 'server_store.dart';
 import 'subscription_registry.dart';
 
 /// Thin wrapper around [cv.ConvexClient] that decodes JSON results and
@@ -39,11 +40,78 @@ class ConvexBackend implements ConnectionProbe {
     return _initFuture!;
   }
 
+  /// The deployment the live client was built against. Read back rather than
+  /// re-derived, so [rebind] can tell "already pointed there" from "needs a new
+  /// socket" even after [ServerStore] has moved on.
+  String? _boundUrl;
+
+  /// Which deployment the socket in hand actually talks to, or null before the
+  /// first successful init.
+  String? get boundUrl => _boundUrl;
+
+  /// Whether the live client is out of step with [ServerStore] — i.e. a switch
+  /// was saved but never applied. Should only ever be true mid-[rebind].
+  bool get isStale =>
+      _boundUrl != null && _boundUrl != ServerStore.instance.deploymentUrl;
+
+  /// Throw the client away and build a new one against whatever [ServerStore]
+  /// now says. Returns null on success, or the init error.
+  ///
+  /// This is the only supported way to change which server a running app talks
+  /// to. The alternative — asking the user to force-quit — is not a settings
+  /// change, it is an apology.
+  ///
+  /// Callers MUST have torn the session down first: signing out cancels every
+  /// subscription and gets the final mutations onto the OLD server while it is
+  /// still reachable. [ServerSwitch] owns that ordering; this method only
+  /// handles the transport, and deliberately knows nothing about accounts.
+  ///
+  /// Subscriptions still registered at this point are abandoned rather than
+  /// re-bound — see [SubscriptionRegistry.abandonAll] for why re-binding them
+  /// against a different backend would be actively wrong.
+  Future<Object?> rebind() async {
+    final target = ServerStore.instance.deploymentUrl;
+    DiagLog.connection('rebind-server', 'switching to ${_hostOf(target)}');
+    _registry.abandonAll();
+    // Both are statements about a socket that is about to stop existing.
+    _lastProbeOkAt = null;
+    _lastForcedReconnectAt = null;
+    await cv.ConvexClient.shutdown();
+    _initFuture = null;
+    _initError = null;
+    _boundUrl = null;
+    final err = await initialize();
+    DiagLog.connection(
+      'rebind-server',
+      err == null ? 'ok (${_hostOf(target)})' : 'failed: $err',
+      sev: err == null ? DiagSev.info : DiagSev.warn,
+    );
+    return err;
+  }
+
+  /// Host only — the same rule [DeviceReport] follows. A diagnostics line about
+  /// a server switch must not be a place a full URL can leak into.
+  static String _hostOf(String url) => Uri.tryParse(url)?.host ?? '?';
+
   Future<void> _doInit() async {
+    final url = ServerStore.instance.deploymentUrl;
+    if (url.isEmpty) {
+      // Reachable only on a build whose `env.local` carries no CONVEX_URL and
+      // whose user has not chosen a server yet. `_bootstrap` routes that state
+      // to the server screen before it gets here, so this is the backstop for a
+      // stray API call rather than the path anyone travels.
+      _initFuture = null;
+      throw const NoServerConfiguredError();
+    }
     try {
       await cv.ConvexClient.initialize(
         cv.ConvexConfig(
-          deploymentUrl: Env.convexUrl,
+          // NOT Env.convexUrl. The bundled deployment is only the default;
+          // [ServerStore] answers which one is in force, so an install pointed
+          // at a self-hosted backend builds its socket against that one
+          // instead. The store is loaded before `runApp`, so it is always
+          // populated by the time anything reaches here.
+          deploymentUrl: url,
           clientId: Env.clientId,
           // A cheap, public, unauthenticated query used as the connectivity probe
           // (see [probeConnection]) and by the client's own reconnect().
@@ -57,6 +125,7 @@ class ConvexBackend implements ConnectionProbe {
         ),
       );
       _initError = null;
+      _boundUrl = url;
     } catch (e) {
       _initError = e;
       // Reset so the next call retries fresh instead of returning the failed
@@ -404,6 +473,19 @@ class Subscription {
   /// Deregisters and cancels. Idempotent, and safe on a subscription whose
   /// transport was rebuilt out from under it.
   void cancel() => _entry.cancel();
+}
+
+/// No deployment to connect to at all: `env.local` carries no `CONVEX_URL` and
+/// the user has not entered a server.
+///
+/// Its own type rather than a bare Exception because the boot screen treats it
+/// completely differently from a connection failure — nothing is wrong, the app
+/// simply has not been told where to go yet, so it opens the server screen
+/// instead of an error.
+class NoServerConfiguredError implements Exception {
+  const NoServerConfiguredError();
+  @override
+  String toString() => 'No Convex deployment configured.';
 }
 
 class ConvexError implements Exception {

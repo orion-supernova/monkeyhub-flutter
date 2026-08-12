@@ -6110,4 +6110,196 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get scheduledBack => '戻る';
+
+  @override
+  String get serverScreenTitle => 'サーバー。';
+
+  @override
+  String get serverScreenSubtitle => 'アカウントとメッセージが置かれる場所';
+
+  @override
+  String get serverOnboardingTitle => 'サーバーを選ぶ。';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'このビルドにはサーバーが含まれていません。ご自分のサーバーを指定してください';
+
+  @override
+  String get serverStatusConnected => '接続中';
+
+  @override
+  String get serverStatusDisconnected => '未接続';
+
+  @override
+  String get serverBadgeDefault => '既定';
+
+  @override
+  String get serverBadgeSelfHosted => 'セルフホスト';
+
+  @override
+  String get serverNoneConfigured => 'サーバー未設定';
+
+  @override
+  String get serverActiveNowLabel => '使用中';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'このアプリに最初から設定されているサーバーです。';
+
+  @override
+  String get serverChoiceOwn => '自分のサーバー';
+
+  @override
+  String get serverChoiceOwnSub => '自分で運用している Convex バックエンド。';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => '貼り付け';
+
+  @override
+  String get serverProblemMalformed => 'これはウェブアドレスではありません。';
+
+  @override
+  String get serverProblemBadScheme => 'https:// または http:// で始めてください。';
+
+  @override
+  String get serverProblemNoHost => 'https:// のあとにサーバーのアドレスを入力してください。';
+
+  @override
+  String get serverProblemCredentials => 'アドレスからユーザー名とパスワードを取り除いてください。';
+
+  @override
+  String get serverInsecureTitle => '暗号化されていません';
+
+  @override
+  String get serverInsecureBody =>
+      'スマートフォンは平文の http を遮断するため、このアドレスは iOS でも Android でも接続できません。https を使うか、トンネル経由でサーバーに接続してください。';
+
+  @override
+  String get serverTestCta => '接続をテスト';
+
+  @override
+  String get serverTestingLabel => 'テスト中…';
+
+  @override
+  String get serverCheckReachable => '応答がありました';
+
+  @override
+  String get serverCheckConvex => 'Convex サーバーです';
+
+  @override
+  String get serverCheckApp => 'MonkeyHub が動いています';
+
+  @override
+  String get serverResultUnreachable => 'そのアドレスからは応答がありませんでした。';
+
+  @override
+  String get serverResultNotConvex => '応答はありましたが、Convex サーバーではありません。';
+
+  @override
+  String get serverResultNotThisApp => 'Convex サーバーですが、MonkeyHub は配置されていません。';
+
+  @override
+  String get serverResultServerError => 'サーバーは応答しましたが、エラーを返しました。';
+
+  @override
+  String get serverResultReady => '接続できます。';
+
+  @override
+  String get serverConnectCta => '接続';
+
+  @override
+  String get serverConnectAnywayCta => 'それでも接続';
+
+  @override
+  String get serverAlreadyConnectedCta => '接続済み';
+
+  @override
+  String get serverUseDefaultCta => '既定に戻す';
+
+  @override
+  String get serverChangeCta => 'サーバーを変更';
+
+  @override
+  String get serverAdvancedLabel => '詳細設定';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'ほとんどのサーバーは 1 つのアドレスですべてに応答します。HTTP アクションを別のアドレスで提供している場合のみ入力してください。';
+
+  @override
+  String get serverSiteUrlHint => '上と同じ';
+
+  @override
+  String get serverSectionRecent => '最近';
+
+  @override
+  String get serverRecentForget => 'このサーバーを削除';
+
+  @override
+  String get serverSectionBadge => 'バッジ';
+
+  @override
+  String get serverBadgeStyleRibbon => 'リボン';
+
+  @override
+  String get serverBadgeStyleRibbonSub => '右上隅を横切る帯。見逃しません。';
+
+  @override
+  String get serverBadgeStylePill => 'ピル';
+
+  @override
+  String get serverBadgeStylePillSub => 'サーバー名を載せた小さなチップ。';
+
+  @override
+  String get serverSwitchWarningTitle => '切り替えるとサインアウトします';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'アカウントとチャットは 1 つのサーバーに属します。この端末はサインアウトし、ダウンロード済みのデータを消し、新しいサーバーで最初から始めます。どちらのサーバー上のデータも削除されません。';
+
+  @override
+  String get serverSwitchPhaseDetaching => '以前のサーバーからサインアウトしています…';
+
+  @override
+  String get serverSwitchPhaseSaving => '保存中…';
+
+  @override
+  String get serverSwitchPhaseConnecting => '接続中…';
+
+  @override
+  String get serverSwitchPhaseRollingBack => '以前のサーバーに戻しています…';
+
+  @override
+  String get serverSwitchRolledBackTitle => '接続できませんでした';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host から応答がなかったため、元のサーバーに戻りました。もう一度サインインしてください。';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'どちらのサーバーにも接続できませんでした。アドレスを確認して、もう一度お試しください。';
+
+  @override
+  String get serverSwitchRefusedBody => 'この端末はお子さま用に設定されているため、サーバーを変更できません。';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'サーバーを変更します。現在は $server です。';
+  }
+
+  @override
+  String get serverValueDefault => '既定';
+
+  @override
+  String get settingsScreenRowServer => 'サーバー';
+
+  @override
+  String get settingsScreenSectionAdvanced => '詳細設定';
 }

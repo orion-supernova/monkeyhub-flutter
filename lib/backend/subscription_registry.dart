@@ -121,6 +121,29 @@ class SubscriptionRegistry {
     await Future.wait(broken.map((e) => e._bindOnce(_generation)));
   }
 
+  /// Drop every entry WITHOUT touching the transport.
+  ///
+  /// For the one case a rebind must not cover: the client is being thrown away
+  /// and replaced by one pointed at a DIFFERENT deployment (see
+  /// `ConvexBackend.rebind`). Every entry here carries args minted against the
+  /// old server — a userId, a roomId — so re-binding them would ask a stranger's
+  /// backend for documents by another backend's ids.
+  ///
+  /// Handles are abandoned rather than cancelled, for the reason in the class
+  /// doc's first rule: their peer is already gone, and on the native path
+  /// cancelling one across FFI used to panic.
+  ///
+  /// Entries are marked cancelled, so a caller still holding a [Subscription]
+  /// and calling `cancel()` afterwards is a safe no-op rather than a reach into
+  /// a disposed client.
+  void abandonAll() {
+    for (final e in _live) {
+      e._cancelled = true;
+      e._handle = null;
+    }
+    _live.clear();
+  }
+
   void _forget(RegisteredSub e) => _live.remove(e);
 }
 

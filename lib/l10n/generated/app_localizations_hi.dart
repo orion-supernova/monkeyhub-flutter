@@ -6367,4 +6367,203 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get scheduledBack => 'वापस';
+
+  @override
+  String get serverScreenTitle => 'सर्वर.';
+
+  @override
+  String get serverScreenSubtitle => 'जहाँ आपका खाता और संदेश रहते हैं';
+
+  @override
+  String get serverOnboardingTitle => 'सर्वर चुनें.';
+
+  @override
+  String get serverOnboardingSubtitle =>
+      'यह बिल्ड बिना सर्वर के आया है — इसे अपने सर्वर पर लगाएँ';
+
+  @override
+  String get serverStatusConnected => 'जुड़ा है';
+
+  @override
+  String get serverStatusDisconnected => 'जुड़ा नहीं है';
+
+  @override
+  String get serverBadgeDefault => 'डिफ़ॉल्ट';
+
+  @override
+  String get serverBadgeSelfHosted => 'स्वयं-होस्टेड';
+
+  @override
+  String get serverNoneConfigured => 'अभी कोई सर्वर नहीं';
+
+  @override
+  String get serverActiveNowLabel => 'उपयोग में';
+
+  @override
+  String get serverChoiceCloud => 'MonkeyHub';
+
+  @override
+  String get serverChoiceCloudSub => 'वह सर्वर जो इस ऐप के साथ आया था।';
+
+  @override
+  String get serverChoiceOwn => 'आपका अपना सर्वर';
+
+  @override
+  String get serverChoiceOwnSub => 'एक Convex बैकएंड जिसे आप स्वयं चलाते हैं।';
+
+  @override
+  String get serverAddressHint => 'https://chat.example.com';
+
+  @override
+  String get serverAddressPaste => 'चिपकाएँ';
+
+  @override
+  String get serverProblemMalformed => 'यह वेब पता नहीं है।';
+
+  @override
+  String get serverProblemBadScheme => 'इसे https:// या http:// से शुरू करें।';
+
+  @override
+  String get serverProblemNoHost => 'https:// के बाद अपने सर्वर का पता जोड़ें।';
+
+  @override
+  String get serverProblemCredentials =>
+      'पते में से उपयोगकर्ता नाम और पासवर्ड हटाएँ।';
+
+  @override
+  String get serverInsecureTitle => 'एन्क्रिप्टेड नहीं';
+
+  @override
+  String get serverInsecureBody =>
+      'फ़ोन सादा http रोकते हैं, इसलिए यह पता iOS या Android पर नहीं जुड़ेगा। https इस्तेमाल करें, या टनल के ज़रिए अपने सर्वर तक पहुँचें।';
+
+  @override
+  String get serverTestCta => 'कनेक्शन जाँचें';
+
+  @override
+  String get serverTestingLabel => 'जाँच हो रही है…';
+
+  @override
+  String get serverCheckReachable => 'कुछ ने जवाब दिया';
+
+  @override
+  String get serverCheckConvex => 'यह Convex सर्वर है';
+
+  @override
+  String get serverCheckApp => 'इस पर MonkeyHub चल रहा है';
+
+  @override
+  String get serverResultUnreachable => 'उस पते पर किसी ने जवाब नहीं दिया।';
+
+  @override
+  String get serverResultNotConvex =>
+      'कुछ ने जवाब दिया, पर वह Convex सर्वर नहीं है।';
+
+  @override
+  String get serverResultNotThisApp =>
+      'यह Convex सर्वर है, पर उस पर MonkeyHub तैनात नहीं है।';
+
+  @override
+  String get serverResultServerError => 'सर्वर ने जवाब दिया, पर त्रुटि के साथ।';
+
+  @override
+  String get serverResultReady => 'जुड़ने के लिए तैयार।';
+
+  @override
+  String get serverConnectCta => 'जुड़ें';
+
+  @override
+  String get serverConnectAnywayCta => 'फिर भी जुड़ें';
+
+  @override
+  String get serverAlreadyConnectedCta => 'पहले से जुड़ा है';
+
+  @override
+  String get serverUseDefaultCta => 'डिफ़ॉल्ट पर लौटें';
+
+  @override
+  String get serverChangeCta => 'सर्वर बदलें';
+
+  @override
+  String get serverAdvancedLabel => 'उन्नत';
+
+  @override
+  String get serverSiteUrlExplain =>
+      'ज़्यादातर सर्वर सब कुछ एक ही पते पर देते हैं। यह तभी भरें जब आपका सर्वर HTTP actions कहीं और देता हो।';
+
+  @override
+  String get serverSiteUrlHint => 'ऊपर जैसा ही';
+
+  @override
+  String get serverSectionRecent => 'हाल के';
+
+  @override
+  String get serverRecentForget => 'इस सर्वर को भूल जाएँ';
+
+  @override
+  String get serverSectionBadge => 'बैज';
+
+  @override
+  String get serverBadgeStyleRibbon => 'रिबन';
+
+  @override
+  String get serverBadgeStyleRibbonSub =>
+      'ऊपरी कोने पर एक पट्टी। नज़र से नहीं चूकती।';
+
+  @override
+  String get serverBadgeStylePill => 'पिल';
+
+  @override
+  String get serverBadgeStylePillSub => 'आपके सर्वर के नाम वाला छोटा चिप।';
+
+  @override
+  String get serverSwitchWarningTitle => 'बदलने पर साइन आउट हो जाएगा';
+
+  @override
+  String get serverSwitchWarningBody =>
+      'खाते और चैट एक ही सर्वर के होते हैं। यह डिवाइस साइन आउट होगा, डाउनलोड किया हुआ मिटाएगा, और नए सर्वर पर नए सिरे से शुरू करेगा। किसी भी सर्वर पर कुछ भी मिटाया नहीं जाता।';
+
+  @override
+  String get serverSwitchPhaseDetaching =>
+      'पुराने सर्वर से साइन आउट हो रहा है…';
+
+  @override
+  String get serverSwitchPhaseSaving => 'सहेजा जा रहा है…';
+
+  @override
+  String get serverSwitchPhaseConnecting => 'जुड़ा जा रहा है…';
+
+  @override
+  String get serverSwitchPhaseRollingBack =>
+      'पुराना सर्वर वापस लगाया जा रहा है…';
+
+  @override
+  String get serverSwitchRolledBackTitle => 'जुड़ नहीं सके';
+
+  @override
+  String serverSwitchRolledBackBody(String host) {
+    return '$host ने जवाब नहीं दिया, इसलिए आप पहले वाले सर्वर पर लौट आए हैं। आपको फिर से साइन इन करना होगा।';
+  }
+
+  @override
+  String get serverSwitchStrandedBody =>
+      'कोई भी सर्वर नहीं जुड़ा। पता जाँचें और फिर कोशिश करें।';
+
+  @override
+  String get serverSwitchRefusedBody =>
+      'यह डिवाइस किसी बच्चे के लिए सेट है और सर्वर नहीं बदल सकता।';
+
+  @override
+  String serverChipSemantics(String server) {
+    return 'सर्वर बदलें। अभी $server।';
+  }
+
+  @override
+  String get serverValueDefault => 'डिफ़ॉल्ट';
+
+  @override
+  String get settingsScreenRowServer => 'सर्वर';
+
+  @override
+  String get settingsScreenSectionAdvanced => 'उन्नत';
 }

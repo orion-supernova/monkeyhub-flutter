@@ -7301,5 +7301,261 @@
   "scheduledBack": "Back",
   "@scheduledBack": {
     "description": "Back button inside the scheduled-messages sheet, returning from the display-choice view to the list."
+  },
+  "serverScreenTitle": "server.",
+  "@serverScreenTitle": {
+    "description": "Lowercase display heading at the top of the server screen, matching the app's other settings sub-screen headings (e.g. 'theme.', 'language.'). Keep the trailing full stop."
+  },
+  "serverScreenSubtitle": "where your account and messages live",
+  "@serverScreenSubtitle": {
+    "description": "Small caption under the server screen heading, saying what the setting decides."
+  },
+  "serverOnboardingTitle": "pick a server.",
+  "@serverOnboardingTitle": {
+    "description": "Heading shown at first launch on a build that ships without a server configured. Lowercase with a trailing full stop, like the other headings."
+  },
+  "serverOnboardingSubtitle": "this build didn't come with one — point it at yours",
+  "@serverOnboardingSubtitle": {
+    "description": "Caption under the onboarding heading, explaining that this build has no bundled server."
+  },
+  "serverStatusConnected": "CONNECTED",
+  "@serverStatusConnected": {
+    "description": "All-caps status label on the server screen when the app is connected to the server."
+  },
+  "serverStatusDisconnected": "NOT CONNECTED",
+  "@serverStatusDisconnected": {
+    "description": "All-caps status label on the server screen when the app is not connected to the server."
+  },
+  "serverBadgeDefault": "DEFAULT",
+  "@serverBadgeDefault": {
+    "description": "All-caps tag on the server card meaning the app is using the server it shipped with."
+  },
+  "serverBadgeSelfHosted": "SELF-HOSTED",
+  "@serverBadgeSelfHosted": {
+    "description": "All-caps tag meaning the app is using a server the user runs themselves. Also the text on the corner ribbon."
+  },
+  "serverNoneConfigured": "No server yet",
+  "@serverNoneConfigured": {
+    "description": "Shown in place of a server address when none has been chosen yet."
+  },
+  "serverActiveNowLabel": "IN USE",
+  "@serverActiveNowLabel": {
+    "description": "All-caps tag on whichever of the two server choices is the one currently in use."
+  },
+  "serverChoiceCloud": "MonkeyHub",
+  "@serverChoiceCloud": {
+    "description": "Name of the first server choice: the deployment the app ships pointed at. 'MonkeyHub' is the app's proper noun — do not translate it."
+  },
+  "serverChoiceCloudSub": "The server this app came with.",
+  "@serverChoiceCloudSub": {
+    "description": "One-line explanation under the default server choice."
+  },
+  "serverChoiceOwn": "Your own server",
+  "@serverChoiceOwn": {
+    "description": "Name of the second server choice: a backend the user runs themselves."
+  },
+  "serverChoiceOwnSub": "A Convex backend you run yourself.",
+  "@serverChoiceOwnSub": {
+    "description": "One-line explanation under the self-hosted choice. 'Convex' is the backend platform's proper noun — keep it untranslated."
+  },
+  "serverAddressHint": "https://chat.example.com",
+  "@serverAddressHint": {
+    "description": "Placeholder in the server address field. An example URL — keep it as a URL; do not translate example.com."
+  },
+  "serverAddressPaste": "PASTE",
+  "@serverAddressPaste": {
+    "description": "Small all-caps button inside the address field that pastes the clipboard into it."
+  },
+  "serverProblemMalformed": "That isn't a web address.",
+  "@serverProblemMalformed": {
+    "description": "Error under the address field when the text cannot be read as a web address at all."
+  },
+  "serverProblemBadScheme": "Start it with https:// or http://.",
+  "@serverProblemBadScheme": {
+    "description": "Error under the address field when the URL uses a scheme other than http or https. Keep the two schemes literal."
+  },
+  "serverProblemNoHost": "Add your server's address after https://.",
+  "@serverProblemNoHost": {
+    "description": "Error under the address field when a scheme was typed but no host followed it."
+  },
+  "serverProblemCredentials": "Take the username and password out of the address.",
+  "@serverProblemCredentials": {
+    "description": "Error under the address field when the pasted URL embeds a username and password. Refused rather than stripped, because it is usually a mis-pasted admin key."
+  },
+  "serverInsecureTitle": "NOT ENCRYPTED",
+  "@serverInsecureTitle": {
+    "description": "All-caps warning label shown when the typed address uses plain http."
+  },
+  "serverInsecureBody": "Phones block plain http, so this address won't connect on iOS or Android. Use https, or reach your server through a tunnel.",
+  "@serverInsecureBody": {
+    "description": "Body of the plain-http warning. States the platform fact (iOS and Android block cleartext by default) rather than refusing the address."
+  },
+  "serverTestCta": "TEST CONNECTION",
+  "@serverTestCta": {
+    "description": "All-caps button that checks the typed address before anything is saved."
+  },
+  "serverTestingLabel": "Testing…",
+  "@serverTestingLabel": {
+    "description": "Label on the test button while the check is running."
+  },
+  "serverCheckReachable": "Something answered",
+  "@serverCheckReachable": {
+    "description": "First rung of the connection-test ladder: whether anything answered at that address."
+  },
+  "serverCheckConvex": "It's a Convex server",
+  "@serverCheckConvex": {
+    "description": "Second rung of the connection-test ladder: whether the thing that answered is a Convex deployment. 'Convex' is a proper noun — keep it."
+  },
+  "serverCheckApp": "It's running MonkeyHub",
+  "@serverCheckApp": {
+    "description": "Third rung of the connection-test ladder: whether this app's backend is deployed on it. 'MonkeyHub' is a proper noun — keep it."
+  },
+  "serverResultUnreachable": "Nothing answered at that address.",
+  "@serverResultUnreachable": {
+    "description": "Verdict when the connection test got no answer at all."
+  },
+  "serverResultNotConvex": "Something answered, but it isn't a Convex server.",
+  "@serverResultNotConvex": {
+    "description": "Verdict when something answered but it is not a Convex deployment."
+  },
+  "serverResultNotThisApp": "That's a Convex server, but MonkeyHub isn't deployed on it.",
+  "@serverResultNotThisApp": {
+    "description": "Verdict when the address is a Convex deployment running some other app."
+  },
+  "serverResultServerError": "The server answered, but with an error.",
+  "@serverResultServerError": {
+    "description": "Verdict when the deployment answered the health check with an error of its own."
+  },
+  "serverResultReady": "Ready to connect.",
+  "@serverResultReady": {
+    "description": "Verdict when the connection test passed."
+  },
+  "serverConnectCta": "CONNECT",
+  "@serverConnectCta": {
+    "description": "All-caps primary button that switches the app to the typed server."
+  },
+  "serverConnectAnywayCta": "CONNECT ANYWAY",
+  "@serverConnectAnywayCta": {
+    "description": "Label the primary button takes when the connection test failed but the user may still insist."
+  },
+  "serverAlreadyConnectedCta": "ALREADY CONNECTED",
+  "@serverAlreadyConnectedCta": {
+    "description": "Label the primary button takes when the typed address is the server already in use, so there is nothing to do."
+  },
+  "serverUseDefaultCta": "GO BACK TO THE DEFAULT",
+  "@serverUseDefaultCta": {
+    "description": "All-caps button that returns the app to the server it shipped with."
+  },
+  "serverChangeCta": "CHANGE SERVER",
+  "@serverChangeCta": {
+    "description": "All-caps button on the boot-error screen that opens the server screen — the escape hatch when a bad address stops the app connecting at all."
+  },
+  "serverAdvancedLabel": "ADVANCED",
+  "@serverAdvancedLabel": {
+    "description": "All-caps disclosure toggle on the server screen that reveals the HTTP-actions address override."
+  },
+  "serverSiteUrlExplain": "Most servers answer everything on one address. Fill this in only if yours serves HTTP actions somewhere else.",
+  "@serverSiteUrlExplain": {
+    "description": "Explanation above the optional second address field. 'HTTP actions' is a Convex term for endpoints served over plain HTTP."
+  },
+  "serverSiteUrlHint": "Same as above",
+  "@serverSiteUrlHint": {
+    "description": "Placeholder in the optional HTTP-actions address field, shown before a main address has been typed."
+  },
+  "serverSectionRecent": "RECENT",
+  "@serverSectionRecent": {
+    "description": "All-caps section header above the list of servers this device has used before."
+  },
+  "serverRecentForget": "Forget this server",
+  "@serverRecentForget": {
+    "description": "Accessibility label for the button that removes one entry from the recent-servers list."
+  },
+  "serverSectionBadge": "BADGE",
+  "@serverSectionBadge": {
+    "description": "All-caps section header above the choice of how the self-hosted marker looks."
+  },
+  "serverBadgeStyleRibbon": "Ribbon",
+  "@serverBadgeStyleRibbon": {
+    "description": "Name of the corner-band style for the self-hosted marker."
+  },
+  "serverBadgeStyleRibbonSub": "A band across the top corner. Hard to miss.",
+  "@serverBadgeStyleRibbonSub": {
+    "description": "One-line description of the ribbon badge style."
+  },
+  "serverBadgeStylePill": "Pill",
+  "@serverBadgeStylePill": {
+    "description": "Name of the small-chip style for the self-hosted marker."
+  },
+  "serverBadgeStylePillSub": "A small chip with your server's name.",
+  "@serverBadgeStylePillSub": {
+    "description": "One-line description of the pill badge style."
+  },
+  "serverSwitchWarningTitle": "SWITCHING SIGNS YOU OUT",
+  "@serverSwitchWarningTitle": {
+    "description": "All-caps heading of the notice explaining what changing servers costs."
+  },
+  "serverSwitchWarningBody": "Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh on the new one. Nothing is deleted on either server.",
+  "@serverSwitchWarningBody": {
+    "description": "Body of the switch warning. Says plainly what is lost locally and what is not lost remotely."
+  },
+  "serverSwitchPhaseDetaching": "Signing out of the old server…",
+  "@serverSwitchPhaseDetaching": {
+    "description": "Progress line while the app unwinds from the server it is leaving."
+  },
+  "serverSwitchPhaseSaving": "Saving…",
+  "@serverSwitchPhaseSaving": {
+    "description": "Progress line while the new server choice is written to storage."
+  },
+  "serverSwitchPhaseConnecting": "Connecting…",
+  "@serverSwitchPhaseConnecting": {
+    "description": "Progress line while the app opens a connection to the new server."
+  },
+  "serverSwitchPhaseRollingBack": "Putting the old server back…",
+  "@serverSwitchPhaseRollingBack": {
+    "description": "Progress line while the app returns to the previous server after the new one failed."
+  },
+  "serverSwitchRolledBackTitle": "COULDN'T CONNECT",
+  "@serverSwitchRolledBackTitle": {
+    "description": "All-caps heading shown after a switch failed and the app returned to the previous server."
+  },
+  "serverSwitchRolledBackBody": "{host} didn't answer, so you're back on the server you were using. You'll need to sign in again.",
+  "@serverSwitchRolledBackBody": {
+    "description": "Body shown after a failed switch. {host} is the address that did not answer. Says the session is gone regardless, because sign-out already happened.",
+    "placeholders": {
+      "host": {
+        "example": "chat.example.com",
+        "type": "String"
+      }
+    }
+  },
+  "serverSwitchStrandedBody": "Neither server would connect. Check the address and try again.",
+  "@serverSwitchStrandedBody": {
+    "description": "Body shown in the rare case where neither the new server nor the previous one would connect."
+  },
+  "serverSwitchRefusedBody": "This device is set up for a child and can't change servers.",
+  "@serverSwitchRefusedBody": {
+    "description": "Body shown when a supervised (child) device tries to change servers. It cannot sign itself out, so it cannot move."
+  },
+  "serverChipSemantics": "Change server. Currently {server}.",
+  "@serverChipSemantics": {
+    "description": "Accessibility label for the server chip at the foot of the login screen. {server} is the current server address.",
+    "placeholders": {
+      "server": {
+        "example": "chat.example.com",
+        "type": "String"
+      }
+    }
+  },
+  "serverValueDefault": "Default",
+  "@serverValueDefault": {
+    "description": "Value shown on the Settings server row when the app is on the deployment it shipped with."
+  },
+  "settingsScreenRowServer": "SERVER",
+  "@settingsScreenRowServer": {
+    "description": "All-caps row label in Settings > Advanced that opens the server screen."
+  },
+  "settingsScreenSectionAdvanced": "ADVANCED",
+  "@settingsScreenSectionAdvanced": {
+    "description": "All-caps section header in Settings, above the server row."
   }
 }

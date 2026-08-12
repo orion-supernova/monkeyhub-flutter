@@ -50,6 +50,7 @@ class SettingsStore extends ChangeNotifier {
   static const _kLocale = 'mh.locale';
   static const _kMotionLevel = 'mh.motionLevel';
   static const _kScheduledIndicator = 'mh.schedule.indicator';
+  static const _kSelfHostBadge = 'mh.selfHostBadge';
 
   final _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.unlocked),
@@ -90,6 +91,7 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
+  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.ribbon;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -166,6 +168,11 @@ class SettingsStore extends ChangeNotifier {
   /// Non-nullable, unlike [motionLevel]: there is no OS preference to defer to,
   /// so "not chosen" is simply the default rather than a third state.
   ScheduledIndicator get scheduledIndicator => _scheduledIndicator;
+
+  /// How loudly the app announces that it is on a self-hosted server. Read only
+  /// while `ServerStore.isCustom` — on the bundled deployment there is nothing
+  /// to announce and no badge is built at all. See [SelfHostBadgeStyle].
+  SelfHostBadgeStyle get selfHostBadge => _selfHostBadge;
 
   /// Which control the chat list uses to filter rooms. Defaults to
   /// [FilterStyle.chips] — the filters are worth a permanent row, and a control
@@ -315,6 +322,9 @@ class SettingsStore extends ChangeNotifier {
       _scheduledIndicator = ScheduledIndicator.parse(
         await _storage.read(key: _kScheduledIndicator),
       );
+      _selfHostBadge = SelfHostBadgeStyle.parse(
+        await _storage.read(key: _kSelfHostBadge),
+      );
     } catch (_) {
       /* secure storage unavailable in test harness */
     }
@@ -371,6 +381,13 @@ class SettingsStore extends ChangeNotifier {
     _scheduledIndicator = v;
     notifyListeners();
     await _storage.write(key: _kScheduledIndicator, value: v.name);
+  }
+
+  Future<void> setSelfHostBadge(SelfHostBadgeStyle v) async {
+    if (_selfHostBadge == v) return;
+    _selfHostBadge = v;
+    notifyListeners();
+    await _storage.write(key: _kSelfHostBadge, value: v.name);
   }
 
   Future<void> setMotionLevel(MotionLevel? m) async {
@@ -703,6 +720,31 @@ class SettingsStore extends ChangeNotifier {
     );
     LauncherIconService.applyFromSettings(active);
   }
+}
+
+/// How the app marks itself while it is pointed at a self-hosted server.
+///
+/// Deliberately not an on/off. Which server holds your messages is the single
+/// most consequential fact about an install; it is invisible from every other
+/// screen, and a handset someone else has quietly repointed looks exactly like
+/// one nobody has touched. So the mark is permanent, and the only choice on
+/// offer is how loud it is.
+///
+/// * `ribbon` (default) — a diagonal band across the top-right corner, in the
+///   place Flutter's own debug banner occupies. Impossible to mistake for app
+///   chrome and impossible to stop noticing, which is the whole point.
+/// * `pill` — a small chip in the same corner, carrying the host name. Quieter,
+///   says more, and reads closer to ordinary UI.
+enum SelfHostBadgeStyle {
+  ribbon,
+  pill;
+
+  static final Map<String, SelfHostBadgeStyle> _byName = values.asNameMap();
+
+  /// Resolves a persisted name, falling back to [ribbon]. Derived from [values]
+  /// for the reason spelled out on [HomeSection.parse].
+  static SelfHostBadgeStyle parse(String? s) =>
+      _byName[s] ?? SelfHostBadgeStyle.ribbon;
 }
 
 enum RoomLayout { list, grid }

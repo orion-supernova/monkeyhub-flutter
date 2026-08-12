@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
+import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
@@ -24,6 +25,7 @@ import '../widgets/app_brand_mark.dart' show canonicalLogoId;
 import '../widgets/count_badge.dart';
 import '../widgets/detail_link_row.dart';
 import '../widgets/monkey_collection.dart';
+import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/recovery_banner.dart';
 import '../widgets/user_avatar.dart';
 import 'bubble_style_screen.dart';
@@ -41,6 +43,7 @@ import 'navigation/tab_reselect.dart';
 import 'profile_screen.dart';
 import 'report_problem_screen.dart';
 import 'room_layout_screen.dart';
+import 'server_screen.dart';
 import 'theme_screen.dart';
 import 'video_quality_screen.dart';
 
@@ -676,6 +679,22 @@ class _SettingsScreenState extends State<SettingsScreen>
                 onTap: () => LinkOpener.open(context, kEulaUrl),
               ),
 
+              // Last, and in a section of its own. Which server holds the
+              // account is not a preference — changing it signs this device out
+              // and starts over — so it sits below everything that is one,
+              // where nobody arrives at it by scrolling.
+              //
+              // Hidden from children entirely: a supervised device is pinned to
+              // a family that exists on ONE deployment, and it cannot sign
+              // itself out to leave (see `ServerSwitch`). A row that would
+              // refuse is worse than no row.
+              if (!widget.auth.isChild) ...[
+                const SizedBox(height: 28),
+                _SectionHeader(label: l10n.settingsScreenSectionAdvanced),
+                const SizedBox(height: 12),
+                _ServerRow(selected: _isOpen('server')),
+              ],
+
               const SizedBox(height: 36),
               _VersionStamp(),
             ],
@@ -769,6 +788,80 @@ class _DisclosureRow extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The way into [ServerScreen], showing which deployment is live.
+///
+/// Its own widget rather than a [_DisclosureRow] for one reason: it has to
+/// rebuild when [ServerStore] changes, and everything else on this screen is
+/// driven off [SettingsStore]. It borrows the disclosure row's exact geometry
+/// so it still reads as one of the list.
+class _ServerRow extends StatelessWidget {
+  const _ServerRow({required this.selected});
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: ServerStore.instance,
+      builder: (context, _) {
+        final theme = ThemeScope.of(context);
+        final l10n = AppLocalizations.of(context);
+        final store = ServerStore.instance;
+        final custom = store.isCustom;
+        return GestureDetector(
+          onTap: () => openSettingsDetail(
+            context,
+            key: 'server',
+            builder: (_) => const ServerScreen(),
+          ),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: selected
+                  ? theme.accent.withValues(alpha: 0.14)
+                  : theme.surface,
+              border: Border.all(
+                color: selected || custom
+                    ? theme.accent.withValues(alpha: 0.4)
+                    : theme.divider,
+              ),
+              borderRadius: BorderRadius.circular(theme.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.dns_outlined,
+                  size: 16,
+                  color: custom ? theme.accent : theme.inkSoft,
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 110,
+                  child: Text(l10n.settingsScreenRowServer, style: theme.label),
+                ),
+                Expanded(
+                  child: Text(
+                    custom
+                        ? shortHost(store.host)
+                        : l10n.serverValueDefault,
+                    style: theme.body.copyWith(
+                      color: custom ? theme.accent : theme.inkSoft,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
