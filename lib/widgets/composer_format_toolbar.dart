@@ -7,12 +7,19 @@ import '../theme/theme_scope.dart';
 import 'link_input_sheet.dart';
 import 'mention_text_controller.dart';
 
-/// The composer's `contextMenuBuilder`: the platform's own selection toolbar
-/// (copy/cut/paste/select-all, untouched) plus one FORMAT item that swaps the
-/// toolbar's content for a row of style chips — Telegram's arrangement,
-/// chosen for the same reason Telegram chose it: seven formatting actions
-/// crammed beside the native items would overflow into the "…" menu on every
-/// phone, which buries the feature it exists to surface.
+/// The composer's `contextMenuBuilder`: one FORMAT item that swaps the
+/// toolbar's content for a row of style chips, ahead of the platform's own
+/// selection toolbar (copy/cut/paste/select-all, untouched and in the
+/// platform's own order) — Telegram's arrangement, chosen for the same reason
+/// Telegram chose it: seven formatting actions crammed beside the native items
+/// would overflow into the "…" menu on every phone, which buries the feature
+/// it exists to surface.
+///
+/// FORMAT comes FIRST for the same reason it isn't a chip row: the Cupertino
+/// toolbar paginates behind a chevron and the Material one behind a "⋮", and
+/// on a narrow phone with a selection live (Cut/Copy/Paste/Select All/Look
+/// Up/Search Web/Share) a trailing item is exactly the one that gets pushed
+/// off page one. Index 0 is the only position that can't be paginated away.
 ///
 /// A plain function rather than a widget so `chat_composer.dart`'s two
 /// deliberately-duplicated variants can each pass it inline. Degrades to the
@@ -85,12 +92,12 @@ class _ComposerContextMenuState extends State<_ComposerContextMenu> {
       return AdaptiveTextSelectionToolbar.buttonItems(
         anchors: state.contextMenuAnchors,
         buttonItems: [
-          ...state.contextMenuButtonItems,
           if (hasSelection)
             ContextMenuButtonItem(
               label: l10n.formatToolbarFormatLabel,
               onPressed: () => setState(() => _formatMode = true),
             ),
+          ...state.contextMenuButtonItems,
         ],
       );
     }

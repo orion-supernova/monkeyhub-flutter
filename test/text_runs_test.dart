@@ -252,4 +252,62 @@ void main() {
       expect(boldRun.spoiler, isTrue);
     });
   });
+
+  /// One entry per CHIP the underlay draws, not per atomic run. The merge
+  /// matters more here than for veils: a chip has a visible border, so two
+  /// entries where there should be one puts an edge through the middle of a
+  /// word.
+  group('code chips', () {
+    test('adjacent code entities merge into one chip', () {
+      const text = 'run flutter test now';
+      final f = fold(text, entities: [
+        fmt(FormattingType.code, 4, 11),
+        fmt(FormattingType.code, 11, 16),
+      ]);
+      expect(f.codeRanges, hasLength(1));
+      expect(f.codeRanges.single, (start: 4, end: 16));
+    });
+
+    test('separated code entities stay separate chips', () {
+      const text = 'aa bb cc dd ee';
+      final f = fold(text, entities: [
+        fmt(FormattingType.code, 0, 2),
+        fmt(FormattingType.code, 6, 8),
+      ]);
+      expect(f.codeRanges, hasLength(2));
+    });
+
+    test('a code run split by a bold boundary is still one chip', () {
+      // The cuts split at every boundary, so this yields two atomic runs. If
+      // the merge missed them the chip would be drawn twice, with its border
+      // running down the seam.
+      const text = 'const kValue = 1';
+      final f = fold(text, entities: [
+        fmt(FormattingType.code, 0, 16),
+        fmt(FormattingType.bold, 6, 12),
+      ]);
+      expect(
+        f.runs.where((r) => r.styles.contains(FormattingType.code)).length,
+        greaterThan(1),
+        reason: 'precondition: the bold boundary must actually split the run',
+      );
+      expect(f.codeRanges, hasLength(1));
+      expect(f.codeRanges.single, (start: 0, end: 16));
+    });
+
+    test('a code run split by a spoiler boundary is still one chip', () {
+      const text = 'secret token here';
+      final f = fold(text, entities: [
+        fmt(FormattingType.code, 0, 17),
+        fmt(FormattingType.spoiler, 7, 12),
+      ]);
+      expect(f.codeRanges, hasLength(1));
+      expect(f.codeRanges.single, (start: 0, end: 17));
+    });
+
+    test('no code entities means no chips', () {
+      final f = fold('plain words', entities: [fmt(FormattingType.bold, 0, 5)]);
+      expect(f.codeRanges, isEmpty);
+    });
+  });
 }

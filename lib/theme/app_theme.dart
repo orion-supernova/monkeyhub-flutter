@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -182,6 +184,106 @@ extension TooltipSurface on AppTheme {
       );
 }
 
+/// WCAG relative-luminance contrast between two colours, both assumed opaque.
+///
+/// Exposed to tests through [debugFormattingContrast] so the contrast floors
+/// this file promises are asserted rather than asserted-about.
+double _contrast(Color a, Color b) {
+  final la = a.computeLuminance();
+  final lb = b.computeLuminance();
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+}
+
+/// The smallest blend toward [pole] that clears [target] contrast against
+/// [base], or null if [maxAlpha] never gets there.
+double? _alphaFor(Color base, Color pole, double target, double maxAlpha) {
+  if (_contrast(Color.lerp(base, pole, maxAlpha)!, base) < target) return null;
+  var lo = 0.0;
+  var hi = maxAlpha;
+  // Seven halvings resolve alpha finer than an 8-bit channel can express, so
+  // the answer is exact for every colour this can be handed.
+  for (var i = 0; i < 7; i++) {
+    final mid = (lo + hi) / 2;
+    if (_contrast(Color.lerp(base, pole, mid)!, base) >= target) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  return hi;
+}
+
+const _black = Color(0xFF000000);
+const _white = Color(0xFFFFFFFF);
+
+/// Memo for [_nudgeAlong]. A transcript of thirty bubbles asks for the same
+/// four colours thirty times; the bisection runs once per distinct request.
+final _nudgeCache = <(Color, Color, double, double), Color>{};
+
+/// Which way [base] has more room — the side that reaches [target] contrast
+/// with the smaller blend.
+///
+/// Chosen by cost, NOT by a luminance threshold, and that is the whole point.
+/// The obvious "lighten if dark, darken if light" rule breaks on the three
+/// accents that sit just under L=0.5 — Forest `#9BBF7C` (0.457), Bio-Organic
+/// `#1FBBD4` (0.406), Deep Ocean `#23BABB` (0.391). A threshold sends all
+/// three toward white, where they have almost no headroom left: measured
+/// 1.15:1 fill and 1.31:1 border, i.e. the same invisible chip this replaced,
+/// on three themes instead of thirteen.
+Color _cheaperPole(Color base, {required double target, required double maxAlpha}) {
+  final down = _alphaFor(base, _black, target, maxAlpha);
+  final up = _alphaFor(base, _white, target, maxAlpha);
+  if (down != null && (up == null || down <= up)) return _black;
+  if (up != null) return _white;
+  return _contrast(Color.lerp(base, _black, maxAlpha)!, base) >=
+          _contrast(Color.lerp(base, _white, maxAlpha)!, base)
+      ? _black
+      : _white;
+}
+
+/// [base] blended toward [pole] just far enough to clear [target] contrast,
+/// capped at [maxAlpha].
+///
+/// Falls back to the opposite pole only when [pole] genuinely cannot get
+/// there — an inconsistent edge beats an invisible one, but barely, so the
+/// caller is expected to pick the pole once and reuse it (see [codeBorder]).
+Color _nudgeAlong(
+  Color base,
+  Color pole, {
+  required double target,
+  required double maxAlpha,
+}) {
+  final key = (base, pole, target, maxAlpha);
+  final hit = _nudgeCache[key];
+  if (hit != null) return hit;
+
+  final along = _alphaFor(base, pole, target, maxAlpha);
+  final other = pole == _black ? _white : _black;
+  final Color result;
+  if (along != null) {
+    result = Color.lerp(base, pole, along)!;
+  } else {
+    final back = _alphaFor(base, other, target, maxAlpha);
+    if (back != null) {
+      result = Color.lerp(base, other, back)!;
+    } else {
+      // Neither side clears the target inside the budget — spend all of it on
+      // whichever gets furthest. Returning [base] unchanged would silently
+      // reinstate an invisible chip, the bug this exists to prevent.
+      final p = Color.lerp(base, pole, maxAlpha)!;
+      final o = Color.lerp(base, other, maxAlpha)!;
+      result = _contrast(p, base) >= _contrast(o, base) ? p : o;
+    }
+  }
+  _nudgeCache[key] = result;
+  return result;
+}
+
+
+/// Test seam for the contrast floors in [FormattingSurface].
+@visibleForTesting
+double debugFormattingContrast(Color a, Color b) => _contrast(a, b);
+
 /// The inks and surfaces message-body formatting draws with — inline code,
 /// link entities, the spoiler veil.
 ///
@@ -205,14 +307,72 @@ extension FormattingSurface on AppTheme {
       ? accentInk
       : (accent.computeLuminance() < 0.2 ? accent : ink);
 
-  /// The wash behind an inline-code run — a chip painted by
-  /// `TextStyle.background` (never a WidgetSpan; see `_LinkAwareBubble`'s
-  /// self-mention note for why placeholders are banned in the paragraph).
-  /// Ink-derived on both fills so it reads on every one of the themes' bubble
-  /// colours without any theme having to say so.
-  Color codeBackground({required bool isMine}) => isMine
-      ? accentInk.withValues(alpha: 0.14)
-      : ink.withValues(alpha: 0.08);
+  /// The opaque colour a message bubble actually ends up painted in.
+  ///
+  /// Every derivation below measures against this rather than against
+  /// [surfaceRaised] / [accent], because two themes fill their bubbles with
+  /// `accent.withValues(alpha: 0.88)` and the ~12% of page background showing
+  /// through is enough to move a contrast ratio across a floor.
+  Color bubbleFill({required bool isMine, bool ephemeral = false}) {
+    final d = messageBubbleDecoration(isMine: isMine, ephemeral: ephemeral);
+    final c = d.color;
+    if (c != null) return Color.alphaBlend(c, background);
+    // No theme ships a gradient bubble today; this keeps the first one that
+    // does out of the `isMine ? accent : surfaceRaised` fallback, which would
+    // measure a colour the user never sees.
+    final g = d.gradient;
+    if (g != null && g.colors.isNotEmpty) {
+      return Color.alphaBlend(
+        Color.lerp(g.colors.first, g.colors.last, 0.5)!,
+        background,
+      );
+    }
+    return isMine ? accent : surfaceRaised;
+  }
+
+  /// The fill of an inline-code chip.
+  ///
+  /// Derived from [bubbleFill] rather than from ink, and by measured contrast
+  /// rather than by a fixed alpha. The previous rule — `ink @ 8%` incoming,
+  /// `accentInk @ 14%` outgoing — was white-on-dark on every dark theme, the
+  /// one direction with no headroom: it composited to 1.27:1 and 1.21:1 on
+  /// Midnight, so the only thing distinguishing a code run from prose was the
+  /// monospace face. Note that the larger alpha produced the *worse* ratio,
+  /// which is why nothing here is expressed as an alpha any more.
+  ///
+  /// Painted as a rounded, padded chip by `InlineCodeUnderlay`, NOT by
+  /// `TextStyle.background`. The standing ban on placeholders in the message
+  /// paragraph is intact and is exactly why the chip is an underlay: a
+  /// WidgetSpan pill would add a second placeholder beside the stamp spacer,
+  /// whose sizing is load-bearing.
+  Color codeBackground({required bool isMine}) {
+    final bubble = bubbleFill(isMine: isMine);
+    return _nudgeAlong(bubble, _codePole(bubble),
+        target: 1.55, maxAlpha: 0.34);
+  }
+
+  /// The hairline around an inline-code chip.
+  ///
+  /// A fill alone cannot carry a chip on a dark theme: at Midnight's
+  /// luminance the entire range between the bubble and pure black spans only
+  /// 1.32:1, so the *edge* is what the eye actually reads. Held well clear of
+  /// the fill so the two never collapse into one flat patch.
+  ///
+  /// Travels along the SAME pole as [codeBackground], not down whichever side
+  /// is individually cheapest for its own target. Deciding per-target lets the
+  /// two disagree — Vault Noir's red bubble took a darker fill and a *lighter*
+  /// border, painting a pale outline around a dark well, which reads as two
+  /// materials rather than one chip.
+  Color codeBorder({required bool isMine}) {
+    final bubble = bubbleFill(isMine: isMine);
+    return _nudgeAlong(bubble, _codePole(bubble),
+        target: 2.60, maxAlpha: 0.62);
+  }
+
+  /// The one direction a code chip's fill and border both travel, fixed by
+  /// the fill's (cheaper, easier) target so the pair can never split.
+  Color _codePole(Color bubble) =>
+      _cheaperPole(bubble, target: 1.55, maxAlpha: 0.34);
 
   /// The monospace face for inline code, over whatever [base] the bubble was
   /// already using.
@@ -231,11 +391,37 @@ extension FormattingSurface on AppTheme {
         letterSpacing: 0,
       );
 
-  /// Base colour of the spoiler veil over this bubble. The veil paints it
-  /// near-opaque (the opacity IS the privacy guarantee — dust is garnish) and
-  /// derives its particle alphas from the same colour, so the whole effect
-  /// stays one ink. The text's own ink, deliberately: a veil in the ink the
-  /// hidden words would have used reads as "text, redacted" on every theme,
-  /// which no bubble-coloured bar manages.
-  Color spoilerCover({required bool isMine}) => isMine ? accentInk : ink;
+  /// The plate the spoiler veil paints, opaque, under its dust.
+  ///
+  /// This used to be the text's own ink, on the argument that "a veil in the
+  /// ink the hidden words would have used reads as 'text, redacted' on every
+  /// theme, which no bubble-coloured bar manages". That argument is overturned
+  /// by looking at it: [ink] is `#FFFFFF` on Midnight, so a spoiler was a
+  /// glowing white slab in a dark transcript — the single brightest object on
+  /// the screen, drawing the eye to the one thing the sender asked to hide.
+  ///
+  /// It is now EXACTLY [bubbleFill], with [spoilerDust] carrying the whole
+  /// read. Exactly, not nearly: a plate even 1.12:1 off its bubble still reads
+  /// as a rectangle with corners sitting inside the message, and a spoiler
+  /// should look like a stretch of bubble where words should be — not like a
+  /// box drawn over them. Matching the fill also means the plate's shape,
+  /// radius and edges are all unobservable, which is why the veil can stay a
+  /// plain rounded rect and still have nothing visible to give it away.
+  ///
+  /// Do not reinstate a contrasting plate, and do not reinstate an
+  /// ink-coloured one without looking at it on Midnight first.
+  ///
+  /// [onMedia] is for captions, where the veil sits on a photograph instead of
+  /// a bubble: nothing can match that ground, so a fixed neutral is the honest
+  /// answer.
+  Color spoilerCover({required bool isMine, bool onMedia = false}) =>
+      onMedia ? const Color(0xFF16181C) : bubbleFill(isMine: isMine);
+
+  /// The ink of the spoiler's dust motes — the layer that actually conceals.
+  ///
+  /// The text's own ink, so the field reads as the hidden words ground to
+  /// powder. Held well clear of [spoilerCover] (>3:1) so sub-pixel motes still
+  /// register against the plate.
+  Color spoilerDust({required bool isMine, bool onMedia = false}) =>
+      onMedia ? const Color(0xFFFFFFFF) : (isMine ? accentInk : ink);
 }

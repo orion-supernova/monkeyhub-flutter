@@ -20,6 +20,7 @@ import '../data/chat_repository.dart';
 import '../data/mention_session.dart';
 import '../data/room_content_selection.dart';
 import '../data/settings_store.dart';
+import '../data/spoiler_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -667,6 +668,11 @@ class _RoomScreenState extends State<RoomScreen>
         gLastWindowClass != WindowClass.expanded) {
       UiSelectionStore.instance.selectRoom(null);
     }
+    // Spoilers close when you leave. Coming back to a conversation should
+    // show it the way anyone opening it fresh would see it, not carry your
+    // last visit's peeks — and a spoiler that only stays open for a few
+    // seconds in-room would be inconsistent if it survived a whole exit.
+    SpoilerStore.instance.clear();
     _ticker.cancel();
     _captureController.dispose();
     // Before the controller: the session is a listener on it.

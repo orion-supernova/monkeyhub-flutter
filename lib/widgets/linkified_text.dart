@@ -1,10 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
-import '../data/spoiler_store.dart';
 import '../models/mention.dart';
 import '../models/message_formatting.dart';
 import '../services/link_preview_service.dart';
+import 'code_chip_underlay.dart';
 import 'spoiler_overlay.dart';
 import 'text_runs.dart';
 
@@ -41,9 +41,11 @@ class LinkifiedText extends StatefulWidget {
     this.formatting = const [],
     this.codeStyle,
     this.codeBackground,
+    this.codeBorder,
     this.onLinkEntityTap,
     this.spoilerContextId,
     this.spoilerCover,
+    this.spoilerDust,
   });
 
   /// The ORIGINAL message content. Never pre-stripped or pre-trimmed by the
@@ -100,11 +102,24 @@ class LinkifiedText extends StatefulWidget {
   /// (a caller that has no theme in reach, like a bare test).
   final TextStyle? codeStyle;
 
-  /// The chip wash behind an inline-code run, painted with
-  /// `TextStyle.background` — a paint, not a WidgetSpan, per the bubble's
-  /// standing rule that the paragraph carries exactly one placeholder (the
-  /// stamp spacer) whose sizing is load-bearing.
+  /// Fill of the chip behind an inline-code run (see
+  /// `FormattingSurface.codeBackground`). Null paints no chip at all — a
+  /// caller with no theme in reach, like a bare test.
+  ///
+  /// Painted by `InlineCodeUnderlay`, a sibling BENEATH the paragraph, rather
+  /// than by a WidgetSpan pill. The bubble's standing rule that the paragraph
+  /// carries exactly one placeholder — the stamp spacer, whose sizing is
+  /// load-bearing — is intact and is the reason for the underlay: nothing is
+  /// added to the paragraph at all. It used to be a `TextStyle.background`
+  /// paint, which honoured the same rule but could not do padding, a corner
+  /// radius or an edge, and so painted a flush smear the height of the line
+  /// box.
   final Color? codeBackground;
+
+  /// Hairline around the inline-code chip (see
+  /// `FormattingSurface.codeBorder`). Null draws fill only. On dark themes
+  /// this edge, not the fill, is what makes the chip readable.
+  final Color? codeBorder;
 
   /// Tap handler for link ENTITIES — text whose visible words differ from
   /// their destination. Separate from [onLinkTap] so the bubble can route
@@ -119,10 +134,16 @@ class LinkifiedText extends StatefulWidget {
   /// wherever a message id exists.
   final String? spoilerContextId;
 
-  /// Veil ink (see `FormattingSurface.spoilerCover`). Falls back to the body
-  /// style's own colour, so a spoiler is never accidentally legible just
-  /// because a caller forgot the theme plumbing.
+  /// The opaque plate under the spoiler's dust (see
+  /// `FormattingSurface.spoilerCover`). Falls back to the body style's own
+  /// colour, so a spoiler is never accidentally legible just because a caller
+  /// forgot the theme plumbing.
   final Color? spoilerCover;
+
+  /// Ink of the spoiler's dust motes (see `FormattingSurface.spoilerDust`).
+  /// Falls back to [spoilerCover]'s own resolution, which yields a plate with
+  /// invisible dust — concealment intact, effect absent.
+  final Color? spoilerDust;
 
   @override
   State<LinkifiedText> createState() => _LinkifiedTextState();
@@ -228,35 +249,58 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     }
     if (widget.trailing != null) spans.add(widget.trailing!);
 
-    // A veil goes up whenever unrevealed spoiler runs exist. The paragraph
-    // still renders the real text underneath — layout must be true so the
-    // bubble is the right size and the wipe uncovers words that were always
-    // exactly there; the overlay's near-opaque fill is the concealment.
+    // The overlay mounts whenever spoiler runs exist, revealed or not, and
+    // owns the whole veiled/open cycle itself — because a revealed spoiler
+    // heals back to dust after a hold, and a widget that had been unmounted
+    // on reveal would have nothing left to do the healing. It paints nothing
+    // and runs no ticker while the words are simply readable.
+    //
+    // The paragraph renders the real text underneath either way: layout must
+    // be true so the bubble is the right size and the reveal uncovers words
+    // that were always exactly there.
     final contextId = widget.spoilerContextId;
-    final veiled = fold.spoilerRanges.isNotEmpty &&
-        !(contextId != null && SpoilerStore.instance.isRevealed(contextId));
+    final veiled = fold.spoilerRanges.isNotEmpty;
+    final chipped =
+        widget.codeBackground != null && fold.codeRanges.isNotEmpty;
 
+    // The key is what both overlays measure against, so it goes on only when
+    // one of them is mounted. Kept conditional rather than always-on because
+    // flipping it null↔non-null remounts the Text element: acceptable once, at
+    // reveal, and pure waste on every plain paragraph in a long transcript.
     final paragraph = Text.rich(
       TextSpan(children: spans, style: widget.style),
-      key: veiled ? _paragraphKey : null,
+      key: veiled || chipped ? _paragraphKey : null,
     );
-    if (!veiled) return paragraph;
+    if (!veiled && !chipped) return paragraph;
 
+    // The paragraph stays the only non-positioned child, so the Stack keeps
+    // hugging the text exactly as it did before either overlay existed.
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        paragraph,
-        Positioned.fill(
-          child: SpoilerOverlay(
-            paragraphKey: _paragraphKey,
-            ranges: fold.spoilerRanges,
-            contextId: contextId ?? '',
-            cover: widget.spoilerCover ?? widget.style.color ?? Colors.black,
-            onRevealed: () {
-              if (mounted) setState(() {});
-            },
+        if (chipped)
+          Positioned.fill(
+            child: InlineCodeUnderlay(
+              paragraphKey: _paragraphKey,
+              ranges: fold.codeRanges,
+              fill: widget.codeBackground!,
+              border: widget.codeBorder,
+            ),
           ),
-        ),
+        paragraph,
+        if (veiled)
+          Positioned.fill(
+            child: SpoilerOverlay(
+              paragraphKey: _paragraphKey,
+              ranges: fold.spoilerRanges,
+              contextId: contextId ?? '',
+              cover: widget.spoilerCover ?? widget.style.color ?? Colors.black,
+              dust: widget.spoilerDust ??
+                  widget.spoilerCover ??
+                  widget.style.color ??
+                  Colors.black,
+            ),
+          ),
       ],
     );
   }
@@ -282,11 +326,9 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     if (run.styles.contains(FormattingType.code)) {
       final code = widget.codeStyle;
       if (code != null) style = style?.merge(code) ?? code;
-      final wash = widget.codeBackground;
-      if (wash != null) {
-        style = (style ?? const TextStyle())
-            .copyWith(background: Paint()..color = wash);
-      }
+      // No `background:` here. The chip is drawn by InlineCodeUnderlay, and a
+      // paint drawn as well would put square corners out past the rounded
+      // ones.
     }
     if (run.styles.contains(FormattingType.bold)) {
       style = (style ?? const TextStyle()).copyWith(fontWeight: FontWeight.w700);
