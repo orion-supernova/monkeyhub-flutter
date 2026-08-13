@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "自分のサーバー",
   "serverRoleSelfHostedBody": "この端末はご自分のサーバーを指しています。設定 › 詳細設定 › サーバー で変更できます。",
   "serverValueHomeserver": "当面はホームサーバー",
-  "serverChoiceCloudSubHomeserver": "しばらくのあいだホームサーバーから提供されています。"
+  "serverChoiceCloudSubHomeserver": "しばらくのあいだホームサーバーから提供されています。",
+  "serverDirectiveChangedToast": "サーバーが切り替わりました。再接続しています…"
 }

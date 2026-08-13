@@ -11284,6 +11284,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Being served from the homeserver for a while.'**
   String get serverChoiceCloudSubHomeserver;
+
+  /// Snackbar shown when the operator moves traffic between deployments while the app is open. Says the app is doing it, not that the user must — the move is automatic and keeps them signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Your server changed. Reconnecting…'**
+  String get serverDirectiveChangedToast;
 }
 
 class _AppLocalizationsDelegate

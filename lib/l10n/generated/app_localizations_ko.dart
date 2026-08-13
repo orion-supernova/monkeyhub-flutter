@@ -6339,4 +6339,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => '당분간 홈서버에서 제공되고 있습니다.';
+
+  @override
+  String get serverDirectiveChangedToast => '서버가 바뀌었습니다. 다시 연결하는 중…';
 }

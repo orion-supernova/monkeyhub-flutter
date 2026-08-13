@@ -1,4 +1,4 @@
-import { query } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 /// Which backend clients should be talking to right now.
@@ -7,33 +7,23 @@ import { v } from "convex/values";
 ///
 /// This app runs on two interchangeable deployments — the VPS and a home
 /// server — holding replicated data. Moving traffic between them used to mean
-/// shipping a build, because the URL was baked into `env.local`. This is the
-/// one thing a client can ask BEFORE it opens a socket, so the answer can
-/// change without anybody installing anything.
+/// shipping a build, because the URL was baked into `env.local`.
 ///
 /// Deliberately public and unauthenticated, for the same reason
-/// `releases:latest` is: the client runs this on every cold start, before it
-/// has restored a session or built a WebSocket. Someone whose deployment moved
-/// is exactly who cannot authenticate to ask where it went. It exposes two
+/// `releases:latest` is: a client runs this on every cold start, before it has
+/// restored a session or built a WebSocket. Someone whose deployment moved is
+/// exactly who cannot authenticate to ask where it went. It exposes two
 /// hostnames the app already ships in its own binary, and nothing else.
 ///
-/// ───────── how the admin flips it ─────────
+/// ───────── it is REACTIVE, and that is the point ─────────
 ///
-/// From deployment environment variables — no table, no migration, no code
-/// change:
-///
-///   npx convex env set SERVE_FROM homeserver     # move clients over
-///   npx convex env set SERVE_FROM primary        # move them back
-///
-/// Set them on BOTH deployments and keep them in step. A client that has
-/// already followed to the home server asks the home server on its next
-/// launch, so the home server saying `primary` is what brings everyone back —
-/// and a home server still saying `homeserver` after the VPS says `primary`
-/// would strand exactly the clients that listened to you.
-///
-/// `PRIMARY_URL` / `HOMESERVER_URL` are optional overrides for the addresses;
-/// omit them and the client falls back to the pair compiled into it. They
-/// exist so a host can be renamed without a client release.
+/// Clients subscribe to this query over their live socket, so writing the row
+/// moves everyone within a second — no relaunch, no polling. That only works
+/// because the answer comes out of the database: a Convex query invalidates on
+/// the reads it made, and the `process.env` fallback below recomputes for
+/// nobody. Prefer `serverDirectory:set` over `convex env set` for exactly that
+/// reason; the env vars remain as a seed for a deployment that has never had
+/// the row written.
 export const current = query({
   args: {},
   returns: v.object({
@@ -42,29 +32,96 @@ export const current = query({
     homeserverUrl: v.union(v.string(), v.null()),
     note: v.union(v.string(), v.null()),
   }),
-  handler: async () => {
-    // Anything other than the exact string `homeserver` means primary. A typo
-    // in an env var must not be able to scatter clients onto a backend nobody
-    // meant to serve from — the failure direction is "stay where you are".
+  handler: async (ctx) => {
+    const row = await ctx.db
+      .query("serverDirectory")
+      .withIndex("by_key", (q) => q.eq("key", "current"))
+      .unique();
+
+    if (row) {
+      return {
+        serve: row.serve,
+        primaryUrl: row.primaryUrl ?? null,
+        homeserverUrl: row.homeserverUrl ?? null,
+        note: row.note ?? null,
+      };
+    }
+
+    // No row yet — fall back to the environment, so a deployment that only ever
+    // had `SERVE_FROM` set still answers correctly. Anything other than the
+    // exact string `homeserver` means primary: a typo in an env var must not be
+    // able to scatter clients onto a backend nobody meant to serve from, and
+    // the safe failure direction is always "stay where you are".
     const serve =
       (process.env.SERVE_FROM ?? "").trim().toLowerCase() === "homeserver"
         ? ("homeserver" as const)
         : ("primary" as const);
-
     return {
       serve,
       primaryUrl: trimmedOrNull(process.env.PRIMARY_URL),
       homeserverUrl: trimmedOrNull(process.env.HOMESERVER_URL),
-      // Shown verbatim in the app's info sheet, so an admin can say why —
-      // "migrating the VPS", "testing", "back by Sunday". Capped here rather
-      // than in the client because this is the end that knows it is a note and
-      // not a payload.
       note: trimmedOrNull(process.env.SERVE_NOTE)?.slice(0, 200) ?? null,
     };
+  },
+});
+
+/// Move every client, live.
+///
+///   npx convex run serverDirectory:set '{"serve":"homeserver","note":"migrating the VPS"}'
+///   npx convex run serverDirectory:set '{"serve":"primary"}'
+///
+/// Run it on BOTH deployments and keep them in step. Clients ask the primary
+/// first, so the VPS alone is enough to bring everyone home — but a client
+/// already on the home server with the VPS unreachable falls back to asking the
+/// home server, and a home server still saying `homeserver` would strand
+/// exactly the clients that listened to you.
+///
+/// `internalMutation`, not `mutation`: `npx convex run` carries admin
+/// credentials and reaches internal functions fine, while leaving no public
+/// write surface. A public version of this would let anyone redirect every
+/// client of this app to a server of their choosing — which is as bad as it
+/// sounds, and is why the read side is the only thing exposed.
+///
+/// Omitted optional args CLEAR the field rather than leaving it alone, unlike
+/// `releases:publish`. The opposite of what that function wants: a note reading
+/// "back by Sunday" must not outlive the migration it described, and a URL
+/// override must not survive the rename it was written for.
+export const set = internalMutation({
+  args: {
+    serve: v.union(v.literal("primary"), v.literal("homeserver")),
+    primaryUrl: v.optional(v.string()),
+    homeserverUrl: v.optional(v.string()),
+    note: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const next = {
+      key: "current" as const,
+      serve: args.serve,
+      primaryUrl: trimmedOrUndefined(args.primaryUrl),
+      homeserverUrl: trimmedOrUndefined(args.homeserverUrl),
+      note: trimmedOrUndefined(args.note)?.slice(0, 200),
+      updatedAt: Date.now(),
+    };
+    const row = await ctx.db
+      .query("serverDirectory")
+      .withIndex("by_key", (q) => q.eq("key", "current"))
+      .unique();
+    if (row) {
+      await ctx.db.replace(row._id, next);
+    } else {
+      await ctx.db.insert("serverDirectory", next);
+    }
+    return null;
   },
 });
 
 function trimmedOrNull(value: string | undefined): string | null {
   const trimmed = (value ?? "").trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function trimmedOrUndefined(value: string | undefined): string | undefined {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }

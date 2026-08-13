@@ -145,6 +145,48 @@ void main() {
     });
   });
 
+  group('keeping up with the store', () {
+    testWidgets('appears without the parent being rebuilt', (tester) async {
+      // The bug this exists for: the app mounts `const SelfHostBar()`, and a
+      // const widget is canonicalised — Flutter's identical(old, new)
+      // short-circuit skips the element update, so a build method that read the
+      // store only when its parent rebuilt never ran again. The bar stayed
+      // frozen at whatever it rendered first and took two relaunches to catch
+      // up. Nothing here rebuilds the tree; only the store changes.
+      await mount(tester, scene());
+      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+
+      ServerStore.instance.setForTest(homeserver);
+      await tester.pump();
+      expect(
+        tester.getSize(find.byType(SelfHostBar)).height,
+        _statusBar + SelfHostBar.contentHeight,
+      );
+      expect(find.text('Serving from homeserver'), findsOneWidget);
+    });
+
+    testWidgets('goes away the same way', (tester) async {
+      ServerStore.instance.setForTest(homeserver);
+      await mount(tester, scene());
+      expect(find.text('Serving from homeserver'), findsOneWidget);
+
+      ServerStore.instance.setForTest(null);
+      await tester.pump();
+      expect(tester.getSize(find.byType(SelfHostBar)), Size.zero);
+    });
+
+    testWidgets('re-labels when the role changes under it', (tester) async {
+      ServerStore.instance.setForTest(homeserver);
+      await mount(tester, scene());
+      expect(find.text('Serving from homeserver'), findsOneWidget);
+
+      ServerStore.instance.setForTest(selfHosted);
+      await tester.pump();
+      expect(find.text('Serving from homeserver'), findsNothing);
+      expect(find.text('chat.example.com'), findsOneWidget);
+    });
+  });
+
   group('the bar takes its own height', () {
     testWidgets('covers the status bar and adds its content height', (
       tester,

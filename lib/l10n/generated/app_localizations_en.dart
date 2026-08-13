@@ -6564,4 +6564,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Being served from the homeserver for a while.';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'Your server changed. Reconnecting…';
 }

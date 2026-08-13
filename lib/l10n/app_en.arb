@@ -7579,5 +7579,9 @@
   "serverChoiceCloudSubHomeserver": "Being served from the homeserver for a while.",
   "@serverChoiceCloudSubHomeserver": {
     "description": "Replaces the default-server choice subtitle while traffic is on the home server. Says the choice has not changed, only where it is being served from."
+  },
+  "serverDirectiveChangedToast": "Your server changed. Reconnecting…",
+  "@serverDirectiveChangedToast": {
+    "description": "Snackbar shown when the operator moves traffic between deployments while the app is open. Says the app is doing it, not that the user must — the move is automatic and keeps them signed in."
   }
 }

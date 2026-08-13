@@ -118,6 +118,26 @@ class SelfHostBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Listens for itself rather than trusting the parent to rebuild it.
+    //
+    // The app mounts this as `const SelfHostBar()`, and a const widget is
+    // canonicalised: every build produces the same instance, so Flutter's
+    // `identical(old, new)` short-circuit skips the element update and this
+    // method never runs again. The layout around it moved on a server change
+    // and the bar itself stayed frozen at whatever it rendered first — which
+    // is a bar that never appears, or one that never leaves, until something
+    // unrelated happens to rebuild it. Two relaunches, in practice.
+    //
+    // An AnimatedBuilder inside a const widget still subscribes, because its
+    // own element is created once and lives on. That is what makes this
+    // immune to how the parent chooses to mount it.
+    return AnimatedBuilder(
+      animation: ServerStore.instance,
+      builder: (context, _) => _build(context),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     if (!consumesTopInset) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     final store = ServerStore.instance;

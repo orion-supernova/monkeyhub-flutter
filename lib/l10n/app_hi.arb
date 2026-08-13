@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "आपका अपना सर्वर",
   "serverRoleSelfHostedBody": "यह डिवाइस आपके अपने सर्वर पर लगा है। इसे सेटिंग्स › उन्नत › सर्वर में बदलें।",
   "serverValueHomeserver": "फ़िलहाल होमसर्वर",
-  "serverChoiceCloudSubHomeserver": "कुछ समय के लिए होमसर्वर से दिया जा रहा है।"
+  "serverChoiceCloudSubHomeserver": "कुछ समय के लिए होमसर्वर से दिया जा रहा है।",
+  "serverDirectiveChangedToast": "आपका सर्वर बदल गया। फिर से जुड़ा जा रहा है…"
 }

@@ -6655,4 +6655,7 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'يُقدَّم من الخادم المنزلي لفترة.';
+
+  @override
+  String get serverDirectiveChangedToast => 'تغيّر خادمك. جارٍ إعادة الاتصال…';
 }

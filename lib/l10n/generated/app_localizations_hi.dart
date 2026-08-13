@@ -6584,4 +6584,8 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'कुछ समय के लिए होमसर्वर से दिया जा रहा है।';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'आपका सर्वर बदल गया। फिर से जुड़ा जा रहा है…';
 }

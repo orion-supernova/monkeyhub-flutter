@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "Seu próprio servidor",
   "serverRoleSelfHostedBody": "Este aparelho aponta para um servidor seu. Mude em Configurações › Avançado › Servidor.",
   "serverValueHomeserver": "Homeserver, por enquanto",
-  "serverChoiceCloudSubHomeserver": "Sendo servido pelo homeserver por um tempo."
+  "serverChoiceCloudSubHomeserver": "Sendo servido pelo homeserver por um tempo.",
+  "serverDirectiveChangedToast": "Seu servidor mudou. Reconectando…"
 }

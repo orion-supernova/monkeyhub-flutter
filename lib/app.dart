@@ -13,6 +13,7 @@ import 'backend/convex_client.dart';
 import 'backend/feed_api.dart';
 import 'backend/group_call_api.dart';
 import 'backend/server_directory.dart';
+import 'backend/server_endpoint.dart';
 import 'backend/server_store.dart';
 import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
@@ -455,6 +456,33 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     await ServerSwitch.instance.follow(target);
   }
 
+  /// The directive changed under a running app.
+  ///
+  /// Says so before doing it. The move itself is a brief reconnect — the two
+  /// deployments are replicated, so nothing is lost and nobody is signed out —
+  /// but it is still the app quietly changing which machine holds the
+  /// conversation somebody is in the middle of, and that is not something to do
+  /// silently. The bar appearing (or going) is the durable half of the answer;
+  /// this is the moment it happens.
+  void _onLiveRedirect(ServerEndpoint target) {
+    if (ServerSwitch.instance.busy) return;
+    _toastServerChange();
+    unawaited(ServerSwitch.instance.follow(target));
+  }
+
+  void _toastServerChange() {
+    final ctx = rootNavigatorKey.currentContext;
+    if (ctx == null) return;
+    final messenger = ScaffoldMessenger.maybeOf(ctx);
+    if (messenger == null) return;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(ctx).serverDirectiveChangedToast),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   /// A new transport exists. Clear whatever boot state was standing in the way
   /// and start watching the new socket.
   ///
@@ -470,6 +498,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       _bootstrapped = true;
     });
     _health.start();
+    // Re-attached, not merely left alone. A follow keeps the query set and
+    // re-binds it, but an `apply` (a self-hosting switch) abandons it — and
+    // either way the answer to "am I allowed to be watching this at all"
+    // changes with the deployment. [ServerDirectory.watch] is idempotent and
+    // declines on a self-hosted install.
+    unawaited(ServerDirectory.instance.watch(_cv, onRedirect: _onLiveRedirect));
   }
 
   /// Land a friend-request / approval notification tap on the requests list.
@@ -752,7 +786,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     await _followServerDirective();
 
     final initErr = await _cv.initialize();
-    if (initErr == null) _health.start();
+    if (initErr == null) {
+      _health.start();
+      // Now that a socket exists, stop asking and start listening. The launch
+      // check above covers the moment before there is anything to listen on;
+      // this covers every moment after, so a deployment that moves while
+      // somebody is mid-conversation moves them too, rather than waiting for
+      // them to close the app.
+      unawaited(
+        ServerDirectory.instance.watch(_cv, onRedirect: _onLiveRedirect),
+      );
+    }
     if (initErr != null) {
       // Convex couldn't initialize. Surface to the UI so the user sees
       // the real reason instead of a downstream "not initialized" error.
@@ -1050,6 +1094,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
 
   @override
   void dispose() {
+    ServerDirectory.instance.unwatch();
     _stopPresenceHeartbeat();
     _resumeSyncTimer?.cancel();
     _health.dispose();

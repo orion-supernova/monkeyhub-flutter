@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "خادمك الخاص",
   "serverRoleSelfHostedBody": "هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم.",
   "serverValueHomeserver": "الخادم المنزلي، مؤقتًا",
-  "serverChoiceCloudSubHomeserver": "يُقدَّم من الخادم المنزلي لفترة."
+  "serverChoiceCloudSubHomeserver": "يُقدَّم من الخادم المنزلي لفترة.",
+  "serverDirectiveChangedToast": "تغيّر خادمك. جارٍ إعادة الاتصال…"
 }

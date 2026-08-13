@@ -1425,6 +1425,39 @@ export default defineSchema({
     publishedAt: v.number(),
   }).index("by_channel", ["channel"]),
 
+  // Which of the two interchangeable deployments — the VPS or the home server —
+  // clients should be talking to. Exactly one row.
+  //
+  // ───────── why a table and not an env var ─────────
+  //
+  // It started as `SERVE_FROM`, and env vars are a perfectly good way to
+  // configure a backend and a terrible way to notify one: a Convex query
+  // invalidates on the DATABASE reads it made, so a query over `process.env`
+  // recomputes for nobody. Clients could only learn about a move by asking
+  // again, which meant a relaunch.
+  //
+  // A row is reactive by construction. `serverDirectory:current` reads it, every
+  // client subscribes to that query, and flipping the row moves everyone inside
+  // a second with no relaunch and no polling. The env vars still work as a
+  // fallback for a deployment that has never had this row written — see the
+  // query — so the older `npx convex env set` workflow keeps functioning.
+  //
+  // `key` is a literal with one legal value; it exists so the single row can be
+  // fetched by index rather than by scanning.
+  serverDirectory: defineTable({
+    key: v.literal("current"),
+    serve: v.union(v.literal("primary"), v.literal("homeserver")),
+    // Address overrides. Absent means "use the pair compiled into the client",
+    // which is the normal case; they exist so a host can be renamed without a
+    // client release.
+    primaryUrl: v.optional(v.string()),
+    homeserverUrl: v.optional(v.string()),
+    // Shown verbatim in the client's info sheet — "migrating the VPS", "back by
+    // Sunday". The one place the operator gets to explain themselves.
+    note: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
   // Failed-attempt counters for the credential paths: auth.login,
   // auth.resetPasswordWithRecoveryKey, auth.setRecoveryKey. Before this table
   // every one of those accepted unlimited guesses.

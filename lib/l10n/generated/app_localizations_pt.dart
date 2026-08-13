@@ -6657,6 +6657,10 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'A ser servido a partir do homeserver durante algum tempo.';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'O seu servidor mudou. A ligar de novo…';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -13308,4 +13312,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Sendo servido pelo homeserver por um tempo.';
+
+  @override
+  String get serverDirectiveChangedToast => 'Seu servidor mudou. Reconectando…';
 }

@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "Votre propre serveur",
   "serverRoleSelfHostedBody": "Cet appareil pointe vers un serveur que vous gérez. Modifiez-le dans Réglages › Avancé › Serveur.",
   "serverValueHomeserver": "Homeserver, pour le moment",
-  "serverChoiceCloudSubHomeserver": "Servi depuis le homeserver pour un temps."
+  "serverChoiceCloudSubHomeserver": "Servi depuis le homeserver pour un temps.",
+  "serverDirectiveChangedToast": "Votre serveur a changé. Reconnexion…"
 }

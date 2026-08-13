@@ -6600,4 +6600,8 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Levereras från hemservern ett tag.';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'Din server har bytts. Ansluter igen…';
 }

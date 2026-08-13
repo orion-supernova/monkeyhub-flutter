@@ -6548,4 +6548,8 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Bir süreliğine ev sunucusundan yayında.';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'Sunucunuz değişti. Yeniden bağlanılıyor…';
 }

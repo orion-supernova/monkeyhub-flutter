@@ -6685,4 +6685,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Servi depuis le homeserver pour un temps.';
+
+  @override
+  String get serverDirectiveChangedToast =>
+      'Votre serveur a changé. Reconnexion…';
 }

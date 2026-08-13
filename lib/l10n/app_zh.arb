@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "你自己的服务器",
   "serverRoleSelfHostedBody": "此设备指向你自己运行的服务器。可在 设置 › 高级 › 服务器 中更改。",
   "serverValueHomeserver": "暂时使用家庭服务器",
-  "serverChoiceCloudSubHomeserver": "暂时由家庭服务器提供服务。"
+  "serverChoiceCloudSubHomeserver": "暂时由家庭服务器提供服务。",
+  "serverDirectiveChangedToast": "你的服务器已切换。正在重新连接…"
 }

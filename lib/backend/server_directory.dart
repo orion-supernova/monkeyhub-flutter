@@ -7,7 +7,9 @@ import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:http/http.dart' as http;
 
 import '../diagnostics/diag_log.dart';
+import 'convex_client.dart';
 import 'server_endpoint.dart';
+import 'server_store.dart';
 
 /// What kind of backend an address is, from this app's point of view.
 enum ServerRole {
@@ -187,6 +189,14 @@ class ServerDirective {
 /// on the primary, showing the ordinary "can't reach server" banner. Moving
 /// people because a server went quiet would mean a flaky uplink and a real
 /// migration are the same event, and only one of them should relocate anybody.
+///
+/// ───────── the launch check is the cold path, not the only one ─────────
+///
+/// [check] exists because a client with no socket still has to find out where
+/// to open one. Once it HAS a socket, [watch] takes over: it subscribes to the
+/// same function, so flipping the directive moves everyone within a second
+/// rather than at their next relaunch. That is the difference between moving
+/// traffic and moving traffic and then waiting for people to close their apps.
 class ServerDirectory {
   ServerDirectory._() : _injected = null;
   static final ServerDirectory instance = ServerDirectory._();
@@ -227,6 +237,10 @@ class ServerDirectory {
 
   ServerDirective? _last;
   DateTime? _lastCheckedAt;
+
+  /// The live subscription, and what to do when it says to move.
+  Subscription? _sub;
+  void Function(ServerEndpoint target)? _onRedirect;
 
   /// The most recent directive this device holds — from the network if the
   /// last check succeeded, from storage otherwise, null if it has never had
@@ -357,6 +371,72 @@ class ServerDirectory {
     }
   }
 
+  /// Follow the directive live, over the socket the app already has.
+  ///
+  /// [onRedirect] fires only when the published directive names a DIFFERENT
+  /// deployment from the one in force — never on the first delivery confirming
+  /// where we already are, which is what every client sees on every connect.
+  ///
+  /// Only ever attached on a managed deployment. A self-hosted install is not
+  /// governed by anybody's directive, and subscribing there would be asking a
+  /// stranger's backend for permission to stay put.
+  ///
+  /// Idempotent: the previous subscription is cancelled first, so this can be
+  /// re-run after a reconnect or a follow without stacking listeners.
+  Future<void> watch(
+    ConvexBackend backend, {
+    required void Function(ServerEndpoint target) onRedirect,
+  }) async {
+    _onRedirect = onRedirect;
+    _sub?.cancel();
+    _sub = null;
+    if (!KnownHosts.isManaged(ServerStore.instance.deploymentUrl)) return;
+    try {
+      _sub = await backend.subscribe(
+        'serverDirectory:current',
+        const {},
+        onData: _onDirective,
+        onError: (e) =>
+            DiagLog.connection('directory', 'watch failed: ${_short(e)}'),
+      );
+    } catch (e) {
+      // A backend that predates the function throws here rather than delivering
+      // an error, and that is the expected answer on every deployment until it
+      // ships. The launch check remains, so nothing is lost.
+      DiagLog.connection('directory', 'watch unavailable: ${_short(e)}');
+    }
+  }
+
+  Future<void> _onDirective(dynamic raw) async {
+    final directive = ServerDirective.fromJson(raw);
+    if (directive == null) return;
+    await _remember(directive);
+    final target = directive.target;
+    if (target.deploymentUrl.isEmpty) return;
+    final current = ServerStore.instance.deploymentUrl;
+    // Host comparison, for the same reason as in [check]: a trailing slash is
+    // not a different server, and "move" is far too expensive an answer to give
+    // on a formatting difference. Every client gets a delivery on every connect
+    // confirming where it already is; that one has to be silent.
+    if (Uri.tryParse(target.deploymentUrl)?.host ==
+        Uri.tryParse(current)?.host) {
+      return;
+    }
+    // Also silent for an install that is not ours to move — belt and braces
+    // behind the guard in [watch], because a follow leaves the subscription
+    // live and a self-host switch is one tap away on the same screen.
+    if (!KnownHosts.isManaged(current)) return;
+    DiagLog.connection('directory', 'live redirect to ${directive.serve.name}');
+    _onRedirect?.call(target);
+  }
+
+  /// Drop the live subscription.
+  void unwatch() {
+    _sub?.cancel();
+    _sub = null;
+    _onRedirect = null;
+  }
+
   /// Whether enough time has passed to ask again. Read by the resume path,
   /// which fires far more often than this needs to run.
   bool get dueForRecheck {
@@ -385,5 +465,7 @@ class ServerDirectory {
   void resetForTest() {
     _last = null;
     _lastCheckedAt = null;
+    _sub = null;
+    _onRedirect = null;
   }
 }

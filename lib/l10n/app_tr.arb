@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "Kendi sunucunuz",
   "serverRoleSelfHostedBody": "Bu cihaz sizin işlettiğiniz bir sunucuya bağlı. Ayarlar › Gelişmiş › Sunucu bölümünden değiştirebilirsiniz.",
   "serverValueHomeserver": "Şimdilik ev sunucusu",
-  "serverChoiceCloudSubHomeserver": "Bir süreliğine ev sunucusundan yayında."
+  "serverChoiceCloudSubHomeserver": "Bir süreliğine ev sunucusundan yayında.",
+  "serverDirectiveChangedToast": "Sunucunuz değişti. Yeniden bağlanılıyor…"
 }

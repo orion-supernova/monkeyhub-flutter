@@ -1856,5 +1856,6 @@
   "serverRoleSelfHostedTitle": "Din egen server",
   "serverRoleSelfHostedBody": "Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server.",
   "serverValueHomeserver": "Hemservern, tills vidare",
-  "serverChoiceCloudSubHomeserver": "Levereras från hemservern ett tag."
+  "serverChoiceCloudSubHomeserver": "Levereras från hemservern ett tag.",
+  "serverDirectiveChangedToast": "Din server har bytts. Ansluter igen…"
 }

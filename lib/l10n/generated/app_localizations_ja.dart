@@ -6319,4 +6319,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => 'しばらくのあいだホームサーバーから提供されています。';
+
+  @override
+  String get serverDirectiveChangedToast => 'サーバーが切り替わりました。再接続しています…';
 }

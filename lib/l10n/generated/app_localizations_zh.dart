@@ -6242,4 +6242,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => '暂时由家庭服务器提供服务。';
+
+  @override
+  String get serverDirectiveChangedToast => '你的服务器已切换。正在重新连接…';
 }
