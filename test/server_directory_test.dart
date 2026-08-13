@@ -125,6 +125,30 @@ void main() {
     });
   });
 
+  group('who has to poll', () {
+    // A Convex subscription rides the socket, and the socket is connected to
+    // whichever deployment the client is on. So a client that followed to the
+    // home server is watching the HOME SERVER's row, and the flip that brings
+    // it back is made on the VPS — invisible to it. Outbound was instant and
+    // the return leg was silent.
+    test('only a client on the home server does', () {
+      expect(ServerDirectory.pollsFrom(ServerRole.homeserver), isTrue);
+      // Already subscribed to the authority.
+      expect(ServerDirectory.pollsFrom(ServerRole.primary), isFalse);
+      // Governed by nobody.
+      expect(ServerDirectory.pollsFrom(ServerRole.selfHosted), isFalse);
+    });
+
+    test('the interval is short enough to follow a flip closely', () {
+      // Only clients that have been displaced pay it, and only until they come
+      // home — so this can afford to be brisk.
+      expect(
+        ServerDirectory.homeserverPollInterval,
+        lessThanOrEqualTo(const Duration(minutes: 1)),
+      );
+    });
+  });
+
   group('the check', () {
     test('moves a client when the directive names the other deployment',
         () async {

@@ -190,13 +190,27 @@ class ServerDirective {
 /// people because a server went quiet would mean a flaky uplink and a real
 /// migration are the same event, and only one of them should relocate anybody.
 ///
-/// ───────── the launch check is the cold path, not the only one ─────────
+/// ───────── three paths, because one is not enough ─────────
 ///
-/// [check] exists because a client with no socket still has to find out where
-/// to open one. Once it HAS a socket, [watch] takes over: it subscribes to the
-/// same function, so flipping the directive moves everyone within a second
-/// rather than at their next relaunch. That is the difference between moving
-/// traffic and moving traffic and then waiting for people to close their apps.
+///  * **[check]**, at launch, because a client with no socket still has to find
+///    out where to open one.
+///  * **[watch]**, once a socket exists, subscribing to the same function so a
+///    flip moves everyone within a second rather than at their next relaunch.
+///  * **A poll of the primary, but only while displaced onto the home server.**
+///
+/// That third one exists because a Convex subscription rides the socket, and
+/// the socket is connected to whichever deployment the client is currently on.
+/// So a client that has followed to the home server is watching the HOME
+/// SERVER's row — and the flip that brings it back is made on the VPS, which it
+/// cannot see. Outbound was instant and the return leg was silent, which is a
+/// deeply confusing way for this to half-work.
+///
+/// It could have been fixed by writing the row on both deployments, and that is
+/// exactly the discipline this whole class exists to stop depending on: forget
+/// once and clients are stranded on a machine nobody meant them to be on. A
+/// client that is somewhere temporary asking the authority every so often costs
+/// one small request a minute, only while displaced, and needs nobody to
+/// remember anything.
 class ServerDirectory {
   ServerDirectory._() : _injected = null;
   static final ServerDirectory instance = ServerDirectory._();
@@ -231,6 +245,20 @@ class ServerDirectory {
   /// and it still has to reach the first frame in reasonable time.
   static const Duration _fallbackTimeout = Duration(seconds: 2);
 
+  /// How often a displaced client re-asks the primary whether it can come home.
+  ///
+  /// Frequent enough that "everyone is back" follows the flip closely, and
+  /// affordable because of who pays it: only clients currently on the home
+  /// server, only for as long as the migration lasts. On the primary — every
+  /// client, almost always — this timer does not exist.
+  static const Duration homeserverPollInterval = Duration(seconds: 30);
+
+  /// Whether a client in [role] has to poll to hear about a move.
+  ///
+  /// Only the home server does. A client on the primary is already subscribed
+  /// to the authority, and a self-hosted install is governed by nobody.
+  static bool pollsFrom(ServerRole role) => role == ServerRole.homeserver;
+
   /// Floor between two checks once the app is running, so a foreground/
   /// background flicker cannot turn into a request per resume.
   static const Duration recheckInterval = Duration(minutes: 5);
@@ -241,6 +269,9 @@ class ServerDirectory {
   /// The live subscription, and what to do when it says to move.
   Subscription? _sub;
   void Function(ServerEndpoint target)? _onRedirect;
+
+  /// Runs only while this client is on the home server. See the class doc.
+  Timer? _poll;
 
   /// The most recent directive this device holds — from the network if the
   /// last check succeeded, from storage otherwise, null if it has never had
@@ -390,6 +421,11 @@ class ServerDirectory {
     _onRedirect = onRedirect;
     _sub?.cancel();
     _sub = null;
+    // BEFORE the managed guard below, not after: a self-hosting switch made
+    // from the home server lands here and returns early, and a poll left
+    // running would go on asking the operator's VPS where a install that is no
+    // longer theirs to move should be.
+    _syncPoll();
     if (!KnownHosts.isManaged(ServerStore.instance.deploymentUrl)) return;
     try {
       _sub = await backend.subscribe(
@@ -405,6 +441,34 @@ class ServerDirectory {
       // ships. The launch check remains, so nothing is lost.
       DiagLog.connection('directory', 'watch unavailable: ${_short(e)}');
     }
+  }
+
+  /// Start or stop the displaced-client poll to match where we are now.
+  ///
+  /// Driven from [watch], which the app re-runs after every rebind, so the
+  /// timer starts when a follow lands on the home server and stops when one
+  /// lands back on the primary — without either caller knowing it exists.
+  void _syncPoll() {
+    if (!pollsFrom(ServerStore.instance.role)) {
+      if (_poll != null) {
+        DiagLog.connection('directory', 'poll stopped');
+      }
+      _poll?.cancel();
+      _poll = null;
+      return;
+    }
+    if (_poll != null) return;
+    DiagLog.connection('directory', 'poll started (on the home server)');
+    _poll = Timer.periodic(homeserverPollInterval, (_) => _pollPrimary());
+  }
+
+  Future<void> _pollPrimary() async {
+    final onRedirect = _onRedirect;
+    if (onRedirect == null) return;
+    // [check] already asks the primary first, which is the entire point here:
+    // the answer this poll is looking for is the one only the VPS has.
+    final target = await check(askUrl: ServerStore.instance.deploymentUrl);
+    if (target != null) onRedirect(target);
   }
 
   Future<void> _onDirective(dynamic raw) async {
@@ -430,10 +494,12 @@ class ServerDirectory {
     _onRedirect?.call(target);
   }
 
-  /// Drop the live subscription.
+  /// Drop the live subscription and the poll.
   void unwatch() {
     _sub?.cancel();
     _sub = null;
+    _poll?.cancel();
+    _poll = null;
     _onRedirect = null;
   }
 
@@ -466,6 +532,12 @@ class ServerDirectory {
     _last = null;
     _lastCheckedAt = null;
     _sub = null;
+    _poll?.cancel();
+    _poll = null;
     _onRedirect = null;
   }
+
+  /// Whether the displaced-client poll is running. Test seam.
+  @visibleForTesting
+  bool get isPolling => _poll != null;
 }

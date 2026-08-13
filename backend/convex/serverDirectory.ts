@@ -70,11 +70,18 @@ export const current = query({
 ///   npx convex run serverDirectory:set '{"serve":"homeserver","note":"migrating the VPS"}'
 ///   npx convex run serverDirectory:set '{"serve":"primary"}'
 ///
-/// Run it on BOTH deployments and keep them in step. Clients ask the primary
-/// first, so the VPS alone is enough to bring everyone home — but a client
-/// already on the home server with the VPS unreachable falls back to asking the
-/// home server, and a home server still saying `homeserver` would strand
-/// exactly the clients that listened to you.
+/// **The VPS is the one that counts.** Clients ask the primary first at launch,
+/// and a client that has followed to the home server polls the primary every
+/// half-minute — precisely because a Convex subscription rides the socket, so
+/// once it has moved it is watching THIS deployment's row and cannot see yours.
+/// That is why moving people out is instant and bringing them back would
+/// otherwise be silent.
+///
+/// Setting it on both is still worth doing, and is required for one case: a
+/// client on the home server while the VPS is unreachable falls back to asking
+/// the home server, and one still saying `homeserver` there would keep exactly
+/// the clients that listened to you. But forgetting no longer strands anybody —
+/// the poll brings them home within a minute of the VPS row changing.
 ///
 /// `internalMutation`, not `mutation`: `npx convex run` carries admin
 /// credentials and reaches internal functions fine, while leaving no public
