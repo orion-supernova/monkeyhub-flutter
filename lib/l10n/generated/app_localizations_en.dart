@@ -6459,7 +6459,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'ALREADY CONNECTED';
 
   @override
-  String get serverUseDefaultCta => 'GO BACK TO THE DEFAULT';
+  String get serverUseDefaultCta => 'USE THE DEFAULT SERVER';
 
   @override
   String get serverChangeCta => 'CHANGE SERVER';
@@ -6502,26 +6502,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh on the new one. Nothing is deleted on either server.';
-
-  @override
-  String get serverSwitchPhaseDetaching => 'Signing out of the old server…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'Saving…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'Connecting…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'Putting the old server back…';
+      'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh. Nothing is deleted on either server.';
 
   @override
   String get serverSwitchRolledBackTitle => 'COULDN\'T CONNECT';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host didn\'t answer, so you\'re back on the server you were using. You\'ll need to sign in again.';
+    return '$host didn\'t answer, so nothing changed. You\'ll need to sign in again.';
   }
 
   @override
@@ -6545,4 +6533,49 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'ADVANCED';
+
+  @override
+  String get serverSwitchingLabel => 'Switching server…';
+
+  @override
+  String get serverBadgeHomeserver => 'Serving from homeserver';
+
+  @override
+  String get serverBadgeHomeserverShort => 'HOMESERVER';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return 'Serving from the homeserver at $server. Tap for details.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'Self-hosted server: $server. Tap for details.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'Running on the homeserver';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'Anything you send while this is up may not be here after traffic moves back.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'A home connection is slower than the usual one, so things may lag.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'You do not need to do anything. The app moves back on its own.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'Your own server';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'This device is pointed at a server you run. Change it under Settings › Advanced › Server.';
 }

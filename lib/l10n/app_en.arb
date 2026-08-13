@@ -7442,7 +7442,7 @@
   "@serverAlreadyConnectedCta": {
     "description": "Label the primary button takes when the typed address is the server already in use, so there is nothing to do."
   },
-  "serverUseDefaultCta": "GO BACK TO THE DEFAULT",
+  "serverUseDefaultCta": "USE THE DEFAULT SERVER",
   "@serverUseDefaultCta": {
     "description": "All-caps button that returns the app to the server it shipped with."
   },
@@ -7494,31 +7494,15 @@
   "@serverSwitchWarningTitle": {
     "description": "All-caps heading of the notice explaining what changing servers costs."
   },
-  "serverSwitchWarningBody": "Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh on the new one. Nothing is deleted on either server.",
+  "serverSwitchWarningBody": "Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh. Nothing is deleted on either server.",
   "@serverSwitchWarningBody": {
     "description": "Body of the switch warning. Says plainly what is lost locally and what is not lost remotely."
-  },
-  "serverSwitchPhaseDetaching": "Signing out of the old server…",
-  "@serverSwitchPhaseDetaching": {
-    "description": "Progress line while the app unwinds from the server it is leaving."
-  },
-  "serverSwitchPhaseSaving": "Saving…",
-  "@serverSwitchPhaseSaving": {
-    "description": "Progress line while the new server choice is written to storage."
-  },
-  "serverSwitchPhaseConnecting": "Connecting…",
-  "@serverSwitchPhaseConnecting": {
-    "description": "Progress line while the app opens a connection to the new server."
-  },
-  "serverSwitchPhaseRollingBack": "Putting the old server back…",
-  "@serverSwitchPhaseRollingBack": {
-    "description": "Progress line while the app returns to the previous server after the new one failed."
   },
   "serverSwitchRolledBackTitle": "COULDN'T CONNECT",
   "@serverSwitchRolledBackTitle": {
     "description": "All-caps heading shown after a switch failed and the app returned to the previous server."
   },
-  "serverSwitchRolledBackBody": "{host} didn't answer, so you're back on the server you were using. You'll need to sign in again.",
+  "serverSwitchRolledBackBody": "{host} didn't answer, so nothing changed. You'll need to sign in again.",
   "@serverSwitchRolledBackBody": {
     "description": "Body shown after a failed switch. {host} is the address that did not answer. Says the session is gone regardless, because sign-out already happened.",
     "placeholders": {
@@ -7557,5 +7541,65 @@
   "settingsScreenSectionAdvanced": "ADVANCED",
   "@settingsScreenSectionAdvanced": {
     "description": "All-caps section header in Settings, above the server row."
+  },
+  "serverSwitchingLabel": "Switching server…",
+  "@serverSwitchingLabel": {
+    "description": "The single line shown while the app moves between servers. Deliberately says nothing about which server is being left or joined — that distinction is not actionable and only means something from inside the code."
+  },
+  "serverBadgeHomeserver": "Serving from homeserver",
+  "@serverBadgeHomeserver": {
+    "description": "Text on the pill badge while the operator has moved traffic to the home server. Full form."
+  },
+  "serverBadgeHomeserverShort": "HOMESERVER",
+  "@serverBadgeHomeserverShort": {
+    "description": "The same fact in the space a 45-degree corner ribbon allows — roughly one short word. All-caps to match the ribbon."
+  },
+  "serverBadgeHomeserverSemantics": "Serving from the homeserver at {server}. Tap for details.",
+  "@serverBadgeHomeserverSemantics": {
+    "description": "Accessibility label for the homeserver badge. {server} is the address in use.",
+    "placeholders": {
+      "server": {
+        "example": "monkeyhub-homeserver-api.walhallaa.com",
+        "type": "String"
+      }
+    }
+  },
+  "serverBadgeSelfHostedSemantics": "Self-hosted server: {server}. Tap for details.",
+  "@serverBadgeSelfHostedSemantics": {
+    "description": "Accessibility label for the self-hosted badge. {server} is the address in use.",
+    "placeholders": {
+      "server": {
+        "example": "chat.example.com",
+        "type": "String"
+      }
+    }
+  },
+  "serverRoleHomeserverTitle": "Running on the homeserver",
+  "@serverRoleHomeserverTitle": {
+    "description": "Heading of the sheet that opens from the homeserver badge."
+  },
+  "serverRoleHomeserverBody": "The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.",
+  "@serverRoleHomeserverBody": {
+    "description": "Explains that the operator moved traffic to their home server on purpose, and that it is temporary."
+  },
+  "serverRoleHomeserverWarnData": "Anything you send while this is up may not be here after traffic moves back.",
+  "@serverRoleHomeserverWarnData": {
+    "description": "The warning that costs something to admit: writes made on the homeserver may not survive the move back."
+  },
+  "serverRoleHomeserverWarnSpeed": "A home connection is slower than the usual one, so things may lag.",
+  "@serverRoleHomeserverWarnSpeed": {
+    "description": "Warning that a home connection is slower than a datacentre one, so the app may feel sluggish."
+  },
+  "serverRoleHomeserverWarnAuto": "You do not need to do anything. The app moves back on its own.",
+  "@serverRoleHomeserverWarnAuto": {
+    "description": "Reassurance that the user does not have to do anything — the app moves back on its own."
+  },
+  "serverRoleSelfHostedTitle": "Your own server",
+  "@serverRoleSelfHostedTitle": {
+    "description": "Heading of the sheet that opens from the self-hosted badge."
+  },
+  "serverRoleSelfHostedBody": "This device is pointed at a server you run. Change it under Settings › Advanced › Server.",
+  "@serverRoleSelfHostedBody": {
+    "description": "Explains the self-hosted state and where to change it. Kept short — the server screen owns that decision."
   }
 }

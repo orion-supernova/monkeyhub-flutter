@@ -6443,7 +6443,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'ZATEN BAĞLI';
 
   @override
-  String get serverUseDefaultCta => 'VARSAYILANA DÖN';
+  String get serverUseDefaultCta => 'VARSAYILAN SUNUCUYU KULLAN';
 
   @override
   String get serverChangeCta => 'SUNUCUYU DEĞİŞTİR';
@@ -6486,26 +6486,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'Hesaplar ve sohbetler tek bir sunucuya aittir. Bu cihaz oturumu kapatır, indirdiklerini siler ve yeni sunucuda sıfırdan başlar. İki sunucuda da hiçbir şey silinmez.';
-
-  @override
-  String get serverSwitchPhaseDetaching => 'Eski sunucudan çıkılıyor…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'Kaydediliyor…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'Bağlanılıyor…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'Eski sunucu geri alınıyor…';
+      'Hesaplar ve sohbetler tek bir sunucuya aittir. Bu cihaz oturumu kapatır, indirdiklerini siler ve sıfırdan başlar. İki sunucuda da hiçbir şey silinmez.';
 
   @override
   String get serverSwitchRolledBackTitle => 'BAĞLANILAMADI';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host yanıt vermedi, bu yüzden kullandığınız sunucuya döndünüz. Yeniden giriş yapmanız gerekecek.';
+    return '$host yanıt vermedi, bu yüzden hiçbir şey değişmedi. Yeniden giriş yapmanız gerekecek.';
   }
 
   @override
@@ -6529,4 +6517,49 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'GELİŞMİŞ';
+
+  @override
+  String get serverSwitchingLabel => 'Sunucu değiştiriliyor…';
+
+  @override
+  String get serverBadgeHomeserver => 'Ev sunucusundan sunuluyor';
+
+  @override
+  String get serverBadgeHomeserverShort => 'EV SUNUCUSU';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return '$server adresindeki ev sunucusundan sunuluyor. Ayrıntılar için dokunun.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'Kendi sunucunuz: $server. Ayrıntılar için dokunun.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'Ev sunucusunda çalışıyor';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'MonkeyHub\'ı işletenler trafiği bir süreliğine evdeki sunucularına aldı. Her şey aynı şekilde çalışıyor — bu bilinçli bir tercih, arıza değil.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'Bu sürede gönderdikleriniz, trafik geri alındıktan sonra burada olmayabilir.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'Ev bağlantısı her zamankinden yavaştır; takılmalar olabilir.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'Bir şey yapmanıza gerek yok. Uygulama kendiliğinden geri döner.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'Kendi sunucunuz';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'Bu cihaz kendi işlettiğiniz bir sunucuya bakıyor. Ayarlar › Gelişmiş › Sunucu içinden değiştirin.';
 }

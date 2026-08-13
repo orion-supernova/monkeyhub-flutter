@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../env.dart';
+import 'server_directory.dart';
 import 'server_endpoint.dart';
 
 /// Which backend this install talks to, and the short history of the ones it
@@ -95,6 +96,31 @@ class ServerStore extends ChangeNotifier {
   /// Host only, for the badge, the settings row and the diagnostics header.
   String get host => active?.host ?? '';
 
+  /// What kind of backend this is: the ordinary one, the operator's home
+  /// server, or somebody's own.
+  ///
+  /// Not the same question as [isCustom], and the difference matters. Following
+  /// a directive onto the home server writes a custom URL, so `isCustom` is
+  /// true there too — but a home server is a replicated copy of the primary,
+  /// while a self-hosted address is a different world with different accounts.
+  /// The badge, the info sheet and [ServerSwitch] all branch on this, never on
+  /// `isCustom`.
+  ServerRole get role => KnownHosts.roleOf(deploymentUrl);
+
+  /// Whether this install has anything to say about which server it is on.
+  ///
+  /// False on the ordinary deployment, and false when there is no server at
+  /// all — a build that has not yet been told where to connect has not
+  /// connected anywhere unusual, and an empty address classifies as
+  /// [ServerRole.selfHosted] only because it parses as no known host. Without
+  /// this, the onboarding screen wore a badge announcing a self-hosted server
+  /// whose name was the empty string.
+  ///
+  /// One definition rather than the same two-part condition at the badge and
+  /// at the badge-style picker, which is exactly the pair that would drift.
+  bool get announcesRole =>
+      deploymentUrl.isNotEmpty && role != ServerRole.primary;
+
   /// Previously-used custom servers, newest first. Never contains the active
   /// one — it is shown separately — and never contains the bundled default.
   List<ServerEndpoint> get recent => List.unmodifiable(_recent);
@@ -163,7 +189,14 @@ class ServerStore extends ChangeNotifier {
   }) {
     final next = [..._recent];
     next.removeWhere((e) => e == arriving);
-    if (leaving != null && leaving != arriving) {
+    // The primary and the home server are never history. They are not servers
+    // anyone chose — the app moves between them on a directive — and listing
+    // them under "recent" in the self-hosting picker would offer someone a
+    // one-tap route onto the operator's home server, which is not a server
+    // they are meant to pick.
+    if (leaving != null &&
+        leaving != arriving &&
+        !KnownHosts.isManaged(leaving.deploymentUrl)) {
       next
         ..removeWhere((e) => e == leaving)
         ..insert(0, leaving);

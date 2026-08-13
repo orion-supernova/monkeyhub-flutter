@@ -6552,7 +6552,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'JÁ LIGADO';
 
   @override
-  String get serverUseDefaultCta => 'VOLTAR AO PREDEFINIDO';
+  String get serverUseDefaultCta => 'USAR O SERVIDOR PREDEFINIDO';
 
   @override
   String get serverChangeCta => 'MUDAR SERVIDOR';
@@ -6595,27 +6595,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'As contas e as conversas pertencem a um único servidor. Este dispositivo termina a sessão, limpa o que transferiu e começa de novo no outro. Não se apaga nada em nenhum dos servidores.';
-
-  @override
-  String get serverSwitchPhaseDetaching =>
-      'A terminar sessão no servidor anterior…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'A guardar…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'A ligar…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'A repor o servidor anterior…';
+      'As contas e as conversas pertencem a um único servidor. Este dispositivo termina a sessão, limpa o que transferiu e começa de novo. Não se apaga nada em nenhum dos servidores.';
 
   @override
   String get serverSwitchRolledBackTitle => 'NÃO FOI POSSÍVEL LIGAR';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return 'O $host não respondeu, por isso voltou ao servidor que usava. Vai ter de iniciar sessão de novo.';
+    return 'O $host não respondeu, por isso nada mudou. Vai ter de iniciar sessão de novo.';
   }
 
   @override
@@ -6639,6 +6626,51 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'AVANÇADO';
+
+  @override
+  String get serverSwitchingLabel => 'A mudar de servidor…';
+
+  @override
+  String get serverBadgeHomeserver => 'A servir a partir do homeserver';
+
+  @override
+  String get serverBadgeHomeserverShort => 'HOMESERVER';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return 'A servir a partir do homeserver em $server. Toque para saber mais.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'Servidor auto-alojado: $server. Toque para saber mais.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'A funcionar no homeserver';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'Quem gere o MonkeyHub passou o tráfego para o servidor de casa durante algum tempo. Tudo funciona da mesma forma — é intencional, não é uma avaria.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'O que enviar enquanto isto durar pode não estar cá depois de o tráfego voltar.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'Uma ligação doméstica é mais lenta do que a habitual, por isso pode haver atrasos.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'Não precisa de fazer nada. A aplicação volta sozinha.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'O seu próprio servidor';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'Este dispositivo aponta para um servidor seu. Altere em Definições › Avançado › Servidor.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -13185,7 +13217,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get serverAlreadyConnectedCta => 'JÁ CONECTADO';
 
   @override
-  String get serverUseDefaultCta => 'VOLTAR AO PADRÃO';
+  String get serverUseDefaultCta => 'USAR O SERVIDOR PADRÃO';
 
   @override
   String get serverChangeCta => 'TROCAR SERVIDOR';
@@ -13228,26 +13260,14 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get serverSwitchWarningBody =>
-      'Contas e conversas pertencem a um único servidor. Este aparelho sai da conta, limpa o que baixou e começa do zero no novo. Nada é excluído em nenhum dos servidores.';
-
-  @override
-  String get serverSwitchPhaseDetaching => 'Saindo do servidor anterior…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'Salvando…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'Conectando…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'Restaurando o servidor anterior…';
+      'Contas e conversas pertencem a um único servidor. Este aparelho sai da conta, limpa o que baixou e começa do zero. Nada é excluído em nenhum dos servidores.';
 
   @override
   String get serverSwitchRolledBackTitle => 'NÃO FOI POSSÍVEL CONECTAR';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return 'O $host não respondeu, então você voltou ao servidor que usava. Vai precisar entrar de novo.';
+    return 'O $host não respondeu, então nada mudou. Vai precisar entrar de novo.';
   }
 
   @override
@@ -13271,4 +13291,49 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get settingsScreenSectionAdvanced => 'AVANÇADO';
+
+  @override
+  String get serverSwitchingLabel => 'Trocando de servidor…';
+
+  @override
+  String get serverBadgeHomeserver => 'Servindo pelo homeserver';
+
+  @override
+  String get serverBadgeHomeserverShort => 'HOMESERVER';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return 'Servindo pelo homeserver em $server. Toque para saber mais.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'Servidor auto-hospedado: $server. Toque para saber mais.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'Rodando no homeserver';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'Quem cuida do MonkeyHub passou o tráfego para o servidor de casa por um tempo. Tudo funciona igual — isso é intencional, não é falha.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'O que você enviar enquanto isso durar pode não estar aqui depois que o tráfego voltar.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'Uma conexão doméstica é mais lenta que a de sempre, então pode travar.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'Você não precisa fazer nada. O app volta sozinho.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'Seu próprio servidor';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'Este aparelho aponta para um servidor seu. Mude em Configurações › Avançado › Servidor.';
 }

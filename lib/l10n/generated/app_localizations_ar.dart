@@ -6550,7 +6550,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'متصل بالفعل';
 
   @override
-  String get serverUseDefaultCta => 'العودة إلى الافتراضي';
+  String get serverUseDefaultCta => 'استخدم الخادم الافتراضي';
 
   @override
   String get serverChangeCta => 'تغيير الخادم';
@@ -6592,27 +6592,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'الحسابات والمحادثات تخصّ خادمًا واحدًا. سيسجّل هذا الجهاز الخروج، ويمسح ما نزّله، ويبدأ من جديد على الخادم الآخر. ولن يُحذف أي شيء على أي من الخادمين.';
-
-  @override
-  String get serverSwitchPhaseDetaching =>
-      'جارٍ تسجيل الخروج من الخادم القديم…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'جارٍ الحفظ…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'جارٍ الاتصال…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'جارٍ إعادة الخادم القديم…';
+      'الحسابات والمحادثات تخصّ خادمًا واحدًا. سيسجّل هذا الجهاز الخروج، ويمسح ما نزّله، ويبدأ من جديد. ولن يُحذف أي شيء على أي من الخادمين.';
 
   @override
   String get serverSwitchRolledBackTitle => 'تعذّر الاتصال';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return 'لم يستجب $host، لذا عدت إلى الخادم الذي كنت تستخدمه. عليك تسجيل الدخول من جديد.';
+    return 'لم يستجب $host، لذا لم يتغير شيء. عليك تسجيل الدخول من جديد.';
   }
 
   @override
@@ -6636,4 +6623,49 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'خيارات متقدمة';
+
+  @override
+  String get serverSwitchingLabel => 'جارٍ تبديل الخادم…';
+
+  @override
+  String get serverBadgeHomeserver => 'يعمل من الخادم المنزلي';
+
+  @override
+  String get serverBadgeHomeserverShort => 'الخادم المنزلي';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return 'يعمل من الخادم المنزلي على $server. اضغط للتفاصيل.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'خادم باستضافة ذاتية: $server. اضغط للتفاصيل.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'يعمل على الخادم المنزلي';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'قام مشغّلو MonkeyHub بنقل حركة البيانات إلى خادمهم المنزلي لفترة. كل شيء يعمل كالمعتاد — هذا إجراء مقصود وليس عطلًا.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'قد لا يبقى ما ترسله أثناء تشغيل هذا بعد عودة حركة البيانات.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'الاتصال المنزلي أبطأ من المعتاد، لذا قد تصبح الأمور متأخرة.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'لا داعي لفعل أي شيء. سيعود التطبيق تلقائيًا.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'خادمك الخاص';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم.';
 }

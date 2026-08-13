@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../diagnostics/diag_log.dart';
 import 'convex_client.dart';
+import 'server_directory.dart';
 import 'server_endpoint.dart';
 import 'server_store.dart';
 
@@ -184,6 +185,73 @@ class ServerSwitch extends ChangeNotifier {
         return ServerSwitchOutcome.rolledBack;
       }
       DiagLog.connection('server-switch', 'rollback failed too: $backErr');
+      return ServerSwitchOutcome.stranded;
+    } finally {
+      _busy = false;
+      _set(null);
+    }
+  }
+
+  /// Move to [target] WITHOUT signing out, because it holds the same data.
+  ///
+  /// Only ever called with the primary or the home server (see
+  /// [KnownHosts.isManaged]), and the distinction from [apply] is the whole
+  /// reason both exist. Those two deployments are replicated: the session, the
+  /// room ids, the cached avatars and the pending sends are all still valid on
+  /// the other side. Running them through [apply] would sign a user out and
+  /// wipe their caches to reach a backend holding the identical rows — a
+  /// destructive answer to a question that isn't destructive.
+  ///
+  /// So this rebuilds the socket and re-registers the query set, and that is
+  /// all. From the user's side it looks like a brief reconnect, which is
+  /// exactly what it is.
+  ///
+  /// Refuses to move a self-hosted install, in either direction: somebody who
+  /// deliberately pointed this app at their own backend is not part of this
+  /// arrangement and must not be relocated by a directive.
+  Future<ServerSwitchOutcome> follow(ServerEndpoint target) async {
+    final store = ServerStore.instance;
+    if (_busy) return ServerSwitchOutcome.unchanged;
+    if (!KnownHosts.isManaged(store.deploymentUrl) ||
+        !KnownHosts.isManaged(target.deploymentUrl)) {
+      return ServerSwitchOutcome.refused;
+    }
+    if (target.deploymentUrl == store.deploymentUrl) {
+      return ServerSwitchOutcome.unchanged;
+    }
+
+    _busy = true;
+    _set(ServerSwitchPhase.connecting);
+    final previous = store.custom;
+    DiagLog.connection('server-follow', 'to ${_host(target.deploymentUrl)}');
+    try {
+      // The bundled deployment gets `useBundled`, not `use`, so an install that
+      // followed to the home server and back ends up genuinely unconfigured
+      // again rather than carrying a custom URL equal to the default.
+      if (target.deploymentUrl == store.bundledUrl) {
+        await store.useBundled();
+      } else {
+        await store.use(target);
+      }
+      final err = await ConvexBackend.instance.rebind(keepSubscriptions: true);
+      if (err == null) {
+        _onRebound?.call();
+        return ServerSwitchOutcome.switched;
+      }
+      DiagLog.connection('server-follow', 'failed, rolling back: $err');
+      _set(ServerSwitchPhase.rollingBack);
+      if (previous == null) {
+        await store.useBundled();
+      } else {
+        await store.use(previous);
+      }
+      final backErr = await ConvexBackend.instance.rebind(
+        keepSubscriptions: true,
+      );
+      if (backErr == null) {
+        _onRebound?.call();
+        return ServerSwitchOutcome.rolledBack;
+      }
       return ServerSwitchOutcome.stranded;
     } finally {
       _busy = false;

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart'
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
+import 'backend/server_directory.dart';
 import 'backend/server_store.dart';
 import 'calls/native_call_handler.dart';
 import 'data/settings_store.dart';
@@ -86,6 +87,11 @@ Future<void> main() async {
   // Its own await rather than a fifth entry above for exactly that ordering;
   // one extra secure-storage read on the boot path is the whole cost.
   await ServerStore.instance.load();
+  // The last directive this device was handed, which is what a failed or
+  // impossible launch check falls back to. Local read only — the network half
+  // runs in `_bootstrap`, where it can be given a timeout that does not sit in
+  // front of `runApp`.
+  await ServerDirectory.instance.load();
 
   PaintingBinding.instance.imageCache.maximumSize = 1500;
 

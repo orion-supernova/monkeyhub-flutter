@@ -11108,7 +11108,7 @@ abstract class AppLocalizations {
   /// All-caps button that returns the app to the server it shipped with.
   ///
   /// In en, this message translates to:
-  /// **'GO BACK TO THE DEFAULT'**
+  /// **'USE THE DEFAULT SERVER'**
   String get serverUseDefaultCta;
 
   /// All-caps button on the boot-error screen that opens the server screen — the escape hatch when a bad address stops the app connecting at all.
@@ -11186,32 +11186,8 @@ abstract class AppLocalizations {
   /// Body of the switch warning. Says plainly what is lost locally and what is not lost remotely.
   ///
   /// In en, this message translates to:
-  /// **'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh on the new one. Nothing is deleted on either server.'**
+  /// **'Accounts and chats belong to one server. This device signs out, clears what it downloaded, and starts fresh. Nothing is deleted on either server.'**
   String get serverSwitchWarningBody;
-
-  /// Progress line while the app unwinds from the server it is leaving.
-  ///
-  /// In en, this message translates to:
-  /// **'Signing out of the old server…'**
-  String get serverSwitchPhaseDetaching;
-
-  /// Progress line while the new server choice is written to storage.
-  ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
-  String get serverSwitchPhaseSaving;
-
-  /// Progress line while the app opens a connection to the new server.
-  ///
-  /// In en, this message translates to:
-  /// **'Connecting…'**
-  String get serverSwitchPhaseConnecting;
-
-  /// Progress line while the app returns to the previous server after the new one failed.
-  ///
-  /// In en, this message translates to:
-  /// **'Putting the old server back…'**
-  String get serverSwitchPhaseRollingBack;
 
   /// All-caps heading shown after a switch failed and the app returned to the previous server.
   ///
@@ -11222,7 +11198,7 @@ abstract class AppLocalizations {
   /// Body shown after a failed switch. {host} is the address that did not answer. Says the session is gone regardless, because sign-out already happened.
   ///
   /// In en, this message translates to:
-  /// **'{host} didn\'t answer, so you\'re back on the server you were using. You\'ll need to sign in again.'**
+  /// **'{host} didn\'t answer, so nothing changed. You\'ll need to sign in again.'**
   String serverSwitchRolledBackBody(String host);
 
   /// Body shown in the rare case where neither the new server nor the previous one would connect.
@@ -11260,6 +11236,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ADVANCED'**
   String get settingsScreenSectionAdvanced;
+
+  /// The single line shown while the app moves between servers. Deliberately says nothing about which server is being left or joined — that distinction is not actionable and only means something from inside the code.
+  ///
+  /// In en, this message translates to:
+  /// **'Switching server…'**
+  String get serverSwitchingLabel;
+
+  /// Text on the pill badge while the operator has moved traffic to the home server. Full form.
+  ///
+  /// In en, this message translates to:
+  /// **'Serving from homeserver'**
+  String get serverBadgeHomeserver;
+
+  /// The same fact in the space a 45-degree corner ribbon allows — roughly one short word. All-caps to match the ribbon.
+  ///
+  /// In en, this message translates to:
+  /// **'HOMESERVER'**
+  String get serverBadgeHomeserverShort;
+
+  /// Accessibility label for the homeserver badge. {server} is the address in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Serving from the homeserver at {server}. Tap for details.'**
+  String serverBadgeHomeserverSemantics(String server);
+
+  /// Accessibility label for the self-hosted badge. {server} is the address in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Self-hosted server: {server}. Tap for details.'**
+  String serverBadgeSelfHostedSemantics(String server);
+
+  /// Heading of the sheet that opens from the homeserver badge.
+  ///
+  /// In en, this message translates to:
+  /// **'Running on the homeserver'**
+  String get serverRoleHomeserverTitle;
+
+  /// Explains that the operator moved traffic to their home server on purpose, and that it is temporary.
+  ///
+  /// In en, this message translates to:
+  /// **'The people who run MonkeyHub have moved traffic to their home server for a while. Everything works the same way — this is deliberate, not a fault.'**
+  String get serverRoleHomeserverBody;
+
+  /// The warning that costs something to admit: writes made on the homeserver may not survive the move back.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything you send while this is up may not be here after traffic moves back.'**
+  String get serverRoleHomeserverWarnData;
+
+  /// Warning that a home connection is slower than a datacentre one, so the app may feel sluggish.
+  ///
+  /// In en, this message translates to:
+  /// **'A home connection is slower than the usual one, so things may lag.'**
+  String get serverRoleHomeserverWarnSpeed;
+
+  /// Reassurance that the user does not have to do anything — the app moves back on its own.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not need to do anything. The app moves back on its own.'**
+  String get serverRoleHomeserverWarnAuto;
+
+  /// Heading of the sheet that opens from the self-hosted badge.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own server'**
+  String get serverRoleSelfHostedTitle;
+
+  /// Explains the self-hosted state and where to change it. Kept short — the server screen owns that decision.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is pointed at a server you run. Change it under Settings › Advanced › Server.'**
+  String get serverRoleSelfHostedBody;
 }
 
 class _AppLocalizationsDelegate

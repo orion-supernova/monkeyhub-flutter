@@ -6495,7 +6495,7 @@ class AppLocalizationsSv extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'REDAN ANSLUTEN';
 
   @override
-  String get serverUseDefaultCta => 'TILLBAKA TILL STANDARD';
+  String get serverUseDefaultCta => 'ANVÄND STANDARDSERVERN';
 
   @override
   String get serverChangeCta => 'BYT SERVER';
@@ -6537,26 +6537,14 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'Konton och chattar hör till en enda server. Den här enheten loggas ut, rensar det den laddat ner och börjar om på den nya. Inget raderas på någon av servrarna.';
-
-  @override
-  String get serverSwitchPhaseDetaching => 'Loggar ut från den gamla servern…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'Sparar…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'Ansluter…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => 'Återställer den gamla servern…';
+      'Konton och chattar hör till en enda server. Den här enheten loggas ut, rensar det den laddat ner och börjar om. Inget raderas på någon av servrarna.';
 
   @override
   String get serverSwitchRolledBackTitle => 'KUNDE INTE ANSLUTA';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host svarade inte, så du är tillbaka på servern du använde. Du behöver logga in igen.';
+    return '$host svarade inte, så ingenting ändrades. Du behöver logga in igen.';
   }
 
   @override
@@ -6580,4 +6568,49 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'AVANCERAT';
+
+  @override
+  String get serverSwitchingLabel => 'Byter server…';
+
+  @override
+  String get serverBadgeHomeserver => 'Körs från hemservern';
+
+  @override
+  String get serverBadgeHomeserverShort => 'HEMSERVER';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return 'Körs från hemservern på $server. Tryck för detaljer.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'Egen server: $server. Tryck för detaljer.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'Kör på hemservern';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'De som driver MonkeyHub har flyttat trafiken till sin hemmaserver ett tag. Allt fungerar likadant – det är avsiktligt, inte ett fel.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'Det du skickar medan det här pågår kanske inte finns kvar när trafiken flyttas tillbaka.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'En hemmauppkoppling är långsammare än den vanliga, så det kan hacka.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'Du behöver inte göra något. Appen byter tillbaka av sig själv.';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'Din egen server';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server.';
 }

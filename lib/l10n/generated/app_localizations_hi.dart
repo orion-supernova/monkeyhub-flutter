@@ -6479,7 +6479,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverAlreadyConnectedCta => 'पहले से जुड़ा है';
 
   @override
-  String get serverUseDefaultCta => 'डिफ़ॉल्ट पर लौटें';
+  String get serverUseDefaultCta => 'डिफ़ॉल्ट सर्वर इस्तेमाल करें';
 
   @override
   String get serverChangeCta => 'सर्वर बदलें';
@@ -6521,28 +6521,14 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      'खाते और चैट एक ही सर्वर के होते हैं। यह डिवाइस साइन आउट होगा, डाउनलोड किया हुआ मिटाएगा, और नए सर्वर पर नए सिरे से शुरू करेगा। किसी भी सर्वर पर कुछ भी मिटाया नहीं जाता।';
-
-  @override
-  String get serverSwitchPhaseDetaching =>
-      'पुराने सर्वर से साइन आउट हो रहा है…';
-
-  @override
-  String get serverSwitchPhaseSaving => 'सहेजा जा रहा है…';
-
-  @override
-  String get serverSwitchPhaseConnecting => 'जुड़ा जा रहा है…';
-
-  @override
-  String get serverSwitchPhaseRollingBack =>
-      'पुराना सर्वर वापस लगाया जा रहा है…';
+      'खाते और चैट एक ही सर्वर के होते हैं। यह डिवाइस साइन आउट होगा, डाउनलोड किया हुआ मिटाएगा, और नए सिरे से शुरू करेगा। किसी भी सर्वर पर कुछ भी मिटाया नहीं जाता।';
 
   @override
   String get serverSwitchRolledBackTitle => 'जुड़ नहीं सके';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host ने जवाब नहीं दिया, इसलिए आप पहले वाले सर्वर पर लौट आए हैं। आपको फिर से साइन इन करना होगा।';
+    return '$host ने जवाब नहीं दिया, इसलिए कुछ नहीं बदला। आपको फिर से साइन इन करना होगा।';
   }
 
   @override
@@ -6566,4 +6552,49 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => 'उन्नत';
+
+  @override
+  String get serverSwitchingLabel => 'सर्वर बदला जा रहा है…';
+
+  @override
+  String get serverBadgeHomeserver => 'होमसर्वर से चल रहा है';
+
+  @override
+  String get serverBadgeHomeserverShort => 'होमसर्वर';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return '$server पर होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return 'स्वयं-होस्टेड सर्वर: $server। जानकारी के लिए टैप करें।';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => 'होमसर्वर पर चल रहा है';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'MonkeyHub चलाने वाले लोगों ने कुछ समय के लिए ट्रैफ़िक अपने घर के सर्वर पर भेजा है। सब कुछ पहले जैसा ही काम करता है — यह जानबूझकर किया गया है, कोई गड़बड़ी नहीं।';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      'जब तक यह चालू है, आप जो भेजते हैं वह ट्रैफ़िक वापस जाने के बाद शायद यहाँ न रहे।';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed =>
+      'घर का कनेक्शन सामान्य से धीमा होता है, इसलिए चीज़ें अटक सकती हैं।';
+
+  @override
+  String get serverRoleHomeserverWarnAuto =>
+      'आपको कुछ करने की ज़रूरत नहीं। ऐप अपने आप वापस चला जाएगा।';
+
+  @override
+  String get serverRoleSelfHostedTitle => 'आपका अपना सर्वर';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      'यह डिवाइस आपके अपने सर्वर पर लगा है। इसे सेटिंग्स › उन्नत › सर्वर में बदलें।';
 }

@@ -91,7 +91,7 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
-  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.ribbon;
+  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.pill;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -730,21 +730,23 @@ class SettingsStore extends ChangeNotifier {
 /// one nobody has touched. So the mark is permanent, and the only choice on
 /// offer is how loud it is.
 ///
-/// * `ribbon` (default) — a diagonal band across the top-right corner, in the
-///   place Flutter's own debug banner occupies. Impossible to mistake for app
-///   chrome and impossible to stop noticing, which is the whole point.
-/// * `pill` — a small chip in the same corner, carrying the host name. Quieter,
-///   says more, and reads closer to ordinary UI.
+/// * `pill` (default) — a chip in the status-bar strip, over the clock and the
+///   battery, carrying the server's name. It is the default because it is the
+///   only one of the two that collides with nothing: it lives in the one band
+///   of screen no route puts controls in.
+/// * `ribbon` — a diagonal band across the top-right corner, in the place
+///   Flutter's own debug banner occupies. Louder, and unmissable — at the cost
+///   of sweeping through where full-screen routes put their close button.
 enum SelfHostBadgeStyle {
   ribbon,
   pill;
 
   static final Map<String, SelfHostBadgeStyle> _byName = values.asNameMap();
 
-  /// Resolves a persisted name, falling back to [ribbon]. Derived from [values]
+  /// Resolves a persisted name, falling back to [pill]. Derived from [values]
   /// for the reason spelled out on [HomeSection.parse].
   static SelfHostBadgeStyle parse(String? s) =>
-      _byName[s] ?? SelfHostBadgeStyle.ribbon;
+      _byName[s] ?? SelfHostBadgeStyle.pill;
 }
 
 enum RoomLayout { list, grid }
@@ -828,7 +830,8 @@ enum ScheduledIndicator {
   /// [MotionLevel.parse] and [HomeSection.parse] — the switch form compiles
   /// cleanly when a member is added and silently dumps everyone onto the
   /// fallback.
-  static ScheduledIndicator parse(String? s) => _byName[s] ?? ScheduledIndicator.pill;
+  static ScheduledIndicator parse(String? s) =>
+      _byName[s] ?? ScheduledIndicator.pill;
 }
 
 /// Top-level shell destinations, in nav order.

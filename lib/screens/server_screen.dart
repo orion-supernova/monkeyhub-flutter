@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard;
 
 import '../backend/connection_health.dart';
 import '../backend/convex_client.dart';
+import '../backend/server_directory.dart';
 import '../backend/server_endpoint.dart';
 import '../backend/server_probe.dart';
 import '../backend/server_store.dart';
@@ -14,7 +15,8 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
-import '../widgets/self_host_badge.dart' show SelfHostBadgePreview;
+import '../widgets/self_host_badge.dart'
+    show SelfHostBadgePreview, shortHost;
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -535,8 +537,10 @@ class _ServerScreenState extends State<ServerScreen> {
   // ───────── badge style ─────────
 
   List<Widget> _badgeSection(AppLocalizations l10n) {
-    // Nothing to configure while the badge is not being drawn.
-    if (!ServerStore.instance.isCustom) return const [];
+    // Nothing to configure while the badge is not being drawn — on the
+    // ordinary deployment, and during onboarding where no server exists yet.
+    if (!ServerStore.instance.announcesRole) return const [];
+    final homeserver = ServerStore.instance.role == ServerRole.homeserver;
     final active = SettingsStore.instance.selfHostBadge;
     return [
       const SizedBox(height: 28),
@@ -548,7 +552,10 @@ class _ServerScreenState extends State<ServerScreen> {
         selected: active == SelfHostBadgeStyle.ribbon,
         preview: SelfHostBadgePreview(
           style: SelfHostBadgeStyle.ribbon,
-          host: ServerStore.instance.host,
+          homeserver: homeserver,
+          label: homeserver
+              ? l10n.serverBadgeHomeserverShort
+              : l10n.serverBadgeSelfHosted,
         ),
         onTap: () =>
             SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.ribbon),
@@ -560,7 +567,10 @@ class _ServerScreenState extends State<ServerScreen> {
         selected: active == SelfHostBadgeStyle.pill,
         preview: SelfHostBadgePreview(
           style: SelfHostBadgeStyle.pill,
-          host: ServerStore.instance.host,
+          homeserver: homeserver,
+          label: homeserver
+              ? l10n.serverBadgeHomeserver
+              : shortHost(ServerStore.instance.host, max: 18),
         ),
         onTap: () =>
             SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.pill),
@@ -1182,11 +1192,13 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// The blocking cover shown while a switch runs, naming the step in progress.
+/// The blocking cover shown while a switch runs.
 ///
-/// Steps are named after what is happening to the user's data rather than to
-/// the code — "signing out of the old server" is a sentence someone can act on
-/// if it stalls; "detaching" is not.
+/// One sentence, not a running commentary. A four-step narration was tried and
+/// it was worse: nothing in it was actionable, and it kept naming "the old
+/// server" and "the new one" — a distinction that only means anything from
+/// inside the code, and that reads as an accusation to the person waiting.
+/// The phases still exist for the diagnostics timeline, where they belong.
 class _SwitchScrim extends StatelessWidget {
   const _SwitchScrim();
 
@@ -1197,14 +1209,10 @@ class _SwitchScrim extends StatelessWidget {
     return AnimatedBuilder(
       animation: ServerSwitch.instance,
       builder: (context, _) {
-        final phase = ServerSwitch.instance.phase;
-        final label = switch (phase) {
-          ServerSwitchPhase.detaching => l10n.serverSwitchPhaseDetaching,
-          ServerSwitchPhase.saving => l10n.serverSwitchPhaseSaving,
-          ServerSwitchPhase.connecting => l10n.serverSwitchPhaseConnecting,
-          ServerSwitchPhase.rollingBack => l10n.serverSwitchPhaseRollingBack,
-          null => l10n.serverSwitchPhaseConnecting,
-        };
+        // One label for every step. Narrating which server is being left and
+        // which is being joined told the user nothing they could act on, and
+        // named a distinction ("the old one", "the new one") that is only
+        // meaningful from inside the code.
         return Positioned.fill(
           // Absorbs every pointer, which is the point of a scrim over a
           // destructive sequence — a stray tap on CONNECT mid-switch would
@@ -1227,7 +1235,7 @@ class _SwitchScrim extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    Text(label, style: theme.bodySoft),
+                    Text(l10n.serverSwitchingLabel, style: theme.bodySoft),
                   ],
                 ),
               ),

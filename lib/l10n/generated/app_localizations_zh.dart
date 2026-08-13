@@ -6145,7 +6145,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverAlreadyConnectedCta => '已连接';
 
   @override
-  String get serverUseDefaultCta => '返回默认服务器';
+  String get serverUseDefaultCta => '使用默认服务器';
 
   @override
   String get serverChangeCta => '更换服务器';
@@ -6186,26 +6186,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      '账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并在新服务器上重新开始。两台服务器上的数据都不会被删除。';
-
-  @override
-  String get serverSwitchPhaseDetaching => '正在退出旧服务器…';
-
-  @override
-  String get serverSwitchPhaseSaving => '正在保存…';
-
-  @override
-  String get serverSwitchPhaseConnecting => '正在连接…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => '正在恢复旧服务器…';
+      '账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并重新开始。两台服务器上的数据都不会被删除。';
 
   @override
   String get serverSwitchRolledBackTitle => '无法连接';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host 没有响应，因此已回到你之前使用的服务器。你需要重新登录。';
+    return '$host 没有响应，因此没有任何改变。你需要重新登录。';
   }
 
   @override
@@ -6227,4 +6215,45 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => '高级';
+
+  @override
+  String get serverSwitchingLabel => '正在切换服务器…';
+
+  @override
+  String get serverBadgeHomeserver => '由家庭服务器提供服务';
+
+  @override
+  String get serverBadgeHomeserverShort => '家庭服务器';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return '正在由 $server 上的家庭服务器提供服务。点按查看详情。';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return '自托管服务器：$server。点按查看详情。';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => '正在家庭服务器上运行';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'MonkeyHub 的运营者暂时把流量切到了他们家里的服务器。一切照常运作 — 这是有意为之，不是故障。';
+
+  @override
+  String get serverRoleHomeserverWarnData => '在此期间发送的内容，在流量切回后可能不会保留。';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed => '家庭宽带比平时的线路慢，可能会有卡顿。';
+
+  @override
+  String get serverRoleHomeserverWarnAuto => '你不需要做任何事。应用会自动切回去。';
+
+  @override
+  String get serverRoleSelfHostedTitle => '你自己的服务器';
+
+  @override
+  String get serverRoleSelfHostedBody => '此设备指向你自己运行的服务器。可在 设置 › 高级 › 服务器 中更改。';
 }

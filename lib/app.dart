@@ -12,6 +12,7 @@ import 'backend/connection_health.dart';
 import 'backend/convex_client.dart';
 import 'backend/feed_api.dart';
 import 'backend/group_call_api.dart';
+import 'backend/server_directory.dart';
 import 'backend/server_store.dart';
 import 'backend/server_switch.dart';
 import 'calls/active_call_pill.dart';
@@ -414,6 +415,42 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     await _authTransition;
   }
 
+  /// Ask the deployment we are pointed at where clients should be, and move if
+  /// it says somewhere else.
+  ///
+  /// Runs at two moments, and both matter:
+  ///
+  ///  * **Before the first connect**, so the app opens its socket against the
+  ///    right backend rather than connecting, learning, and reconnecting.
+  ///  * **On resume**, throttled by [ServerDirectory.recheckInterval], so a
+  ///    phone that has been in a pocket since before the move catches up
+  ///    without being relaunched. Piggybacks on the resume sync that already
+  ///    exists, so it inherits its debounce as well as its own floor.
+  ///
+  /// [live] separates the two: before the client exists there is nothing to
+  /// tear down, so the answer is simply written to the store and picked up by
+  /// the initialize that follows. Once the app is running, moving means
+  /// rebuilding the socket — and that goes through [ServerSwitch.follow],
+  /// which keeps the session because the two deployments hold the same data.
+  Future<void> _followServerDirective({bool live = false}) async {
+    final askUrl = ServerStore.instance.deploymentUrl;
+    if (askUrl.isEmpty) return;
+    final target = await ServerDirectory.instance.check(askUrl: askUrl);
+    if (target == null || !mounted) return;
+    if (!live) {
+      // Straight to the store: `_bootstrap` initializes the client on the very
+      // next line, so this is the cheapest possible way to land on the right
+      // deployment — no socket has been built to throw away yet.
+      if (target.deploymentUrl == ServerStore.instance.bundledUrl) {
+        await ServerStore.instance.useBundled();
+      } else {
+        await ServerStore.instance.use(target);
+      }
+      return;
+    }
+    await ServerSwitch.instance.follow(target);
+  }
+
   /// A new transport exists. Clear whatever boot state was standing in the way
   /// and start watching the new socket.
   ///
@@ -644,6 +681,13 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
         BadgeManager.instance.sync();
         PushManager.instance.refreshTokens();
         _family.refresh();
+        // Catches a handset that was in a pocket when the deployment moved.
+        // Its own floor on top of this block's 30s debounce — see
+        // [ServerDirectory.recheckInterval] — because a resume is common and a
+        // migration is not.
+        if (ServerDirectory.instance.dueForRecheck) {
+          unawaited(_followServerDirective(live: true));
+        }
         // Reconcile native CallKit/ConnectionService cards against backend
         // truth on every resume, not just cold start (app.dart used to call
         // this once at session-attach only) — a call that ended while we
@@ -691,6 +735,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
       }
       return;
     }
+
+    // Ask where clients should be BEFORE opening a socket, so a device that
+    // has to move never connects to the deployment it is leaving. Bounded by
+    // [ServerDirectory.launchTimeout] — this sits in front of the first frame
+    // of real content, and silence means "carry on", never "wait longer".
+    //
+    // Cheap to get wrong in only one direction, which is why it is safe here:
+    // every failure path returns null and the app proceeds on the deployment
+    // it already had. That includes a backend with no `serverDirectory`
+    // function, which is what every deployment looks like until it is deployed.
+    await _followServerDirective();
 
     final initErr = await _cv.initialize();
     if (initErr == null) _health.start();

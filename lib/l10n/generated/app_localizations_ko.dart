@@ -6239,7 +6239,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverAlreadyConnectedCta => '이미 연결됨';
 
   @override
-  String get serverUseDefaultCta => '기본 서버로 돌아가기';
+  String get serverUseDefaultCta => '기본 서버 사용';
 
   @override
   String get serverChangeCta => '서버 변경';
@@ -6280,26 +6280,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get serverSwitchWarningBody =>
-      '계정과 대화는 한 서버에 속합니다. 이 기기는 로그아웃하고, 내려받은 것을 지우고, 새 서버에서 처음부터 시작합니다. 어느 서버에서도 데이터가 삭제되지는 않습니다.';
-
-  @override
-  String get serverSwitchPhaseDetaching => '이전 서버에서 로그아웃하는 중…';
-
-  @override
-  String get serverSwitchPhaseSaving => '저장 중…';
-
-  @override
-  String get serverSwitchPhaseConnecting => '연결 중…';
-
-  @override
-  String get serverSwitchPhaseRollingBack => '이전 서버로 되돌리는 중…';
+      '계정과 대화는 한 서버에 속합니다. 이 기기는 로그아웃하고, 내려받은 것을 지우고, 처음부터 시작합니다. 어느 서버에서도 데이터가 삭제되지는 않습니다.';
 
   @override
   String get serverSwitchRolledBackTitle => '연결하지 못했습니다';
 
   @override
   String serverSwitchRolledBackBody(String host) {
-    return '$host에서 응답이 없어 이전 서버로 돌아왔습니다. 다시 로그인해야 합니다.';
+    return '$host에서 응답이 없어 아무것도 바뀌지 않았습니다. 다시 로그인해야 합니다.';
   }
 
   @override
@@ -6322,4 +6310,47 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get settingsScreenSectionAdvanced => '고급';
+
+  @override
+  String get serverSwitchingLabel => '서버를 전환하는 중…';
+
+  @override
+  String get serverBadgeHomeserver => '홈서버에서 제공 중';
+
+  @override
+  String get serverBadgeHomeserverShort => '홈서버';
+
+  @override
+  String serverBadgeHomeserverSemantics(String server) {
+    return '$server 홈서버에서 제공 중입니다. 자세히 보려면 탭하세요.';
+  }
+
+  @override
+  String serverBadgeSelfHostedSemantics(String server) {
+    return '자체 호스팅 서버: $server. 자세히 보려면 탭하세요.';
+  }
+
+  @override
+  String get serverRoleHomeserverTitle => '홈서버에서 실행 중';
+
+  @override
+  String get serverRoleHomeserverBody =>
+      'MonkeyHub 운영진이 당분간 트래픽을 집에 있는 서버로 옮겼습니다. 동작은 그대로이며, 고장이 아니라 의도한 조치입니다.';
+
+  @override
+  String get serverRoleHomeserverWarnData =>
+      '이 상태에서 보낸 내용은 트래픽이 되돌아간 뒤 남아 있지 않을 수 있습니다.';
+
+  @override
+  String get serverRoleHomeserverWarnSpeed => '가정용 회선은 평소보다 느려서 지연이 생길 수 있습니다.';
+
+  @override
+  String get serverRoleHomeserverWarnAuto => '아무것도 하지 않아도 됩니다. 앱이 알아서 돌아갑니다.';
+
+  @override
+  String get serverRoleSelfHostedTitle => '내 서버';
+
+  @override
+  String get serverRoleSelfHostedBody =>
+      '이 기기는 직접 운영하는 서버를 가리킵니다. 설정 › 고급 › 서버 에서 바꿀 수 있습니다.';
 }

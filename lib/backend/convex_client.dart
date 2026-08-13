@@ -66,13 +66,21 @@ class ConvexBackend implements ConnectionProbe {
   /// still reachable. [ServerSwitch] owns that ordering; this method only
   /// handles the transport, and deliberately knows nothing about accounts.
   ///
-  /// Subscriptions still registered at this point are abandoned rather than
-  /// re-bound — see [SubscriptionRegistry.abandonAll] for why re-binding them
-  /// against a different backend would be actively wrong.
-  Future<Object?> rebind() async {
+  /// [keepSubscriptions] decides what happens to the query set, and the two
+  /// answers are not interchangeable:
+  ///
+  ///  * **false** (a self-hosting switch) — abandon it. Every entry carries
+  ///    args minted against the old backend, a userId or a roomId, and asking a
+  ///    stranger's server for documents by another server's ids is worse than
+  ///    asking nothing. The caller has signed out anyway.
+  ///  * **true** (following a directive between the primary and the home
+  ///    server) — re-register it. Those two hold replicated data, so every id
+  ///    is still valid and the session is still live; dropping the query set
+  ///    would blank the room list of a user who was told nothing happened.
+  Future<Object?> rebind({bool keepSubscriptions = false}) async {
     final target = ServerStore.instance.deploymentUrl;
     DiagLog.connection('rebind-server', 'switching to ${_hostOf(target)}');
-    _registry.abandonAll();
+    if (!keepSubscriptions) _registry.abandonAll();
     // Both are statements about a socket that is about to stop existing.
     _lastProbeOkAt = null;
     _lastForcedReconnectAt = null;
@@ -81,6 +89,17 @@ class ConvexBackend implements ConnectionProbe {
     _initError = null;
     _boundUrl = null;
     final err = await initialize();
+    if (err == null && keepSubscriptions) {
+      // Fire-and-forget, for the reason [reconnect] spells out at length: these
+      // subscribes are unbounded on a socket that has not handshaken yet, and
+      // the caller's contract is "a fresh transport exists". Stale binds are
+      // discarded by the registry's generation check.
+      unawaited(
+        _registry.rebindAll(++_generation).catchError((Object e) {
+          DiagLog.connection('rebind', 'failed: $e', sev: DiagSev.warn);
+        }),
+      );
+    }
     DiagLog.connection(
       'rebind-server',
       err == null ? 'ok (${_hostOf(target)})' : 'failed: $err',
