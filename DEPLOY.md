@@ -14,6 +14,51 @@ Space toggles, enter ships. Android means one thing now: an AAB to the Play
 internal testing track. The self-hosted APK is retired — see
 [Retired: the APK](#retired-the-apk).
 
+## Moving traffic between the two backends
+
+`./switchServer.sh` decides which of the two deployments every client talks to:
+the Oracle VPS (`termio-api.walhallaa.com`) or the home server
+(`monkeyhub-homeserver-api.walhallaa.com`). They hold replicated data, so a move
+is a reconnect — nobody is signed out and nothing is lost.
+
+```
+./switchServer.sh              pick interactively
+./switchServer.sh homeserver   move traffic to the home server (asks why — shown in the app)
+./switchServer.sh primary      bring everyone back to the VPS
+./switchServer.sh status       show where both stand, change nothing
+```
+
+It writes the directive row on **both** deployments, home server first. That
+order is not cosmetic: the VPS row is what clients read, so writing it last
+means the destination already agrees by the moment anyone is sent there.
+
+Clients apply it live — they subscribe to `serverDirectory:current` over the
+socket they already have, so a flip moves them within a second, with a toast.
+Ones already on the home server take up to ~30s, because a Convex subscription
+rides the socket and theirs is connected to the home server; they re-ask the
+VPS on a timer instead. See `backend/convex/serverDirectory.ts` and
+`lib/backend/server_directory.dart`.
+
+Credentials: the VPS comes from `backend/.env.local` like everything else. The
+home server's admin key is minted over SSH per run and never stored — there is
+no source checkout on that box, and there does not need to be. **A restore
+brings back data, not functions.** After restoring a snapshot there, deploy to
+it explicitly, or it will answer `Could not find public function` for anything
+added since:
+
+```
+key=$(ssh muratcankoc@192.168.68.107 'docker exec termio-clone-backend ./generate_admin_key.sh | tail -1')
+(cd backend && CONVEX_SELF_HOSTED_URL=https://monkeyhub-homeserver-api.walhallaa.com \
+   CONVEX_SELF_HOSTED_ADMIN_KEY="$key" npx convex deploy)
+```
+
+`SERVE_FROM` / `PRIMARY_URL` / `HOMESERVER_URL` / `SERVE_NOTE` env vars are a
+legacy fallback, read only when the row is absent. Prefer the row: env vars are
+a fine way to configure a backend and a hopeless way to notify one, because a
+Convex query invalidates on the database reads it made and a query over
+`process.env` recomputes for nobody. A leftover `SERVE_FROM=homeserver` also
+sits dormant and silently reactivates if the row is ever lost.
+
 ## One host, three paths
 
 ```
