@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "Igual ao de cima",
   "serverSectionRecent": "RECENTES",
   "serverRecentForget": "Esquecer este servidor",
-  "serverSectionBadge": "DISTINTIVO",
-  "serverBadgeStyleRibbon": "Faixa",
-  "serverBadgeStyleRibbonSub": "Uma faixa no canto superior. Não ocupa espaço, mas tapa esse canto.",
   "serverSwitchWarningTitle": "MUDAR TERMINA A SESSÃO",
   "serverSwitchWarningBody": "As contas e as conversas pertencem a um único servidor. Este dispositivo termina a sessão, limpa o que transferiu e começa de novo. Não se apaga nada em nenhum dos servidores.",
   "serverSwitchRolledBackTitle": "NÃO FOI POSSÍVEL LIGAR",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "AVANÇADO",
   "serverSwitchingLabel": "A mudar de servidor…",
   "serverBadgeHomeserver": "A servir a partir do homeserver",
-  "serverBadgeHomeserverShort": "HOMESERVER",
   "serverBadgeHomeserverSemantics": "A servir a partir do homeserver. Toque para saber mais.",
   "serverBadgeSelfHostedSemantics": "Servidor auto-alojado: {server}. Toque para saber mais.",
   "serverRoleHomeserverTitle": "A funcionar no homeserver",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "O seu próprio servidor",
   "serverRoleSelfHostedBody": "Este dispositivo aponta para um servidor seu. Altere em Definições › Avançado › Servidor.",
   "serverValueHomeserver": "Homeserver, para já",
-  "serverChoiceCloudSubHomeserver": "A ser servido a partir do homeserver durante algum tempo.",
-  "serverBadgeStyleBar": "Barra",
-  "serverBadgeStyleBarSub": "Uma faixa no topo. A aplicação fica por baixo, por isso não tapa nada."
+  "serverChoiceCloudSubHomeserver": "A ser servido a partir do homeserver durante algum tempo."
 }

@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "Igual ao de cima",
   "serverSectionRecent": "RECENTES",
   "serverRecentForget": "Esquecer este servidor",
-  "serverSectionBadge": "SELO",
-  "serverBadgeStyleRibbon": "Faixa",
-  "serverBadgeStyleRibbonSub": "Uma faixa no canto superior. Não ocupa espaço, mas cobre esse canto.",
   "serverSwitchWarningTitle": "TROCAR DESCONECTA VOCÊ",
   "serverSwitchWarningBody": "Contas e conversas pertencem a um único servidor. Este aparelho sai da conta, limpa o que baixou e começa do zero. Nada é excluído em nenhum dos servidores.",
   "serverSwitchRolledBackTitle": "NÃO FOI POSSÍVEL CONECTAR",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "AVANÇADO",
   "serverSwitchingLabel": "Trocando de servidor…",
   "serverBadgeHomeserver": "Servindo pelo homeserver",
-  "serverBadgeHomeserverShort": "HOMESERVER",
   "serverBadgeHomeserverSemantics": "Servindo pelo homeserver. Toque para saber mais.",
   "serverBadgeSelfHostedSemantics": "Servidor auto-hospedado: {server}. Toque para saber mais.",
   "serverRoleHomeserverTitle": "Rodando no homeserver",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "Seu próprio servidor",
   "serverRoleSelfHostedBody": "Este aparelho aponta para um servidor seu. Mude em Configurações › Avançado › Servidor.",
   "serverValueHomeserver": "Homeserver, por enquanto",
-  "serverChoiceCloudSubHomeserver": "Sendo servido pelo homeserver por um tempo.",
-  "serverBadgeStyleBar": "Barra",
-  "serverBadgeStyleBarSub": "Uma faixa no topo. O app fica embaixo, então não cobre nada."
+  "serverChoiceCloudSubHomeserver": "Sendo servido pelo homeserver por um tempo."
 }

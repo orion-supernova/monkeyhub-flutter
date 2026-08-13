@@ -6574,16 +6574,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get serverRecentForget => 'Esquecer este servidor';
 
   @override
-  String get serverSectionBadge => 'DISTINTIVO';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Faixa';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'Uma faixa no canto superior. Não ocupa espaço, mas tapa esse canto.';
-
-  @override
   String get serverSwitchWarningTitle => 'MUDAR TERMINA A SESSÃO';
 
   @override
@@ -6627,9 +6617,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get serverBadgeHomeserver => 'A servir a partir do homeserver';
 
   @override
-  String get serverBadgeHomeserverShort => 'HOMESERVER';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'A servir a partir do homeserver. Toque para saber mais.';
 
@@ -6670,13 +6657,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'A ser servido a partir do homeserver durante algum tempo.';
-
-  @override
-  String get serverBadgeStyleBar => 'Barra';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'Uma faixa no topo. A aplicação fica por baixo, por isso não tapa nada.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -13245,16 +13225,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get serverRecentForget => 'Esquecer este servidor';
 
   @override
-  String get serverSectionBadge => 'SELO';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Faixa';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'Uma faixa no canto superior. Não ocupa espaço, mas cobre esse canto.';
-
-  @override
   String get serverSwitchWarningTitle => 'TROCAR DESCONECTA VOCÊ';
 
   @override
@@ -13298,9 +13268,6 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get serverBadgeHomeserver => 'Servindo pelo homeserver';
 
   @override
-  String get serverBadgeHomeserverShort => 'HOMESERVER';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'Servindo pelo homeserver. Toque para saber mais.';
 
@@ -13341,11 +13308,4 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Sendo servido pelo homeserver por um tempo.';
-
-  @override
-  String get serverBadgeStyleBar => 'Barra';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'Uma faixa no topo. O app fica embaixo, então não cobre nada.';
 }

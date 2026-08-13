@@ -6335,7 +6335,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverScreenSubtitle =>
-      'hesabınızın ve mesajlarınızın bulunduğu yer';
+      'hesabınızın ve mesajlarınızın durduğu yer';
 
   @override
   String get serverOnboardingTitle => 'bir sunucu seçin.';
@@ -6399,7 +6399,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverInsecureBody =>
-      'Telefonlar düz http’yi engeller; bu adres iOS’ta da Android’de de bağlanmaz. https kullanın ya da sunucunuza bir tünel üzerinden ulaşın.';
+      'Telefonlar şifresiz http’yi engeller; bu adres iOS’ta da Android’de de bağlanmaz. https kullanın ya da sunucunuza bir tünel üzerinden ulaşın.';
 
   @override
   String get serverTestCta => 'BAĞLANTIYI SINA';
@@ -6465,17 +6465,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverRecentForget => 'Bu sunucuyu unut';
 
   @override
-  String get serverSectionBadge => 'ROZET';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Şerit';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'Üst köşeyi çaprazlayan bir şerit. Yer kaplamaz ama o köşeyi kapatır.';
-
-  @override
-  String get serverSwitchWarningTitle => 'DEĞİŞTİRMEK OTURUMU KAPATIR';
+  String get serverSwitchWarningTitle => 'SUNUCU DEĞİŞTİRMEK OTURUMU KAPATIR';
 
   @override
   String get serverSwitchWarningBody =>
@@ -6515,14 +6505,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverSwitchingLabel => 'Sunucu değiştiriliyor…';
 
   @override
-  String get serverBadgeHomeserver => 'Ev sunucusundan sunuluyor';
-
-  @override
-  String get serverBadgeHomeserverShort => 'EV SUNUCUSU';
+  String get serverBadgeHomeserver => 'Şu an ev sunucusundan yayında';
 
   @override
   String get serverBadgeHomeserverSemantics =>
-      'Ev sunucusundan sunuluyor. Ayrıntılar için dokunun.';
+      'Şu an ev sunucusundan yayında. Ayrıntılar için dokunun.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6534,11 +6521,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverRoleHomeserverBody =>
-      'MonkeyHub\'ı işletenler trafiği bir süreliğine evdeki sunucularına aldı. Her şey aynı şekilde çalışıyor — bu bilinçli bir tercih, arıza değil.';
+      'MonkeyHub’ı işletenler bir süreliğine trafiği evdeki sunucularına aldı. Her şey aynı şekilde çalışıyor; bu bilinçli bir tercih, arıza değil.';
 
   @override
   String get serverRoleHomeserverWarnData =>
-      'Bu sürede gönderdikleriniz, trafik geri alındıktan sonra burada olmayabilir.';
+      'Bu sürede gönderdikleriniz, trafik geri alındığında burada olmayabilir.';
 
   @override
   String get serverRoleHomeserverWarnSpeed =>
@@ -6546,26 +6533,19 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverRoleHomeserverWarnAuto =>
-      'Bir şey yapmanıza gerek yok. Uygulama kendiliğinden geri döner.';
+      'Bir şey yapmanıza gerek yok; uygulama kendiliğinden geri döner.';
 
   @override
   String get serverRoleSelfHostedTitle => 'Kendi sunucunuz';
 
   @override
   String get serverRoleSelfHostedBody =>
-      'Bu cihaz kendi işlettiğiniz bir sunucuya bakıyor. Ayarlar › Gelişmiş › Sunucu içinden değiştirin.';
+      'Bu cihaz sizin işlettiğiniz bir sunucuya bağlı. Ayarlar › Gelişmiş › Sunucu bölümünden değiştirebilirsiniz.';
 
   @override
   String get serverValueHomeserver => 'Şimdilik ev sunucusu';
 
   @override
   String get serverChoiceCloudSubHomeserver =>
-      'Bir süreliğine ev sunucusundan sunuluyor.';
-
-  @override
-  String get serverBadgeStyleBar => 'Çubuk';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'Üstte bir şerit. Uygulama altından başlar, hiçbir şeyi kapatmaz.';
+      'Bir süreliğine ev sunucusundan yayında.';
 }

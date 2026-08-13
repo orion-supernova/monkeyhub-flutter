@@ -195,19 +195,49 @@ void main() {
       expect(target, isNull);
     });
 
-    test('asks the deployment it is on, not a hardcoded one', () async {
-      // What lets a client that already followed to the home server be brought
-      // back: it asks the home server, so flipping the env var there is what
-      // returns everyone.
-      Uri? asked;
-      await ServerDirectory.forTest(
+    test('asks the primary first, even from the home server', () async {
+      // The bug this replaced: the check asked whichever deployment the app was
+      // already on, so a client that had followed to the home server could only
+      // be brought back by the HOME SERVER agreeing to send it back. Flipping
+      // SERVE_FROM on the VPS alone — the obvious thing to do — moved nobody.
+      final asked = <String>[];
+      final target = await ServerDirectory.forTest(
         client: MockClient((req) async {
-          asked = req.url;
+          asked.add(req.url.host);
           return http.Response(envelope({'serve': 'primary'}), 200);
         }),
       ).check(askUrl: homeserver.deploymentUrl);
-      expect(asked.toString(), startsWith(homeserver.deploymentUrl));
-      expect(asked!.path, '/api/query');
+      expect(asked, [KnownHosts.primaryHost]);
+      expect(target!.host, KnownHosts.primaryHost);
+    });
+
+    test('falls back to where it is when the primary is silent', () async {
+      // The case the home server exists for. A client on it still has to be
+      // able to learn things while the VPS is unreachable.
+      final asked = <String>[];
+      final target = await ServerDirectory.forTest(
+        client: MockClient((req) async {
+          asked.add(req.url.host);
+          if (req.url.host == KnownHosts.primaryHost) {
+            throw http.ClientException('Connection refused');
+          }
+          return http.Response(envelope({'serve': 'homeserver'}), 200);
+        }),
+      ).check(askUrl: homeserver.deploymentUrl);
+      expect(asked, [KnownHosts.primaryHost, KnownHosts.homeserverHost]);
+      // Already there, so nothing to do — but the directive was still read.
+      expect(target, isNull);
+    });
+
+    test('does not ask twice when it is already on the primary', () async {
+      final asked = <String>[];
+      await ServerDirectory.forTest(
+        client: MockClient((req) async {
+          asked.add(req.url.host);
+          throw http.ClientException('Connection refused');
+        }),
+      ).check(askUrl: primary.deploymentUrl);
+      expect(asked, [KnownHosts.primaryHost]);
     });
 
     test('remembers the directive, including the note', () async {

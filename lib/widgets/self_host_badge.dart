@@ -1,16 +1,13 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
-import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../main.dart' show rootNavigatorKey;
 import '../theme/theme_scope.dart';
 import 'server_role_sheet.dart';
 
-/// The palette the mark paints in, chosen per [ServerRole].
+/// The palette the bar paints in, chosen per [ServerRole].
 ///
 /// Deliberately NOT `theme.accent`. The accent is what every ordinary control
 /// in the app is drawn in, so a marker wearing it reads as one more piece of
@@ -20,7 +17,7 @@ import 'server_role_sheet.dart';
 class _Palette {
   const _Palette({required this.ink, required this.fill, required this.border});
 
-  /// Text, dot, and the ribbon's own field.
+  /// Text and dot.
   final Color ink;
 
   /// The backing. Near-opaque, and dark under every theme: the bar sits behind
@@ -50,33 +47,24 @@ class _Palette {
 
   static _Palette of(ServerRole role) =>
       role == ServerRole.homeserver ? homeserver : selfHosted;
-
-  /// Text on top of a solid [ink] field — the ribbon's label. Near-black rather
-  /// than white: amber at this weight is far too light to carry white text.
-  static const onInk = Color(0xFF141414);
 }
 
-/// What the mark says, given where the app is pointed.
+/// What the bar says, given where the app is pointed.
 ///
-/// Split out because several surfaces need the same answer, and getting it
-/// wrong in one of them leaks a deployment URL. The operator's addresses are
-/// infrastructure; only a server the user typed in themselves is theirs to see.
-/// See [ServerStore.isSelfHosted].
-({String long, String short, String semantics}) serverMarkLabels(
-  BuildContext context,
-) {
+/// Its own function because getting it wrong leaks a deployment URL. The
+/// operator's addresses are infrastructure; only a server the user typed in
+/// themselves is theirs to see. See [ServerStore.isSelfHosted].
+({String label, String semantics}) serverMarkLabels(BuildContext context) {
   final l10n = AppLocalizations.of(context);
   final store = ServerStore.instance;
   if (store.role == ServerRole.homeserver) {
     return (
-      long: l10n.serverBadgeHomeserver,
-      short: l10n.serverBadgeHomeserverShort,
+      label: l10n.serverBadgeHomeserver,
       semantics: l10n.serverBadgeHomeserverSemantics,
     );
   }
   return (
-    long: shortHost(store.host, max: 28),
-    short: l10n.serverBadgeSelfHosted,
+    label: shortHost(store.host, max: 28),
     semantics: l10n.serverBadgeSelfHostedSemantics(store.host),
   );
 }
@@ -92,7 +80,9 @@ class _Palette {
 /// system composites its glyphs last and no app can paint above them. A chip
 /// below the strip lands on whatever the current route put in its top-right. A
 /// corner ribbon large enough to be tappable sweeps through where full-screen
-/// routes put their close button.
+/// routes put their close button — and it is the reason there is no longer a
+/// choice of shape here: an option that collides with the app is not a taste
+/// someone should have to hold.
 ///
 /// A bar has none of those problems, because it overlaps nothing: it takes its
 /// own height out of the layout and the app begins below it. It also gives the
@@ -108,15 +98,10 @@ class _Palette {
 /// SafeArea on every screen adds nothing and content is not inset twice. That
 /// pairing is load-bearing: see [consumesTopInset].
 class SelfHostBar extends StatelessWidget {
-  const SelfHostBar({super.key, this.onTap, this.style});
+  const SelfHostBar({super.key, this.onTap});
 
   /// Overrides what a tap opens. Test seam; production opens the info sheet.
   final VoidCallback? onTap;
-
-  /// Forces a style instead of reading the user's. Test seam only — writing the
-  /// preference goes through secure storage, whose reply never arrives under a
-  /// widget test's fake clock, so a test that set it would simply hang.
-  final SelfHostBadgeStyle? style;
 
   /// Height of the bar's content, below the status-bar inset.
   ///
@@ -129,18 +114,11 @@ class SelfHostBar extends StatelessWidget {
   /// `app.dart` reads this to decide whether to remove `padding.top` from the
   /// subtree below. The two must agree, or the app is inset either twice or not
   /// at all, so neither side is allowed its own copy of the condition.
-  static bool get consumesTopInset =>
-      consumesTopInsetFor(SettingsStore.instance.selfHostBadge);
-
-  /// The same question against an explicit style, for the test seam.
-  static bool consumesTopInsetFor(SelfHostBadgeStyle style) =>
-      ServerStore.instance.announcesRole && style == SelfHostBadgeStyle.bar;
+  static bool get consumesTopInset => ServerStore.instance.announcesRole;
 
   @override
   Widget build(BuildContext context) {
-    if (!consumesTopInsetFor(style ?? SettingsStore.instance.selfHostBadge)) {
-      return const SizedBox.shrink();
-    }
+    if (!consumesTopInset) return const SizedBox.shrink();
     final theme = ThemeScope.of(context);
     final store = ServerStore.instance;
     final palette = _Palette.of(store.role);
@@ -182,7 +160,7 @@ class SelfHostBar extends StatelessWidget {
                 // them. It still may not push the glyph off the end.
                 Flexible(
                   child: Text(
-                    labels.long,
+                    labels.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.monoTiny.copyWith(
@@ -204,291 +182,9 @@ class SelfHostBar extends StatelessWidget {
   }
 }
 
-/// The corner-ribbon alternative: an overlay that takes no height.
-///
-/// Renders nothing unless the ribbon style is selected, so the app can mount
-/// both this and [SelfHostBar] unconditionally and let the preference decide
-/// which appears.
-///
-/// Two rules keep an overlay in the top-right corner from being a bug in
-/// itself:
-///
-///  * **It only takes taps on the shape it paints.** The gesture detector sits
-///    INSIDE the rotation, so the extreme corner — where a close button goes —
-///    passes pointers straight through. The tests assert exactly that.
-///  * **It never draws a debug underline.** Overlay content sits outside any
-///    route's Material, so its own [Material] + [DefaultTextStyle] are
-///    load-bearing, not decoration.
-class SelfHostBadge extends StatelessWidget {
-  const SelfHostBadge({super.key, this.onTap, this.style});
-
-  /// Overrides what a tap opens. Test seam; production opens the info sheet.
-  final VoidCallback? onTap;
-
-  /// Forces a style instead of reading the user's. Test seam — see
-  /// [SelfHostBar.style].
-  final SelfHostBadgeStyle? style;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([
-        ServerStore.instance,
-        SettingsStore.instance,
-      ]),
-      builder: (context, _) {
-        final store = ServerStore.instance;
-        if (!store.announcesRole) return const SizedBox.shrink();
-        final shape = style ?? SettingsStore.instance.selfHostBadge;
-        if (shape != SelfHostBadgeStyle.ribbon) {
-          return const SizedBox.shrink();
-        }
-        final theme = ThemeScope.of(context);
-        final labels = serverMarkLabels(context);
-        return Positioned(
-          top: 0,
-          right: 0,
-          child: Material(
-            type: MaterialType.transparency,
-            child: DefaultTextStyle(
-              style: theme.monoTiny,
-              child: _Ribbon(
-                label: labels.short,
-                semanticLabel: labels.semantics,
-                palette: _Palette.of(store.role),
-                onTap: onTap ?? () => showServerRoleSheet(context),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// A scaled-down copy of the real thing, for the picker on the server screen.
-///
-/// Renders the SAME widgets the app draws, shrunk — never a hand-drawn
-/// miniature. A separately-authored preview is one that can disagree with the
-/// thing it previews, and that is not hypothetical here: an early version of
-/// this file had the ribbon rotated one way and its miniature rotated the
-/// other, so neither could flag the other and only a render caught it.
-class SelfHostBadgePreview extends StatelessWidget {
-  const SelfHostBadgePreview({
-    super.key,
-    required this.style,
-    required this.label,
-    required this.role,
-  });
-
-  final SelfHostBadgeStyle style;
-  final String label;
-  final ServerRole role;
-
-  static const double width = 74;
-  static const double height = 44;
-
-  /// Enough that the corner reads at this size, and small enough that the
-  /// ribbon's square fits inside the frame.
-  static const double _scale = 0.5;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final palette = _Palette.of(role);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: ColoredBox(
-          color: theme.surfaceSunken,
-          child: switch (style) {
-            // A miniature of the LAYOUT, not of the widget. What distinguishes
-            // the bar is that the app sits under it, and a picture of the strip
-            // on its own would not show the thing being chosen.
-            SelfHostBadgeStyle.bar => Column(
-              children: [
-                Container(
-                  height: 9,
-                  decoration: BoxDecoration(
-                    color: palette.fill,
-                    border: Border(
-                      bottom: BorderSide(color: palette.border, width: 0.5),
-                    ),
-                  ),
-                  child: Center(
-                    child: Container(width: 26, height: 2, color: palette.ink),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(6, 5, 6, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final w in const [1.0, 0.7, 0.85])
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: w,
-                              child: Container(height: 3, color: theme.divider),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SelfHostBadgeStyle.ribbon => Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Transform.scale(
-                    scale: _scale,
-                    alignment: Alignment.topRight,
-                    child: _Ribbon(
-                      label: label,
-                      semanticLabel: label,
-                      palette: palette,
-                      onTap: null,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          },
-        ),
-      ),
-    );
-  }
-}
-
-/// A corner band, at Flutter's debug-banner angle.
-class _Ribbon extends StatelessWidget {
-  const _Ribbon({
-    required this.label,
-    required this.semanticLabel,
-    required this.palette,
-    required this.onTap,
-  });
-
-  final String label;
-  final String semanticLabel;
-  final _Palette palette;
-  final VoidCallback? onTap;
-
-  /// Side of the square corner the ribbon is drawn inside. Big enough to
-  /// contain the band at [_fromCorner] with room to clip both ends.
-  static const double _side = 132;
-
-  /// Band thickness.
-  ///
-  /// Nearly three times Flutter's BannerPainter, and the reason is the touch
-  /// target rather than legibility. The reachable part of a corner band is the
-  /// part below the status-bar inset, and a band's width there falls off as you
-  /// move toward the corner — at the 17pt this started at, a 47pt inset left a
-  /// sliver. Thickening it widens that whole triangle.
-  static const double _band = 32;
-
-  /// Perpendicular distance from the screen corner to the band's centre line.
-  ///
-  /// The number the geometry lives or dies on, and it is only checkable by
-  /// rendering. Flutter's own banner uses ~28 here; this is a little further
-  /// out because the band is thicker, and the two have to be moved together:
-  ///
-  ///  * Too small and the band straddles the corner, painting half of itself
-  ///    off-screen.
-  ///  * Too large — the 64 this briefly had — and it stops being a corner cut.
-  ///    The corner itself goes empty, the band slides down and left into the
-  ///    middle of the screen, and it reads as a stripe someone left lying
-  ///    across the UI. It also stopped overlapping the status glyphs at all,
-  ///    which is the one thing this shape is for.
-  static const double _fromCorner = 40;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    // Corner is local (_side, 0); its inward bisector is (-1, 1)/√2. Put the
-    // band's centre [_fromCorner] along that, then lay the band ACROSS it —
-    // perpendicular to the bisector, which is the "\" direction, i.e. a
-    // clockwise quarter-turn. Getting that sign wrong points the band along the
-    // bisector instead of across it, and the ribbon slides off the corner
-    // entirely with one end squared off mid-screen.
-    const inset = _fromCorner / math.sqrt2;
-    const cx = _side - inset;
-    const cy = inset;
-    // Longer than the corner's hypotenuse so both ends are cut by the clip
-    // rather than stopping short of an edge.
-    const length = _side * 1.8;
-    return SizedBox(
-      width: _side,
-      height: _side,
-      child: ClipRect(
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: cx - length / 2,
-              top: cy - _band / 2,
-              width: length,
-              height: _band,
-              child: Transform.rotate(
-                angle: math.pi / 4,
-                // INSIDE the rotation, so the hit area is the band and not the
-                // square it lives in. The extreme corner — where a close button
-                // would be — has no band under it and passes pointers through.
-                // `Transform` maps hit tests through its matrix, so this works
-                // without any manual hit-test maths.
-                child: GestureDetector(
-                  onTap: onTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: Semantics(
-                    container: true,
-                    button: onTap != null,
-                    label: semanticLabel,
-                    excludeSemantics: true,
-                    child: Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: palette.ink,
-                        boxShadow: [
-                          BoxShadow(
-                            color: theme.background.withValues(alpha: 0.45),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                        style: theme.monoTiny.copyWith(
-                          color: _Palette.onInk,
-                          letterSpacing: 1.2,
-                          fontSize: 9,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Open the explanation for whichever server this install is on.
 ///
-/// Routed through the ROOT navigator because the mark can live above it, in
+/// Routed through the ROOT navigator because the bar sits above it, in
 /// `MaterialApp.builder`, where `Navigator.of(context)` finds nothing.
 void showServerRoleSheet(BuildContext context) {
   final nav = rootNavigatorKey.currentState;

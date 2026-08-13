@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "Comme ci-dessus",
   "serverSectionRecent": "RÉCENTS",
   "serverRecentForget": "Oublier ce serveur",
-  "serverSectionBadge": "MARQUEUR",
-  "serverBadgeStyleRibbon": "Bandeau",
-  "serverBadgeStyleRibbonSub": "Un bandeau dans le coin supérieur. Ne prend pas de place, mais masque ce coin.",
   "serverSwitchWarningTitle": "CHANGER VOUS DÉCONNECTE",
   "serverSwitchWarningBody": "Les comptes et les conversations appartiennent à un seul serveur. Cet appareil se déconnecte, efface ce qu'il a téléchargé et repart de zéro. Rien n'est supprimé sur l'un ou l'autre serveur.",
   "serverSwitchRolledBackTitle": "CONNEXION IMPOSSIBLE",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "AVANCÉ",
   "serverSwitchingLabel": "Changement de serveur…",
   "serverBadgeHomeserver": "Servi depuis le homeserver",
-  "serverBadgeHomeserverShort": "HOMESERVER",
   "serverBadgeHomeserverSemantics": "Servi depuis le homeserver. Touchez pour en savoir plus.",
   "serverBadgeSelfHostedSemantics": "Serveur auto-hébergé : {server}. Touchez pour en savoir plus.",
   "serverRoleHomeserverTitle": "En cours sur le homeserver",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "Votre propre serveur",
   "serverRoleSelfHostedBody": "Cet appareil pointe vers un serveur que vous gérez. Modifiez-le dans Réglages › Avancé › Serveur.",
   "serverValueHomeserver": "Homeserver, pour le moment",
-  "serverChoiceCloudSubHomeserver": "Servi depuis le homeserver pour un temps.",
-  "serverBadgeStyleBar": "Barre",
-  "serverBadgeStyleBarSub": "Une bande en haut. L'application commence en dessous, donc elle ne masque rien."
+  "serverChoiceCloudSubHomeserver": "Servi depuis le homeserver pour un temps."
 }

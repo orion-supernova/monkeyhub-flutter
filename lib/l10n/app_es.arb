@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "Igual que arriba",
   "serverSectionRecent": "RECIENTES",
   "serverRecentForget": "Olvidar este servidor",
-  "serverSectionBadge": "DISTINTIVO",
-  "serverBadgeStyleRibbon": "Cinta",
-  "serverBadgeStyleRibbonSub": "Una banda en la esquina superior. No ocupa espacio, pero tapa esa esquina.",
   "serverSwitchWarningTitle": "CAMBIAR CIERRA TU SESIÓN",
   "serverSwitchWarningBody": "Las cuentas y los chats pertenecen a un solo servidor. Este dispositivo cierra sesión, borra lo que descargó y empieza de cero. No se borra nada en ninguno de los dos servidores.",
   "serverSwitchRolledBackTitle": "NO SE PUDO CONECTAR",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "AVANZADO",
   "serverSwitchingLabel": "Cambiando de servidor…",
   "serverBadgeHomeserver": "Sirviendo desde el homeserver",
-  "serverBadgeHomeserverShort": "HOMESERVER",
   "serverBadgeHomeserverSemantics": "Sirviendo desde el homeserver. Toca para ver los detalles.",
   "serverBadgeSelfHostedSemantics": "Servidor autoalojado: {server}. Toca para ver los detalles.",
   "serverRoleHomeserverTitle": "Funcionando en el homeserver",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "Tu propio servidor",
   "serverRoleSelfHostedBody": "Este dispositivo apunta a un servidor tuyo. Cámbialo en Ajustes › Avanzado › Servidor.",
   "serverValueHomeserver": "Homeserver, por ahora",
-  "serverChoiceCloudSubHomeserver": "Se está sirviendo desde el homeserver por un tiempo.",
-  "serverBadgeStyleBar": "Barra",
-  "serverBadgeStyleBarSub": "Una franja en la parte superior. La app queda debajo, así que no tapa nada."
+  "serverChoiceCloudSubHomeserver": "Se está sirviendo desde el homeserver por un tiempo."
 }

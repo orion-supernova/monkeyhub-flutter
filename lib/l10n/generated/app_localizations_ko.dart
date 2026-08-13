@@ -6261,16 +6261,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverRecentForget => '이 서버 지우기';
 
   @override
-  String get serverSectionBadge => '배지';
-
-  @override
-  String get serverBadgeStyleRibbon => '리본';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      '오른쪽 위 모서리를 가로지르는 띠. 자리를 차지하지 않지만 그 모서리를 가립니다.';
-
-  @override
   String get serverSwitchWarningTitle => '서버를 바꾸면 로그아웃됩니다';
 
   @override
@@ -6313,9 +6303,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get serverBadgeHomeserver => '홈서버에서 제공 중';
 
   @override
-  String get serverBadgeHomeserverShort => '홈서버';
-
-  @override
   String get serverBadgeHomeserverSemantics => '홈서버에서 제공 중입니다. 자세히 보려면 탭하세요.';
 
   @override
@@ -6352,11 +6339,4 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => '당분간 홈서버에서 제공되고 있습니다.';
-
-  @override
-  String get serverBadgeStyleBar => '바';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      '화면 상단의 띠. 앱이 그 아래에서 시작하므로 아무것도 가리지 않습니다.';
 }

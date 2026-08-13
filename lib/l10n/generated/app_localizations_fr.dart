@@ -6602,16 +6602,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get serverRecentForget => 'Oublier ce serveur';
 
   @override
-  String get serverSectionBadge => 'MARQUEUR';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Bandeau';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'Un bandeau dans le coin supérieur. Ne prend pas de place, mais masque ce coin.';
-
-  @override
   String get serverSwitchWarningTitle => 'CHANGER VOUS DÉCONNECTE';
 
   @override
@@ -6655,9 +6645,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get serverBadgeHomeserver => 'Servi depuis le homeserver';
 
   @override
-  String get serverBadgeHomeserverShort => 'HOMESERVER';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'Servi depuis le homeserver. Touchez pour en savoir plus.';
 
@@ -6698,11 +6685,4 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Servi depuis le homeserver pour un temps.';
-
-  @override
-  String get serverBadgeStyleBar => 'Barre';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'Une bande en haut. L\'application commence en dessous, donc elle ne masque rien.';
 }

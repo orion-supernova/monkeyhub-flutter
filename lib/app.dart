@@ -1243,14 +1243,6 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                                     // form over a half-built tree.
                                     if (_bootstrapped && _bootError == null)
                                       ShakeToReport(auth: _auth, api: _api),
-                                    // The corner-ribbon alternative to the bar
-                                    // above. Exactly one of the two ever draws;
-                                    // both are mounted so the preference alone
-                                    // decides. Ungated by bootstrap state on
-                                    // purpose — the boot error is precisely
-                                    // where knowing which server you are on
-                                    // matters most.
-                                    const SelfHostBadge(),
                                   ],
                                 ),
                               ),

@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "上と同じ",
   "serverSectionRecent": "最近",
   "serverRecentForget": "このサーバーを削除",
-  "serverSectionBadge": "バッジ",
-  "serverBadgeStyleRibbon": "リボン",
-  "serverBadgeStyleRibbonSub": "右上隅を横切る帯。場所は取りませんが、その隅を覆います。",
   "serverSwitchWarningTitle": "切り替えるとサインアウトします",
   "serverSwitchWarningBody": "アカウントとチャットは 1 つのサーバーに属します。この端末はサインアウトし、ダウンロード済みのデータを消して、最初から始めます。どちらのサーバー上のデータも削除されません。",
   "serverSwitchRolledBackTitle": "接続できませんでした",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "詳細設定",
   "serverSwitchingLabel": "サーバーを切り替えています…",
   "serverBadgeHomeserver": "ホームサーバーで稼働中",
-  "serverBadgeHomeserverShort": "ホームサーバー",
   "serverBadgeHomeserverSemantics": "ホームサーバーで稼働中です。詳細はタップしてください。",
   "serverBadgeSelfHostedSemantics": "セルフホストのサーバー: {server}。詳細はタップしてください。",
   "serverRoleHomeserverTitle": "ホームサーバーで動作中",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "自分のサーバー",
   "serverRoleSelfHostedBody": "この端末はご自分のサーバーを指しています。設定 › 詳細設定 › サーバー で変更できます。",
   "serverValueHomeserver": "当面はホームサーバー",
-  "serverChoiceCloudSubHomeserver": "しばらくのあいだホームサーバーから提供されています。",
-  "serverBadgeStyleBar": "バー",
-  "serverBadgeStyleBarSub": "画面上部の帯。アプリはその下から始まるので、何も覆いません。"
+  "serverChoiceCloudSubHomeserver": "しばらくのあいだホームサーバーから提供されています。"
 }

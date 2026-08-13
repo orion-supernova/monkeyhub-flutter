@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "Samma som ovan",
   "serverSectionRecent": "SENASTE",
   "serverRecentForget": "Glöm den här servern",
-  "serverSectionBadge": "MÄRKE",
-  "serverBadgeStyleRibbon": "Banderoll",
-  "serverBadgeStyleRibbonSub": "En banderoll i övre hörnet. Tar ingen plats, men täcker det hörnet.",
   "serverSwitchWarningTitle": "BYTE LOGGAR UT DIG",
   "serverSwitchWarningBody": "Konton och chattar hör till en enda server. Den här enheten loggas ut, rensar det den laddat ner och börjar om. Inget raderas på någon av servrarna.",
   "serverSwitchRolledBackTitle": "KUNDE INTE ANSLUTA",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "AVANCERAT",
   "serverSwitchingLabel": "Byter server…",
   "serverBadgeHomeserver": "Körs från hemservern",
-  "serverBadgeHomeserverShort": "HEMSERVER",
   "serverBadgeHomeserverSemantics": "Körs från hemservern. Tryck för detaljer.",
   "serverBadgeSelfHostedSemantics": "Egen server: {server}. Tryck för detaljer.",
   "serverRoleHomeserverTitle": "Kör på hemservern",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "Din egen server",
   "serverRoleSelfHostedBody": "Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server.",
   "serverValueHomeserver": "Hemservern, tills vidare",
-  "serverChoiceCloudSubHomeserver": "Levereras från hemservern ett tag.",
-  "serverBadgeStyleBar": "Rad",
-  "serverBadgeStyleBarSub": "En rad högst upp. Appen börjar under den, så den täcker ingenting."
+  "serverChoiceCloudSubHomeserver": "Levereras från hemservern ett tag."
 }

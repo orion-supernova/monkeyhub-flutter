@@ -8,14 +8,12 @@ import '../backend/server_endpoint.dart';
 import '../backend/server_probe.dart';
 import '../backend/server_store.dart';
 import '../backend/server_switch.dart';
-import '../data/settings_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
-import '../widgets/self_host_badge.dart' show SelfHostBadgePreview;
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -110,7 +108,6 @@ class _ServerScreenState extends State<ServerScreen> {
       }
     }
     ServerStore.instance.addListener(_onStores);
-    SettingsStore.instance.addListener(_onStores);
     ServerSwitch.instance.addListener(_onStores);
     widget._health?.addListener(_onStores);
   }
@@ -118,7 +115,6 @@ class _ServerScreenState extends State<ServerScreen> {
   @override
   void dispose() {
     ServerStore.instance.removeListener(_onStores);
-    SettingsStore.instance.removeListener(_onStores);
     ServerSwitch.instance.removeListener(_onStores);
     widget._health?.removeListener(_onStores);
     _address.dispose();
@@ -332,7 +328,6 @@ class _ServerScreenState extends State<ServerScreen> {
                   ],
 
                   ..._recentSection(l10n, switching),
-                  ..._badgeSection(l10n),
 
                   const SizedBox(height: 24),
                   _Notice(
@@ -554,49 +549,6 @@ class _ServerScreenState extends State<ServerScreen> {
       ],
     ];
   }
-
-  // ───────── badge style ─────────
-
-  List<Widget> _badgeSection(AppLocalizations l10n) {
-    // Nothing to configure while the badge is not being drawn — on the
-    // ordinary deployment, and during onboarding where no server exists yet.
-    if (!ServerStore.instance.announcesRole) return const [];
-    final role = ServerStore.instance.role;
-    final homeserver = role == ServerRole.homeserver;
-    final active = SettingsStore.instance.selfHostBadge;
-    return [
-      const SizedBox(height: 28),
-      _SectionHeader(label: l10n.serverSectionBadge),
-      const SizedBox(height: 12),
-      _BadgeStyleCard(
-        label: l10n.serverBadgeStyleBar,
-        sub: l10n.serverBadgeStyleBarSub,
-        selected: active == SelfHostBadgeStyle.bar,
-        preview: SelfHostBadgePreview(
-          style: SelfHostBadgeStyle.bar,
-          role: role,
-          label: '',
-        ),
-        onTap: () =>
-            SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.bar),
-      ),
-      const SizedBox(height: 12),
-      _BadgeStyleCard(
-        label: l10n.serverBadgeStyleRibbon,
-        sub: l10n.serverBadgeStyleRibbonSub,
-        selected: active == SelfHostBadgeStyle.ribbon,
-        preview: SelfHostBadgePreview(
-          style: SelfHostBadgeStyle.ribbon,
-          role: role,
-          label: homeserver
-              ? l10n.serverBadgeHomeserverShort
-              : l10n.serverBadgeSelfHosted,
-        ),
-        onTap: () =>
-            SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.ribbon),
-      ),
-    ];
-  }
 }
 
 // ═════════════════════════ pieces ═════════════════════════
@@ -652,7 +604,7 @@ class _ActiveServerCard extends StatelessWidget {
               Text(
                 switch (store.role) {
                   ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
-                  ServerRole.homeserver => l10n.serverBadgeHomeserverShort,
+                  ServerRole.homeserver => l10n.serverValueHomeserver,
                   ServerRole.primary => l10n.serverBadgeDefault,
                 },
                 style: theme.monoTiny.copyWith(
@@ -1124,66 +1076,6 @@ class _RecentRow extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BadgeStyleCard extends StatelessWidget {
-  const _BadgeStyleCard({
-    required this.label,
-    required this.sub,
-    required this.selected,
-    required this.preview,
-    required this.onTap,
-  });
-  final String label;
-  final String sub;
-  final bool selected;
-  final Widget preview;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    return FocusableTap(
-      onTap: onTap,
-      radius: theme.radiusLg,
-      semanticLabel: label,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: theme.motionFast,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(theme.radiusLg),
-            border: Border.all(
-              color: selected ? theme.accent : theme.divider,
-              width: selected ? 1.6 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: theme.label),
-                    const SizedBox(height: 6),
-                    Text(sub, style: theme.monoTiny),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              // The real thing, scaled down — not a drawing of it. Which of the
-              // two takes space from the app is the entire decision, and
-              // nothing settles it as fast as seeing them side by side.
-              preview,
-            ],
-          ),
-        ),
       ),
     );
   }

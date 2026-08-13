@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "نفس ما سبق",
   "serverSectionRecent": "الأخيرة",
   "serverRecentForget": "انسَ هذا الخادم",
-  "serverSectionBadge": "الشارة",
-  "serverBadgeStyleRibbon": "شريط",
-  "serverBadgeStyleRibbonSub": "شريط عبر الزاوية العلوية. لا يشغل مساحة، لكنه يغطي تلك الزاوية.",
   "serverSwitchWarningTitle": "التبديل يسجّل خروجك",
   "serverSwitchWarningBody": "الحسابات والمحادثات تخصّ خادمًا واحدًا. سيسجّل هذا الجهاز الخروج، ويمسح ما نزّله، ويبدأ من جديد. ولن يُحذف أي شيء على أي من الخادمين.",
   "serverSwitchRolledBackTitle": "تعذّر الاتصال",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "خيارات متقدمة",
   "serverSwitchingLabel": "جارٍ تبديل الخادم…",
   "serverBadgeHomeserver": "يعمل من الخادم المنزلي",
-  "serverBadgeHomeserverShort": "الخادم المنزلي",
   "serverBadgeHomeserverSemantics": "يعمل من الخادم المنزلي. اضغط للتفاصيل.",
   "serverBadgeSelfHostedSemantics": "خادم باستضافة ذاتية: {server}. اضغط للتفاصيل.",
   "serverRoleHomeserverTitle": "يعمل على الخادم المنزلي",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "خادمك الخاص",
   "serverRoleSelfHostedBody": "هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم.",
   "serverValueHomeserver": "الخادم المنزلي، مؤقتًا",
-  "serverChoiceCloudSubHomeserver": "يُقدَّم من الخادم المنزلي لفترة.",
-  "serverBadgeStyleBar": "شريط علوي",
-  "serverBadgeStyleBarSub": "شريط عبر الأعلى. يبدأ التطبيق تحته، فلا يغطي شيئًا."
+  "serverChoiceCloudSubHomeserver": "يُقدَّم من الخادم المنزلي لفترة."
 }

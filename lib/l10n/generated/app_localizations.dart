@@ -11147,24 +11147,6 @@ abstract class AppLocalizations {
   /// **'Forget this server'**
   String get serverRecentForget;
 
-  /// All-caps section header above the choice of how the self-hosted marker looks.
-  ///
-  /// In en, this message translates to:
-  /// **'BADGE'**
-  String get serverSectionBadge;
-
-  /// Name of the corner-band style for the self-hosted marker.
-  ///
-  /// In en, this message translates to:
-  /// **'Ribbon'**
-  String get serverBadgeStyleRibbon;
-
-  /// One-line description of the ribbon style, now stated against the bar: it costs no height but overlaps the corner.
-  ///
-  /// In en, this message translates to:
-  /// **'A band across the top corner. Takes no space, but covers that corner.'**
-  String get serverBadgeStyleRibbonSub;
-
   /// All-caps heading of the notice explaining what changing servers costs.
   ///
   /// In en, this message translates to:
@@ -11237,12 +11219,6 @@ abstract class AppLocalizations {
   /// **'Serving from homeserver'**
   String get serverBadgeHomeserver;
 
-  /// The same fact in the space a 45-degree corner ribbon allows — roughly one short word. All-caps to match the ribbon.
-  ///
-  /// In en, this message translates to:
-  /// **'HOMESERVER'**
-  String get serverBadgeHomeserverShort;
-
   /// Accessibility label for the homeserver marker. Carries no address — see serverValueHomeserver.
   ///
   /// In en, this message translates to:
@@ -11308,18 +11284,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Being served from the homeserver for a while.'**
   String get serverChoiceCloudSubHomeserver;
-
-  /// Name of the full-width top-bar style for the server marker.
-  ///
-  /// In en, this message translates to:
-  /// **'Bar'**
-  String get serverBadgeStyleBar;
-
-  /// One-line description of the bar style. The point is that it takes space rather than floating over things.
-  ///
-  /// In en, this message translates to:
-  /// **'A strip across the top. The app sits under it, so it covers nothing.'**
-  String get serverBadgeStyleBarSub;
 }
 
 class _AppLocalizationsDelegate

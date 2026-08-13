@@ -6167,15 +6167,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverRecentForget => '忘记此服务器';
 
   @override
-  String get serverSectionBadge => '标记';
-
-  @override
-  String get serverBadgeStyleRibbon => '角标';
-
-  @override
-  String get serverBadgeStyleRibbonSub => '横跨右上角的一条带子。不占空间，但会遮住那个角。';
-
-  @override
   String get serverSwitchWarningTitle => '切换会退出登录';
 
   @override
@@ -6217,9 +6208,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverBadgeHomeserver => '由家庭服务器提供服务';
 
   @override
-  String get serverBadgeHomeserverShort => '家庭服务器';
-
-  @override
   String get serverBadgeHomeserverSemantics => '正在由家庭服务器提供服务。点按查看详情。';
 
   @override
@@ -6254,10 +6242,4 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => '暂时由家庭服务器提供服务。';
-
-  @override
-  String get serverBadgeStyleBar => '横条';
-
-  @override
-  String get serverBadgeStyleBarSub => '顶部的一条横带。应用从它下面开始，不会遮住任何东西。';
 }

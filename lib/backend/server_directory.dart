@@ -215,6 +215,12 @@ class ServerDirectory {
   /// than a stale directive.
   static const Duration launchTimeout = Duration(seconds: 3);
 
+  /// Budget for the second request, made only from the home server and only
+  /// after the primary said nothing. Shorter than [launchTimeout] because it is
+  /// additive: the worst case is a client on the home server with a dead VPS,
+  /// and it still has to reach the first frame in reasonable time.
+  static const Duration _fallbackTimeout = Duration(seconds: 2);
+
   /// Floor between two checks once the app is running, so a foreground/
   /// background flicker cannot turn into a request per resume.
   static const Duration recheckInterval = Duration(minutes: 5);
@@ -263,11 +269,61 @@ class ServerDirectory {
 
     _lastCheckedAt = DateTime.now();
     final client = _injected ?? http.Client();
-    ServerDirective? directive;
+    try {
+      // ── the primary is asked FIRST, even from the home server ──────────────
+      //
+      // This used to ask whichever deployment the app was already on, which
+      // sounds symmetrical and is not: it means a client that has followed to
+      // the home server can only be brought back by the HOME SERVER agreeing to
+      // send it back. Flip `SERVE_FROM` on the VPS alone — the obvious thing to
+      // do, and the thing that was done — and every client that listened to you
+      // stays where it is, because it never asks you again. The same trap
+      // catches a `serverDirectory` deployed to one backend and not the other.
+      //
+      // So the primary is the authority whenever it can be reached, which is
+      // also the only arrangement matching what an operator expects: the
+      // switch that sent everyone away is the switch that brings them home.
+      final primary = KnownHosts.endpointFor(ServerRole.primary).deploymentUrl;
+      var directive = await _ask(client, primary, timeout);
+      // Only when the primary said nothing does where-we-are get a vote. That
+      // is the case the home server exists for: the VPS is unreachable, and a
+      // client on the home server still needs to be able to learn things.
+      if (directive == null &&
+          Uri.tryParse(askUrl)?.host != Uri.tryParse(primary)?.host) {
+        directive = await _ask(client, askUrl, _fallbackTimeout);
+      }
+      if (directive == null) return null;
+      await _remember(directive);
+
+      final target = directive.target;
+      if (target.deploymentUrl.isEmpty) return null;
+      // Host comparison, not string equality: the published URL and the saved
+      // one can differ by a trailing slash or a port and still be the same
+      // server, and "move" is far too expensive an answer to give on a
+      // formatting difference.
+      final same =
+          Uri.tryParse(target.deploymentUrl)?.host ==
+          Uri.tryParse(askUrl)?.host;
+      if (same) return null;
+      DiagLog.connection('directory', 'directed to ${directive.serve.name}');
+      return target;
+    } finally {
+      if (_injected == null) client.close();
+    }
+  }
+
+  /// One request. Returns null for every failure — see the class doc on why
+  /// silence is never a directive.
+  Future<ServerDirective?> _ask(
+    http.Client client,
+    String url,
+    Duration timeout,
+  ) async {
+    final host = Uri.tryParse(url)?.host ?? '?';
     try {
       final res = await client
           .post(
-            Uri.parse('${askUrl.replaceAll(RegExp(r'/+$'), '')}/api/query'),
+            Uri.parse('${url.replaceAll(RegExp(r'/+$'), '')}/api/query'),
             headers: const {'Content-Type': 'application/json'},
             body: jsonEncode({
               'path': 'serverDirectory:current',
@@ -277,7 +333,7 @@ class ServerDirectory {
           )
           .timeout(timeout);
       if (res.statusCode != 200) {
-        DiagLog.connection('directory', 'HTTP ${res.statusCode}');
+        DiagLog.connection('directory', '$host: HTTP ${res.statusCode}');
         return null;
       }
       final body = jsonDecode(res.body);
@@ -285,37 +341,20 @@ class ServerDirectory {
         // The overwhelmingly likely cause is a backend that predates the
         // function. Logged at info, not warn: on the build that ships this
         // ahead of the deploy, it is the expected answer.
-        DiagLog.connection('directory', 'no directive published');
+        DiagLog.connection('directory', '$host: no directive published');
         return null;
       }
-      directive = ServerDirective.fromJson(body['value']);
+      final directive = ServerDirective.fromJson(body['value']);
+      if (directive == null) {
+        DiagLog.connection('directory', '$host: unreadable payload');
+        return null;
+      }
+      DiagLog.connection('directory', '$host: serve ${directive.serve.name}');
+      return directive;
     } catch (e) {
-      DiagLog.connection('directory', 'unavailable: ${_short(e)}');
-      return null;
-    } finally {
-      if (_injected == null) client.close();
-    }
-
-    if (directive == null) {
-      DiagLog.connection('directory', 'unreadable payload');
+      DiagLog.connection('directory', '$host: unavailable ${_short(e)}');
       return null;
     }
-    await _remember(directive);
-
-    final target = directive.target;
-    if (target.deploymentUrl.isEmpty) return null;
-    // Host comparison, not string equality: the published URL and the saved one
-    // can differ by a trailing slash or a port and still be the same server, and
-    // "move" is far too expensive an answer to give on a formatting difference.
-    final same =
-        Uri.tryParse(target.deploymentUrl)?.host ==
-        Uri.tryParse(askUrl)?.host;
-    if (same) return null;
-    DiagLog.connection(
-      'directory',
-      'directed to ${directive.serve.name}',
-    );
-    return target;
   }
 
   /// Whether enough time has passed to ask again. Read by the resume path,

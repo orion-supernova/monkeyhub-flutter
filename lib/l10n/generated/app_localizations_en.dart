@@ -6481,16 +6481,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverRecentForget => 'Forget this server';
 
   @override
-  String get serverSectionBadge => 'BADGE';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Ribbon';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'A band across the top corner. Takes no space, but covers that corner.';
-
-  @override
   String get serverSwitchWarningTitle => 'SWITCHING SIGNS YOU OUT';
 
   @override
@@ -6534,9 +6524,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverBadgeHomeserver => 'Serving from homeserver';
 
   @override
-  String get serverBadgeHomeserverShort => 'HOMESERVER';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'Serving from the homeserver. Tap for details.';
 
@@ -6577,11 +6564,4 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Being served from the homeserver for a while.';
-
-  @override
-  String get serverBadgeStyleBar => 'Bar';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'A strip across the top. The app sits under it, so it covers nothing.';
 }

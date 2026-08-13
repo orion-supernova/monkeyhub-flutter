@@ -6241,15 +6241,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverRecentForget => 'このサーバーを削除';
 
   @override
-  String get serverSectionBadge => 'バッジ';
-
-  @override
-  String get serverBadgeStyleRibbon => 'リボン';
-
-  @override
-  String get serverBadgeStyleRibbonSub => '右上隅を横切る帯。場所は取りませんが、その隅を覆います。';
-
-  @override
   String get serverSwitchWarningTitle => '切り替えるとサインアウトします';
 
   @override
@@ -6292,9 +6283,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverBadgeHomeserver => 'ホームサーバーで稼働中';
 
   @override
-  String get serverBadgeHomeserverShort => 'ホームサーバー';
-
-  @override
   String get serverBadgeHomeserverSemantics => 'ホームサーバーで稼働中です。詳細はタップしてください。';
 
   @override
@@ -6331,10 +6319,4 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get serverChoiceCloudSubHomeserver => 'しばらくのあいだホームサーバーから提供されています。';
-
-  @override
-  String get serverBadgeStyleBar => 'バー';
-
-  @override
-  String get serverBadgeStyleBarSub => '画面上部の帯。アプリはその下から始まるので、何も覆いません。';
 }

@@ -6517,16 +6517,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get serverRecentForget => 'Glöm den här servern';
 
   @override
-  String get serverSectionBadge => 'MÄRKE';
-
-  @override
-  String get serverBadgeStyleRibbon => 'Banderoll';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'En banderoll i övre hörnet. Tar ingen plats, men täcker det hörnet.';
-
-  @override
   String get serverSwitchWarningTitle => 'BYTE LOGGAR UT DIG';
 
   @override
@@ -6570,9 +6560,6 @@ class AppLocalizationsSv extends AppLocalizations {
   String get serverBadgeHomeserver => 'Körs från hemservern';
 
   @override
-  String get serverBadgeHomeserverShort => 'HEMSERVER';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'Körs från hemservern. Tryck för detaljer.';
 
@@ -6613,11 +6600,4 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'Levereras från hemservern ett tag.';
-
-  @override
-  String get serverBadgeStyleBar => 'Rad';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'En rad högst upp. Appen börjar under den, så den täcker ingenting.';
 }

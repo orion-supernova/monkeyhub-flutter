@@ -1834,9 +1834,6 @@
   "serverSiteUrlHint": "위와 동일",
   "serverSectionRecent": "최근",
   "serverRecentForget": "이 서버 지우기",
-  "serverSectionBadge": "배지",
-  "serverBadgeStyleRibbon": "리본",
-  "serverBadgeStyleRibbonSub": "오른쪽 위 모서리를 가로지르는 띠. 자리를 차지하지 않지만 그 모서리를 가립니다.",
   "serverSwitchWarningTitle": "서버를 바꾸면 로그아웃됩니다",
   "serverSwitchWarningBody": "계정과 대화는 한 서버에 속합니다. 이 기기는 로그아웃하고, 내려받은 것을 지우고, 처음부터 시작합니다. 어느 서버에서도 데이터가 삭제되지는 않습니다.",
   "serverSwitchRolledBackTitle": "연결하지 못했습니다",
@@ -1849,7 +1846,6 @@
   "settingsScreenSectionAdvanced": "고급",
   "serverSwitchingLabel": "서버를 전환하는 중…",
   "serverBadgeHomeserver": "홈서버에서 제공 중",
-  "serverBadgeHomeserverShort": "홈서버",
   "serverBadgeHomeserverSemantics": "홈서버에서 제공 중입니다. 자세히 보려면 탭하세요.",
   "serverBadgeSelfHostedSemantics": "자체 호스팅 서버: {server}. 자세히 보려면 탭하세요.",
   "serverRoleHomeserverTitle": "홈서버에서 실행 중",
@@ -1860,7 +1856,5 @@
   "serverRoleSelfHostedTitle": "내 서버",
   "serverRoleSelfHostedBody": "이 기기는 직접 운영하는 서버를 가리킵니다. 설정 › 고급 › 서버 에서 바꿀 수 있습니다.",
   "serverValueHomeserver": "당분간 홈서버",
-  "serverChoiceCloudSubHomeserver": "당분간 홈서버에서 제공되고 있습니다.",
-  "serverBadgeStyleBar": "바",
-  "serverBadgeStyleBarSub": "화면 상단의 띠. 앱이 그 아래에서 시작하므로 아무것도 가리지 않습니다."
+  "serverChoiceCloudSubHomeserver": "당분간 홈서버에서 제공되고 있습니다."
 }

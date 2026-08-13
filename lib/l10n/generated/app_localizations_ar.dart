@@ -6572,16 +6572,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverRecentForget => 'انسَ هذا الخادم';
 
   @override
-  String get serverSectionBadge => 'الشارة';
-
-  @override
-  String get serverBadgeStyleRibbon => 'شريط';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'شريط عبر الزاوية العلوية. لا يشغل مساحة، لكنه يغطي تلك الزاوية.';
-
-  @override
   String get serverSwitchWarningTitle => 'التبديل يسجّل خروجك';
 
   @override
@@ -6625,9 +6615,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverBadgeHomeserver => 'يعمل من الخادم المنزلي';
 
   @override
-  String get serverBadgeHomeserverShort => 'الخادم المنزلي';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'يعمل من الخادم المنزلي. اضغط للتفاصيل.';
 
@@ -6668,11 +6655,4 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'يُقدَّم من الخادم المنزلي لفترة.';
-
-  @override
-  String get serverBadgeStyleBar => 'شريط علوي';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'شريط عبر الأعلى. يبدأ التطبيق تحته، فلا يغطي شيئًا.';
 }

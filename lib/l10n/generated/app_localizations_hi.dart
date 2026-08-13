@@ -6501,16 +6501,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverRecentForget => 'इस सर्वर को भूल जाएँ';
 
   @override
-  String get serverSectionBadge => 'बैज';
-
-  @override
-  String get serverBadgeStyleRibbon => 'रिबन';
-
-  @override
-  String get serverBadgeStyleRibbonSub =>
-      'ऊपरी कोने पर एक पट्टी। जगह नहीं लेती, पर वह कोना ढक देती है।';
-
-  @override
   String get serverSwitchWarningTitle => 'बदलने पर साइन आउट हो जाएगा';
 
   @override
@@ -6554,9 +6544,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverBadgeHomeserver => 'होमसर्वर से चल रहा है';
 
   @override
-  String get serverBadgeHomeserverShort => 'होमसर्वर';
-
-  @override
   String get serverBadgeHomeserverSemantics =>
       'होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
 
@@ -6597,11 +6584,4 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get serverChoiceCloudSubHomeserver =>
       'कुछ समय के लिए होमसर्वर से दिया जा रहा है।';
-
-  @override
-  String get serverBadgeStyleBar => 'बार';
-
-  @override
-  String get serverBadgeStyleBarSub =>
-      'ऊपर एक पट्टी। ऐप उसके नीचे रहता है, इसलिए कुछ भी नहीं ढकता।';
 }
