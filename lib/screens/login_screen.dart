@@ -8,6 +8,7 @@ import '../auth/auth_service.dart';
 import '../auth/recovery_phrase.dart';
 import '../auth/session_store.dart';
 import '../auth/social_sign_in.dart';
+import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -125,8 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
   /// modes type a handle that is supposed to already exist — telling someone
   /// signing in that their own username is "already taken" would be true and
   /// useless, and on the reset form it would be an invitation to go fishing.
-  late final _availability =
-      UsernameAvailabilityController(api: widget.auth.api);
+  late final _availability = UsernameAvailabilityController(
+    api: widget.auth.api,
+  );
 
   @override
   void dispose() {
@@ -141,21 +143,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _switchTo(_AuthMode mode) => setState(() {
-        _mode = mode;
-        _error = null;
-        // Switching away from sign-up abandons the attempt; a later one should
-        // mint a fresh phrase rather than resurrect an abandoned one.
-        _pendingPhrase = null;
-        _phraseConfirmed = false;
-        // The three modes share one username field, so a verdict earned in
-        // sign-up would still be sitting there on the way back — describing a
-        // name the user typed under different rules, minutes ago. Re-fed rather
-        // than blanked, so returning to sign-up with text still in the box
-        // re-checks it instead of showing nothing.
-        _availability.onChanged(
-          mode == _AuthMode.signUp ? _username.text : '',
-        );
-      });
+    _mode = mode;
+    _error = null;
+    // Switching away from sign-up abandons the attempt; a later one should
+    // mint a fresh phrase rather than resurrect an abandoned one.
+    _pendingPhrase = null;
+    _phraseConfirmed = false;
+    // The three modes share one username field, so a verdict earned in
+    // sign-up would still be sitting there on the way back — describing a
+    // name the user typed under different rules, minutes ago. Re-fed rather
+    // than blanked, so returning to sign-up with text still in the box
+    // re-checks it instead of showing nothing.
+    _availability.onChanged(mode == _AuthMode.signUp ? _username.text : '');
+  });
 
   /// Which provider button is mid-flight, so only one native sheet can be open.
   SocialProvider? _socialBusy;
@@ -206,7 +206,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_busy) return;
     if (_mode == _AuthMode.signUp && _password.text != _confirmPassword.text) {
       setState(() {
-        _error = AppLocalizations.of(context).loginScreenErrorPasswordsDontMatch;
+        _error = AppLocalizations.of(
+          context,
+        ).loginScreenErrorPasswordsDontMatch;
       });
       return;
     }
@@ -245,7 +247,10 @@ class _LoginScreenState extends State<LoginScreen> {
             recoveryKeyHash: recoveryPhraseHash(_pendingPhrase!.canonical),
           );
         case _AuthMode.signIn:
-          await widget.auth.signIn(username: username, password: _password.text);
+          await widget.auth.signIn(
+            username: username,
+            password: _password.text,
+          );
         case _AuthMode.reset:
           await widget.auth.resetPasswordWithRecoveryKey(
             username: username,
@@ -281,7 +286,9 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<bool> _ensurePhraseSaved() async {
     if (_password.text.isEmpty) {
       setState(() {
-        _error = AppLocalizations.of(context).loginScreenErrorChoosePasswordFirst;
+        _error = AppLocalizations.of(
+          context,
+        ).loginScreenErrorChoosePasswordFirst;
       });
       return false;
     }
@@ -338,7 +345,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             // Never negative: the keyboard can shrink the
                             // viewport below the padding we subtract.
                             constraints: BoxConstraints(
-                              minHeight: math.max(0, constraints.maxHeight - 48),
+                              minHeight: math.max(
+                                0,
+                                constraints.maxHeight - 48,
+                              ),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -414,8 +424,9 @@ class _LoginScreenState extends State<LoginScreen> {
         PasswordField(
           controller: _password,
           hint: l10n.loginScreenPasswordHint,
-          textInputAction:
-              passwordIsLast ? TextInputAction.done : TextInputAction.next,
+          textInputAction: passwordIsLast
+              ? TextInputAction.done
+              : TextInputAction.next,
           onSubmitted: (_) => passwordIsLast ? _submit() : _next(),
         ),
       ],
@@ -487,9 +498,9 @@ class _LoginScreenState extends State<LoginScreen> {
           else ...[
             _ModeToggle(
               mode: _mode,
-              onTap: () => _switchTo(_mode == _AuthMode.signUp
-                  ? _AuthMode.signIn
-                  : _AuthMode.signUp),
+              onTap: () => _switchTo(
+                _mode == _AuthMode.signUp ? _AuthMode.signIn : _AuthMode.signUp,
+              ),
             ),
             if (_mode == _AuthMode.signIn) ...[
               const SizedBox(height: 10),
@@ -547,11 +558,19 @@ class _ServerChip extends StatelessWidget {
         final theme = ThemeScope.of(context);
         final l10n = AppLocalizations.of(context);
         final store = ServerStore.instance;
-        final custom = store.isCustom;
-        final tone = custom ? theme.accent : theme.inkMuted;
-        final label = store.host.isEmpty
-            ? l10n.serverNoneConfigured
-            : shortHost(store.host, max: 28);
+        // Marked for anything that is not the ordinary deployment; named only
+        // when the user chose it. A homeserver follow is temporary and not
+        // theirs — it says so, and does not publish the address.
+        final marked = store.announcesRole;
+        final tone = marked ? theme.accent : theme.inkMuted;
+        final label = switch (store.role) {
+          ServerRole.selfHosted =>
+            store.host.isEmpty
+                ? l10n.serverNoneConfigured
+                : shortHost(store.host, max: 28),
+          ServerRole.homeserver => l10n.serverValueHomeserver,
+          ServerRole.primary => l10n.serverValueDefault,
+        };
         void open() => Navigator.of(context).push(
           MaterialPageRoute(
             fullscreenDialog: true,
@@ -570,11 +589,11 @@ class _ServerChip extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 6, 12, 6),
                 decoration: BoxDecoration(
-                  color: custom
+                  color: marked
                       ? theme.accent.withValues(alpha: 0.10)
                       : Colors.transparent,
                   border: Border.all(
-                    color: custom
+                    color: marked
                         ? theme.accent.withValues(alpha: 0.45)
                         : theme.divider,
                   ),
@@ -710,39 +729,41 @@ class _SubmitButton extends StatelessWidget {
       semanticLabel: label,
       radius: theme.radiusMd,
       child: GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: theme.motionFast,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: busy ? theme.accentSoft : theme.accent,
-          borderRadius: BorderRadius.circular(theme.radiusMd),
-          boxShadow: busy
-              ? null
-              : [
-                  BoxShadow(
-                    color: theme.accent.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  )
-                ],
-        ),
-        child: busy
-            ? SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: theme.accentInk,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: theme.motionFast,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: busy ? theme.accentSoft : theme.accent,
+            borderRadius: BorderRadius.circular(theme.radiusMd),
+            boxShadow: busy
+                ? null
+                : [
+                    BoxShadow(
+                      color: theme.accent.withValues(alpha: 0.4),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+          ),
+          child: busy
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: theme.accentInk,
+                  ),
+                )
+              : Text(
+                  label,
+                  style: theme.label.copyWith(
+                    color: theme.accentInk,
+                    letterSpacing: 2.4,
+                  ),
                 ),
-              )
-            : Text(
-                label,
-                style: theme.label
-                    .copyWith(color: theme.accentInk, letterSpacing: 2.4),
-              ),
-      ),
+        ),
       ),
     );
   }
@@ -763,19 +784,22 @@ class _ModeToggle extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: RichText(
-          text: TextSpan(style: theme.bodySoft, children: [
-            TextSpan(
-              text: isSignUp
-                  ? l10n.loginScreenAlreadyHerePrompt
-                  : l10n.loginScreenNoAccountPrompt,
-            ),
-            TextSpan(
-              text: isSignUp
-                  ? l10n.loginScreenSignInLink
-                  : l10n.loginScreenOpenOneLink,
-              style: theme.body.copyWith(color: theme.accent),
-            ),
-          ]),
+          text: TextSpan(
+            style: theme.bodySoft,
+            children: [
+              TextSpan(
+                text: isSignUp
+                    ? l10n.loginScreenAlreadyHerePrompt
+                    : l10n.loginScreenNoAccountPrompt,
+              ),
+              TextSpan(
+                text: isSignUp
+                    ? l10n.loginScreenSignInLink
+                    : l10n.loginScreenOpenOneLink,
+                style: theme.body.copyWith(color: theme.accent),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -799,8 +823,9 @@ class _WordCounter extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         AppLocalizations.of(context).loginScreenWordCounter(count),
-        style: theme.monoTiny
-            .copyWith(color: complete ? theme.accent : theme.inkMuted),
+        style: theme.monoTiny.copyWith(
+          color: complete ? theme.accent : theme.inkMuted,
+        ),
       ),
     );
   }

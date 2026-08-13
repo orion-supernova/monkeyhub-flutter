@@ -15,8 +15,7 @@ import '../theme/app_theme.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/labeled_field.dart';
-import '../widgets/self_host_badge.dart'
-    show SelfHostBadgePreview, shortHost;
+import '../widgets/self_host_badge.dart' show SelfHostBadgePreview;
 
 /// Where this install connects: the deployment it shipped with, or one the user
 /// runs themselves.
@@ -69,7 +68,11 @@ class _ServerScreenState extends State<ServerScreen> {
   final _address = TextEditingController();
   final _siteAddress = TextEditingController();
 
-  late _Choice _choice = ServerStore.instance.isCustom || !_hasBundled
+  // isSelfHosted, NOT isCustom. Following a directive onto the home server
+  // writes a custom URL, and reading isCustom here opened this screen with the
+  // self-host form selected and the operator's address sitting in the edit
+  // field — presenting a temporary move as a choice the user had made.
+  late _Choice _choice = ServerStore.instance.isSelfHosted || !_hasBundled
       ? _Choice.own
       : _Choice.bundled;
 
@@ -94,7 +97,10 @@ class _ServerScreenState extends State<ServerScreen> {
   @override
   void initState() {
     super.initState();
-    final custom = ServerStore.instance.custom;
+    // Only a server the user typed in is theirs to see, let alone to edit.
+    final custom = ServerStore.instance.isSelfHosted
+        ? ServerStore.instance.custom
+        : null;
     if (custom != null) {
       _address.text = custom.deploymentUrl;
       final site = custom.siteUrlOverride;
@@ -279,10 +285,15 @@ class _ServerScreenState extends State<ServerScreen> {
                   if (_hasBundled) ...[
                     _ChoiceCard(
                       label: l10n.serverChoiceCloud,
-                      sub: l10n.serverChoiceCloudSub,
-                      host: ServerStore.instance.bundled?.host ?? '',
+                      // Says "temporarily on the homeserver" rather than naming
+                      // an address: a follow is still THIS choice, just being
+                      // served from somewhere else for a while.
+                      sub: ServerStore.instance.role == ServerRole.homeserver
+                          ? l10n.serverChoiceCloudSubHomeserver
+                          : l10n.serverChoiceCloudSub,
+                      host: '',
                       selected: _choice == _Choice.bundled,
-                      inUse: !ServerStore.instance.isCustom,
+                      inUse: !ServerStore.instance.isSelfHosted,
                       inUseLabel: l10n.serverActiveNowLabel,
                       onTap: switching
                           ? null
@@ -292,9 +303,11 @@ class _ServerScreenState extends State<ServerScreen> {
                     _ChoiceCard(
                       label: l10n.serverChoiceOwn,
                       sub: l10n.serverChoiceOwnSub,
-                      host: ServerStore.instance.custom?.host ?? '',
+                      host: ServerStore.instance.isSelfHosted
+                          ? ServerStore.instance.host
+                          : '',
                       selected: _choice == _Choice.own,
-                      inUse: ServerStore.instance.isCustom,
+                      inUse: ServerStore.instance.isSelfHosted,
                       inUseLabel: l10n.serverActiveNowLabel,
                       onTap: switching
                           ? null
@@ -345,7 +358,10 @@ class _ServerScreenState extends State<ServerScreen> {
   // ───────── the bundled side ─────────
 
   List<Widget> _bundledForm(AppLocalizations l10n, bool switching) {
-    if (!ServerStore.instance.isCustom) return const [];
+    // Nothing to go back TO unless the user actually left. A homeserver follow
+    // is already this choice, so offering "use the default" there would be a
+    // button that undoes something nobody did.
+    if (!ServerStore.instance.isSelfHosted) return const [];
     return [
       _PrimaryButton(
         label: l10n.serverUseDefaultCta,
@@ -365,7 +381,9 @@ class _ServerScreenState extends State<ServerScreen> {
     final candidate = _candidate;
     final result = _result;
     final unchanged =
-        candidate != null && candidate == ServerStore.instance.custom;
+        candidate != null &&
+        ServerStore.instance.isSelfHosted &&
+        candidate == ServerStore.instance.custom;
     return [
       ThemedInput(
         controller: _address,
@@ -402,7 +420,11 @@ class _ServerScreenState extends State<ServerScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Icon(Icons.subdirectory_arrow_right, size: 12, color: theme.inkMuted),
+            Icon(
+              Icons.subdirectory_arrow_right,
+              size: 12,
+              color: theme.inkMuted,
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -414,8 +436,7 @@ class _ServerScreenState extends State<ServerScreen> {
           ],
         ),
       ],
-      if (check.problem != null &&
-          check.problem != ServerUrlProblem.empty) ...[
+      if (check.problem != null && check.problem != ServerUrlProblem.empty) ...[
         const SizedBox(height: 8),
         Text(
           _problemText(l10n, check.problem!),
@@ -540,11 +561,25 @@ class _ServerScreenState extends State<ServerScreen> {
     // Nothing to configure while the badge is not being drawn — on the
     // ordinary deployment, and during onboarding where no server exists yet.
     if (!ServerStore.instance.announcesRole) return const [];
-    final homeserver = ServerStore.instance.role == ServerRole.homeserver;
+    final role = ServerStore.instance.role;
+    final homeserver = role == ServerRole.homeserver;
     final active = SettingsStore.instance.selfHostBadge;
     return [
       const SizedBox(height: 28),
       _SectionHeader(label: l10n.serverSectionBadge),
+      const SizedBox(height: 12),
+      _BadgeStyleCard(
+        label: l10n.serverBadgeStyleBar,
+        sub: l10n.serverBadgeStyleBarSub,
+        selected: active == SelfHostBadgeStyle.bar,
+        preview: SelfHostBadgePreview(
+          style: SelfHostBadgeStyle.bar,
+          role: role,
+          label: '',
+        ),
+        onTap: () =>
+            SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.bar),
+      ),
       const SizedBox(height: 12),
       _BadgeStyleCard(
         label: l10n.serverBadgeStyleRibbon,
@@ -552,28 +587,13 @@ class _ServerScreenState extends State<ServerScreen> {
         selected: active == SelfHostBadgeStyle.ribbon,
         preview: SelfHostBadgePreview(
           style: SelfHostBadgeStyle.ribbon,
-          homeserver: homeserver,
+          role: role,
           label: homeserver
               ? l10n.serverBadgeHomeserverShort
               : l10n.serverBadgeSelfHosted,
         ),
         onTap: () =>
             SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.ribbon),
-      ),
-      const SizedBox(height: 12),
-      _BadgeStyleCard(
-        label: l10n.serverBadgeStylePill,
-        sub: l10n.serverBadgeStylePillSub,
-        selected: active == SelfHostBadgeStyle.pill,
-        preview: SelfHostBadgePreview(
-          style: SelfHostBadgeStyle.pill,
-          homeserver: homeserver,
-          label: homeserver
-              ? l10n.serverBadgeHomeserver
-              : shortHost(ServerStore.instance.host, max: 18),
-        ),
-        onTap: () =>
-            SettingsStore.instance.setSelfHostBadge(SelfHostBadgeStyle.pill),
       ),
     ];
   }
@@ -605,7 +625,7 @@ class _ActiveServerCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.surface,
         border: Border.all(
-          color: store.isCustom
+          color: store.announcesRole
               ? theme.accent.withValues(alpha: 0.45)
               : theme.divider,
         ),
@@ -630,11 +650,13 @@ class _ActiveServerCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                store.isCustom
-                    ? l10n.serverBadgeSelfHosted
-                    : l10n.serverBadgeDefault,
+                switch (store.role) {
+                  ServerRole.selfHosted => l10n.serverBadgeSelfHosted,
+                  ServerRole.homeserver => l10n.serverBadgeHomeserverShort,
+                  ServerRole.primary => l10n.serverBadgeDefault,
+                },
                 style: theme.monoTiny.copyWith(
-                  color: store.isCustom ? theme.accent : theme.inkMuted,
+                  color: store.announcesRole ? theme.accent : theme.inkMuted,
                   letterSpacing: 1.4,
                 ),
               ),
@@ -642,7 +664,13 @@ class _ActiveServerCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            store.host.isEmpty ? l10n.serverNoneConfigured : store.host,
+            switch (store.role) {
+              // The address, for the one server whose address is the user's.
+              ServerRole.selfHosted =>
+                store.host.isEmpty ? l10n.serverNoneConfigured : store.host,
+              ServerRole.homeserver => l10n.serverValueHomeserver,
+              ServerRole.primary => l10n.serverValueDefault,
+            },
             style: theme.displaySmall,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -867,9 +895,7 @@ class _TestButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.transparent,
-            border: Border.all(
-              color: live ? theme.accent : theme.divider,
-            ),
+            border: Border.all(color: live ? theme.accent : theme.divider),
             borderRadius: BorderRadius.circular(theme.radiusMd),
           ),
           child: busy
@@ -1151,9 +1177,9 @@ class _BadgeStyleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // The real badge, scaled down — not a drawing of it. Which of the
-              // two is louder is the entire decision, and nothing settles it as
-              // fast as seeing them side by side.
+              // The real thing, scaled down — not a drawing of it. Which of the
+              // two takes space from the app is the entire decision, and
+              // nothing settles it as fast as seeing them side by side.
               preview,
             ],
           ),

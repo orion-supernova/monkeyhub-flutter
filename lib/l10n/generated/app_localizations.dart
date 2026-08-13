@@ -11159,23 +11159,11 @@ abstract class AppLocalizations {
   /// **'Ribbon'**
   String get serverBadgeStyleRibbon;
 
-  /// One-line description of the ribbon badge style.
+  /// One-line description of the ribbon style, now stated against the bar: it costs no height but overlaps the corner.
   ///
   /// In en, this message translates to:
-  /// **'A band across the top corner. Hard to miss.'**
+  /// **'A band across the top corner. Takes no space, but covers that corner.'**
   String get serverBadgeStyleRibbonSub;
-
-  /// Name of the small-chip style for the self-hosted marker.
-  ///
-  /// In en, this message translates to:
-  /// **'Pill'**
-  String get serverBadgeStylePill;
-
-  /// One-line description of the pill badge style.
-  ///
-  /// In en, this message translates to:
-  /// **'A small chip with your server\'s name.'**
-  String get serverBadgeStylePillSub;
 
   /// All-caps heading of the notice explaining what changing servers costs.
   ///
@@ -11255,11 +11243,11 @@ abstract class AppLocalizations {
   /// **'HOMESERVER'**
   String get serverBadgeHomeserverShort;
 
-  /// Accessibility label for the homeserver badge. {server} is the address in use.
+  /// Accessibility label for the homeserver marker. Carries no address — see serverValueHomeserver.
   ///
   /// In en, this message translates to:
-  /// **'Serving from the homeserver at {server}. Tap for details.'**
-  String serverBadgeHomeserverSemantics(String server);
+  /// **'Serving from the homeserver. Tap for details.'**
+  String get serverBadgeHomeserverSemantics;
 
   /// Accessibility label for the self-hosted badge. {server} is the address in use.
   ///
@@ -11308,6 +11296,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This device is pointed at a server you run. Change it under Settings › Advanced › Server.'**
   String get serverRoleSelfHostedBody;
+
+  /// Names the home server WITHOUT its address — shown in Settings, on the login chip and on the server card. The operator's deployment URLs are infrastructure and are never printed in the app; only a server the user typed in themselves is shown by address.
+  ///
+  /// In en, this message translates to:
+  /// **'Homeserver, for now'**
+  String get serverValueHomeserver;
+
+  /// Replaces the default-server choice subtitle while traffic is on the home server. Says the choice has not changed, only where it is being served from.
+  ///
+  /// In en, this message translates to:
+  /// **'Being served from the homeserver for a while.'**
+  String get serverChoiceCloudSubHomeserver;
+
+  /// Name of the full-width top-bar style for the server marker.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar'**
+  String get serverBadgeStyleBar;
+
+  /// One-line description of the bar style. The point is that it takes space rather than floating over things.
+  ///
+  /// In en, this message translates to:
+  /// **'A strip across the top. The app sits under it, so it covers nothing.'**
+  String get serverBadgeStyleBarSub;
 }
 
 class _AppLocalizationsDelegate

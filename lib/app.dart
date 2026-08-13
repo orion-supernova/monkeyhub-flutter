@@ -196,6 +196,10 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
     _themeController,
     _auth,
     SettingsStore.instance,
+    // The self-host bar takes height out of the ROOT layout and changes which
+    // status-glyph brightness the app asks for, so the whole builder has to
+    // re-run when the server changes — not just the widget that draws it.
+    ServerStore.instance,
   ]);
 
   /// Created once so the observer list handed to MaterialApp is stable across
@@ -1139,6 +1143,12 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
               // Safe to govern the whole app from one region: `grep AppBar(`
               // returns zero hits in lib/, so nothing deeper annotates a
               // competing style the way a Material AppBar would.
+              // While the self-host bar is up it, not the theme, is what sits
+              // behind the status glyphs — and it is dark under every theme.
+              // Without this the light (riso) themes asked for dark glyphs and
+              // painted them on a near-black strip.
+              final serverBar = SelfHostBar.consumesTopInset;
+              final darkStatusSurface = !isLight || serverBar;
               return AnnotatedRegion<SystemUiOverlayStyle>(
                 value: SystemUiOverlayStyle(
                   statusBarColor: Colors.transparent,
@@ -1147,17 +1157,17 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                   systemNavigationBarContrastEnforced: false,
                   // Glyphs contrast AGAINST the surface behind them: dark
                   // icons on the light (riso) themes, light icons elsewhere.
-                  statusBarIconBrightness: isLight
-                      ? Brightness.dark
-                      : Brightness.light,
+                  statusBarIconBrightness: darkStatusSurface
+                      ? Brightness.light
+                      : Brightness.dark,
                   systemNavigationBarIconBrightness: isLight
                       ? Brightness.dark
                       : Brightness.light,
                   // iOS reads this one instead, and it is inverted from the
                   // pair above: it names the BAR's brightness, not the glyphs'.
-                  statusBarBrightness: isLight
-                      ? Brightness.light
-                      : Brightness.dark,
+                  statusBarBrightness: darkStatusSurface
+                      ? Brightness.dark
+                      : Brightness.light,
                 ),
                 child: Listener(
                   // Observe (never consume) the first pointer-down to unlock
@@ -1166,54 +1176,89 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
                   child: _WindowClassProvider(
                     child: Stack(
                       children: [
-                        ?child,
-                        // One top slot, stacked vertically. These used to be two
-                        // separate Positioned(top: 0) layers that overlapped
-                        // whenever both were showing — which would have buried the
-                        // connection banner's retry target under the call pill.
-                        // Both children collapse to zero height when hidden.
-                        if (_bootstrapped && _bootError == null)
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ConnectionBanner(health: _health),
-                                // Global "Move call here" pill — shows when an
-                                // active call exists on another of my devices.
-                                // Tap to handoff.
-                                ActiveCallPill(service: _callService),
-                              ],
+                        // The self-host bar is the one piece of app-wide chrome
+                        // that participates in LAYOUT rather than floating over
+                        // it: everything else shifts down by its height. Three
+                        // overlay shapes were tried first and each collided with
+                        // something — the status glyphs, a route's close button,
+                        // the dynamic island. A bar collides with nothing
+                        // because it overlaps nothing.
+                        //
+                        // `removeTop` is the other half of that bargain. The bar
+                        // has already covered the status-bar inset, so leaving
+                        // `padding.top` in place below it would have every
+                        // SafeArea in the app inset a second time. The condition
+                        // is [SelfHostBar.consumesTopInset] on both sides
+                        // precisely so the two cannot disagree.
+                        Column(
+                          children: [
+                            const SelfHostBar(),
+                            Expanded(
+                              child: MediaQuery.removePadding(
+                                context: context,
+                                removeTop: serverBar,
+                                child: Stack(
+                                  children: [
+                                    ?child,
+                                    // One top slot, stacked vertically. These used to be two
+                                    // separate Positioned(top: 0) layers that overlapped
+                                    // whenever both were showing — which would have buried the
+                                    // connection banner's retry target under the call pill.
+                                    // Both children collapse to zero height when hidden.
+                                    if (_bootstrapped && _bootError == null)
+                                      Positioned(
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            ConnectionBanner(health: _health),
+                                            // Global "Move call here" pill — shows when an
+                                            // active call exists on another of my devices.
+                                            // Tap to handoff.
+                                            ActiveCallPill(
+                                              service: _callService,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    // Pushes call screens onto the root navigator the moment
+                                    // the call service transitions to a non-idle state.
+                                    // Invisible.
+                                    _CallOverlay(
+                                      service: _callService,
+                                      api: _api,
+                                    ),
+                                    // Same job for group calls: pushes GroupCallScreen /
+                                    // the group invite ringer. Invisible.
+                                    _GroupCallOverlay(
+                                      service: _groupCallService,
+                                      api: _api,
+                                    ),
+                                    // Listens for a deliberate shake and OFFERS the report
+                                    // screen. Invisible; mounted here only so the sensor
+                                    // subscription's lifetime matches the app's. Gated on
+                                    // bootstrap so a shake during the splash cannot open a
+                                    // form over a half-built tree.
+                                    if (_bootstrapped && _bootError == null)
+                                      ShakeToReport(auth: _auth, api: _api),
+                                    // The corner-ribbon alternative to the bar
+                                    // above. Exactly one of the two ever draws;
+                                    // both are mounted so the preference alone
+                                    // decides. Ungated by bootstrap state on
+                                    // purpose — the boot error is precisely
+                                    // where knowing which server you are on
+                                    // matters most.
+                                    const SelfHostBadge(),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        // Pushes call screens onto the root navigator the moment
-                        // the call service transitions to a non-idle state.
-                        // Invisible.
-                        _CallOverlay(service: _callService, api: _api),
-                        // Same job for group calls: pushes GroupCallScreen /
-                        // the group invite ringer. Invisible.
-                        _GroupCallOverlay(
-                          service: _groupCallService,
-                          api: _api,
+                          ],
                         ),
-                        // Listens for a deliberate shake and OFFERS the report
-                        // screen. Invisible; mounted here only so the sensor
-                        // subscription's lifetime matches the app's. Gated on
-                        // bootstrap so a shake during the splash cannot open a
-                        // form over a half-built tree.
-                        if (_bootstrapped && _bootError == null)
-                          ShakeToReport(auth: _auth, api: _api),
-                        // Which server this install talks to, permanently on
-                        // screen while that is not the bundled one. Ungated by
-                        // bootstrap state on purpose: the boot error is exactly
-                        // where knowing you are on a self-hosted address matters
-                        // most. Renders nothing at all on the default server,
-                        // and never takes a tap — see [SelfHostBadge].
-                        const SelfHostBadge(),
-                        // Sits above every other layer so it covers banners +
-                        // overlays during a screen recording.
+                        // Above EVERYTHING, the server bar included, so a screen
+                        // recording cannot capture any of it.
                         const CaptureShield(),
                       ],
                     ),

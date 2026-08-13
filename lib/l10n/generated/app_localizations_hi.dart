@@ -6508,13 +6508,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'ऊपरी कोने पर एक पट्टी। नज़र से नहीं चूकती।';
-
-  @override
-  String get serverBadgeStylePill => 'पिल';
-
-  @override
-  String get serverBadgeStylePillSub => 'आपके सर्वर के नाम वाला छोटा चिप।';
+      'ऊपरी कोने पर एक पट्टी। जगह नहीं लेती, पर वह कोना ढक देती है।';
 
   @override
   String get serverSwitchWarningTitle => 'बदलने पर साइन आउट हो जाएगा';
@@ -6563,9 +6557,8 @@ class AppLocalizationsHi extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'होमसर्वर';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return '$server पर होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'होमसर्वर से चल रहा है। जानकारी के लिए टैप करें।';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6597,4 +6590,18 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'यह डिवाइस आपके अपने सर्वर पर लगा है। इसे सेटिंग्स › उन्नत › सर्वर में बदलें।';
+
+  @override
+  String get serverValueHomeserver => 'फ़िलहाल होमसर्वर';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'कुछ समय के लिए होमसर्वर से दिया जा रहा है।';
+
+  @override
+  String get serverBadgeStyleBar => 'बार';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'ऊपर एक पट्टी। ऐप उसके नीचे रहता है, इसलिए कुछ भी नहीं ढकता।';
 }

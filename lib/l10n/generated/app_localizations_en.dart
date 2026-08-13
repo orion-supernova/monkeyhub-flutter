@@ -6488,14 +6488,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'A band across the top corner. Hard to miss.';
-
-  @override
-  String get serverBadgeStylePill => 'Pill';
-
-  @override
-  String get serverBadgeStylePillSub =>
-      'A small chip with your server\'s name.';
+      'A band across the top corner. Takes no space, but covers that corner.';
 
   @override
   String get serverSwitchWarningTitle => 'SWITCHING SIGNS YOU OUT';
@@ -6544,9 +6537,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'HOMESERVER';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'Serving from the homeserver at $server. Tap for details.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'Serving from the homeserver. Tap for details.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6578,4 +6570,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'This device is pointed at a server you run. Change it under Settings › Advanced › Server.';
+
+  @override
+  String get serverValueHomeserver => 'Homeserver, for now';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'Being served from the homeserver for a while.';
+
+  @override
+  String get serverBadgeStyleBar => 'Bar';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'A strip across the top. The app sits under it, so it covers nothing.';
 }

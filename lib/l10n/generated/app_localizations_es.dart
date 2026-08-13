@@ -6567,14 +6567,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'Una banda en la esquina superior. Imposible pasarla por alto.';
-
-  @override
-  String get serverBadgeStylePill => 'Píldora';
-
-  @override
-  String get serverBadgeStylePillSub =>
-      'Una etiqueta pequeña con el nombre de tu servidor.';
+      'Una banda en la esquina superior. No ocupa espacio, pero tapa esa esquina.';
 
   @override
   String get serverSwitchWarningTitle => 'CAMBIAR CIERRA TU SESIÓN';
@@ -6623,9 +6616,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'HOMESERVER';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'Sirviendo desde el homeserver en $server. Toca para ver los detalles.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'Sirviendo desde el homeserver. Toca para ver los detalles.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6657,4 +6649,18 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'Este dispositivo apunta a un servidor tuyo. Cámbialo en Ajustes › Avanzado › Servidor.';
+
+  @override
+  String get serverValueHomeserver => 'Homeserver, por ahora';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'Se está sirviendo desde el homeserver por un tiempo.';
+
+  @override
+  String get serverBadgeStyleBar => 'Barra';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'Una franja en la parte superior. La app queda debajo, así que no tapa nada.';
 }

@@ -121,6 +121,20 @@ class ServerStore extends ChangeNotifier {
   bool get announcesRole =>
       deploymentUrl.isNotEmpty && role != ServerRole.primary;
 
+  /// Whether the user chose this server, as opposed to being moved to it.
+  ///
+  /// **This, not [isCustom], is what the UI branches on.** Following a
+  /// directive onto the home server writes a custom URL, so `isCustom` is true
+  /// there — but nobody picked it, it is temporary, and it is still "the
+  /// server this app uses" rather than "a server you added". Reading `isCustom`
+  /// is what made Settings present a homeserver follow as a self-hosting
+  /// choice, complete with the address sitting in the edit field.
+  ///
+  /// The address is only ever shown for one of these. An operator's deployment
+  /// URLs are infrastructure, not something to publish across every user's
+  /// settings screen; a server someone typed in themselves is theirs to see.
+  bool get isSelfHosted => role == ServerRole.selfHosted;
+
   /// Previously-used custom servers, newest first. Never contains the active
   /// one — it is shown separately — and never contains the bundled default.
   List<ServerEndpoint> get recent => List.unmodifiable(_recent);

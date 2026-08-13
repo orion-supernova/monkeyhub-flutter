@@ -6524,13 +6524,7 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'En banderoll i övre hörnet. Svår att missa.';
-
-  @override
-  String get serverBadgeStylePill => 'Kapsel';
-
-  @override
-  String get serverBadgeStylePillSub => 'En liten bricka med serverns namn.';
+      'En banderoll i övre hörnet. Tar ingen plats, men täcker det hörnet.';
 
   @override
   String get serverSwitchWarningTitle => 'BYTE LOGGAR UT DIG';
@@ -6579,9 +6573,8 @@ class AppLocalizationsSv extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'HEMSERVER';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'Körs från hemservern på $server. Tryck för detaljer.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'Körs från hemservern. Tryck för detaljer.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6613,4 +6606,18 @@ class AppLocalizationsSv extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server.';
+
+  @override
+  String get serverValueHomeserver => 'Hemservern, tills vidare';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'Levereras från hemservern ett tag.';
+
+  @override
+  String get serverBadgeStyleBar => 'Rad';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'En rad högst upp. Appen börjar under den, så den täcker ingenting.';
 }

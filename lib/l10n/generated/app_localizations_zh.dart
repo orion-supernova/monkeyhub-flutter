@@ -6173,13 +6173,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverBadgeStyleRibbon => '角标';
 
   @override
-  String get serverBadgeStyleRibbonSub => '横跨右上角的一条带子，很难忽略。';
-
-  @override
-  String get serverBadgeStylePill => '胶囊';
-
-  @override
-  String get serverBadgeStylePillSub => '带有服务器名称的小标签。';
+  String get serverBadgeStyleRibbonSub => '横跨右上角的一条带子。不占空间，但会遮住那个角。';
 
   @override
   String get serverSwitchWarningTitle => '切换会退出登录';
@@ -6226,9 +6220,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverBadgeHomeserverShort => '家庭服务器';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return '正在由 $server 上的家庭服务器提供服务。点按查看详情。';
-  }
+  String get serverBadgeHomeserverSemantics => '正在由家庭服务器提供服务。点按查看详情。';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6256,4 +6248,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverRoleSelfHostedBody => '此设备指向你自己运行的服务器。可在 设置 › 高级 › 服务器 中更改。';
+
+  @override
+  String get serverValueHomeserver => '暂时使用家庭服务器';
+
+  @override
+  String get serverChoiceCloudSubHomeserver => '暂时由家庭服务器提供服务。';
+
+  @override
+  String get serverBadgeStyleBar => '横条';
+
+  @override
+  String get serverBadgeStyleBarSub => '顶部的一条横带。应用从它下面开始，不会遮住任何东西。';
 }

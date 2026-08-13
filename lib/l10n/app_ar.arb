@@ -1836,9 +1836,7 @@
   "serverRecentForget": "انسَ هذا الخادم",
   "serverSectionBadge": "الشارة",
   "serverBadgeStyleRibbon": "شريط",
-  "serverBadgeStyleRibbonSub": "شريط عبر الزاوية العلوية. يصعب تفويته.",
-  "serverBadgeStylePill": "كبسولة",
-  "serverBadgeStylePillSub": "رقعة صغيرة تحمل اسم خادمك.",
+  "serverBadgeStyleRibbonSub": "شريط عبر الزاوية العلوية. لا يشغل مساحة، لكنه يغطي تلك الزاوية.",
   "serverSwitchWarningTitle": "التبديل يسجّل خروجك",
   "serverSwitchWarningBody": "الحسابات والمحادثات تخصّ خادمًا واحدًا. سيسجّل هذا الجهاز الخروج، ويمسح ما نزّله، ويبدأ من جديد. ولن يُحذف أي شيء على أي من الخادمين.",
   "serverSwitchRolledBackTitle": "تعذّر الاتصال",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "جارٍ تبديل الخادم…",
   "serverBadgeHomeserver": "يعمل من الخادم المنزلي",
   "serverBadgeHomeserverShort": "الخادم المنزلي",
-  "serverBadgeHomeserverSemantics": "يعمل من الخادم المنزلي على {server}. اضغط للتفاصيل.",
+  "serverBadgeHomeserverSemantics": "يعمل من الخادم المنزلي. اضغط للتفاصيل.",
   "serverBadgeSelfHostedSemantics": "خادم باستضافة ذاتية: {server}. اضغط للتفاصيل.",
   "serverRoleHomeserverTitle": "يعمل على الخادم المنزلي",
   "serverRoleHomeserverBody": "قام مشغّلو MonkeyHub بنقل حركة البيانات إلى خادمهم المنزلي لفترة. كل شيء يعمل كالمعتاد — هذا إجراء مقصود وليس عطلًا.",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "الاتصال المنزلي أبطأ من المعتاد، لذا قد تصبح الأمور متأخرة.",
   "serverRoleHomeserverWarnAuto": "لا داعي لفعل أي شيء. سيعود التطبيق تلقائيًا.",
   "serverRoleSelfHostedTitle": "خادمك الخاص",
-  "serverRoleSelfHostedBody": "هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم."
+  "serverRoleSelfHostedBody": "هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم.",
+  "serverValueHomeserver": "الخادم المنزلي، مؤقتًا",
+  "serverChoiceCloudSubHomeserver": "يُقدَّم من الخادم المنزلي لفترة.",
+  "serverBadgeStyleBar": "شريط علوي",
+  "serverBadgeStyleBarSub": "شريط عبر الأعلى. يبدأ التطبيق تحته، فلا يغطي شيئًا."
 }

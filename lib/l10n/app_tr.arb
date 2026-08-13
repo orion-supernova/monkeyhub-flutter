@@ -1836,9 +1836,7 @@
   "serverRecentForget": "Bu sunucuyu unut",
   "serverSectionBadge": "ROZET",
   "serverBadgeStyleRibbon": "Şerit",
-  "serverBadgeStyleRibbonSub": "Üst köşeyi çaprazlayan bir şerit. Gözden kaçmaz.",
-  "serverBadgeStylePill": "Hap",
-  "serverBadgeStylePillSub": "Sunucunuzun adını taşıyan küçük bir etiket.",
+  "serverBadgeStyleRibbonSub": "Üst köşeyi çaprazlayan bir şerit. Yer kaplamaz ama o köşeyi kapatır.",
   "serverSwitchWarningTitle": "DEĞİŞTİRMEK OTURUMU KAPATIR",
   "serverSwitchWarningBody": "Hesaplar ve sohbetler tek bir sunucuya aittir. Bu cihaz oturumu kapatır, indirdiklerini siler ve sıfırdan başlar. İki sunucuda da hiçbir şey silinmez.",
   "serverSwitchRolledBackTitle": "BAĞLANILAMADI",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "Sunucu değiştiriliyor…",
   "serverBadgeHomeserver": "Ev sunucusundan sunuluyor",
   "serverBadgeHomeserverShort": "EV SUNUCUSU",
-  "serverBadgeHomeserverSemantics": "{server} adresindeki ev sunucusundan sunuluyor. Ayrıntılar için dokunun.",
+  "serverBadgeHomeserverSemantics": "Ev sunucusundan sunuluyor. Ayrıntılar için dokunun.",
   "serverBadgeSelfHostedSemantics": "Kendi sunucunuz: {server}. Ayrıntılar için dokunun.",
   "serverRoleHomeserverTitle": "Ev sunucusunda çalışıyor",
   "serverRoleHomeserverBody": "MonkeyHub'ı işletenler trafiği bir süreliğine evdeki sunucularına aldı. Her şey aynı şekilde çalışıyor — bu bilinçli bir tercih, arıza değil.",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "Ev bağlantısı her zamankinden yavaştır; takılmalar olabilir.",
   "serverRoleHomeserverWarnAuto": "Bir şey yapmanıza gerek yok. Uygulama kendiliğinden geri döner.",
   "serverRoleSelfHostedTitle": "Kendi sunucunuz",
-  "serverRoleSelfHostedBody": "Bu cihaz kendi işlettiğiniz bir sunucuya bakıyor. Ayarlar › Gelişmiş › Sunucu içinden değiştirin."
+  "serverRoleSelfHostedBody": "Bu cihaz kendi işlettiğiniz bir sunucuya bakıyor. Ayarlar › Gelişmiş › Sunucu içinden değiştirin.",
+  "serverValueHomeserver": "Şimdilik ev sunucusu",
+  "serverChoiceCloudSubHomeserver": "Bir süreliğine ev sunucusundan sunuluyor.",
+  "serverBadgeStyleBar": "Çubuk",
+  "serverBadgeStyleBarSub": "Üstte bir şerit. Uygulama altından başlar, hiçbir şeyi kapatmaz."
 }

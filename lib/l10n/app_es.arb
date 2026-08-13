@@ -1836,9 +1836,7 @@
   "serverRecentForget": "Olvidar este servidor",
   "serverSectionBadge": "DISTINTIVO",
   "serverBadgeStyleRibbon": "Cinta",
-  "serverBadgeStyleRibbonSub": "Una banda en la esquina superior. Imposible pasarla por alto.",
-  "serverBadgeStylePill": "Píldora",
-  "serverBadgeStylePillSub": "Una etiqueta pequeña con el nombre de tu servidor.",
+  "serverBadgeStyleRibbonSub": "Una banda en la esquina superior. No ocupa espacio, pero tapa esa esquina.",
   "serverSwitchWarningTitle": "CAMBIAR CIERRA TU SESIÓN",
   "serverSwitchWarningBody": "Las cuentas y los chats pertenecen a un solo servidor. Este dispositivo cierra sesión, borra lo que descargó y empieza de cero. No se borra nada en ninguno de los dos servidores.",
   "serverSwitchRolledBackTitle": "NO SE PUDO CONECTAR",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "Cambiando de servidor…",
   "serverBadgeHomeserver": "Sirviendo desde el homeserver",
   "serverBadgeHomeserverShort": "HOMESERVER",
-  "serverBadgeHomeserverSemantics": "Sirviendo desde el homeserver en {server}. Toca para ver los detalles.",
+  "serverBadgeHomeserverSemantics": "Sirviendo desde el homeserver. Toca para ver los detalles.",
   "serverBadgeSelfHostedSemantics": "Servidor autoalojado: {server}. Toca para ver los detalles.",
   "serverRoleHomeserverTitle": "Funcionando en el homeserver",
   "serverRoleHomeserverBody": "Quienes gestionan MonkeyHub han movido el tráfico a su servidor doméstico durante un tiempo. Todo funciona igual: es algo intencionado, no una avería.",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "Una conexión doméstica es más lenta que la habitual, así que puede ir con retraso.",
   "serverRoleHomeserverWarnAuto": "No tienes que hacer nada. La app vuelve sola.",
   "serverRoleSelfHostedTitle": "Tu propio servidor",
-  "serverRoleSelfHostedBody": "Este dispositivo apunta a un servidor tuyo. Cámbialo en Ajustes › Avanzado › Servidor."
+  "serverRoleSelfHostedBody": "Este dispositivo apunta a un servidor tuyo. Cámbialo en Ajustes › Avanzado › Servidor.",
+  "serverValueHomeserver": "Homeserver, por ahora",
+  "serverChoiceCloudSubHomeserver": "Se está sirviendo desde el homeserver por un tiempo.",
+  "serverBadgeStyleBar": "Barra",
+  "serverBadgeStyleBarSub": "Una franja en la parte superior. La app queda debajo, así que no tapa nada."
 }

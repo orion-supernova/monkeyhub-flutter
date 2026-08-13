@@ -6247,13 +6247,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverBadgeStyleRibbon => 'リボン';
 
   @override
-  String get serverBadgeStyleRibbonSub => '右上隅を横切る帯。見逃しません。';
-
-  @override
-  String get serverBadgeStylePill => 'ピル';
-
-  @override
-  String get serverBadgeStylePillSub => 'サーバー名を載せた小さなチップ。';
+  String get serverBadgeStyleRibbonSub => '右上隅を横切る帯。場所は取りませんが、その隅を覆います。';
 
   @override
   String get serverSwitchWarningTitle => '切り替えるとサインアウトします';
@@ -6301,9 +6295,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'ホームサーバー';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return '$server のホームサーバーで稼働中です。詳細はタップしてください。';
-  }
+  String get serverBadgeHomeserverSemantics => 'ホームサーバーで稼働中です。詳細はタップしてください。';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6333,4 +6325,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'この端末はご自分のサーバーを指しています。設定 › 詳細設定 › サーバー で変更できます。';
+
+  @override
+  String get serverValueHomeserver => '当面はホームサーバー';
+
+  @override
+  String get serverChoiceCloudSubHomeserver => 'しばらくのあいだホームサーバーから提供されています。';
+
+  @override
+  String get serverBadgeStyleBar => 'バー';
+
+  @override
+  String get serverBadgeStyleBarSub => '画面上部の帯。アプリはその下から始まるので、何も覆いません。';
 }

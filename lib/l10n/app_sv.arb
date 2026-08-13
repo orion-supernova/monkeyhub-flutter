@@ -1836,9 +1836,7 @@
   "serverRecentForget": "Glöm den här servern",
   "serverSectionBadge": "MÄRKE",
   "serverBadgeStyleRibbon": "Banderoll",
-  "serverBadgeStyleRibbonSub": "En banderoll i övre hörnet. Svår att missa.",
-  "serverBadgeStylePill": "Kapsel",
-  "serverBadgeStylePillSub": "En liten bricka med serverns namn.",
+  "serverBadgeStyleRibbonSub": "En banderoll i övre hörnet. Tar ingen plats, men täcker det hörnet.",
   "serverSwitchWarningTitle": "BYTE LOGGAR UT DIG",
   "serverSwitchWarningBody": "Konton och chattar hör till en enda server. Den här enheten loggas ut, rensar det den laddat ner och börjar om. Inget raderas på någon av servrarna.",
   "serverSwitchRolledBackTitle": "KUNDE INTE ANSLUTA",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "Byter server…",
   "serverBadgeHomeserver": "Körs från hemservern",
   "serverBadgeHomeserverShort": "HEMSERVER",
-  "serverBadgeHomeserverSemantics": "Körs från hemservern på {server}. Tryck för detaljer.",
+  "serverBadgeHomeserverSemantics": "Körs från hemservern. Tryck för detaljer.",
   "serverBadgeSelfHostedSemantics": "Egen server: {server}. Tryck för detaljer.",
   "serverRoleHomeserverTitle": "Kör på hemservern",
   "serverRoleHomeserverBody": "De som driver MonkeyHub har flyttat trafiken till sin hemmaserver ett tag. Allt fungerar likadant – det är avsiktligt, inte ett fel.",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "En hemmauppkoppling är långsammare än den vanliga, så det kan hacka.",
   "serverRoleHomeserverWarnAuto": "Du behöver inte göra något. Appen byter tillbaka av sig själv.",
   "serverRoleSelfHostedTitle": "Din egen server",
-  "serverRoleSelfHostedBody": "Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server."
+  "serverRoleSelfHostedBody": "Den här enheten pekar mot en server du kör. Ändra under Inställningar › Avancerat › Server.",
+  "serverValueHomeserver": "Hemservern, tills vidare",
+  "serverChoiceCloudSubHomeserver": "Levereras från hemservern ett tag.",
+  "serverBadgeStyleBar": "Rad",
+  "serverBadgeStyleBarSub": "En rad högst upp. Appen börjar under den, så den täcker ingenting."
 }

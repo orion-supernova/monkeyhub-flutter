@@ -6472,14 +6472,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'Üst köşeyi çaprazlayan bir şerit. Gözden kaçmaz.';
-
-  @override
-  String get serverBadgeStylePill => 'Hap';
-
-  @override
-  String get serverBadgeStylePillSub =>
-      'Sunucunuzun adını taşıyan küçük bir etiket.';
+      'Üst köşeyi çaprazlayan bir şerit. Yer kaplamaz ama o köşeyi kapatır.';
 
   @override
   String get serverSwitchWarningTitle => 'DEĞİŞTİRMEK OTURUMU KAPATIR';
@@ -6528,9 +6521,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'EV SUNUCUSU';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return '$server adresindeki ev sunucusundan sunuluyor. Ayrıntılar için dokunun.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'Ev sunucusundan sunuluyor. Ayrıntılar için dokunun.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6562,4 +6554,18 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'Bu cihaz kendi işlettiğiniz bir sunucuya bakıyor. Ayarlar › Gelişmiş › Sunucu içinden değiştirin.';
+
+  @override
+  String get serverValueHomeserver => 'Şimdilik ev sunucusu';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'Bir süreliğine ev sunucusundan sunuluyor.';
+
+  @override
+  String get serverBadgeStyleBar => 'Çubuk';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'Üstte bir şerit. Uygulama altından başlar, hiçbir şeyi kapatmaz.';
 }

@@ -1836,9 +1836,7 @@
   "serverRecentForget": "忘记此服务器",
   "serverSectionBadge": "标记",
   "serverBadgeStyleRibbon": "角标",
-  "serverBadgeStyleRibbonSub": "横跨右上角的一条带子，很难忽略。",
-  "serverBadgeStylePill": "胶囊",
-  "serverBadgeStylePillSub": "带有服务器名称的小标签。",
+  "serverBadgeStyleRibbonSub": "横跨右上角的一条带子。不占空间，但会遮住那个角。",
   "serverSwitchWarningTitle": "切换会退出登录",
   "serverSwitchWarningBody": "账号和聊天属于某一台服务器。本设备会退出登录、清除已下载的内容，并重新开始。两台服务器上的数据都不会被删除。",
   "serverSwitchRolledBackTitle": "无法连接",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "正在切换服务器…",
   "serverBadgeHomeserver": "由家庭服务器提供服务",
   "serverBadgeHomeserverShort": "家庭服务器",
-  "serverBadgeHomeserverSemantics": "正在由 {server} 上的家庭服务器提供服务。点按查看详情。",
+  "serverBadgeHomeserverSemantics": "正在由家庭服务器提供服务。点按查看详情。",
   "serverBadgeSelfHostedSemantics": "自托管服务器：{server}。点按查看详情。",
   "serverRoleHomeserverTitle": "正在家庭服务器上运行",
   "serverRoleHomeserverBody": "MonkeyHub 的运营者暂时把流量切到了他们家里的服务器。一切照常运作 — 这是有意为之，不是故障。",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "家庭宽带比平时的线路慢，可能会有卡顿。",
   "serverRoleHomeserverWarnAuto": "你不需要做任何事。应用会自动切回去。",
   "serverRoleSelfHostedTitle": "你自己的服务器",
-  "serverRoleSelfHostedBody": "此设备指向你自己运行的服务器。可在 设置 › 高级 › 服务器 中更改。"
+  "serverRoleSelfHostedBody": "此设备指向你自己运行的服务器。可在 设置 › 高级 › 服务器 中更改。",
+  "serverValueHomeserver": "暂时使用家庭服务器",
+  "serverChoiceCloudSubHomeserver": "暂时由家庭服务器提供服务。",
+  "serverBadgeStyleBar": "横条",
+  "serverBadgeStyleBarSub": "顶部的一条横带。应用从它下面开始，不会遮住任何东西。"
 }

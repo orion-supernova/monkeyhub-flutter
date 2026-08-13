@@ -3,6 +3,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_service.dart';
 import '../backend/chat_api.dart';
+import '../backend/server_directory.dart';
 import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
@@ -810,7 +811,12 @@ class _ServerRow extends StatelessWidget {
         final theme = ThemeScope.of(context);
         final l10n = AppLocalizations.of(context);
         final store = ServerStore.instance;
-        final custom = store.isCustom;
+        // isSelfHosted, NOT isCustom. Following a directive onto the home
+        // server writes a custom URL, so isCustom is true there too — and
+        // reading it is what made this row present a temporary move as a
+        // self-hosting choice the user had made.
+        final own = store.isSelfHosted;
+        final marked = store.announcesRole;
         return GestureDetector(
           onTap: () => openSettingsDetail(
             context,
@@ -825,7 +831,7 @@ class _ServerRow extends StatelessWidget {
                   ? theme.accent.withValues(alpha: 0.14)
                   : theme.surface,
               border: Border.all(
-                color: selected || custom
+                color: selected || marked
                     ? theme.accent.withValues(alpha: 0.4)
                     : theme.divider,
               ),
@@ -836,7 +842,7 @@ class _ServerRow extends StatelessWidget {
                 Icon(
                   Icons.dns_outlined,
                   size: 16,
-                  color: custom ? theme.accent : theme.inkSoft,
+                  color: marked ? theme.accent : theme.inkSoft,
                 ),
                 const SizedBox(width: 12),
                 SizedBox(
@@ -845,11 +851,17 @@ class _ServerRow extends StatelessWidget {
                 ),
                 Expanded(
                   child: Text(
-                    custom
+                    // The address only ever appears for a server the user
+                    // typed in. The operator's deployment URLs are
+                    // infrastructure, not something to publish on every user's
+                    // settings screen.
+                    own
                         ? shortHost(store.host)
-                        : l10n.serverValueDefault,
+                        : (store.role == ServerRole.homeserver
+                              ? l10n.serverValueHomeserver
+                              : l10n.serverValueDefault),
                     style: theme.body.copyWith(
-                      color: custom ? theme.accent : theme.inkSoft,
+                      color: marked ? theme.accent : theme.inkSoft,
                     ),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.right,
@@ -1176,8 +1188,7 @@ class _ShowLinkUrlsToggle extends StatelessWidget {
 }
 
 class _ShowNetworkStatsToggle extends StatelessWidget {
-  Future<void> _toggle(bool v) =>
-      SettingsStore.instance.setShowNetworkStats(v);
+  Future<void> _toggle(bool v) => SettingsStore.instance.setShowNetworkStats(v);
 
   @override
   Widget build(BuildContext context) {

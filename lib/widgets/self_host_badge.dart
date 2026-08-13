@@ -10,109 +10,227 @@ import '../main.dart' show rootNavigatorKey;
 import '../theme/theme_scope.dart';
 import 'server_role_sheet.dart';
 
-/// The palette the badge paints in, chosen per [ServerRole].
+/// The palette the mark paints in, chosen per [ServerRole].
 ///
 /// Deliberately NOT `theme.accent`. The accent is what every ordinary control
-/// in the app is drawn in, so a badge wearing it reads as one more piece of
-/// chrome — the opposite of a marker whose entire job is to look like it does
+/// in the app is drawn in, so a marker wearing it reads as one more piece of
+/// chrome — the opposite of something whose entire job is to look like it does
 /// not belong. Fixed hex rather than theme tokens for the same reason: this
 /// must look identical, and equally out of place, under all fourteen themes.
-class _BadgePalette {
-  const _BadgePalette({required this.ink, required this.fill, this.border});
+class _Palette {
+  const _Palette({required this.ink, required this.fill, required this.border});
 
-  /// Text, dot and the ribbon's own field.
+  /// Text, dot, and the ribbon's own field.
   final Color ink;
 
-  /// The chip's backing. Near-opaque, not a tint: the chip is drawn ON TOP of
-  /// the status bar, and a translucent fill lets the OS clock, wifi and battery
-  /// glyphs bleed through it into an unreadable smear. Opacity is what makes
-  /// something drawn over system chrome legible.
+  /// The backing. Near-opaque, and dark under every theme: the bar sits behind
+  /// the OS status glyphs, which are painted last and in white.
   final Color fill;
 
-  /// Chip outline, defaulting to [ink] at low alpha.
-  final Color? border;
-
-  Color get stroke => border ?? ink.withValues(alpha: 0.55);
+  final Color border;
 
   /// The operator has moved traffic to the home server. Warm amber — the one
   /// hue nothing else in this app uses, so it cannot be confused with chrome —
   /// and pointedly not `theme.danger`, which everywhere else means something
   /// has gone wrong. Being on the home server is a deliberate arrangement, not
   /// a fault.
-  static const homeserver = _BadgePalette(
+  static const homeserver = _Palette(
     ink: Color(0xFFE8A33D),
     fill: Color(0xF21C1509),
-    border: Color(0xB3E8A33D),
+    border: Color(0x59E8A33D),
   );
 
-  /// Somebody's own backend. Not a warning at all — a statement of fact — so
-  /// it gets a quiet graphite that reads as a label rather than an alarm.
-  static const selfHosted = _BadgePalette(
+  /// Somebody's own backend. Not a warning at all — a statement of fact — so it
+  /// gets a quiet graphite that reads as a label rather than an alarm.
+  static const selfHosted = _Palette(
     ink: Color(0xFF9AA3AE),
     fill: Color(0xF215181C),
-    border: Color(0x8C9AA3AE),
+    border: Color(0x4D9AA3AE),
   );
 
-  /// Text colour on top of a solid [ink] field — the ribbon's label. Near-black
-  /// rather than white: amber at this weight is far too light to carry white
-  /// text at 8pt.
+  static _Palette of(ServerRole role) =>
+      role == ServerRole.homeserver ? homeserver : selfHosted;
+
+  /// Text on top of a solid [ink] field — the ribbon's label. Near-black rather
+  /// than white: amber at this weight is far too light to carry white text.
   static const onInk = Color(0xFF141414);
 }
 
-/// The permanent mark an install wears while it is not on the ordinary server.
+/// What the mark says, given where the app is pointed.
 ///
-/// ───────── why it is permanent, and why it is here ─────────
-///
-/// A device pointed somewhere unusual is otherwise indistinguishable from a
-/// stock one. Every screen looks identical, every message sends normally, and
-/// the only evidence lives four taps deep in Settings. That is a bad property
-/// for the one setting that decides who holds your conversations — someone
-/// handed a configured handset would never learn, and neither would anyone
-/// wondering why the app is slow today.
-///
-/// So it borrows Flutter's own debug-banner position, and for the same reason
-/// that banner exists: a mode you can forget you are in should not be
-/// forgettable. It renders nothing at all on the primary deployment.
-///
-/// ───────── the three rules it obeys ─────────
-///
-///  * **It only takes taps on the shape it paints.** It floats above every
-///    route, and the top-right corner is where close buttons, overflow menus
-///    and call controls live. The gesture detector therefore sits INSIDE the
-///    ribbon's rotation and inside the pill's own bounds, so the rest of the
-///    corner passes pointers straight through — see the tests, which assert
-///    exactly that.
-///  * **The default shape paints over the status bar.** The app draws
-///    edge-to-edge, so that strip belongs to it, and covering the corner of it
-///    is the point rather than an accident. But no app can paint ABOVE the
-///    system glyphs — they composite last — so the shape has to be one that
-///    survives having a battery drawn on top of it. A diagonal band crosses
-///    that row for a few points and reads fine; a horizontal chip runs the
-///    whole length of it and reads as a smear, which is why [_Pill] sits below
-///    the inset instead and why [_Ribbon] is the default.
-///  * **It never draws a debug underline.** Overlay content sits outside any
-///    route's Material, so its own [Material] + [DefaultTextStyle] are
-///    load-bearing, not decoration.
-///
-/// Mounted once, in the app-wide Stack inside `MaterialApp.builder`, so it
-/// survives every navigation and covers full-screen pushes (calls, the camera,
-/// the media viewer) as well as the shell.
-class SelfHostBadge extends StatelessWidget {
-  const SelfHostBadge({super.key, this.style, this.onTap});
+/// Split out because several surfaces need the same answer, and getting it
+/// wrong in one of them leaks a deployment URL. The operator's addresses are
+/// infrastructure; only a server the user typed in themselves is theirs to see.
+/// See [ServerStore.isSelfHosted].
+({String long, String short, String semantics}) serverMarkLabels(
+  BuildContext context,
+) {
+  final l10n = AppLocalizations.of(context);
+  final store = ServerStore.instance;
+  if (store.role == ServerRole.homeserver) {
+    return (
+      long: l10n.serverBadgeHomeserver,
+      short: l10n.serverBadgeHomeserverShort,
+      semantics: l10n.serverBadgeHomeserverSemantics,
+    );
+  }
+  return (
+    long: shortHost(store.host, max: 28),
+    short: l10n.serverBadgeSelfHosted,
+    semantics: l10n.serverBadgeSelfHostedSemantics(store.host),
+  );
+}
 
-  /// Forces a style instead of reading the user's. Test seam only — writing the
-  /// preference goes through secure storage, which no widget test can await,
-  /// and rendering both shapes is the only way to check either one.
-  final SelfHostBadgeStyle? style;
+/// A strip across the top of the app saying which server this is, that
+/// everything else sits underneath.
+///
+/// ───────── why a bar and not an overlay ─────────
+///
+/// Three overlay shapes were tried before this one and each collided with
+/// something it could not avoid. A chip centred in the status-bar strip is
+/// drawn over by the clock, the dynamic island and the battery, because the
+/// system composites its glyphs last and no app can paint above them. A chip
+/// below the strip lands on whatever the current route put in its top-right. A
+/// corner ribbon large enough to be tappable sweeps through where full-screen
+/// routes put their close button.
+///
+/// A bar has none of those problems, because it overlaps nothing: it takes its
+/// own height out of the layout and the app begins below it. It also gives the
+/// tap a target the width of the screen, which is what a permanent
+/// explain-yourself affordance actually wants.
+///
+/// ───────── how it takes that height ─────────
+///
+/// The bar draws from y=0 and pads itself by the top inset, so its background
+/// fills the status-bar strip and the OS glyphs land on it rather than on app
+/// content — exactly how an opaque app bar behaves under edge-to-edge. In
+/// exchange, `app.dart` strips `padding.top` from everything below, so the
+/// SafeArea on every screen adds nothing and content is not inset twice. That
+/// pairing is load-bearing: see [consumesTopInset].
+class SelfHostBar extends StatelessWidget {
+  const SelfHostBar({super.key, this.onTap, this.style});
 
   /// Overrides what a tap opens. Test seam; production opens the info sheet.
   final VoidCallback? onTap;
 
+  /// Forces a style instead of reading the user's. Test seam only — writing the
+  /// preference goes through secure storage, whose reply never arrives under a
+  /// widget test's fake clock, so a test that set it would simply hang.
+  final SelfHostBadgeStyle? style;
+
+  /// Height of the bar's content, below the status-bar inset.
+  ///
+  /// Also the exact amount every screen in the app moves down by while this is
+  /// showing, which is why it is stated once and read from here.
+  static const double contentHeight = 26;
+
+  /// Whether a bar is being drawn right now.
+  ///
+  /// `app.dart` reads this to decide whether to remove `padding.top` from the
+  /// subtree below. The two must agree, or the app is inset either twice or not
+  /// at all, so neither side is allowed its own copy of the condition.
+  static bool get consumesTopInset =>
+      consumesTopInsetFor(SettingsStore.instance.selfHostBadge);
+
+  /// The same question against an explicit style, for the test seam.
+  static bool consumesTopInsetFor(SelfHostBadgeStyle style) =>
+      ServerStore.instance.announcesRole && style == SelfHostBadgeStyle.bar;
+
   @override
   Widget build(BuildContext context) {
-    // Both stores, because either one changing changes what this paints: the
-    // server store flips it on, off and between roles; the settings store picks
-    // the shape.
+    if (!consumesTopInsetFor(style ?? SettingsStore.instance.selfHostBadge)) {
+      return const SizedBox.shrink();
+    }
+    final theme = ThemeScope.of(context);
+    final store = ServerStore.instance;
+    final palette = _Palette.of(store.role);
+    final labels = serverMarkLabels(context);
+    final top = MediaQuery.paddingOf(context).top;
+    return GestureDetector(
+      onTap: onTap ?? () => showServerRoleSheet(context),
+      behavior: HitTestBehavior.opaque,
+      child: Semantics(
+        container: true,
+        button: true,
+        label: labels.semantics,
+        excludeSemantics: true,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Container(
+            height: top + contentHeight,
+            padding: EdgeInsets.only(top: top),
+            decoration: BoxDecoration(
+              color: palette.fill,
+              border: Border(
+                bottom: BorderSide(color: palette.border, width: 0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: palette.ink,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Flexible, not fixed: the label is a full sentence in twelve
+                // languages, and this is the one shape with room for all of
+                // them. It still may not push the glyph off the end.
+                Flexible(
+                  child: Text(
+                    labels.long,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.monoTiny.copyWith(
+                      color: palette.ink,
+                      fontSize: 10,
+                      letterSpacing: 0.4,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Icon(Icons.info_outline, size: 12, color: palette.ink),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The corner-ribbon alternative: an overlay that takes no height.
+///
+/// Renders nothing unless the ribbon style is selected, so the app can mount
+/// both this and [SelfHostBar] unconditionally and let the preference decide
+/// which appears.
+///
+/// Two rules keep an overlay in the top-right corner from being a bug in
+/// itself:
+///
+///  * **It only takes taps on the shape it paints.** The gesture detector sits
+///    INSIDE the rotation, so the extreme corner — where a close button goes —
+///    passes pointers straight through. The tests assert exactly that.
+///  * **It never draws a debug underline.** Overlay content sits outside any
+///    route's Material, so its own [Material] + [DefaultTextStyle] are
+///    load-bearing, not decoration.
+class SelfHostBadge extends StatelessWidget {
+  const SelfHostBadge({super.key, this.onTap, this.style});
+
+  /// Overrides what a tap opens. Test seam; production opens the info sheet.
+  final VoidCallback? onTap;
+
+  /// Forces a style instead of reading the user's. Test seam — see
+  /// [SelfHostBar.style].
+  final SelfHostBadgeStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: Listenable.merge([
         ServerStore.instance,
@@ -121,27 +239,12 @@ class SelfHostBadge extends StatelessWidget {
       builder: (context, _) {
         final store = ServerStore.instance;
         if (!store.announcesRole) return const SizedBox.shrink();
-        final role = store.role;
-        final theme = ThemeScope.of(context);
-        final l10n = AppLocalizations.of(context);
         final shape = style ?? SettingsStore.instance.selfHostBadge;
-        final homeserver = role == ServerRole.homeserver;
-        final palette = homeserver
-            ? _BadgePalette.homeserver
-            : _BadgePalette.selfHosted;
-        // The ribbon has room for one short token; the pill has room for the
-        // address, which is the more useful fact when it is somebody's own box.
-        final ribbonLabel = homeserver
-            ? l10n.serverBadgeHomeserverShort
-            : l10n.serverBadgeSelfHosted;
-        final pillLabel = homeserver
-            ? l10n.serverBadgeHomeserver
-            : shortHost(store.host, max: 18);
-        final semantics = homeserver
-            ? l10n.serverBadgeHomeserverSemantics(store.host)
-            : l10n.serverBadgeSelfHostedSemantics(store.host);
-        void open() =>
-            onTap == null ? showServerRoleSheet(context) : onTap!.call();
+        if (shape != SelfHostBadgeStyle.ribbon) {
+          return const SizedBox.shrink();
+        }
+        final theme = ThemeScope.of(context);
+        final labels = serverMarkLabels(context);
         return Positioned(
           top: 0,
           right: 0,
@@ -149,20 +252,12 @@ class SelfHostBadge extends StatelessWidget {
             type: MaterialType.transparency,
             child: DefaultTextStyle(
               style: theme.monoTiny,
-              child: switch (shape) {
-                SelfHostBadgeStyle.ribbon => _Ribbon(
-                  label: ribbonLabel,
-                  semanticLabel: semantics,
-                  palette: palette,
-                  onTap: open,
-                ),
-                SelfHostBadgeStyle.pill => _Pill(
-                  label: pillLabel,
-                  semanticLabel: semantics,
-                  palette: palette,
-                  onTap: open,
-                ),
-              },
+              child: _Ribbon(
+                label: labels.short,
+                semanticLabel: labels.semantics,
+                palette: _Palette.of(store.role),
+                onTap: onTap ?? () => showServerRoleSheet(context),
+              ),
             ),
           ),
         );
@@ -171,11 +266,11 @@ class SelfHostBadge extends StatelessWidget {
   }
 }
 
-/// A scaled-down copy of the real badge, for the picker on the server screen.
+/// A scaled-down copy of the real thing, for the picker on the server screen.
 ///
 /// Renders the SAME widgets the app draws, shrunk — never a hand-drawn
 /// miniature. A separately-authored preview is one that can disagree with the
-/// thing it previews, and that is not hypothetical here: the first version of
+/// thing it previews, and that is not hypothetical here: an early version of
 /// this file had the ribbon rotated one way and its miniature rotated the
 /// other, so neither could flag the other and only a render caught it.
 class SelfHostBadgePreview extends StatelessWidget {
@@ -183,26 +278,24 @@ class SelfHostBadgePreview extends StatelessWidget {
     super.key,
     required this.style,
     required this.label,
-    this.homeserver = false,
+    required this.role,
   });
 
   final SelfHostBadgeStyle style;
   final String label;
-  final bool homeserver;
+  final ServerRole role;
 
-  static const double width = 62;
-  static const double height = 40;
+  static const double width = 74;
+  static const double height = 44;
 
-  /// Enough that the corner reads at this size, and small enough that the 96pt
-  /// ribbon fits inside a 62pt frame.
-  static const double _scale = 0.44;
+  /// Enough that the corner reads at this size, and small enough that the
+  /// ribbon's square fits inside the frame.
+  static const double _scale = 0.5;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    final palette = homeserver
-        ? _BadgePalette.homeserver
-        : _BadgePalette.selfHosted;
+    final palette = _Palette.of(role);
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: SizedBox(
@@ -210,43 +303,72 @@ class SelfHostBadgePreview extends StatelessWidget {
         height: height,
         child: ColoredBox(
           color: theme.surfaceSunken,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Transform.scale(
-                  scale: _scale,
-                  alignment: Alignment.topRight,
-                  child: switch (style) {
-                    SelfHostBadgeStyle.ribbon => _Ribbon(
-                      label: label,
-                      semanticLabel: label,
-                      palette: palette,
-                      onTap: null,
+          child: switch (style) {
+            // A miniature of the LAYOUT, not of the widget. What distinguishes
+            // the bar is that the app sits under it, and a picture of the strip
+            // on its own would not show the thing being chosen.
+            SelfHostBadgeStyle.bar => Column(
+              children: [
+                Container(
+                  height: 9,
+                  decoration: BoxDecoration(
+                    color: palette.fill,
+                    border: Border(
+                      bottom: BorderSide(color: palette.border, width: 0.5),
                     ),
-                    // insetTop 0: there is no status bar inside a 40pt frame,
-                    // and the device's real one would push the chip out of it.
-                    SelfHostBadgeStyle.pill => _Pill(
-                      label: label,
-                      semanticLabel: label,
-                      palette: palette,
-                      onTap: null,
-                      insetTop: 0,
-                    ),
-                  },
+                  ),
+                  child: Center(
+                    child: Container(width: 26, height: 2, color: palette.ink),
+                  ),
                 ),
-              ),
-            ],
-          ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(6, 5, 6, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final w in const [1.0, 0.7, 0.85])
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: w,
+                              child: Container(height: 3, color: theme.divider),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SelfHostBadgeStyle.ribbon => Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Transform.scale(
+                    scale: _scale,
+                    alignment: Alignment.topRight,
+                    child: _Ribbon(
+                      label: label,
+                      semanticLabel: label,
+                      palette: palette,
+                      onTap: null,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          },
         ),
       ),
     );
   }
 }
 
-/// A corner band, at Flutter's debug-banner angle and size.
+/// A corner band, at Flutter's debug-banner angle.
 class _Ribbon extends StatelessWidget {
   const _Ribbon({
     required this.label,
@@ -257,7 +379,7 @@ class _Ribbon extends StatelessWidget {
 
   final String label;
   final String semanticLabel;
-  final _BadgePalette palette;
+  final _Palette palette;
   final VoidCallback? onTap;
 
   /// Side of the square corner the ribbon is drawn inside. Big enough to
@@ -300,8 +422,8 @@ class _Ribbon extends StatelessWidget {
     const inset = _fromCorner / math.sqrt2;
     const cx = _side - inset;
     const cy = inset;
-    // Longer than the corner's hypotenuse (_side·√2 ≈ 136) so both ends are cut
-    // by the clip rather than stopping short of an edge.
+    // Longer than the corner's hypotenuse so both ends are cut by the clip
+    // rather than stopping short of an edge.
     const length = _side * 1.8;
     return SizedBox(
       width: _side,
@@ -346,7 +468,7 @@ class _Ribbon extends StatelessWidget {
                         maxLines: 1,
                         textAlign: TextAlign.center,
                         style: theme.monoTiny.copyWith(
-                          color: _BadgePalette.onInk,
+                          color: _Palette.onInk,
                           letterSpacing: 1.2,
                           fontSize: 9,
                           height: 1.1,
@@ -364,129 +486,9 @@ class _Ribbon extends StatelessWidget {
   }
 }
 
-/// A chip in the status-bar strip.
-///
-/// Sits BELOW the top inset, and that is the whole difference between the two
-/// shapes.
-///
-/// It was briefly centred inside the status-bar strip, to be as visible as
-/// [_Ribbon]. That does not work and cannot be made to work: no app can paint
-/// above the system status bar, so a horizontal chip in that strip runs the
-/// full length of the signal, wifi and battery glyphs — and the dynamic island
-/// — with all of them composited on top of it. The result is a smear, not a
-/// badge. A diagonal band gets away with the same overlap because it only
-/// crosses that row for a few points; a horizontal one does not.
-///
-/// So this shape trades reach for cleanliness: it says more, it collides with
-/// nothing, and it is the right pick for anyone who finds the corner band
-/// heavy. [_Ribbon] is the default because it is the one that survives being
-/// drawn where the glyphs are.
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.label,
-    required this.semanticLabel,
-    required this.palette,
-    required this.onTap,
-    this.insetTop,
-  });
-
-  final String label;
-  final String semanticLabel;
-  final _BadgePalette palette;
-  final VoidCallback? onTap;
-
-  /// Overrides the status-bar inset. [SelfHostBadgePreview] passes 0 — the
-  /// device's real inset would push the chip out of a 40pt frame.
-  final double? insetTop;
-
-  /// Hard ceiling on the chip's width.
-  ///
-  /// [shortHost] caps the CHARACTER count, which is not the same thing: a wide
-  /// fallback face, a large text-scale setting, or a locale whose glyphs are
-  /// wider all turn 18 characters into a chip running most of the way across
-  /// the top of the screen. This is the guarantee the character cap cannot give.
-  static const double _maxWidth = 170;
-
-  /// Chip height, used to centre it in the status-bar strip.
-  static const double _height = 22;
-
-  /// Invisible, tappable margin under the chip.
-  ///
-  /// A 22pt chip is half the 44pt a finger wants. This buys the rest of it
-  /// without making anything anybody can see any bigger.
-  ///
-  /// Transparent but opaque to pointers, which is what [HitTestBehavior.opaque]
-  /// on the detector buys. Deliberately BELOW the chip and not around it: the
-  /// space to its left is app content, and a badge that quietly ate a strip of
-  /// it would be the very bug the corner rule exists to prevent.
-  static const double _touchSkirt = 18;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final top = insetTop ?? MediaQuery.paddingOf(context).top;
-    // CLEAR of the inset, not inside it. The badge sits above every route, so
-    // no SafeArea in the tree applies to it and this is the only thing standing
-    // between the chip and the dynamic island.
-    final offset = top + 6;
-    return Padding(
-      padding: EdgeInsets.only(top: offset, right: 10),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: EdgeInsets.only(bottom: onTap == null ? 0 : _touchSkirt),
-          child: Semantics(
-            container: true,
-            button: onTap != null,
-            label: semanticLabel,
-            excludeSemantics: true,
-            child: Container(
-              height: _height,
-              constraints: const BoxConstraints(maxWidth: _maxWidth),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: palette.fill,
-                border: Border.all(color: palette.stroke),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 5,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: palette.ink,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.monoTiny.copyWith(
-                        color: palette.ink,
-                        fontSize: 9,
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Open the explanation for whichever server this install is on.
 ///
-/// Routed through the ROOT navigator because the badge lives above it, in
+/// Routed through the ROOT navigator because the mark can live above it, in
 /// `MaterialApp.builder`, where `Navigator.of(context)` finds nothing.
 void showServerRoleSheet(BuildContext context) {
   final nav = rootNavigatorKey.currentState;
@@ -494,7 +496,8 @@ void showServerRoleSheet(BuildContext context) {
   showServerRoleInfo(nav.context);
 }
 
-/// Fit a hostname into a chip without losing the part that identifies it.
+/// Fit a hostname into a small space without losing the part that identifies
+/// it.
 ///
 /// Elides from the MIDDLE, keeping the leading label and the registrable tail —
 /// `matrix.home.example.com` reads as `matrix…example.com`, not as

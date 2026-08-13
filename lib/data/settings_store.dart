@@ -91,7 +91,7 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
-  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.ribbon;
+  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.bar;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -722,33 +722,33 @@ class SettingsStore extends ChangeNotifier {
   }
 }
 
-/// How the app marks itself while it is pointed at a self-hosted server.
+/// How the app marks itself while it is not on the ordinary server.
 ///
 /// Deliberately not an on/off. Which server holds your messages is the single
 /// most consequential fact about an install; it is invisible from every other
 /// screen, and a handset someone else has quietly repointed looks exactly like
 /// one nobody has touched. So the mark is permanent, and the only choice on
-/// offer is how loud it is.
+/// offer is how much room it takes.
 ///
-/// * `ribbon` (default) — a diagonal band across the top-right corner, in the
-///   place Flutter's own debug banner occupies. It is the default because it is
-///   the only one of the two that can be drawn over the status bar and still be
-///   read: it crosses the glyph row for a few points rather than running the
-///   length of it. The cost is that it sweeps through where full-screen routes
-///   put their close button.
-/// * `pill` — a chip below the status bar carrying the server's name. Says
-///   more and collides with nothing, at the cost of sitting in ordinary app
-///   space rather than over the system's.
+/// * `bar` (default) — a strip across the top that everything else sits under.
+///   It participates in layout rather than floating over it, which is what
+///   makes it the only shape that collides with nothing at all: not the status
+///   glyphs, not a close button, not a corner control. It costs a couple of
+///   dozen points of height, and that is the entire trade.
+/// * `ribbon` — a diagonal band across the top-right corner, in the place
+///   Flutter's own debug banner occupies. Takes no space from the app, at the
+///   cost of overlapping whatever is already in that corner.
 enum SelfHostBadgeStyle {
-  ribbon,
-  pill;
+  bar,
+  ribbon;
 
   static final Map<String, SelfHostBadgeStyle> _byName = values.asNameMap();
 
-  /// Resolves a persisted name, falling back to [ribbon]. Derived from [values]
-  /// for the reason spelled out on [HomeSection.parse].
+  /// Resolves a persisted name, falling back to [bar]. Derived from [values]
+  /// for the reason spelled out on [HomeSection.parse]; an unrecognised value
+  /// also covers the retired `pill`, which the bar replaced.
   static SelfHostBadgeStyle parse(String? s) =>
-      _byName[s] ?? SelfHostBadgeStyle.ribbon;
+      _byName[s] ?? SelfHostBadgeStyle.bar;
 }
 
 enum RoomLayout { list, grid }

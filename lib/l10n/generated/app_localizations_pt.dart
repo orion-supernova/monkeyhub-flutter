@@ -6581,14 +6581,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'Uma faixa no canto superior. Difícil de ignorar.';
-
-  @override
-  String get serverBadgeStylePill => 'Cápsula';
-
-  @override
-  String get serverBadgeStylePillSub =>
-      'Uma pequena etiqueta com o nome do seu servidor.';
+      'Uma faixa no canto superior. Não ocupa espaço, mas tapa esse canto.';
 
   @override
   String get serverSwitchWarningTitle => 'MUDAR TERMINA A SESSÃO';
@@ -6637,9 +6630,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'HOMESERVER';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'A servir a partir do homeserver em $server. Toque para saber mais.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'A servir a partir do homeserver. Toque para saber mais.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6671,6 +6663,20 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'Este dispositivo aponta para um servidor seu. Altere em Definições › Avançado › Servidor.';
+
+  @override
+  String get serverValueHomeserver => 'Homeserver, para já';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'A ser servido a partir do homeserver durante algum tempo.';
+
+  @override
+  String get serverBadgeStyleBar => 'Barra';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'Uma faixa no topo. A aplicação fica por baixo, por isso não tapa nada.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -13246,14 +13252,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'Uma faixa no canto superior. Difícil de ignorar.';
-
-  @override
-  String get serverBadgeStylePill => 'Cápsula';
-
-  @override
-  String get serverBadgeStylePillSub =>
-      'Uma etiqueta pequena com o nome do seu servidor.';
+      'Uma faixa no canto superior. Não ocupa espaço, mas cobre esse canto.';
 
   @override
   String get serverSwitchWarningTitle => 'TROCAR DESCONECTA VOCÊ';
@@ -13302,9 +13301,8 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get serverBadgeHomeserverShort => 'HOMESERVER';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'Servindo pelo homeserver em $server. Toque para saber mais.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'Servindo pelo homeserver. Toque para saber mais.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -13336,4 +13334,18 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get serverRoleSelfHostedBody =>
       'Este aparelho aponta para um servidor seu. Mude em Configurações › Avançado › Servidor.';
+
+  @override
+  String get serverValueHomeserver => 'Homeserver, por enquanto';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'Sendo servido pelo homeserver por um tempo.';
+
+  @override
+  String get serverBadgeStyleBar => 'Barra';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'Uma faixa no topo. O app fica embaixo, então não cobre nada.';
 }

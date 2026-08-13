@@ -6579,13 +6579,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get serverBadgeStyleRibbonSub =>
-      'شريط عبر الزاوية العلوية. يصعب تفويته.';
-
-  @override
-  String get serverBadgeStylePill => 'كبسولة';
-
-  @override
-  String get serverBadgeStylePillSub => 'رقعة صغيرة تحمل اسم خادمك.';
+      'شريط عبر الزاوية العلوية. لا يشغل مساحة، لكنه يغطي تلك الزاوية.';
 
   @override
   String get serverSwitchWarningTitle => 'التبديل يسجّل خروجك';
@@ -6634,9 +6628,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get serverBadgeHomeserverShort => 'الخادم المنزلي';
 
   @override
-  String serverBadgeHomeserverSemantics(String server) {
-    return 'يعمل من الخادم المنزلي على $server. اضغط للتفاصيل.';
-  }
+  String get serverBadgeHomeserverSemantics =>
+      'يعمل من الخادم المنزلي. اضغط للتفاصيل.';
 
   @override
   String serverBadgeSelfHostedSemantics(String server) {
@@ -6668,4 +6661,18 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get serverRoleSelfHostedBody =>
       'هذا الجهاز موجَّه إلى خادم تديره بنفسك. يمكنك تغييره من الإعدادات › خيارات متقدمة › الخادم.';
+
+  @override
+  String get serverValueHomeserver => 'الخادم المنزلي، مؤقتًا';
+
+  @override
+  String get serverChoiceCloudSubHomeserver =>
+      'يُقدَّم من الخادم المنزلي لفترة.';
+
+  @override
+  String get serverBadgeStyleBar => 'شريط علوي';
+
+  @override
+  String get serverBadgeStyleBarSub =>
+      'شريط عبر الأعلى. يبدأ التطبيق تحته، فلا يغطي شيئًا.';
 }

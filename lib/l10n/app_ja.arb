@@ -1836,9 +1836,7 @@
   "serverRecentForget": "このサーバーを削除",
   "serverSectionBadge": "バッジ",
   "serverBadgeStyleRibbon": "リボン",
-  "serverBadgeStyleRibbonSub": "右上隅を横切る帯。見逃しません。",
-  "serverBadgeStylePill": "ピル",
-  "serverBadgeStylePillSub": "サーバー名を載せた小さなチップ。",
+  "serverBadgeStyleRibbonSub": "右上隅を横切る帯。場所は取りませんが、その隅を覆います。",
   "serverSwitchWarningTitle": "切り替えるとサインアウトします",
   "serverSwitchWarningBody": "アカウントとチャットは 1 つのサーバーに属します。この端末はサインアウトし、ダウンロード済みのデータを消して、最初から始めます。どちらのサーバー上のデータも削除されません。",
   "serverSwitchRolledBackTitle": "接続できませんでした",
@@ -1852,7 +1850,7 @@
   "serverSwitchingLabel": "サーバーを切り替えています…",
   "serverBadgeHomeserver": "ホームサーバーで稼働中",
   "serverBadgeHomeserverShort": "ホームサーバー",
-  "serverBadgeHomeserverSemantics": "{server} のホームサーバーで稼働中です。詳細はタップしてください。",
+  "serverBadgeHomeserverSemantics": "ホームサーバーで稼働中です。詳細はタップしてください。",
   "serverBadgeSelfHostedSemantics": "セルフホストのサーバー: {server}。詳細はタップしてください。",
   "serverRoleHomeserverTitle": "ホームサーバーで動作中",
   "serverRoleHomeserverBody": "MonkeyHub の運営者が、しばらくのあいだトラフィックを自宅のサーバーに切り替えています。動作はこれまでどおりで、故障ではなく意図的なものです。",
@@ -1860,5 +1858,9 @@
   "serverRoleHomeserverWarnSpeed": "家庭回線は通常より遅いため、動作がもたつくことがあります。",
   "serverRoleHomeserverWarnAuto": "操作は不要です。アプリは自動的に元へ戻ります。",
   "serverRoleSelfHostedTitle": "自分のサーバー",
-  "serverRoleSelfHostedBody": "この端末はご自分のサーバーを指しています。設定 › 詳細設定 › サーバー で変更できます。"
+  "serverRoleSelfHostedBody": "この端末はご自分のサーバーを指しています。設定 › 詳細設定 › サーバー で変更できます。",
+  "serverValueHomeserver": "当面はホームサーバー",
+  "serverChoiceCloudSubHomeserver": "しばらくのあいだホームサーバーから提供されています。",
+  "serverBadgeStyleBar": "バー",
+  "serverBadgeStyleBarSub": "画面上部の帯。アプリはその下から始まるので、何も覆いません。"
 }
