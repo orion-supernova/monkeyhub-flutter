@@ -82,12 +82,14 @@ class _BadgePalette {
 ///    ribbon's rotation and inside the pill's own bounds, so the rest of the
 ///    corner passes pointers straight through — see the tests, which assert
 ///    exactly that.
-///  * **It paints over the status bar.** The app already draws edge-to-edge, so
-///    that strip belongs to it — and covering the clock and the battery is the
-///    point, not an accident: it is the one band of screen no route puts
-///    controls in, and the one place a permanent marker cannot be mistaken for
-///    part of the screen underneath. Both shapes therefore start at y=0 and
-///    both use a near-opaque fill, so the OS glyphs do not bleed through them.
+///  * **The default shape paints over the status bar.** The app draws
+///    edge-to-edge, so that strip belongs to it, and covering the corner of it
+///    is the point rather than an accident. But no app can paint ABOVE the
+///    system glyphs — they composite last — so the shape has to be one that
+///    survives having a battery drawn on top of it. A diagonal band crosses
+///    that row for a few points and reads fine; a horizontal chip runs the
+///    whole length of it and reads as a smear, which is why [_Pill] sits below
+///    the inset instead and why [_Ribbon] is the default.
 ///  * **It never draws a debug underline.** Overlay content sits outside any
 ///    route's Material, so its own [Material] + [DefaultTextStyle] are
 ///    load-bearing, not decoration.
@@ -258,28 +260,33 @@ class _Ribbon extends StatelessWidget {
   final _BadgePalette palette;
   final VoidCallback? onTap;
 
-  /// Side of the square corner the ribbon is drawn inside.
+  /// Side of the square corner the ribbon is drawn inside. Big enough to
+  /// contain the band at [_fromCorner] with room to clip both ends.
+  static const double _side = 132;
+
+  /// Band thickness.
   ///
-  /// Bigger than Flutter's own BannerPainter, and bigger than it needs to be to
-  /// be legible, for one reason: **the touch target**. The badge paints from
-  /// y=0, straight over the status bar, but the part of the band a thumb can
-  /// comfortably reach is the part BELOW that strip — and at the 96pt this
-  /// started at, a 47pt inset left about twenty points of band showing under it.
-  /// Everything below is sized off this, so growing it grows the target.
-  static const double _side = 128;
+  /// Nearly three times Flutter's BannerPainter, and the reason is the touch
+  /// target rather than legibility. The reachable part of a corner band is the
+  /// part below the status-bar inset, and a band's width there falls off as you
+  /// move toward the corner — at the 17pt this started at, a 47pt inset left a
+  /// sliver. Thickening it widens that whole triangle.
+  static const double _band = 32;
 
-  /// Band thickness. Sized to the label plus its padding, then widened for the
-  /// same reason [_side] is.
-  static const double _band = 23;
-
-  /// How far the band's centre line sits from the screen corner, measured along
-  /// the corner's bisector.
+  /// Perpendicular distance from the screen corner to the band's centre line.
   ///
   /// The number the geometry lives or dies on, and it is only checkable by
-  /// rendering: at 0 the band straddles the corner and half of it paints
-  /// off-screen; too large and it stops reaching both edges and reads as a
-  /// stripe someone left lying across the UI rather than as a corner cut.
-  static const double _fromCorner = _side * 0.5;
+  /// rendering. Flutter's own banner uses ~28 here; this is a little further
+  /// out because the band is thicker, and the two have to be moved together:
+  ///
+  ///  * Too small and the band straddles the corner, painting half of itself
+  ///    off-screen.
+  ///  * Too large — the 64 this briefly had — and it stops being a corner cut.
+  ///    The corner itself goes empty, the band slides down and left into the
+  ///    middle of the screen, and it reads as a stripe someone left lying
+  ///    across the UI. It also stopped overlapping the status glyphs at all,
+  ///    which is the one thing this shape is for.
+  static const double _fromCorner = 40;
 
   @override
   Widget build(BuildContext context) {
@@ -359,16 +366,21 @@ class _Ribbon extends StatelessWidget {
 
 /// A chip in the status-bar strip.
 ///
-/// Sits INSIDE the top inset rather than below it, painting over the clock and
-/// the battery. Vertically centred in the strip so it clears a notch cutout,
-/// and right-aligned, where Android keeps only status glyphs and iOS keeps the
-/// battery.
+/// Sits BELOW the top inset, and that is the whole difference between the two
+/// shapes.
 ///
-/// The default shape, and the reason is [_Ribbon]: a corner band large enough
-/// to be tappable below the status bar also sweeps through where full-screen
-/// routes (the call screen, the camera, the media viewer) put their close
-/// button. This collides with nothing, says more, and is just as impossible to
-/// miss.
+/// It was briefly centred inside the status-bar strip, to be as visible as
+/// [_Ribbon]. That does not work and cannot be made to work: no app can paint
+/// above the system status bar, so a horizontal chip in that strip runs the
+/// full length of the signal, wifi and battery glyphs — and the dynamic island
+/// — with all of them composited on top of it. The result is a smear, not a
+/// badge. A diagonal band gets away with the same overlap because it only
+/// crosses that row for a few points; a horizontal one does not.
+///
+/// So this shape trades reach for cleanliness: it says more, it collides with
+/// nothing, and it is the right pick for anyone who finds the corner band
+/// heavy. [_Ribbon] is the default because it is the one that survives being
+/// drawn where the glyphs are.
 class _Pill extends StatelessWidget {
   const _Pill({
     required this.label,
@@ -400,26 +412,23 @@ class _Pill extends StatelessWidget {
 
   /// Invisible, tappable margin under the chip.
   ///
-  /// The chip is drawn in the status-bar strip, which is the right place for it
-  /// to be seen and the wrong place for it to be hit: the reachable half of a
-  /// 22pt chip sitting inside a 47pt inset is a sliver. This extends the target
-  /// downward, past the inset, without moving anything anybody can see.
+  /// A 22pt chip is half the 44pt a finger wants. This buys the rest of it
+  /// without making anything anybody can see any bigger.
   ///
-  /// Transparent but opaque to pointers, which is what
-  /// [HitTestBehavior.opaque] on the detector buys. It is deliberately BELOW
-  /// the chip and not around it: the space to the left is app content, and a
-  /// badge that quietly ate a strip of it would be the very bug the corner rule
-  /// exists to prevent.
-  static const double _touchSkirt = 24;
+  /// Transparent but opaque to pointers, which is what [HitTestBehavior.opaque]
+  /// on the detector buys. Deliberately BELOW the chip and not around it: the
+  /// space to its left is app content, and a badge that quietly ate a strip of
+  /// it would be the very bug the corner rule exists to prevent.
+  static const double _touchSkirt = 18;
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final top = insetTop ?? MediaQuery.paddingOf(context).top;
-    // Centred in the strip when there is one, and given a small margin when
-    // there is not (desktop, web, an Android device with no inset at all) so it
-    // never sits flush against the window edge.
-    final offset = top > _height ? (top - _height) / 2 : math.max(top, 4.0);
+    // CLEAR of the inset, not inside it. The badge sits above every route, so
+    // no SafeArea in the tree applies to it and this is the only thing standing
+    // between the chip and the dynamic island.
+    final offset = top + 6;
     return Padding(
       padding: EdgeInsets.only(top: offset, right: 10),
       child: GestureDetector(

@@ -138,7 +138,10 @@ void main() {
             onBadgeTap: () => opened = true,
           ),
         );
-        await tester.tap(find.byType(SelfHostBadge));
+        // An explicit point on the chip, not the widget's centre: the badge's
+        // bounds include the inset it holds itself clear of the status bar
+        // with, and that padding is deliberately not tappable.
+        await tester.tapAt(const Offset(390 - 40, _statusBar + 12));
         await tester.pump();
         expect(opened, isTrue);
       });
@@ -155,10 +158,9 @@ void main() {
             onBadgeTap: () => opened = true,
           ),
         );
-        // Dead centre of the band: the ribbon's centre line crosses the
-        // corner's bisector _fromCorner points in, which for a 128pt square
-        // puts it here.
-        await tester.tapAt(const Offset(390 - 45, 45));
+        // Dead centre of the band, which sits _fromCorner points in along the
+        // corner's bisector.
+        await tester.tapAt(const Offset(390 - 28, 28));
         await tester.pump();
         expect(opened, isTrue);
       });
@@ -226,7 +228,7 @@ void main() {
             onBadgeTap: () => opened = true,
           ),
         );
-        await tester.tapAt(const Offset(390 - 22, _statusBar + 10));
+        await tester.tapAt(const Offset(390 - 10, _statusBar + 13));
         await tester.pump();
         expect(opened, isTrue);
       });
@@ -246,8 +248,8 @@ void main() {
           ),
         );
         // Well clear of the chip and its skirt, which together reach about
-        // 15pt past the status bar.
-        await tester.tapAt(const Offset(390 - 30, 140));
+        // 46pt past the status bar.
+        await tester.tapAt(const Offset(390 - 30, 160));
         await tester.pump();
         expect(opened, isFalse);
         expect(background, isTrue);

@@ -91,7 +91,7 @@ class SettingsStore extends ChangeNotifier {
   // Null means "follow the OS accessibility setting" — see [motionLevel].
   MotionLevel? _motionLevel;
   ScheduledIndicator _scheduledIndicator = ScheduledIndicator.pill;
-  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.pill;
+  SelfHostBadgeStyle _selfHostBadge = SelfHostBadgeStyle.ribbon;
 
   String? get themeId => _themeId;
   RoomLayout get roomLayout => _roomLayout;
@@ -730,23 +730,25 @@ class SettingsStore extends ChangeNotifier {
 /// one nobody has touched. So the mark is permanent, and the only choice on
 /// offer is how loud it is.
 ///
-/// * `pill` (default) — a chip in the status-bar strip, over the clock and the
-///   battery, carrying the server's name. It is the default because it is the
-///   only one of the two that collides with nothing: it lives in the one band
-///   of screen no route puts controls in.
-/// * `ribbon` — a diagonal band across the top-right corner, in the place
-///   Flutter's own debug banner occupies. Louder, and unmissable — at the cost
-///   of sweeping through where full-screen routes put their close button.
+/// * `ribbon` (default) — a diagonal band across the top-right corner, in the
+///   place Flutter's own debug banner occupies. It is the default because it is
+///   the only one of the two that can be drawn over the status bar and still be
+///   read: it crosses the glyph row for a few points rather than running the
+///   length of it. The cost is that it sweeps through where full-screen routes
+///   put their close button.
+/// * `pill` — a chip below the status bar carrying the server's name. Says
+///   more and collides with nothing, at the cost of sitting in ordinary app
+///   space rather than over the system's.
 enum SelfHostBadgeStyle {
   ribbon,
   pill;
 
   static final Map<String, SelfHostBadgeStyle> _byName = values.asNameMap();
 
-  /// Resolves a persisted name, falling back to [pill]. Derived from [values]
+  /// Resolves a persisted name, falling back to [ribbon]. Derived from [values]
   /// for the reason spelled out on [HomeSection.parse].
   static SelfHostBadgeStyle parse(String? s) =>
-      _byName[s] ?? SelfHostBadgeStyle.pill;
+      _byName[s] ?? SelfHostBadgeStyle.ribbon;
 }
 
 enum RoomLayout { list, grid }

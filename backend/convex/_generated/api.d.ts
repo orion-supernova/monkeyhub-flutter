@@ -46,6 +46,7 @@ import type * as roomCleanup from "../roomCleanup.js";
 import type * as roomContent from "../roomContent.js";
 import type * as rooms from "../rooms.js";
 import type * as scheduledMessages from "../scheduledMessages.js";
+import type * as serverDirectory from "../serverDirectory.js";
 import type * as socialAuth from "../socialAuth.js";
 import type * as systemAccount from "../systemAccount.js";
 import type * as typing from "../typing.js";
@@ -100,6 +101,7 @@ declare const fullApi: ApiFromModules<{
   roomContent: typeof roomContent;
   rooms: typeof rooms;
   scheduledMessages: typeof scheduledMessages;
+  serverDirectory: typeof serverDirectory;
   socialAuth: typeof socialAuth;
   systemAccount: typeof systemAccount;
   typing: typeof typing;
