@@ -795,6 +795,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get threadOverlayNameCopiedToast => '이름 복사됨';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => '좌표 복사됨';
+
+  @override
   String get threadOverlayPinLimitToast => '고정한 메시지가 너무 많아요. 하나를 먼저 고정 해제해 주세요';
 
   @override
@@ -1475,6 +1478,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => '이름 복사';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => '좌표 복사';
 
   @override
   String get messageActionMenuPinLabel => '고정';

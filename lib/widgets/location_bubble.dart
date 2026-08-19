@@ -235,7 +235,18 @@ class _LocationBubbleState extends State<LocationBubble>
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _openInMaps,
-            onLongPress: _copyCoordinates,
+            // No `onLongPress` here, unlike this widget's own history. One
+            // set here would sit in the SAME gesture arena as
+            // `_BubbleGestureDetector`'s in `message_bubble.dart` — racing
+            // the standard long-press instead of losing to it outright — and
+            // used to answer every long-press itself with a bare "copy
+            // coordinates", which is how a location message ended up the one
+            // bubble type with no reply/forward/pin/save/select/delete/
+            // report menu at all. The standard menu is wired the same way
+            // every other bubble type gets it, from `MessageBubble`'s outer
+            // detector; COPY COORDINATES now lives inside it too, as
+            // [MessageAction.copyCoordinates] — see
+            // [MessageCapabilities.canCopyCoordinates].
             child: card,
           ),
         ),
@@ -460,17 +471,5 @@ class _LocationBubbleState extends State<LocationBubble>
     if (!ok && messenger != null) {
       messenger.showSnackBar(SnackBar(content: Text(failed)));
     }
-  }
-
-  Future<void> _copyCoordinates() async {
-    final share = widget.message.locationShare;
-    if (share == null) return;
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    final copied = AppLocalizations.of(context).locationBubbleCoordinatesCopied;
-    await Clipboard.setData(
-      ClipboardData(text: formatCoordinates(share.latitude, share.longitude)),
-    );
-    HapticFeedback.selectionClick();
-    messenger?.showSnackBar(SnackBar(content: Text(copied)));
   }
 }

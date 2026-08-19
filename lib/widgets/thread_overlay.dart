@@ -13,6 +13,7 @@ import '../data/settings_store.dart';
 import '../models/chat_message.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../models/location_share.dart' show formatCoordinates;
 import '../l10n/generated/app_localizations.dart';
 import '../screens/profile_screen.dart';
 import '../screens/room_items.dart';
@@ -753,6 +754,16 @@ class _ThreadSheetState extends State<_ThreadSheet>
         await Clipboard.setData(ClipboardData(text: m.fileName ?? ''));
         if (!context.mounted) return;
         _showToast(AppLocalizations.of(context).threadOverlayNameCopiedToast);
+        break;
+      case MessageAction.copyCoordinates:
+        final share = m.locationShare;
+        if (share != null) {
+          await Clipboard.setData(ClipboardData(
+              text: formatCoordinates(share.latitude, share.longitude)));
+        }
+        if (!context.mounted) return;
+        _showToast(
+            AppLocalizations.of(context).threadOverlayCoordinatesCopiedToast);
         break;
       case MessageAction.viewProfile:
         if (author != null && context.mounted) {

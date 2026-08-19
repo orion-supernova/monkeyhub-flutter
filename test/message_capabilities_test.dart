@@ -32,6 +32,8 @@ void main() {
     String? fileName,
     String? replyToId,
     ReplyPreview? replyToPreview,
+    double? latitude,
+    double? longitude,
   }) => ChatMessage(
     id: id,
     roomId: 'r',
@@ -45,6 +47,8 @@ void main() {
     fileName: fileName,
     replyToId: replyToId,
     replyToPreview: replyToPreview,
+    latitude: latitude,
+    longitude: longitude,
   );
 
   MessageCapabilities caps(
@@ -206,6 +210,75 @@ void main() {
       expect(system.canSave, isFalse);
       expect(system.canForward, isFalse);
     });
+
+    test('has no one to view a profile of or report, and nothing to select',
+        () {
+      // It carries a `senderId` (the system account that wrote it), but
+      // nobody reads that as "the sender" the way they would on a real
+      // message — there is no one to view the profile of or report, and no
+      // batch of "X joined the room" anyone means to reach for via SELECT.
+      expect(system.canViewProfile, isFalse);
+      expect(system.canReport, isFalse);
+      expect(system.canSelect, isFalse);
+    });
+
+    test('still affords none of the two rows that need no server row either',
+        () {
+      // Contrast with the pending-message group above: DELETE stays gated on
+      // `isMine` alone regardless of type, and a system notice is never
+      // mine — same outcome, different reason.
+      expect(system.canDelete, isFalse);
+    });
+  });
+
+  group('canCopy', () {
+    test('a text message with a body', () {
+      expect(caps(msg()).canCopy, isTrue);
+    });
+
+    test('a url-typed message copies like text', () {
+      // Same grandfathered shape `canEdit` already treats as text — see its
+      // own test above. Missing this was the bug: the one message type that
+      // could edit itself as text couldn't copy itself as text.
+      expect(caps(msg(type: MessageType.url)).canCopy, isTrue);
+    });
+
+    test('never a type with no text body', () {
+      expect(caps(msg(type: MessageType.image)).canCopy, isFalse);
+      expect(caps(msg(type: MessageType.location)).canCopy, isFalse);
+    });
+  });
+
+  group('canCopyCoordinates', () {
+    test('a static location with coordinates', () {
+      expect(
+        caps(msg(type: MessageType.location, latitude: 41.0, longitude: 29.0))
+            .canCopyCoordinates,
+        isTrue,
+      );
+    });
+
+    test('a live location, running or not, offers it too', () {
+      // The map preview and "open in maps" already show whatever the latest
+      // fix is regardless of whether the share is still live — there is no
+      // reason this one row alone should refuse it.
+      expect(
+        caps(msg(
+                type: MessageType.liveLocation, latitude: 41.0, longitude: 29.0))
+            .canCopyCoordinates,
+        isTrue,
+      );
+    });
+
+    test('a location message with no coordinates yet has nothing to copy', () {
+      // Reachable from a stale cache or a send the server downgraded — see
+      // `ChatMessage.locationShare`.
+      expect(caps(msg(type: MessageType.location)).canCopyCoordinates, isFalse);
+    });
+
+    test('never a type that carries no location at all', () {
+      expect(caps(msg()).canCopyCoordinates, isFalse);
+    });
   });
 
   group('canViewThread', () {
@@ -248,6 +321,7 @@ void main() {
       'canViewThread': (c) => c.canViewThread,
       'canCopy': (c) => c.canCopy,
       'canCopyName': (c) => c.canCopyName,
+      'canCopyCoordinates': (c) => c.canCopyCoordinates,
       'canPin': (c) => c.canPin,
       'canSave': (c) => c.canSave,
       'canSelect': (c) => c.canSelect,
@@ -257,7 +331,7 @@ void main() {
     };
     expect(
       fields.length,
-      12,
+      13,
       reason: 'a new capability must join this list before this test can vouch for `none`',
     );
     for (final entry in fields.entries) {
@@ -281,6 +355,7 @@ void main() {
         canViewThread: true,
         canCopy: true,
         canCopyName: true,
+        canCopyCoordinates: true,
         canPin: true,
         canSave: true,
         canSelect: true,
@@ -306,6 +381,7 @@ void main() {
         MessageAction.viewThread,
         MessageAction.copy,
         MessageAction.copyName,
+        MessageAction.copyCoordinates,
         MessageAction.pin,
         MessageAction.save,
         MessageAction.select,

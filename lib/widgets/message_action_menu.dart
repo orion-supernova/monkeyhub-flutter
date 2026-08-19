@@ -35,6 +35,12 @@ enum MessageAction {
   /// takes a message's body — a document has no body, and its name is the one
   /// thing about it worth carrying somewhere else.
   copyName,
+
+  /// Puts a location's `"lat, lng"` on the clipboard. The location-bubble
+  /// counterpart to [copyName]: a location has no body either, and its
+  /// coordinates are the one thing about it worth carrying somewhere else.
+  /// See [MessageCapabilities.canCopyCoordinates].
+  copyCoordinates,
   pin,
   unpin,
 
@@ -935,6 +941,17 @@ List<MessageActionSpec> messageActionSpecs({
         action: MessageAction.copyName,
         icon: CupertinoIcons.doc_on_doc,
         label: l10n.messageActionMenuCopyNameLabel,
+        destructive: false,
+      ),
+    // Same slot family as COPY / COPY NAME — a third "put something from this
+    // message on the clipboard" row, gated to location shares the way COPY
+    // NAME is gated to documents. The clipboard icon it shares with them is
+    // what says so at a glance.
+    if (caps.canCopyCoordinates)
+      MessageActionSpec(
+        action: MessageAction.copyCoordinates,
+        icon: CupertinoIcons.doc_on_doc,
+        label: l10n.messageActionMenuCopyCoordinatesLabel,
         destructive: false,
       ),
     // Beside COPY rather than next to the destructive pair: a pin is shared

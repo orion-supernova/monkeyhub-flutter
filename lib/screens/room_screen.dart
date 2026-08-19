@@ -2853,6 +2853,23 @@ class _RoomScreenState extends State<RoomScreen>
                           SnackBar(content: Text(AppLocalizations.of(context)
                               .roomScreenNameCopiedSnack)));
                       break;
+                    case MessageAction.copyCoordinates:
+                      // `capabilitiesForMessage` already refused this row
+                      // unless `m.locationShare` is non-null, but a share can
+                      // still end between the long-press and the tap — the
+                      // guard is what keeps that race from copying stale
+                      // formatting of a null value instead of just no-op'ing.
+                      final share = m.locationShare;
+                      if (share != null) {
+                        await Clipboard.setData(ClipboardData(
+                            text: formatCoordinates(
+                                share.latitude, share.longitude)));
+                      }
+                      if (!context.mounted) return;
+                      messenger.showSnackBar(SnackBar(
+                          content: Text(AppLocalizations.of(context)
+                              .locationBubbleCoordinatesCopied)));
+                      break;
                     case MessageAction.pin:
                       final err = await widget.repo.pinMessage(room.id, m.id);
                       // Surfaced rather than swallowed: the cap is the only

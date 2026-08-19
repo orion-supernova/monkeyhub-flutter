@@ -851,6 +851,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'nom copié';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'coordonnées copiées';
+
+  @override
   String get threadOverlayPinLimitToast =>
       'trop de messages épinglés — désépingle-en un d\'abord';
 
@@ -1574,6 +1577,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'COPIER LE NOM';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'COPIER LES COORDONNÉES';
 
   @override
   String get messageActionMenuPinLabel => 'ÉPINGLER';

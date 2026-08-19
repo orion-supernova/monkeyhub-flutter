@@ -834,6 +834,9 @@ class AppLocalizationsSv extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'namnet kopierat';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'koordinaterna kopierade';
+
+  @override
   String get threadOverlayPinLimitToast =>
       'för många nålade meddelanden — avnåla ett först';
 
@@ -1544,6 +1547,9 @@ class AppLocalizationsSv extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'KOPIERA NAMN';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'KOPIERA KOORDINATER';
 
   @override
   String get messageActionMenuPinLabel => 'FÄST';

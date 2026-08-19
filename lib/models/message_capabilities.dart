@@ -47,6 +47,7 @@ class MessageCapabilities {
     required this.canViewThread,
     required this.canCopy,
     required this.canCopyName,
+    required this.canCopyCoordinates,
     required this.canPin,
     required this.canSave,
     required this.canSelect,
@@ -73,6 +74,14 @@ class MessageCapabilities {
   /// Puts a document's filename on the clipboard — a document has no body for
   /// [canCopy] to take, and its name is the one thing worth carrying away.
   final bool canCopyName;
+
+  /// Puts a location's coordinates on the clipboard — the same reason
+  /// [canCopyName] exists apart from [canCopy]: a location bubble has no text
+  /// body either. True for a [MessageType.liveLocation] as well as a static
+  /// one: the map preview and the "open in maps" tap already read whatever
+  /// the latest fix is regardless of whether the share is still running, so
+  /// there is no reason for this one row alone to refuse it.
+  final bool canCopyCoordinates;
   final bool canPin;
   final bool canSave;
   final bool canSelect;
@@ -89,6 +98,7 @@ class MessageCapabilities {
     canViewThread: false,
     canCopy: false,
     canCopyName: false,
+    canCopyCoordinates: false,
     canPin: false,
     canSave: false,
     canSelect: false,
@@ -104,6 +114,7 @@ class MessageCapabilities {
     bool? canViewThread,
     bool? canCopy,
     bool? canCopyName,
+    bool? canCopyCoordinates,
     bool? canPin,
     bool? canSave,
     bool? canSelect,
@@ -118,6 +129,7 @@ class MessageCapabilities {
         canViewThread: canViewThread ?? this.canViewThread,
         canCopy: canCopy ?? this.canCopy,
         canCopyName: canCopyName ?? this.canCopyName,
+        canCopyCoordinates: canCopyCoordinates ?? this.canCopyCoordinates,
         canPin: canPin ?? this.canPin,
         canSave: canSave ?? this.canSave,
         canSelect: canSelect ?? this.canSelect,
@@ -172,8 +184,18 @@ MessageCapabilities messageCapabilitiesFor({
     canForward:
         !isPending && isSent && !isSystem && !roomIsEphemeral && !message.viewOnce,
     canViewThread: message.isReply,
-    canCopy: message.type == MessageType.text && message.content.isNotEmpty,
+    // `isEditableText`, not a bare `type == text`: `url` is the same
+    // grandfathered text-with-a-link content EDIT already treats as text
+    // (see the comment above), and this gate had been left checking only
+    // `text` — the one shape that can edit itself as text couldn't copy
+    // itself as text either.
+    canCopy: isEditableText && message.content.isNotEmpty,
     canCopyName: message.type == MessageType.file && message.fileName != null,
+    // See the doc comment on [MessageCapabilities.canCopyCoordinates] for why
+    // this reads `locationShare` rather than `message.type` directly — it is
+    // what folds in both the type gate and the "coordinates actually
+    // present" gate a stale-cache or downgraded send can fail.
+    canCopyCoordinates: message.locationShare != null,
     // An optimistic bubble has no server id to pin, and a system notice is
     // not something anyone means to keep.
     canPin: !isPending && isSent && !isSystem,
@@ -183,10 +205,16 @@ MessageCapabilities messageCapabilitiesFor({
     canSave: !isPending && isSent && !isSystem && room.canSaveMessages,
     // Offered on anything the transcript will let you long-press — including
     // messages that aren't yours and can't be forwarded, because SELECT is
-    // how you reach the bar that says which of the two actions apply.
-    canSelect: !isPending,
-    canViewProfile: !isMine,
+    // how you reach the bar that says which of the two actions apply. Not a
+    // system notice, though: there is no batch of "X joined the room" anyone
+    // means to reach for, and it can't be forwarded, pinned or saved either.
+    canSelect: !isPending && !isSystem,
+    // Neither of these has anyone to aim at on a system notice. It carries a
+    // `senderId` (the system account that wrote it) but no one reads that as
+    // "the sender" the way they would on a real message — there is no one to
+    // view the profile of or report.
+    canViewProfile: !isMine && !isSystem,
     canDelete: isMine,
-    canReport: !isMine,
+    canReport: !isMine && !isSystem,
   );
 }

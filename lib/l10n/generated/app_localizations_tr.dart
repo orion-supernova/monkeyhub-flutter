@@ -823,6 +823,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'ad kopyalandı';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'koordinatlar kopyalandı';
+
+  @override
   String get threadOverlayPinLimitToast =>
       'çok fazla sabitlenmiş mesaj var — önce birini kaldır';
 
@@ -1523,6 +1526,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'ADI KOPYALA';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'KOORDİNATLARI KOPYALA';
 
   @override
   String get messageActionMenuPinLabel => 'SABİTLE';

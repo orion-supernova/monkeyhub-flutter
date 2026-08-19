@@ -1533,6 +1533,12 @@ abstract class AppLocalizations {
   /// **'name copied'**
   String get threadOverlayNameCopiedToast;
 
+  /// Toast shown in the thread overlay after copying a location message's coordinates to the clipboard via the long-press action menu.
+  ///
+  /// In en, this message translates to:
+  /// **'coordinates copied'**
+  String get threadOverlayCoordinatesCopiedToast;
+
   /// Toast shown in the thread overlay when pinning a message fails because the room has hit its pin limit (backend returns PIN_LIMIT_REACHED).
   ///
   /// In en, this message translates to:
@@ -2738,6 +2744,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'COPY NAME'**
   String get messageActionMenuCopyNameLabel;
+
+  /// All-caps row label in the long-press message action menu, shown only for location bubbles (including a running live share); copies the location's latitude/longitude to the clipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'COPY COORDINATES'**
+  String get messageActionMenuCopyCoordinatesLabel;
 
   /// All-caps row label in the long-press message action menu; pins the message to the room. Shown only when the message is not already pinned.
   ///

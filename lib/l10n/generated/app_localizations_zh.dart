@@ -781,6 +781,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get threadOverlayNameCopiedToast => '已复制文件名';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => '已复制坐标';
+
+  @override
   String get threadOverlayPinLimitToast => '置顶已达上限，先取消一个';
 
   @override
@@ -1451,6 +1454,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => '复制文件名';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => '复制坐标';
 
   @override
   String get messageActionMenuPinLabel => '置顶';

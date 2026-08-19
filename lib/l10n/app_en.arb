@@ -956,6 +956,10 @@
   "@threadOverlayNameCopiedToast": {
     "description": "Toast shown in the thread overlay after copying a file message's file name to the clipboard via the long-press action menu."
   },
+  "threadOverlayCoordinatesCopiedToast": "coordinates copied",
+  "@threadOverlayCoordinatesCopiedToast": {
+    "description": "Toast shown in the thread overlay after copying a location message's coordinates to the clipboard via the long-press action menu."
+  },
   "threadOverlayPinLimitToast": "too many pins — unpin one first",
   "@threadOverlayPinLimitToast": {
     "description": "Toast shown in the thread overlay when pinning a message fails because the room has hit its pin limit (backend returns PIN_LIMIT_REACHED)."
@@ -1765,6 +1769,10 @@
   "messageActionMenuCopyNameLabel": "COPY NAME",
   "@messageActionMenuCopyNameLabel": {
     "description": "All-caps row label in the long-press message action menu, shown only for document bubbles; copies the document's filename to the clipboard."
+  },
+  "messageActionMenuCopyCoordinatesLabel": "COPY COORDINATES",
+  "@messageActionMenuCopyCoordinatesLabel": {
+    "description": "All-caps row label in the long-press message action menu, shown only for location bubbles (including a running live share); copies the location's latitude/longitude to the clipboard."
   },
   "messageActionMenuPinLabel": "PIN",
   "@messageActionMenuPinLabel": {
