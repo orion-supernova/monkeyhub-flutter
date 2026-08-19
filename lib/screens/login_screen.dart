@@ -25,6 +25,7 @@ import '../widgets/self_host_badge.dart' show shortHost;
 import '../widgets/social_sign_in_buttons.dart';
 import '../widgets/username_status_label.dart';
 import 'child_pair_screen.dart';
+import 'device_login_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'server_screen.dart';
 import 'social_username_screen.dart';
@@ -102,6 +103,13 @@ class _LoginScreenState extends State<LoginScreen> {
   /// An adult can also reach it deliberately via the footer link, in which
   /// case they get a way back.
   late bool _pairing = SessionStore.instance.isChildDevice;
+
+  /// Whether the QR/short-code device-login screen is showing instead of the
+  /// sign-in form. Desktop/web only — see `isWebOrDesktop` where the footer
+  /// link that sets this is offered. Unlike [_pairing] there is no sticky
+  /// marker to seed from: every desktop/web launch starts on the password
+  /// form, and this is purely a deliberate, reversible detour off it.
+  bool _deviceLogin = false;
 
   final _username = TextEditingController();
   final _password = TextEditingController();
@@ -314,6 +322,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
+    if (_deviceLogin) {
+      return DeviceLoginScreen(
+        auth: widget.auth,
+        onCancel: () => setState(() => _deviceLogin = false),
+      );
+    }
     if (_pairing) {
       return ChildPairScreen(
         auth: widget.auth,
@@ -513,6 +527,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: l10n.loginScreenSettingUpKidsPhone,
                 onTap: () => setState(() => _pairing = true),
               ),
+              // Desktop/web only — scanning a QR needs a phone on the other
+              // end, so this is offered ALONGSIDE the password form rather
+              // than replacing it: not every self-hosted deployment's users
+              // will have a paired phone to scan with.
+              if (isWebOrDesktop) ...[
+                const SizedBox(height: 10),
+                _TextLink(
+                  label: l10n.loginScreenSignInWithPhone,
+                  onTap: () => setState(() => _deviceLogin = true),
+                ),
+              ],
             ],
           ],
           // Sign-up only. The Profile screen carries the permanent link that

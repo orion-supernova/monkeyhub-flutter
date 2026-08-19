@@ -377,6 +377,78 @@ export default defineSchema({
     .index("by_codeHash", ["codeHash"])
     .index("by_creator", ["createdByGuardianId"]),
 
+  // QR / short-code sign-in for a signed-out web or desktop client — the
+  // "scan this with your phone" pattern, and the third member of this
+  // short-lived-code family. Deliberately its OWN table rather than a
+  // `purpose` flag on `pairingCodes`, for the same reason `releaseCodes` is
+  // separate: a missed purpose-check must never be the thing standing between
+  // a family pairing code and a full account sign-in.
+  //
+  // Unlike the two tables above, a row here starts out belonging to NOBODY —
+  // the desktop that created it is anonymous until some phone approves it —
+  // so there is no `childId`/`by_creator` to hang account-teardown or a
+  // "supersede the old one" rule on. Two consequences:
+  //   * `auth.purgeUser` can only ever clean up the `by_approver` side (a row
+  //     this user approved for one of their OWN other devices); an
+  //     unapproved row belongs to no account there is to purge.
+  //   * nothing else in this app naturally reaps an abandoned row, so — unlike
+  //     pairing/release codes — this table gets a real cron sweep on
+  //     `expiresAt`. See `deviceLogin.gcExpiredDeviceLoginRequests`.
+  //
+  // Two secrets, not one, protecting two different surfaces of the same
+  // pending row:
+  //   `requestId` — high-entropy, minted by the SERVER, carried inside the QR
+  //                 payload. Stored in the clear: it names an anonymous
+  //                 request rather than proving anything about an account, and
+  //                 the desktop that will read it back already holds it —
+  //                 hashing would only defend a database dump, which this
+  //                 single self-hosted deployment gets nothing from.
+  //   `codeHash`  — the human-typeable fallback, minted on the DESKTOP the
+  //                 same way a guardian mints a pairing code, and hashed
+  //                 before it ever reaches this table. Six digits is
+  //                 guessable, so every lookup by `codeHash` — not by
+  //                 `requestId` — runs behind the same failed-attempt
+  //                 throttle `auth.login` uses (see `deviceLoginKey` in
+  //                 deviceLogin.ts).
+  //
+  // `status` is "pending" → "approved" | "denied", and "approved" →
+  // "consumed" the instant the desktop collects its session
+  // (`exchangeDeviceLoginRequest`). There is no stored "expired" status —
+  // `expiresAt` is checked at every read/write that matters instead, the same
+  // way `redeemPairingCode` checks it inline rather than needing a sweep to
+  // stay correct in the meantime. Kept short (a few minutes): this is a
+  // "someone is standing at their computer right now" flow, not a code read
+  // aloud over a phone call.
+  //
+  // The finished session (`userId`/`username`/`name`) is deliberately NOT a
+  // field here and never rides on the status a subscribed query returns —
+  // only `exchangeDeviceLoginRequest` hands it out, once, to whoever holds
+  // `requestId`. A polled/subscribed query is something a shoulder-surfer's
+  // screenshot or an open devtools tab can see for free; a separate guarded
+  // exchange call is not.
+  deviceLoginRequests: defineTable({
+    requestId: v.string(),
+    codeHash: v.string(),
+    status: v.string(), // "pending" | "approved" | "denied" | "consumed"
+    // OS/browser string the requesting client sent up front, shown to the
+    // phone at approval time — the whole of this feature's phishing
+    // resistance rests on a person actually reading this before tapping
+    // Approve, so it is the one piece of information every read of a pending
+    // row carries.
+    deviceInfo: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    approvedByUserId: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+  })
+    .index("by_requestId", ["requestId"])
+    .index("by_codeHash", ["codeHash"])
+    // Account teardown: sign-ins this user approved for one of their own
+    // other devices.
+    .index("by_approver", ["approvedByUserId"])
+    // The cron sweep's only access path — see the class comment above.
+    .index("by_expiresAt", ["expiresAt"]),
+
   // Standing grants. One row is both the request AND, once approved, the
   // grant — revoking is a status flip, so the whole audit trail stays in one
   // place.

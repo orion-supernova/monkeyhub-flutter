@@ -166,6 +166,15 @@ class AuthService extends ChangeNotifier {
     return _api.linkedProviders(userId: s.userId);
   }
 
+  /// Adopts the session produced by a successful desktop/web device-login
+  /// (QR or short-code) sign-in, from `DeviceLoginScreen`. Shares
+  /// `_adoptSession` with every other entry point — social sign-in, pairing
+  /// — so nothing downstream of `isSignedIn` flipping can tell which one
+  /// this was.
+  Future<void> completeDeviceLogin(AuthResult res) async {
+    _adoptSession(res);
+  }
+
   /// Signs in a child device by redeeming a guardian-issued pairing code.
   /// This is the ONLY way into a child account — `auth.login` refuses them —
   /// so the six digits and this call are the whole authentication story.

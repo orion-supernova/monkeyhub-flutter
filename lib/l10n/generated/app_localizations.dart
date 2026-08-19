@@ -11290,6 +11290,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your server changed. Reconnecting…'**
   String get serverDirectiveChangedToast;
+
+  /// Lowercase footer link on the sign-in form (desktop/web only) that switches to the QR/short-code device-login screen.
+  ///
+  /// In en, this message translates to:
+  /// **'sign in with your phone'**
+  String get loginScreenSignInWithPhone;
+
+  /// Lowercase link on the device-login (QR) screen that switches back to the ordinary username/password sign-in form.
+  ///
+  /// In en, this message translates to:
+  /// **'use a password instead'**
+  String get loginScreenUsePasswordInstead;
+
+  /// First line of the hero heading on the desktop/web device-login screen, rendered in a muted color above 'sign in'; mirrors the two-part hero pattern used elsewhere in auth. Includes a trailing newline.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to\n'**
+  String get deviceLoginScreenHeroMuted;
+
+  /// Second line of the hero heading on the desktop/web device-login screen, completing 'Scan to / sign in' in the ink color.
+  ///
+  /// In en, this message translates to:
+  /// **'sign in'**
+  String get deviceLoginScreenHeroInk;
+
+  /// Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.'**
+  String get deviceLoginScreenIntro;
+
+  /// Lowercase status line on the desktop/web device-login screen while the request is still pending on the phone.
+  ///
+  /// In en, this message translates to:
+  /// **'waiting for approval…'**
+  String get deviceLoginScreenWaiting;
+
+  /// Lowercase status line on the desktop/web device-login screen the moment the phone approves the request, while the session exchange is in flight.
+  ///
+  /// In en, this message translates to:
+  /// **'approved — signing you in…'**
+  String get deviceLoginScreenApproved;
+
+  /// Status line on the desktop/web device-login screen when the phone explicitly declines the request.
+  ///
+  /// In en, this message translates to:
+  /// **'sign-in request denied on your phone'**
+  String get deviceLoginScreenDenied;
+
+  /// Fallback status line on the desktop/web device-login screen for an unrecognized failure (expired, invalid, or a network error), directing the user to mint a fresh code.
+  ///
+  /// In en, this message translates to:
+  /// **'something went wrong — try a new code'**
+  String get deviceLoginScreenGenericError;
+
+  /// All-caps label on the Profile row (mobile only) that opens the device-login scan screen, for approving a QR/short-code sign-in shown on another device. Doubles as the header title on that screen.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN TO SIGN IN'**
+  String get profileScreenScanToSignInLabel;
+
+  /// First line of the hero heading on the phone's device-login scan screen; mirrors the desktop screen's hero. Includes a trailing newline.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to\n'**
+  String get deviceLoginScanScreenHeroMuted;
+
+  /// Second line of the hero heading on the phone's device-login scan screen, completing 'Scan to / sign in'.
+  ///
+  /// In en, this message translates to:
+  /// **'sign in'**
+  String get deviceLoginScanScreenHeroInk;
+
+  /// Body copy under the hero heading on the phone's device-login scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Point your camera at the code shown on your computer, or type it in below.'**
+  String get deviceLoginScanScreenIntro;
+
+  /// All-caps label on the button that opens the QR scanner on the phone's device-login scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'SCAN CODE'**
+  String get deviceLoginScanScreenScanButtonLabel;
+
+  /// Lowercase heading on the confirmation step of the phone's device-login scan screen, shown after a QR or code is recognized and before APPROVE/DENY.
+  ///
+  /// In en, this message translates to:
+  /// **'sign in on this device?'**
+  String get deviceLoginScanScreenConfirmTitle;
+
+  /// Body copy on the confirmation step of the phone's device-login scan screen. {deviceInfo} is the OS/browser string the requesting desktop or web client reported (e.g. 'Chrome on Windows'), and is the whole of this flow's phishing resistance — read carefully before changing.
+  ///
+  /// In en, this message translates to:
+  /// **'{deviceInfo} wants to sign in as you. Only approve this if it’s you, right now.'**
+  String deviceLoginScanScreenConfirmBody(Object deviceInfo);
+
+  /// All-caps confirm button on the phone's device-login scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'APPROVE'**
+  String get deviceLoginScanScreenApproveButton;
+
+  /// All-caps decline button on the phone's device-login scan screen.
+  ///
+  /// In en, this message translates to:
+  /// **'DENY'**
+  String get deviceLoginScanScreenDenyButton;
+
+  /// Lowercase confirmation message on the phone's device-login scan screen after APPROVE succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'signed in on your other device'**
+  String get deviceLoginScanScreenSuccess;
+
+  /// Fallback error message on the phone's device-login scan screen for an unrecognized failure.
+  ///
+  /// In en, this message translates to:
+  /// **'couldn’t approve — try again'**
+  String get deviceLoginScanScreenGenericError;
+
+  /// deviceLogin.ERR_CODE_INVALID / ERR_REQUEST_INVALID — the typed code or scanned QR doesn't match any live sign-in request.
+  ///
+  /// In en, this message translates to:
+  /// **'That code isn’t right.'**
+  String get authErrorDeviceLoginInvalid;
+
+  /// deviceLogin.ERR_CODE_EXPIRED / ERR_REQUEST_EXPIRED — the sign-in request's short TTL has passed.
+  ///
+  /// In en, this message translates to:
+  /// **'That code has expired — get a new one on the other device.'**
+  String get authErrorDeviceLoginExpired;
+
+  /// Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying.
+  ///
+  /// In en, this message translates to:
+  /// **'sign-in request denied'**
+  String get deviceLoginScanScreenDeniedConfirmation;
 }
 
 class _AppLocalizationsDelegate
