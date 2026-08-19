@@ -446,9 +446,18 @@ class _LiftedRow extends StatelessWidget {
 // in sync: a badge row that wrapped to two lines, or a fourth cached message,
 // would desync the overlay's math from what's actually on screen.
 const double _previewPadding = 14;
-const double _previewTopRowH = 14;
-const double _previewAvatarSize = 48;
-const double _previewIdentityRowH = 54;
+
+/// A *measured* number, not a guess: `tester.getSize()` on a dense, icon-only
+/// badge comes back 25.0 tall regardless of which badge — a labelled dense
+/// badge measures 24 tall but 99-111 WIDE, wide enough that two of them
+/// already exceed this card's available width and wrap to a second line,
+/// which is what was silently clipping badges here before. Icon-only ones
+/// measure a consistent ~27 wide, so all five badges this row can ever show
+/// fit on one line with room to spare — see the badges themselves, all
+/// passed `iconOnly: true` below.
+const double _previewTopRowH = 25;
+const double _previewAvatarSize = 40;
+const double _previewIdentityRowH = 44;
 const double _previewFooterRowH = 20;
 const double _previewGap = 10;
 
@@ -457,7 +466,7 @@ const double _previewGap = 10;
 /// badges is the common case, leaving just a small right-aligned timestamp),
 /// so giving it the same breathing room as bands that are actually full of
 /// content read as a big dead bar at the top of the card.
-const double _previewTopGap = 2;
+const double _previewTopGap = 6;
 
 /// The transcript band's height when there's anything cached to scroll
 /// through — a real, if miniature, chat window rather than a couple of
@@ -637,15 +646,28 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                       runSpacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
+                        // iconOnly: a labelled dense badge measures 99-111
+                        // wide (see [_previewTopRowH]'s doc) — two of those
+                        // is already more than this card has to give. Icon-
+                        // only ones are a consistent ~27, so every badge this
+                        // row can ever show fits on the one line
+                        // [_previewTopRowH] is sized for. The tap tooltip
+                        // still spells each one out in full — see
+                        // `RoomBadge`'s own doc for why that's enough.
                         if (!room.isDm)
-                          VisibilityBadge(isPublic: room.isPublic, dense: true),
+                          VisibilityBadge(isPublic: room.isPublic, dense: true, iconOnly: true),
                         if (room.isEphemeral && room.messageLifetime != null)
-                          EphemeralBadge(ttl: room.messageLifetime!, dense: true),
-                        if (room.hasPassword) const LockedBadge(dense: true),
-                        if (room.isPinned) const PinnedBadge(dense: true),
+                          EphemeralBadge(
+                            ttl: room.messageLifetime!,
+                            dense: true,
+                            iconOnly: true,
+                          ),
+                        if (room.hasPassword) const LockedBadge(dense: true, iconOnly: true),
+                        if (room.isPinned) const PinnedBadge(dense: true, iconOnly: true),
                         if (room.isMuted)
                           MutedBadge(
                             dense: true,
+                            iconOnly: true,
                             silencesNotifications: room.notificationsMuted,
                             silencesCounts: room.badgesMuted,
                           ),
