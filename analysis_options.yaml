@@ -16,6 +16,13 @@ analyzer:
     # it is not ours to lint — and its own analysis_options.yaml still applies
     # when working inside it.
     - third_party/**
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   # The lint rules applied to this project can be customized in the

@@ -1,6 +1,6 @@
 # flutter_webrtc requires iOS 13+; set explicitly so CocoaPods doesn't
 # fall back to an older default.
-platform :ios, '13.0'
+platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

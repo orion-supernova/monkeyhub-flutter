@@ -15,6 +15,7 @@ import type * as bookmarks from "../bookmarks.js";
 import type * as calls from "../calls.js";
 import type * as childGuard from "../childGuard.js";
 import type * as crons from "../crons.js";
+import type * as deviceLogin from "../deviceLogin.js";
 import type * as family from "../family.js";
 import type * as feed from "../feed.js";
 import type * as files from "../files.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   calls: typeof calls;
   childGuard: typeof childGuard;
   crons: typeof crons;
+  deviceLogin: typeof deviceLogin;
   family: typeof family;
   feed: typeof feed;
   files: typeof files;

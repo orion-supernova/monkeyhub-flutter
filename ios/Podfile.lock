@@ -235,7 +235,7 @@ SPEC CHECKSUMS:
   CryptoSwift: e2e7776512f250e66205955da748e7a4e4abffe0
   emoji_picker_flutter: ece213fc274bdddefb77d502d33080dc54e616cc
   file_selector_ios: ec57ec07954363dd730b642e765e58f199bb621a
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_callkit_incoming: a143995975818a3717524decd3566d5ca7a8c608
   flutter_custom_tabs_ios: 988b8df5821307c16ece71c39667751b01926352
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
@@ -267,6 +267,6 @@ SPEC CHECKSUMS:
   video_thumbnail: b637e0ad5f588ca9945f6e2c927f73a69a661140
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
-PODFILE CHECKSUM: aceb8b8125d359643edd62ff0a86815d3f16966c
+PODFILE CHECKSUM: 9c16f2b387ff9a0fe0b46741f302b58635392ae5
 
 COCOAPODS: 1.16.2
