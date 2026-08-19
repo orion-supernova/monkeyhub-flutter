@@ -71,17 +71,28 @@ export const sendMessagePush = internalAction({
     // fetch below as one `runQuery` rather than two sequential ones — `send`
     // schedules this action, under load, for every message, so a second
     // round trip here was a fixed cost on the hottest push path in the app.
-    const { exists, members: allMembers }: {
+    const {
+      exists,
+      members: allMembers,
+      isGroup,
+      roomName,
+      senderAvatarUrl,
+    }: {
       exists: boolean;
       members: Array<{
         userId: string;
         mutesNotifications: boolean;
         mutesBadges: boolean;
+        avatarVisible: boolean;
       }>;
+      isGroup?: boolean;
+      roomName?: string;
+      senderAvatarUrl?: string | null;
     } = await ctx.runQuery(internal.rooms.getMemberIds, {
       roomId,
       excludeUserId: senderId,
       messageId,
+      resolvePushContext: true,
     });
     if (!exists) {
       console.log("sendMessagePush: message deleted before send — skipped.");
@@ -169,15 +180,31 @@ export const sendMessagePush = internalAction({
     // A mention is the one message in a busy room that is genuinely addressed
     // to you, so it says so on the lock screen. Only the differing fields go
     // in the override map; everyone else shares one payload.
-    const perUser: Record<string, { title: string; data: Record<string, string> }> =
-      {};
+    //
+    // The avatar rides the same map for a different reason: `getMemberIds`
+    // resolved `avatarVisible` per RECIPIENT (their view of the sender's own
+    // avatar-visibility setting — "public"/"friends"/"nobody" — same as the
+    // call ringer in calls.ts), so it can't be a single top-level data key.
+    // Left OUT of the shared `data` below and only ever added here — failing
+    // closed, not open, if a future recipient bucket is added and forgets it.
+    const perUser: Record<
+      string,
+      { title?: string; data: Record<string, string> }
+    > = {};
     for (const m of members) {
       const uid = m.userId.toString();
-      if (mentionsAll || mentioned.has(uid)) {
+      const mentionedHere = mentionsAll || mentioned.has(uid);
+      const extra: Record<string, string> = {};
+      if (senderAvatarUrl && m.avatarVisible) {
+        extra.senderAvatarUrl = senderAvatarUrl;
+      }
+      if (mentionedHere) {
         perUser[uid] = {
           title: `${senderName} mentioned you`,
-          data: { mention: "true" },
+          data: { mention: "true", ...extra },
         };
+      } else if (Object.keys(extra).length > 0) {
+        perUser[uid] = { data: extra };
       }
     }
 
@@ -185,6 +212,10 @@ export const sendMessagePush = internalAction({
       userIds: members.map((m) => m.userId) as any,
       kind: "message",
       title: senderName,
+      // The group's name under the sender's name — see `AlertSpec.subtitle`.
+      // Absent for a DM: `isGroup` there is false, and a DM's `rooms.name` is
+      // the internal `dm:...` key, never something worth showing anyone.
+      subtitle: isGroup ? roomName : undefined,
       body,
       data: {
         kind: "message",
@@ -195,6 +226,10 @@ export const sendMessagePush = internalAction({
         content: body,
         type,
         mention: "false",
+        isGroup: isGroup ? "true" : "false",
+        // Duplicated off `subtitle` for Android/web, which have no `aps.alert`
+        // to read it from — see ChatNotifications.kt / mh-push-sw.js.
+        ...(isGroup && roomName ? { roomName } : {}),
       },
       roomId,
       // Deleting this message later sends a silent push carrying the same

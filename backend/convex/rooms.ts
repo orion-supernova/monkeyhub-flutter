@@ -605,30 +605,89 @@ export const getMemberIds = internalQuery({
     roomId: v.id("rooms"),
     excludeUserId: v.id("users"),
     messageId: v.optional(v.id("messages")),
+    /**
+     * When true, also resolves what a chat-message push needs beyond the
+     * roster: whether the room is a group (not a 1:1 DM) and its name for a
+     * subtitle, plus — respecting [excludeUserId]'s own avatar-visibility
+     * setting, exactly like the ringer in calls.ts — a resolved avatar URL
+     * for each member actually allowed to see it.
+     *
+     * Optional so `revokeMessagePushes`, which only ever wants the roster,
+     * doesn't pay for a lookup it never uses.
+     */
+    resolvePushContext: v.optional(v.boolean()),
   },
-  handler: async (ctx, { roomId, excludeUserId, messageId }) => {
+  handler: async (
+    ctx,
+    { roomId, excludeUserId, messageId, resolvePushContext },
+  ) => {
     if (messageId !== undefined) {
       const msg = await ctx.db.get(messageId);
       if (!msg) return { exists: false, members: [] };
     }
-    const members = await ctx.db
+    const memberRows = await ctx.db
       .query("roomMembers")
       .withIndex("by_room_user", (q) => q.eq("roomId", roomId))
       .collect();
     const now = Date.now();
-    return {
-      exists: true,
-      members: members
-        .filter((m) => m.userId.toString() !== excludeUserId.toString())
-        .map((m) => {
-          const mute = resolveMute(m, now);
-          return {
-            userId: m.userId,
-            mutesNotifications: mute.notifications,
-            mutesBadges: mute.badges,
-          };
-        }),
-    };
+    const filtered = memberRows.filter(
+      (m) => m.userId.toString() !== excludeUserId.toString(),
+    );
+
+    // isGroup mirrors the client's own `ChatRoom.isDm` getter
+    // (lib/models/chat_room.dart): a DM's `name` is the internal
+    // `dm:regular:<id>:<id>` / `dm:self:<id>` key, never a real title, so
+    // "not a dm:-prefixed name" IS the group test — there is no separate
+    // `isGroup` column to drift out of sync with it.
+    let isGroup = false;
+    let roomName: string | undefined;
+    // `any`, like the rest of this file's cross-table reads (e.g. `room` a
+    // few lines down): `ctx.db.get` on an `Id<"users">` already narrows to
+    // `Doc<"users"> | null` on its own, but declaring the var ahead of the
+    // conditional that fills it in forces a wider annotation up front.
+    let senderRow: any = null;
+    let senderAvatarUrl: string | null = null;
+
+    if (resolvePushContext) {
+      const room = await ctx.db.get(roomId);
+      isGroup = !!room && !room.name.startsWith("dm:");
+      roomName = isGroup ? room!.name : undefined;
+
+      senderRow = await ctx.db.get(excludeUserId);
+      if (senderRow?.avatarStorageId) {
+        senderAvatarUrl = await ctx.storage.getUrl(senderRow.avatarStorageId);
+      }
+    }
+    // "public" unless the sender said otherwise — see visibility.ts's
+    // DEFAULT_LEVEL. Read straight off the row rather than through a lens
+    // here: a lens is built once per VIEWER and tested against many subjects,
+    // which is backwards for one sender and many recipients, so building one
+    // per member below is reserved for the minority ("friends"/"nobody") case
+    // that actually needs a per-recipient answer. This is the hottest push
+    // path in the app; the common "public" avatar should cost nothing extra.
+    const avatarLevel = senderRow?.visibility?.avatar ?? "public";
+
+    const members = [];
+    for (const m of filtered) {
+      const mute = resolveMute(m, now);
+      let avatarVisible = false;
+      if (resolvePushContext && senderAvatarUrl && senderRow) {
+        if (avatarLevel === "public") {
+          avatarVisible = true;
+        } else {
+          const lens = await lensFor(ctx, m.userId);
+          avatarVisible = lens.canSee(senderRow, "avatar");
+        }
+      }
+      members.push({
+        userId: m.userId,
+        mutesNotifications: mute.notifications,
+        mutesBadges: mute.badges,
+        avatarVisible,
+      });
+    }
+
+    return { exists: true, isGroup, roomName, senderAvatarUrl, members };
   },
 });
 

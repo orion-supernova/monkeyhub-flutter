@@ -44,6 +44,14 @@ export type AlertKind =
 export type AlertSpec = {
   kind: AlertKind;
   title?: string;
+  /**
+   * `aps.alert.subtitle` on iOS — a line distinct from both `title` and
+   * `body`, e.g. the group's name under the sender's name for a group-room
+   * message. Android and web have no equivalent chrome and read the same
+   * information back out of `data.roomName`/`data.isGroup` instead (see
+   * ChatNotifications.kt / mh-push-sw.js) rather than a separate field.
+   */
+  subtitle?: string;
   body?: string;
   /**
    * Custom keys, delivered FLAT — as siblings of `aps` on iOS, as FCM `data`
@@ -117,11 +125,19 @@ export function buildApnsBody(spec: AlertSpec): Record<string, unknown> {
       badge: String(spec.badge),
     };
   }
+  const alert: Record<string, string> = {
+    title: clamp(spec.title ?? "", TITLE_MAX),
+    body: clamp(spec.body ?? "", BODY_MAX),
+  };
+  // The group name for a group-room message, e.g. "SenderName" (title) over
+  // "Group Name" (subtitle) over the message (body) — mirrors how
+  // WhatsApp/Telegram/iMessage separate who's talking from where. Absent for
+  // a DM, where the room has no name of its own to show.
+  if (spec.subtitle) {
+    alert.subtitle = clamp(spec.subtitle, TITLE_MAX);
+  }
   const aps: Record<string, unknown> = {
-    alert: {
-      title: clamp(spec.title ?? "", TITLE_MAX),
-      body: clamp(spec.body ?? "", BODY_MAX),
-    },
+    alert,
     sound: "default",
   };
   // An incoming call is not an unread item — badging it would leave the count
@@ -297,6 +313,8 @@ export const sendAlert = internalAction({
       v.literal("dismiss"),
     ),
     title: v.optional(v.string()),
+    /** See `AlertSpec.subtitle` — iOS only; Android/web read `data` instead. */
+    subtitle: v.optional(v.string()),
     body: v.optional(v.string()),
     /** Flat custom keys; values are stringified for FCM's benefit. */
     data: v.optional(v.any()),
@@ -341,6 +359,7 @@ export const sendAlert = internalAction({
         const spec: AlertSpec = {
           kind: a.kind,
           title: over.title ?? a.title,
+          subtitle: over.subtitle ?? a.subtitle,
           body: over.body ?? a.body,
           data: stringifyValues({ ...(a.data ?? {}), ...(over.data ?? {}) }),
           badge: t.badge,

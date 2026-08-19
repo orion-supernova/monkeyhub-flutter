@@ -6,11 +6,15 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
+import java.net.HttpURLConnection
+import java.net.URL
 
 /// Renders the notifications that used to come from a push SDK.
 ///
@@ -90,6 +94,12 @@ object ChatNotifications {
         )
     }
 
+    /// Longest this will block a background thread fetching the sender's
+    /// avatar before giving up and posting without one. `onMessageReceived`
+    /// itself is never blocked (see below) — this only bounds how late a
+    /// banner can land relative to a text-only one.
+    private const val AVATAR_FETCH_TIMEOUT_MS = 2_500
+
     fun show(ctx: Context, data: Map<String, String>) {
         ensureChannels(ctx)
         val kind = data["kind"] ?: return
@@ -102,6 +112,45 @@ object ChatNotifications {
             return
         }
 
+        val avatarUrl = data["senderAvatarUrl"].orEmpty()
+        if (avatarUrl.isEmpty()) {
+            post(ctx, kind, roomId, data, avatar = null)
+            return
+        }
+        // `onMessageReceived` calls this on the main thread, so a blocking
+        // fetch has to happen off it — a real network call there risks an
+        // ANR, not just a slow banner. Bounded and best-effort: the message
+        // itself must never wait on a face that fails to load in time, the
+        // way the banner text would if this were synchronous up top.
+        Thread {
+            val avatar = runCatching { fetchAvatar(avatarUrl) }
+                .onFailure { Log.w(TAG, "avatar fetch failed: ${it.message}") }
+                .getOrNull()
+            post(ctx, kind, roomId, data, avatar)
+        }.start()
+    }
+
+    private fun fetchAvatar(url: String): Bitmap? {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        conn.connectTimeout = AVATAR_FETCH_TIMEOUT_MS
+        conn.readTimeout = AVATAR_FETCH_TIMEOUT_MS
+        conn.doInput = true
+        return try {
+            conn.connect()
+            if (conn.responseCode != 200) return null
+            conn.inputStream.use { BitmapFactory.decodeStream(it) }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    private fun post(
+        ctx: Context,
+        kind: String,
+        roomId: String,
+        data: Map<String, String>,
+        avatar: Bitmap?,
+    ) {
         val channel = when (kind) {
             "approval" -> CH_REQUESTS
             "call_invite", "group_call_invite" -> CH_CALLS
@@ -127,6 +176,17 @@ object ChatNotifications {
                 else NotificationCompat.CATEGORY_MESSAGE
             )
         if (roomId.isNotEmpty()) builder.setGroup(roomId)
+        // Sender's face, WhatsApp/Telegram-style. Most launchers/OEM skins
+        // mask a large icon into a circle the same way they do a contact
+        // photo; that's system chrome, not something drawn here.
+        if (avatar != null) builder.setLargeIcon(avatar)
+        // The room name under the sender's name for a GROUP message — never
+        // set for a DM, whose `roomName` push.ts deliberately omits. `setSubText`
+        // is the closest thing NotificationCompat has to iOS's `aps.alert.subtitle`:
+        // a second line rendered above the message body.
+        if (data["isGroup"] == "true") {
+            data["roomName"]?.takeIf { it.isNotEmpty() }?.let { builder.setSubText(it) }
+        }
 
         val nm = NotificationManagerCompat.from(ctx)
         try {
