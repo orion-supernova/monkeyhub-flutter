@@ -10193,6 +10193,18 @@ abstract class AppLocalizations {
   /// **'No maps app to open this in'**
   String get locationBubbleNoMapsApp;
 
+  /// Title of the sheet that asks which installed maps application a shared location should open in (map_app_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Open location in'**
+  String get mapAppSheetTitle;
+
+  /// Secondary line on the map chooser's last row, which opens the location on the OpenStreetMap website instead of in an app (map_app_sheet.dart).
+  ///
+  /// In en, this message translates to:
+  /// **'Browser'**
+  String get mapAppSheetBrowser;
+
   /// Snackbar confirming a long-press copied the shared coordinates to the clipboard (location_bubble.dart).
   ///
   /// In en, this message translates to:

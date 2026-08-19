@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "停止共享",
   "locationBubbleUnavailable": "位置不可用",
   "locationBubbleNoMapsApp": "没有可打开的地图应用",
+  "mapAppSheetTitle": "在以下应用中打开位置",
+  "mapAppSheetBrowser": "浏览器",
   "locationBubbleCoordinatesCopied": "坐标已复制",
   "locationCouldNotGetFix": "无法获取你的位置",
   "locationCouldNotStartLiveShare": "无法开始实时共享",

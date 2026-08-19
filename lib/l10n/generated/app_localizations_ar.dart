@@ -5998,6 +5998,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locationBubbleNoMapsApp => 'لا يوجد تطبيق خرائط لفتح هذا';
 
   @override
+  String get mapAppSheetTitle => 'فتح الموقع في';
+
+  @override
+  String get mapAppSheetBrowser => 'المتصفح';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'تم نسخ الإحداثيات';
 
   @override

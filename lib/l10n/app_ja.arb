@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "共有を停止",
   "locationBubbleUnavailable": "位置情報を表示できません",
   "locationBubbleNoMapsApp": "開ける地図アプリがありません",
+  "mapAppSheetTitle": "地図アプリで開く",
+  "mapAppSheetBrowser": "ブラウザ",
   "locationBubbleCoordinatesCopied": "座標をコピーしました",
   "locationCouldNotGetFix": "現在地を取得できませんでした",
   "locationCouldNotStartLiveShare": "リアルタイム共有を開始できませんでした",

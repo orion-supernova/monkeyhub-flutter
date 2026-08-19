@@ -5903,6 +5903,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get locationBubbleNoMapsApp => 'Bunu açacak bir harita uygulaması yok';
 
   @override
+  String get mapAppSheetTitle => 'Konumu şununla aç';
+
+  @override
+  String get mapAppSheetBrowser => 'Tarayıcı';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Koordinatlar kopyalandı';
 
   @override

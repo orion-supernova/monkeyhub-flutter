@@ -11,6 +11,7 @@ import '../models/location_share.dart';
 import '../services/maps_handoff.dart';
 import '../theme/app_theme.dart';
 import 'location_map_preview.dart';
+import 'map_app_sheet.dart';
 import 'message_stamp.dart';
 
 /// A location in the transcript: one fix, or a live share that is running, or
@@ -461,12 +462,39 @@ class _LocationBubbleState extends State<LocationBubble>
     if (share == null) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     final failed = AppLocalizations.of(context).locationBubbleNoMapsApp;
+    final label = widget.message.senderName.isEmpty
+        ? null
+        : widget.message.senderName;
+
+    // Ask which maps app before picking one. This returns empty off iOS, and
+    // that is the intended outcome rather than a gap: Android's `geo:` intent
+    // below raises the system chooser, which lists every installed handler —
+    // more than this app can detect — and honours a default the user may
+    // already have set.
+    final installed = await MapsHandoff.installedApps();
+    if (!mounted) return;
+
+    if (installed.isNotEmpty) {
+      final chosen = await MapAppSheet.maybeChoose(context, installed);
+      // Null here means the user dismissed the sheet, which is an answer:
+      // falling through to open something anyway would ignore it.
+      if (chosen == null || !mounted) return;
+      final opened = await MapsHandoff.openIn(
+        chosen,
+        latitude: share.latitude,
+        longitude: share.longitude,
+        label: label,
+      );
+      if (!opened && messenger != null) {
+        messenger.showSnackBar(SnackBar(content: Text(failed)));
+      }
+      return;
+    }
+
     final ok = await MapsHandoff.open(
       latitude: share.latitude,
       longitude: share.longitude,
-      label: widget.message.senderName.isEmpty
-          ? null
-          : widget.message.senderName,
+      label: label,
     );
     if (!ok && messenger != null) {
       messenger.showSnackBar(SnackBar(content: Text(failed)));

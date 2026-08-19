@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "공유 중지",
   "locationBubbleUnavailable": "위치를 표시할 수 없음",
   "locationBubbleNoMapsApp": "열 수 있는 지도 앱이 없습니다",
+  "mapAppSheetTitle": "지도 앱으로 열기",
+  "mapAppSheetBrowser": "브라우저",
   "locationBubbleCoordinatesCopied": "좌표가 복사되었습니다",
   "locationCouldNotGetFix": "위치를 가져오지 못했습니다",
   "locationCouldNotStartLiveShare": "실시간 공유를 시작하지 못했습니다",

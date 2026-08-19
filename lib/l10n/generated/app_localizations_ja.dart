@@ -5703,6 +5703,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get locationBubbleNoMapsApp => '開ける地図アプリがありません';
 
   @override
+  String get mapAppSheetTitle => '地図アプリで開く';
+
+  @override
+  String get mapAppSheetBrowser => 'ブラウザ';
+
+  @override
   String get locationBubbleCoordinatesCopied => '座標をコピーしました';
 
   @override

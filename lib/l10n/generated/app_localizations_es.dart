@@ -5990,6 +5990,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'No hay ninguna app de mapas para abrir esto';
 
   @override
+  String get mapAppSheetTitle => 'Abrir ubicación en';
+
+  @override
+  String get mapAppSheetBrowser => 'Navegador';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Coordenadas copiadas';
 
   @override

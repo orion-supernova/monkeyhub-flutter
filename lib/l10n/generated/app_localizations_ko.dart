@@ -5721,6 +5721,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get locationBubbleNoMapsApp => '열 수 있는 지도 앱이 없습니다';
 
   @override
+  String get mapAppSheetTitle => '지도 앱으로 열기';
+
+  @override
+  String get mapAppSheetBrowser => '브라우저';
+
+  @override
   String get locationBubbleCoordinatesCopied => '좌표가 복사되었습니다';
 
   @override

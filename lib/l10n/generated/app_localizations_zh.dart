@@ -5633,6 +5633,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get locationBubbleNoMapsApp => '没有可打开的地图应用';
 
   @override
+  String get mapAppSheetTitle => '在以下应用中打开位置';
+
+  @override
+  String get mapAppSheetBrowser => '浏览器';
+
+  @override
   String get locationBubbleCoordinatesCopied => '坐标已复制';
 
   @override

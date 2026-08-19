@@ -500,6 +500,38 @@
 		     USE; see the usage descriptions above. -->
 		<string>location</string>
 	</array>
+	<!-- Schemes canOpenURL is allowed to answer for, which is how the location
+	     bubble's "open in" chooser discovers installed maps apps. iOS caps this
+	     array at 50 entries and gives an app no way to read it back, so a
+	     scheme missing here is indistinguishable at runtime from an app the
+	     user has not installed — it never appears, with no warning anywhere.
+
+	     THIS ARRAY AND kMapAppCatalog IN lib/services/map_apps.dart ARE ONE
+	     LIST STORED TWICE. Adding an app to one without the other is a silent
+	     no-op. See the class comment in that file, which also explains why
+	     Amap, Baidu and Tencent are deliberately absent from both. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>maps</string>
+		<string>comgooglemaps</string>
+		<string>waze</string>
+		<string>om</string>
+		<string>osmandmaps</string>
+		<string>mapswithme</string>
+		<!-- MAPS.ME is detected on `mapswithme` but takes its coordinates on
+		     `mapsme`. Both are listed because url_launcher probes a scheme
+		     before opening it, so the launch scheme needs the same permission
+		     the detection scheme does. -->
+		<string>mapsme</string>
+		<string>yandexmaps</string>
+		<string>yandexnavi</string>
+		<string>dgis</string>
+		<string>here-location</string>
+		<string>citymapper</string>
+		<string>nmap</string>
+		<string>kakaomap</string>
+		<string>tmap</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIStatusBarHidden</key>

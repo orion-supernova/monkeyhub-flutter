@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "إيقاف المشاركة",
   "locationBubbleUnavailable": "الموقع غير متاح",
   "locationBubbleNoMapsApp": "لا يوجد تطبيق خرائط لفتح هذا",
+  "mapAppSheetTitle": "فتح الموقع في",
+  "mapAppSheetBrowser": "المتصفح",
   "locationBubbleCoordinatesCopied": "تم نسخ الإحداثيات",
   "locationCouldNotGetFix": "تعذّر الحصول على موقعك",
   "locationCouldNotStartLiveShare": "تعذّر بدء المشاركة المباشرة",

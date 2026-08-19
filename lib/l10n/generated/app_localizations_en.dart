@@ -5918,6 +5918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locationBubbleNoMapsApp => 'No maps app to open this in';
 
   @override
+  String get mapAppSheetTitle => 'Open location in';
+
+  @override
+  String get mapAppSheetBrowser => 'Browser';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Coordinates copied';
 
   @override

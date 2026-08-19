@@ -6752,6 +6752,14 @@
   "@locationBubbleNoMapsApp": {
     "description": "Snackbar shown when no maps application could be opened for a shared position (location_bubble.dart)."
   },
+  "mapAppSheetTitle": "Open location in",
+  "@mapAppSheetTitle": {
+    "description": "Title of the sheet that asks which installed maps application a shared location should open in (map_app_sheet.dart)."
+  },
+  "mapAppSheetBrowser": "Browser",
+  "@mapAppSheetBrowser": {
+    "description": "Secondary line on the map chooser's last row, which opens the location on the OpenStreetMap website instead of in an app (map_app_sheet.dart)."
+  },
   "locationBubbleCoordinatesCopied": "Coordinates copied",
   "@locationBubbleCoordinatesCopied": {
     "description": "Snackbar confirming a long-press copied the shared coordinates to the clipboard (location_bubble.dart)."

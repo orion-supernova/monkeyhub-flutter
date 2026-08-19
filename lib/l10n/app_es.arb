@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "Dejar de compartir",
   "locationBubbleUnavailable": "Ubicación no disponible",
   "locationBubbleNoMapsApp": "No hay ninguna app de mapas para abrir esto",
+  "mapAppSheetTitle": "Abrir ubicación en",
+  "mapAppSheetBrowser": "Navegador",
   "locationBubbleCoordinatesCopied": "Coordenadas copiadas",
   "locationCouldNotGetFix": "No se pudo obtener tu ubicación",
   "locationCouldNotStartLiveShare": "No se pudo iniciar la ubicación en directo",

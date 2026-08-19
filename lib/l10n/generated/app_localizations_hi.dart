@@ -5936,6 +5936,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get locationBubbleNoMapsApp => 'इसे खोलने के लिए कोई मैप ऐप नहीं है';
 
   @override
+  String get mapAppSheetTitle => 'स्थान इसमें खोलें';
+
+  @override
+  String get mapAppSheetBrowser => 'ब्राउज़र';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'निर्देशांक कॉपी किए गए';
 
   @override

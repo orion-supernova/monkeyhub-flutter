@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
+import 'map_apps.dart';
+
 /// Hands a coordinate pair to whatever the user already uses for maps.
 ///
 /// This is the whole of this app's involvement in navigation, and that is a
@@ -20,28 +22,16 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 ///    have one. Preferred over a Google Maps URL specifically because it does
 ///    *not* presume Google Maps: Organic Maps, OsmAnd and Waze all register for
 ///    it.
-///  * **iOS — `maps://`**. Apple Maps' own scheme. Third-party maps apps on iOS
-///    cannot claim it, so this is genuinely "the platform's map" rather than
-///    "the user's choice"; iOS offers no chooser intent to use instead.
+///  * **iOS — the user's answer, then `maps://`**. Apple Maps' scheme is the
+///    only one third-party apps cannot claim, and iOS offers no chooser intent,
+///    so [open] alone would silently mean "Apple Maps" on every iPhone. That is
+///    why [installedApps] and [openIn] exist: the caller asks what is there,
+///    puts the answer to the user, and hands the coordinate to what they picked.
+///    `maps://` remains the floor when nothing else is installed.
 ///  * **Everywhere else, and as a last resort — an OpenStreetMap web URL**.
 ///    Reached on web, Linux and Windows, and on a phone whose maps app has been
-///    removed. OpenStreetMap because it is the one map host that needs no key
-///    and no account to *link* to, which keeps this file consistent with the
-///    rest of the feature (see LocationMapPreview) — and because a link is the
-///    one place a third party unavoidably learns the coordinates, so it should
-///    at least be a party that is not selling them. Swapping the host is the
-///    one constant below.
+///    removed. See [webMapUri] for why OpenStreetMap and not somewhere else.
 class MapsHandoff {
-  /// Where the web fallback points. One constant, deliberately, so changing
-  /// this app's mind about which map site to hand people to is a one-line
-  /// change and not a search.
-  static const _webHost = 'https://www.openstreetmap.org';
-
-  /// Zoom for the web fallback — street level. High enough to see which
-  /// building, low enough that a fix with 100 m of error doesn't imply a
-  /// doorway.
-  static const _webZoom = 17;
-
   /// Opens [latitude],[longitude] in the platform's maps application.
   ///
   /// [label] is what the pin is called where the platform supports naming one
@@ -84,9 +74,7 @@ class MapsHandoff {
     final lng = longitude.toStringAsFixed(6);
     final name = (label ?? '').trim();
 
-    final web = Uri.parse(
-      '$_webHost/?mlat=$lat&mlon=$lng#map=$_webZoom/$lat/$lng',
-    );
+    final web = webMapUri(latitude, longitude);
 
     if (kIsWeb) return [web];
 
@@ -114,6 +102,33 @@ class MapsHandoff {
       ];
     }
     return [web];
+  }
+
+  /// Which of [kMapAppCatalog] this device actually has.
+  ///
+  /// Empty everywhere except iOS, and empty there too on a phone with nothing
+  /// but Apple Maps' scheme unavailable. Callers must treat empty as "don't
+  /// offer a choice" rather than as "no maps app" — [open] still works, and on
+  /// Android it is the better answer anyway. See MapAppProbe for why the
+  /// question is only worth asking on one platform, and for the limit on how
+  /// complete the answer can be.
+  static Future<List<MapApp>> installedApps() => MapAppProbe.installed();
+
+  /// Opens [app] at [latitude],[longitude] — the chooser's counterpart to
+  /// [open].
+  ///
+  /// Falls back to the web URL if the app refuses the launch, which is not
+  /// merely defensive: the user picked this app from a list, so failing
+  /// silently here would look like the app they chose is broken. Returns false
+  /// only when the fallback refused too.
+  static Future<bool> openIn(
+    MapApp app, {
+    required double latitude,
+    required double longitude,
+    String? label,
+  }) async {
+    if (await _tryLaunch(app.build(latitude, longitude, label))) return true;
+    return _tryLaunch(webMapUri(latitude, longitude));
   }
 
   static Future<bool> _tryLaunch(Uri uri) async {

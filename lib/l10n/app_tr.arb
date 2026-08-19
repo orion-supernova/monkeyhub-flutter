@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "Paylaşımı durdur",
   "locationBubbleUnavailable": "Konum kullanılamıyor",
   "locationBubbleNoMapsApp": "Bunu açacak bir harita uygulaması yok",
+  "mapAppSheetTitle": "Konumu şununla aç",
+  "mapAppSheetBrowser": "Tarayıcı",
   "locationBubbleCoordinatesCopied": "Koordinatlar kopyalandı",
   "locationCouldNotGetFix": "Konumun alınamadı",
   "locationCouldNotStartLiveShare": "Canlı paylaşım başlatılamadı",

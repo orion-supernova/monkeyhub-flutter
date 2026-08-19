@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "Sluta dela",
   "locationBubbleUnavailable": "Platsen är inte tillgänglig",
   "locationBubbleNoMapsApp": "Ingen kartapp att öppna det här i",
+  "mapAppSheetTitle": "Öppna plats i",
+  "mapAppSheetBrowser": "Webbläsare",
   "locationBubbleCoordinatesCopied": "Koordinaterna kopierade",
   "locationCouldNotGetFix": "Kunde inte hämta din plats",
   "locationCouldNotStartLiveShare": "Kunde inte starta livedelning",

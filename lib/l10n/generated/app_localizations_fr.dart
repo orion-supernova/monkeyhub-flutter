@@ -6028,6 +6028,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune application de cartes pour ouvrir ceci';
 
   @override
+  String get mapAppSheetTitle => 'Ouvrir la position dans';
+
+  @override
+  String get mapAppSheetBrowser => 'Navigateur';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Coordonnées copiées';
 
   @override

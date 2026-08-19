@@ -6002,6 +6002,12 @@ class AppLocalizationsPt extends AppLocalizations {
       'Não há nenhuma app de mapas para abrir isto';
 
   @override
+  String get mapAppSheetTitle => 'Abrir localização em';
+
+  @override
+  String get mapAppSheetBrowser => 'Navegador';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Coordenadas copiadas';
 
   @override
@@ -12737,6 +12743,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get locationBubbleNoMapsApp => 'Nenhum app de mapas para abrir isso';
+
+  @override
+  String get mapAppSheetTitle => 'Abrir localização em';
+
+  @override
+  String get mapAppSheetBrowser => 'Navegador';
 
   @override
   String get locationBubbleCoordinatesCopied => 'Coordenadas copiadas';

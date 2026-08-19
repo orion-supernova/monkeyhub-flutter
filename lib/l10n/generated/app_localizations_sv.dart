@@ -5951,6 +5951,12 @@ class AppLocalizationsSv extends AppLocalizations {
   String get locationBubbleNoMapsApp => 'Ingen kartapp att öppna det här i';
 
   @override
+  String get mapAppSheetTitle => 'Öppna plats i';
+
+  @override
+  String get mapAppSheetBrowser => 'Webbläsare';
+
+  @override
   String get locationBubbleCoordinatesCopied => 'Koordinaterna kopierade';
 
   @override

@@ -1675,6 +1675,8 @@
   "locationBubbleStopSharing": "साझा करना बंद करें",
   "locationBubbleUnavailable": "स्थान उपलब्ध नहीं",
   "locationBubbleNoMapsApp": "इसे खोलने के लिए कोई मैप ऐप नहीं है",
+  "mapAppSheetTitle": "स्थान इसमें खोलें",
+  "mapAppSheetBrowser": "ब्राउज़र",
   "locationBubbleCoordinatesCopied": "निर्देशांक कॉपी किए गए",
   "locationCouldNotGetFix": "आपका स्थान नहीं मिल सका",
   "locationCouldNotStartLiveShare": "लाइव साझा करना शुरू नहीं हो सका",
