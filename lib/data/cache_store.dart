@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
+import '../models/chat_user.dart';
 
 /// On-disk snapshot of the data the user already saw — used to render
 /// instantly on cold boot, even when the network is down. The Convex
@@ -14,6 +15,8 @@ import '../models/chat_room.dart';
 ///
 /// Files live under `<app-documents>/cache/<userId>/`:
 ///   - `rooms.json` — list of rooms (capped at all known)
+///   - `friends.json` — the friends list, which is also what resolves a DM
+///     room's real name and avatar (see [ChatUser.toJson])
 ///   - `messages_<roomId>.json` — last ~120 messages per room
 ///
 /// Writes are debounced to avoid disk thrash; reads are best-effort and
@@ -65,6 +68,38 @@ class CacheStore {
         await f.writeAsString(jsonEncode(rooms.map((r) => r.toJson()).toList()));
       } catch (e) {
         debugPrint('cache saveRooms failed: $e');
+      }
+    });
+  }
+
+  // ─────────────────────────────── friends ───────────────────────────────
+
+  Future<List<ChatUser>> loadFriends(String userId) async {
+    if (kIsWeb) return const []; // no path_provider on web — live data only
+    try {
+      final dir = await _ensureDir(userId);
+      final f = File('${dir.path}/friends.json');
+      if (!await f.exists()) return const [];
+      final raw = await f.readAsString();
+      final list = (jsonDecode(raw) as List?) ?? const [];
+      return list
+          .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+    } catch (e) {
+      debugPrint('cache loadFriends failed: $e');
+      return const [];
+    }
+  }
+
+  void scheduleSaveFriends(String userId, List<ChatUser> friends) {
+    if (kIsWeb) return; // no disk cache on web
+    _debounce('friends', () async {
+      try {
+        final dir = await _ensureDir(userId);
+        final f = File('${dir.path}/friends.json');
+        await f.writeAsString(jsonEncode(friends.map((u) => u.toJson()).toList()));
+      } catch (e) {
+        debugPrint('cache saveFriends failed: $e');
       }
     });
   }

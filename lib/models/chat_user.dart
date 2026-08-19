@@ -258,6 +258,30 @@ class ChatUser {
     );
   }
 
+  /// For [CacheStore]'s on-disk friends list — the offline seed that lets a
+  /// DM's real name paint on the very first cold-start frame instead of the
+  /// raw `dm:<id>_<id>` room name while `friends:listFriends` is still in
+  /// flight. Deliberately skips the self-only fields ([visibility],
+  /// [childPolicy], [hasRecoveryKey], [hasPassword], [usernameChangedAt]):
+  /// `friends:listFriends` never populates them on someone else's row (see
+  /// [visibility]'s own doc), so there is nothing there to round-trip.
+  Map<String, dynamic> toJson() => {
+        '_id': id,
+        'username': username,
+        'name': name,
+        if (email != null) 'email': email,
+        if (avatarStorageId != null) 'avatarStorageId': avatarStorageId,
+        if (status != null) 'status': status,
+        if (lastSeen != null) 'lastSeen': lastSeen!.millisecondsSinceEpoch,
+        'friendshipStatus': friendshipStatus.name,
+        if (requestId != null) 'requestId': requestId,
+        if (role != null) 'role': role,
+        if (isRedacted) 'isRedacted': true,
+        'acceptsFriendRequests': acceptsFriendRequests,
+        'accountType': accountType.wire,
+        if (isSystem) 'isSystem': true,
+      };
+
   ChatUser copyWith({
     String? name,
     String? email,

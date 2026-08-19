@@ -362,12 +362,23 @@ class ChatRepository extends ChangeNotifier {
     // 1) Hydrate from disk so the first frame already shows last-known state
     //    even if we're cold-booting offline. This is cheap (~ms) and the
     //    live subscriptions will overwrite as they connect.
+    //
+    //    Friends load alongside rooms, not after them: a DM room's display
+    //    name is resolved client-side against `_friends` (see
+    //    `otherUserFor`) rather than carried on the room itself, so a cold
+    //    frame with rooms but no friends yet paints every DM by its raw
+    //    `dm:<id>_<id>` name until the network round trip in step 2 lands —
+    //    exactly the flash this hydration step exists to avoid.
     try {
-      final cachedRooms = await CacheStore.instance.loadRooms(userId);
-      if (cachedRooms.isNotEmpty) {
-        _rooms = cachedRooms;
-        notifyListeners();
-      }
+      final results = await Future.wait<dynamic>([
+        CacheStore.instance.loadRooms(userId),
+        CacheStore.instance.loadFriends(userId),
+      ]);
+      final cachedRooms = results[0] as List<ChatRoom>;
+      final cachedFriends = results[1] as List<ChatUser>;
+      if (cachedRooms.isNotEmpty) _rooms = cachedRooms;
+      if (cachedFriends.isNotEmpty) _friends = cachedFriends;
+      if (cachedRooms.isNotEmpty || cachedFriends.isNotEmpty) notifyListeners();
     } catch (_) {}
 
     // 2) Seed from parallel API hits before subscriptions take over.
@@ -388,7 +399,10 @@ class ChatRepository extends ChangeNotifier {
         CacheStore.instance.scheduleSaveRooms(userId, _rooms);
       }
       final friendsResult = results[1] as List<ChatUser>;
-      if (friendsResult.isNotEmpty) _friends = friendsResult;
+      if (friendsResult.isNotEmpty) {
+        _friends = friendsResult;
+        CacheStore.instance.scheduleSaveFriends(userId, _friends);
+      }
       _incomingRequests = results[2] as List<FriendRequest>;
       _outgoingRequests = results[3] as List<FriendRequest>;
     } catch (_) {/* network down; cached rooms/friends remain visible */}
@@ -436,6 +450,7 @@ class ChatRepository extends ChangeNotifier {
         _friends = list
             .map((e) => ChatUser.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        CacheStore.instance.scheduleSaveFriends(userId, _friends);
         notifyListeners();
       },
       onError: (err) => debugPrint('friends sub error: $err'),
