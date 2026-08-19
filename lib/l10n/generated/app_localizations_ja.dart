@@ -795,6 +795,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get threadOverlayNameCopiedToast => '名前をコピーしました';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => '座標をコピーしました';
+
+  @override
   String get threadOverlayPinLimitToast => 'ピン留めが多すぎます。先に1つ解除してください';
 
   @override
@@ -1472,6 +1475,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'ファイル名をコピー';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => '座標をコピー';
 
   @override
   String get messageActionMenuPinLabel => 'ピン留め';

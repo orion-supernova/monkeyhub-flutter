@@ -832,6 +832,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'नाम कॉपी हो गया';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'निर्देशांक कॉपी किए गए';
+
+  @override
   String get threadOverlayPinLimitToast =>
       'बहुत ज़्यादा पिन — पहले एक अनपिन करें';
 
@@ -1539,6 +1542,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'नाम कॉपी करें';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'निर्देशांक कॉपी करें';
 
   @override
   String get messageActionMenuPinLabel => 'पिन करें';

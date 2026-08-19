@@ -846,6 +846,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'تم نسخ الاسم';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'تم نسخ الإحداثيات';
+
+  @override
   String get threadOverlayPinLimitToast =>
       'عدد الرسائل المثبّتة كبير جداً — ألغِ تثبيت واحدة أولاً';
 
@@ -1555,6 +1558,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'نسخ الاسم';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'نسخ الإحداثيات';
 
   @override
   String get messageActionMenuPinLabel => 'تثبيت';

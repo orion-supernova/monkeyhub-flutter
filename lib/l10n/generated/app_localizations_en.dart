@@ -830,6 +830,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get threadOverlayNameCopiedToast => 'name copied';
 
   @override
+  String get threadOverlayCoordinatesCopiedToast => 'coordinates copied';
+
+  @override
   String get threadOverlayPinLimitToast => 'too many pins — unpin one first';
 
   @override
@@ -1531,6 +1534,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageActionMenuCopyNameLabel => 'COPY NAME';
+
+  @override
+  String get messageActionMenuCopyCoordinatesLabel => 'COPY COORDINATES';
 
   @override
   String get messageActionMenuPinLabel => 'PIN';
