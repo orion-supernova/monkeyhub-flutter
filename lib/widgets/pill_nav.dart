@@ -66,6 +66,14 @@ class _PillNavState extends State<PillNav> {
         _settled = true;
       });
     }
+    // This row sits inside a horizontal SingleChildScrollView (see _tabs in
+    // room_content_screen.dart) that has no controller of its own and always
+    // starts scrolled to its leading edge. A screen pushed straight onto a
+    // tab past the fold — LINKS, and especially SAVED, the last pill — opened
+    // with the highlight off screen and no way to tell what was selected. A
+    // no-op when the pill is already visible, so this never fights a reader
+    // who has scrolled the strip to peek at another tab's badge.
+    Scrollable.ensureVisible(itemCtx);
   }
 
   @override
