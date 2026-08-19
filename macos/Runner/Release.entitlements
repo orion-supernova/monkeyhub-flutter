@@ -17,5 +17,10 @@
 	     CoreLocation refuses every request without ever prompting. -->
 	<key>com.apple.security.personal-information.location</key>
 	<true/>
+	<!-- See DebugProfile.entitlements for why this is required. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	</array>
 </dict>
 </plist>

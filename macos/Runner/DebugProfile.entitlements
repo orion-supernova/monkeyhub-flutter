@@ -21,5 +21,17 @@
 	     CoreLocation refuses every request without ever prompting. -->
 	<key>com.apple.security.personal-information.location</key>
 	<true/>
+	<!-- flutter_secure_storage uses the Data Protection Keychain on macOS
+	     (kSecUseDataProtectionKeychain), and per Apple/Google's own guidance
+	     (see macos/Pods/GTMAppAuth/README.md, "macOS" under "Keychain
+	     Storage"), a sandboxed app that doesn't specify an access group MUST
+	     list this one or Keychain reads/writes are unreliable across process
+	     launches. Without it, SessionStore/ServerStore silently lost their
+	     saved session on relaunch — the app always fell back to the login
+	     screen. Same value in Release.entitlements. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	</array>
 </dict>
 </plist>
