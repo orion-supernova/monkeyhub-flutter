@@ -40,6 +40,7 @@ import 'env.dart';
 import 'auth/recovery_gate.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'main.dart' show rootNavigatorKey;
+import 'screens/navigation/route_return.dart' show appRoutes;
 import 'media/audio_file_cache.dart';
 import 'media/video_file_cache.dart';
 import 'media/file_url_cache.dart';
@@ -1123,7 +1124,7 @@ class _MonkeyHubAppState extends State<MonkeyHubApp>
             // push/pop events are their own signal — a route that opens and
             // closes repeatedly is a bug shape worth seeing next to the layout
             // events it interleaves with.
-            navigatorObservers: [_diagRoutes],
+            navigatorObservers: [_diagRoutes, appRoutes],
             title: 'MonkeyHub',
             // Null follows the system language, resolved against
             // supportedLocales by Flutter's default algorithm (falls back to

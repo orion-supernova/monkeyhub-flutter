@@ -74,15 +74,24 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _errorCode = null;
     });
     try {
-      await widget.feedApi.guess(
+      final attempt = await widget.feedApi.guess(
         userId: widget.userId,
         dayKey: FeedStore.instance.dayKey,
         guess: List<int>.from(_draft),
       );
+      // Hand the server's own attempt to the store BEFORE clearing the draft.
+      // This used to rely on the board subscription alone, and a board that had
+      // gone quiet — the socket the OS suspended while you were away, most
+      // often — swallowed the row whole: the draft vanished, the grid still
+      // showed the guess before it, and the guess was gone from the screen
+      // despite having been accepted. Nothing on the screen could recover, so
+      // the only way back was to restart the app.
+      //
+      // Not `mounted`-gated: the write landed, and the store outlives this
+      // screen. Bailing here on a screen popped mid-flight would drop a
+      // confirmed guess on the floor for the Feed band too.
+      FeedStore.instance.applyPuzzleAttempt(attempt);
       if (!mounted) return;
-      // The board subscription carries the authoritative attempt and will land
-      // within a round trip, so nothing is stored locally — clearing the draft
-      // is the only state this screen owns.
       setState(() {
         _draft.clear();
         _busy = false;
