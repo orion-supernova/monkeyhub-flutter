@@ -100,9 +100,6 @@ void main() {
                   // either way.
                   isMuted: false,
                   canMute: true,
-                  // This file never taps the preview — see the dedicated
-                  // test below for that.
-                  onOpenRoom: () {},
                 ),
                 child: Builder(builder: row),
               ),
@@ -212,7 +209,6 @@ void main() {
     );
 
     Future<ChatRowAction?>? result;
-    var openedRoom = false;
     await tester.pumpWidget(
       ThemeScope(
         controller: ThemeController(BasicTheme.midnight()),
@@ -232,7 +228,6 @@ void main() {
                     isArchived: false,
                     isMuted: false,
                     canMute: true,
-                    onOpenRoom: () => openedRoom = true,
                   );
                 },
                 child: Builder(builder: row),
@@ -262,23 +257,16 @@ void main() {
     // is correct here.
     await tester.tap(find.byType(ChatRowLongPress), warnIfMissed: false);
     // pumpAndSettle rather than frames() here: no pointer is held down (the
-    // tap already released) and the flight's own two controllers are
+    // tap already released) and the overlay's own exit controller is
     // finite — nothing here can spin forever the way a live gesture could.
     await tester.pumpAndSettle();
 
     expect(
-      openedRoom,
-      isTrue,
-      reason:
-          'onOpenRoom fires directly from the flight, not through the '
-          'resolved action below',
-    );
-    expect(
       await result,
       ChatRowAction.open,
       reason:
-          'tapping the preview should open the room, the same shortcut a '
-          'plain tap on the row already gives',
+          'tapping the preview should resolve like any other row — the '
+          'caller opens the room the same way a plain tap on the row would',
     );
   });
 }

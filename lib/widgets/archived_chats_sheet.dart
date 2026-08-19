@@ -143,23 +143,6 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
       isArchived: true,
       isMuted: widget.room.isMuted,
       canMute: widget.repo.capabilitiesFor(widget.room).canMute,
-      // Same pop-then-open sequence RoomCard's own onTap runs below — called
-      // directly by the overlay, not through `action` below. On
-      // compact/medium it fires mid-flight once the grown panel already
-      // covers the whole screen (sheet included), so popping the
-      // still-visible sheet here happens invisibly instead of racing the
-      // room's own entrance the way it used to. See `showChatRowActionMenu`'s
-      // doc.
-      onOpenRoom: () {
-        Navigator.of(context).pop();
-        openRoom(
-          context,
-          roomId: widget.room.id,
-          repo: widget.repo,
-          api: widget.api,
-          instant: true,
-        );
-      },
     );
     if (!context.mounted) return;
     switch (action) {
@@ -174,8 +157,14 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
       case ChatRowAction.unmute:
         await widget.repo.unmuteRoom(widget.room.id);
       case ChatRowAction.open:
-        // Already handled by onOpenRoom above, called by the overlay itself
-        // at the right moment in its own flight — nothing left to do here.
+        // Same pop-then-open sequence RoomCard's own onTap runs below.
+        Navigator.of(context).pop();
+        openRoom(
+          context,
+          roomId: widget.room.id,
+          repo: widget.repo,
+          api: widget.api,
+        );
         break;
       // The menu never offers these on an archived room; listed so adding a
       // future action to the enum fails here rather than silently doing
