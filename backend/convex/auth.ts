@@ -604,6 +604,17 @@ async function purgeUser(ctx: any, userId: any) {
         .collect(),
     );
   }
+  // Device-login requests (QR / short-code sign-in for web and desktop) this
+  // user approved from their phone. An unapproved row belongs to no account
+  // there is to purge — it's reaped by its own short expiry instead; see
+  // deviceLogin.gcExpiredDeviceLoginRequests.
+  await deleteRows(
+    ctx,
+    await ctx.db
+      .query("deviceLoginRequests")
+      .withIndex("by_approver", (q: any) => q.eq("approvedByUserId", userId))
+      .collect(),
+  );
 
   const approvalGroups = [];
   for (const status of ["pending", "approved", "denied", "revoked"]) {

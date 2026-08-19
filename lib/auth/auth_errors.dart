@@ -51,6 +51,18 @@ Map<String, String> authErrorMessages(AppLocalizations l10n) => {
   'PAIRING_CODE_EXPIRED': l10n.authErrorPairingCodeExpired,
   'PAIRING_CODE_INVALID': l10n.authErrorPairingCodeInvalid,
 
+  // deviceLogin.ts — QR / short-code sign-in. REQUEST_* comes from a scanned
+  // QR, CODE_* from the typed fallback; both read the same to a user, since
+  // neither can tell them which of the two they got wrong.
+  'DEVICE_LOGIN_REQUEST_INVALID': l10n.authErrorDeviceLoginInvalid,
+  'DEVICE_LOGIN_CODE_INVALID': l10n.authErrorDeviceLoginInvalid,
+  'DEVICE_LOGIN_REQUEST_EXPIRED': l10n.authErrorDeviceLoginExpired,
+  'DEVICE_LOGIN_CODE_EXPIRED': l10n.authErrorDeviceLoginExpired,
+  // deviceLogin.ERR_REQUEST_DENIED — only reachable on the desktop side, and
+  // only defensively: normally the status subscription reports 'denied'
+  // before the desktop ever attempts an exchange.
+  'DEVICE_LOGIN_DENIED': l10n.deviceLoginScreenDenied,
+
   // ── socialAuth.ts ──────────────────────────────────────────────────────
   // socialAuth.ERR_USE_SOCIAL. Thrown by auth.login when the account has no
   // password because it was created with a provider. Must NOT read like a

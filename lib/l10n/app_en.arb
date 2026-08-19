@@ -7583,5 +7583,97 @@
   "serverDirectiveChangedToast": "Your server changed. Reconnecting…",
   "@serverDirectiveChangedToast": {
     "description": "Snackbar shown when the operator moves traffic between deployments while the app is open. Says the app is doing it, not that the user must — the move is automatic and keeps them signed in."
+  },
+  "loginScreenSignInWithPhone": "sign in with your phone",
+  "@loginScreenSignInWithPhone": {
+    "description": "Lowercase footer link on the sign-in form (desktop/web only) that switches to the QR/short-code device-login screen."
+  },
+  "loginScreenUsePasswordInstead": "use a password instead",
+  "@loginScreenUsePasswordInstead": {
+    "description": "Lowercase link on the device-login (QR) screen that switches back to the ordinary username/password sign-in form."
+  },
+  "deviceLoginScreenHeroMuted": "Scan to\n",
+  "@deviceLoginScreenHeroMuted": {
+    "description": "First line of the hero heading on the desktop/web device-login screen, rendered in a muted color above 'sign in'; mirrors the two-part hero pattern used elsewhere in auth. Includes a trailing newline."
+  },
+  "deviceLoginScreenHeroInk": "sign in",
+  "@deviceLoginScreenHeroInk": {
+    "description": "Second line of the hero heading on the desktop/web device-login screen, completing 'Scan to / sign in' in the ink color."
+  },
+  "deviceLoginScreenIntro": "Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.",
+  "@deviceLoginScreenIntro": {
+    "description": "Body copy under the hero heading on the desktop/web device-login screen, explaining how to approve this sign-in from a phone."
+  },
+  "deviceLoginScreenWaiting": "waiting for approval…",
+  "@deviceLoginScreenWaiting": {
+    "description": "Lowercase status line on the desktop/web device-login screen while the request is still pending on the phone."
+  },
+  "deviceLoginScreenApproved": "approved — signing you in…",
+  "@deviceLoginScreenApproved": {
+    "description": "Lowercase status line on the desktop/web device-login screen the moment the phone approves the request, while the session exchange is in flight."
+  },
+  "deviceLoginScreenDenied": "sign-in request denied on your phone",
+  "@deviceLoginScreenDenied": {
+    "description": "Status line on the desktop/web device-login screen when the phone explicitly declines the request."
+  },
+  "deviceLoginScreenGenericError": "something went wrong — try a new code",
+  "@deviceLoginScreenGenericError": {
+    "description": "Fallback status line on the desktop/web device-login screen for an unrecognized failure (expired, invalid, or a network error), directing the user to mint a fresh code."
+  },
+  "profileScreenScanToSignInLabel": "SCAN TO SIGN IN",
+  "@profileScreenScanToSignInLabel": {
+    "description": "All-caps label on the Profile row (mobile only) that opens the device-login scan screen, for approving a QR/short-code sign-in shown on another device. Doubles as the header title on that screen."
+  },
+  "deviceLoginScanScreenHeroMuted": "Scan to\n",
+  "@deviceLoginScanScreenHeroMuted": {
+    "description": "First line of the hero heading on the phone's device-login scan screen; mirrors the desktop screen's hero. Includes a trailing newline."
+  },
+  "deviceLoginScanScreenHeroInk": "sign in",
+  "@deviceLoginScanScreenHeroInk": {
+    "description": "Second line of the hero heading on the phone's device-login scan screen, completing 'Scan to / sign in'."
+  },
+  "deviceLoginScanScreenIntro": "Point your camera at the code shown on your computer, or type it in below.",
+  "@deviceLoginScanScreenIntro": {
+    "description": "Body copy under the hero heading on the phone's device-login scan screen."
+  },
+  "deviceLoginScanScreenScanButtonLabel": "SCAN CODE",
+  "@deviceLoginScanScreenScanButtonLabel": {
+    "description": "All-caps label on the button that opens the QR scanner on the phone's device-login scan screen."
+  },
+  "deviceLoginScanScreenConfirmTitle": "sign in on this device?",
+  "@deviceLoginScanScreenConfirmTitle": {
+    "description": "Lowercase heading on the confirmation step of the phone's device-login scan screen, shown after a QR or code is recognized and before APPROVE/DENY."
+  },
+  "deviceLoginScanScreenConfirmBody": "{deviceInfo} wants to sign in as you. Only approve this if it’s you, right now.",
+  "@deviceLoginScanScreenConfirmBody": {
+    "description": "Body copy on the confirmation step of the phone's device-login scan screen. {deviceInfo} is the OS/browser string the requesting desktop or web client reported (e.g. 'Chrome on Windows'), and is the whole of this flow's phishing resistance — read carefully before changing."
+  },
+  "deviceLoginScanScreenApproveButton": "APPROVE",
+  "@deviceLoginScanScreenApproveButton": {
+    "description": "All-caps confirm button on the phone's device-login scan screen."
+  },
+  "deviceLoginScanScreenDenyButton": "DENY",
+  "@deviceLoginScanScreenDenyButton": {
+    "description": "All-caps decline button on the phone's device-login scan screen."
+  },
+  "deviceLoginScanScreenSuccess": "signed in on your other device",
+  "@deviceLoginScanScreenSuccess": {
+    "description": "Lowercase confirmation message on the phone's device-login scan screen after APPROVE succeeds."
+  },
+  "deviceLoginScanScreenGenericError": "couldn’t approve — try again",
+  "@deviceLoginScanScreenGenericError": {
+    "description": "Fallback error message on the phone's device-login scan screen for an unrecognized failure."
+  },
+  "authErrorDeviceLoginInvalid": "That code isn’t right.",
+  "@authErrorDeviceLoginInvalid": {
+    "description": "deviceLogin.ERR_CODE_INVALID / ERR_REQUEST_INVALID — the typed code or scanned QR doesn't match any live sign-in request."
+  },
+  "authErrorDeviceLoginExpired": "That code has expired — get a new one on the other device.",
+  "@authErrorDeviceLoginExpired": {
+    "description": "deviceLogin.ERR_CODE_EXPIRED / ERR_REQUEST_EXPIRED — the sign-in request's short TTL has passed."
+  },
+  "deviceLoginScanScreenDeniedConfirmation": "sign-in request denied",
+  "@deviceLoginScanScreenDeniedConfirmation": {
+    "description": "Confirmation message on the phone's device-login scan screen after DENY succeeds — deliberately not the same 'on your phone' wording the desktop side shows, since that phrase would read oddly on the phone that just did the denying."
   }
 }

@@ -22,6 +22,7 @@ import '../media/image_raster.dart';
 import '../media/upload_service.dart';
 import '../models/chat_user.dart';
 import '../models/enums.dart';
+import '../platform.dart';
 import '../theme/app_theme.dart';
 import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
@@ -42,6 +43,7 @@ import 'approvals_screen.dart';
 import 'blocked_users_screen.dart';
 import 'recovery_phrase_screen.dart';
 import 'camera_screen.dart';
+import 'device_login_scan_screen.dart';
 import 'family_screen.dart';
 import 'friend_request_draft_screen.dart';
 import 'fullscreen_image_viewer.dart';
@@ -479,6 +481,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       MaterialPageRoute(builder: (_) => LinkedAccountsScreen(auth: auth)),
     );
     await _refreshLinkedProviders();
+  }
+
+  /// Opens the phone-side scan-and-approve screen for a desktop/web
+  /// device-login request. Nothing to refresh afterwards — approving one
+  /// signs in a DIFFERENT device, not this one.
+  void _openDeviceLoginScan() {
+    final auth = widget.auth;
+    if (auth == null || auth.isChild) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => DeviceLoginScanScreen(auth: auth)),
+    );
   }
 
   Future<void> _updateEmail(String next) async {
@@ -1412,6 +1425,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               value: _linkedAccountsLabel,
               icon: Icons.link_rounded,
               onTap: _openLinkedAccounts,
+            ),
+            const SizedBox(height: 8),
+          ],
+          // Mobile only — approving a desktop/web sign-in needs a camera (or
+          // at least a keyboard for the fallback code), and the counterpart
+          // QR screen only ever shows up on desktop/web in the first place.
+          if (!isWebOrDesktop) ...[
+            DetailLinkRow(
+              label: AppLocalizations.of(context).profileScreenScanToSignInLabel,
+              icon: Icons.qr_code_scanner,
+              onTap: _openDeviceLoginScan,
             ),
             const SizedBox(height: 8),
           ],

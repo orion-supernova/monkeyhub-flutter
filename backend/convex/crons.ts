@@ -218,4 +218,17 @@ crons.interval(
   {},
 );
 
+// Sweep expired device-login requests (QR / short-code sign-in for a
+// signed-out web or desktop client). Unlike pairingCodes/releaseCodes, a row
+// here often belongs to nobody at all — the desktop that created it may never
+// be scanned, approved, or exchanged — so nothing else ever reaps it.
+// `expiresAt` is fixed at creation regardless of how the row ends, so an
+// hourly sweep is plenty for a value measured in minutes. See deviceLogin.ts.
+crons.interval(
+  "deviceLogin.gcExpiredDeviceLoginRequests",
+  { hours: 1 },
+  internal.deviceLogin.gcExpiredDeviceLoginRequests,
+  {},
+);
+
 export default crons;

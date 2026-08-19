@@ -6322,4 +6322,80 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get serverDirectiveChangedToast => 'サーバーが切り替わりました。再接続しています…';
+
+  @override
+  String get loginScreenSignInWithPhone => 'sign in with your phone';
+
+  @override
+  String get loginScreenUsePasswordInstead => 'use a password instead';
+
+  @override
+  String get deviceLoginScreenHeroMuted => 'Scan to\n';
+
+  @override
+  String get deviceLoginScreenHeroInk => 'sign in';
+
+  @override
+  String get deviceLoginScreenIntro =>
+      'Open MonkeyHub on your phone, tap Scan to Sign In from your profile, and point the camera here — or type the code below.';
+
+  @override
+  String get deviceLoginScreenWaiting => 'waiting for approval…';
+
+  @override
+  String get deviceLoginScreenApproved => 'approved — signing you in…';
+
+  @override
+  String get deviceLoginScreenDenied => 'sign-in request denied on your phone';
+
+  @override
+  String get deviceLoginScreenGenericError =>
+      'something went wrong — try a new code';
+
+  @override
+  String get profileScreenScanToSignInLabel => 'SCAN TO SIGN IN';
+
+  @override
+  String get deviceLoginScanScreenHeroMuted => 'Scan to\n';
+
+  @override
+  String get deviceLoginScanScreenHeroInk => 'sign in';
+
+  @override
+  String get deviceLoginScanScreenIntro =>
+      'Point your camera at the code shown on your computer, or type it in below.';
+
+  @override
+  String get deviceLoginScanScreenScanButtonLabel => 'SCAN CODE';
+
+  @override
+  String get deviceLoginScanScreenConfirmTitle => 'sign in on this device?';
+
+  @override
+  String deviceLoginScanScreenConfirmBody(Object deviceInfo) {
+    return '$deviceInfo wants to sign in as you. Only approve this if it’s you, right now.';
+  }
+
+  @override
+  String get deviceLoginScanScreenApproveButton => 'APPROVE';
+
+  @override
+  String get deviceLoginScanScreenDenyButton => 'DENY';
+
+  @override
+  String get deviceLoginScanScreenSuccess => 'signed in on your other device';
+
+  @override
+  String get deviceLoginScanScreenGenericError =>
+      'couldn’t approve — try again';
+
+  @override
+  String get authErrorDeviceLoginInvalid => 'That code isn’t right.';
+
+  @override
+  String get authErrorDeviceLoginExpired =>
+      'That code has expired — get a new one on the other device.';
+  @override
+  String get deviceLoginScanScreenDeniedConfirmation =>
+      'sign-in request denied';
 }

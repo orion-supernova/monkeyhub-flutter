@@ -77,6 +77,12 @@ void main() {
       // keeps the problem-report inbox's handle occupied.
       'USERNAME_CHANGED_RECENTLY',
       'INBOX_HANDLE_LOCKED',
+      // deviceLogin.ts — QR / short-code sign-in.
+      'DEVICE_LOGIN_REQUEST_INVALID',
+      'DEVICE_LOGIN_CODE_INVALID',
+      'DEVICE_LOGIN_REQUEST_EXPIRED',
+      'DEVICE_LOGIN_CODE_EXPIRED',
+      'DEVICE_LOGIN_DENIED',
     };
 
     test('every mapped key is one the backend throws', () {
