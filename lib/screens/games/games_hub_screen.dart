@@ -5,6 +5,7 @@ import '../../data/feed_store.dart';
 import '../../data/games_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
+import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
@@ -98,6 +99,13 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
           theme.backgroundLayer(context),
           SafeArea(
             child: AdaptivePageBody(
+              // The tile grid below already grows past 3 columns once there's
+              // room for it — the default readable column caps that growth at
+              // exactly the width mobile already used, which is the shape this
+              // screen looked like before this widened.
+              maxWidth: context.isExpanded
+                  ? ContentWidth.wide
+                  : ContentWidth.readable,
               child: RefreshIndicator(
                 color: theme.accent,
                 backgroundColor: theme.surfaceRaised,
@@ -147,12 +155,19 @@ class _GamesHubScreenState extends State<GamesHubScreen> {
                     else
                       LayoutBuilder(
                         builder: (context, constraints) {
-                          // Two columns on a phone, three once there is room —
-                          // the tiles are square boards, so a fixed count would
-                          // either crush them on a handset or strand them in a
-                          // column on a tablet.
-                          final columns = constraints.maxWidth >= 520 ? 3 : 2;
+                          // Two columns on a phone, growing with the width
+                          // there's actually room for — the tiles are square
+                          // boards, so a fixed count would either crush them on
+                          // a handset or leave a wide desktop pane stuck at the
+                          // same 3 phone-size tiles it started with. Capped at
+                          // 5: that's every tile this screen has, so a 6th
+                          // column would only ever be empty.
                           const gap = 12.0;
+                          const tileTarget = 150.0;
+                          final columns = ((constraints.maxWidth + gap) /
+                                  (tileTarget + gap))
+                              .floor()
+                              .clamp(2, 5);
                           final width =
                               (constraints.maxWidth - gap * (columns - 1)) /
                               columns;

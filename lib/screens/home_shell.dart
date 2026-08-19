@@ -208,8 +208,9 @@ class _HomeShellState extends State<HomeShell> {
 
   /// Wide-window shell: a persistent left side rail replaces the floating
   /// bottom pill / radial menu. Section switching is identical to compact —
-  /// the rail calls the same [_select]. Sections still render full-width here;
-  /// the chat/settings two-pane split arrives in later phases.
+  /// the rail calls the same [_select]. The rail is permanent regardless of
+  /// which section is active or how deep it's navigated — see
+  /// [_desktopSection].
   Widget _buildDesktop(BuildContext context) {
     final theme = ThemeScope.of(context);
     final settings = SettingsStore.instance;
@@ -249,9 +250,15 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  /// Desktop section content, cross-faded on section/theme change. Chat renders
-  /// as a two-pane master/detail; other sections render full-width (settings
-  /// gains its own two-pane in a later phase).
+  /// Desktop section content, cross-faded on section/theme change. Chat and
+  /// Settings render as a two-pane master/detail; Feed and Discover render
+  /// full-width in their own single-pane [_SectionPane], which is the part
+  /// that matters here — without it, the ~dozen `Navigator.of(context).push`
+  /// call sites inside those two sections (games, archive, the daily puzzle,
+  /// search, the full people/rooms lists, …) would land on the app's ROOT
+  /// navigator and cover the side rail with a bare, phone-shaped page, same as
+  /// on compact. [_SectionPane] catches every one of those pushes in a
+  /// navigator scoped to the content pane instead, so the rail never moves.
   Widget _desktopSection(AppTheme theme, SettingsStore settings) {
     final Widget content;
     switch (settings.section) {
@@ -263,21 +270,27 @@ class _HomeShellState extends State<HomeShell> {
           family: widget.family,
         );
       case HomeSection.discover:
-        // Full-width like Feed. Discover's own rows push detail screens
-        // (search, requests, a joined room), so there's no master/detail split
-        // to make here.
-        content = DiscoverScreen(
-          repo: widget.repo,
-          api: widget.api,
-          family: widget.family,
+        // Full-width like Feed, but every push Discover makes (search, the
+        // people/rooms full lists, a friend-request draft) has to land in its
+        // own pane rather than the app's root navigator — see [_SectionPane].
+        content = _SectionPane(
+          sectionKey: 'discover',
+          child: DiscoverScreen(
+            repo: widget.repo,
+            api: widget.api,
+            family: widget.family,
+          ),
         );
       case HomeSection.feed:
-        content = FeedScreen(
-          repo: widget.repo,
-          api: widget.api,
-          feedApi: widget.feedApi,
-          auth: widget.auth,
-          family: widget.family,
+        content = _SectionPane(
+          sectionKey: 'feed',
+          child: FeedScreen(
+            repo: widget.repo,
+            api: widget.api,
+            feedApi: widget.feedApi,
+            auth: widget.auth,
+            family: widget.family,
+          ),
         );
       case HomeSection.settings:
         content = _SettingsTwoPane(
@@ -388,6 +401,38 @@ class _EmptyRoomHint extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Gives a full-width desktop section (Feed, Discover) its own [Navigator], so
+/// that section's internal pushes stay confined to the content pane instead of
+/// reaching the app's root navigator and covering [_SideRail].
+///
+/// Unlike [_SettingsTwoPane]'s detail pane, there's no separate master list to
+/// keep on screen underneath — [child] (the section's own screen, e.g.
+/// [FeedScreen]) IS the base route, and every further push it or a descendant
+/// makes (games, archive, the daily puzzle, search, a full people/rooms list,
+/// …) layers on top of it inside this same navigator, unmodified: they already
+/// just call `Navigator.of(context).push`, which resolves to the nearest
+/// ancestor — this one — rather than the root.
+///
+/// [sectionKey] only has to be stable per section; [SectionSwitcher]'s own key
+/// already tears the whole pane down (dropping any pushed routes) on a section
+/// or theme change, matching how these screens already behave on compact.
+class _SectionPane extends StatelessWidget {
+  const _SectionPane({required this.sectionKey, required this.child});
+
+  final String sectionKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Navigator(
+      key: ValueKey('section_pane_$sectionKey'),
+      onGenerateInitialRoutes: (navigator, initialRoute) => [
+        MaterialPageRoute(builder: (_) => child),
       ],
     );
   }

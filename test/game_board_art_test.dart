@@ -13,6 +13,7 @@ import 'package:monkeyhub/games/zip_board_art.dart';
 import 'package:monkeyhub/games/game_rules.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/game_tile.dart';
@@ -321,6 +322,8 @@ void main() {
               boards: boards,
               results: const {},
               onOpen: (game) => opened = game,
+              puzzle: const PuzzleState(),
+              onOpenPuzzle: () {},
             ),
           ),
         ),

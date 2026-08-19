@@ -9,7 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/daily_game.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
+import '../../widgets/game_layout_shell.dart';
 
 /// The chrome every daily game wears: the back arrow, the running clock, the
 /// pause cover, the tool row, the result card and today's times.
@@ -58,71 +58,66 @@ class GameScaffold extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
 
+    final header = <Widget>[
+      _TopBar(controller: controller),
+      const SizedBox(height: 6),
+      Text(title, style: theme.displayMedium),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Container(width: 18, height: 1, color: theme.accent),
+          const SizedBox(width: 8),
+          Expanded(child: Text(rule, style: theme.caption)),
+        ],
+      ),
+    ];
+
+    final board_ = <Widget>[
+      AspectRatio(
+        aspectRatio: 1,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [board, if (controller.paused) const _PauseCover()],
+        ),
+      ),
+      if (controller.errorCode != null) ...[
+        const SizedBox(height: 12),
+        Text(
+          switch (controller.errorCode) {
+            'NOT_SOLVED' => l10n.gameErrorNotSolved,
+            'ALREADY_FINISHED' => l10n.gameErrorAlreadyFinished,
+            'NO_HINT' => l10n.gameErrorNoHint,
+            _ => l10n.gameErrorGeneric,
+          },
+          style: theme.bodySoft.copyWith(color: theme.danger),
+        ),
+      ],
+      const SizedBox(height: 16),
+      if (!controller.finished)
+        Wrap(spacing: 8, runSpacing: 8, children: tools),
+      if (footer != null && !controller.finished) ...[
+        const SizedBox(height: 14),
+        footer!,
+      ],
+      if (controller.finished) ...[
+        _ResultCard(controller: controller, viewerId: viewerId, onShare: onShare),
+        const SizedBox(height: 24),
+      ],
+    ];
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-                children: [
-                  _TopBar(controller: controller),
-                  const SizedBox(height: 6),
-                  Text(title, style: theme.displayMedium),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(rule, style: theme.caption)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        board,
-                        if (controller.paused) const _PauseCover(),
-                      ],
-                    ),
-                  ),
-                  if (controller.errorCode != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      switch (controller.errorCode) {
-                        'NOT_SOLVED' => l10n.gameErrorNotSolved,
-                        'ALREADY_FINISHED' => l10n.gameErrorAlreadyFinished,
-                        'NO_HINT' => l10n.gameErrorNoHint,
-                        _ => l10n.gameErrorGeneric,
-                      },
-                      style: theme.bodySoft.copyWith(color: theme.danger),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  if (!controller.finished)
-                    Wrap(spacing: 8, runSpacing: 8, children: tools),
-                  if (footer != null && !controller.finished) ...[
-                    const SizedBox(height: 14),
-                    footer!,
-                  ],
-                  if (controller.finished) ...[
-                    _ResultCard(
-                      controller: controller,
-                      viewerId: viewerId,
-                      onShare: onShare,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  const SizedBox(height: 24),
-                  GameStandingsList(
-                    game: controller.game,
-                    viewerId: viewerId,
-                  ),
-                ],
+            child: GameLayoutShell(
+              header: header,
+              board: board_,
+              boardWidth: 480,
+              sidebar: GameStandingsList(
+                game: controller.game,
+                viewerId: viewerId,
               ),
             ),
           ),

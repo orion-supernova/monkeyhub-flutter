@@ -12,7 +12,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/daily_game.dart';
 import '../models/moment.dart';
-import '../models/puzzle.dart';
+import '../theme/layout.dart';
 import '../theme/motion.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
@@ -21,8 +21,6 @@ import '../widgets/games_strip.dart';
 import '../widgets/moment_activity.dart';
 import '../widgets/moment_rail.dart';
 import '../widgets/points_board.dart';
-import '../widgets/puzzle_score_strip.dart';
-import '../widgets/puzzle_symbol.dart';
 import 'feed/archive_screen.dart';
 import 'feed/moment_composer.dart';
 import 'feed/moment_viewer.dart';
@@ -283,40 +281,17 @@ class _FeedScreenState extends State<FeedScreen>
         ),
       ),
       (
-        id: 'puzzle',
-        child: _SectionShell(
-          label: l10n.feedBoardPuzzleLabel,
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _PuzzleTile(
-                state: store.puzzle,
-                viewerId: widget.repo.userId ?? '',
-                onTap: _openPuzzle,
-              ),
-              // The scoreboard belongs HERE, not only inside the puzzle
-              // screen. A daily game whose scores you have to navigate to see
-              // is a daily game nobody compares — which is the entire reason
-              // it exists.
-              if (store.puzzle.scores.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                PuzzleScoreStrip(
-                  state: store.puzzle,
-                  viewerId: widget.repo.userId ?? '',
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-      (
         id: 'games',
         child: _SectionShell(
           label: l10n.feedBoardGamesLabel,
           // The band is an entry point as much as a status line, so the header
           // carries the way in to the rest of them — five boards do not fit a
           // Feed section, and burying the hub behind a tile would make the two
-          // extra taps the reason nobody plays them.
+          // extra taps the reason nobody plays them. The code puzzle is one of
+          // the five drawn here (first tile) rather than a separate section
+          // above this one — it's a daily game exactly like the other four,
+          // and giving it its own differently-shaped section was the
+          // inconsistency, not this shelf.
           action: _HeaderAction(
             icon: Icons.grid_view_outlined,
             label: l10n.feedBoardGamesOpen,
@@ -326,6 +301,8 @@ class _FeedScreenState extends State<FeedScreen>
             boards: GamesStore.instance.boards,
             results: store.games,
             onOpen: _openGame,
+            puzzle: store.puzzle,
+            onOpenPuzzle: _openPuzzle,
           ),
         ),
       ),
@@ -366,15 +343,92 @@ class _FeedScreenState extends State<FeedScreen>
       ),
     ];
 
-    return Stack(
-      children: [
-        theme.backgroundLayer(context),
-        // Above the themed backdrop, below the content: the field has to read
-        // as light moving over Risograph's halftone and Cyberpunk's scanlines,
-        // not as a replacement for them.
-        Positioned.fill(child: FeedDepthField(scroll: _scroll)),
-        SafeArea(
-          child: AdaptivePageBody(
+    // Keyed by id rather than threaded positionally, so the two layouts below
+    // can each pick sections out in whatever order they want while the stagger
+    // still travels by each section's ORIGINAL index — a section reordered
+    // into the sidebar shouldn't suddenly animate as if it were first.
+    final byId = {
+      for (var i = 0; i < sections.length; i++) sections[i].id: (i, sections[i].child),
+    };
+
+    Widget staggered(String id) {
+      final entry = byId[id];
+      if (entry == null) return const SizedBox.shrink();
+      final (index, child) = entry;
+      return TweenAnimationBuilder<double>(
+        // Stable section id, never the index. The board's sections will start
+        // appearing and disappearing conditionally in later phases, and an
+        // index key re-matches elements on that change — handing a section
+        // someone else's state.
+        key: ValueKey(id),
+        tween: Tween(begin: 0, end: 1),
+        duration: motion.stagger(theme.motionMed, index, strideMs: 70),
+        // motionEntrance, never motionCurve: Risograph and Cyberpunk set
+        // motionCurve to easeOutBack, which overshoots past 1.0 and would
+        // assert on the Opacity here.
+        curve: motion.c(theme.motionEntrance),
+        builder: (context, v, child) => Transform.translate(
+          offset: Offset(0, (1 - v) * (10 + 8 * index)),
+          child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+        ),
+        child: child,
+      );
+    }
+
+    // Expanded windows get a wide dashboard instead of one long reading
+    // column: a phone-width board just centred in a wide browser tab is what
+    // this screen looked like before this split existed.
+    //
+    // Highlights and Games stay full-width bands rather than joining the
+    // split below — Games especially: at sidebar width its tiles were ~70px
+    // postage stamps, and "the games look tiny" was the whole complaint this
+    // shape exists to fix. What's left (standings, activity) runs as two
+    // even columns rather than a wide main column beside a cramped 320px
+    // sidebar — with the puzzle promoted into the games shelf above, a
+    // sidebar with exactly one thing left in it read as an afterthought
+    // rather than a considered second column, and each is capped at its own
+    // comfortable reading width instead of stretching edge to edge, so a
+    // one-line "so-and-so added a point" row doesn't end up dragging a
+    // trailing empty run halfway across the screen.
+    final Widget body = context.isExpanded
+        ? SingleChildScrollView(
+            controller: _scroll,
+            key: const PageStorageKey('feed_board_v2_wide'),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              28,
+              20,
+              sectionBottomPadding(context),
+            ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: ContentWidth.wide),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    staggered('masthead'),
+                    staggered('trouble'),
+                    staggered('highlights'),
+                    staggered('games'),
+                    // `Expanded`, not a fixed width centred as a pair — every
+                    // band above spans the full column edge to edge, and a
+                    // centred pair left Standings starting well right of
+                    // where HIGHLIGHTS/GAMES did.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: staggered('standings')),
+                        const SizedBox(width: 40),
+                        Expanded(child: staggered('activity')),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        : AdaptivePageBody(
             child: ListView(
               controller: _scroll,
               // Versioned so the offset can be deliberately dropped when the
@@ -383,36 +437,24 @@ class _FeedScreenState extends State<FeedScreen>
               // before that band existed lands the board mid-section, which
               // reads as the Feed having jumped on its own.
               key: const PageStorageKey('feed_board_v2'),
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 20,
                 28,
                 20,
-                kFloatingNavClearance,
+                sectionBottomPadding(context),
               ),
-              children: [
-                for (var i = 0; i < sections.length; i++)
-                  TweenAnimationBuilder<double>(
-                    // Stable section id, never the index. The board's sections
-                    // will start appearing and disappearing conditionally in
-                    // later phases, and an index key re-matches elements on
-                    // that change — handing a section someone else's state.
-                    key: ValueKey(sections[i].id),
-                    tween: Tween(begin: 0, end: 1),
-                    duration: motion.stagger(theme.motionMed, i, strideMs: 70),
-                    // motionEntrance, never motionCurve: Risograph and
-                    // Cyberpunk set motionCurve to easeOutBack, which
-                    // overshoots past 1.0 and would assert on the Opacity here.
-                    curve: motion.c(theme.motionEntrance),
-                    builder: (context, v, child) => Transform.translate(
-                      offset: Offset(0, (1 - v) * (10 + 8 * i)),
-                      child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
-                    ),
-                    child: sections[i].child,
-                  ),
-              ],
+              children: [for (final s in sections) staggered(s.id)],
             ),
-          ),
-        ),
+          );
+
+    return Stack(
+      children: [
+        theme.backgroundLayer(context),
+        // Above the themed backdrop, below the content: the field has to read
+        // as light moving over Risograph's halftone and Cyberpunk's scanlines,
+        // not as a replacement for them.
+        Positioned.fill(child: FeedDepthField(scroll: _scroll)),
+        SafeArea(child: body),
       ],
     );
   }
@@ -600,95 +642,6 @@ class _SectionShell extends StatelessWidget {
           const SizedBox(height: 12),
           body,
         ],
-      ),
-    );
-  }
-}
-
-/// The board's summary of today's puzzle.
-///
-/// Three states, and the difference between them is the whole point of the
-/// tile: not started (an invitation), in progress (how many tries are left),
-/// finished (your score and where it put you). A tile that looked the same in
-/// all three would give nobody a reason to glance at it.
-class _PuzzleTile extends StatelessWidget {
-  const _PuzzleTile({
-    required this.state,
-    required this.viewerId,
-    required this.onTap,
-  });
-
-  final PuzzleState state;
-  final String viewerId;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final mine = state.mine;
-    final rank = state.rankOf(viewerId);
-
-    final String headline;
-    if (mine == null || !mine.started) {
-      headline = l10n.puzzleTilePlay;
-    } else if (!mine.done) {
-      headline = l10n.puzzleTileInProgress(mine.remaining);
-    } else {
-      headline = mine.solved
-          ? l10n.puzzleSolvedTitle(mine.guesses.length)
-          : l10n.puzzleFailedTitle;
-    }
-
-    return FocusableTap(
-      onTap: onTap,
-      semanticLabel: headline,
-      radius: theme.radiusLg,
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: theme.roomCardDecoration(
-            // Reuse the ephemeral treatment as the "unplayed" state — it is
-            // the theme's own way of saying "this is on a clock", which is
-            // exactly what an unplayed daily puzzle is.
-            ephemeral: mine == null || !mine.started,
-            active: false,
-          ),
-          child: Row(
-            children: [
-              // A hint of the alphabet, so the tile shows what the game looks
-              // like rather than only describing it.
-              for (var i = 0; i < 3; i++)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: PuzzleSymbol(index: i, size: 18, accent: theme.accent),
-                ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      headline,
-                      style: theme.bodyEmph,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (rank != null && state.scores.length > 1)
-                      Text(
-                        l10n.puzzleTileRank(rank, state.scores.length),
-                        style: theme.monoTiny,
-                        maxLines: 1,
-                      ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 16, color: theme.inkMuted),
-            ],
-          ),
-        ),
       ),
     );
   }

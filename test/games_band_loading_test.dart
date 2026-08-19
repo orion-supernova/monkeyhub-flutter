@@ -11,6 +11,7 @@ import 'package:monkeyhub/data/feed_store.dart';
 import 'package:monkeyhub/data/games_store.dart';
 import 'package:monkeyhub/l10n/generated/app_localizations.dart';
 import 'package:monkeyhub/models/daily_game.dart';
+import 'package:monkeyhub/models/puzzle.dart';
 import 'package:monkeyhub/theme/basic_theme.dart';
 import 'package:monkeyhub/theme/theme_scope.dart';
 import 'package:monkeyhub/widgets/game_board_skeleton.dart';
@@ -171,6 +172,8 @@ void main() {
               boards: const DailyBoards(),
               results: const {},
               onOpen: (_) {},
+              puzzle: const PuzzleState(),
+              onOpenPuzzle: () {},
             ),
           ),
         ),

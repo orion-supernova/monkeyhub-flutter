@@ -308,11 +308,11 @@ class _SettingsScreenState extends State<SettingsScreen>
           child: AdaptivePageBody(
             child: ListView(
               controller: _scroll,
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 20,
                 28,
                 20,
-                kFloatingNavClearance,
+                sectionBottomPadding(context),
               ),
               children: [
                 Text(

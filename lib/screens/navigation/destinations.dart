@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart' show CupertinoIcons;
-import 'package:flutter/widgets.dart' show IconData;
+import 'package:flutter/widgets.dart';
 
 import '../../data/settings_store.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../theme/layout.dart';
 
 /// One destination in the shell's navigation, in nav order.
 ///
@@ -41,6 +42,18 @@ typedef NavDest = ({
 /// drifted too, so `pill_bottom_nav_layout_test.dart` now measures the real bar
 /// against this number rather than trusting a comment.
 const double kFloatingNavClearance = 110;
+
+/// Bottom padding a scrolling section needs at the current window class.
+///
+/// [kFloatingNavClearance] only means something on compact, where the pill
+/// floats over the bottom of the content. Medium and expanded windows swap it
+/// for a persistent side rail that sits beside the content rather than over
+/// it, so the same clearance there was just 110pt of dead air under the last
+/// row — use a plain footer gap instead, matching the screens (Discover's
+/// full-list pages, the games hub, …) that never had a floating nav to clear
+/// in the first place.
+double sectionBottomPadding(BuildContext context) =>
+    context.isCompact ? kFloatingNavClearance : 40;
 
 /// Horizontal alignment of the bottom nav's sliding indicator over segment
 /// [index] of [count], on [Alignment]'s -1..1 x axis.

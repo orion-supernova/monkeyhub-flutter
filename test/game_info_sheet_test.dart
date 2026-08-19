@@ -107,16 +107,22 @@ void main() {
             boards: boards,
             results: const {},
             onOpen: (_) => opened++,
+            puzzle: const PuzzleState(),
+            onOpenPuzzle: () {},
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(GameInfoButton), findsNWidgets(DailyGame.values.length));
+    expect(
+      find.byType(GameInfoButton),
+      findsNWidgets(DailyGame.values.length + 1),
+    );
 
-    // Zip's, so the sheet's contents prove it opened the right game's.
-    await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index));
+    // Zip's, so the sheet's contents prove it opened the right game's. +1:
+    // the code puzzle's own tile is first in the strip.
+    await tester.tap(find.byType(GameInfoButton).at(DailyGame.zip.index + 1));
     await tester.pumpAndSettle();
 
     expect(find.text('start on 1 and finish on the last number.'),
@@ -164,6 +170,8 @@ void main() {
             boards: boards,
             results: const {},
             onOpen: (_) => opened++,
+            puzzle: const PuzzleState(),
+            onOpenPuzzle: () {},
           ),
         ),
       ),
@@ -235,6 +243,8 @@ void main() {
             boards: boards,
             results: const {},
             onOpen: (_) {},
+            puzzle: const PuzzleState(),
+            onOpenPuzzle: () {},
           ),
         ),
       ),
@@ -247,14 +257,18 @@ void main() {
         matching: find.byType(AspectRatio),
       ),
     );
-    final glyph = tester.getRect(disc.at(DailyGame.zip.index));
+    // +1: the code puzzle's own tile is first in the strip.
+    final glyph = tester.getRect(disc.at(DailyGame.zip.index + 1));
 
     expect(glyph.right, greaterThan(tile.right));
     expect(glyph.top, lessThan(tile.top));
     // The strip's own gutter is 8.
     expect(glyph.right - tile.right, lessThan(8));
     expect(
-      clipOf(tester, find.byType(GameInfoButton).at(DailyGame.zip.index)),
+      clipOf(
+        tester,
+        find.byType(GameInfoButton).at(DailyGame.zip.index + 1),
+      ),
       Clip.none,
     );
   });

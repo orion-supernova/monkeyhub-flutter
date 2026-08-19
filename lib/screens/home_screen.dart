@@ -356,11 +356,11 @@ class _HomeScreenState extends State<HomeScreen>
                         // gesture for exactly the accounts that most need an
                         // easy path to Archived Chats.
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
+                        padding: EdgeInsets.fromLTRB(
                           0,
                           14,
                           0,
-                          kFloatingNavClearance,
+                          sectionBottomPadding(context),
                         ),
                         children: [
                           PullRevealSlot(

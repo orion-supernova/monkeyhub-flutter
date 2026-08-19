@@ -97,6 +97,21 @@ class ContentWidth {
 
   /// Auth / onboarding card — matches the existing login/child_pair precedent.
   static const double auth = 460;
+
+  /// A multi-column dashboard on [WindowClass.expanded] — Feed's and
+  /// Discover's split layouts, the games hub's tile grid, the archive's photo
+  /// grid. Wider than [readable] because these are two or more panes sharing
+  /// the row, not one column read top to bottom: a single [readable]-capped
+  /// column split in half would leave each side narrower than a phone screen.
+  ///
+  /// Deliberately short of "fill a 1920px monitor" — every dashboard built on
+  /// this still caps its own panes at a sane reading/tile width rather than
+  /// stretching them to fill whatever this leaves, so a wider number here
+  /// would mostly just widen the gutters outside a Row that has stopped
+  /// growing on its own. What this constant is actually for is making sure a
+  /// *browser-window*-width tab (the common case — few people maximize to a
+  /// full 4K display) stops looking like a phone screen someone centred.
+  static const double wide = 1400;
 }
 
 /// Last window class observed by the shell's [LayoutBuilder]. Read by code that

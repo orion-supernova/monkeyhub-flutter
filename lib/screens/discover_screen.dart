@@ -10,6 +10,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_room.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/adaptive_page_body.dart';
 import '../widgets/discover_rows.dart';
@@ -339,234 +340,290 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     ].join(' · ');
     final showBands = showPeople && showRooms;
 
+    // Expanded windows lay PEOPLE and ROOMS out as two side-by-side columns
+    // instead of stacking them — the whole reason the single-column page needs
+    // a jump control and a "PINNED... nope, PEOPLE... nope, ROOMS" scroll is
+    // that a phone (or a phone-width column parked in the middle of a desktop
+    // window) can't show both worlds at once. A wide window can, so on
+    // `isExpanded` it does, and the jump chips (nothing left to jump to) and
+    // the vertical gap between worlds (nothing left to separate) both drop
+    // out. Single-world accounts (rooms locked) still get one full-width
+    // column either way — there's no second world to put beside it.
+    final twoColumns = context.isExpanded && showRooms;
+
+    final peopleWorld = <Widget>[
+      if (showBands) _BandLabel(t.discoverScreenPeopleBandLabel, key: _peopleKey),
+      if (showPeople) ...[
+        _DoorRow(
+          heroTag: searchFieldHeroTagFor(SearchMode.people),
+          circular: true,
+          icon: CupertinoIcons.person_2,
+          title: t.discoverScreenFindPeopleTitle,
+          subtitle: widget.family.isChild
+              ? t.discoverScreenFindPeopleSubtitleChild
+              : t.discoverScreenFindPeopleSubtitleAdult,
+          onTap: () => _openSearch(SearchMode.people),
+        ),
+        const SizedBox(height: _betweenSections),
+      ],
+
+      // One section, both directions named on a segmented control — the shape
+      // the old Friends tab used.
+      //
+      // Two things had to hold at once: both directions visible even at zero
+      // (they used to appear only when something was pending, so the feature
+      // read as missing), and not much height, since all of this stacks above
+      // the rooms world on a single-column page. A segment does both — the
+      // counts are always on screen, but only one list is ever rendered.
+      DiscoverSectionHeader(
+        key: _incomingKey,
+        label: t.discoverScreenRequestsSectionLabel,
+        // The counts live on the segments, where they say which direction
+        // they belong to.
+        count: '',
+      ),
+      if (showOutgoing) ...[
+        const SizedBox(height: 10),
+        _RequestSegments(
+          active: _requestsTab,
+          incoming: incoming.length,
+          outgoing: outgoing.length,
+          onChange: (tab) => setState(() => _requestsTab = tab),
+        ),
+      ],
+      const SizedBox(height: _withinSection),
+      AnimatedSize(
+        duration: theme.motionMed,
+        curve: Curves.easeOutCubic,
+        alignment: Alignment.topCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // With no outgoing half there is nothing to switch between, so
+            // the incoming list stands alone.
+            if (!showOutgoing || _requestsTab == _RequestsTab.incoming)
+              if (incoming.isEmpty)
+                DiscoverEmptyLine(t.discoverScreenInboxQuiet)
+              else
+                for (final r in incoming)
+                  IncomingRequestCard(
+                    key: ValueKey('in_${r.user.id}'),
+                    req: r,
+                    repo: widget.repo,
+                    api: widget.api,
+                  )
+            else if (outgoing.isEmpty)
+              DiscoverEmptyLine(t.discoverScreenNothingPending)
+            else
+              for (final r in outgoing)
+                OutgoingRequestCard(
+                  key: ValueKey('out_${r.user.id}'),
+                  req: r,
+                  repo: widget.repo,
+                  api: widget.api,
+                ),
+          ],
+        ),
+      ),
+
+      const SizedBox(height: _betweenSections),
+      DiscoverSectionHeader(
+        label: t.discoverScreenYourPeopleLabel,
+        count: '${friends.length}',
+      ),
+      // The one empty state worth a sentence: it points at the way out, which
+      // a bare `0` cannot.
+      if (friends.isEmpty)
+        DiscoverEmptyLine(
+          showPeople
+              ? t.discoverScreenNoFriendsYetWithHint
+              : t.discoverScreenNoFriendsYet,
+        )
+      else ...[
+        const SizedBox(height: _withinSection),
+        for (final f in friends.take(_previewCount))
+          FriendRow(
+            key: ValueKey(f.id),
+            user: f,
+            api: widget.api,
+            onTap: () => _openDm(f),
+          ),
+        if (friends.length > _previewCount)
+          SeeAllRow(
+            total: friends.length,
+            onTap: () => _push(
+              PeopleListScreen(repo: widget.repo, api: widget.api),
+            ),
+          ),
+      ],
+    ];
+
+    // Absent, not greyed out and not empty, when a guardian hasn't unlocked
+    // public rooms. A locked door still tells a child there's a room behind
+    // it — so this is `null`, not an empty list, when `!showRooms`.
+    final roomsWorld = !showRooms
+        ? null
+        : <Widget>[
+            if (showBands)
+              _BandLabel(t.discoverScreenRoomsBandLabel, key: _roomsKey),
+            // Says "search", not "browse". Rooms are listable, so a row
+            // promising to *browse* them sitting directly above a list of them
+            // read as two different sets — the question it prompted was "are
+            // these my rooms or all of them?". Naming the row for the one
+            // thing it does (search) leaves the section below as the only
+            // list, and mirrors the people door exactly: search entry, then
+            // your own list.
+            _DoorRow(
+              heroTag: searchFieldHeroTagFor(SearchMode.rooms),
+              circular: false,
+              icon: Icons.tag,
+              title: t.discoverScreenSearchRoomsTitle,
+              subtitle: t.discoverScreenSearchRoomsSubtitle,
+              onTap: () => _openSearch(SearchMode.rooms),
+            ),
+            const SizedBox(height: _betweenSections),
+            DiscoverSectionHeader(
+              label: t.discoverScreenPublicRoomsLabel,
+              // Blank while the first fetch is in flight so a `0` only ever
+              // means "looked, found nothing".
+              count: _loading && _rooms.isEmpty ? '' : '${_rooms.length}',
+            ),
+            const SizedBox(height: _withinSection),
+            if (_loading && _rooms.isEmpty)
+              DiscoverEmptyLine(t.discoverScreenLoadingRooms)
+            else if (_rooms.isEmpty)
+              DiscoverEmptyLine(t.discoverScreenNoRoomsOpen)
+            else
+              // Rebuilds on every repo change so a tile flips to JOINED the
+              // moment the rooms subscription delivers the new membership —
+              // including when the join happened elsewhere entirely (a push
+              // tap, another device).
+              ListenableBuilder(
+                listenable: widget.repo,
+                builder: (context, _) => Column(
+                  children: [
+                    for (final r in _rooms.take(_previewCount))
+                      PublicRoomTile(
+                        key: ValueKey(r.id),
+                        room: r,
+                        api: widget.api,
+                        awaiting: _awaiting.contains(r.id),
+                        joined: widget.repo.isJoined(r),
+                        onTap: () => _onTapRoom(r),
+                      ),
+                    if (_rooms.length > _previewCount)
+                      SeeAllRow(
+                        total: _rooms.length,
+                        // The search screen with an empty query IS the full
+                        // list, so there's no second full-rooms screen to
+                        // maintain.
+                        onTap: () =>
+                            _openSearch(SearchMode.rooms, fromDoor: false),
+                      ),
+                  ],
+                ),
+              ),
+          ];
+
+    final header = <Widget>[
+      Text(t.discoverScreenTitle, style: theme.displayMedium),
+      const SizedBox(height: 10),
+      Row(
+        children: [
+          Container(width: 18, height: 1, color: theme.accent),
+          const SizedBox(width: 8),
+          Text(caption, style: theme.caption),
+        ],
+      ),
+      // One tap to either world, on the single-column page only — a two-column
+      // page has nowhere for either chip to jump TO that isn't already on
+      // screen.
+      if (showBands && !twoColumns) ...[
+        const SizedBox(height: 18),
+        _WorldJump(
+          onPeople: () => _jumpTo(_peopleKey),
+          onRooms: () => _jumpTo(_roomsKey),
+        ),
+      ],
+    ];
+
+    final Widget body = twoColumns
+        ? SingleChildScrollView(
+            key: const PageStorageKey('discover_main_list_v3_wide'),
+            controller: _scroll,
+            padding: EdgeInsets.fromLTRB(
+              20,
+              14,
+              20,
+              sectionBottomPadding(context),
+            ),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: ContentWidth.wide),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ...header,
+                    const SizedBox(height: 24),
+                    // `Expanded`, not a fixed width centred as a pair — the
+                    // header above spans the full column edge to edge, and a
+                    // narrower, centred pair of lists left People starting
+                    // well right of where PEOPLE·ROOMS·REQUESTS did, with a
+                    // gutter neither the title nor anything else on the page
+                    // has. People's left edge belongs under the title's;
+                    // Rooms' right edge belongs at the column's.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: peopleWorld,
+                          ),
+                        ),
+                        const SizedBox(width: 40),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: roomsWorld!,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        : AdaptivePageBody(
+            child: ListView(
+              // Bumped whenever the section order changes; the old key would
+              // restore a scroll offset measured against a different page.
+              key: const PageStorageKey('discover_main_list_v3'),
+              controller: _scroll,
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                sectionBottomPadding(context),
+              ),
+              children: [
+                ...header,
+                const SizedBox(height: 24),
+                ...peopleWorld,
+                if (roomsWorld != null) ...[
+                  const SizedBox(height: _betweenWorlds),
+                  ...roomsWorld,
+                ],
+              ],
+            ),
+          );
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
-        children: [
-          theme.backgroundLayer(context),
-          SafeArea(
-            child: AdaptivePageBody(
-              child: ListView(
-                // Bumped whenever the section order changes; the old key would
-                // restore a scroll offset measured against a different page.
-                key: const PageStorageKey('discover_main_list_v3'),
-                controller: _scroll,
-                padding: const EdgeInsets.fromLTRB(
-                  20,
-                  14,
-                  20,
-                  kFloatingNavClearance,
-                ),
-                children: [
-                  Text(t.discoverScreenTitle, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Text(caption, style: theme.caption),
-                    ],
-                  ),
-                  // One tap to either world. Everything in PEOPLE stacks above
-                  // ROOMS, so without this the rooms list starts most of a
-                  // screen down.
-                  if (showBands) ...[
-                    const SizedBox(height: 18),
-                    _WorldJump(
-                      onPeople: () => _jumpTo(_peopleKey),
-                      onRooms: () => _jumpTo(_roomsKey),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-
-                  // ================= PEOPLE =================
-                  if (showBands)
-                    _BandLabel(
-                      t.discoverScreenPeopleBandLabel,
-                      key: _peopleKey,
-                    ),
-                  if (showPeople) ...[
-                    _DoorRow(
-                      heroTag: searchFieldHeroTagFor(SearchMode.people),
-                      circular: true,
-                      icon: CupertinoIcons.person_2,
-                      title: t.discoverScreenFindPeopleTitle,
-                      subtitle: widget.family.isChild
-                          ? t.discoverScreenFindPeopleSubtitleChild
-                          : t.discoverScreenFindPeopleSubtitleAdult,
-                      onTap: () => _openSearch(SearchMode.people),
-                    ),
-                    const SizedBox(height: _betweenSections),
-                  ],
-
-                  // One section, both directions named on a segmented control —
-                  // the shape the old Friends tab used.
-                  //
-                  // Two things had to hold at once: both directions visible
-                  // even at zero (they used to appear only when something was
-                  // pending, so the feature read as missing), and not much
-                  // height, since all of this stacks above the rooms world.
-                  // A segment does both — the counts are always on screen, but
-                  // only one list is ever rendered.
-                  DiscoverSectionHeader(
-                    key: _incomingKey,
-                    label: t.discoverScreenRequestsSectionLabel,
-                    // The counts live on the segments, where they say which
-                    // direction they belong to.
-                    count: '',
-                  ),
-                  if (showOutgoing) ...[
-                    const SizedBox(height: 10),
-                    _RequestSegments(
-                      active: _requestsTab,
-                      incoming: incoming.length,
-                      outgoing: outgoing.length,
-                      onChange: (tab) => setState(() => _requestsTab = tab),
-                    ),
-                  ],
-                  const SizedBox(height: _withinSection),
-                  AnimatedSize(
-                    duration: theme.motionMed,
-                    curve: Curves.easeOutCubic,
-                    alignment: Alignment.topCenter,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // With no outgoing half there is nothing to switch
-                        // between, so the incoming list stands alone.
-                        if (!showOutgoing ||
-                            _requestsTab == _RequestsTab.incoming)
-                          if (incoming.isEmpty)
-                            DiscoverEmptyLine(t.discoverScreenInboxQuiet)
-                          else
-                            for (final r in incoming)
-                              IncomingRequestCard(
-                                key: ValueKey('in_${r.user.id}'),
-                                req: r,
-                                repo: widget.repo,
-                                api: widget.api,
-                              )
-                        else if (outgoing.isEmpty)
-                          DiscoverEmptyLine(t.discoverScreenNothingPending)
-                        else
-                          for (final r in outgoing)
-                            OutgoingRequestCard(
-                              key: ValueKey('out_${r.user.id}'),
-                              req: r,
-                              repo: widget.repo,
-                              api: widget.api,
-                            ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: _betweenSections),
-                  DiscoverSectionHeader(
-                    label: t.discoverScreenYourPeopleLabel,
-                    count: '${friends.length}',
-                  ),
-                  // The one empty state worth a sentence: it points at the way
-                  // out, which a bare `0` cannot.
-                  if (friends.isEmpty)
-                    DiscoverEmptyLine(
-                      showPeople
-                          ? t.discoverScreenNoFriendsYetWithHint
-                          : t.discoverScreenNoFriendsYet,
-                    )
-                  else ...[
-                    const SizedBox(height: _withinSection),
-                    for (final f in friends.take(_previewCount))
-                      FriendRow(
-                        key: ValueKey(f.id),
-                        user: f,
-                        api: widget.api,
-                        onTap: () => _openDm(f),
-                      ),
-                    if (friends.length > _previewCount)
-                      SeeAllRow(
-                        total: friends.length,
-                        onTap: () => _push(
-                          PeopleListScreen(repo: widget.repo, api: widget.api),
-                        ),
-                      ),
-                  ],
-
-                  // ================= ROOMS =================
-                  // Absent, not greyed out and not empty, when a guardian
-                  // hasn't unlocked public rooms. A locked door still tells a
-                  // child there's a room behind it.
-                  if (showRooms) ...[
-                    const SizedBox(height: _betweenWorlds),
-                    if (showBands)
-                      _BandLabel(
-                        t.discoverScreenRoomsBandLabel,
-                        key: _roomsKey,
-                      ),
-                    // Says "search", not "browse". Rooms are listable, so a
-                    // row promising to *browse* them sitting directly above a
-                    // list of them read as two different sets — the question
-                    // it prompted was "are these my rooms or all of them?".
-                    // Naming the row for the one thing it does (search) leaves
-                    // the section below as the only list, and mirrors the
-                    // people door exactly: search entry, then your own list.
-                    _DoorRow(
-                      heroTag: searchFieldHeroTagFor(SearchMode.rooms),
-                      circular: false,
-                      icon: Icons.tag,
-                      title: t.discoverScreenSearchRoomsTitle,
-                      subtitle: t.discoverScreenSearchRoomsSubtitle,
-                      onTap: () => _openSearch(SearchMode.rooms),
-                    ),
-                    const SizedBox(height: _betweenSections),
-                    DiscoverSectionHeader(
-                      label: t.discoverScreenPublicRoomsLabel,
-                      // Blank while the first fetch is in flight so a `0` only
-                      // ever means "looked, found nothing".
-                      count: _loading && _rooms.isEmpty
-                          ? ''
-                          : '${_rooms.length}',
-                    ),
-                    const SizedBox(height: _withinSection),
-                    if (_loading && _rooms.isEmpty)
-                      DiscoverEmptyLine(t.discoverScreenLoadingRooms)
-                    else if (_rooms.isEmpty)
-                      DiscoverEmptyLine(t.discoverScreenNoRoomsOpen)
-                    else
-                      // Rebuilds on every repo change so a tile flips to JOINED
-                      // the moment the rooms subscription delivers the new
-                      // membership — including when the join happened
-                      // elsewhere entirely (a push tap, another device).
-                      ListenableBuilder(
-                        listenable: widget.repo,
-                        builder: (context, _) => Column(
-                          children: [
-                            for (final r in _rooms.take(_previewCount))
-                              PublicRoomTile(
-                                key: ValueKey(r.id),
-                                room: r,
-                                api: widget.api,
-                                awaiting: _awaiting.contains(r.id),
-                                joined: widget.repo.isJoined(r),
-                                onTap: () => _onTapRoom(r),
-                              ),
-                            if (_rooms.length > _previewCount)
-                              SeeAllRow(
-                                total: _rooms.length,
-                                // The search screen with an empty query IS the
-                                // full list, so there's no second full-rooms
-                                // screen to maintain.
-                                onTap: () =>
-                                    _openSearch(SearchMode.rooms, fromDoor: false),
-                              ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
+        children: [theme.backgroundLayer(context), SafeArea(child: body)],
       ),
     );
   }

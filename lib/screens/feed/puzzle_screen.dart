@@ -6,9 +6,10 @@ import '../../data/feed_store.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/puzzle.dart';
+import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
-import '../../widgets/adaptive_page_body.dart';
+import '../../widgets/game_layout_shell.dart';
 import '../../widgets/puzzle_symbol.dart';
 
 /// Today's puzzle, full screen.
@@ -132,71 +133,83 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final attempt = state.mine;
     final done = attempt?.done ?? false;
 
+    final header = <Widget>[
+      Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: Icon(Icons.arrow_back, color: theme.inkSoft, size: 18),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Text(l10n.puzzleScreenTitle, style: theme.displayMedium),
+      const SizedBox(height: 10),
+      Row(
+        children: [
+          Container(width: 18, height: 1, color: theme.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(l10n.puzzleScreenSubtitle, style: theme.caption),
+          ),
+        ],
+      ),
+    ];
+
+    // On a compact/medium window the keypad sits below the grid, in the
+    // board column itself — the shape this screen has always had. On
+    // expanded, [GameLayoutShell] instead offers it as `leading`, a rail of
+    // full-size icon keys to the LEFT of the grid: there's finally room for
+    // one, it reads as a proper desktop toolbar rather than a thumb keyboard
+    // pinned under the board, and it's one more thing off the vertical stack
+    // that used to force a scroll. `done` drops it either way — a finished
+    // board has an outcome card to show, not keys to press.
+    final game = <Widget>[
+      _Grid(attempt: attempt, draft: _draft),
+      if (_errorCode != null) ...[
+        const SizedBox(height: 12),
+        Text(
+          switch (_errorCode) {
+            'ALREADY_SOLVED' => l10n.puzzleErrorAlreadySolved,
+            'OUT_OF_GUESSES' => l10n.puzzleErrorOutOfGuesses,
+            _ => l10n.puzzleErrorGeneric,
+          },
+          style: theme.bodySoft.copyWith(color: theme.danger),
+        ),
+      ],
+      const SizedBox(height: 20),
+      if (done)
+        _Outcome(attempt: attempt!, onShare: () => _share(attempt))
+      else if (!context.isExpanded)
+        _Keypad(
+          draft: _draft,
+          busy: _busy,
+          onPush: _push,
+          onPop: _pop,
+          onSubmit: _submit,
+        ),
+    ];
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: AdaptivePageBody(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 40),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: theme.inkSoft,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(l10n.puzzleScreenTitle, style: theme.displayMedium),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(width: 18, height: 1, color: theme.accent),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          l10n.puzzleScreenSubtitle,
-                          style: theme.caption,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  _Grid(attempt: attempt, draft: _draft),
-                  if (_errorCode != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      switch (_errorCode) {
-                        'ALREADY_SOLVED' => l10n.puzzleErrorAlreadySolved,
-                        'OUT_OF_GUESSES' => l10n.puzzleErrorOutOfGuesses,
-                        _ => l10n.puzzleErrorGeneric,
-                      },
-                      style: theme.bodySoft.copyWith(color: theme.danger),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  if (done)
-                    _Outcome(attempt: attempt!, onShare: () => _share(attempt))
-                  else
-                    _Keypad(
+            child: GameLayoutShell(
+              header: header,
+              board: game,
+              boardWidth: 440,
+              leading: done
+                  ? null
+                  : _SideKeypad(
                       draft: _draft,
                       busy: _busy,
                       onPush: _push,
                       onPop: _pop,
                       onSubmit: _submit,
                     ),
-                  const SizedBox(height: 28),
-                  _Scoreboard(state: state, viewerId: widget.userId),
-                ],
-              ),
+              sidebar: _Scoreboard(state: state, viewerId: widget.userId),
             ),
           ),
         ],
@@ -421,6 +434,89 @@ class _Keypad extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+/// The same six symbols, backspace and submit as [_Keypad], reflowed into a
+/// vertical rail — [GameLayoutShell]'s `leading` slot on expanded windows,
+/// where there's room to the left of the grid for full-size icon keys instead
+/// of a thumb-width row pinned under the board.
+class _SideKeypad extends StatelessWidget {
+  const _SideKeypad({
+    required this.draft,
+    required this.busy,
+    required this.onPush,
+    required this.onPop,
+    required this.onSubmit,
+  });
+
+  final List<int> draft;
+  final bool busy;
+  final void Function(int) onPush;
+  final VoidCallback onPop;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final full = draft.length == kPuzzleSlots;
+
+    return Column(
+      children: [
+        for (var s = 0; s < kPuzzleSymbolCount; s++)
+          Padding(
+            key: ValueKey('side_key_$s'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: _Key(
+                onTap: busy ? null : () => onPush(s),
+                semanticLabel: l10n.puzzleSymbolSemanticLabel(s + 1),
+                child: PuzzleSymbol(index: s, size: 24, accent: theme.accent),
+              ),
+            ),
+          ),
+        AspectRatio(
+          aspectRatio: 1,
+          child: _Key(
+            onTap: busy || draft.isEmpty ? null : onPop,
+            semanticLabel: l10n.puzzleBackspace,
+            child: Icon(
+              Icons.backspace_outlined,
+              size: 18,
+              color: theme.inkSoft,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        FocusableTap(
+          onTap: full && !busy ? onSubmit : null,
+          semanticLabel: l10n.puzzleSubmit,
+          radius: theme.radiusMd,
+          child: GestureDetector(
+            onTap: full && !busy ? onSubmit : null,
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: theme.motionFast,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: full ? theme.accent : theme.surfaceSunken,
+                borderRadius: BorderRadius.circular(theme.radiusMd),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                l10n.puzzleSubmit,
+                textAlign: TextAlign.center,
+                style: theme.label.copyWith(
+                  color: full ? theme.accentInk : theme.inkMuted,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

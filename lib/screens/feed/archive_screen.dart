@@ -5,6 +5,7 @@ import '../../backend/feed_api.dart';
 import '../../keyboard/focusable_tap.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../models/moment.dart';
+import '../../theme/layout.dart';
 import '../../theme/motion.dart';
 import '../../theme/theme_scope.dart';
 import '../../widgets/adaptive_page_body.dart';
@@ -167,6 +168,13 @@ class _ArchiveScreenState extends State<ArchiveScreen> {
           theme.backgroundLayer(context),
           SafeArea(
             child: AdaptivePageBody(
+              // Wider than the default reading column: this screen is a photo
+              // grid, not text, so an expanded window should show more tiles
+              // per row instead of the same 3-wide mobile grid parked in the
+              // middle of the page — see `_DaySection`'s `LayoutBuilder`.
+              maxWidth: context.isExpanded
+                  ? ContentWidth.wide
+                  : ContentWidth.readable,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -471,23 +479,37 @@ class _DaySection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-            ),
-            itemCount: moments.length,
-            itemBuilder: (context, i) => _ArchiveTile(
-              // Identity, never index.
-              key: ValueKey(moments[i].id),
-              moment: moments[i],
-              api: api,
-              index: i,
-              onTap: () => onOpen(moments[i]),
-            ),
+          // Tile count follows the width it's actually given rather than a
+          // flat 3 — a fixed count either crushes tiles on a handset (were it
+          // any higher) or leaves a wide desktop pane at the same 3 phone-size
+          // tiles per row it started with (were it any lower).
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const spacing = 8.0;
+              const tileTarget = 150.0;
+              final columns = ((constraints.maxWidth + spacing) /
+                      (tileTarget + spacing))
+                  .floor()
+                  .clamp(3, 7);
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: spacing,
+                  crossAxisSpacing: spacing,
+                ),
+                itemCount: moments.length,
+                itemBuilder: (context, i) => _ArchiveTile(
+                  // Identity, never index.
+                  key: ValueKey(moments[i].id),
+                  moment: moments[i],
+                  api: api,
+                  index: i,
+                  onTap: () => onOpen(moments[i]),
+                ),
+              );
+            },
           ),
         ],
       ),
