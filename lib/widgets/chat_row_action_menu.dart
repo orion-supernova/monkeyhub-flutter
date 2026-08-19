@@ -45,11 +45,7 @@ enum ChatRowAction { pin, unpin, archive, unarchive, mute, unmute }
 /// positioned against — its render object is the row's, so the lifted copy
 /// still lands on the real row's exact rect.
 class ChatRowLongPress extends StatelessWidget {
-  const ChatRowLongPress({
-    super.key,
-    required this.onLongPress,
-    required this.child,
-  });
+  const ChatRowLongPress({super.key, required this.onLongPress, required this.child});
 
   final VoidCallback onLongPress;
   final Widget child;
@@ -58,8 +54,7 @@ class ChatRowLongPress extends StatelessWidget {
   Widget build(BuildContext context) {
     return RawGestureDetector(
       gestures: {
-        LongPressGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+        LongPressGestureRecognizer: GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
           () => LongPressGestureRecognizer(duration: kActionMenuLongPress),
           (instance) => instance.onLongPress = () {
             // On the trigger, not once the overlay has finished animating in:
@@ -183,12 +178,10 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   final ValueChanged<ChatRowAction?> onResolve;
 
   @override
-  State<_ChatRowActionMenuOverlay> createState() =>
-      _ChatRowActionMenuOverlayState();
+  State<_ChatRowActionMenuOverlay> createState() => _ChatRowActionMenuOverlayState();
 }
 
-class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
-    with SingleTickerProviderStateMixin {
+class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   bool _closing = false;
 
@@ -230,12 +223,10 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
   }
 
   List<ChatRowAction> get _actions => [
-        if (!widget.isArchived)
-          widget.isPinned ? ChatRowAction.unpin : ChatRowAction.pin,
-        if (widget.canMute)
-          widget.isMuted ? ChatRowAction.unmute : ChatRowAction.mute,
-        widget.isArchived ? ChatRowAction.unarchive : ChatRowAction.archive,
-      ];
+    if (!widget.isArchived) widget.isPinned ? ChatRowAction.unpin : ChatRowAction.pin,
+    if (widget.canMute) widget.isMuted ? ChatRowAction.unmute : ChatRowAction.mute,
+    widget.isArchived ? ChatRowAction.unarchive : ChatRowAction.archive,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -286,47 +277,44 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
     return Material(
       type: MaterialType.transparency,
       child: AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            _Scrim(t: _ctrl, onTap: () => _resolve(null)),
-            _LiftedRow(
-              t: _ctrl,
-              rect: previewRect,
-              child: Builder(builder: widget.previewBuilder),
-            ),
-            Positioned(
-              left: left,
-              top: menuTop,
-              width: cardWidth,
-              child: Opacity(
-                opacity: _ctrl.value,
-                child: Transform.translate(
-                  offset: Offset(0, -8 * (1 - _ctrl.value)),
-                  child: Transform.scale(
-                    scale: 0.92 + 0.08 * _ctrl.value,
-                    alignment: Alignment.topLeft,
-                    child: child,
+        animation: _ctrl,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              _Scrim(t: _ctrl, onTap: () => _resolve(null)),
+              _LiftedRow(
+                t: _ctrl,
+                rect: previewRect,
+                child: Builder(builder: widget.previewBuilder),
+              ),
+              Positioned(
+                left: left,
+                top: menuTop,
+                width: cardWidth,
+                child: Opacity(
+                  opacity: _ctrl.value,
+                  child: Transform.translate(
+                    offset: Offset(0, -8 * (1 - _ctrl.value)),
+                    child: Transform.scale(
+                      scale: 0.92 + 0.08 * _ctrl.value,
+                      alignment: Alignment.topLeft,
+                      child: child,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
-        );
-      },
-      child: GlassSurface(
-        radius: 16,
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final action in actions)
-              _ChatRowActionRow(action: action, onTap: () => _resolve(action)),
-          ],
+            ],
+          );
+        },
+        child: GlassSurface(
+          radius: 16,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [for (final action in actions) _ChatRowActionRow(action: action, onTap: () => _resolve(action))],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -362,9 +350,7 @@ class _Scrim extends StatelessWidget {
                   ),
                 ),
                 Positioned.fill(
-                  child: ColoredBox(
-                    color: Colors.black.withValues(alpha: 0.32 * t.value),
-                  ),
+                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.32 * t.value)),
                 ),
               ],
             );
@@ -456,8 +442,8 @@ const double _previewPadding = 14;
 /// fit on one line with room to spare — see the badges themselves, all
 /// passed `iconOnly: true` below.
 const double _previewTopRowH = 25;
-const double _previewAvatarSize = 40;
-const double _previewIdentityRowH = 44;
+const double _previewAvatarSize = 30;
+const double _previewIdentityRowH = 30;
 const double _previewFooterRowH = 20;
 const double _previewGap = 10;
 
@@ -621,10 +607,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
         borderRadius: cardDecoration.borderRadius,
         boxShadow: cardDecoration.boxShadow,
       ),
-      foregroundDecoration: BoxDecoration(
-        border: cardDecoration.border,
-        borderRadius: cardDecoration.borderRadius,
-      ),
+      foregroundDecoration: BoxDecoration(border: cardDecoration.border, borderRadius: cardDecoration.borderRadius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -654,14 +637,9 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                         // [_previewTopRowH] is sized for. The tap tooltip
                         // still spells each one out in full — see
                         // `RoomBadge`'s own doc for why that's enough.
-                        if (!room.isDm)
-                          VisibilityBadge(isPublic: room.isPublic, dense: true, iconOnly: true),
+                        if (!room.isDm) VisibilityBadge(isPublic: room.isPublic, dense: true, iconOnly: true),
                         if (room.isEphemeral && room.messageLifetime != null)
-                          EphemeralBadge(
-                            ttl: room.messageLifetime!,
-                            dense: true,
-                            iconOnly: true,
-                          ),
+                          EphemeralBadge(ttl: room.messageLifetime!, dense: true, iconOnly: true),
                         if (room.hasPassword) const LockedBadge(dense: true, iconOnly: true),
                         if (room.isPinned) const PinnedBadge(dense: true, iconOnly: true),
                         if (room.isMuted)
@@ -694,22 +672,24 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    room.isSavedMessages
-                        ? l10n.savedMessagesTitle
-                        : (dmUser?.displayName ?? room.name),
+                    room.isSavedMessages ? l10n.savedMessagesTitle : (dmUser?.displayName ?? room.name),
+                    // displaySmall, not displayMedium: this card is the
+                    // richer version of RoomCard's own compact row, and
+                    // RoomCard titles its name at displaySmall too. Medium
+                    // (28) is sized for an actual page header — a room name
+                    // was never meant to read that large here, and this was
+                    // the single biggest thing making the header feel
+                    // oversized.
                     style: room.hasUnread
-                        ? theme.displayMedium.copyWith(fontWeight: FontWeight.w700)
-                        : theme.displayMedium,
+                        ? theme.displaySmall.copyWith(fontWeight: FontWeight.w700)
+                        : theme.displaySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (room.visibleUnreadCount > 0) ...[
                   const SizedBox(width: 8),
-                  CountBadge(
-                    count: room.visibleUnreadCount,
-                    mention: room.hasVisibleMention,
-                  ),
+                  CountBadge(count: room.visibleUnreadCount, mention: room.hasVisibleMention),
                 ],
               ],
             ),
@@ -721,8 +701,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
             height: _previewFooterRowH,
             child: Row(
               children: [
-                if (!room.isDm)
-                  Text(l10n.roomCardMemberCount(room.memberCount), style: theme.caption),
+                if (!room.isDm) Text(l10n.roomCardMemberCount(room.memberCount), style: theme.caption),
                 const Spacer(),
                 if (room.isEphemeral)
                   Row(
@@ -730,10 +709,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                     children: [
                       theme.hourglassIcon(size: 12, color: theme.accent),
                       const SizedBox(width: 6),
-                      Text(
-                        l10n.roomCardMessagesFadeLabel,
-                        style: theme.monoTiny.copyWith(color: theme.accent),
-                      ),
+                      Text(l10n.roomCardMessagesFadeLabel, style: theme.monoTiny.copyWith(color: theme.accent)),
                     ],
                   )
                 else
@@ -801,7 +777,10 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
   Widget _body(AppTheme theme, RoomSubtitle subtitle) {
     final Widget content;
     if (widget.typists.isNotEmpty) {
-      content = Align(alignment: Alignment.topLeft, child: TypingLine(typists: widget.typists));
+      content = Align(
+        alignment: Alignment.topLeft,
+        child: TypingLine(typists: widget.typists),
+      );
     } else if (_messages.isNotEmpty) {
       content = _transcript(theme);
     } else {
@@ -851,8 +830,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
           // grouping the real transcript applies — repeating a name on every
           // line of a burst reads as noise there and would here too.
           final prev = index > 0 ? ordered[index - 1] : null;
-          final showName =
-              !room.isDm && !isMine && (prev == null || prev.senderId != m.senderId);
+          final showName = !room.isDm && !isMine && (prev == null || prev.senderId != m.senderId);
           return _bubbleRow(theme, m, isMine: isMine, showName: showName, style: style);
         },
       ),
@@ -866,8 +844,7 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
     required bool showName,
     required BubbleStyle style,
   }) {
-    final decoration =
-        theme.bubbleDecoration(isMine: isMine, ephemeral: widget.room.isEphemeral, style: style);
+    final decoration = theme.bubbleDecoration(isMine: isMine, ephemeral: widget.room.isEphemeral, style: style);
     final textStyle = theme.bodySoft.copyWith(color: isMine ? theme.accentInk : theme.ink);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -889,16 +866,10 @@ class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
                         padding: const EdgeInsets.only(bottom: 2),
                         child: Text(
                           m.senderName,
-                          style: theme.caption
-                              .copyWith(fontWeight: FontWeight.w700, color: theme.accent),
+                          style: theme.caption.copyWith(fontWeight: FontWeight.w700, color: theme.accent),
                         ),
                       ),
-                    Text(
-                      messagePreviewLine(m),
-                      style: textStyle,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(messagePreviewLine(m), style: textStyle, maxLines: 3, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
@@ -924,26 +895,11 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow> {
 
   (IconData, String) _spec(AppLocalizations l10n) => switch (widget.action) {
     ChatRowAction.pin => (CupertinoIcons.pin, l10n.chatRowActionMenuPinLabel),
-    ChatRowAction.unpin => (
-      CupertinoIcons.pin_slash,
-      l10n.chatRowActionMenuUnpinLabel,
-    ),
-    ChatRowAction.archive => (
-      CupertinoIcons.archivebox,
-      l10n.chatRowActionMenuArchiveLabel,
-    ),
-    ChatRowAction.unarchive => (
-      CupertinoIcons.tray_arrow_up,
-      l10n.chatRowActionMenuUnarchiveLabel,
-    ),
-    ChatRowAction.mute => (
-      CupertinoIcons.bell_slash,
-      l10n.chatRowActionMenuMuteLabel,
-    ),
-    ChatRowAction.unmute => (
-      CupertinoIcons.bell,
-      l10n.chatRowActionMenuUnmuteLabel,
-    ),
+    ChatRowAction.unpin => (CupertinoIcons.pin_slash, l10n.chatRowActionMenuUnpinLabel),
+    ChatRowAction.archive => (CupertinoIcons.archivebox, l10n.chatRowActionMenuArchiveLabel),
+    ChatRowAction.unarchive => (CupertinoIcons.tray_arrow_up, l10n.chatRowActionMenuUnarchiveLabel),
+    ChatRowAction.mute => (CupertinoIcons.bell_slash, l10n.chatRowActionMenuMuteLabel),
+    ChatRowAction.unmute => (CupertinoIcons.bell, l10n.chatRowActionMenuUnmuteLabel),
   };
 
   @override

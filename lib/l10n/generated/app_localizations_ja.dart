@@ -6401,6 +6401,7 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get authErrorDeviceLoginExpired =>
       'That code has expired — get a new one on the other device.';
+
   @override
   String get deviceLoginScanScreenDeniedConfirmation =>
       'sign-in request denied';
