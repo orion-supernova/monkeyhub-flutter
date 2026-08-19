@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -206,7 +207,16 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
   late final AnimationController _ctrl;
   bool _closing = false;
 
-  static const double _menuWidth = 220;
+  // The preview and the menu below it share one width — not the pressed
+  // row's own. A row's rect is whatever the list laid it out at (a home-tab
+  // GRID tile can be under 150 wide), and growing the lifted card to a
+  // richer preview while still pinning it to that narrow width is what made
+  // every band inside it cramped: badges wrapping, titles ellipsizing,
+  // "6g"-style abbreviations standing in for text that had nowhere to sit.
+  // A fixed, generous width — capped only by the screen itself — is what
+  // Telegram/iMessage's own peek does: the card you get is sized to be read,
+  // not to match whatever you happened to press.
+  static const double _cardWidth = 320;
   static const double _rowHeight = 48;
 
   @override
@@ -269,19 +279,21 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
       previewTop = maxBottom - groupHeight;
     }
     if (previewTop < minTop) previewTop = minTop;
-    final previewRect = Rect.fromLTWH(
-      widget.anchorRect.left,
-      previewTop,
-      widget.anchorRect.width,
-      previewHeight,
-    );
-    final menuTop = previewRect.bottom + gap;
 
-    var left = widget.anchorRect.left;
-    if (left + _menuWidth > widget.screenSize.width - 12) {
-      left = widget.screenSize.width - _menuWidth - 12;
-    }
-    left = left.clamp(12.0, widget.screenSize.width - _menuWidth - 12);
+    // Capped to the screen (minus a 12 margin on each side) rather than
+    // always the full 320: a card wider than the screen would just overflow
+    // sideways instead of reading as "generous."
+    final cardWidth = math.min(_cardWidth, widget.screenSize.width - 24);
+    // Centered on wherever the press landed, not left-pinned to the anchor —
+    // a tile in the grid's right column would otherwise grow its much wider
+    // card straight off the right edge. Clamped last so a press near either
+    // edge still keeps the whole card on screen.
+    final anchorCenter = widget.anchorRect.left + widget.anchorRect.width / 2;
+    var left = anchorCenter - cardWidth / 2;
+    left = left.clamp(12.0, widget.screenSize.width - cardWidth - 12);
+
+    final previewRect = Rect.fromLTWH(left, previewTop, cardWidth, previewHeight);
+    final menuTop = previewRect.bottom + gap;
 
     // Material(type: transparency) supplies the DefaultTextStyle that the
     // root overlay otherwise lacks — without it, every Text inside paints
@@ -302,7 +314,7 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
             Positioned(
               left: left,
               top: menuTop,
-              width: _menuWidth,
+              width: cardWidth,
               child: Opacity(
                 opacity: _ctrl.value,
                 child: Transform.translate(
