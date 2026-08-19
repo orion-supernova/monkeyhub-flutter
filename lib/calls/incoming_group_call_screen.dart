@@ -166,23 +166,32 @@ class _IncomingGroupCallScreenState extends State<IncomingGroupCallScreen>
               const Spacer(flex: 3),
               Padding(
                 padding: const EdgeInsets.only(bottom: 42),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _bigAction(
-                      icon: Icons.close,
-                      label: l10n.incomingGroupCallScreenDismissButton,
-                      background: Colors.white.withValues(alpha: 0.16),
-                      onTap: _dismiss,
+                // Capped and centered so the two buttons stay a matched pair
+                // on a wide desktop window instead of spaceEvenly pushing
+                // them out to the far edges — inert on a phone, where this
+                // ceiling is never reached.
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _bigAction(
+                          icon: Icons.close,
+                          label: l10n.incomingGroupCallScreenDismissButton,
+                          background: Colors.white.withValues(alpha: 0.16),
+                          onTap: _dismiss,
+                        ),
+                        _bigAction(
+                          icon: isVideo ? Icons.videocam : Icons.call,
+                          label: l10n.incomingGroupCallScreenJoinButton,
+                          background: const Color(0xFF17C964),
+                          iconColor: Colors.black,
+                          onTap: _join,
+                        ),
+                      ],
                     ),
-                    _bigAction(
-                      icon: isVideo ? Icons.videocam : Icons.call,
-                      label: l10n.incomingGroupCallScreenJoinButton,
-                      background: const Color(0xFF17C964),
-                      iconColor: Colors.black,
-                      onTap: _join,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],

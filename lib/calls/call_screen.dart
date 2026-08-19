@@ -243,11 +243,11 @@ class _CallScreenState extends State<CallScreen> {
   /// The peer as a [ChatUser] so avatar widgets can render a real photo
   /// (via api + storage id) with the per-user gradient fallback.
   ChatUser _peerAsUser(CallSession s) => ChatUser(
-        id: s.peerUserId,
-        username: '',
-        name: s.peerName,
-        avatarStorageId: s.peerAvatarStorageId,
-      );
+    id: s.peerUserId,
+    username: '',
+    name: s.peerName,
+    avatarStorageId: s.peerAvatarStorageId,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +264,8 @@ class _CallScreenState extends State<CallScreen> {
     // WhatsApp-style pre-answer/pre-connect view for video calls: your own
     // camera fills the screen until the peer's video arrives (then the
     // local view shrinks into the PiP tile).
-    final localFullscreen = isVideo &&
+    final localFullscreen =
+        isVideo &&
         !remoteVisible &&
         !s.localVideoOff &&
         widget.service.localStream != null &&
@@ -492,132 +493,150 @@ class _CallScreenState extends State<CallScreen> {
               // toggle is ALWAYS present (video defaults to loudspeaker,
               // voice to earpiece, both switchable).
               Positioned(
-                left: 16,
-                right: 16,
+                left: 0,
+                right: 0,
                 bottom: 0,
                 child: _ControlsFade(
                   visible: _controlsVisible,
                   slide: const Offset(0, 0.3),
                   child: SafeArea(
                     top: false,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(30),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 14,
-                              ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.10),
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(
-                                    color: Colors.white.withValues(
-                                      alpha: 0.12,
+                    // Capped and centered so the tray reads as one grouped
+                    // control on a wide desktop window instead of stretching
+                    // edge to edge — on a phone this ceiling is never reached,
+                    // so nothing changes there.
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 420),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(30),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 20,
+                                    sigmaY: 20,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 14,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.10,
+                                      ),
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: _ControlButton(
+                                            icon: s.localMuted
+                                                ? Icons.mic_off
+                                                : Icons.mic,
+                                            active: s.localMuted,
+                                            onTap: widget.service.toggleMute,
+                                            label: s.localMuted
+                                                ? AppLocalizations.of(
+                                                    context,
+                                                  ).callScreenControlUnmute
+                                                : AppLocalizations.of(
+                                                    context,
+                                                  ).callScreenControlMute,
+                                          ),
+                                        ),
+                                        if (isVideo)
+                                          Expanded(
+                                            child: _ControlButton(
+                                              icon: s.localVideoOff
+                                                  ? Icons.videocam_off
+                                                  : Icons.videocam,
+                                              active: s.localVideoOff,
+                                              onTap: widget.service.toggleVideo,
+                                              label: s.localVideoOff
+                                                  ? AppLocalizations.of(
+                                                      context,
+                                                    ).callScreenControlCamOn
+                                                  : AppLocalizations.of(
+                                                      context,
+                                                    ).callScreenControlCamOff,
+                                            ),
+                                          ),
+                                        if (isVideo)
+                                          Expanded(
+                                            child: _ControlButton(
+                                              icon: Icons.cameraswitch_outlined,
+                                              onTap:
+                                                  widget.service.switchCamera,
+                                              label: AppLocalizations.of(
+                                                context,
+                                              ).callScreenControlFlip,
+                                              enabled: !s.localVideoOff,
+                                            ),
+                                          ),
+                                        Expanded(
+                                          child: _ControlButton(
+                                            icon: s.speakerOn
+                                                ? Icons.volume_up
+                                                : Icons.phone_in_talk,
+                                            active: s.speakerOn,
+                                            onTap: widget.service.toggleSpeaker,
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).callScreenControlSpeaker,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: _ControlButton(
+                                            icon: Icons.tune,
+                                            onTap: () => showAdaptiveSheet(
+                                              context,
+                                              builder: (_) => CallOptionsSheet(
+                                                service: widget.service,
+                                                showVideoQuality: isVideo,
+                                              ),
+                                            ),
+                                            label: AppLocalizations.of(
+                                              context,
+                                            ).callScreenControlOptions,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: _ControlButton(
-                                        icon: s.localMuted
-                                            ? Icons.mic_off
-                                            : Icons.mic,
-                                        active: s.localMuted,
-                                        onTap: widget.service.toggleMute,
-                                        label: s.localMuted
-                                            ? AppLocalizations.of(
-                                                context,
-                                              ).callScreenControlUnmute
-                                            : AppLocalizations.of(
-                                                context,
-                                              ).callScreenControlMute,
-                                      ),
-                                    ),
-                                    if (isVideo)
-                                      Expanded(
-                                        child: _ControlButton(
-                                          icon: s.localVideoOff
-                                              ? Icons.videocam_off
-                                              : Icons.videocam,
-                                          active: s.localVideoOff,
-                                          onTap: widget.service.toggleVideo,
-                                          label: s.localVideoOff
-                                              ? AppLocalizations.of(
-                                                  context,
-                                                ).callScreenControlCamOn
-                                              : AppLocalizations.of(
-                                                  context,
-                                                ).callScreenControlCamOff,
-                                        ),
-                                      ),
-                                    if (isVideo)
-                                      Expanded(
-                                        child: _ControlButton(
-                                          icon: Icons.cameraswitch_outlined,
-                                          onTap: widget.service.switchCamera,
-                                          label: AppLocalizations.of(
-                                            context,
-                                          ).callScreenControlFlip,
-                                          enabled: !s.localVideoOff,
-                                        ),
-                                      ),
-                                    Expanded(
-                                      child: _ControlButton(
-                                        icon: s.speakerOn
-                                            ? Icons.volume_up
-                                            : Icons.phone_in_talk,
-                                        active: s.speakerOn,
-                                        onTap: widget.service.toggleSpeaker,
-                                        label: AppLocalizations.of(
-                                          context,
-                                        ).callScreenControlSpeaker,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: _ControlButton(
-                                        icon: Icons.tune,
-                                        onTap: () => showAdaptiveSheet(
-                                          context,
-                                          builder: (_) => CallOptionsSheet(
-                                            service: widget.service,
-                                            showVideoQuality: isVideo,
-                                          ),
-                                        ),
-                                        label: AppLocalizations.of(
-                                          context,
-                                        ).callScreenControlOptions,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
-                            ),
+                              const SizedBox(height: 18),
+                              // The hero action: alone on its own row so it
+                              // never competes for space with the toggles above
+                              // it, at a size that reads as unmistakably primary.
+                              _ControlButton(
+                                icon: Icons.call_end,
+                                background: theme.danger,
+                                iconColor: Colors.white,
+                                large: true,
+                                onTap: () => widget.service.endCall(),
+                                label: AppLocalizations.of(
+                                  context,
+                                ).callScreenControlEnd,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 18),
-                          // The hero action: alone on its own row so it
-                          // never competes for space with the toggles above
-                          // it, at a size that reads as unmistakably primary.
-                          _ControlButton(
-                            icon: Icons.call_end,
-                            background: theme.danger,
-                            iconColor: Colors.white,
-                            large: true,
-                            onTap: () => widget.service.endCall(),
-                            label: AppLocalizations.of(
-                              context,
-                            ).callScreenControlEnd,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -625,7 +644,6 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 }
-
 
 /// Fades (and optionally slides) an overlay region for the call screen's
 /// tap-to-hide-controls gesture. [IgnorePointer] while hidden so faded-out
@@ -707,10 +725,7 @@ class _AudioBackdropState extends State<_AudioBackdrop>
         gradient: RadialGradient(
           center: const Alignment(0, -0.2),
           radius: 1.0,
-          colors: [
-            accent.withValues(alpha: 0.32),
-            Colors.black,
-          ],
+          colors: [accent.withValues(alpha: 0.32), Colors.black],
           stops: const [0.0, 0.85],
         ),
       ),
@@ -741,8 +756,9 @@ class _AudioBackdropState extends State<_AudioBackdrop>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.28),
-                          width: 1),
+                        color: Colors.white.withValues(alpha: 0.28),
+                        width: 1,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: accent.withValues(alpha: 0.45),
@@ -955,9 +971,7 @@ class _OverlayChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: fg.withValues(alpha: 0.15),
-          ),
+          border: Border.all(color: fg.withValues(alpha: 0.15)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -966,10 +980,7 @@ class _OverlayChip extends StatelessWidget {
               SizedBox(
                 width: 14,
                 height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: fg,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2, color: fg),
               ),
               const SizedBox(width: 10),
             ] else ...[

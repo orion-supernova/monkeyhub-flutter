@@ -7,7 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 import 'room_items.dart' show formatClockDuration;
 
 /// The MIME for what [VoiceRecorderScreen] produces: AAC-LC in an ISO-BMFF
@@ -64,14 +66,17 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).voiceRecorderScreenMicPermissionDeniedSnackbar,
+            AppLocalizations.of(
+              context,
+            ).voiceRecorderScreenMicPermissionDeniedSnackbar,
           ),
         ),
       );
       return;
     }
     final dir = await getTemporaryDirectory();
-    final p = '${dir.path}/mh_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final p =
+        '${dir.path}/mh_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
     // The file this writes is not "faststart": the index (`moov`) lands after
     // the payload (`mdat`), because both backends here — AVAudioRecorder and
     // MediaMuxer — stream samples out and only finalise the index on stop.
@@ -80,7 +85,11 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
     // Playback downloads the whole file before handing it to the player (see
     // AudioFileCache), so atom order has no observable effect.
     await _rec.start(
-      const RecordConfig(encoder: AudioEncoder.aacLc, sampleRate: 44100, bitRate: 96000),
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        sampleRate: 44100,
+        bitRate: 96000,
+      ),
       path: p,
     );
     _started = DateTime.now();
@@ -90,14 +99,14 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
       if (!mounted || _started == null) return;
       setState(() => _elapsed = DateTime.now().difference(_started!));
     });
-    _ampSub = _rec
-        .onAmplitudeChanged(const Duration(milliseconds: 120))
-        .listen((a) {
-      if (!mounted) return;
-      // amplitude.current is in dB, typically -60..0
-      final norm = ((a.current + 45) / 45).clamp(0.0, 1.0);
-      setState(() => _level = norm);
-    });
+    _ampSub = _rec.onAmplitudeChanged(const Duration(milliseconds: 120)).listen(
+      (a) {
+        if (!mounted) return;
+        // amplitude.current is in dB, typically -60..0
+        final norm = ((a.current + 45) / 45).clamp(0.0, 1.0);
+        setState(() => _level = norm);
+      },
+    );
     setState(() {
       _recording = true;
       _recorded = false;
@@ -152,93 +161,126 @@ class _VoiceRecorderScreenState extends State<VoiceRecorderScreen> {
         children: [
           theme.backgroundLayer(context),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-              child: Column(
-                children: [
-                  Row(children: [
-                    IconButton(
-                      onPressed: _discardAndExit,
-                      icon: Icon(Icons.close, color: theme.inkSoft),
+            child: AdaptivePageBody(
+              maxWidth: ContentWidth.auth,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _discardAndExit,
+                          icon: Icon(Icons.close, color: theme.inkSoft),
+                        ),
+                        const Spacer(),
+                        Text(
+                          _recording
+                              ? AppLocalizations.of(
+                                  context,
+                                ).voiceRecorderScreenStatusRecording
+                              : (_recorded
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).voiceRecorderScreenStatusReady
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).voiceRecorderScreenStatusTapToStart),
+                          style: theme.label.copyWith(
+                            color: _recording ? theme.danger : theme.accent,
+                            letterSpacing: 2.4,
+                          ),
+                        ),
+                      ],
                     ),
                     const Spacer(),
+                    // Amplitude meter
+                    _Meter(level: _level, recording: _recording),
+                    const SizedBox(height: 28),
                     Text(
-                        _recording
-                            ? AppLocalizations.of(context).voiceRecorderScreenStatusRecording
-                            : (_recorded
-                                ? AppLocalizations.of(context).voiceRecorderScreenStatusReady
-                                : AppLocalizations.of(context).voiceRecorderScreenStatusTapToStart),
-                        style: theme.label.copyWith(
-                            color: _recording ? theme.danger : theme.accent, letterSpacing: 2.4)),
-                  ]),
-                  const Spacer(),
-                  // Amplitude meter
-                  _Meter(level: _level, recording: _recording),
-                  const SizedBox(height: 28),
-                  Text(formatClockDuration(_elapsed), style: theme.displayLarge.copyWith(fontSize: 44)),
-                  const Spacer(flex: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_recorded)
+                      formatClockDuration(_elapsed),
+                      style: theme.displayLarge.copyWith(fontSize: 44),
+                    ),
+                    const Spacer(flex: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (_recorded)
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _recorded = false;
+                                  _elapsed = Duration.zero;
+                                  _path = null;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: theme.divider),
+                                  borderRadius: BorderRadius.circular(
+                                    theme.radiusMd,
+                                  ),
+                                ),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  ).voiceRecorderScreenReRecordButton,
+                                  style: theme.label,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (_recorded) const SizedBox(width: 10),
                         Expanded(
+                          flex: _recorded ? 1 : 2,
                           child: GestureDetector(
                             onTap: () {
-                              setState(() {
-                                _recorded = false;
-                                _elapsed = Duration.zero;
-                                _path = null;
-                              });
+                              if (_recording) {
+                                _stop();
+                              } else if (_recorded) {
+                                _confirm();
+                              } else {
+                                _start();
+                              }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                border: Border.all(color: theme.divider),
-                                borderRadius: BorderRadius.circular(theme.radiusMd),
+                                color: _recording ? theme.danger : theme.accent,
+                                borderRadius: BorderRadius.circular(
+                                  theme.radiusMd,
+                                ),
                               ),
                               child: Text(
-                                AppLocalizations.of(context).voiceRecorderScreenReRecordButton,
-                                style: theme.label,
+                                _recording
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).voiceRecorderScreenStopButton
+                                    : (_recorded
+                                          ? AppLocalizations.of(
+                                              context,
+                                            ).voiceRecorderScreenSendButton
+                                          : AppLocalizations.of(
+                                              context,
+                                            ).voiceRecorderScreenRecordButton),
+                                style: theme.label.copyWith(
+                                  color: theme.accentInk,
+                                  letterSpacing: 2.4,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      if (_recorded) const SizedBox(width: 10),
-                      Expanded(
-                        flex: _recorded ? 1 : 2,
-                        child: GestureDetector(
-                          onTap: () {
-                            if (_recording) {
-                              _stop();
-                            } else if (_recorded) {
-                              _confirm();
-                            } else {
-                              _start();
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _recording ? theme.danger : theme.accent,
-                              borderRadius: BorderRadius.circular(theme.radiusMd),
-                            ),
-                            child: Text(
-                              _recording
-                                  ? AppLocalizations.of(context).voiceRecorderScreenStopButton
-                                  : (_recorded
-                                      ? AppLocalizations.of(context).voiceRecorderScreenSendButton
-                                      : AppLocalizations.of(context).voiceRecorderScreenRecordButton),
-                              style: theme.label.copyWith(
-                                  color: theme.accentInk, letterSpacing: 2.4),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -280,8 +322,11 @@ class _Meter extends StatelessWidget {
               color: recording ? theme.danger : theme.accent,
               boxShadow: [
                 BoxShadow(
-                    color: (recording ? theme.danger : theme.accent).withValues(alpha: 0.6),
-                    blurRadius: 28),
+                  color: (recording ? theme.danger : theme.accent).withValues(
+                    alpha: 0.6,
+                  ),
+                  blurRadius: 28,
+                ),
               ],
             ),
             child: Icon(

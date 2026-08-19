@@ -331,7 +331,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
     final messenger = ScaffoldMessenger.of(context);
     _selection.clear();
 
-    final result = await saveMessagesToDevice(api: widget.api, messages: picked);
+    final result = await saveMessagesToDevice(
+      api: widget.api,
+      messages: picked,
+    );
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(content: Text(result.summary)));
   }
@@ -485,7 +488,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
             children: [
               IconButton(
                 icon: Icon(
-                  selecting ? CupertinoIcons.xmark : CupertinoIcons.chevron_left,
+                  selecting
+                      ? CupertinoIcons.xmark
+                      : CupertinoIcons.chevron_left,
                   color: theme.ink,
                   size: 20,
                 ),
@@ -568,9 +573,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
                 ),
             ],
             activeId: _tab.name,
-            onChange: (id) => _switchTo(
-              _tabsShown.firstWhere((t) => t.name == id),
-            ),
+            onChange: (id) =>
+                _switchTo(_tabsShown.firstWhere((t) => t.name == id)),
           ),
         ),
       ),
@@ -580,10 +584,10 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   /// This tab's badge number, from the server counts or from the bookmark
   /// subscription — see [roomContentCountFor].
   RoomContentCount? _countFor(RoomContentTab tab) => roomContentCountFor(
-        tab,
-        serverCounts: _counts,
-        savedCount: widget.repo.savedFor(widget.roomId).length,
-      );
+    tab,
+    serverCounts: _counts,
+    savedCount: widget.repo.savedFor(widget.roomId).length,
+  );
 
   Widget _body(AppTheme theme) {
     // Ids are pruned after the list settles so the header count and the actions
@@ -599,7 +603,9 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
 
     // Bottom padding leaves room for the action bar to float over the tail of
     // the list instead of covering the last row.
-    final bottomPad = 24 + MediaQuery.paddingOf(context).bottom +
+    final bottomPad =
+        24 +
+        MediaQuery.paddingOf(context).bottom +
         (_selection.active ? 78 : 0);
 
     return switch (_tab) {
@@ -654,7 +660,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
       itemBuilder: (_, i) {
         if (i >= items.length) return const _TailSpinner();
         final m = items[i];
-        final showDay = i == 0 || !_sameDay(items[i - 1].createdAt, m.createdAt);
+        final showDay =
+            i == 0 || !_sameDay(items[i - 1].createdAt, m.createdAt);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -771,8 +778,8 @@ class _RoomContentScreenState extends State<RoomContentScreen> {
   static int _gridColumns(double width) => width >= Breakpoints.expanded
       ? 6
       : width >= Breakpoints.medium
-          ? 5
-          : 3;
+      ? 5
+      : 3;
 }
 
 class _DayHeader extends StatelessWidget {
@@ -787,7 +794,10 @@ class _DayHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(2, 16, 2, 6),
       child: Text(
         humanDay(DateTime(at.year, at.month, at.day)),
-        style: theme.monoTiny.copyWith(letterSpacing: 1.8, color: theme.inkMuted),
+        style: theme.monoTiny.copyWith(
+          letterSpacing: 1.8,
+          color: theme.inkMuted,
+        ),
       ),
     );
   }
@@ -798,15 +808,15 @@ class _TailSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 18),
-        child: Center(
-          child: SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
+    padding: EdgeInsets.symmetric(vertical: 18),
+    child: Center(
+      child: SizedBox(
+        width: 18,
+        height: 18,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    ),
+  );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -875,7 +885,8 @@ class _ContentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     if (tab == RoomContentTab.voice) return _voiceRow(context);
 
-    final name = message.fileName ??
+    final name =
+        message.fileName ??
         AppLocalizations.of(context).roomContentScreenDefaultDocumentName;
     final sub = [
       if (message.fileSize != null && message.fileSize! > 0)
@@ -923,8 +934,9 @@ class _ContentRow extends StatelessWidget {
       selecting: selecting,
       onTap: onTap,
       onLongPress: onLongPress,
-      semanticLabel: AppLocalizations.of(context)
-          .roomContentScreenVoiceMessageFrom(message.senderName),
+      semanticLabel: AppLocalizations.of(
+        context,
+      ).roomContentScreenVoiceMessageFrom(message.senderName),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1035,7 +1047,8 @@ class _SavedRow extends StatelessWidget {
     final m = message;
     // View-once media has no storage id — the server withholds it — so there is
     // deliberately nothing to show for those beyond the words.
-    final hasThumb = !m.viewOnce &&
+    final hasThumb =
+        !m.viewOnce &&
         m.mediaStorageId != null &&
         (m.type == MessageType.image || m.type == MessageType.video);
 
@@ -1118,8 +1131,11 @@ class _SavedRow extends StatelessWidget {
             // Filled, and the only fill in the row: this is the mark the
             // bubble wears and the action menu fills in, so tapping it to make
             // the row leave reads as undoing that.
-            child: Icon(CupertinoIcons.bookmark_fill,
-                size: 18, color: theme.accent),
+            child: Icon(
+              CupertinoIcons.bookmark_fill,
+              size: 18,
+              color: theme.accent,
+            ),
           ),
         ),
       ),
@@ -1130,14 +1146,14 @@ class _SavedRow extends StatelessWidget {
   /// list is the one place in this browser that mixes kinds, so the square
   /// answers "what is this" rather than repeating "this is saved".
   static IconData _kindGlyph(ChatMessage m) => switch (m.type) {
-        MessageType.audio => CupertinoIcons.waveform,
-        MessageType.file => CupertinoIcons.doc,
-        MessageType.url => CupertinoIcons.link,
-        // Includes image and video, which only reach here with no storage id —
-        // a view-once photo, or one whose upload never landed. A picture glyph
-        // would promise a picture that is not coming.
-        _ => CupertinoIcons.quote_bubble,
-      };
+    MessageType.audio => CupertinoIcons.waveform,
+    MessageType.file => CupertinoIcons.doc,
+    MessageType.url => CupertinoIcons.link,
+    // Includes image and video, which only reach here with no storage id —
+    // a view-once photo, or one whose upload never landed. A picture glyph
+    // would promise a picture that is not coming.
+    _ => CupertinoIcons.quote_bubble,
+  };
 }
 
 /// Shared chrome for every list row: a leading square, two lines, and the
@@ -1200,8 +1216,9 @@ class _SelectableRow extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 3),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
           decoration: BoxDecoration(
-            color:
-                selected ? theme.accent.withValues(alpha: 0.12) : Colors.transparent,
+            color: selected
+                ? theme.accent.withValues(alpha: 0.12)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(theme.radiusMd),
             border: Border.all(
               color: selected ? theme.accent : Colors.transparent,
@@ -1210,12 +1227,10 @@ class _SelectableRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              if (leading != null) ...[
-                leading!,
-                const SizedBox(width: 11),
-              ],
+              if (leading != null) ...[leading!, const SizedBox(width: 11)],
               Expanded(
-                child: body ??
+                child:
+                    body ??
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1251,8 +1266,11 @@ class _SelectableRow extends StatelessWidget {
                     ),
                   ),
                   child: selected
-                      ? Icon(CupertinoIcons.check_mark,
-                          size: 13, color: theme.accentInk)
+                      ? Icon(
+                          CupertinoIcons.check_mark,
+                          size: 13,
+                          color: theme.accentInk,
+                        )
                       : null,
                 ),
               ],
@@ -1344,65 +1362,73 @@ class RoomContentActionBar extends StatelessWidget {
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: Container(
-          decoration: theme.sheetDecoration(),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              BulkActionButton(
-                theme: theme,
-                icon: CupertinoIcons.arrowshape_turn_up_right,
-                label: l10n.roomContentScreenForwardAction,
-                onTap: onForward,
-              ),
-              if (isLinks)
-                BulkActionButton(
-                  theme: theme,
-                  icon: CupertinoIcons.doc_on_clipboard,
-                  label: l10n.roomContentScreenCopyAction,
-                  onTap: onCopy,
-                )
-              else ...[
-                // `gal` has no web implementation — see the MissingPluginException
-                // note in profile_screen.dart. Hidden rather than offered and
-                // then failed.
-                if (savable && !kIsWeb)
+      // Capped and centered so the bar reads as one grouped toolbar on a
+      // wide desktop window instead of spaceEvenly spreading its buttons
+      // across the full width — inert on a phone, where this ceiling is
+      // never reached.
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Container(
+              decoration: theme.sheetDecoration(),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
                   BulkActionButton(
                     theme: theme,
-                    icon: CupertinoIcons.arrow_down_to_line,
-                    label: l10n.roomContentScreenSaveAction,
-                    onTap: onSave,
+                    icon: CupertinoIcons.arrowshape_turn_up_right,
+                    label: l10n.roomContentScreenForwardAction,
+                    onTap: onForward,
                   ),
-                BulkActionButton(
-                  theme: theme,
-                  icon: CupertinoIcons.share,
-                  label: l10n.roomContentScreenShareAction,
-                  onTap: onShare,
-                ),
-              ],
-              if (onShowInChat != null)
-                BulkActionButton(
-                  theme: theme,
-                  icon: CupertinoIcons.chat_bubble,
-                  label: l10n.roomContentScreenInChatAction,
-                  onTap: onShowInChat!,
-                ),
-              if (canDelete)
-                BulkActionButton(
-                  theme: theme,
-                  icon: CupertinoIcons.trash,
-                  label: l10n.roomContentScreenDeleteAction,
-                  destructive: true,
-                  onTap: onDelete,
-                ),
-            ],
+                  if (isLinks)
+                    BulkActionButton(
+                      theme: theme,
+                      icon: CupertinoIcons.doc_on_clipboard,
+                      label: l10n.roomContentScreenCopyAction,
+                      onTap: onCopy,
+                    )
+                  else ...[
+                    // `gal` has no web implementation — see the MissingPluginException
+                    // note in profile_screen.dart. Hidden rather than offered and
+                    // then failed.
+                    if (savable && !kIsWeb)
+                      BulkActionButton(
+                        theme: theme,
+                        icon: CupertinoIcons.arrow_down_to_line,
+                        label: l10n.roomContentScreenSaveAction,
+                        onTap: onSave,
+                      ),
+                    BulkActionButton(
+                      theme: theme,
+                      icon: CupertinoIcons.share,
+                      label: l10n.roomContentScreenShareAction,
+                      onTap: onShare,
+                    ),
+                  ],
+                  if (onShowInChat != null)
+                    BulkActionButton(
+                      theme: theme,
+                      icon: CupertinoIcons.chat_bubble,
+                      label: l10n.roomContentScreenInChatAction,
+                      onTap: onShowInChat!,
+                    ),
+                  if (canDelete)
+                    BulkActionButton(
+                      theme: theme,
+                      icon: CupertinoIcons.trash,
+                      label: l10n.roomContentScreenDeleteAction,
+                      destructive: true,
+                      onTap: onDelete,
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 }
-

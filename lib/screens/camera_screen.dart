@@ -103,10 +103,8 @@ class CameraScreen<T> extends StatefulWidget {
 }
 
 /// Reviews a capture on top of the camera. See [CameraScreen.review].
-typedef CameraReviewer<T> = Future<ReviewDecision<T>> Function(
-  BuildContext context,
-  CameraPhoto photo,
-);
+typedef CameraReviewer<T> =
+    Future<ReviewDecision<T>> Function(BuildContext context, CameraPhoto photo);
 
 /// What the review surface decided about a capture.
 sealed class ReviewDecision<T> {
@@ -487,8 +485,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       _fault = switch (e.code) {
         'CameraAccessDenied' ||
         'CameraAccessDeniedWithoutPrompt' ||
-        'CameraAccessRestricted' =>
-          _Fault.denied,
+        'CameraAccessRestricted' => _Fault.denied,
         _ => _Fault.failed,
       };
     });
@@ -631,10 +628,11 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
       CameraRecorded<T>(
         CameraVideo(
           bytes: bytes,
-          durationMs: (started == null
-                  ? _recordElapsed
-                  : DateTime.now().difference(started))
-              .inMilliseconds,
+          durationMs:
+              (started == null
+                      ? _recordElapsed
+                      : DateTime.now().difference(started))
+                  .inMilliseconds,
           posterBytes: poster,
         ),
       ),
@@ -669,10 +667,10 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   /// Only consulted on the screen-flash path — where the platform owns the
   /// flash, it decides `auto` for itself.
   bool get _flashWillFire => switch (_flash) {
-        FlashMode.off => false,
-        FlashMode.auto => _previewIsDark,
-        _ => true,
-      };
+    FlashMode.off => false,
+    FlashMode.auto => _previewIsDark,
+    _ => true,
+  };
 
   /// Asks the platform for [mode] and reports whether it took.
   ///
@@ -720,7 +718,8 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   Future<void> _syncMetering() async {
     final controller = _controller;
     if (controller == null || !controller.value.isInitialized) return;
-    final want = _lensControls &&
+    final want =
+        _lensControls &&
         _usesScreenFlash &&
         _flash == FlashMode.auto &&
         !_capturing;
@@ -777,9 +776,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
   Future<void> _applyBoost(CameraController c) async {
     if (!_boostAvailable) return;
     try {
-      await c.setExposureOffset(
-        _boost ? _boostEv.clamp(_minEv, _maxEv) : 0.0,
-      );
+      await c.setExposureOffset(_boost ? _boostEv.clamp(_minEv, _maxEv) : 0.0);
     } catch (_) {
       // Some lenses report a range and then refuse to move within it.
     }
@@ -996,9 +993,7 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             // pure white, which renders skin as a lamp does instead of as a
             // fluorescent tube.
             if (_screenFlash)
-              const IgnorePointer(
-                child: ColoredBox(color: Color(0xFFFFF1DE)),
-              ),
+              const IgnorePointer(child: ColoredBox(color: Color(0xFFFFF1DE))),
           ],
         ),
       ),
@@ -1105,8 +1100,10 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
         ? Size(sensor.height, sensor.width)
         : Size(sensor.width, sensor.height);
 
-    final cover =
-        math.max(box.width / natural.width, box.height / natural.height);
+    final cover = math.max(
+      box.width / natural.width,
+      box.height / natural.height,
+    );
     final w = natural.width * cover;
     final h = natural.height * cover;
     return Rect.fromLTWH((box.width - w) / 2, (box.height - h) / 2, w, h);
@@ -1114,12 +1111,15 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
 
   Widget _faultBody() {
     final message = switch (_fault!) {
-      _Fault.denied =>
-        AppLocalizations.of(context).cameraScreenAccessDeniedMessage,
-      _Fault.unavailable =>
-        AppLocalizations.of(context).cameraScreenOpeningSystemCamera,
-      _Fault.failed =>
-        AppLocalizations.of(context).cameraScreenOpeningSystemCamera,
+      _Fault.denied => AppLocalizations.of(
+        context,
+      ).cameraScreenAccessDeniedMessage,
+      _Fault.unavailable => AppLocalizations.of(
+        context,
+      ).cameraScreenOpeningSystemCamera,
+      _Fault.failed => AppLocalizations.of(
+        context,
+      ).cameraScreenOpeningSystemCamera,
     };
     // Anything that is not the user saying no hands off to the system camera
     // rather than stranding them on an error. Deferred a frame so this build
@@ -1161,8 +1161,9 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
             children: [
               PhotoGlassButton(
                 icon: CupertinoIcons.xmark,
-                semanticLabel:
-                    AppLocalizations.of(context).cameraScreenCloseButtonLabel,
+                semanticLabel: AppLocalizations.of(
+                  context,
+                ).cameraScreenCloseButtonLabel,
                 onTap: _capturing || _recording
                     ? null
                     : () => Navigator.of(context).pop(),
@@ -1183,10 +1184,12 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                 PhotoGlassButton(
                   icon: _boost ? CupertinoIcons.moon_fill : CupertinoIcons.moon,
                   semanticLabel: _boost
-                      ? AppLocalizations.of(context)
-                          .cameraScreenLowLightBoostOnLabel
-                      : AppLocalizations.of(context)
-                          .cameraScreenLowLightBoostOffLabel,
+                      ? AppLocalizations.of(
+                          context,
+                        ).cameraScreenLowLightBoostOnLabel
+                      : AppLocalizations.of(
+                          context,
+                        ).cameraScreenLowLightBoostOffLabel,
                   onTap: _capturing ? null : _toggleBoost,
                   tint: _boost
                       ? const Color(0xFF7FA8FF).withValues(alpha: 0.85)
@@ -1205,8 +1208,9 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
                     FlashMode.off => CupertinoIcons.bolt_slash_fill,
                     _ => CupertinoIcons.bolt_fill,
                   },
-                  semanticLabel: AppLocalizations.of(context)
-                      .cameraScreenFlashStatusLabel(_flash.name),
+                  semanticLabel: AppLocalizations.of(
+                    context,
+                  ).cameraScreenFlashStatusLabel(_flash.name),
                   onTap: _capturing ? null : _cycleFlash,
                   tint: _flash == FlashMode.off
                       ? null
@@ -1244,56 +1248,72 @@ class _CameraScreenState<T> extends State<CameraScreen<T>>
               ),
             ),
           Positioned(
-            left: 12,
-            right: 12,
+            left: 0,
+            right: 0,
             bottom: 22,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 46,
-                  child: _recording
-                      ? null
-                      : Align(
-                          alignment: Alignment.centerLeft,
-                          child: PhotoGlassButton(
-                            icon: CupertinoIcons.photo_on_rectangle,
-                            semanticLabel: AppLocalizations.of(context)
-                                .cameraScreenChooseFromLibraryLabel,
-                            size: 38,
-                            iconSize: 17,
-                            onTap: _capturing
-                                ? null
-                                : () => _pop(CameraPickLibrary<T>()),
+            // Capped and centered so the shutter cluster reads as one grouped
+            // control (Photo Booth / QuickTime style) on a wide desktop
+            // window instead of the library/flip buttons pinning to the far
+            // edges while the shutter stays centered — inert on a phone,
+            // where this ceiling is never reached.
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 46,
+                        child: _recording
+                            ? null
+                            : Align(
+                                alignment: Alignment.centerLeft,
+                                child: PhotoGlassButton(
+                                  icon: CupertinoIcons.photo_on_rectangle,
+                                  semanticLabel: AppLocalizations.of(
+                                    context,
+                                  ).cameraScreenChooseFromLibraryLabel,
+                                  size: 38,
+                                  iconSize: 17,
+                                  onTap: _capturing
+                                      ? null
+                                      : () => _pop(CameraPickLibrary<T>()),
+                                ),
+                              ),
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: _ShutterButton(
+                            // Present from the first frame, so the screen has
+                            // a shape while the session starts rather than
+                            // appearing piecemeal.
+                            onTap: _ready && !_capturing ? _capture : null,
+                            busy: _capturing || !_ready,
+                            video: _mode == _CaptureMode.video,
+                            recording: _recording,
                           ),
                         ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: _ShutterButton(
-                      // Present from the first frame, so the screen has a shape
-                      // while the session starts rather than appearing piecemeal.
-                      onTap: _ready && !_capturing ? _capture : null,
-                      busy: _capturing || !_ready,
-                      video: _mode == _CaptureMode.video,
-                      recording: _recording,
-                    ),
+                      ),
+                      SizedBox(
+                        width: 46,
+                        child: _cameras.length < 2 || _recording
+                            ? null
+                            : Align(
+                                alignment: Alignment.centerRight,
+                                child: PhotoGlassButton(
+                                  icon: CupertinoIcons.camera_rotate,
+                                  semanticLabel: AppLocalizations.of(
+                                    context,
+                                  ).cameraScreenSwitchCameraLabel,
+                                  onTap: _capturing ? null : _flip,
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(
-                  width: 46,
-                  child: _cameras.length < 2 || _recording
-                      ? null
-                      : Align(
-                          alignment: Alignment.centerRight,
-                          child: PhotoGlassButton(
-                            icon: CupertinoIcons.camera_rotate,
-                            semanticLabel: AppLocalizations.of(context)
-                                .cameraScreenSwitchCameraLabel,
-                            onTap: _capturing ? null : _flip,
-                          ),
-                        ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -1371,8 +1391,8 @@ class _ShutterButtonState extends State<_ShutterButton> {
       semanticLabel: !widget.video
           ? l10n.cameraScreenTakePhotoLabel
           : widget.recording
-              ? l10n.cameraScreenStopRecordingLabel
-              : l10n.cameraScreenStartRecordingLabel,
+          ? l10n.cameraScreenStopRecordingLabel
+          : l10n.cameraScreenStartRecordingLabel,
       shape: FocusRingShape.circle,
       child: GestureDetector(
         onTap: widget.onTap,
@@ -1404,10 +1424,12 @@ class _ShutterButtonState extends State<_ShutterButton> {
                     // A circle everywhere except mid-recording, where the
                     // rounded square is the stop glyph every camera has used
                     // since phones had one.
-                    shape:
-                        widget.recording ? BoxShape.rectangle : BoxShape.circle,
-                    borderRadius:
-                        widget.recording ? BorderRadius.circular(6) : null,
+                    shape: widget.recording
+                        ? BoxShape.rectangle
+                        : BoxShape.circle,
+                    borderRadius: widget.recording
+                        ? BorderRadius.circular(6)
+                        : null,
                     color: (widget.video ? _recordRed : PhotoChrome.ink)
                         .withValues(alpha: widget.busy ? 0.4 : 1),
                   ),
@@ -1580,7 +1602,9 @@ class _RecordingBadge extends StatelessWidget {
             const SizedBox(width: 7),
             Text(
               counting
-                  ? AppLocalizations.of(context).composerCaptureTimeLeft(seconds)
+                  ? AppLocalizations.of(
+                      context,
+                    ).composerCaptureTimeLeft(seconds)
                   : formatClockDuration(elapsed),
               style: TextStyle(
                 color: counting ? _recordRed : PhotoChrome.ink,

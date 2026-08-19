@@ -9,6 +9,7 @@ import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../media/image_raster.dart';
 import '../theme/app_theme.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import '../widgets/liquid_glass.dart';
 import '../widgets/photo_chrome.dart';
@@ -535,30 +536,41 @@ class _ImageCropScreenState extends State<ImageCropScreen>
             style: theme.caption.copyWith(color: theme.inkMuted),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _CropButton(
-                  label: AppLocalizations.of(
-                    context,
-                  ).imageCropScreenCancelButton,
-                  onTap: _saving ? null : () => Navigator.of(context).pop(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _CropButton(
-                  label: _saving
-                      ? AppLocalizations.of(context).imageCropScreenSavingButton
-                      : (widget.confirmLabel ??
-                            AppLocalizations.of(
+          // Capped and centered so the pair stays a comfortable button width
+          // on a wide desktop window instead of each stretching to fill
+          // half of it — inert on a phone, where this ceiling is never
+          // reached.
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: ContentWidth.auth),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _CropButton(
+                      label: AppLocalizations.of(
+                        context,
+                      ).imageCropScreenCancelButton,
+                      onTap: _saving ? null : () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _CropButton(
+                      label: _saving
+                          ? AppLocalizations.of(
                               context,
-                            ).imageCropScreenDefaultConfirmLabel),
-                  filled: true,
-                  onTap: ready ? _confirm : null,
-                ),
+                            ).imageCropScreenSavingButton
+                          : (widget.confirmLabel ??
+                                AppLocalizations.of(
+                                  context,
+                                ).imageCropScreenDefaultConfirmLabel),
+                      filled: true,
+                      onTap: ready ? _confirm : null,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ],
       ),

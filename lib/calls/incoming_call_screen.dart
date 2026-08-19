@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../backend/chat_api.dart';
+import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
 import '../theme/theme_scope.dart';
@@ -73,8 +74,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
       _movedToCall = true;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) =>
-              CallScreen(service: widget.service, api: widget.api),
+          builder: (_) => CallScreen(service: widget.service, api: widget.api),
         ),
       );
       return;
@@ -122,10 +122,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                theme.accent.withValues(alpha: 0.55),
-                Colors.black,
-              ],
+              colors: [theme.accent.withValues(alpha: 0.55), Colors.black],
             ),
           ),
           child: SafeArea(
@@ -136,7 +133,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 // unmissable, not a faint caption.
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 10),
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -214,32 +213,41 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 const Spacer(),
                 Padding(
                   padding: const EdgeInsets.only(bottom: 56),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _RingButton(
-                        icon: Icons.call_end,
-                        background: theme.danger,
-                        label: _pending == _RingAction.reject
-                            ? l10n.typingIndicatorDeclineButtonDeclining
-                            : l10n.typingIndicatorDeclineButtonLabel,
-                        enabled: _pending == _RingAction.none,
-                        onTap: _reject,
+                  // Capped and centered so the two buttons stay a matched
+                  // pair on a wide desktop window instead of spaceEvenly
+                  // pushing them out to the far edges — on a phone this
+                  // ceiling is never reached, so nothing changes there.
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _RingButton(
+                            icon: Icons.call_end,
+                            background: theme.danger,
+                            label: _pending == _RingAction.reject
+                                ? l10n.typingIndicatorDeclineButtonDeclining
+                                : l10n.typingIndicatorDeclineButtonLabel,
+                            enabled: _pending == _RingAction.none,
+                            onTap: _reject,
+                          ),
+                          _RingButton(
+                            // Video calls accept with the camera glyph so the
+                            // user knows what they're walking into.
+                            icon: s?.mediaKind == CallMediaKind.video
+                                ? Icons.videocam
+                                : Icons.call,
+                            background: theme.success,
+                            label: _pending == _RingAction.accept
+                                ? l10n.typingIndicatorAcceptButtonConnecting
+                                : l10n.typingIndicatorAcceptButtonLabel,
+                            enabled: _pending == _RingAction.none,
+                            onTap: _accept,
+                          ),
+                        ],
                       ),
-                      _RingButton(
-                        // Video calls accept with the camera glyph so the
-                        // user knows what they're walking into.
-                        icon: s?.mediaKind == CallMediaKind.video
-                            ? Icons.videocam
-                            : Icons.call,
-                        background: theme.success,
-                        label: _pending == _RingAction.accept
-                            ? l10n.typingIndicatorAcceptButtonConnecting
-                            : l10n.typingIndicatorAcceptButtonLabel,
-                        enabled: _pending == _RingAction.none,
-                        onTap: _accept,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -271,15 +279,16 @@ class _RingButton extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Material(
-          color: bg,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
+        FocusableTap(
+          onTap: enabled ? onTap : null,
+          semanticLabel: label,
+          shape: FocusRingShape.circle,
+          child: GestureDetector(
             onTap: enabled ? onTap : null,
-            child: SizedBox(
+            child: Container(
               width: 76,
               height: 76,
+              decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
               child: Icon(
                 icon,
                 color: Colors.white.withValues(alpha: enabled ? 1.0 : 0.6),

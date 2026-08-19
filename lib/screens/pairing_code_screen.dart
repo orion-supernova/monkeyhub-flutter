@@ -7,7 +7,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../backend/chat_api.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_user.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
+import '../widgets/adaptive_page_body.dart';
 
 /// URI the QR encodes. The child app also accepts the bare six digits, so a
 /// parent reading them down the phone works just as well as a scan.
@@ -104,8 +106,11 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error =
-          AppLocalizations.of(context).destructiveSheetPairingMintError);
+      setState(
+        () => _error = AppLocalizations.of(
+          context,
+        ).destructiveSheetPairingMintError,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -126,104 +131,128 @@ class _PairingCodeScreenState extends State<PairingCodeScreen> {
                 _Header(
                   name: widget.child.displayName,
                   title: _releasing
-                      ? AppLocalizations.of(context)
-                          .destructiveSheetPairingReleaseTitle
-                      : AppLocalizations.of(context)
-                          .destructiveSheetPairingPairTitle,
+                      ? AppLocalizations.of(
+                          context,
+                        ).destructiveSheetPairingReleaseTitle
+                      : AppLocalizations.of(
+                          context,
+                        ).destructiveSheetPairingPairTitle,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          _releasing
-                              ? AppLocalizations.of(context)
-                                  .destructiveSheetPairingReleaseInstructions(
-                                      widget.child.displayName)
-                              : AppLocalizations.of(context)
-                                  .destructiveSheetPairingPairInstructions(
-                                      widget.child.displayName),
-                          style: theme.bodySoft,
-                        ),
-                        const SizedBox(height: 28),
-                        if (code == null)
-                          SizedBox(
-                            height: 220,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                color: theme.accent,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          )
-                        else ...[
-                          // No QR when releasing — the child's release screen
-                          // is a numeric field, and a scannable release code
-                          // is a code that can be grabbed off a screen.
-                          if (!_releasing) ...[
-                            _QrPanel(data: pairingUri(code), dimmed: _expired),
-                            const SizedBox(height: 24),
-                          ],
-                          _CodeDigits(code: code, dimmed: _expired),
-                          const SizedBox(height: 18),
-                          Center(
-                            child: Text(
-                              _expired
-                                  ? AppLocalizations.of(context)
-                                      .destructiveSheetPairingCodeExpired
-                                  : AppLocalizations.of(context)
-                                      .destructiveSheetPairingExpiresIn(
-                                          _fmt(_remaining)),
-                              style: theme.monoTiny.copyWith(
-                                color: _expired ? theme.danger : theme.inkMuted,
-                              ),
-                            ),
-                          ),
-                        ],
-                        if (_error != null) ...[
-                          const SizedBox(height: 16),
+                  child: AdaptivePageBody(
+                    maxWidth: ContentWidth.auth,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
                           Text(
-                            _error!,
-                            style: theme.body.copyWith(color: theme.danger),
+                            _releasing
+                                ? AppLocalizations.of(
+                                    context,
+                                  ).destructiveSheetPairingReleaseInstructions(
+                                    widget.child.displayName,
+                                  )
+                                : AppLocalizations.of(
+                                    context,
+                                  ).destructiveSheetPairingPairInstructions(
+                                    widget.child.displayName,
+                                  ),
+                            style: theme.bodySoft,
                           ),
-                        ],
-                        const SizedBox(height: 26),
-                        GestureDetector(
-                          onTap: _busy ? null : _mint,
-                          behavior: HitTestBehavior.opaque,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _expired ? theme.accent : Colors.transparent,
-                              border: _expired
-                                  ? null
-                                  : Border.all(color: theme.divider),
-                              borderRadius:
-                                  BorderRadius.circular(theme.radiusMd),
+                          const SizedBox(height: 28),
+                          if (code == null)
+                            SizedBox(
+                              height: 220,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: theme.accent,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            // No QR when releasing — the child's release screen
+                            // is a numeric field, and a scannable release code
+                            // is a code that can be grabbed off a screen.
+                            if (!_releasing) ...[
+                              _QrPanel(
+                                data: pairingUri(code),
+                                dimmed: _expired,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
+                            _CodeDigits(code: code, dimmed: _expired),
+                            const SizedBox(height: 18),
+                            Center(
+                              child: Text(
+                                _expired
+                                    ? AppLocalizations.of(
+                                        context,
+                                      ).destructiveSheetPairingCodeExpired
+                                    : AppLocalizations.of(
+                                        context,
+                                      ).destructiveSheetPairingExpiresIn(
+                                        _fmt(_remaining),
+                                      ),
+                                style: theme.monoTiny.copyWith(
+                                  color: _expired
+                                      ? theme.danger
+                                      : theme.inkMuted,
+                                ),
+                              ),
                             ),
-                            child: Text(
-                              AppLocalizations.of(context)
-                                  .destructiveSheetPairingNewCodeButton,
-                              style: theme.label.copyWith(
-                                letterSpacing: 2.4,
+                          ],
+                          if (_error != null) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              _error!,
+                              style: theme.body.copyWith(color: theme.danger),
+                            ),
+                          ],
+                          const SizedBox(height: 26),
+                          GestureDetector(
+                            onTap: _busy ? null : _mint,
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
                                 color: _expired
-                                    ? theme.accentInk
-                                    : theme.inkSoft,
+                                    ? theme.accent
+                                    : Colors.transparent,
+                                border: _expired
+                                    ? null
+                                    : Border.all(color: theme.divider),
+                                borderRadius: BorderRadius.circular(
+                                  theme.radiusMd,
+                                ),
+                              ),
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).destructiveSheetPairingNewCodeButton,
+                                style: theme.label.copyWith(
+                                  letterSpacing: 2.4,
+                                  color: _expired
+                                      ? theme.accentInk
+                                      : theme.inkSoft,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          AppLocalizations.of(context)
-                              .destructiveSheetPairingOneUseNote,
-                          style: theme.monoTiny.copyWith(color: theme.inkMuted),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 20),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            ).destructiveSheetPairingOneUseNote,
+                            style: theme.monoTiny.copyWith(
+                              color: theme.inkMuted,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

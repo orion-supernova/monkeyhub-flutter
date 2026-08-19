@@ -140,11 +140,19 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
     final anyReconnecting = peers.any((p) => p.reconnecting);
     final isVideo = svc.mediaKind == CallMediaKind.video;
     final tileCount = peers.length + 1; // + me
-    final columns = tileCount <= 1
+    // Baseline matches the phone behaviour this always had. On a wide
+    // desktop window, add columns instead of leaving 1-3 tiles to balloon to
+    // fill the width — a grid call reads like Zoom/Meet, not a phone photo
+    // stretched onto a monitor.
+    final baselineColumns = tileCount <= 1
         ? 1
         : tileCount <= 4
         ? 2
         : 3;
+    final columns = (MediaQuery.sizeOf(context).width / 220).floor().clamp(
+      baselineColumns,
+      tileCount,
+    );
 
     return PopScope(
       canPop: false,
@@ -163,10 +171,12 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                         Expanded(
                           child: Text(
                             isVideo
-                                ? AppLocalizations.of(context)
-                                      .groupCallScreenTitleVideo
-                                : AppLocalizations.of(context)
-                                      .groupCallScreenTitleVoice,
+                                ? AppLocalizations.of(
+                                    context,
+                                  ).groupCallScreenTitleVideo
+                                : AppLocalizations.of(
+                                    context,
+                                  ).groupCallScreenTitleVoice,
                             style: theme.displaySmall.copyWith(
                               color: Colors.white,
                             ),
@@ -200,7 +210,9 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
                       padding: const EdgeInsets.only(top: 4, bottom: 4),
                       child: _chip(
                         theme,
-                        AppLocalizations.of(context).groupCallScreenReconnecting,
+                        AppLocalizations.of(
+                          context,
+                        ).groupCallScreenReconnecting,
                       ),
                     ),
                   Expanded(
@@ -226,88 +238,101 @@ class _GroupCallScreenState extends State<GroupCallScreen> {
               ),
             ),
             Positioned(
-              left: 16,
-              right: 16,
+              left: 0,
+              right: 0,
               bottom: 0,
               child: SafeArea(
                 top: false,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.10),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
+                // Capped and centered so the tray reads as one grouped
+                // control on a wide desktop window instead of stretching
+                // edge to edge — inert on a phone, where this ceiling is
+                // never reached.
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ).add(const EdgeInsets.only(bottom: 10)),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(30),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _control(
+                                  icon: svc.localMuted
+                                      ? Icons.mic_off
+                                      : Icons.mic,
+                                  active: svc.localMuted,
+                                  label: svc.localMuted
+                                      ? AppLocalizations.of(
+                                          context,
+                                        ).groupCallScreenUnmuteLabel
+                                      : AppLocalizations.of(
+                                          context,
+                                        ).groupCallScreenMuteLabel,
+                                  onTap: svc.toggleMute,
+                                ),
+                                if (isVideo)
+                                  _control(
+                                    icon: svc.localVideoOff
+                                        ? Icons.videocam_off
+                                        : Icons.videocam,
+                                    active: svc.localVideoOff,
+                                    label: svc.localVideoOff
+                                        ? AppLocalizations.of(
+                                            context,
+                                          ).groupCallScreenCamOnLabel
+                                        : AppLocalizations.of(
+                                            context,
+                                          ).groupCallScreenCamOffLabel,
+                                    onTap: svc.toggleVideo,
+                                  ),
+                                if (isVideo)
+                                  _control(
+                                    icon: Icons.cameraswitch_outlined,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    ).groupCallScreenFlipLabel,
+                                    onTap: svc.switchCamera,
+                                  ),
+                                _control(
+                                  icon: svc.speakerOn
+                                      ? Icons.volume_up
+                                      : Icons.phone_in_talk,
+                                  active: svc.speakerOn,
+                                  label: AppLocalizations.of(
+                                    context,
+                                  ).groupCallScreenSpeakerLabel,
+                                  onTap: svc.toggleSpeaker,
+                                ),
+                                _control(
+                                  icon: Icons.call_end,
+                                  label: AppLocalizations.of(
+                                    context,
+                                  ).groupCallScreenLeaveLabel,
+                                  background: theme.danger,
+                                  iconColor: Colors.white,
+                                  large: true,
+                                  onTap: () => unawaited(svc.leaveCall()),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _control(
-                              icon: svc.localMuted ? Icons.mic_off : Icons.mic,
-                              active: svc.localMuted,
-                              label: svc.localMuted
-                                  ? AppLocalizations.of(
-                                      context,
-                                    ).groupCallScreenUnmuteLabel
-                                  : AppLocalizations.of(
-                                      context,
-                                    ).groupCallScreenMuteLabel,
-                              onTap: svc.toggleMute,
-                            ),
-                            if (isVideo)
-                              _control(
-                                icon: svc.localVideoOff
-                                    ? Icons.videocam_off
-                                    : Icons.videocam,
-                                active: svc.localVideoOff,
-                                label: svc.localVideoOff
-                                    ? AppLocalizations.of(
-                                        context,
-                                      ).groupCallScreenCamOnLabel
-                                    : AppLocalizations.of(
-                                        context,
-                                      ).groupCallScreenCamOffLabel,
-                                onTap: svc.toggleVideo,
-                              ),
-                            if (isVideo)
-                              _control(
-                                icon: Icons.cameraswitch_outlined,
-                                label: AppLocalizations.of(
-                                  context,
-                                ).groupCallScreenFlipLabel,
-                                onTap: svc.switchCamera,
-                              ),
-                            _control(
-                              icon: svc.speakerOn
-                                  ? Icons.volume_up
-                                  : Icons.phone_in_talk,
-                              active: svc.speakerOn,
-                              label: AppLocalizations.of(
-                                context,
-                              ).groupCallScreenSpeakerLabel,
-                              onTap: svc.toggleSpeaker,
-                            ),
-                            _control(
-                              icon: Icons.call_end,
-                              label: AppLocalizations.of(
-                                context,
-                              ).groupCallScreenLeaveLabel,
-                              background: theme.danger,
-                              iconColor: Colors.white,
-                              large: true,
-                              onTap: () => unawaited(svc.leaveCall()),
-                            ),
-                          ],
                         ),
                       ),
                     ),
