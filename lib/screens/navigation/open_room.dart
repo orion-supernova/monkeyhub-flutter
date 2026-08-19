@@ -17,11 +17,23 @@ import '../room_screen.dart';
 ///
 /// This is the single decision point that lets the ~12 existing room-open call
 /// sites keep their phone behavior unchanged while gaining desktop panes.
+///
+/// [instant] skips [MaterialPageRoute]'s own ~300ms slide-in, pushing
+/// [RoomScreen] with no transition of its own. For a caller that already
+/// played a complete visual transition of its own and just needs the real
+/// screen to appear underneath it once that's done — `chat_row_action_menu
+/// .dart`'s long-press preview flight, currently the only caller that passes
+/// this — the platform's default transition doesn't layer on top of that, it
+/// competes with it: the screen would visibly keep sliding in for another
+/// 300ms after the preview's own animation had already finished, reading as
+/// a stall between "the preview finished" and "the room showed up" rather
+/// than one continuous motion.
 void openRoom(
   BuildContext context, {
   required String roomId,
   required ChatRepository repo,
   required ChatApi api,
+  bool instant = false,
 }) {
   if (context.isExpanded) {
     SettingsStore.instance.setSection(HomeSection.chat);
@@ -38,9 +50,14 @@ void openRoom(
   // user there after backing out of a room opened from Feed/Settings.
   UiSelectionStore.instance.selectRoom(roomId);
   Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
-    ),
+    instant
+        ? PageRouteBuilder<void>(
+            transitionDuration: Duration.zero,
+            pageBuilder: (_, _, _) => RoomScreen(roomId: roomId, repo: repo, api: api),
+          )
+        : MaterialPageRoute(
+            builder: (_) => RoomScreen(roomId: roomId, repo: repo, api: api),
+          ),
   );
 }
 

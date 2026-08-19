@@ -100,6 +100,9 @@ void main() {
                   // either way.
                   isMuted: false,
                   canMute: true,
+                  // This file never taps the preview — see the dedicated
+                  // test below for that.
+                  onOpenRoom: () {},
                 ),
                 child: Builder(builder: row),
               ),
@@ -189,5 +192,93 @@ void main() {
 
     await gesture.up();
     await frames(tester, 4);
+  });
+
+  testWidgets('tapping the lifted preview opens the room, not a menu row', (
+    tester,
+  ) async {
+    // Deliberately not `pumpRow`: this test needs the menu's own returned
+    // Future, which that helper doesn't expose, and duplicating the small
+    // setup here keeps the three timing-sensitive tests above untouched.
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final anchorKey = GlobalKey();
+    Widget row(BuildContext context) => const SizedBox(
+      height: 72,
+      width: 360,
+      child: ColoredBox(color: Color(0xFF202020)),
+    );
+
+    Future<ChatRowAction?>? result;
+    var openedRoom = false;
+    await tester.pumpWidget(
+      ThemeScope(
+        controller: ThemeController(BasicTheme.midnight()),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: Center(
+              child: ChatRowLongPress(
+                key: anchorKey,
+                onLongPress: () {
+                  result = showChatRowActionMenu(
+                    context: anchorKey.currentContext!,
+                    anchorKey: anchorKey,
+                    previewBuilder: row,
+                    isPinned: false,
+                    isArchived: false,
+                    isMuted: false,
+                    canMute: true,
+                    onOpenRoom: () => openedRoom = true,
+                  );
+                },
+                child: Builder(builder: row),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(ChatRowLongPress)),
+    );
+    await tester.pump(kActionMenuLongPress + const Duration(milliseconds: 16));
+    await tester.pump();
+    await gesture.up();
+    await frames(tester);
+
+    expect(menu, findsOneWidget, reason: 'the menu should be open by now');
+
+    // The overlay paints above everything in the root Overlay, so a tap at
+    // the row's own on-screen rect lands on the LIFTED copy sitting on top
+    // of it — same as a reader tapping what they see, not the row
+    // underneath it. That copy is a sibling widget tree, not a descendant of
+    // the `ChatRowLongPress` this coordinate is taken from, which is exactly
+    // why the hit isn't found "on" that finder — silencing rather than fixing
+    // is correct here.
+    await tester.tap(find.byType(ChatRowLongPress), warnIfMissed: false);
+    // pumpAndSettle rather than frames() here: no pointer is held down (the
+    // tap already released) and the flight's own two controllers are
+    // finite — nothing here can spin forever the way a live gesture could.
+    await tester.pumpAndSettle();
+
+    expect(
+      openedRoom,
+      isTrue,
+      reason:
+          'onOpenRoom fires directly from the flight, not through the '
+          'resolved action below',
+    );
+    expect(
+      await result,
+      ChatRowAction.open,
+      reason:
+          'tapping the preview should open the room, the same shortcut a '
+          'plain tap on the row already gives',
+    );
   });
 }

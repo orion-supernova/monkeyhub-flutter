@@ -16,6 +16,7 @@ import '../models/chat_user.dart';
 import '../models/message_preview.dart';
 import '../theme/app_theme.dart';
 import '../theme/interaction.dart';
+import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
 import 'count_badge.dart';
 import 'glass_surface.dart';
@@ -27,7 +28,20 @@ import 'typing_indicator.dart';
 import 'user_avatar.dart';
 import 'visibility_badge.dart';
 
-enum ChatRowAction { pin, unpin, archive, unarchive, mute, unmute }
+enum ChatRowAction {
+  pin,
+  unpin,
+  archive,
+  unarchive,
+  mute,
+  unmute,
+
+  /// Not one of the menu's rows — resolved when the lifted preview card
+  /// itself is tapped rather than one of the options below it. The same
+  /// action the room's own row already offers on a plain tap; the preview
+  /// existing at all shouldn't cost a reader that shortcut.
+  open,
+}
 
 /// The hold that opens [showChatRowActionMenu] on a chat-list row.
 ///
@@ -110,6 +124,20 @@ class ChatRowLongPress extends StatelessWidget {
 /// [canMute] comes from the room's capability table
 /// (`lib/models/room_capabilities.dart`) and hides the row for the one kind of
 /// room where a mute would provably do nothing.
+///
+/// [onOpenRoom] is called directly by the overlay — not surfaced through the
+/// returned Future the way pin/archive/mute are — when the lifted card
+/// itself is tapped. Tapping the card commits to opening the room, and on
+/// compact/medium windows that means growing the card into a full-screen
+/// panel first (see `_ChatRowActionMenuOverlayState._beginOpen`); the callback
+/// fires once that panel already covers the screen, so the real route
+/// mounts invisibly underneath it rather than sliding in on top. On an
+/// expanded (desktop) window there is no full-screen destination to grow
+/// into — the room just replaces what's in the existing detail pane — so
+/// there [onOpenRoom] fires immediately and the overlay simply closes.
+/// Bind it to whatever the caller's own room-open helper is (see
+/// `open_room.dart`'s `openRoom`); this file has no opinion on how a room
+/// actually opens, only on when to ask for it.
 Future<ChatRowAction?> showChatRowActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
@@ -118,6 +146,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
   required bool isArchived,
   required bool isMuted,
   required bool canMute,
+  required VoidCallback onOpenRoom,
 }) async {
   final overlay = Overlay.of(context, rootOverlay: true);
   final anchorCtx = anchorKey.currentContext;
@@ -142,6 +171,7 @@ Future<ChatRowAction?> showChatRowActionMenu({
       isArchived: isArchived,
       isMuted: isMuted,
       canMute: canMute,
+      onOpenRoom: onOpenRoom,
       onResolve: (result) {
         if (!completer.isCompleted) completer.complete(result);
         try {
@@ -164,6 +194,7 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
     required this.isArchived,
     required this.isMuted,
     required this.canMute,
+    required this.onOpenRoom,
     required this.onResolve,
   });
 
@@ -175,15 +206,40 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   final bool isArchived;
   final bool isMuted;
   final bool canMute;
+  final VoidCallback onOpenRoom;
   final ValueChanged<ChatRowAction?> onResolve;
 
   @override
   State<_ChatRowActionMenuOverlay> createState() => _ChatRowActionMenuOverlayState();
 }
 
-class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> with SingleTickerProviderStateMixin {
+class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> with TickerProviderStateMixin {
   late final AnimationController _ctrl;
+
+  /// 0→1 over [_flying]'s duration: grows the card from its normal preview
+  /// rect to the full screen, and its corner radius from the card's own down
+  /// to square. See [_beginOpen].
+  late final AnimationController _growCtrl;
+
+  /// 0→1 once [_growCtrl] finishes: fades this WHOLE overlay out, revealing
+  /// the real route [_beginOpen] pushed the instant the panel above finished
+  /// covering the screen. See [_beginOpen].
+  late final AnimationController _revealCtrl;
   bool _closing = false;
+
+  /// True from the moment the card is tapped. Distinct from [_closing]: a
+  /// flight commits to opening the room and runs to completion regardless —
+  /// there is no reversing a "we're navigating" decision the way there is a
+  /// plain dismiss, so every other gesture (scrim tap, menu rows) gets
+  /// disabled the instant this flips.
+  bool _flying = false;
+
+  /// Built exactly once, on first use, and reused for the rest of this
+  /// overlay's life — see where it's read in [build] for why. `late` rather
+  /// than computed inline: it needs to survive being read from many frames
+  /// across two different animations, not get rebuilt as a side effect of
+  /// either one ticking.
+  Widget? _previewContent;
 
   // The preview and the menu below it share one width — not the pressed
   // row's own. A row's rect is whatever the list laid it out at (a home-tab
@@ -205,21 +261,74 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
       duration: const Duration(milliseconds: 200),
       reverseDuration: const Duration(milliseconds: 140),
     );
+    _growCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+    );
+    _revealCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    );
     _ctrl.forward();
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _growCtrl.dispose();
+    _revealCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _resolve(ChatRowAction? result) async {
-    if (_closing) return;
+    if (_closing || _flying) return;
     _closing = true;
     await _ctrl.reverse();
     if (!mounted) return;
     widget.onResolve(result);
+  }
+
+  /// Tapping the lifted card commits to opening the room — see
+  /// [showChatRowActionMenu]'s doc for the split between an immediate desktop
+  /// open and a full-screen flight everywhere else.
+  ///
+  /// The flight itself never touches `RoomScreen`, never pushes more than the
+  /// one real route, and never uses `Hero` — a genuine Hero flight needs both
+  /// ends on the Navigator, and this card lives in a root `Overlay` instead
+  /// (see `showChatRowActionMenu`'s own doc for why: the anchor-then-overlay
+  /// technique this menu shares with `message_action_menu.dart`). So instead
+  /// of morphing the card's own content into the transcript — content that
+  /// was never going to survive contact with `RoomScreen`'s real layout
+  /// anyway — [_growCtrl] grows a plain panel, in the room's background
+  /// color, from the card's rect to the full screen with its corners
+  /// straightening out as it goes. The instant that panel finishes covering
+  /// the screen, [widget.onOpenRoom] mounts the real route underneath it —
+  /// invisibly, since the panel is already the same flat color the screen is
+  /// about to be — and [_revealCtrl] dissolves this whole overlay away to
+  /// show it. Two plain tweens standing in for a Hero flight, not a
+  /// substitute for one: the "growing panel, then a dissolve" shape is what
+  /// reads as premium, not literal continuity of pixels the card was never
+  /// going to keep anyway.
+  Future<void> _beginOpen() async {
+    if (_closing || _flying) return;
+    if (context.isExpanded) {
+      // No full-screen destination to grow into on a desktop window — the
+      // room just replaces what's already showing in the detail pane, so
+      // this closes exactly like any other menu action.
+      widget.onOpenRoom();
+      await _resolve(ChatRowAction.open);
+      return;
+    }
+    setState(() => _flying = true);
+    await _growCtrl.forward();
+    if (!mounted) return;
+    widget.onOpenRoom();
+    await _revealCtrl.forward();
+    if (!mounted) return;
+    // Not `_resolve`: that reverses `_ctrl` to shrink the card back down,
+    // which would fight the flight it just finished. `_revealCtrl` already
+    // faded everything to nothing — removing the entry now is invisible.
+    widget.onResolve(ChatRowAction.open);
   }
 
   List<ChatRowAction> get _actions => [
@@ -230,9 +339,24 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeScope.of(context);
     final actions = _actions;
     final menuHeight = actions.length * _rowHeight + 12;
     const previewHeight = previewCardHeight;
+
+    // This whole method reruns on every tick of the entrance animation AND
+    // both flight animations — up to ~640ms at 60fps, so dozens of calls.
+    // `widget.previewBuilder` builds a real `ChatRowPreviewCard`: an avatar,
+    // a badge row, a scrollable transcript of chat bubbles. None of that
+    // depends on anything any of these animations are interpolating — only
+    // the RECT it sits inside does — so calling it fresh on every one of
+    // those dozens of ticks was rebuilding that entire subtree for no
+    // reason, on top of whatever it was actually meant to animate. Cached
+    // once and reused as the SAME widget instance from then on: Flutter's
+    // own element diffing skips rebuilding a child entirely when it's
+    // `identical()` to what was there last frame, which turns this from
+    // "rebuild a transcript's ListView 40 times" into "build it once."
+    final previewContent = _previewContent ??= Builder(builder: widget.previewBuilder);
 
     // The card grows DOWN from where the row was pressed — the row already
     // read top-to-bottom, so its top edge is the one fixed point a reader's
@@ -271,48 +395,202 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
     final previewRect = Rect.fromLTWH(left, previewTop, cardWidth, previewHeight);
     final menuTop = previewRect.bottom + gap;
 
+    // The scrim and the menu have nothing to do once a flight is under way —
+    // both fade out fast (well inside the first third of the grow) rather
+    // than riding the whole 340ms out, so they're gone before the panel is
+    // even halfway to full screen. `IgnorePointer` follows a beat behind
+    // rather than flipping the instant `_flying` does, so a hold-and-release
+    // that lands right as the tap fires can't graze a still-fading menu row.
+    final flightFade = _flying
+        ? Curves.easeIn.transform((_growCtrl.value / 0.35).clamp(0.0, 1.0))
+        : 0.0;
+    final chromeVisible = 1 - flightFade;
+    final chromeInert = flightFade > 0.5;
+
+    // fastOutSlowIn, not easeOutCubic: a cubic ease-OUT front-loads almost
+    // all the size change into roughly the first third of the duration and
+    // spends the rest barely moving at all — the box reads as having
+    // "jumped" to nearly its final size immediately, then the remaining
+    // ~250ms of an already-finished-looking motion is dead air before
+    // anything else happens. fastOutSlowIn — Material's own standard curve
+    // for exactly this "container transform" shape — still starts brisk but
+    // keeps visibly moving well into the back half, which is what actually
+    // reads as one continuous grow instead of a snap-then-wait.
+    final growT = Curves.fastOutSlowIn.transform(_growCtrl.value);
+    final flightRect =
+        _flying ? Rect.lerp(previewRect, Offset.zero & widget.screenSize, growT)! : previewRect;
+    final flightRadius = (1 - growT) * theme.radiusXl;
+    // The lift's 3% scale reads as a subtle press-lift on a card-sized box;
+    // unwound to 0 by the time the box is near fullscreen, where the same 3%
+    // would push real pixels past the screen's own edges — see _LiftedRow's
+    // doc for why nothing else would catch that.
+    final liftT = _flying ? 1 - growT : 1.0;
+    // Between the sixth and just past half of the grow: late enough that the
+    // card visibly starts expanding before its content disappears — the
+    // continuity a flight needs — but not so late that a "small content
+    // adrift in a mostly-blank, nearly-fullscreen panel" phase lingers,
+    // which read as broken rather than smooth. Held at 1 for the reveal too:
+    // once `RoomScreen` mounts underneath, this panel needs to already be a
+    // flat match for its background, not the card fading back in first.
+    final contentFade = _flying
+        ? Curves.easeIn.transform(((_growCtrl.value - 0.16) / 0.38).clamp(0.0, 1.0))
+        : 0.0;
+    // The first ~30% of `_revealCtrl` maps to a flat 0, not a separate real
+    // delay — `RoomScreen`'s first frame still has its own layout/data
+    // settling to do (subscriptions resolving, its first real message list
+    // laying out) once `onOpenRoom` mounts it, and revealing on the very
+    // frame it mounts is what put that settling on screen, under a fade,
+    // right as the flight was supposed to be finishing. An `Interval`
+    // keeps this one continuous `forward()` — the controller is ticking the
+    // entire time — rather than pausing execution for a beat and then
+    // starting a second animation.
+    final revealT = const Interval(0.3, 1.0, curve: Curves.easeOut).transform(_revealCtrl.value);
+
     // Material(type: transparency) supplies the DefaultTextStyle that the
     // root overlay otherwise lacks — without it, every Text inside paints
     // Flutter's debug "missing ancestor" yellow underlines.
-    return Material(
-      type: MaterialType.transparency,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, child) {
-          return Stack(
-            children: [
-              _Scrim(t: _ctrl, onTap: () => _resolve(null)),
-              _LiftedRow(
-                t: _ctrl,
-                rect: previewRect,
-                child: Builder(builder: widget.previewBuilder),
-              ),
-              Positioned(
-                left: left,
-                top: menuTop,
-                width: cardWidth,
-                child: Opacity(
-                  opacity: _ctrl.value,
-                  child: Transform.translate(
-                    offset: Offset(0, -8 * (1 - _ctrl.value)),
-                    child: Transform.scale(
-                      scale: 0.92 + 0.08 * _ctrl.value,
-                      alignment: Alignment.topLeft,
-                      child: child,
+    return IgnorePointer(
+      // Once the reveal starts, the real route is already mounted directly
+      // underneath this overlay — it needs to start receiving taps well
+      // before this fade finishes, not wait out the last 220ms of a panel
+      // that's already invisible.
+      ignoring: _revealCtrl.value > 0,
+      child: Opacity(
+        opacity: 1 - revealT,
+        child: Material(
+          type: MaterialType.transparency,
+          child: AnimatedBuilder(
+            animation: Listenable.merge([_ctrl, _growCtrl, _revealCtrl]),
+            builder: (context, child) {
+              return Stack(
+                children: [
+                  // Gone the instant a flight starts, not faded out with the
+                  // menu: `BackdropFilter` runs a real blur pass every frame
+                  // it's in the tree, and that cost doesn't scale down with
+                  // its own opacity — a gradual fade would still pay full
+                  // blur cost for the ~130ms it takes to reach zero. That's
+                  // real, visible cost on a simulator's software renderer,
+                  // landing right in the fastest, most visible part of the
+                  // grow — exactly the kind of per-frame tax that reads as a
+                  // dropped-frame "jump" rather than smooth motion. The card
+                  // has already started covering it by the time it vanishes,
+                  // so there's nothing left for a fade to soften anyway.
+                  if (!_flying)
+                    _Scrim(
+                      t: _ctrl,
+                      onTap: () => _resolve(null),
+                      visibility: chromeVisible,
+                    ),
+                  _LiftedRow(
+                    t: _ctrl,
+                    rect: flightRect,
+                    liftT: liftT,
+                    // Only wrapped in the extra ClipRRect+Stack once a flight
+                    // is actually under way — at rest this is a bare
+                    // GestureDetector, exactly as it was before any of this
+                    // existed. That's deliberate, not incidental: nesting
+                    // this inside a Stack under a ClipRRect changed how a
+                    // `tester.tap` at the row's own screen point resolved
+                    // through the gesture arena in testing, even though
+                    // nothing about the tappable AREA should have changed —
+                    // rather than chase why, the fix is to only add that
+                    // extra structure once it's actually needed, which is
+                    // never true before `_flying`.
+                    child: _flying
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(flightRadius),
+                            child: Stack(
+                              children: [
+                                // Stays mounted and visible through the whole
+                                // grow — the card's own fixed-height bands
+                                // don't stretch to fill the larger box, they
+                                // just stay put at their natural size while
+                                // the box grows around them, which is
+                                // exactly the "the thing you pressed is what
+                                // is expanding" continuity a flight needs.
+                                // Swapping this out for a blank panel the
+                                // instant the tap lands, however briefly, was
+                                // what read as the preview going blank
+                                // before it had visibly gone anywhere.
+                                //
+                                // RepaintBoundary because none of that is
+                                // actually ANIMATING internally — the
+                                // transcript's ListView, the avatar's
+                                // RemoteImage — it just sits there while the
+                                // box around it grows. `previewContent` is
+                                // already the same cached instance across
+                                // every frame (see `build`'s top) so it was
+                                // never going to rebuild here regardless;
+                                // `RepaintBoundary` is the other half of that
+                                // — caching the RASTER too, so the (now
+                                // static) content doesn't get repainted just
+                                // because the clip/transform around it is.
+                                // Not interactive any more either —
+                                // `_beginOpen`'s own guard already makes a
+                                // second tap a no-op, so there is nothing
+                                // left for a GestureDetector to do here.
+                                RepaintBoundary(child: previewContent),
+                                if (contentFade > 0)
+                                  IgnorePointer(
+                                    child: Opacity(
+                                      opacity: contentFade,
+                                      // The room's own background, not the
+                                      // card's — by the time this fully
+                                      // covers the panel it needs to already
+                                      // be the color `RoomScreen` opens on,
+                                      // so the route mounting underneath a
+                                      // moment later is invisible rather
+                                      // than a color flash.
+                                      child: ColoredBox(color: theme.background),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          )
+                        : GestureDetector(
+                            // Opaque so a tap over the card's padding/gaps —
+                            // not just its painted content — still counts. A
+                            // drag over the transcript's own ListView still
+                            // wins that gesture arena; only a
+                            // tap-without-drag reaches here.
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _beginOpen,
+                            child: previewContent,
+                          ),
+                  ),
+                  Positioned(
+                    left: left,
+                    top: menuTop,
+                    width: cardWidth,
+                    child: IgnorePointer(
+                      ignoring: chromeInert,
+                      child: Opacity(
+                        opacity: _ctrl.value * chromeVisible,
+                        child: Transform.translate(
+                          offset: Offset(0, -8 * (1 - _ctrl.value)),
+                          child: Transform.scale(
+                            scale: 0.92 + 0.08 * _ctrl.value,
+                            alignment: Alignment.topLeft,
+                            child: child,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
+              );
+            },
+            child: GlassSurface(
+              radius: 16,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final action in actions) _ChatRowActionRow(action: action, onTap: () => _resolve(action)),
+                ],
               ),
-            ],
-          );
-        },
-        child: GlassSurface(
-          radius: 16,
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [for (final action in actions) _ChatRowActionRow(action: action, onTap: () => _resolve(action))],
+            ),
           ),
         ),
       ),
@@ -326,9 +604,18 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay> wi
 /// `message_action_menu.dart`'s `_Scrim` gives a long-pressed message bubble,
 /// so a long-pressed chat row reads as the same gesture with the same weight.
 class _Scrim extends StatelessWidget {
-  const _Scrim({required this.t, required this.onTap});
+  const _Scrim({required this.t, required this.onTap, this.visibility = 1});
   final Animation<double> t;
   final VoidCallback onTap;
+
+  /// A plain multiplier, not its own [Animation] — this widget is rebuilt
+  /// fresh every tick of whichever [AnimatedBuilder] constructs it (see
+  /// `_ChatRowActionMenuOverlayState.build`), so a field read here is always
+  /// current without needing to merge another `Listenable`. Lets the flight
+  /// fade the scrim out — a fullscreen panel has nothing left to dim behind
+  /// it — without touching [t], which still drives the entrance/exit this
+  /// widget shares with everything else keyed to it.
+  final double visibility;
 
   @override
   Widget build(BuildContext context) {
@@ -339,18 +626,19 @@ class _Scrim extends StatelessWidget {
         child: AnimatedBuilder(
           animation: t,
           builder: (_, _) {
+            final alpha = t.value * visibility;
             return Stack(
               children: [
                 Positioned.fill(
                   child: IgnorePointer(
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 22 * t.value, sigmaY: 22 * t.value),
+                      filter: ImageFilter.blur(sigmaX: 22 * alpha, sigmaY: 22 * alpha),
                       child: const SizedBox.expand(),
                     ),
                   ),
                 ),
                 Positioned.fill(
-                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.32 * t.value)),
+                  child: ColoredBox(color: Colors.black.withValues(alpha: 0.32 * alpha)),
                 ),
               ],
             );
@@ -370,11 +658,13 @@ class _Scrim extends StatelessWidget {
 ///
 /// Unlike the lifted bubble — and unlike this card before it grew a real
 /// scrollable transcript — NOT `IgnorePointer`-wrapped: [ChatRowPreviewCard]'s
-/// transcript band needs a finger to actually reach it and drag. A tap
-/// anywhere else on the card simply lands on nothing tappable, which is a
-/// fine trade for scrolling working at all; tapping the scrim outside the
-/// card's rect still dismisses, since that's a separate widget beneath this
-/// one in the stack.
+/// transcript band needs a finger to actually reach it and drag, and its
+/// `child` is itself wrapped in a `GestureDetector` that resolves
+/// [ChatRowAction.open] on a plain tap — the same shortcut tapping the real
+/// row would have given, so previewing it first shouldn't cost that. A drag
+/// over the transcript still wins its own gesture arena and just scrolls;
+/// tapping the scrim outside the card's rect still dismisses, since that's a
+/// separate widget beneath this one in the stack.
 ///
 /// [rect] is no longer the anchor row's own rect verbatim: the overlay grows
 /// it downward from the row's top-left into the taller band
@@ -382,10 +672,27 @@ class _Scrim extends StatelessWidget {
 /// that grown size rather than a redraw of the small row at its original
 /// size — see `showChatRowActionMenu`'s doc for why.
 class _LiftedRow extends StatelessWidget {
-  const _LiftedRow({required this.t, required this.rect, required this.child});
+  const _LiftedRow({
+    required this.t,
+    required this.rect,
+    required this.child,
+    this.liftT = 1,
+  });
   final Animation<double> t;
   final Rect rect;
   final Widget child;
+
+  /// How much of the lift's own 3% scale + shadow still applies, 0-1 — NOT
+  /// the same knob as [t]. [t] is the entrance/exit and stays pinned at 1
+  /// for the whole of a flight, so left alone the lift would too: 3% of a
+  /// ~320×400 card is a few imperceptible pixels, but 3% of a box CENTER-
+  /// SCALED to nearly the size of the screen is real pixels pushed past its
+  /// physical edges — nothing clips a `Transform.scale`'s paint back to the
+  /// screen, so that overflow doesn't error, it just renders, which is
+  /// exactly the "goes off screen" a flight's tail end doesn't want. The
+  /// overlay fades this to 0 as the grow finishes rather than ever letting
+  /// scale exceed 1 near fullscreen.
+  final double liftT;
 
   @override
   Widget build(BuildContext context) {
@@ -397,14 +704,14 @@ class _LiftedRow extends StatelessWidget {
       child: AnimatedBuilder(
         animation: t,
         builder: (_, c) {
-          final scale = 1 + 0.03 * t.value;
+          final scale = 1 + 0.03 * t.value * liftT;
           return Transform.scale(
             scale: scale,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.18 * t.value),
+                    color: Colors.black.withValues(alpha: 0.18 * t.value * liftT),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -900,6 +1207,12 @@ class _ChatRowActionRowState extends State<_ChatRowActionRow> {
     ChatRowAction.unarchive => (CupertinoIcons.tray_arrow_up, l10n.chatRowActionMenuUnarchiveLabel),
     ChatRowAction.mute => (CupertinoIcons.bell_slash, l10n.chatRowActionMenuMuteLabel),
     ChatRowAction.unmute => (CupertinoIcons.bell, l10n.chatRowActionMenuUnmuteLabel),
+    // Never actually reached: `_actions` (the only place a `ChatRowAction`
+    // becomes an `_ChatRowActionRow`) never includes `open` — it resolves
+    // straight from a tap on the lifted card, not a row in this list. Listed
+    // so a genuine future menu row for it fails here instead of silently
+    // rendering nothing.
+    ChatRowAction.open => throw UnimplementedError('open is not a menu row'),
   };
 
   @override

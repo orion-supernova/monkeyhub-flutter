@@ -624,6 +624,13 @@ class _RoomsPanelState extends State<_RoomsPanel> {
       isArchived: room.isArchived,
       isMuted: room.isMuted,
       canMute: widget.repo.capabilitiesFor(room).canMute,
+      // Same call the row's own onTap makes — see `_row`/`_gridTile` below.
+      // Called directly by the overlay, not through `action` below — on
+      // compact/medium it fires mid-flight, once the grown panel already
+      // covers the screen, not after this whole Future resolves. See
+      // `showChatRowActionMenu`'s doc.
+      onOpenRoom: () =>
+          openRoom(context, roomId: room.id, repo: repo, api: widget.api, instant: true),
     );
     if (!mounted) return;
     switch (action) {
@@ -647,6 +654,10 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         break;
       case ChatRowAction.unmute:
         await widget.repo.unmuteRoom(room.id);
+        break;
+      case ChatRowAction.open:
+        // Already handled by onOpenRoom above, called by the overlay itself
+        // at the right moment in its own flight — nothing left to do here.
         break;
       case null:
         break;
