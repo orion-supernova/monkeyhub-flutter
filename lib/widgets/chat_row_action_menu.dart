@@ -533,9 +533,25 @@ class ChatRowPreviewCard extends StatelessWidget {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
     final subtitle = roomSubtitle(context, room);
+    // `Container` folds a `decoration`'s border width into the padding it
+    // gives its child — border and background together would shrink this
+    // card's content band by the current theme's border width (0.5 to 2,
+    // depending on theme), overflowing the fixed height `previewCardHeight`
+    // promised the overlay. `foregroundDecoration` paints the border after
+    // layout instead, so the padding box stays exactly `_previewPadding`
+    // regardless of which theme's border is active.
+    final cardDecoration = theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false);
     return Container(
       padding: const EdgeInsets.all(_previewPadding),
-      decoration: theme.roomCardDecoration(ephemeral: room.isEphemeral, active: false),
+      decoration: BoxDecoration(
+        color: cardDecoration.color,
+        borderRadius: cardDecoration.borderRadius,
+        boxShadow: cardDecoration.boxShadow,
+      ),
+      foregroundDecoration: BoxDecoration(
+        border: cardDecoration.border,
+        borderRadius: cardDecoration.borderRadius,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
