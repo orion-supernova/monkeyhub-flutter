@@ -204,18 +204,21 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       _finished = true;
       _solved = outcome.solved;
       _durationMs = outcome.durationMs;
-      GamesStore.instance.noteFinished(
-        game,
-        GameResult(
-          game: game,
-          solved: outcome.solved,
-          gaveUp: false,
-          finished: true,
-          durationMs: outcome.durationMs,
-          hintsUsed: _hints,
-          mistakes: _mistakes,
-        ),
+      final result = GameResult(
+        game: game,
+        solved: outcome.solved,
+        gaveUp: false,
+        finished: true,
+        durationMs: outcome.durationMs,
+        hintsUsed: _hints,
+        mistakes: _mistakes,
       );
+      GamesStore.instance.noteFinished(game, result);
+      // The hub is not the only surface counting this game. The Feed band's
+      // "3 left" line and the nav badge read FeedStore, which is fed by the
+      // board subscription alone — so a board that has gone quiet kept
+      // offering a game the player had just finished until they restarted.
+      FeedStore.instance.noteGameFinished(game, result);
       // Behind the optimistic row above, so the leaderboard settles into the
       // authoritative ordering without the player watching a dash where their
       // own time should be.
@@ -250,17 +253,16 @@ class GamePlayController extends ChangeNotifier with WidgetsBindingObserver {
       _finished = true;
       _solved = false;
       _gaveUp = true;
-      GamesStore.instance.noteFinished(
-        game,
-        GameResult(
-          game: game,
-          solved: false,
-          gaveUp: true,
-          finished: true,
-          hintsUsed: _hints,
-          mistakes: _mistakes,
-        ),
+      final result = GameResult(
+        game: game,
+        solved: false,
+        gaveUp: true,
+        finished: true,
+        hintsUsed: _hints,
+        mistakes: _mistakes,
       );
+      GamesStore.instance.noteFinished(game, result);
+      FeedStore.instance.noteGameFinished(game, result);
       unawaited(GamesStore.instance.refreshStandings());
       notifyListeners();
       return answer;

@@ -19,6 +19,7 @@ import 'discover_lists.dart';
 import 'navigation/destinations.dart';
 import 'navigation/enter_public_room.dart';
 import 'navigation/open_room.dart';
+import 'navigation/route_return.dart';
 import 'navigation/tab_reselect.dart';
 import 'search_screen.dart';
 
@@ -68,13 +69,28 @@ class DiscoverScreen extends StatefulWidget {
 enum _RequestsTab { incoming, outgoing }
 
 class _DiscoverScreenState extends State<DiscoverScreen>
-    with TabReselectScroll<DiscoverScreen> {
+    with TabReselectScroll<DiscoverScreen>, RefreshOnReturn<DiscoverScreen> {
   final _scroll = ScrollController();
 
   @override
   HomeSection get reselectSection => HomeSection.discover;
   @override
   ScrollController get reselectScroll => _scroll;
+
+  /// Re-fetches the public list whenever a pushed route pops back to Discover.
+  ///
+  /// [_refresh] is a one-shot query, not a subscription, and it ran in
+  /// `initState` only. Tapping a room pushes on top of this screen without
+  /// disposing it, so everything the user did in there was invisible on the way
+  /// back: set a room to private and Discover kept listing it publicly until
+  /// the section was switched away and back, which is what made this look
+  /// intermittent rather than broken.
+  ///
+  /// A room's own membership and privacy still arrive live through
+  /// [ChatRepository]; it is the *public directory* that has no live query, by
+  /// the same budget argument that keeps the Feed board down to one.
+  @override
+  void onReturnToScreen() => _refresh();
 
   /// The last public-room list Discover drew, and whose it was.
   ///

@@ -62,6 +62,25 @@ class FeedStore extends ChangeNotifier {
   bool _loaded = false;
   Object? _error;
 
+  /// What the viewer's own mutations reported, overlaid on top of the board
+  /// payload until the subscription catches up.
+  ///
+  /// Not an optimisation. The board is ONE live query, and a subscription that
+  /// has gone quiet — a socket the OS suspended, a bind that threw while the
+  /// handshake was still in flight — takes the whole surface down with it. Both
+  /// of these writes are confirmed by the server before they land here, so
+  /// without the overlay a player watches an accepted guess vanish: the screen
+  /// clears its draft, the board still shows the pre-guess attempt, and the
+  /// only cure is a restart. [GamesStore.noteFinished] has carried the same
+  /// overlay for the hub since it shipped; the Feed's own surfaces did not.
+  ///
+  /// Day-stamped rather than cleared on a timer, so the midnight rollover drops
+  /// them for free: neither is [_dayKey]'s any more the moment the day turns.
+  PuzzleAttempt? _localAttempt;
+  String _localAttemptDay = '';
+  Map<DailyGame, GameResult> _localGames = const {};
+  String _localGamesDay = '';
+
   /// Today's moments — the viewer's own plus every friend's that is still
   /// live — newest first. An unmodifiable view; resolve it once per build.
   List<Moment> get moments => List.unmodifiable(_moments);
@@ -102,19 +121,40 @@ class FeedStore extends ChangeNotifier {
   List<MomentTally> get tallies => MomentTally.from(_moments);
 
   /// Today's puzzle — the viewer's attempt and everyone who has finished.
-  PuzzleState get puzzle => _puzzle;
+  ///
+  /// The viewer's own row comes from whichever source is further along. Guesses
+  /// only ever grow within a day, so "more guesses wins" needs no sequencing:
+  /// a board payload computed before the guess cannot roll the row back, and
+  /// the moment the real one lands it takes over — it carries the revealed
+  /// answer and the scoreboard, which a mutation reply never does.
+  PuzzleState get puzzle {
+    final local = _localAttemptDay == _dayKey ? _localAttempt : null;
+    if (local == null) return _puzzle;
+    final server = _puzzle.mine;
+    if (server != null && server.guesses.length >= local.guesses.length) {
+      return _puzzle;
+    }
+    return PuzzleState(mine: local, scores: _puzzle.scores);
+  }
 
   /// How the viewer is doing on each daily game today.
   ///
   /// The viewer's own rows only — friends' times are one-shot fetched by
   /// [GamesStore] when the hub opens, rather than fanned out on every board
   /// render. An absent game has not been opened today.
-  Map<DailyGame, GameResult> get games => _games;
+  Map<DailyGame, GameResult> get games =>
+      _localGamesDay == _dayKey && _localGames.isNotEmpty
+      ? {..._games, ..._localGames}
+      : _games;
 
   /// How many of today's games are still untouched, for the Feed band's
   /// "3 left" line and the nav badge.
-  int get gamesLeft =>
-      DailyGame.values.where((g) => !(_games[g]?.finished ?? false)).length;
+  int get gamesLeft {
+    final merged = games;
+    return DailyGame.values
+        .where((g) => !(merged[g]?.finished ?? false))
+        .length;
+  }
 
   /// Identity of the local calendar day the board is currently showing.
   String get dayKey => _dayKey;
@@ -137,6 +177,33 @@ class FeedStore extends ChangeNotifier {
     _introPlayedForDay = _dayKey;
     // Deliberately silent. Notifying here would rebuild the board mid-intro and
     // restart the very animation this is recording.
+  }
+
+  /// Folds the attempt a `puzzle:guess` mutation just returned into the board.
+  ///
+  /// Call this with the mutation's own reply, not a guess assembled on the
+  /// client: the reply is the server's authoritative attempt, feedback pegs and
+  /// all, so the row it draws is the real one rather than a hopeful placeholder
+  /// that could disagree with the scoreboard underneath it.
+  void applyPuzzleAttempt(PuzzleAttempt attempt) {
+    _localAttempt = attempt;
+    _localAttemptDay = _dayKey;
+    notifyListeners();
+  }
+
+  /// Folds one finished daily game into the board, so the Feed band and the nav
+  /// badge stop counting it as unplayed without waiting for the subscription.
+  ///
+  /// The mirror of [GamesStore.noteFinished], which does this for the hub. A
+  /// game never un-finishes within a day, so overlaying is safe in the one
+  /// direction it can move.
+  void noteGameFinished(DailyGame game, GameResult result) {
+    _localGames = {
+      ...(_localGamesDay == _dayKey ? _localGames : const {}),
+      game: result,
+    };
+    _localGamesDay = _dayKey;
+    notifyListeners();
   }
 
   /// Begins tracking the day boundary. Idempotent — the shell may call this
@@ -180,13 +247,7 @@ class FeedStore extends ChangeNotifier {
           // A payload from a superseded subscription must not overwrite the
           // current one's state.
           if (gen != _attachGen) return;
-          _moments = board.moments;
-          _puzzle = board.puzzle;
-          _games = board.games;
-          _serverNow = board.serverNow;
-          _loaded = true;
-          _error = null;
-          notifyListeners();
+          applyBoard(board);
         },
         onError: (e) {
           if (gen != _attachGen) return;
@@ -211,6 +272,23 @@ class FeedStore extends ChangeNotifier {
     }
   }
 
+  /// Folds one board payload in. The subscription's only job.
+  ///
+  /// Public and [visibleForTesting] rather than private because the overlays
+  /// above only mean anything against a board that is arriving — or, in the bug
+  /// they exist for, NOT arriving. A test that could not deliver a payload
+  /// could only ever assert half of the behaviour.
+  @visibleForTesting
+  void applyBoard(FeedBoard board) {
+    _moments = board.moments;
+    _puzzle = board.puzzle;
+    _games = board.games;
+    _serverNow = board.serverNow;
+    _loaded = true;
+    _error = null;
+    notifyListeners();
+  }
+
   /// Tears the board down on sign-out.
   ///
   /// Clears the cached moments too: they are another account's data and must
@@ -227,6 +305,12 @@ class FeedStore extends ChangeNotifier {
     _loaded = false;
     _error = null;
     _introPlayedForDay = null;
+    // The overlays are day-stamped, not user-stamped, so signing out on a
+    // shared handset would otherwise show the next account today's guesses.
+    _localAttempt = null;
+    _localAttemptDay = '';
+    _localGames = const {};
+    _localGamesDay = '';
     stop();
   }
 
