@@ -390,8 +390,23 @@ class _SpoilerOverlayState extends State<SpoilerOverlay>
     // Still armed with nothing to paint: the notifier has to be mounted even
     // in the empty state, or a first measurement that lands before the
     // paragraph is ready has nothing to retry it.
+    //
+    // Opaque, not transparent. The paragraph underneath is already laid out
+    // with the real text (see the class doc — layout has to be true so the
+    // bubble is the right size), so a transparent placeholder here means the
+    // hidden words show through, unveiled, for every frame between mount and
+    // the first successful measurement: on room entry, every spoiler row in
+    // the transcript flashes its own contents before the veil catches up,
+    // and a long-press mounts a brand-new `SpoilerOverlay` from scratch into
+    // the action-menu overlay, so the lifted bubble does the same thing on
+    // every press. [widget.cover] is exactly what the real plate paints once
+    // rects land, so this is that same colour standing in for it — a beat
+    // early and not yet cut to the precise per-line shape, but never bare
+    // text.
     if (_rects.isEmpty) {
-      return watchLayout(child: const SizedBox.expand());
+      return watchLayout(
+        child: SizedBox.expand(child: ColoredBox(color: widget.cover)),
+      );
     }
 
     // Calm is a code path: no ticker, no particles, no buffers. The

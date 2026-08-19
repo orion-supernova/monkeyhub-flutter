@@ -79,6 +79,23 @@ void main() {
     expect(find.textContaining('secret', findRichText: true), findsOneWidget);
   });
 
+  testWidgets(
+      'the veil is opaque before it has measured — no bare-text flash on mount',
+      (tester) async {
+    await tester.pumpWidget(host(calm: true));
+    // No settleVeil here, deliberately: this is exactly the gap between
+    // mount and the overlay's first successful measurement, where the
+    // fallback used to paint nothing and the real spoiler text showed
+    // straight through for a frame — on room entry, and on every fresh
+    // mount the long-press action menu makes of a lifted bubble.
+    final cover = find.descendant(
+      of: find.byType(SpoilerOverlay),
+      matching: find.byType(ColoredBox),
+    );
+    expect(cover, findsOneWidget);
+    expect(tester.widget<ColoredBox>(cover).color, Colors.black);
+  });
+
   testWidgets('calm motion: a tap on the veil reveals the whole spoiler',
       (tester) async {
     await tester.pumpWidget(host(calm: true));
