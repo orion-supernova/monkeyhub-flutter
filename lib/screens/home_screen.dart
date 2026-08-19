@@ -596,11 +596,30 @@ class _RoomsPanelState extends State<_RoomsPanel> {
   final Map<String, GlobalKey> _rowKeys = {};
   GlobalKey _keyFor(String id) => _rowKeys.putIfAbsent(id, GlobalKey.new);
 
-  Future<void> _showRowMenu(ChatRoom room, WidgetBuilder rowBuilder) async {
+  /// Same preview builder for both layouts — see `_row` and `_gridTile`,
+  /// which differ only in what they show at rest (`RoomCard` vs
+  /// `RoomGridTile`); the long-press preview is one richer card regardless of
+  /// which compact shape was pressed.
+  Future<void> _showRowMenu(ChatRoom room) async {
+    final repo = widget.repo;
+    // The tail of this room's transcript already resident in the repo — see
+    // [ChatRowPreviewCard]'s doc for why this never fetches. Empty for any
+    // room the viewer hasn't opened this session, which is most of them; the
+    // card falls back to `room.lastMessage` for those.
+    final all = repo.messagesFor(room.id);
+    final recentMessages =
+        all.length <= previewMaxMessages ? all : all.sublist(all.length - previewMaxMessages);
     final action = await showChatRowActionMenu(
       context: context,
       anchorKey: _keyFor(room.id),
-      rowBuilder: rowBuilder,
+      previewBuilder: (context) => ChatRowPreviewCard(
+        room: room,
+        api: widget.api,
+        dmUser: repo.otherUserFor(room),
+        recentMessages: recentMessages,
+        typists: repo.typingIn(room.id),
+      ),
+      recentMessageCount: recentMessages.length,
       isPinned: room.isPinned,
       isArchived: room.isArchived,
       isMuted: room.isMuted,
@@ -781,16 +800,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // like the rest of the list.
     final Widget content = ChatRowLongPress(
       key: _keyFor(room.id),
-      onLongPress: () => _showRowMenu(
-        room,
-        (context) => RoomCard(
-          room: room,
-          api: api,
-          dmUser: repo.otherUserFor(room),
-          typists: repo.typingIn(room.id),
-          onTap: () {},
-        ),
-      ),
+      onLongPress: () => _showRowMenu(room),
       child: RoomCard(
         room: room,
         api: api,
@@ -827,16 +837,7 @@ class _RoomsPanelState extends State<_RoomsPanel> {
     // Same menu for every tile, Saved Messages included — see [_row].
     final Widget content = ChatRowLongPress(
       key: _keyFor(room.id),
-      onLongPress: () => _showRowMenu(
-        room,
-        (context) => RoomGridTile(
-          room: room,
-          api: api,
-          dmUser: repo.otherUserFor(room),
-          typists: repo.typingIn(room.id),
-          onTap: () {},
-        ),
-      ),
+      onLongPress: () => _showRowMenu(room),
       child: RoomGridTile(
         room: room,
         api: api,

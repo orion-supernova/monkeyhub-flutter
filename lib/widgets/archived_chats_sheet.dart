@@ -117,15 +117,25 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
   final _anchorKey = GlobalKey();
 
   Future<void> _showMenu(BuildContext context) async {
+    // Same cheap, no-fetch slice `home_screen.dart`'s `_showRowMenu` takes —
+    // see [ChatRowPreviewCard]'s doc. An archived room is just as likely to
+    // have a resident transcript tail as any other: archiving only hides it
+    // from the main list, it doesn't close the room this session already had
+    // open.
+    final all = widget.repo.messagesFor(widget.room.id);
+    final recentMessages =
+        all.length <= previewMaxMessages ? all : all.sublist(all.length - previewMaxMessages);
     final action = await showChatRowActionMenu(
       context: context,
       anchorKey: _anchorKey,
-      rowBuilder: (context) => RoomCard(
+      previewBuilder: (context) => ChatRowPreviewCard(
         room: widget.room,
         api: widget.api,
         dmUser: widget.repo.otherUserFor(widget.room),
-        onTap: () {},
+        recentMessages: recentMessages,
+        typists: widget.repo.typingIn(widget.room.id),
       ),
+      recentMessageCount: recentMessages.length,
       isPinned: widget.room.isPinned,
       // Always true here — this sheet only shows archived rooms — but passed
       // explicitly so the menu's own "archived rooms only offer Unarchive"
