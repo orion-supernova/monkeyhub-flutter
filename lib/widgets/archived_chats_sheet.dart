@@ -133,9 +133,9 @@ class _ArchivedChatRowState extends State<_ArchivedChatRow> {
         api: widget.api,
         dmUser: widget.repo.otherUserFor(widget.room),
         recentMessages: recentMessages,
+        currentUserId: widget.repo.userId ?? '',
         typists: widget.repo.typingIn(widget.room.id),
       ),
-      recentMessageCount: recentMessages.length,
       isPinned: widget.room.isPinned,
       // Always true here — this sheet only shows archived rooms — but passed
       // explicitly so the menu's own "archived rooms only offer Unarchive"

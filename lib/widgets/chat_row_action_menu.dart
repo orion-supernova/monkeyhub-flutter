@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../backend/chat_api.dart';
+import '../data/settings_store.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/chat_message.dart';
 import '../models/chat_room.dart';
@@ -99,15 +100,6 @@ class ChatRowLongPress extends StatelessWidget {
 /// redraw of that same compact row but a richer card built from the same
 /// underlying data: see [ChatRowPreviewCard].
 ///
-/// [recentMessageCount] is how many messages [previewBuilder] will actually
-/// render (capped at [ChatRowPreviewCard]'s own limit) — handed over
-/// separately rather than inspected from the built widget so the overlay can
-/// compute the card's height, and therefore where it and the menu land on
-/// screen, the same way `actions.length` sizes the menu itself: from a
-/// number, not a second measurement pass. Pass 0 when the room has no
-/// messages resident in `ChatRepository` (see [ChatRowPreviewCard]'s doc for
-/// why that's the common case, and why that's fine).
-///
 /// [isArchived] decides most of the row set: an archived room only offers
 /// Unarchive — pinning something that's simultaneously archived-and-hidden
 /// from the main list is a confusing combination not worth exposing, whether
@@ -127,7 +119,6 @@ Future<ChatRowAction?> showChatRowActionMenu({
   required BuildContext context,
   required GlobalKey anchorKey,
   required WidgetBuilder previewBuilder,
-  required int recentMessageCount,
   required bool isPinned,
   required bool isArchived,
   required bool isMuted,
@@ -150,7 +141,6 @@ Future<ChatRowAction?> showChatRowActionMenu({
     builder: (_) => _ChatRowActionMenuOverlay(
       anchorRect: anchorRect,
       previewBuilder: previewBuilder,
-      recentMessageCount: recentMessageCount,
       screenSize: screenSize,
       safeInsets: safeInsets,
       isPinned: isPinned,
@@ -173,7 +163,6 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
   const _ChatRowActionMenuOverlay({
     required this.anchorRect,
     required this.previewBuilder,
-    required this.recentMessageCount,
     required this.screenSize,
     required this.safeInsets,
     required this.isPinned,
@@ -185,10 +174,6 @@ class _ChatRowActionMenuOverlay extends StatefulWidget {
 
   final Rect anchorRect;
   final WidgetBuilder previewBuilder;
-
-  /// See [showChatRowActionMenu]'s doc for why this is a bare count rather
-  /// than something read off the built widget.
-  final int recentMessageCount;
   final Size screenSize;
   final EdgeInsets safeInsets;
   final bool isPinned;
@@ -256,7 +241,7 @@ class _ChatRowActionMenuOverlayState extends State<_ChatRowActionMenuOverlay>
   Widget build(BuildContext context) {
     final actions = _actions;
     final menuHeight = actions.length * _rowHeight + 12;
-    final previewHeight = previewCardHeight(widget.recentMessageCount);
+    const previewHeight = previewCardHeight;
 
     // The card grows DOWN from where the row was pressed — the row already
     // read top-to-bottom, so its top edge is the one fixed point a reader's
@@ -395,9 +380,15 @@ class _Scrim extends StatelessWidget {
 /// Positions [child] at [rect] and lifts it with a scale + shadow — the
 /// chat-row counterpart of `message_action_menu.dart`'s `_LiftedBubble`. Sits
 /// above [_Scrim] in the stack, so it alone stays in sharp focus while
-/// everything else blurs. `IgnorePointer`-wrapped: it's a stand-in for the
-/// real row, not a second interactive one — tapping it does nothing, same as
-/// the lifted bubble.
+/// everything else blurs.
+///
+/// Unlike the lifted bubble — and unlike this card before it grew a real
+/// scrollable transcript — NOT `IgnorePointer`-wrapped: [ChatRowPreviewCard]'s
+/// transcript band needs a finger to actually reach it and drag. A tap
+/// anywhere else on the card simply lands on nothing tappable, which is a
+/// fine trade for scrolling working at all; tapping the scrim outside the
+/// card's rect still dismisses, since that's a separate widget beneath this
+/// one in the stack.
 ///
 /// [rect] is no longer the anchor row's own rect verbatim: the overlay grows
 /// it downward from the row's top-left into the taller band
@@ -417,29 +408,27 @@ class _LiftedRow extends StatelessWidget {
       top: rect.top,
       width: rect.width,
       height: rect.height,
-      child: IgnorePointer(
-        child: AnimatedBuilder(
-          animation: t,
-          builder: (_, c) {
-            final scale = 1 + 0.03 * t.value;
-            return Transform.scale(
-              scale: scale,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.18 * t.value),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: c,
+      child: AnimatedBuilder(
+        animation: t,
+        builder: (_, c) {
+          final scale = 1 + 0.03 * t.value;
+          return Transform.scale(
+            scale: scale,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18 * t.value),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            );
-          },
-          child: child,
-        ),
+              child: c,
+            ),
+          );
+        },
+        child: child,
       ),
     );
   }
@@ -457,93 +446,156 @@ class _LiftedRow extends StatelessWidget {
 // in sync: a badge row that wrapped to two lines, or a fourth cached message,
 // would desync the overlay's math from what's actually on screen.
 const double _previewPadding = 14;
-const double _previewTopRowH = 22;
+const double _previewTopRowH = 14;
 const double _previewAvatarSize = 48;
 const double _previewIdentityRowH = 54;
 const double _previewFooterRowH = 20;
 const double _previewGap = 10;
-const double _previewMessageLineH = 22;
-const double _previewMessageGap = 4;
-const double _previewFallbackBodyH = 84;
 
-/// How many of a room's cached messages [ChatRowPreviewCard] will ever show
-/// at once — see its class doc.
-const int previewMaxMessages = 3;
+/// The gap under the badges/timestamp row specifically — tighter than
+/// [_previewGap] everywhere else. That row is empty air for most rooms (no
+/// badges is the common case, leaving just a small right-aligned timestamp),
+/// so giving it the same breathing room as bands that are actually full of
+/// content read as a big dead bar at the top of the card.
+const double _previewTopGap = 2;
 
-/// The vertical band the card's body — either the cached-message list or the
-/// full-text fallback — occupies for [messageCount] messages (capped at
-/// [previewMaxMessages]). Shared between [previewCardHeight] and
-/// [ChatRowPreviewCard] itself so the two can't drift apart.
-double _previewBodyHeight(int messageCount) {
-  if (messageCount <= 0) return _previewFallbackBodyH;
-  final n = messageCount > previewMaxMessages ? previewMaxMessages : messageCount;
-  return n * _previewMessageLineH + (n - 1) * _previewMessageGap;
-}
+/// The transcript band's height when there's anything cached to scroll
+/// through — a real, if miniature, chat window rather than a couple of
+/// flattened text lines. Fixed regardless of how many messages are on offer:
+/// the band SCROLLS to reach them instead of growing to fit them, which is
+/// what keeps this a constant [previewCardHeight] can use rather than a
+/// function of message count.
+const double _previewTranscriptH = 260;
 
-/// The full height [ChatRowPreviewCard] will render at for [messageCount]
-/// cached messages. See `showChatRowActionMenu`'s [recentMessageCount] doc
-/// for why the overlay needs this ahead of building the card.
-double previewCardHeight(int messageCount) =>
+/// Widest a single bubble in [ChatRowPreviewCard._transcript] gets — fixed
+/// rather than a fraction of the card's own width, since the card's width is
+/// itself capped independently (see `_ChatRowActionMenuOverlayState`'s
+/// `_cardWidth`) and a bubble this size already reads well against it.
+const double _previewBubbleMaxWidth = 220;
+
+/// How many of a room's messages [ChatRowPreviewCard] will ever hand to its
+/// scrollable transcript — a defensive cap on a list that, for a room with a
+/// long history, could otherwise run to hundreds of entries. Not a rendering
+/// limit: everything under this cap is reachable by scrolling, not just the
+/// newest few. Also what it asks the server for when nothing is cached yet —
+/// see the class doc.
+const int previewMaxMessages = 40;
+
+/// The full height [ChatRowPreviewCard] renders at. A true constant, not a
+/// function of the room or its messages: every room gets the same transcript
+/// band, whether it's showing cached messages, a fetch in flight, a typing
+/// line, or "no messages yet" — one card size for every long press is also
+/// simply the more coherent result, the same way every message bubble menu
+/// opens to the same shape regardless of what the message was.
+const double previewCardHeight =
     _previewPadding * 2 +
     _previewTopRowH +
-    _previewGap +
+    _previewTopGap +
     _previewIdentityRowH +
     _previewGap +
-    _previewBodyHeight(messageCount) +
+    _previewTranscriptH +
     _previewGap +
     _previewFooterRowH;
 
 /// The richer, long-press preview of a chat row: the same identity a
 /// [RoomCard]/[RoomGridTile] already shows — avatar, name, badges, the last-
-/// message stamp — grown into its own card, with the last message read in
-/// full rather than clipped to the one line a compact row has room for, and,
-/// when [recentMessages] has anything in it, the last few messages instead of
-/// just the newest one.
+/// message stamp — above a real, scrollable miniature transcript: actual chat
+/// bubbles, in the same shape and color [AppTheme.bubbleDecoration] paints in
+/// the room itself, that a finger can drag through rather than a few
+/// flattened lines of text. This is the "small real chatroom-like window" the
+/// compact row never had room for — and it works for every room, not only
+/// ones already open this session; see [recentMessages].
 ///
-/// [recentMessages] is deliberately not fetched by this widget, or by
-/// anything it calls. It is exactly what `ChatRepository.messagesFor(room.id)`
-/// already holds in memory at press time — empty for the overwhelming
-/// majority of rooms, which the viewer has not opened this session and whose
-/// transcript was therefore never subscribed to, and a real (if partial)
-/// transcript tail for one they have. A long-press preview that blocked on a
-/// network round trip to fill itself in would turn a peek into a spinner, so
-/// this never asks for more than what's already resident — see the callers in
-/// `home_screen.dart` and `archived_chats_sheet.dart`, which slice
-/// `messagesFor` down to the newest [previewMaxMessages] themselves before
-/// handing it here. When the list is empty the card falls back to
-/// `room.lastMessage` via [roomSubtitle] — the same server-computed preview
+/// [recentMessages] is what `ChatRepository.messagesFor(room.id)` already
+/// holds in memory at press time — instant, but empty for the majority of
+/// rooms, which the viewer has not opened this session and whose transcript
+/// was therefore never subscribed to. When it arrives empty, this widget
+/// fetches a tail itself (see [_ChatRowPreviewCardState._fetch]) rather than
+/// staying stuck on the one-line fallback, so a long-press works the same on
+/// every room. That fetch is `ChatApi.listMessages`, which calls the Convex
+/// QUERY `messages:list` — a pure read with no write path at all, so a peek
+/// can never mark the room read or delivered the way actually opening it
+/// (`ChatRepository.openRoom`) would; only `ChatApi.markRoomRead` and
+/// `markRoomDelivered` do that, and neither is called anywhere near this
+/// widget. Until the fetch lands — or if it never does — the card shows
+/// `room.lastMessage` via [roomSubtitle], the same server-computed preview
 /// text the compact row already shows, just no longer clipped to one line.
 ///
 /// Every band in [build] is a fixed height taken from the constants above —
-/// see those for why.
-class ChatRowPreviewCard extends StatelessWidget {
+/// see those for why — except the transcript band itself, which scrolls
+/// rather than growing, so its height stays fixed too.
+class ChatRowPreviewCard extends StatefulWidget {
   const ChatRowPreviewCard({
     super.key,
     required this.room,
     required this.dmUser,
     required this.recentMessages,
+    required this.currentUserId,
     this.typists = const [],
     this.api,
   });
 
   final ChatRoom room;
+
+  /// Also who [_ChatRowPreviewCardState._fetch] asks for a tail when
+  /// [recentMessages] arrives empty — null only in contexts (tests, mostly)
+  /// that have no live backend to ask, where the card simply stays on the
+  /// fallback line forever, same as before this widget could fetch at all.
   final ChatApi? api;
 
   /// For DM rooms, the other participant — same override [RoomCard] applies
   /// to the raw "dm:..." room name and its avatar.
   final ChatUser? dmUser;
 
-  /// Oldest-to-newest. The caller should already have sliced this down to
-  /// [previewMaxMessages] — see the class doc — but the body still takes only
-  /// the first [previewMaxMessages] of whatever arrives, since that count is
-  /// also what `previewCardHeight` sized the overlay's `Positioned` rect from.
+  /// Whose bubbles land on the right, in the room's accent color, the same
+  /// as everywhere else a transcript decides mine-vs-theirs.
+  final String currentUserId;
+
+  /// Oldest-to-newest, same order `ChatApi.listMessages` hands back. The
+  /// transcript still takes only the newest [previewMaxMessages] of whatever
+  /// arrives here — see the class doc.
   final List<ChatMessage> recentMessages;
   final List<ChatUser> typists;
+
+  @override
+  State<ChatRowPreviewCard> createState() => _ChatRowPreviewCardState();
+}
+
+class _ChatRowPreviewCardState extends State<ChatRowPreviewCard> {
+  late List<ChatMessage> _messages = widget.recentMessages;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_messages.isEmpty && widget.api != null) _fetch();
+  }
+
+  /// Runs once, from [initState] — a fresh [State] per press is exactly the
+  /// one-shot lifetime this needs, so there's no separate "already fetching"
+  /// flag to keep in sync. See the class doc for why this can never mark
+  /// anything read.
+  Future<void> _fetch() async {
+    try {
+      final fetched = await widget.api!.listMessages(
+        roomId: widget.room.id,
+        limit: previewMaxMessages,
+        viewerUserId: widget.currentUserId,
+      );
+      if (!mounted || fetched.isEmpty) return;
+      setState(() => _messages = fetched);
+    } catch (_) {
+      // Peeking at a room that fails to load its tail just stays on the
+      // last-message fallback line — nothing here is worth surfacing an
+      // error over for a long-press preview.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
     final l10n = AppLocalizations.of(context);
+    final room = widget.room;
+    final dmUser = widget.dmUser;
     final subtitle = roomSubtitle(context, room);
     // `Container` folds a `decoration`'s border width into the padding it
     // gives its child — border and background together would shrink this
@@ -569,39 +621,48 @@ class ChatRowPreviewCard extends StatelessWidget {
         children: [
           SizedBox(
             height: _previewTopRowH,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (!room.isDm)
-                        VisibilityBadge(isPublic: room.isPublic, dense: true),
-                      if (room.isEphemeral && room.messageLifetime != null)
-                        EphemeralBadge(ttl: room.messageLifetime!, dense: true),
-                      if (room.hasPassword) const LockedBadge(dense: true),
-                      if (room.isPinned) const PinnedBadge(dense: true),
-                      if (room.isMuted)
-                        MutedBadge(
-                          dense: true,
-                          silencesNotifications: room.notificationsMuted,
-                          silencesCounts: room.badgesMuted,
-                        ),
-                    ],
+            // A `Wrap`, unlike a `Row`/`Column`, does not assert when it
+            // needs more room than it's given — a room with enough badges to
+            // need a second line would silently paint that line over the
+            // identity row below instead of erroring where it'd get caught.
+            // Clipped to this row's own fixed height, an overflowing second
+            // line simply disappears instead: an occasionally-truncated badge
+            // set beats corrupting the row underneath it.
+            child: ClipRect(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (!room.isDm)
+                          VisibilityBadge(isPublic: room.isPublic, dense: true),
+                        if (room.isEphemeral && room.messageLifetime != null)
+                          EphemeralBadge(ttl: room.messageLifetime!, dense: true),
+                        if (room.hasPassword) const LockedBadge(dense: true),
+                        if (room.isPinned) const PinnedBadge(dense: true),
+                        if (room.isMuted)
+                          MutedBadge(
+                            dense: true,
+                            silencesNotifications: room.notificationsMuted,
+                            silencesCounts: room.badgesMuted,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                Text(
-                  room.lastMessageTime != null
-                      ? roomTimeAgo(context, room.lastMessageTime!)
-                      : l10n.roomCardStartedAgo(roomTimeAgo(context, room.createdAt)),
-                  style: theme.monoTiny,
-                ),
-              ],
+                  Text(
+                    room.lastMessageTime != null
+                        ? roomTimeAgo(context, room.lastMessageTime!)
+                        : l10n.roomCardStartedAgo(roomTimeAgo(context, room.createdAt)),
+                    style: theme.monoTiny,
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: _previewGap),
+          const SizedBox(height: _previewTopGap),
           SizedBox(
             height: _previewIdentityRowH,
             child: Row(
@@ -664,6 +725,9 @@ class ChatRowPreviewCard extends StatelessWidget {
   }
 
   Widget _avatar(AppTheme theme) {
+    final room = widget.room;
+    final dmUser = widget.dmUser;
+    final api = widget.api;
     const size = _previewAvatarSize;
     if (room.isSavedMessages) {
       return Container(
@@ -675,13 +739,13 @@ class ChatRowPreviewCard extends StatelessWidget {
       );
     }
     if (dmUser != null) {
-      return UserAvatar(user: dmUser!, size: size, api: api);
+      return UserAvatar(user: dmUser, size: size, api: api);
     }
     if (room.avatarStorageId != null && api != null) {
       return ClipOval(
         child: RemoteImage(
           storageId: room.avatarStorageId!,
-          api: api!,
+          api: api,
           width: size,
           height: size,
           borderRadius: BorderRadius.circular(size / 2),
@@ -705,35 +769,25 @@ class ChatRowPreviewCard extends StatelessWidget {
 
   /// Typing beats everything else here, same priority [RoomCard] gives it:
   /// someone mid-sentence right now is more current than anything already
-  /// sent. Otherwise the cached transcript tail when there is one, and the
-  /// room's own last-message text — grown to four lines instead of one —
-  /// when there isn't.
+  /// sent. Otherwise a real, scrollable transcript tail once [_messages] has
+  /// anything in it — whether that arrived with the widget or [_fetch] filled
+  /// it in — and the room's own last-message text, grown to four lines
+  /// instead of one, until either of those is true.
+  ///
+  /// All three render inside the same fixed [_previewTranscriptH] band — see
+  /// [previewCardHeight]'s doc for why that no longer varies by state.
   Widget _body(AppTheme theme, RoomSubtitle subtitle) {
-    if (typists.isNotEmpty) {
-      return SizedBox(
-        height: _previewBodyHeight(recentMessages.length),
-        child: Align(alignment: Alignment.topLeft, child: TypingLine(typists: typists)),
-      );
-    }
-    if (recentMessages.isNotEmpty) {
-      return SizedBox(
-        height: _previewBodyHeight(recentMessages.length),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // `.take` rather than trusting the caller's slice outright: this
-            // is the one place a mismatch between what's iterated and what
-            // `_previewBodyHeight` measured would show up as a RenderFlex
-            // overflow rather than a silently-dropped message.
-            for (final m in recentMessages.take(previewMaxMessages)) _messageLine(theme, m),
-          ],
-        ),
-      );
-    }
-    return SizedBox(
-      height: _previewFallbackBodyH,
-      child: Align(
+    final Widget content;
+    if (widget.typists.isNotEmpty) {
+      content = Align(alignment: Alignment.topLeft, child: TypingLine(typists: widget.typists));
+    } else if (_messages.isNotEmpty) {
+      content = _transcript(theme);
+    } else {
+      // Covers both "genuinely nothing ever sent" and "the fetch in
+      // `_fetch` hasn't landed yet" — the room's own last-message line
+      // reads fine in either case, and this band silently upgrades to the
+      // real transcript the moment `_fetch` resolves, no spinner needed.
+      content = Align(
         alignment: Alignment.topLeft,
         child: Text(
           subtitle.text,
@@ -743,32 +797,92 @@ class ChatRowPreviewCard extends StatelessWidget {
           maxLines: 4,
           overflow: TextOverflow.ellipsis,
         ),
+      );
+    }
+    return SizedBox(height: _previewTranscriptH, child: content);
+  }
+
+  /// The transcript tail as real chat bubbles — [AppTheme.bubbleDecoration],
+  /// the same shape and color the room itself paints, not a flattened line of
+  /// text. Newest message at the bottom and scrolled there on open, same as
+  /// the room; dragging up reaches the rest of [_messages]. This band is
+  /// genuinely interactive, unlike the rest of the card — see `_LiftedRow`'s
+  /// doc for why the card as a whole had to stop ignoring pointers for a drag
+  /// here to reach it.
+  Widget _transcript(AppTheme theme) {
+    final room = widget.room;
+    final style = SettingsStore.instance.bubbleStyle;
+    final ordered = _messages.length > previewMaxMessages
+        ? _messages.sublist(_messages.length - previewMaxMessages)
+        : _messages;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(theme.radiusMd),
+      child: ListView.builder(
+        reverse: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: ordered.length,
+        itemBuilder: (context, i) {
+          final index = ordered.length - 1 - i;
+          final m = ordered[index];
+          final isMine = m.senderId == widget.currentUserId;
+          // Named once per consecutive run from the same sender, the same
+          // grouping the real transcript applies — repeating a name on every
+          // line of a burst reads as noise there and would here too.
+          final prev = index > 0 ? ordered[index - 1] : null;
+          final showName =
+              !room.isDm && !isMine && (prev == null || prev.senderId != m.senderId);
+          return _bubbleRow(theme, m, isMine: isMine, showName: showName, style: style);
+        },
       ),
     );
   }
 
-  /// One cached message as "Name  content" — bold name, plain content, both
-  /// in [AppTheme.bodySoft] — the same shape a group-chat notification
-  /// summary uses, and enough on its own to tell two DM messages apart
-  /// without borrowing the transcript's bubble-side alignment, which this
-  /// flat list has no room for.
-  Widget _messageLine(AppTheme theme, ChatMessage m) {
-    final name = m.senderName.trim();
-    return SizedBox(
-      height: _previewMessageLineH,
-      child: Text.rich(
-        TextSpan(
-          children: [
-            if (name.isNotEmpty)
-              TextSpan(
-                text: '$name  ',
-                style: theme.bodySoft.copyWith(fontWeight: FontWeight.w700, color: theme.ink),
+  Widget _bubbleRow(
+    AppTheme theme,
+    ChatMessage m, {
+    required bool isMine,
+    required bool showName,
+    required BubbleStyle style,
+  }) {
+    final decoration =
+        theme.bubbleDecoration(isMine: isMine, ephemeral: widget.room.isEphemeral, style: style);
+    final textStyle = theme.bodySoft.copyWith(color: isMine ? theme.accentInk : theme.ink);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: isMine ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _previewBubbleMaxWidth),
+            child: DecoratedBox(
+              decoration: decoration,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showName)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          m.senderName,
+                          style: theme.caption
+                              .copyWith(fontWeight: FontWeight.w700, color: theme.accent),
+                        ),
+                      ),
+                    Text(
+                      messagePreviewLine(m),
+                      style: textStyle,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            TextSpan(text: messagePreviewLine(m), style: theme.bodySoft),
-          ],
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
