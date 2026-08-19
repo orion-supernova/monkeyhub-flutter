@@ -54,6 +54,21 @@ void main() {
     // Absolute unread count. Rides as data on the silent push because a
     // background APNs payload may not carry aps.badge.
     'badge': [backend, ios],
+    // iOS-only: `aps.alert.subtitle`, distinct from both title and body —
+    // the group name under the sender's name. Android/web have no such
+    // field and read `roomName`/`isGroup` out of the flat data instead, so
+    // this key is never expected to appear in either of them.
+    'subtitle': [backend, senders],
+    // Whether the room is a group, not a 1:1 DM — gates both `roomName`
+    // below and whether Android/web render a subtitle line at all.
+    'isGroup': [senders, androidRender, web],
+    // The group's name, sent only when `isGroup` is true. Absent for a DM,
+    // whose `rooms.name` is the internal `dm:...` key, not a real title.
+    'roomName': [senders, androidRender, web],
+    // The sender's avatar, present only for a recipient the sender's own
+    // avatar-visibility setting actually allows to see it (resolved
+    // per-recipient in rooms.ts, mirroring the call ringer in calls.ts).
+    'senderAvatarUrl': [senders, androidRender, web],
   };
 
   contract.forEach((key, consumers) {
@@ -148,6 +163,26 @@ void main() {
       expect(source(senders).contains('JSON.stringify(dismissIds'), isTrue);
       expect(source(ios).contains('JSONSerialization'), isTrue);
       expect(source(androidRender).contains('JSONArray'), isTrue);
+    });
+
+    test('the sender avatar is gated per recipient, not sent blind', () {
+      // `senderAvatarUrl` must ride the per-user override map keyed off
+      // `avatarVisible` — never the shared `data` block every recipient of
+      // one message gets verbatim. Getting this backwards would leak a face
+      // to a recipient the sender's own avatar-visibility setting ("friends"
+      // or "nobody") says shouldn't see it.
+      final src = source(senders);
+      expect(src.contains('m.avatarVisible'), isTrue,
+          reason: 'avatar visibility must be checked per recipient');
+      final sharedDataStart = src.indexOf('data: {\n        kind: "message"');
+      expect(sharedDataStart, greaterThan(-1),
+          reason: 'the shared per-message data block moved — update this test');
+      final sharedDataEnd = src.indexOf('roomId,', sharedDataStart);
+      final sharedData = src.substring(sharedDataStart, sharedDataEnd);
+      expect(sharedData.contains('senderAvatarUrl'), isFalse,
+          reason:
+              'senderAvatarUrl must never sit in the data every recipient '
+              'shares — it belongs in the per-user override only');
     });
 
     test('Android is sent data-only, never a notification block', () {

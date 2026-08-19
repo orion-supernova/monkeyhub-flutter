@@ -32,14 +32,25 @@ self.addEventListener('push', (event) => {
   if (d.kind === 'dismiss') return;
 
   const title = d.title || 'MonkeyHub';
+  // The Notification API has no third "subtitle" line the way `aps.alert`
+  // does on iOS (see push.ts's `AlertSpec.subtitle`) — title and body is all
+  // Chrome renders. For a group message this puts the room name on its own
+  // line ahead of the text, the closest approximation of "SenderName / Group
+  // Name / message" that two lines can carry. Never set for a DM: `roomName`
+  // is only ever sent when `isGroup` is `"true"`.
+  const body =
+    d.isGroup === 'true' && d.roomName ? `${d.roomName}\n${d.body || ''}` : (d.body || '');
   event.waitUntil(
     self.registration.showNotification(title, {
-      body: d.body || '',
+      body,
       // Same semantics as the APNs collapse-id and the Android tag: a later
       // notification with this tag replaces this one rather than stacking.
       tag: d.collapseId || d.threadId || undefined,
       renotify: !!(d.collapseId || d.threadId),
-      icon: '/web/icons/Icon-192.png',
+      // The sender's own face, WhatsApp/Telegram-style, when they have one
+      // and the recipient is allowed to see it (see rooms.ts's
+      // `resolvePushContext` — the backend never sends this key otherwise).
+      icon: d.senderAvatarUrl || '/web/icons/Icon-192.png',
       badge: '/web/icons/Icon-192.png',
       data: d,
     }),
