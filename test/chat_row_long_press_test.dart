@@ -91,7 +91,12 @@ void main() {
                 onLongPress: () => showChatRowActionMenu(
                   context: anchorKey.currentContext!,
                   anchorKey: anchorKey,
-                  rowBuilder: row,
+                  previewBuilder: row,
+                  // This file is about the HOLD, not the lifted preview's
+                  // content — see `row` above, which stands in for the real
+                  // `ChatRowPreviewCard`. 0 cached messages is the correct
+                  // count for a stand-in that shows none.
+                  recentMessageCount: 0,
                   isPinned: false,
                   isArchived: false,
                   // This file is about the HOLD, not the menu's contents —
