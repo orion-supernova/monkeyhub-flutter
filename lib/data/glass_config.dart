@@ -248,12 +248,12 @@ const kBarBottom = GlassKnob(
   hint: 'how high the bar floats off the bottom',
   min: 0,
   max: 40,
-  // On top of the home-indicator inset, not instead of it — the bar's own
-  // `SafeArea(top: false)` already lifts it clear. 12 on top of that put it
-  // ~46pt off the bottom edge, which reads as high now that the sections
-  // behind it run all the way down (they used to stop at the safe area and
-  // hide how much space was under the bar).
-  standard: 6,
+  // A FLOOR, not an addition — see `pill_bottom_nav`, which takes
+  // `max(this, homeIndicatorInset)`. It used to be added on top of that inset,
+  // so 12 here meant ~46pt off the bottom on a notched phone and no value
+  // could bring the bar below 34. Now 12 is the whole gap on a device with no
+  // inset, and the inset itself is the gap where there is one.
+  standard: 12,
   decimals: 0,
 );
 

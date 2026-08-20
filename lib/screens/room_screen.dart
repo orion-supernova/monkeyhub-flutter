@@ -2297,7 +2297,21 @@ class _RoomScreenState extends State<RoomScreen>
               messages,
               items,
               me,
-              listPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+              // The 12 is breathing room under the HEADER. With a pinned strip
+              // present it lands between the strip and the first message
+              // instead, which makes the strip read as a separate panel rather
+              // than as the transcript's own chrome — the strip's own 44pt is
+              // the separation.
+              //
+              // The liquid style has the identical line with the identical
+              // fix; this one was missed the first time because the two styles
+              // compute their padding in completely different places.
+              listPadding: EdgeInsets.fromLTRB(
+                20,
+                widget.repo.pinsFor(room.id).isEmpty ? 12 : 0,
+                20,
+                24,
+              ),
               // Classic already says who's typing in its header — a second
               // indicator at the bottom of the transcript would say it twice.
               showTypingRow: false,

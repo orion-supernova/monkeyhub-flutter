@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
@@ -637,17 +638,31 @@ class _PillBottomNavState extends State<PillBottomNav>
       horizontal: geo.of(kShellPadH),
       vertical: geo.of(kShellPadV),
     );
+    // MAX, not sum.
+    //
+    // This was `bottom: kBarBottom` with a `SafeArea` inside, so the two ADDED:
+    // 12 of float on top of a 34pt home-indicator inset put the bar 46pt off
+    // the bottom edge, and no value of the knob could bring it below 34. Its
+    // own hint says "how high the bar floats off the bottom", which is what it
+    // now means — a floor, not an extra.
+    //
+    // The indicator still wins where it is bigger, so the bar never sits under
+    // it; on a device with no inset at all the knob is the whole gap, which is
+    // why it cannot just be dropped.
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final barBottom = math.max(geo.of(kBarBottom), safeBottom);
+
     return Positioned(
       left: margin,
       right: margin,
-      bottom: geo.of(kBarBottom),
-      // Bottom only. SafeArea defaults to all four sides, and the status-bar
-      // inset is still in MediaQuery down here, so the default was padding ~44pt
-      // of dead space onto the top of a bottom-anchored bar.
+      bottom: barBottom,
+      // Bottom inset handled above; this is now top/left/right only so the
+      // two cannot double up again.
       child: SafeArea(
         top: false,
         left: false,
         right: false,
+        bottom: false,
         // The app's own glass recipe rather than a hand-rolled ClipRRect +
         // BackdropFilter + Container, which is what this was and which had
         // drifted: it drew a flat 0.72 surface with no sheen while every other
