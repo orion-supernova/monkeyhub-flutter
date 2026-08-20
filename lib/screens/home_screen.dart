@@ -782,40 +782,32 @@ class _RoomsPanelState extends State<_RoomsPanel> {
         );
       }
 
+      // ONE grid, pinned first — not two grids with a spacer between them.
+      //
+      // The two-grid version existed to put a visible seam between the groups,
+      // standing in for the "PINNED" heading that was removed. But every
+      // pinned tile already carries its own pin badge, which is what made the
+      // heading redundant in the first place — and it makes the seam redundant
+      // for exactly the same reason. What the seam actually produced was a
+      // grid that looked like it had a layout bug in it.
+      //
+      // Building it as one grid does not just remove the gap, it makes the gap
+      // unrepresentable: every row is separated by `mainAxisSpacing` because
+      // there is only one thing doing the separating. Tuning the spacer to
+      // "look equal" would have been a number to keep in sync with the
+      // delegate forever.
+      //
+      // The LIST layout below still has its deliberate doubled seam. Left
+      // alone on purpose: it is a different layout with a different rhythm
+      // (each card carries its own margin), and nobody asked for it to change.
       final parts = partitionPinned(rooms);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (parts.pinned.isNotEmpty) ...[
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: gridDelegate,
-              itemCount: parts.pinned.length,
-              itemBuilder: (context, i) =>
-                  _gridTile(context, theme, parts.pinned[i], i),
-            ),
-            // Now the only break between the groups, since the "PINNED" label
-            // above this grid is gone — every pinned tile carries its own pin
-            // badge, so the heading was naming what each tile already showed.
-            // Doubling the row gap is what a reader has left to see the seam
-            // by, so it has to stay: without it the two grids fuse into one.
-            SizedBox(height: gridDelegate.mainAxisSpacing),
-          ],
-          if (parts.regular.isNotEmpty)
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: gridDelegate,
-              itemCount: parts.regular.length,
-              itemBuilder: (context, i) => _gridTile(
-                context,
-                theme,
-                parts.regular[i],
-                parts.pinned.length + i,
-              ),
-            ),
-        ],
+      final ordered = [...parts.pinned, ...parts.regular];
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: gridDelegate,
+        itemCount: ordered.length,
+        itemBuilder: (context, i) => _gridTile(context, theme, ordered[i], i),
       );
     }
 

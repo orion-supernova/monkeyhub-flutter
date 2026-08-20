@@ -649,7 +649,17 @@ class _PillBottomNavState extends State<PillBottomNav>
     // The indicator still wins where it is bigger, so the bar never sits under
     // it; on a device with no inset at all the knob is the whole gap, which is
     // why it cannot just be dropped.
-    final safeBottom = MediaQuery.of(context).padding.bottom;
+    // `viewPadding`, NOT `padding`.
+    //
+    // `padding` is what is LEFT after ancestors consume it, so any `SafeArea`
+    // above this widget zeroes it and the max below silently falls back to the
+    // knob — putting the bar 12pt off the screen edge, under the home
+    // indicator, instead of resting on it. `viewPadding` reports the physical
+    // inset regardless of who has already handled it, which is the question
+    // being asked here: where does the unsafe area actually start.
+    final safeBottom = MediaQuery.of(context).viewPadding.bottom;
+    // The bar's bottom edge lands exactly on the top of the safe area — flush,
+    // no gap. The knob only takes over on hardware with no inset at all.
     final barBottom = math.max(geo.of(kBarBottom), safeBottom);
 
     return Positioned(

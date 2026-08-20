@@ -70,6 +70,48 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Pumps the bar with a home-indicator inset, the way a notched phone has
+  /// one, and hands back the screen height so the caller can measure the gap.
+  Future<double> pumpNavWithInset(
+    WidgetTester tester, {
+    double inset = 34,
+  }) async {
+    const size = Size(375, 812);
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1.0;
+    // `viewPadding`, not `padding` — that is precisely the distinction the bar
+    // depends on, so the test has to set the one the widget reads.
+    tester.view.viewPadding = FakeViewPadding(bottom: inset);
+    tester.view.padding = FakeViewPadding(bottom: inset);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      wrap(PillBottomNav(active: HomeSection.chat, onSelect: (_) {}, badges: const {})),
+    );
+    await tester.pumpAndSettle();
+    return size.height;
+  }
+
+  group('bottom placement', () {
+    testWidgets('rests flush on the safe area, with no gap under it',
+        (tester) async {
+      final screenH = await pumpNavWithInset(tester, inset: 34);
+      final bar = tester.getRect(find.byType(LiquidGlass));
+      // The bar's bottom edge should land exactly on the top of the inset.
+      // It used to sit 46pt up — `kBarBottom` ADDED to the inset rather than
+      // floored by it — and no knob value could bring it below 34.
+      expect(screenH - bar.bottom, closeTo(34, 0.5));
+    });
+
+    testWidgets('falls back to the knob where there is no inset',
+        (tester) async {
+      final screenH = await pumpNavWithInset(tester, inset: 0);
+      final bar = tester.getRect(find.byType(LiquidGlass));
+      // Hardware with no indicator: the knob is the whole gap, which is why it
+      // cannot simply be deleted in favour of the inset.
+      expect(screenH - bar.bottom, closeTo(12, 0.5));
+    });
+  });
+
   /// The tappable slot for destination [i]. [FocusableTap] is the outermost
   /// per-segment widget, so its rect *is* the segment — which is the point: if
   /// the icon is not centred in this, the bar looks broken.
