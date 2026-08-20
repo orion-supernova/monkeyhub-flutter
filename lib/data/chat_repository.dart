@@ -166,6 +166,7 @@ class ChatRepository extends ChangeNotifier {
   /// filtered out server-side, so anything in this list is genuinely the
   /// user's to answer.
   List<RoomInvitation> _roomInvitations = [];
+  String _roomInvitationsSig = '';
   List<RoomInvitation> get roomInvitations => List.unmodifiable(_roomInvitations);
 
   final Map<String, List<ChatMessage>> _messages = {}; // roomId → ordered list
@@ -502,9 +503,27 @@ class ChatRepository extends ChangeNotifier {
       {'userId': userId},
       onData: (data) {
         final list = (data as List?) ?? const [];
-        _roomInvitations = list
+        final fresh = list
             .map((e) => RoomInvitation.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
+        // Deduped before notifying, unlike its siblings above, because this
+        // query re-fires far more often than its contents change: it reads the
+        // ROOM document of every group that has invited this user, and
+        // `messages.send` patches `rooms.lastMessage` on every message. A
+        // notify here rebuilds the chat list and the shell's badge, so an
+        // active group somebody was invited to would have re-laid-out the whole
+        // home screen on every message in it.
+        //
+        // Signature over the fields anything actually renders — the id, the
+        // room's name and size, the inviter. Not the object: these are fresh
+        // instances every fire, so identity comparison would never dedup.
+        final sig = fresh
+            .map((i) =>
+                '${i.invitationId}|${i.roomName}|${i.memberCount}|${i.inviter.id}')
+            .join(';');
+        if (sig == _roomInvitationsSig) return;
+        _roomInvitationsSig = sig;
+        _roomInvitations = fresh;
         notifyListeners();
       },
       onError: (err) => debugPrint('room invitations sub error: $err'),
@@ -690,6 +709,7 @@ class ChatRepository extends ChangeNotifier {
     _incomingRequests = [];
     _outgoingRequests = [];
     _roomInvitations = [];
+    _roomInvitationsSig = '';
     _messages.clear();
     // Unlike [closeRoom], which keeps these so re-entry paints instantly, this
     // is a sign-out: they are the previous account's room state.

@@ -1,108 +1,71 @@
 import 'package:flutter/material.dart';
 
-import '../theme/layout.dart';
 import '../theme/theme_scope.dart';
-import 'glass_surface.dart';
+import 'destructive_sheet.dart' show SheetGrabber;
 
 /// The panel every group-administration sheet is drawn on.
 ///
-/// **Frosted and floating, not a flat panel welded to the bottom edge.**
+/// **Deliberately identical to the shell `destructive_sheet.dart` already
+/// uses** — `theme.surface`, rounded on the top corners only, flush to the
+/// bottom and both sides, [SheetGrabber] on top. These four sheets sit
+/// alongside the block sheet, the mute sheet and the confirm sheet, and a
+/// bottom sheet shaped differently from its neighbours reads as a bug no
+/// matter how nice it looks in isolation.
 ///
-/// The first cut of this was `Container(color: theme.surface)` with a rounded
-/// top — the stock Material bottom sheet. It read as generic Android in an app
-/// whose entire chrome is glass: the message action menu, the call picker and
-/// the camera controls all sit on [GlassSurface], and a settings sheet that
-/// didn't was instantly the odd one out.
+/// It took two wrong turns to get here, and both are worth not repeating:
 ///
-/// Three things do the work, and all three are the difference between "a sheet"
-/// and "this app's sheet":
+///  * **Glass.** `showAdaptiveSheet` presents these through
+///    `showModalBottomSheet`, which SLIDES the panel up — so a `BackdropFilter`
+///    inside is re-rasterized every frame of the transition, at full sheet
+///    width, in an app whose chrome already stacks several of them.
+///    `call_picker.dart` names it exactly: "the surface itself appears
+///    instantly to keep BackdropFilter off the per-frame compositing path
+///    (animating a blur is the main source of jank here)". The picker can do
+///    glass because it does not animate its surface; a bottom sheet has no
+///    such option. It also bought almost nothing — a modal sheet's `black54`
+///    scrim has already painted out most of what a blur is there to reveal.
+///  * **Floating.** Insetting the panel from all four edges is a real idiom,
+///    but not THIS app's, and the gap it left underneath read as a mistake
+///    rather than a choice. Consistency was the premium answer; novelty was
+///    not.
 ///
-///  * **Blur, not opacity.** [GlassSurface] backdrop-filters what is behind it,
-///    so the conversation stays faintly legible under the panel. That is the
-///    single strongest cue that a surface is floating ABOVE something rather
-///    than replacing it.
-///  * **Inset on all four sides.** A sheet flush to the screen edges is a
-///    Material sheet; one that floats clear of them, corners fully visible, is
-///    the iOS idiom. Corners you can see are corners worth rounding.
-///  * **A generous radius.** `radiusXl + 8` rather than `radiusLg`, matched to
-///    the action menu, because a big soft corner is most of what reads as
-///    "premium" at a glance.
-///
-/// **`showAdaptiveSheet` passes `backgroundColor: Colors.transparent`**, so the
-/// surface is the CONTENT's job. A sheet that forgets renders as a floating
-/// column of text over the chat list — no error, nothing wrong in a widget
-/// test. That happened, which is why this is one shared widget and not four
-/// hand-copied decorations.
+/// What this widget is actually for is the thing that stayed true throughout:
+/// **`showAdaptiveSheet` passes `backgroundColor: Colors.transparent`**, so
+/// painting the surface is the CONTENT's job. All four sheets forgot, and
+/// rendered as a floating column of text over the chat list — no error,
+/// nothing wrong in a widget test. One shared widget is one place to get that
+/// right, which is the same reason `sheet_buttons.dart` exists.
 class SheetSurface extends StatelessWidget {
   const SheetSurface({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.fromLTRB(20, 14, 20, 18),
+    this.padding = const EdgeInsets.fromLTRB(20, 12, 20, 20),
   });
 
   final Widget child;
+
+  /// The bottom value is the inset ABOVE the home indicator, not the total —
+  /// the safe-area padding is added to it. A sheet cannot read that inset from
+  /// a `SafeArea` inside itself, because `ModalBottomSheetRoute` has already
+  /// removed it.
   final EdgeInsets padding;
 
-  /// How far the panel floats clear of the screen edges on a phone.
-  static const double _inset = 10;
-
   @override
   Widget build(BuildContext context) {
     final theme = ThemeScope.of(context);
-    // On desktop `showAdaptiveSheet` already floats this in a centred,
-    // width-capped dialog, so a second inset would be an odd double margin —
-    // and there is no home indicator to clear.
-    final compact = context.isCompact;
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-
-    return Padding(
-      padding: compact
-          ? EdgeInsets.fromLTRB(
-              _inset,
-              0,
-              _inset,
-              // Clear of the home indicator rather than tucked under it. The
-              // indicator sitting on top of a rounded corner is the detail
-              // that makes an otherwise good sheet look unfinished.
-              _inset + bottomInset,
-            )
-          : EdgeInsets.zero,
-      child: GlassSurface(
-        radius: theme.radiusXl + 8,
-        padding: padding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [const _Grabber(), child],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.surface,
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(theme.radiusLg)),
       ),
-    );
-  }
-}
-
-/// The drag handle, sized and dimmed for glass.
-///
-/// Not [SheetGrabber] from `destructive_sheet.dart`: that one is tuned for an
-/// opaque panel, and at its alpha it disappears against a blurred backdrop.
-/// Same gesture affordance, enough contrast to survive the frost.
-class _Grabber extends StatelessWidget {
-  const _Grabber();
-
-  @override
-  Widget build(BuildContext context) {
-    // Meaningless where dismiss-by-drag isn't a thing — the desktop popover
-    // closes via barrier tap or Esc.
-    if (!context.isCompact) return const SizedBox.shrink();
-    final theme = ThemeScope.of(context);
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        width: 38,
-        height: 5,
-        decoration: BoxDecoration(
-          color: theme.inkMuted.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(3),
-        ),
+      padding: padding.copyWith(
+        bottom: padding.bottom + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [const SheetGrabber(), child],
       ),
     );
   }

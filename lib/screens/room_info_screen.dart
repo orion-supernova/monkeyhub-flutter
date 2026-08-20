@@ -88,10 +88,22 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   // ── Group administration ────────────────────────────────────────────────
   //
-  // Subscribed, not fetched once. Being promoted or demoted has to change this
-  // screen while it is open — an admin who just handed someone the role should
-  // see their row gain the badge, and someone who just lost it should watch the
-  // controls go rather than tap one and be refused.
+  // ONE live subscription, and two one-shot reads. It was three subscriptions,
+  // which was a real and measurable regression on a hot screen:
+  //
+  //   `myPermissions` reads the ROOM document, and `messages.send` patches
+  //   `rooms.lastMessage` on every single message. The other two read
+  //   `roomMembers` rows, which `markRoomRead` patches on every read receipt.
+  //   So in an active conversation all three re-fired constantly, each calling
+  //   `setState` and rebuilding this entire screen — the member sort, the
+  //   shared-content counts, all of it.
+  //
+  // Permissions stay live because being demoted has to take effect while the
+  // screen is open: someone who just lost the role should watch the controls
+  // go, not tap one and be refused. But the fire is deduped by content
+  // signature, exactly as `_loadMembers` above does and for exactly the same
+  // reason — the query still re-runs, but an unchanged answer no longer costs
+  // a rebuild.
   //
   // Starts at [RoomPermissions.none], which draws a plain member's view. The
   // first frame is wrong either way; wrong in this direction merely omits
@@ -99,16 +111,18 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   // people who do not have them.
   RoomPermissions _perms = RoomPermissions.none;
   Subscription? _permsSub;
+  String _permsSig = '';
 
-  /// Live so the badge is a real count and not a number from screen-open.
+  /// Fetched, not subscribed. A queue that updates when you open the screen and
+  /// after you act on it is worth far more than one that is live at the cost of
+  /// a rebuild per read receipt — and an admin who is looking at the queue is,
+  /// by definition, about to change it themselves.
   List<RoomJoinRequest> _joinRequests = const [];
-  Subscription? _joinRequestsSub;
 
   /// Invites this room has out and nobody has answered. Shown under the roster
   /// because "who is in this group" and "who is on their way" are the same
-  /// question to the person reading it.
+  /// question to the person reading it. Same one-shot reasoning as above.
   List<PendingRoomInvite> _pendingInvites = const [];
-  Subscription? _pendingInvitesSub;
 
   ChatRoom? get _room => widget.repo.roomById(widget.roomId);
 
@@ -147,57 +161,35 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         {'roomId': widget.roomId, 'userId': me},
         onData: (data) {
           if (!mounted) return;
-          setState(() {
-            _perms = data == null
-                ? RoomPermissions.none
-                : RoomPermissions.fromJson((data as Map).cast<String, dynamic>());
-          });
+          final next = data == null
+              ? RoomPermissions.none
+              : RoomPermissions.fromJson((data as Map).cast<String, dynamic>());
+          // Deduped, because this query re-fires on every message in the room:
+          // it reads the room document, and `messages.send` patches
+          // `rooms.lastMessage`. The ANSWER changes only when somebody's role
+          // or the room's policy actually changes, which is rare — so without
+          // this the screen rebuilt per message to be told nothing new.
+          final sig = _permsSignature(next);
+          if (sig == _permsSig) return;
+          final wasAdmin = _perms.isAdmin;
+          _permsSig = sig;
+          setState(() => _perms = next);
+          // Newly an admin (or newly not): the two queues below are gated on
+          // that, so refresh them rather than leave a promoted admin looking
+          // at an empty queue until they reopen the screen.
+          if (next.isAdmin != wasAdmin) unawaited(_refreshAdminLists());
         },
         onError: (err) => debugPrint('permissions sub error: $err'),
-      );
-
-      _joinRequestsSub?.cancel();
-      _joinRequestsSub = await widget.repo.cv.subscribe(
-        'roomInvites:listJoinRequests',
-        {'roomId': widget.roomId, 'userId': me},
-        onData: (data) {
-          if (!mounted) return;
-          final list = (data as List?) ?? const [];
-          setState(() {
-            _joinRequests = list
-                .map((e) =>
-                    RoomJoinRequest.fromJson((e as Map).cast<String, dynamic>()))
-                .toList();
-          });
-        },
-        onError: (err) => debugPrint('join requests sub error: $err'),
-      );
-
-      _pendingInvitesSub?.cancel();
-      _pendingInvitesSub = await widget.repo.cv.subscribe(
-        'roomInvitations:listForRoom',
-        {'roomId': widget.roomId, 'userId': me},
-        onData: (data) {
-          if (!mounted) return;
-          final list = (data as List?) ?? const [];
-          setState(() {
-            _pendingInvites = list
-                .map((e) =>
-                    PendingRoomInvite.fromJson((e as Map).cast<String, dynamic>()))
-                .toList();
-          });
-        },
-        onError: (err) => debugPrint('pending invites sub error: $err'),
       );
     } catch (e) {
       // Loud in debug, silent in release.
       //
-      // These three subscriptions failing is indistinguishable, on screen, from
-      // "you are an ordinary member": every control is gated on `_perms`, which
-      // stays at `RoomPermissions.none`. That is the correct thing to RENDER —
-      // never flash admin controls at someone who may not have them — but it
-      // cost an hour once when the real cause was that the backend functions
-      // had not been deployed yet, and the screen said nothing at all.
+      // This failing is indistinguishable, on screen, from "you are an ordinary
+      // member": every control is gated on `_perms`, which stays at
+      // `RoomPermissions.none`. That is the correct thing to RENDER — never
+      // flash admin controls at someone who may not have them — but it cost an
+      // hour once when the real cause was that the backend functions had not
+      // been deployed yet, and the screen said nothing at all.
       //
       // Offline is a legitimate reason to land here, so this is not an error
       // the user is shown. It IS something the next person debugging an empty
@@ -207,7 +199,47 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
         'will not render. Offline, or roomAdmin/roomInvites not deployed: $e',
       );
     }
+    await _refreshAdminLists();
   }
+
+  /// The two admin queues, read once.
+  ///
+  /// Called on open, whenever the caller's admin standing changes, and after
+  /// any action that could alter either list. Deliberately NOT subscribed —
+  /// see the note on the fields.
+  Future<void> _refreshAdminLists() async {
+    if (!mounted) return;
+    try {
+      final requests = _perms.canReviewJoinRequests
+          ? await widget.repo.listJoinRequests(widget.roomId)
+          : const <RoomJoinRequest>[];
+      final invites = await widget.repo.pendingRoomInvites(widget.roomId);
+      if (!mounted) return;
+      setState(() {
+        _joinRequests = requests;
+        _pendingInvites = invites;
+      });
+    } catch (e) {
+      debugPrint('room admin lists unavailable: $e');
+    }
+  }
+
+  /// Everything this screen actually renders from a [RoomPermissions].
+  ///
+  /// Not the whole object: it has no value equality, and comparing identity
+  /// would defeat the dedup entirely since every fire builds a fresh instance.
+  String _permsSignature(RoomPermissions p) => [
+        p.role.wire,
+        p.isGroup,
+        p.canEditRoom,
+        p.canRemoveMembers,
+        p.canAssignAdmins,
+        p.canManageLink,
+        p.canReviewJoinRequests,
+        p.canInvite,
+        p.membersCanInvite,
+        p.linkJoinPolicy.wire,
+      ].join('|');
 
   /// How much each shared-content tab holds.
   ///
@@ -322,8 +354,6 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
   void dispose() {
     _membersSub?.cancel();
     _permsSub?.cancel();
-    _joinRequestsSub?.cancel();
-    _pendingInvitesSub?.cancel();
     widget.repo.removeListener(_onRepo);
     _name.dispose();
     _desc.dispose();
@@ -1214,12 +1244,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
 
   Widget _addMembersRow(AppTheme theme) {
     final l10n = AppLocalizations.of(context);
-    void open() => showRoomInviteFriendsSheet(
-          context,
-          repo: widget.repo,
-          api: widget.api,
-          roomId: widget.roomId,
-        );
+    Future<void> open() async {
+      await showRoomInviteFriendsSheet(
+        context,
+        repo: widget.repo,
+        api: widget.api,
+        roomId: widget.roomId,
+      );
+      await _refreshAdminLists();
+    }
     return FocusableTap(
       onTap: open,
       semanticLabel: l10n.roomAdminAddFriendsRow,
@@ -1534,8 +1567,10 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
     }
   }
 
-  Future<void> _cancelInvite(PendingRoomInvite inv) =>
-      _runAdmin(() => widget.repo.cancelRoomInvitation(inv.invitationId));
+  Future<void> _cancelInvite(PendingRoomInvite inv) async {
+    await _runAdmin(() => widget.repo.cancelRoomInvitation(inv.invitationId));
+    await _refreshAdminLists();
+  }
 
   Future<void> _confirmThen({
     required String headline,
@@ -1595,12 +1630,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             icon: Icons.person_add_alt,
             label: l10n.roomAdminAddFriendsRow,
             sub: l10n.roomAdminAddFriendsRowSub,
-            onTap: () => showRoomInviteFriendsSheet(
-              context,
-              repo: widget.repo,
-              api: widget.api,
-              roomId: widget.roomId,
-            ),
+            onTap: () async {
+              await showRoomInviteFriendsSheet(
+                context,
+                repo: widget.repo,
+                api: widget.api,
+                roomId: widget.roomId,
+              );
+              await _refreshAdminLists();
+            },
           ),
         if (_perms.canManageLink)
           _adminRow(
@@ -1625,12 +1663,15 @@ class _RoomInfoScreenState extends State<RoomInfoScreen> {
             label: l10n.roomAdminJoinRequestsRow,
             sub: l10n.roomAdminJoinRequestsRowSub(pendingRequests),
             badge: pendingRequests,
-            onTap: () => showRoomJoinRequestsSheet(
-              context,
-              repo: widget.repo,
-              api: widget.api,
-              roomId: widget.roomId,
-            ),
+            onTap: () async {
+              await showRoomJoinRequestsSheet(
+                context,
+                repo: widget.repo,
+                api: widget.api,
+                roomId: widget.roomId,
+              );
+              await _refreshAdminLists();
+            },
           ),
       ],
     );
