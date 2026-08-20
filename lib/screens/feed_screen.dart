@@ -7,6 +7,7 @@ import '../data/chat_repository.dart';
 import '../data/feed_store.dart';
 import '../data/games_store.dart';
 import '../data/settings_store.dart';
+import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -73,7 +74,10 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen>
     with TabReselectScroll<FeedScreen> {
-  final _scroll = ScrollController();
+  // Not a plain ScrollController: this section's State is destroyed on
+  // every tab switch, and the framework's own PageStorage restore is what
+  // produced the settle-bounce on return. See [ScrollMemory].
+  final _scroll = ScrollMemory.controller();
 
   @override
   HomeSection get reselectSection => HomeSection.feed;
@@ -83,6 +87,7 @@ class _FeedScreenState extends State<FeedScreen>
   @override
   void initState() {
     super.initState();
+    ScrollMemory.restore('feed', _scroll);
     // Idempotent — arms the day-rollover timer if some earlier mount hasn't.
     FeedStore.instance.start();
     FeedStore.instance.addListener(_onChange);
@@ -99,6 +104,7 @@ class _FeedScreenState extends State<FeedScreen>
 
   @override
   void dispose() {
+    ScrollMemory.save('feed', _scroll);
     FeedStore.instance.removeListener(_onChange);
     GamesStore.instance.removeListener(_onChange);
     widget.repo.removeListener(_onChange);

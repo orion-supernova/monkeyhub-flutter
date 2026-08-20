@@ -8,6 +8,7 @@ import '../backend/server_store.dart';
 import '../calls/call_models.dart' show VideoQualityTier;
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -70,7 +71,10 @@ class _SettingsScreenState extends State<SettingsScreen>
     with TabReselectScroll<SettingsScreen> {
   ChatUser? _me;
 
-  final _scroll = ScrollController();
+  // Not a plain ScrollController: this section's State is destroyed on
+  // every tab switch, and the framework's own PageStorage restore is what
+  // produced the settle-bounce on return. See [ScrollMemory].
+  final _scroll = ScrollMemory.controller();
 
   @override
   HomeSection get reselectSection => HomeSection.settings;
@@ -97,6 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen>
   @override
   void initState() {
     super.initState();
+    ScrollMemory.restore('settings', _scroll);
     SettingsStore.instance.addListener(_onSettings);
     widget.family.addListener(_onSettings);
     widget.auth.addListener(_onAuth);
@@ -110,6 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   @override
   void dispose() {
+    ScrollMemory.save('settings', _scroll);
     SettingsStore.instance.removeListener(_onSettings);
     widget.family.removeListener(_onSettings);
     widget.auth.removeListener(_onAuth);

@@ -9,6 +9,7 @@ import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/room_filter.dart';
 import '../data/settings_store.dart';
+import 'navigation/scroll_memory.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -73,7 +74,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// unlike the filter itself it isn't persisted.
   bool _filterExpanded = false;
 
-  final _scroll = ScrollController();
+  // Not a plain ScrollController: this section's State is destroyed on
+  // every tab switch, and the framework's own PageStorage restore is what
+  // produced the settle-bounce on return. See [ScrollMemory].
+  final _scroll = ScrollMemory.controller();
 
   // ───────── in-place search ─────────
 
@@ -102,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
+    ScrollMemory.restore('chat', _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
     // The filter and its style both live in SettingsStore. HomeShell also
@@ -123,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    ScrollMemory.save('chat', _scroll);
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     SettingsStore.instance.removeListener(_onChange);

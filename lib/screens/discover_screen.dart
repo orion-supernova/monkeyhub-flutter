@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../backend/chat_api.dart';
 import '../data/chat_repository.dart';
 import '../data/settings_store.dart';
+import 'navigation/scroll_memory.dart';
 import '../data/ui_selection_store.dart';
 import '../family/family_service.dart';
 import '../keyboard/focusable_tap.dart';
@@ -72,7 +73,10 @@ enum _RequestsTab { incoming, outgoing }
 
 class _DiscoverScreenState extends State<DiscoverScreen>
     with TabReselectScroll<DiscoverScreen>, RefreshOnReturn<DiscoverScreen> {
-  final _scroll = ScrollController();
+  // Not a plain ScrollController: this section's State is destroyed on
+  // every tab switch, and the framework's own PageStorage restore is what
+  // produced the settle-bounce on return. See [ScrollMemory].
+  final _scroll = ScrollMemory.controller();
 
   @override
   HomeSection get reselectSection => HomeSection.discover;
@@ -164,6 +168,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   @override
   void initState() {
     super.initState();
+    ScrollMemory.restore('discover', _scroll);
     widget.repo.addListener(_onChange);
     widget.family.addListener(_onChange);
     _wasUnlocked = _roomsUnlocked;
@@ -178,6 +183,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
 
   @override
   void dispose() {
+    ScrollMemory.save('discover', _scroll);
     widget.repo.removeListener(_onChange);
     widget.family.removeListener(_onChange);
     _scroll.dispose();
